@@ -13,3 +13,4 @@ tests/
 .gitignore
 *.md
 app.zip
+temp_tests_backup/
