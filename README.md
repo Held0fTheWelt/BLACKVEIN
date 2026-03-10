@@ -13,28 +13,28 @@ Flask server foundation: server-rendered web pages with session auth, and a vers
 ## Project structure
 
 ```
-app/
-  __init__.py       # create_app, CSRF (API exempted)
-  config.py         # Config, DevelopmentConfig, TestingConfig
-  extensions.py     # db, jwt, limiter, CORS (configurable origins)
-  models/user.py     # User
-  services/         # user_service
-  web/              # routes, auth helper, templates
-  api/v1/           # auth_routes, system_routes
-  static/
-run.py              # entrypoint, init-db, seed-dev-user
+Backend/            # API, auth, dashboard, DB, tests
+  app/              # create_app, config, extensions, models, services, web, api, static
+  migrations/       # Flask-Migrate (Alembic)
+  tests/
+  run.py            # entrypoint: init-db, seed-dev-user
+  requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
+Frontend/           # Public website (placeholder)
+  frontend_app.py, templates/, static/
+README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 ```
 
 ## Setup
 
 1. **Prerequisites:** Python 3.10+, pip.
-2. **Install:** `pip install -r requirements.txt`  
-   `requirements.txt` uses version ranges (not exact pins) so dependency updates and security fixes are picked up. For reproducible builds use `pip freeze > requirements.lock` and install with `pip install -r requirements.lock`.
-3. **Environment:** Copy `.env.example` to `.env` and set at least:
+2. **Backend:** From repo root, `cd Backend`. Install: `pip install -r requirements.txt`  
+   (Use version ranges as in `requirements.txt`; for reproducible builds use `pip freeze > requirements.lock`.)
+3. **Environment:** Copy repo root `.env.example` to `.env` (e.g. in root or Backend) and set at least:
    - `SECRET_KEY` and `JWT_SECRET_KEY` (required; no default secrets in production).
    - For local dev only: `DEV_SECRETS_OK=1` to allow dev fallback secrets and `flask seed-dev-user`.
-4. **Database:** `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1` (supply credentials via env `SEED_DEV_USERNAME`/`SEED_DEV_PASSWORD`, CLI `--username`/`--password`, or `--generate` to print a random password).
-5. **Run:** `python run.py` or `flask run`. Default port 5000; debug when `FLASK_DEBUG=1`.
+   - `FLASK_APP=run:app` (so Flask finds the app when running from `Backend/`).
+4. **Database:** From `Backend/`: `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1` (supply credentials via env or CLI `--username`/`--password` or `--generate`).
+5. **Run backend:** From `Backend/`: `python run.py` or `flask run`. Default port 5000; debug when `FLASK_DEBUG=1`.
 
 ## Environment configuration
 

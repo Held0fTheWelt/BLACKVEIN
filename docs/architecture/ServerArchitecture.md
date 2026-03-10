@@ -8,18 +8,17 @@ Flask server foundation: server-rendered web pages with session auth, and a vers
 
 ## Project structure
 
+Backend (run and test from `Backend/`):
+
 ```
-app/
-  __init__.py       # create_app, CSRF (API exempted)
-  config.py         # Config, DevelopmentConfig, TestingConfig
-  extensions.py     # db, jwt, limiter, CORS (configurable origins)
-  models/user.py     # User
-  services/         # user_service
-  web/              # routes, auth helper, templates
-  api/v1/           # auth_routes, system_routes
-  static/
-run.py              # entrypoint, init-db, seed-dev-user
+Backend/
+  app/              # create_app, config, extensions, models, services, web, api, static
+  migrations/       # Flask-Migrate
+  tests/
+  run.py            # entrypoint, init-db, seed-dev-user
 ```
+
+Frontend: `Frontend/frontend_app.py`, `templates/`, `static/` (public site; placeholder). Root: README, CHANGELOG, docker-compose, docs, .env.example.
 
 ## Setup
 
@@ -28,8 +27,8 @@ run.py              # entrypoint, init-db, seed-dev-user
 3. **Environment:** Copy `.env.example` to `.env` and set at least:
    - `SECRET_KEY` and `JWT_SECRET_KEY` (required; no default secrets in production).
    - For local dev only: `DEV_SECRETS_OK=1` to allow dev fallback secrets and `flask seed-dev-user`.
-4. **Database:** `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1`.
-5. **Run:** `python run.py` or `flask run`. Default port 5000; debug when `FLASK_DEBUG=1`.
+4. **Database:** From `Backend/`: `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1`.
+5. **Run:** From `Backend/`: `python run.py` or `flask run` (set `FLASK_APP=run:app`). Default port 5000; debug when `FLASK_DEBUG=1`.
 
 ## Environment configuration
 

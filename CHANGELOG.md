@@ -9,6 +9,7 @@ All notable changes to the World of Shadows project are documented in this file.
 ### Added
 
 - **Architecture audit:** Implementation note `docs/architecture/FrontendBackendRestructure.md` defining the target Backend/Frontend split. World of Shadows is to be restructured into `Backend/` (app, instance, migrations, tests, run.py, API, auth, dashboard) and `Frontend/` (frontend_app.py, public templates, static, API consumption). MasterBlogAPI used only as reference for separation and API-first content delivery; existing auth and branding preserved. Real news system will be implemented in Backend (model + API) with frontend consuming JSON; no file moves in this audit step.
+- **Backend/Frontend restructure:** Repository split into `Backend/` and `Frontend/`. Backend now contains `app/`, `migrations/`, `tests/`, `run.py`, `requirements.txt`, `requirements-dev.txt`, `Dockerfile`, `pytest.ini`, `.dockerignore`; run and test from `Backend/` with `FLASK_APP=run:app`. New `Frontend/` has `frontend_app.py`, `templates/`, `static/` (placeholder only). Root keeps `README.md`, `CHANGELOG.md`, `docker-compose.yml`, `docs/`, `.env.example`. Docker build context is `Backend/`; compose mounts `Backend/instance`. No news system yet; structure only.
 
 ### Security
 

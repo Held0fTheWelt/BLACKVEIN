@@ -3,9 +3,11 @@
 ## One-time setup
 
 ```bash
+cd Backend
 pip install -r requirements.txt
-cp .env.example .env
+cp ../.env.example ../.env
 # Edit .env: set SECRET_KEY and JWT_SECRET_KEY (or set DEV_SECRETS_OK=1 for dev fallbacks)
+# Set FLASK_APP=run:app (in .env or export) when running from Backend/
 flask init-db
 # Optional, only when DEV_SECRETS_OK=1:
 flask seed-dev-user --generate
@@ -15,7 +17,8 @@ flask seed-dev-user --generate
 ## Start the server
 
 ```bash
-export FLASK_APP=run.py
+cd Backend
+export FLASK_APP=run:app
 export FLASK_DEBUG=1
 python run.py
 # Or: flask run --port 5000
