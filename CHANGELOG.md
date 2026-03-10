@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.0.4]
 
+<<<<<<< HEAD
 ### Security
 
 - **Open redirect:** Login no longer redirects to external URLs. `is_safe_redirect()` in `app/web/auth.py` allows only path-only URLs (no scheme, no netloc). `next` query param is ignored when unsafe; fallback to dashboard.
@@ -19,7 +20,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Config:** `DEV_SECRETS_OK` and `PREFER_HTTPS` / `FLASK_DEBUG` use `env_bool` consistently in config and run.py.
 - **Config:** Base `Config`, `DevelopmentConfig`, and `TestingConfig` roles clarified; JWT_SECRET_KEY fallback to SECRET_KEY documented as intentional single-secret option.
 
+=======
+>>>>>>> feature-docs
 ### Security
+
+- **Open redirect:** `is_safe_redirect()` in `app/web/auth.py`; login accepts only path-only `next` URLs.
+- **Username validation:** Max 80 chars; only letters, digits, hyphen, underscore. Returns "Username contains invalid characters" for disallowed chars. API tests for space, length, special chars.
+- **Password validation:** `validate_password()` in user_service: min 8, max 128 chars; at least one upper, one lower, one digit. Tests and fixtures use valid passwords (e.g. Testpass1).
+- **Session regeneration:** After successful login, session is cleared and repopulated; `session.modified = True` to reduce session fixation.
+- **Logout:** Form already had CSRF token; test added for POST /logout without session redirecting to home.
+
+### Added
+
+- **Test isolation:** `app` and `app_csrf` fixtures call `db.drop_all()` in teardown; `db_session` fixture for rollback after test.
+- **Logging:** App logger configured in create_app (DEBUG when testing/debug, WARNING otherwise). user_service: WARNING on failed login (username only), INFO on user created. auth_routes: WARNING on API 401 (username only). No passwords or tokens in logs.
+- **Migrations:** Flask-Migrate (Alembic); `migrations/` and initial users table migration. README documents `flask db upgrade`. TestingConfig does not use migrations.
+- **Coverage:** pytest.ini adds `--cov=app --cov-report=term-missing --cov-fail-under=85`.
+- **Requirements:** `requirements.txt` (production only, version ranges); `requirements-dev.txt` includes production and adds pytest, pytest-cov. README install instructions updated.
+- **Docker:** Dockerfile (multi-stage, Python 3.13-slim, non-root user, gunicorn 4 workers port 8000), docker-compose.yml (app service, .env, instance volume), .dockerignore. gunicorn in requirements. README Docker section.
+
+### Changed
+
+- **Test encoding:** Test Python files converted to UTF-8 without BOM.
+- **README:** Database setup mentions migrations; Docker section; install uses requirements-dev for dev.
 
 - **Dev seed user:** `flask seed-dev-user` no longer uses fixed credentials. Credentials must be provided via env (`SEED_DEV_USERNAME`, `SEED_DEV_PASSWORD`), CLI options (`--username`, `--password`, or password prompt), or `--generate` to create a user with a random password that is printed once.
 - **Tests:** Startup fails when `SECRET_KEY` is missing (unless testing config). GET `/logout` returns 405; POST `/logout` clears session. Web login without valid CSRF token is rejected when CSRF is enabled. API login and protected routes are independent of web CSRF. CORS: no `Access-Control-Allow-Origin` when `CORS_ORIGINS` is unset; when set, allowed origins are reflected in responses.
