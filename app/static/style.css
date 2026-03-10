@@ -105,6 +105,42 @@ body {
     border-color: var(--primary);
 }
 
+.password-wrap {
+    position: relative;
+    display: block;
+}
+.password-wrap input {
+    padding-right: 2.75rem;
+}
+.password-toggle {
+    position: absolute;
+    right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 0.4rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    border-radius: 4px;
+    line-height: 0;
+    z-index: 2;
+}
+.password-toggle:hover {
+    color: var(--primary);
+}
+.password-toggle svg {
+    display: block;
+    width: 1.35rem;
+    height: 1.35rem;
+    color: inherit;
+}
+.password-toggle .password-toggle-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .form-hint {
     margin-top: 1rem;
     margin-bottom: 0;
