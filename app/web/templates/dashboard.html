@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – World of Shadows{% endblock %}
+{% block content %}
+<div class="card card-center">
+    <h1>Dashboard</h1>
+    <p>You are logged in as <strong>{{ session.username }}</strong>.</p>
+    <p><a href="{{ url_for('web.home') }}" class="btn btn-outline">Home</a></p>
+</div>
+{% endblock %}

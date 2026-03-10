@@ -4,8 +4,10 @@
 <div class="card card-center">
     <h1>Welcome</h1>
     <p>This is the World of Shadows server. Use the API at <code>/api/v1</code> or log in for the web session.</p>
-    <p>
-        <a href="{{ url_for('web.login') }}" class="btn btn-primary">Log in</a>
-    </p>
+    {% if session.get('username') %}
+    <p><a href="{{ url_for('web.dashboard') }}" class="btn btn-primary">Dashboard</a></p>
+    {% else %}
+    <p><a href="{{ url_for('web.login') }}" class="btn btn-primary">Log in</a></p>
+    {% endif %}
 </div>
 {% endblock %}

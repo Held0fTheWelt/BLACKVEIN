@@ -1,8 +1,7 @@
-"""Configuration loaded from environment."""
+"""Configuration loaded from environment. No hardcoded secrets in production."""
 import os
 from pathlib import Path
 
-# Load .env when present
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -10,13 +9,36 @@ except ImportError:
     pass
 
 
-class Config:
-    """Base config from environment."""
+def env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean from environment. Only 1, true, yes, on (case-insensitive) are True.
+    Merely being set to any other value is False, so DEV_SECRETS_OK=0 or DEV_SECRETS_OK=foo
+    does not enable dev behavior."""
+    raw = (os.environ.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("1", "true", "yes", "on")
 
-    SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-change-in-production"
+
+def _parse_cors_origins():
+    """Parse CORS_ORIGINS env: comma-separated list, or None for same-origin only."""
+    raw = os.environ.get("CORS_ORIGINS", "").strip()
+    if not raw:
+        return None
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+class Config:
+    """Base config for production. SECRET_KEY must be set via environment.
+    JWT_SECRET_KEY may fall back to SECRET_KEY if unset (documented single-secret option);
+    for production, set both explicitly when possible."""
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Database: default SQLite in instance folder
+    # Required from environment; no insecure defaults
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SECRET_KEY")
+
+    # Database
     _instance_path = Path(__file__).resolve().parent.parent / "instance"
     _default_db = _instance_path / "wos.db"
     _uri = os.environ.get("DATABASE_URI")
@@ -26,27 +48,43 @@ class Config:
     SQLALCHEMY_DATABASE_URI = _uri
 
     # JWT
-    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SECRET_KEY") or "jwt-secret-change-me"
     JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRES", 86400))
     JWT_HEADER_NAME = "Authorization"
     JWT_HEADER_TYPE = "Bearer"
 
-    # Session cookie (HTTPS)
-    _prefer_https = os.environ.get("PREFER_HTTPS", "").strip().lower() in ("1", "true", "yes")
-    if _prefer_https:
-        SESSION_COOKIE_SECURE = True
-        SESSION_COOKIE_SAMESITE = "Lax"
+    # CORS: configurable origins; None means same-origin only
+    CORS_ORIGINS = _parse_cors_origins()
+
+    # Session cookies: explicit and secure by default
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = env_bool("PREFER_HTTPS", False)
 
     # Rate limiting
     RATELIMIT_DEFAULT = os.environ.get("RATELIMIT_DEFAULT", "100 per minute")
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
 
+class DevelopmentConfig(Config):
+    """Dev-only: fallback secrets when DEV_SECRETS_OK is explicitly 1/true/yes/on.
+    Do not use in production."""
+
+    if env_bool("DEV_SECRETS_OK", False):
+        SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-do-not-use-in-production"
+        JWT_SECRET_KEY = (
+            os.environ.get("JWT_SECRET_KEY")
+            or os.environ.get("SECRET_KEY")
+            or "dev-jwt-secret-do-not-use-in-production"
+        )
+
+
 class TestingConfig(Config):
-    """Config for tests: in-memory DB, high rate limit, fixed JWT key."""
+    """Config for tests only: in-memory DB, fixed secrets, CSRF disabled, high rate limit."""
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    SECRET_KEY = "test-secret-key"
     JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
     RATELIMIT_DEFAULT = "1000 per minute"
     WTF_CSRF_ENABLED = False
+    CORS_ORIGINS = None

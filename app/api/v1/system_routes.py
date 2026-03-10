@@ -18,8 +18,9 @@ def health():
 @jwt_required()
 def protected_test():
     """Example protected route; returns message and user id."""
+    from app.extensions import db
     uid = get_jwt_identity()
-    user = User.query.get(int(uid))
+    user = db.session.get(User, int(uid))
     return jsonify({
         "message": "ok",
         "user_id": int(uid),

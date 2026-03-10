@@ -49,8 +49,9 @@ def login():
 def me():
     """Return current user from JWT."""
     from app.models import User
+    from app.extensions import db
     uid = get_jwt_identity()
-    user = User.query.get(int(uid))
+    user = db.session.get(User, int(uid))
     if user is None:
         return jsonify({"error": "User not found"}), 404
     return jsonify(user.to_dict()), 200

@@ -4,6 +4,7 @@
 <div class="card card-center">
     <h1>Log in</h1>
     <form method="post" action="{{ url_for('web.login') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label for="username">Username</label>
             <input type="text" name="username" id="username" required autocomplete="username">

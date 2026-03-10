@@ -28,6 +28,8 @@ body {
     line-height: 1.5;
 }
 
+.header .inline-form { display: inline; }
+
 .header {
     display: flex;
     align-items: center;

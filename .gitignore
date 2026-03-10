@@ -2,6 +2,7 @@
 .idea
 WorldOfShadows.code-workspace
 instance/
+instance/*.db
 *.db
 .env
 __pycache__/

@@ -11,7 +11,11 @@
         <a href="{{ url_for('web.home') }}" class="logo" aria-label="World of Shadows">World of Shadows</a>
         {% if session.get('username') %}
         <span class="user-info">{{ session.username }}</span>
-        <a href="{{ url_for('web.logout') }}" class="btn btn-outline">Log out</a>
+        <a href="{{ url_for('web.dashboard') }}" class="btn btn-outline">Dashboard</a>
+        <form method="post" action="{{ url_for('web.logout') }}" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline">Log out</button>
+        </form>
         {% else %}
         <a href="{{ url_for('web.login') }}" class="btn btn-outline">Log in</a>
         {% endif %}

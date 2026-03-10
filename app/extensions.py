@@ -11,14 +11,17 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[])
 
 
 def init_app(app):
-    """Bind extensions to app."""
+    """Bind extensions to app. CORS uses configurable origins from config."""
     db.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-    CORS(
-        app,
-        allow_headers=["Content-Type", "Authorization"],
-        expose_headers=["Content-Type"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        supports_credentials=False,
-    )
+    origins = app.config.get("CORS_ORIGINS")
+    if origins:
+        CORS(
+            app,
+            origins=origins,
+            allow_headers=["Content-Type", "Authorization"],
+            expose_headers=["Content-Type"],
+            methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            supports_credentials=False,
+        )
