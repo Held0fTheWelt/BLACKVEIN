@@ -136,8 +136,8 @@ def test_register_post_missing_email_shows_error(client):
     assert b"Email is required" in response.data or b"error" in response.data.lower()
 
 
-def test_register_post_success_redirects_to_login(client):
-    """POST /register with valid data redirects to /login."""
+def test_register_post_success_redirects_to_pending(client):
+    """POST /register with valid data redirects to /register/pending (email verification)."""
     response = client.post(
         "/register",
         data={
@@ -149,7 +149,7 @@ def test_register_post_success_redirects_to_login(client):
         follow_redirects=False,
     )
     assert response.status_code == 302
-    assert "login" in (response.headers.get("Location") or "")
+    assert "register/pending" in (response.headers.get("Location") or "")
 
 
 def test_register_post_password_mismatch_shows_error(client):
@@ -326,3 +326,57 @@ def test_reset_password_mismatch_shows_error(client, test_user_with_email, app):
     )
     assert response.status_code == 200
     assert b"do not match" in response.data or b"Passwords" in response.data
+
+
+def test_register_pending_get_returns_200(client):
+    """GET /register/pending shows instructions."""
+    response = client.get("/register/pending")
+    assert response.status_code == 200
+    assert b"email" in response.data.lower() or b"verify" in response.data.lower()
+
+
+def test_activate_valid_token_redirects_to_login(client, app):
+    """Activate with valid token sets email_verified_at and redirects to login with success."""
+    from app.services.user_service import create_user, create_email_verification_token
+
+    with app.app_context():
+        user, _ = create_user("activateuser", "Activate1", "activate@example.com")
+        raw_token = create_email_verification_token(user, ttl_hours=24)
+    response = client.get(f"/activate/{raw_token}", follow_redirects=False)
+    assert response.status_code == 302
+    assert "login" in (response.headers.get("Location") or "")
+    response = client.get(f"/activate/{raw_token}", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"invalid" in response.data.lower() or b"expired" in response.data.lower()
+
+
+def test_login_blocked_for_unverified_user(client, app):
+    """User with email but no email_verified_at cannot log in (web)."""
+    from app.extensions import db
+    from app.models import User
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        user = User(
+            username="unverifieduser",
+            email="unverified@example.com",
+            password_hash=generate_password_hash("Unverified1"),
+            email_verified_at=None,
+        )
+        db.session.add(user)
+        db.session.commit()
+    response = client.post(
+        "/login",
+        data={"username": "unverifieduser", "password": "Unverified1"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"verify" in response.data.lower()
+    assert b"Dashboard" not in response.data
+
+
+def test_resend_verification_get_returns_200(client):
+    """GET /resend-verification returns 200."""
+    response = client.get("/resend-verification")
+    assert response.status_code == 200
+    assert b"resend" in response.data.lower() or b"verification" in response.data.lower()

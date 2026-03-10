@@ -8,6 +8,45 @@ from app.extensions import mail
 logger = logging.getLogger(__name__)
 
 
+def _activation_url(raw_token: str) -> str:
+    """Build activation URL from config base URL or request context."""
+    base = current_app.config.get("APP_PUBLIC_BASE_URL")
+    if base:
+        return f"{base.rstrip('/')}/activate/{raw_token}"
+    return url_for("web.activate", token=raw_token, _external=True)
+
+
+def send_verification_email(user, raw_token: str) -> bool:
+    """
+    Send email verification (activation) link to user.email.
+    If MAIL_ENABLED is False or TESTING/localhost without MAIL_USERNAME, log URL and return True.
+    Returns True on success, False on send failure.
+    """
+    url = _activation_url(raw_token)
+    if current_app.config.get("TESTING") or not current_app.config.get("MAIL_ENABLED"):
+        if current_app.config.get("MAIL_SERVER") == "localhost" and not current_app.config.get("MAIL_USERNAME"):
+            logger.info("DEV: Verification URL for %r: %s", user.username, url)
+        else:
+            logger.info("Verification URL for %r (MAIL_ENABLED=False): %s", user.username, url)
+        return True
+    try:
+        msg = Message(
+            subject="World of Shadows – Verify your email",
+            recipients=[user.email],
+            body=(
+                f"Hello {user.username},\n\n"
+                f"Please click the link below to verify your email and activate your account.\n\n"
+                f"{url}\n\n"
+                f"If you did not create an account, ignore this email.\n"
+            ),
+        )
+        mail.send(msg)
+        return True
+    except Exception:
+        logger.exception("Failed to send verification email to user_id=%s", user.id)
+        return False
+
+
 def send_password_reset_email(user, raw_token: str) -> bool:
     """
     Send password reset email to user.email.

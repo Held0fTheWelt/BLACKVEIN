@@ -2,11 +2,13 @@ import hashlib
 import logging
 import re
 import secrets
+from datetime import datetime, timezone, timedelta
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import User
+from app.models.email_verification_token import EmailVerificationToken, PURPOSE_ACTIVATION
 
 logger = logging.getLogger(__name__)
 
@@ -145,4 +147,67 @@ def reset_password_with_token(raw_token: str, new_password: str):
     record.used = True
     db.session.commit()
     logger.info("Password reset completed for user_id=%s", record.user_id)
+    return True, None
+
+
+# --- Email verification (0.0.7) ---
+
+
+def create_email_verification_token(user, ttl_hours: int = 24) -> str:
+    """Create an activation token for user; invalidate existing ones. Return raw token."""
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(hours=ttl_hours)
+    invalidate_existing_verification_tokens(user, PURPOSE_ACTIVATION)
+    raw = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw.encode()).hexdigest()
+    record = EmailVerificationToken(
+        user_id=user.id,
+        token_hash=token_hash,
+        created_at=now,
+        expires_at=expires_at,
+        purpose=PURPOSE_ACTIVATION,
+        sent_to_email=user.email,
+    )
+    db.session.add(record)
+    db.session.commit()
+    logger.info("Email verification token created for user_id=%s", user.id)
+    return raw
+
+
+def invalidate_existing_verification_tokens(user, purpose: str = PURPOSE_ACTIVATION):
+    """Mark all existing verification tokens for this user/purpose as invalidated."""
+    now = datetime.now(timezone.utc)
+    EmailVerificationToken.query.filter_by(
+        user_id=user.id, purpose=purpose
+    ).filter(EmailVerificationToken.invalidated_at.is_(None)).update(
+        {"invalidated_at": now}, synchronize_session=False
+    )
+    db.session.commit()
+
+
+def get_valid_verification_token(raw_token: str, purpose: str = PURPOSE_ACTIVATION):
+    """Return a usable EmailVerificationToken for the raw token and purpose, or None."""
+    if not raw_token:
+        return None
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    record = EmailVerificationToken.query.filter_by(
+        token_hash=token_hash, purpose=purpose
+    ).first()
+    if record and record.is_usable:
+        return record
+    return None
+
+
+def verify_email_with_token(raw_token: str):
+    """
+    Mark user as verified if token is valid. Returns (True, None) or (False, error_message).
+    """
+    record = get_valid_verification_token(raw_token, PURPOSE_ACTIVATION)
+    if not record:
+        return False, "Activation link is invalid or has expired."
+    now = datetime.now(timezone.utc)
+    record.user.email_verified_at = now
+    record.used_at = now
+    db.session.commit()
+    logger.info("Email verified for user_id=%s", record.user_id)
     return True, None

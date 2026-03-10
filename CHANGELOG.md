@@ -10,6 +10,27 @@ _(No changes yet.)_
 
 ---
 
+## [0.0.7] - 2025-03-10
+
+### Added
+
+- **E-Mail-Verifikation bei Registrierung:** Neue User müssen ihre E-Mail-Adresse bestätigen, bevor sie sich einloggen können (Web-Session und API-JWT). Nach der Registrierung (Web und API) wird ein zeitlich begrenzter Activation-Token erzeugt und eine Verifikations-E-Mail gesendet (oder in Dev/ohne MAIL_ENABLED nur geloggt). Aktivierungs-URL: `/activate/<token>`; Gültigkeit konfigurierbar über `EMAIL_VERIFICATION_TTL_HOURS` (Standard 24).
+- **User-Modell:** Spalte `email_verified_at` (nullable DateTime); Migration `005_add_email_verified_at`.
+- **EmailVerificationToken:** Neues Modell und Tabelle `email_verification_tokens` (token_hash, user_id, created_at, expires_at, used_at, invalidated_at, purpose, sent_to_email); Migration `006_email_verification_tokens`. Token-Erzeugung wie beim Password-Reset (secrets.token_urlsafe(32), SHA-256-Hash).
+- **Service-Layer:** `create_email_verification_token`, `invalidate_existing_verification_tokens`, `get_valid_verification_token`, `verify_email_with_token` in `user_service.py`. `send_verification_email` in `mail_service.py` (nutzt `APP_PUBLIC_BASE_URL` oder url_for für Aktivierungs-Link; bei MAIL_ENABLED=False oder TESTING nur Log).
+- **Web-Registrierung:** Nach erfolgreicher Registrierung Redirect auf `/register/pending` mit Hinweis, E-Mail zu prüfen; Token wird angelegt und Verifikations-E-Mail versendet.
+- **Neue Web-Routen:** `GET /register/pending`, `GET /activate/<token>`, `GET/POST /resend-verification` (generische Erfolgsmeldung, keine User-Enumeration; bestehende Tokens werden invalidiert). Templates: `register_pending.html`, `resend_verification.html`.
+- **Login-Enforcement:** Web-Login und `require_web_login`: User mit E-Mail aber ohne `email_verified_at` können sich nicht einloggen (Session wird nicht gesetzt bzw. gelöscht, Flash-Hinweis). API `POST /auth/login`: bei unverifizierter E-Mail Antwort 403 mit `{"error": "Email not verified."}`.
+- **Config:** `MAIL_ENABLED`, `MAIL_USE_SSL`, `APP_PUBLIC_BASE_URL`, `EMAIL_VERIFICATION_TTL_HOURS` in `app/config.py`. Bestehende Mail-Konfiguration (MAIL_SERVER, MAIL_PORT, ?) unverändert.
+- **Tests:** `test_register_post_success_redirects_to_pending`, `test_register_pending_get_returns_200`, `test_activate_valid_token_redirects_to_login`, `test_login_blocked_for_unverified_user`, `test_resend_verification_get_returns_200`, `test_login_unverified_email_returns_403`. Fixture `test_user_with_email` setzt `email_verified_at`, damit Reset-/Login-Tests weiter funktionieren. Audit-Dokument `Backend/docs/PHASE1_AUDIT_0.0.7.md`.
+
+### Changed
+
+- **Registrierung (Web):** Redirect nach Erfolg von Login auf `/register/pending`.
+- **Registrierung (API):** Nach `create_user` werden Verifikations-Token erzeugt und E-Mail gesendet; Login bleibt bis Verifikation mit 403 blockiert.
+
+---
+
 ## [0.0.6] - 2025-03-10
 
 ### Added

@@ -95,6 +95,31 @@ def test_login_invalid_returns_401(client):
     assert "error" in response.get_json()
 
 
+def test_login_unverified_email_returns_403(client, app):
+    """POST /api/v1/auth/login with valid credentials but unverified email returns 403."""
+    from app.extensions import db
+    from app.models import User
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        user = User(
+            username="apiverify",
+            email="apiverify@example.com",
+            password_hash=generate_password_hash("Apiverify1"),
+            email_verified_at=None,
+        )
+        db.session.add(user)
+        db.session.commit()
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "apiverify", "password": "Apiverify1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 403
+    data = response.get_json()
+    assert "verified" in (data.get("error") or "").lower()
+
+
 def test_login_missing_body_returns_400(client):
     """POST /api/v1/auth/login without JSON returns 400."""
     response = client.post(

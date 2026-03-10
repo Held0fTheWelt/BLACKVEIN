@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Verify your email – World of Shadows{% endblock %}
+{% block content %}
+<div class="card card-center">
+    <h1>Check your email</h1>
+    <p class="form-hint">We sent a verification link to your email address. Click the link to activate your account, then log in.</p>
+    <p class="form-hint">
+        Didn’t get the email? <a href="{{ url_for('web.resend_verification') }}">Resend verification link</a>
+    </p>
+    <p class="form-hint">
+        <a href="{{ url_for('web.login') }}">Back to login</a>
+    </p>
+</div>
+{% endblock %}

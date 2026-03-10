@@ -1,4 +1,5 @@
 """Pytest fixtures for World of Shadows."""
+from datetime import datetime, timezone
 import pytest
 
 from app import create_app
@@ -88,12 +89,13 @@ def db_session(app):
 
 @pytest.fixture
 def test_user_with_email(app):
-    """Test user with email set; returns (user, password)."""
+    """Test user with email set (verified); returns (user, password)."""
     with app.app_context():
         user = User(
             username="emailuser",
             email="emailuser@example.com",
             password_hash=generate_password_hash("Testpass1"),
+            email_verified_at=datetime.now(timezone.utc),
         )
         db.session.add(user)
         db.session.commit()

@@ -70,15 +70,21 @@ class Config:
     RATELIMIT_DEFAULT = os.environ.get("RATELIMIT_DEFAULT", "100 per minute")
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
-    # Mail (password reset)
+    # Mail (password reset, email verification)
     MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", "587"))
     MAIL_USE_TLS = env_bool("MAIL_USE_TLS", True)
+    MAIL_USE_SSL = env_bool("MAIL_USE_SSL", False)
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.environ.get(
         "MAIL_DEFAULT_SENDER", "noreply@worldofshadows.local"
     )
+    MAIL_ENABLED = env_bool("MAIL_ENABLED", False)
+
+    # Email verification (0.0.7): base URL for activation links (no trailing slash)
+    APP_PUBLIC_BASE_URL = os.environ.get("APP_PUBLIC_BASE_URL", "").strip() or None
+    EMAIL_VERIFICATION_TTL_HOURS = int(os.environ.get("EMAIL_VERIFICATION_TTL_HOURS", "24"))
 
     # Public frontend URL (no trailing slash). When set, GET / and GET /news redirect there.
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip() or None

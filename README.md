@@ -37,6 +37,9 @@ Optional for local dev:
 - **CORS_ORIGINS** – Backend: comma-separated origins allowed to call the API (e.g. `http://127.0.0.1:5001,http://localhost:5001`). Required when the frontend runs on another port.
 - **FRONTEND_URL** – Backend: when set, `GET /` and `GET /news` redirect to this URL (e.g. `http://127.0.0.1:5001`).
 - **DEV_SECRETS_OK=1** – Enables dev fallback secrets and CLI commands `flask seed-dev-user`, `flask seed-news`.
+- **MAIL_ENABLED** – Set to `1` to send verification and password-reset emails; `0` or unset = log URLs only (dev).
+- **APP_PUBLIC_BASE_URL** – Base URL for activation links (e.g. `https://your-domain.com`). Optional; see `.env.example`.
+- **EMAIL_VERIFICATION_TTL_HOURS** – Validity of activation links in hours (default 24).
 
 ## Run workflow (local)
 

@@ -2,6 +2,8 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 
 from app.extensions import limiter
 from app.services import create_user, verify_user
+from app.services.user_service import create_email_verification_token
+from app.services.mail_service import send_verification_email
 from app.web.auth import is_safe_redirect, require_web_login
 
 web_bp = Blueprint("web", __name__)
@@ -36,6 +38,9 @@ def login():
         return render_template("login.html")
     user = verify_user(username, password)
     if user:
+        if user.email and user.email_verified_at is None:
+            flash("Please verify your email before logging in. Check your inbox or resend the link.", "error")
+            return redirect(url_for("web.login"))
         # Regenerate session to prevent session fixation
         session.clear()
         session["user_id"] = user.id
@@ -83,7 +88,57 @@ def register():
     if err:
         flash(err, "error")
         return render_template("register.html", username=username, email=email)
-    flash("Account created. Please log in.", "success")
+    ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
+    raw_token = create_email_verification_token(user, ttl_hours=ttl)
+    send_verification_email(user, raw_token)
+    flash("Account created. Check your email to verify your address, then log in.", "success")
+    return redirect(url_for("web.register_pending"))
+
+
+@web_bp.route("/register/pending", methods=["GET"])
+def register_pending():
+    """Shown after registration; instructs user to check email and use activation link."""
+    if session.get("user_id"):
+        return redirect(url_for("web.dashboard"))
+    return render_template("register_pending.html")
+
+
+@web_bp.route("/activate/<token>", methods=["GET"])
+def activate(token):
+    """Activate account via email link. Redirects to login with success or error."""
+    from app.services.user_service import verify_email_with_token
+
+    ok, err = verify_email_with_token(token)
+    if ok:
+        flash("Your email is verified. You can now log in.", "success")
+        return redirect(url_for("web.login"))
+    flash(err or "Activation link is invalid or has expired.", "error")
+    return redirect(url_for("web.login"))
+
+
+@web_bp.route("/resend-verification", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
+def resend_verification():
+    """Request a new verification email. Generic message to avoid user enumeration."""
+    if session.get("user_id"):
+        return redirect(url_for("web.dashboard"))
+    if request.method == "GET":
+        return render_template("resend_verification.html")
+    from app.services.user_service import (
+        get_user_by_email,
+        create_email_verification_token,
+    )
+
+    email = (request.form.get("email") or "").strip().lower()
+    if not email:
+        flash("Please enter your email address.", "error")
+        return render_template("resend_verification.html")
+    user = get_user_by_email(email)
+    if user and user.email and user.email_verified_at is None:
+        ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
+        raw_token = create_email_verification_token(user, ttl_hours=ttl)
+        send_verification_email(user, raw_token)
+    flash("If an account with that email is awaiting verification, a new link has been sent.", "info")
     return redirect(url_for("web.login"))
 
 

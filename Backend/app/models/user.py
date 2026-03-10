@@ -11,6 +11,7 @@ class User(db.Model):
     email = db.Column(db.String(254), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="user")
+    email_verified_at = db.Column(db.DateTime(timezone=True), nullable=True, default=None)
 
     ROLE_USER = "user"
     ROLE_EDITOR = "editor"

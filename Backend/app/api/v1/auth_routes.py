@@ -1,11 +1,13 @@
 import logging
 
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
 from app.extensions import limiter
 from app.services import verify_user, create_user
+from app.services.user_service import create_email_verification_token
+from app.services.mail_service import send_verification_email
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,9 @@ def register():
     if err:
         status = 409 if err in ("Username already taken", "Email already registered") else 400
         return jsonify({"error": err}), status
+    ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
+    raw_token = create_email_verification_token(user, ttl_hours=ttl)
+    send_verification_email(user, raw_token)
     return jsonify({"id": user.id, "username": user.username}), 201
 
 
@@ -42,6 +47,8 @@ def login():
         return jsonify({"error": "Username and password are required"}), 400
     user = verify_user(username, password)
     if user:
+        if user.email and user.email_verified_at is None:
+            return jsonify({"error": "Email not verified."}), 403
         access_token = create_access_token(identity=str(user.id))
         return jsonify({
             "access_token": access_token,

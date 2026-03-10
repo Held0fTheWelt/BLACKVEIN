@@ -2,7 +2,10 @@
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import redirect, session, url_for
+from flask import flash, redirect, session, url_for
+
+from app.models import User
+from app.extensions import db
 
 
 def is_safe_redirect(url: str) -> bool:
@@ -18,11 +21,22 @@ def is_safe_redirect(url: str) -> bool:
     return parsed.path.startswith("/")
 
 
+def _user_needs_verification(user) -> bool:
+    """True if user has email but is not yet verified."""
+    return bool(user and user.email and user.email_verified_at is None)
+
+
 def require_web_login(f):
-    """Redirect to login if no session user. Use for protected web routes."""
+    """Redirect to login if no session user or if user is unverified (has email but no verification)."""
     @wraps(f)
     def wrapped(*args, **kwargs):
-        if not session.get("user_id"):
+        uid = session.get("user_id")
+        if not uid:
+            return redirect(url_for("web.login"))
+        user = db.session.get(User, int(uid))
+        if user is None or _user_needs_verification(user):
+            session.clear()
+            flash("Please verify your email to log in.", "error")
             return redirect(url_for("web.login"))
         return f(*args, **kwargs)
     return wrapped
