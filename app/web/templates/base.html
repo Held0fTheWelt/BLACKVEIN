@@ -1,12 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{% block html_class %}{% endblock %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}World of Shadows{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+
+    {% block site_header %}
     <header class="header">
         <a href="{{ url_for('web.home') }}" class="logo" aria-label="World of Shadows">World of Shadows</a>
         {% if session.get('username') %}
@@ -20,7 +25,11 @@
         <a href="{{ url_for('web.login') }}" class="btn btn-outline">Log in</a>
         {% endif %}
     </header>
+    {% endblock %}
+
+    {% block site_main %}
     <main class="container">
+        {% block flash_messages %}
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <ul class="flash-messages">
@@ -30,11 +39,18 @@
         </ul>
         {% endif %}
         {% endwith %}
+        {% endblock %}
         {% block content %}{% endblock %}
     </main>
+    {% endblock %}
+
+    {% block site_footer %}
     <footer class="footer">
-        <p><span class="footer-brand">BLACKVEIGN</span> - World of Shadows @ Yves Tanas - 2026</p>
+        <p><span class="footer-brand">World of Shadows</span> – Server foundation</p>
     </footer>
+    {% endblock %}
+
+    {% block extra_scripts %}{% endblock %}
     <script>
 (function() {
     var eyeSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
