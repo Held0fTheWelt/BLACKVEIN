@@ -30,7 +30,11 @@
     },
     {
       "key": "password",
-      "value": "admin"
+      "value": "Admin123"
+    },
+    {
+      "key": "email",
+      "value": "admin@example.com"
     }
   ],
   "item": [
@@ -53,14 +57,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "auth", "register"]
             },
-            "description": "Create a new user. Returns 201 with `id` and `username`. Use 409 if username already taken."
+            "description": "Create a new user. Returns 201 with `id` and `username`. Email is required. Use 409 if username or email already taken."
           }
         },
         {
