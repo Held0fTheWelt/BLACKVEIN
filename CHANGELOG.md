@@ -8,7 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed
+
+- **Config:** Single `TestingConfig` only; removed duplicate class. Testing uses in-memory DB, fixed test secrets, CSRF disabled, high rate limit.
+- **Config:** Central `env_bool(name, default)` helper for boolean env vars. Values treated as True: `1`, `true`, `yes`, `on` (case-insensitive). Any other value or empty is False, so e.g. `DEV_SECRETS_OK=0` or `DEV_SECRETS_OK=foo` does not enable dev behavior.
+- **Config:** `DEV_SECRETS_OK` and `PREFER_HTTPS` / `FLASK_DEBUG` use `env_bool` consistently in config and run.py.
+- **Config:** Base `Config`, `DevelopmentConfig`, and `TestingConfig` roles clarified; JWT_SECRET_KEY fallback to SECRET_KEY documented as intentional single-secret option.
 
 ---
 

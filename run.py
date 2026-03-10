@@ -1,11 +1,11 @@
 """Application entry point."""
 import os
 from app import create_app
-from app.config import Config, DevelopmentConfig
+from app.config import Config, DevelopmentConfig, env_bool
 from app.extensions import db
 
 app = create_app(
-    DevelopmentConfig if os.environ.get("DEV_SECRETS_OK") else Config
+    DevelopmentConfig if env_bool("DEV_SECRETS_OK", False) else Config
 )
 
 
@@ -19,7 +19,7 @@ def init_db():
 @app.cli.command("seed-dev-user")
 def seed_dev_user():
     """Create a default admin user. For local dev only; set DEV_SECRETS_OK=1."""
-    if not os.environ.get("DEV_SECRETS_OK", "").strip() in ("1", "true", "yes"):
+    if not env_bool("DEV_SECRETS_OK", False):
         print("Refusing to seed: set DEV_SECRETS_OK=1 for local development only.")
         return
     from app.models import User
@@ -37,5 +37,5 @@ def seed_dev_user():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    debug = os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes")
+    debug = env_bool("FLASK_DEBUG", False)
     app.run(host="0.0.0.0", port=port, debug=debug)
