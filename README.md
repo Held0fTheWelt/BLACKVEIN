@@ -69,7 +69,7 @@ Example:
 ```bash
 curl -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin"}'
+  -d '{"username":"admin","password":"Admin123"}'
 ```
 
 ## Known limitations

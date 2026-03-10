@@ -36,12 +36,12 @@ Server: http://127.0.0.1:5000
 # 1. Register a user (or use existing)
 curl -X POST http://127.0.0.1:5000/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"alice123"}'
+  -d '{"username":"alice","password":"Alice123"}'
 
 # 2. Login and get token
 TOKEN=$(curl -s -X POST http://127.0.0.1:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"alice123"}' \
+  -d '{"username":"alice","password":"Alice123"}' \
   | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
 # 3. Call protected route
