@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [Unreleased]
+## [0.0.4]
 
 ### Changed
 
@@ -14,6 +14,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Config:** Central `env_bool(name, default)` helper for boolean env vars. Values treated as True: `1`, `true`, `yes`, `on` (case-insensitive). Any other value or empty is False, so e.g. `DEV_SECRETS_OK=0` or `DEV_SECRETS_OK=foo` does not enable dev behavior.
 - **Config:** `DEV_SECRETS_OK` and `PREFER_HTTPS` / `FLASK_DEBUG` use `env_bool` consistently in config and run.py.
 - **Config:** Base `Config`, `DevelopmentConfig`, and `TestingConfig` roles clarified; JWT_SECRET_KEY fallback to SECRET_KEY documented as intentional single-secret option.
+
+### Security
+
+- **Dev seed user:** `flask seed-dev-user` no longer uses fixed credentials. Credentials must be provided via env (`SEED_DEV_USERNAME`, `SEED_DEV_PASSWORD`), CLI options (`--username`, `--password`, or password prompt), or `--generate` to create a user with a random password that is printed once.
+- **Tests:** Startup fails when `SECRET_KEY` is missing (unless testing config). GET `/logout` returns 405; POST `/logout` clears session. Web login without valid CSRF token is rejected when CSRF is enabled. API login and protected routes are independent of web CSRF. CORS: no `Access-Control-Allow-Origin` when `CORS_ORIGINS` is unset; when set, allowed origins are reflected in responses.
+
+### Changed (error and health consistency)
+
+- **Error handling:** Routes under `/api/` now receive JSON error responses for 404 and 500 (`{"error": "..."}`). Web routes continue to receive HTML error pages (404.html, 500.html). 429 remains JSON for all.
+- **Documentation:** Runbook documents health endpoints (web and API both return `{"status":"ok"}`), and error behavior: web vs API (HTML vs JSON), plus rate-limit 429.
 
 ---
 
@@ -64,6 +74,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Test suite:** Pytest tests for web and API (19 tests), in-memory DB via TestingConfig, pytest.ini, pytest and pytest-cov in requirements.
 - **Development workflow docs:** Index and prompt files for planning and step-by-step execution of the server rebuild; no application code changes, documentation and task-index only.
+- Test suite: Pytest tests for web and API, in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
+- Planning docs: Milestone list and execution prompts for staged rebuild (no code changes).
 
 ---
 

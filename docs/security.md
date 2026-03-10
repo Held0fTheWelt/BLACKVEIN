@@ -18,7 +18,7 @@
 ## Default users
 
 - **Normal init:** `flask init-db` only creates tables. It does **not** create any user.
-- **Dev seed:** `flask seed-dev-user` creates an admin/admin user only when `DEV_SECRETS_OK=1`.
+- **Dev seed:** `flask seed-dev-user` is for local development only when `DEV_SECRETS_OK=1`. It does **not** use fixed credentials. You must supply credentials in one of these ways: set `SEED_DEV_USERNAME` and `SEED_DEV_PASSWORD` in the environment; pass `--username` and `--password` (or get a password prompt); or use `--generate` to create a user with a random password that is printed once. Do not use in production.
 
 ## CORS
 
