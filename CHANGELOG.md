@@ -16,6 +16,21 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ---
 
+## [0.0.4] - 2025-03-10
+
+### Added
+
+- **Landing page:** Aetheris-style hero (eyebrow, title, subtitle, CTAs), benefits grid, scrolling ticker, features section, void footer, fixed command dock. Design tokens (void, violet, mono/display fonts, transitions) and Google Fonts (Inter, JetBrains Mono). `landing.js`: hero cursor shear, feature reveal on scroll, benefit counters, smooth scroll for dock links, preload with IntersectionObserver; reduced-motion respected.
+- **Dashboard:** Two-column layout (sidebar left, content right). Sidebar sections: User (User Settings), Admin (Overview, Metrics, Logs). User Settings: form for name and email with "Save Changes" (client-side confirmation). Metrics view: metric cards, revenue/user charts (Chart.js), threshold config with localStorage and breach alerts. Logs view: filterable activity table, CSV export. Overview: short description of sections. Content area fills available height with internal scroll.
+- **Header navigation:** "Log in" removed. New nav links: News, Wiki, Community (each with placeholder page). When logged in: "Enter Game" between News and Wiki, linking to protected `/game-menu` (Game Menu placeholder page).
+- **Base template:** Optional blocks for layout variants: `html_class`, `body_class`, `extra_head`, `site_header`, `site_main`, `flash_messages`, `content`, `site_footer`, `extra_scripts`. Header and footer kept by default; landing overrides only `site_main`.
+
+### Changed
+
+- **Config / styles:** Extended `:root` with violet/void tokens and font variables. Landing and dashboard CSS appended; responsive breakpoints for hero, benefits, features, dock and dashboard grid.
+
+---
+
 ## [0.0.3] - 2025-03-10
 
 ### Security
