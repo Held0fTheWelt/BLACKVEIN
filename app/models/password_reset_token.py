@@ -22,6 +22,8 @@ class PasswordResetToken(db.Model):
 
     @property
     def is_expired(self):
-        return datetime.now(timezone.utc) > self.created_at + timedelta(
-            minutes=TOKEN_EXPIRY_MINUTES
-        )
+        now = datetime.now(timezone.utc)
+        created = self.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return now > created + timedelta(minutes=TOKEN_EXPIRY_MINUTES)
