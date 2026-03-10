@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}World of Shadows{% endblock %}
+{% block meta_description %}World of Shadows – Enter the World of Blackveign. A dark foundation for a dark future.{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <p class="hero-eyebrow mono">// WORLD OF SHADOWS</p>
+        <h1 class="hero-title">
+            <span class="hero-title-line">Enter the World of</span><br>
+            <span class="hero-title-accent">Blackveign.</span>
+        </h1>
+        <p class="hero-sub">
+            A dark foundation for a dark future.<br>
+            Be the darkness, not the prey.
+        </p>
+        <div class="hero-actions">
+            <a href="{{ backend_api_url }}/register" class="btn btn-primary btn-lg">Get started</a>
+            <a href="{{ backend_api_url }}/login" class="btn btn-ghost btn-lg">Sign in</a>
+            <a href="{{ url_for('news_list') }}" class="btn btn-outline btn-lg">News</a>
+        </div>
+    </div>
+</section>
+
+<section class="section-links" aria-label="Quick links">
+    <h2 class="section-links-title">Explore</h2>
+    <div class="card-grid">
+        <a href="{{ url_for('news_list') }}" class="card card-link">
+            <h3>News</h3>
+            <p>Latest updates and announcements.</p>
+        </a>
+        <a href="{{ backend_api_url }}/login" class="card card-link">
+            <h3>Log in</h3>
+            <p>Access your account on the backend.</p>
+        </a>
+        <a href="{{ backend_api_url }}/register" class="card card-link">
+            <h3>Register</h3>
+            <p>Create an account to get started.</p>
+        </a>
+        <a href="{{ backend_api_url }}/dashboard" class="card card-link">
+            <h3>Dashboard</h3>
+            <p>User dashboard and settings.</p>
+        </a>
+    </div>
+</section>
+{% endblock %}

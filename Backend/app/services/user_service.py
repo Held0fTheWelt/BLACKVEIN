@@ -95,6 +95,7 @@ def create_user(username, password, email):
         username=username,
         email=email_val,
         password_hash=generate_password_hash(password),
+        role=User.ROLE_USER,
     )
     db.session.add(user)
     db.session.commit()

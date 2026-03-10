@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 
 from app.extensions import limiter
 from app.services import create_user, verify_user
@@ -15,7 +15,10 @@ def health():
 
 @web_bp.route("/")
 def home():
-    """Home page."""
+    """Home: redirect to frontend when FRONTEND_URL is set; else serve legacy home."""
+    frontend_url = current_app.config.get("FRONTEND_URL")
+    if frontend_url:
+        return redirect(frontend_url.rstrip("/") + "/", code=302)
     return render_template("home.html")
 
 
@@ -52,6 +55,9 @@ def logout():
     """Clear session and redirect to home. POST only to avoid CSRF/logout-link abuse."""
     session.clear()
     flash("You have been logged out.", "info")
+    frontend_url = current_app.config.get("FRONTEND_URL")
+    if frontend_url:
+        return redirect(frontend_url.rstrip("/") + "/", code=302)
     return redirect(url_for("web.home"))
 
 
@@ -138,7 +144,10 @@ def reset_password(token):
 
 @web_bp.route("/news")
 def news():
-    """News page (placeholder)."""
+    """News: redirect to frontend when FRONTEND_URL is set; else serve legacy placeholder."""
+    frontend_url = current_app.config.get("FRONTEND_URL")
+    if frontend_url:
+        return redirect(frontend_url.rstrip("/") + "/news", code=302)
     return render_template("news.html")
 
 

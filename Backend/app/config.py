@@ -5,6 +5,12 @@ from pathlib import Path
 try:
     from dotenv import load_dotenv
     load_dotenv()
+    # When running from Backend/, also load repo-root .env so one file works for both
+    _config_dir = Path(__file__).resolve().parent
+    _backend_root = _config_dir.parent
+    _repo_root = _backend_root.parent
+    if _repo_root != _backend_root:
+        load_dotenv(_repo_root / ".env")
 except ImportError:
     pass
 
@@ -38,7 +44,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY")
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SECRET_KEY")
 
-    # Database
+    # Database (instance path: Backend/instance when run from Backend/)
     _instance_path = Path(__file__).resolve().parent.parent / "instance"
     _default_db = _instance_path / "wos.db"
     _uri = os.environ.get("DATABASE_URI")
@@ -73,6 +79,9 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get(
         "MAIL_DEFAULT_SENDER", "noreply@worldofshadows.local"
     )
+
+    # Public frontend URL (no trailing slash). When set, GET / and GET /news redirect there.
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip() or None
 
 
 class DevelopmentConfig(Config):

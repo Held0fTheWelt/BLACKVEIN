@@ -1,85 +1,169 @@
-![Logo.png](https://github.com/Held0fTheWelt/BLACKVEIN/blob/master/promo/Logo.png)
+# World of Shadows (Blackveign)
 
-# BLACKVEIGN - World of Shadows
+Flask-based backend (API, auth, dashboard, news, DB) and a separate Flask frontend (public site, news pages). The frontend consumes the backend API only; no database in the frontend.
 
-Flask server foundation: server-rendered web pages with session auth, and a versioned REST API with JWT auth. No game logic or domain features yet; ready for extension.
-
-## Scope
-
-- **Web:** Home, login, logout, dashboard (protected). Session-based auth; CSRF protection on forms.
-- **API:** REST under `/api/v1`: health, auth (register, login, me), and a protected test route. JWT only; no session cookies for API.
-- **Database:** SQLite by default; User model only. Tables created via `flask init-db`; no default users created.
-
-## Project structure
+## Repository structure
 
 ```
-app/
-  __init__.py       # create_app, CSRF (API exempted)
-  config.py         # Config, DevelopmentConfig, TestingConfig
-  extensions.py     # db, jwt, limiter, CORS (configurable origins)
-  models/user.py     # User
-  services/         # user_service
-  web/              # routes, auth helper, templates
-  api/v1/           # auth_routes, system_routes
-  static/
-run.py              # entrypoint, init-db, seed-dev-user
+Backend/                 # API, auth, dashboard, DB, migrations, tests
+  app/                    # create_app, config, models, services, api, web, auth
+  migrations/             # Flask-Migrate (Alembic)
+  tests/                  # pytest (test_api, test_web, test_news_api, …)
+  run.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
+  requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
+Frontend/                 # Public website
+  frontend_app.py         # Flask app: /, /news, /news/<id>
+  templates/, static/
+  requirements.txt, Dockerfile
+README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 ```
 
-## Setup
+## Prerequisites
 
-1. **Prerequisites:** Python 3.10+, pip.
-2. **Install:** `pip install -r requirements.txt`  
-   `requirements.txt` uses version ranges (not exact pins) so dependency updates and security fixes are picked up. For reproducible builds use `pip freeze > requirements.lock` and install with `pip install -r requirements.lock`.
-3. **Environment:** Copy `.env.example` to `.env` and set at least:
-   - `SECRET_KEY` and `JWT_SECRET_KEY` (required; no default secrets in production).
-   - For local dev only: `DEV_SECRETS_OK=1` to allow dev fallback secrets and `flask seed-dev-user`.
-4. **Database:** `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1` (supply credentials via env `SEED_DEV_USERNAME`/`SEED_DEV_PASSWORD`, CLI `--username`/`--password`, or `--generate` to print a random password).
-5. **Run:** `python run.py` or `flask run`. Default port 5000; debug when `FLASK_DEBUG=1`.
+- Python 3.10+ (3.13 recommended)
+- pip
 
-## Environment configuration
+## Environment
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| SECRET_KEY | Yes (or DEV_SECRETS_OK) | Session and CSRF secret |
-| JWT_SECRET_KEY | Yes (or SECRET_KEY) | JWT signing key |
-| DATABASE_URI | No | Default: SQLite in `instance/wos.db` |
-| CORS_ORIGINS | No | Comma-separated origins for API; empty = same-origin only |
-| FLASK_DEBUG | No | 1/true/yes = debug mode |
-| PORT | No | Default 5000 |
-| PREFER_HTTPS | No | 1/true/yes = secure session cookies |
-| DEV_SECRETS_OK | No | 1/true/yes = dev fallback secrets, allows seed-dev-user |
+Copy `.env.example` to `.env` at the **repo root**. Backend and Frontend both read from the root `.env` when run locally. Set at least:
 
-## Web usage
+- **SECRET_KEY**, **JWT_SECRET_KEY** (required in production; or set **DEV_SECRETS_OK=1** for local dev fallbacks).
+- **FLASK_APP=run:app** (so Flask finds the app when running from `Backend/`).
 
-- **Home:** `/` — public.
-- **Login:** `/login` — form (username, password). Redirects to dashboard if already logged in.
-- **Dashboard:** `/dashboard` — requires login; redirects to `/login` if not.
-- **Logout:** POST to `/logout` only (form in header). No GET logout.
+Optional for local dev:
 
-## API usage
+- **PORT** – Backend default 5000, Frontend default 5001.
+- **BACKEND_API_URL** – Frontend: backend base URL (default `http://127.0.0.1:5000`). No trailing slash.
+- **CORS_ORIGINS** – Backend: comma-separated origins allowed to call the API (e.g. `http://127.0.0.1:5001,http://localhost:5001`). Required when the frontend runs on another port.
+- **FRONTEND_URL** – Backend: when set, `GET /` and `GET /news` redirect to this URL (e.g. `http://127.0.0.1:5001`).
+- **DEV_SECRETS_OK=1** – Enables dev fallback secrets and CLI commands `flask seed-dev-user`, `flask seed-news`.
 
-- **Health:** `GET /api/v1/health` — no auth.
-- **Register:** `POST /api/v1/auth/register` — JSON `{"username","password"}`.
-- **Login:** `POST /api/v1/auth/login` — JSON `{"username","password"}` → `access_token`, `user`.
-- **Me:** `GET /api/v1/auth/me` — header `Authorization: Bearer <token>`.
-- **Protected example:** `GET /api/v1/test/protected` — same Bearer token.
+## Run workflow (local)
 
-Example:
+### 1. Backend
 
 ```bash
-curl -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"Admin123"}'
+cd Backend
+pip install -r requirements.txt
+flask init-db
+flask db upgrade
 ```
 
-## Known limitations
+- **init-db** creates tables (optional if you use migrations).
+- **db upgrade** applies Alembic migrations (e.g. users, news, role column).
 
-- Single User model; no roles or permissions.
-- SQLite default; switch via `DATABASE_URI` for production.
-- CORS must be set explicitly via `CORS_ORIGINS` for a separate frontend.
-- No automated migrations; schema changes require manual or custom migration.
+Optional seed (requires **DEV_SECRETS_OK=1**):
+
+```bash
+flask seed-dev-user --username dev --password YourPassword1
+flask seed-news
+```
+
+Start the backend:
+
+```bash
+# From Backend/
+export FLASK_APP=run:app   # or set in .env
+python run.py
+# or: flask run
+```
+
+Default: **http://127.0.0.1:5000**. Health: `GET /api/v1/health`.
+
+### 2. Frontend
+
+```bash
+cd Frontend
+pip install -r requirements.txt
+python frontend_app.py
+```
+
+Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`.
+
+### 3. CORS (when Backend and Frontend on different ports)
+
+Set in `.env` (or backend environment):
+
+```bash
+CORS_ORIGINS=http://127.0.0.1:5001,http://localhost:5001
+```
+
+Otherwise the browser blocks frontend requests to the backend API.
+
+## Migrations
+
+From **Backend/**:
+
+```bash
+export FLASK_APP=run:app
+flask db upgrade
+```
+
+Create a new migration after model changes:
+
+```bash
+flask db revision -m "description"
+# Edit the new file in migrations/versions/, then:
+flask db upgrade
+```
+
+## Tests
+
+All tests live under **Backend/tests/** (API, web, news API, config, security). Run from **Backend/**:
+
+```bash
+cd Backend
+pip install -r requirements-dev.txt
+pytest
+# or: pytest tests/ -v
+# or: pytest tests/test_news_api.py tests/test_api.py -v
+```
+
+Default pytest config: `pytest.ini` in Backend (testpaths = tests, coverage on `app`).
+
+## Docker (compose)
+
+From **repo root**:
+
+```bash
+docker compose up --build
+```
+
+- **Backend** at http://localhost:8000 (Gunicorn in container).
+- **Frontend** at http://localhost:5001.
+- Frontend env **BACKEND_API_URL=http://localhost:8000** so the browser can call the API. Backend env **CORS_ORIGINS** includes http://localhost:5001 so requests from the frontend origin are allowed.
+
+Database is persisted in `Backend/instance/` (mounted volume). Run migrations inside the backend container if needed:
+
+```bash
+docker compose exec backend flask db upgrade
+```
+
+## Main env variables
+
+| Variable | Where | Description |
+|----------|--------|-------------|
+| SECRET_KEY | Backend | Session/CSRF (required unless DEV_SECRETS_OK=1) |
+| JWT_SECRET_KEY | Backend | JWT signing (required or fallback to SECRET_KEY) |
+| FLASK_APP | Backend | Set to `run:app` |
+| PORT | Backend / Frontend | Backend default 5000, Frontend default 5001 |
+| BACKEND_API_URL | Frontend | Backend base URL for API and auth links (no trailing slash) |
+| CORS_ORIGINS | Backend | Comma-separated origins for API (e.g. frontend URL) |
+| FRONTEND_URL | Backend | Optional; redirects GET / and GET /news to frontend |
+| DEV_SECRETS_OK | Backend | 1 = dev secrets and seed-dev-user / seed-news allowed |
+| DATABASE_URI | Backend | Default SQLite in `Backend/instance/wos.db` |
 
 ## Documentation
 
-- **Runbook:** `docs/runbook.md` — local development workflow and example flows.
-- **Security:** `docs/security.md` — auth model, CSRF, CORS, cookies, and dev-only behavior.
+- **Local development (split):** `docs/development/LocalDevelopment.md` – URLs, startup order, how frontend and backend talk, CORS, seed commands.
+- **Architecture:** `docs/architecture/FrontendBackendRestructure.md` – Backend/Frontend responsibilities.
+- **Runbook:** `docs/runbook.md` – Example flows.
+- **Security:** `docs/security.md` – Auth, CSRF, CORS, cookies.
+- **Backend tests:** `Backend/tests/README.md` – Fixtures and test modules.
+
+## API (summary)
+
+- **Health:** `GET /api/v1/health`
+- **Auth:** `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me`
+- **News (public):** `GET /api/v1/news` (list; query: q, sort, direction, page, limit, category), `GET /api/v1/news/<id>` (detail)
+- **News (write):** `POST /api/v1/news`, `PUT /api/v1/news/<id>`, `DELETE /api/v1/news/<id>`, `POST /api/v1/news/<id>/publish`, `POST /api/v1/news/<id>/unpublish` – require JWT and editor/admin role.
