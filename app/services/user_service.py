@@ -61,10 +61,10 @@ def get_user_by_email(email: str):
     ).first()
 
 
-def create_user(username, password, email=None):
+def create_user(username, password, email):
     """
     Create a new user. Returns (user, None) or (None, error_message).
-    email is optional; if set, must be valid format and unique.
+    email is required; must be valid format and unique.
     """
     username = (username or "").strip()
     if not username:
@@ -81,14 +81,15 @@ def create_user(username, password, email=None):
     if get_user_by_username(username):
         return None, "Username already taken"
 
-    email_val = None
-    if email is not None and isinstance(email, str):
-        email_val = (email or "").strip().lower() or None
-    if email_val is not None:
-        if not EMAIL_BASIC_PATTERN.match(email_val):
-            return None, "Invalid email format"
-        if get_user_by_email(email_val):
-            return None, "Email already registered"
+    if not email or not isinstance(email, str):
+        return None, "Email is required"
+    email_val = (email or "").strip().lower()
+    if not email_val:
+        return None, "Email is required"
+    if not EMAIL_BASIC_PATTERN.match(email_val):
+        return None, "Invalid email format"
+    if get_user_by_email(email_val):
+        return None, "Email already registered"
 
     user = User(
         username=username,

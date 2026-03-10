@@ -64,16 +64,19 @@ def register():
     if request.method == "GET":
         return render_template("register.html")
     username = (request.form.get("username") or "").strip()
-    email = (request.form.get("email") or "").strip().lower() or None
+    email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""
     password_confirm = request.form.get("password_confirm") or ""
+    if not email:
+        flash("Email is required.", "error")
+        return render_template("register.html", username=username, email="")
     if password != password_confirm:
         flash("Passwords do not match.", "error")
-        return render_template("register.html", username=username, email=email or "")
+        return render_template("register.html", username=username, email=email)
     user, err = create_user(username, password, email)
     if err:
         flash(err, "error")
-        return render_template("register.html", username=username, email=email or "")
+        return render_template("register.html", username=username, email=email)
     flash("Account created. Please log in.", "success")
     return redirect(url_for("web.login"))
 
