@@ -1,4 +1,4 @@
-﻿"""Pytest fixtures for World of Shadows."""
+"""Pytest fixtures for World of Shadows."""
 import pytest
 
 from app import create_app
@@ -35,12 +35,12 @@ def test_user(app):
     with app.app_context():
         user = User(
             username="testuser",
-            password_hash=generate_password_hash("testpass"),
+            password_hash=generate_password_hash("Testpass1"),
         )
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
-        return user, "testpass"
+        return user, "Testpass1"
 
 
 @pytest.fixture
@@ -76,3 +76,11 @@ def app_csrf():
 def client_csrf(app_csrf):
     """Test client for app with CSRF enabled."""
     return app_csrf.test_client()
+
+
+@pytest.fixture
+def db_session(app):
+    """Run test in a clean session; rollback after test for isolation."""
+    yield db.session
+    db.session.rollback()
+    db.session.remove()

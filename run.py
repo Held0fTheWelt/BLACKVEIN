@@ -5,6 +5,7 @@ import click
 from app import create_app
 from app.config import Config, DevelopmentConfig, env_bool
 from app.extensions import db
+from app.services.user_service import validate_password
 
 app = create_app(
     DevelopmentConfig if env_bool("DEV_SECRETS_OK", False) else Config
@@ -46,6 +47,12 @@ def seed_dev_user(username, password, generate):
             "or --username and --password (or --password prompt), or --generate."
         )
         return
+
+    if not generate:
+        pw_error = validate_password(u_pass)
+        if pw_error:
+            print(f"Password rejected: {pw_error}")
+            return
 
     with app.app_context():
         db.create_all()

@@ -27,6 +27,14 @@ def create_app(config_object=None):
         h = logging.StreamHandler()
         h.setFormatter(logging.Formatter("%(levelname)s [%(name)s] %(message)s"))
         app.logger.addHandler(h)
+    # Package logger (app.services.user_service etc.) so sub-loggers are captured
+    pkg_logger = logging.getLogger("app")
+    level = logging.DEBUG if (app.config.get("TESTING") or app.debug) else logging.WARNING
+    pkg_logger.setLevel(level)
+    if not pkg_logger.handlers:
+        ph = logging.StreamHandler()
+        ph.setFormatter(logging.Formatter("%(levelname)s [%(name)s] %(message)s"))
+        pkg_logger.addHandler(ph)
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 

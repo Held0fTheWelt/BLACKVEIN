@@ -1,4 +1,4 @@
-﻿"""Tests for API v1 routes (REST, JWT)."""
+"""Tests for API v1 routes (REST, JWT)."""
 import pytest
 
 from app import create_app
@@ -17,7 +17,7 @@ def test_register_success(client):
     """POST /api/v1/auth/register creates user and returns 201."""
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": "newuser", "password": "secret123"},
+        json={"username": "newuser", "password": "Secret123"},
         content_type="application/json",
     )
     assert response.status_code == 201
@@ -41,7 +41,7 @@ def test_register_validation_returns_400(client):
     """POST /api/v1/auth/register with short username returns 400."""
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": "a", "password": "longenough"},
+        json={"username": "a", "password": "Longenough1"},
         content_type="application/json",
     )
     assert response.status_code == 400
@@ -53,7 +53,7 @@ def test_register_duplicate_username_returns_409(client, test_user):
     user, password = test_user
     response = client.post(
         "/api/v1/auth/register",
-        json={"username": user.username, "password": "otherpass"},
+        json={"username": user.username, "password": "Otherpass1"},
         content_type="application/json",
     )
     assert response.status_code == 409
@@ -148,14 +148,20 @@ def test_cors_no_allow_origin_when_origins_not_configured(client):
 
 
 def test_cors_allow_origin_when_configured():
-    """When CORS_ORIGINS is set, API responds with Access-Control-Allow-Origin for allowed origin."""
+    """When CORS_ORIGINS is set, API responds with correct Access-Control-Allow-Origin."""
     class ConfigWithCORS(TestingConfig):
         CORS_ORIGINS = ["http://test.example"]
 
     application = create_app(ConfigWithCORS)
     with application.app_context():
         db.create_all()
-    client = application.test_client()
-    response = client.get("/api/v1/health", headers={"Origin": "http://test.example"})
-    assert response.status_code == 200
-    assert response.headers.get("Access-Control-Allow-Origin") == "http://test.example"
+        try:
+            client = application.test_client()
+            response = client.get(
+                "/api/v1/health",
+                headers={"Origin": "http://test.example"}
+            )
+            assert response.status_code == 200
+            assert response.headers.get("Access-Control-Allow-Origin") == "http://test.example"
+        finally:
+            db.drop_all()
