@@ -9,4 +9,5 @@ flask-wtf>=1.2,<2
 flask-mail>=0.10,<1
 werkzeug>=3.0,<4
 python-dotenv>=1.0,<2
+markdown>=3.5,<4
 gunicorn>=21.0,<23

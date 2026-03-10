@@ -10,6 +10,7 @@ Die Backend-API wird unter dem Präfix **`/api/v1`** bereitgestellt. Alle Antwor
 |----------|---------------------------------------------------------------------------|
 | **Auth** | Register, Login, Me                                                       |
 | **System** | Health, Test Protected                                                   |
+| **Users** | List (GET, Admin), Get (GET), Update (PUT), Delete (DELETE, Admin)       |
 | **News** | List (GET), Detail (GET), Create (POST), Update (PUT), Delete, Publish, Unpublish |
 
 ---
@@ -271,24 +272,115 @@ Setzt den Artikel auf „nicht veröffentlicht“ (`is_published: false`, `publi
 
 ---
 
-## 4. Allgemeines
+## 4. Users (CRUD)
 
-### Authentifizierung
+Alle User-Endpoints erfordern **Bearer JWT**. **List** und **Delete** nur für Rolle **admin**; **Get** und **Update** für Admin (beliebiger User) oder für den eigenen User (Self).
+
+### 4.1 Users List – Benutzer auflisten (Admin)
+
+**`GET /api/v1/users`**
+
+Paginierte Liste aller User. Nur **admin**.
+
+- **Rate Limit:** 60 pro Minute  
+- **Auth:** Bearer JWT, Rolle **admin**  
+
+**Query-Parameter:**
+
+| Parameter | Typ    | Default | Beschreibung                    |
+|-----------|--------|--------|----------------------------------|
+| `page`    | int    | 1      | Seitennummer (≥ 1)              |
+| `limit`   | int    | 20     | Einträge pro Seite (1–100)      |
+| `q`       | string | –      | Suche in Benutzername/E-Mail    |
+
+**Response:**
+
+- **200 OK:** `{ "items": [ { "id", "username", "role", "email" }, ... ], "total", "page", "per_page" }`
+- **403:** Kein Admin
+
+---
+
+### 4.2 Users Get – einen User abrufen
+
+**`GET /api/v1/users/<id>`**
+
+Einzelner User: **Admin** darf jeden abrufen, sonst nur das **eigene** Profil (`id` = JWT-User). Bei eigener Abfrage und bei Admin enthält die Antwort `email`.
+
+- **Rate Limit:** 60 pro Minute  
+- **Auth:** Bearer JWT (Admin oder Self)  
+
+**Response:**
+
+- **200 OK:** `{ "id", "username", "role" }` oder inkl. `"email"` (siehe oben)
+- **403:** Fremder User, kein Admin
+- **404:** User nicht gefunden
+
+---
+
+### 4.3 Users Update – User bearbeiten
+
+**`PUT /api/v1/users/<id>`**
+
+User aktualisieren: **Admin** darf jeden und kann `role` setzen; sonst nur **eigenes** Profil (ohne `role`). Body: alle Felder optional.
+
+- **Rate Limit:** 30 pro Minute  
+- **Auth:** Bearer JWT (Admin oder Self)  
+
+**Request-Body (JSON):**
+
+| Feld               | Typ    | Beschreibung                                              |
+|--------------------|--------|-----------------------------------------------------------|
+| `username`         | string | Neuer Benutzername (eindeutig, 2–80 Zeichen, `a-zA-Z0-9_-`) |
+| `email`            | string | Neue E-Mail (eindeutig, gültiges Format)                  |
+| `password`         | string | Neues Passwort (Regeln wie bei Registrierung)            |
+| `current_password` | string | Beim Ändern des **eigenen** Passworts erforderlich       |
+| `role`             | string | Nur **Admin:** `user`, `editor`, `admin`                 |
+
+**Response:**
+
+- **200 OK:** Aktualisiertes User-Objekt (wie bei Get, inkl. `email` wenn Admin/Self)
+- **400:** Validierungsfehler, z. B. „Current password is incorrect“
+- **403:** Kein Recht für diesen User
+- **404:** User nicht gefunden
+- **409:** „Username already taken“ oder „Email already registered“
+
+---
+
+### 4.4 Users Delete – User löschen (Admin)
+
+**`DELETE /api/v1/users/<id>`**
+
+User endgültig löschen. Nur **admin**. News-Einträge des Users bleiben erhalten, `author_id` wird auf `null` gesetzt.
+
+- **Rate Limit:** 30 pro Minute  
+- **Auth:** Bearer JWT, Rolle **admin**  
+
+**Response:**
+
+- **200 OK:** `{ "message": "Deleted" }`
+- **403:** Kein Admin
+- **404:** User nicht gefunden
+
+---
+
+## 5. Allgemeines
+
+### 5.1 Authentifizierung
 
 - Geschützte Endpoints erwarten den Header: **`Authorization: Bearer <access_token>`**  
   Das Token erhält man von **`POST /api/v1/auth/login`**.
 - Ungültiger oder abgelaufener Token: **401** mit JSON-`error`.
 - Gültiger Token, aber unzureichende Rechte (z. B. Rolle `user` bei News-Schreibzugriff): **403 Forbidden**.
 
-### Fehlerantworten
+### 5.2 Fehlerantworten
 
 - API-Fehler sind JSON: `{ "error": "<Meldung>" }`.
 - Bei fehlendem oder ungültigem JSON-Body: **400** mit entsprechender `error`-Meldung.
 
-### CORS
+### 5.3 CORS
 
 - Wenn Frontend und Backend unterschiedliche Origins nutzen, muss **CORS_ORIGINS** im Backend gesetzt werden (z. B. `http://localhost:5001,http://127.0.0.1:5001`), damit der Browser API-Aufrufe erlaubt.
 
-### Rate Limits
+### 5.4 Rate Limits
 
 - Pro Endpoint gelten die oben genannten Limits (z. B. 10/min Register, 20/min Login, 60/min Health/News List). Überschreitung führt in der Regel zu **429 Too Many Requests** (konfigurationsabhängig).

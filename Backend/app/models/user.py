@@ -17,8 +17,11 @@ class User(db.Model):
     ROLE_EDITOR = "editor"
     ROLE_ADMIN = "admin"
 
-    def to_dict(self):
-        return {"id": self.id, "username": self.username, "role": self.role}
+    def to_dict(self, include_email: bool = False):
+        out = {"id": self.id, "username": self.username, "role": self.role}
+        if include_email:
+            out["email"] = self.email
+        return out
 
     def can_write_news(self):
         """True if this user may create/update/delete/publish news."""

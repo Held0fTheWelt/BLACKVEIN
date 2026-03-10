@@ -6,3 +6,4 @@ api_v1_bp = Blueprint("api_v1", __name__)
 from app.api.v1 import auth_routes  # noqa: F401, E402
 from app.api.v1 import system_routes  # noqa: F401, E402
 from app.api.v1 import news_routes  # noqa: F401, E402
+from app.api.v1 import user_routes  # noqa: F401, E402

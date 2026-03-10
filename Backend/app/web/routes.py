@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import markdown
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 
 from app.extensions import limiter
@@ -206,10 +209,24 @@ def news():
     return render_template("news.html")
 
 
+def _get_wiki_html():
+    """Load wiki Markdown from content/wiki.md and return rendered HTML, or None if missing."""
+    app_root = Path(current_app.root_path)
+    wiki_path = app_root.parent / "content" / "wiki.md"
+    if not wiki_path.is_file():
+        return None
+    try:
+        text = wiki_path.read_text(encoding="utf-8")
+        return markdown.markdown(text, extensions=["extra"])
+    except Exception:
+        return None
+
+
 @web_bp.route("/wiki")
 def wiki():
-    """Wiki page (placeholder)."""
-    return render_template("wiki.html")
+    """Wiki view: render Markdown from Backend/content/wiki.md."""
+    wiki_html = _get_wiki_html()
+    return render_template("wiki.html", wiki_html=wiki_html)
 
 
 @web_bp.route("/community")

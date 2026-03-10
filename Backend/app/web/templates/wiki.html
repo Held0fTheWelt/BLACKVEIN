@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Wiki – World of Shadows{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='wiki.css') }}">
+{% endblock %}
 {% block content %}
-<div class="card card-center">
+<div class="card wiki-card">
     <h1>Wiki</h1>
+    {% if wiki_html %}
+    <div class="wiki-content prose">
+        {{ wiki_html | safe }}
+    </div>
+    {% else %}
     <p>Coming soon.</p>
+    {% endif %}
 </div>
 {% endblock %}

@@ -52,7 +52,7 @@ def login():
         access_token = create_access_token(identity=str(user.id))
         return jsonify({
             "access_token": access_token,
-            "user": user.to_dict(),
+            "user": user.to_dict(include_email=True),
         }), 200
     logger.warning("API login 401 for username=%r", username)
     return jsonify({"error": "Invalid username or password"}), 401
@@ -69,4 +69,4 @@ def me():
     user = db.session.get(User, int(uid))
     if user is None:
         return jsonify({"error": "User not found"}), 404
-    return jsonify(user.to_dict()), 200
+    return jsonify(user.to_dict(include_email=True)), 200

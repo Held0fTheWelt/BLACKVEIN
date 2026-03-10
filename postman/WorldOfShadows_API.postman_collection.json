@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "world-of-shadows-api-v1",
     "name": "World of Shadows API",
-    "description": "REST API v1: Auth (register, login, me), System (health, test protected), News (list, detail).\n\n**Test Environment:** Select an environment (e.g. \"World of Shadows – Local\") with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token`; protected requests use it automatically.\n\n**Collection Runner:** Run the collection against the chosen environment; all requests include test scripts (status codes and response body assertions).",
+    "description": "REST API v1: Auth, System, Users (CRUD), News.\n\n**Test Environment:** Select an environment with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token` and `user_id`; protected requests use the token automatically. For **Users List** and **Users Delete** use an admin account (role=admin).\n\n**Collection Runner:** All requests include test scripts (status codes and response body assertions). Users List sets `target_user_id` to another user for Delete (admin only).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -26,7 +26,8 @@
     { "key": "news_id", "value": "" },
     { "key": "register_username", "value": "postman_user" },
     { "key": "register_email", "value": "postman@example.com" },
-    { "key": "register_password", "value": "PostmanPass1" }
+    { "key": "register_password", "value": "PostmanPass1" },
+    { "key": "target_user_id", "value": "" }
   ],
   "item": [
     {
@@ -384,6 +385,183 @@
               "path": ["api", "v1", "news", "999999"]
             },
             "description": "Expect 404 for non-existent id."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User CRUD: List and Delete require admin role; Get and Update work for admin (any user) or self.",
+      "item": [
+        {
+          "name": "Users List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (admin) or 403 (non-admin)', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has items, total, page, per_page', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('items');",
+                  "    pm.expect(j.items).to.be.an('array');",
+                  "    pm.expect(j).to.have.property('total');",
+                  "    pm.expect(j).to.have.property('page');",
+                  "    pm.expect(j).to.have.property('per_page');",
+                  "  });",
+                  "  const j = pm.response.json();",
+                  "  const myId = pm.collectionVariables.get('user_id');",
+                  "  if (j.items && j.items.length > 0) {",
+                  "    const other = j.items.find(function(u) { return String(u.id) !== String(myId); });",
+                  "    if (other) pm.collectionVariables.set('target_user_id', String(other.id));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "q", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List users (admin only). 403 if not admin. Saves target_user_id to another user for Delete (if any)."
+          }
+        },
+        {
+          "name": "Users Get (self)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has id, username, role', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('id');",
+                  "  pm.expect(j).to.have.property('username');",
+                  "  pm.expect(j).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{user_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
+            },
+            "description": "Get current user by id (from Login). Returns 200 with id, username, role, email."
+          }
+        },
+        {
+          "name": "Users Update (self)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Body has id, username, role', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('id');",
+                  "  pm.expect(j).to.have.property('username');",
+                  "  pm.expect(j).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{user_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
+            },
+            "description": "Update own profile. Body: optional username, email, password (with current_password)."
+          }
+        },
+        {
+          "name": "Users Get (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Body has error', function () {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "999999"]
+            },
+            "description": "Expect 404 for non-existent user id."
+          }
+        },
+        {
+          "name": "Users Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has message', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{target_user_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{target_user_id}}"]
+            },
+            "description": "Delete a user (admin only). Uses target_user_id from Users List (another user, not self). 403 if not admin; 404 if target_user_id empty or invalid."
           }
         }
       ]

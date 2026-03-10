@@ -63,6 +63,36 @@ def get_user_by_email(email: str):
     ).first()
 
 
+def get_user_by_id(user_id):
+    """Return User by id or None."""
+    if user_id is None:
+        return None
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    return db.session.get(User, uid)
+
+
+def list_users(page: int = 1, per_page: int = 20, search: str | None = None):
+    """
+    Return (list of User, total count) for paginated list.
+    search: optional string to filter by username or email (case-insensitive contains).
+    """
+    q = User.query
+    if search and search.strip():
+        term = f"%{search.strip().lower()}%"
+        q = q.filter(
+            db.or_(
+                db.func.lower(User.username).like(term),
+                db.and_(User.email.isnot(None), db.func.lower(User.email).like(term)),
+            )
+        )
+    total = q.count()
+    q = q.order_by(User.id.asc()).offset((page - 1) * per_page).limit(per_page)
+    return q.all(), total
+
+
 def create_user(username, password, email):
     """
     Create a new user. Returns (user, None) or (None, error_message).
@@ -210,4 +240,92 @@ def verify_email_with_token(raw_token: str):
     record.used_at = now
     db.session.commit()
     logger.info("Email verified for user_id=%s", record.user_id)
+    return True, None
+
+
+# --- User CRUD (list, get, update, delete) ---
+
+
+def update_user(
+    user_id: int,
+    *,
+    username: str | None = None,
+    email: str | None = None,
+    new_password: str | None = None,
+    role: str | None = None,
+    current_password: str | None = None,
+) -> tuple[User | None, str | None]:
+    """
+    Update a user by id. Returns (user, None) or (None, error_message).
+    When changing password, pass current_password if the caller is the user themselves (verified in route).
+    role may only be set by admin (enforced in route).
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        return None, "User not found"
+
+    if username is not None:
+        username = (username or "").strip()
+        if not username:
+            return None, "Username cannot be empty"
+        if len(username) < 2:
+            return None, "Username must be at least 2 characters"
+        if len(username) > USERNAME_MAX_LENGTH:
+            return None, f"Username must be at most {USERNAME_MAX_LENGTH} characters"
+        if not USERNAME_PATTERN.match(username):
+            return None, "Username contains invalid characters"
+        other = get_user_by_username(username)
+        if other and other.id != user.id:
+            return None, "Username already taken"
+        user.username = username
+
+    if email is not None:
+        email_val = (email or "").strip().lower() if email else None
+        if email_val is not None:
+            if not EMAIL_BASIC_PATTERN.match(email_val):
+                return None, "Invalid email format"
+            other = get_user_by_email(email_val)
+            if other and other.id != user.id:
+                return None, "Email already registered"
+        user.email = email_val
+
+    if new_password is not None:
+        if current_password is not None and not check_password_hash(user.password_hash, current_password):
+            return None, "Current password is incorrect"
+        pw_error = validate_password(new_password)
+        if pw_error:
+            return None, pw_error
+        user.password_hash = generate_password_hash(new_password)
+
+    if role is not None:
+        role = (role or "").strip() or User.ROLE_USER
+        if role not in (User.ROLE_USER, User.ROLE_EDITOR, User.ROLE_ADMIN):
+            return None, "Invalid role"
+        user.role = role
+
+    db.session.commit()
+    db.session.refresh(user)
+    logger.info("User updated: id=%s", user.id)
+    return user, None
+
+
+def delete_user(user_id: int) -> tuple[bool, str | None]:
+    """
+    Delete a user by id. News authored by this user get author_id set to None.
+    Returns (True, None) or (False, error_message).
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        return False, "User not found"
+
+    from app.models import News
+    from app.models.password_reset_token import PasswordResetToken
+    from app.models.email_verification_token import EmailVerificationToken
+
+    News.query.filter_by(author_id=user.id).update({"author_id": None}, synchronize_session=False)
+    PasswordResetToken.query.filter_by(user_id=user.id).delete()
+    EmailVerificationToken.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    logger.info("User deleted: id=%s", user_id)
     return True, None

@@ -16,6 +16,13 @@ def test_web_health_returns_ok(client):
     assert response.get_json() == {"status": "ok"}
 
 
+def test_wiki_returns_200(client):
+    """GET /wiki returns 200 and wiki page (Markdown content or placeholder)."""
+    response = client.get("/wiki")
+    assert response.status_code == 200
+    assert b"Wiki" in response.data
+
+
 def test_login_get_returns_200(client):
     """GET /login shows login form."""
     response = client.get("/login")

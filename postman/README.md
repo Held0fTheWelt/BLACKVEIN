@@ -23,6 +23,7 @@
 | `email` | E-Mail des Users | `admin@example.com` |
 | `access_token` | JWT (wird von „Login“ gesetzt) | – |
 | `user_id` | Aktuelle User-ID (von Login/Me/Register) | – |
+| `target_user_id` | User-ID für Users Delete (von „Users List“ gesetzt, anderer User) | – |
 | `news_id` | Eine News-ID (von „News List“ gesetzt) | – |
 | `register_username` | Benutzername für Registrierung | `postman_user` |
 | `register_email` | E-Mail für Registrierung | `postman@example.com` |
@@ -31,8 +32,9 @@
 ## Ablauf
 
 1. **Login (saves token)** ausführen → `access_token` und `user_id` werden gesetzt.
-2. Geschützte Requests (Me, Test Protected) nutzen automatisch **Authorization: Bearer {{access_token}}**.
-3. **News List** setzt bei vorhandenen Einträgen `news_id` für **News Detail**.
+2. Geschützte Requests (Me, Test Protected, **Users**, News Write) nutzen automatisch **Authorization: Bearer {{access_token}}**.
+3. **Users List** (nur Admin): setzt `target_user_id` auf einen anderen User für **Users Delete**.
+4. **News List** setzt bei vorhandenen Einträgen `news_id` für **News Detail**.
 
 ## Collection Runner
 
@@ -40,4 +42,4 @@
 - Environment auswählen → **Run World of Shadows API**.
 - Alle Requests werden nacheinander ausgeführt; bei jedem laufen die **Test-Skripte** (grün/rot).
 
-Hinweis: „Register“ erzeugt einen neuen User; bei wiederholtem Lauf 409 (Username/Email bereits vergeben), sofern `register_username`/`register_email` nicht geändert werden. Für einen sauberen Lauf zuerst nur **Login** und **System/News** ausführen oder einmalig einen neuen Registrierungs-User verwenden.
+Hinweis: **Users List** und **Users Delete** erfordern einen User mit Rolle **admin** (in der DB `role='admin'`). „Register“ erzeugt einen neuen User; bei wiederholtem Lauf 409 (Username/Email bereits vergeben), sofern `register_username`/`register_email` nicht geändert werden. Für einen sauberen Lauf zuerst nur **Login** und **System/News/Users** ausführen oder einmalig einen neuen Registrierungs-User verwenden.
