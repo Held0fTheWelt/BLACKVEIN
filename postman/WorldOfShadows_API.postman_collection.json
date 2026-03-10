@@ -1,0 +1,185 @@
+{
+  "info": {
+    "_postman_id": "world-of-shadows-api-v1",
+    "name": "World of Shadows API",
+    "description": "REST API v1: Auth (register, login, me), System (health, test protected).\n\n1. Run **Login** to get a JWT; the token is saved to `{{access_token}}`.\n2. Protected requests (Me, Test Protected) use **Authorization: Bearer {{access_token}}**.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "username",
+      "value": "admin"
+    },
+    {
+      "key": "password",
+      "value": "admin"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Register, login (JWT), and current user (me).",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Create a new user. Returns 201 with `id` and `username`. Use 409 if username already taken."
+          }
+        },
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.access_token) {",
+                  "    const token = String(j.access_token).trim();",
+                  "    pm.collectionVariables.set('access_token', token);",
+                  "    console.log('Token saved, length: ' + token.length);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticate and get JWT. Response: `access_token`, `user` (id, username). Test script saves token to {{access_token}} for protected requests."
+          }
+        },
+        {
+          "name": "Login (invalid – 401)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"wrong\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Expect 401 Invalid username or password."
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Return current user from JWT. Requires Authorization: Bearer {{access_token}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "System",
+      "description": "Health and test protected route.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "API health check. Returns { \"status\": \"ok\" }."
+          }
+        },
+        {
+          "name": "Test Protected",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/test/protected",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "test", "protected"]
+            },
+            "description": "Example protected route. Returns message, user_id, username. Requires Bearer token."
+          }
+        }
+      ]
+    }
+  ]
+}
