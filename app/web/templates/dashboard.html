@@ -1,9 +1,214 @@
 {% extends "base.html" %}
 {% block title %}Dashboard – World of Shadows{% endblock %}
-{% block content %}
-<div class="card card-center">
-    <h1>Dashboard</h1>
-    <p>You are logged in as <strong>{{ session.username }}</strong>.</p>
-    <p><a href="{{ url_for('web.home') }}" class="btn btn-outline">Home</a></p>
-</div>
+{% block body_class %}dashboard{% endblock %}
+
+{% block site_main %}
+<main class="dashboard-layout">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flash-messages dash-flash">
+      {% for category, message in messages %}
+      <li class="flash flash-{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <aside class="dash-sidebar" role="navigation" aria-label="Dashboard menu">
+        <div class="dash-sidebar-header">
+            <h2 class="dash-sidebar-title mono">// USER</h2>
+        </div>
+        <nav class="dash-nav" aria-label="User">
+            <button type="button" class="dash-nav-item" data-dash-view="user-settings" id="nav-user-settings">
+                User Settings
+            </button>
+        </nav>
+        <div class="dash-sidebar-sep" aria-hidden="true"></div>
+        <div class="dash-sidebar-header">
+            <h2 class="dash-sidebar-title mono">// ADMIN</h2>
+        </div>
+        <nav class="dash-nav" aria-label="Admin">
+            <button type="button" class="dash-nav-item" data-dash-view="overview" id="nav-overview">
+                Overview
+            </button>
+            <button type="button" class="dash-nav-item is-active" data-dash-view="metrics" id="nav-metrics">
+                Metrics
+            </button>
+            <button type="button" class="dash-nav-item" data-dash-view="logs" id="nav-logs">
+                Logs
+            </button>
+        </nav>
+    </aside>
+
+    <div class="dash-content">
+        <div class="dash-view is-visible" id="view-metrics" role="tabpanel" aria-labelledby="nav-metrics">
+            <div class="dash-topbar">
+                <h1 class="dash-title mono">// METRICS</h1>
+                <div class="dash-topbar-actions">
+                    <button class="notif-bell" id="notif-bell" title="Threshold alerts" aria-label="Threshold alerts" type="button">
+                        🔔 <span class="notif-badge hidden" id="notif-badge">0</span>
+                    </button>
+                    <button class="btn btn-outline btn-sm" id="config-panel-toggle" type="button">
+                        ⚙ Thresholds
+                    </button>
+                </div>
+            </div>
+
+            <div class="dash-metrics-grid" id="metrics-grid">
+                <div class="metric-card" data-metric="revenue">
+                    <p class="metric-label mono">Revenue</p>
+                    <p class="metric-value" id="metric-revenue">$0</p>
+                    <p class="metric-delta positive">+12.4%</p>
+                </div>
+                <div class="metric-card" data-metric="users">
+                    <p class="metric-label mono">Active Users</p>
+                    <p class="metric-value" id="metric-users">0</p>
+                    <p class="metric-delta positive">+8.7%</p>
+                </div>
+                <div class="metric-card" data-metric="sessions">
+                    <p class="metric-label mono">Sessions</p>
+                    <p class="metric-value" id="metric-sessions">0</p>
+                    <p class="metric-delta negative">-2.1%</p>
+                </div>
+                <div class="metric-card" data-metric="conversion">
+                    <p class="metric-label mono">Conversion</p>
+                    <p class="metric-value" id="metric-conversion">0%</p>
+                    <p class="metric-delta positive">+1.2%</p>
+                </div>
+            </div>
+
+            <div class="dash-charts-row">
+                <div class="chart-card" style="flex:2">
+                    <p class="chart-title mono">// REVENUE TREND</p>
+                    <div style="position:relative; height:220px">
+                        <canvas id="chart-revenue"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card" style="flex:1">
+                    <p class="chart-title mono">// USER GROWTH</p>
+                    <div style="position:relative; height:220px">
+                        <canvas id="chart-users"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-panel hidden" id="config-panel">
+                <div class="config-panel-inner">
+                    <h3 class="mono">// THRESHOLD ALERTS</h3>
+                    <p class="config-hint">Notify when metric drops below threshold.</p>
+                    <div class="config-fields">
+                        <label>Revenue min ($)
+                            <input type="number" id="thresh-revenue" value="40000" min="0">
+                        </label>
+                        <label>Users min
+                            <input type="number" id="thresh-users" value="1200" min="0">
+                        </label>
+                        <label>Sessions min
+                            <input type="number" id="thresh-sessions" value="3000" min="0">
+                        </label>
+                        <label>Conversion min (%)
+                            <input type="number" id="thresh-conversion" value="3.0" step="0.1" min="0">
+                        </label>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="config-save" type="button">Save &amp; Check</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-view" id="view-logs" role="tabpanel" aria-labelledby="nav-logs" hidden>
+            <div class="dash-topbar">
+                <h1 class="dash-title mono">// LOGS</h1>
+            </div>
+            <div class="table-card">
+                <div class="table-toolbar">
+                    <p class="chart-title mono">// ACTIVITY LOG</p>
+                    <div class="table-filters">
+                        <input type="text" id="filter-search" placeholder="Search..." class="filter-input">
+                        <select id="filter-category" class="filter-select">
+                            <option value="">All categories</option>
+                            <option value="auth">Auth</option>
+                            <option value="api">API</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <select id="filter-status" class="filter-select">
+                            <option value="">All status</option>
+                            <option value="success">Success</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                        </select>
+                        <input type="date" id="filter-date-from" class="filter-input" title="From date">
+                        <input type="date" id="filter-date-to" class="filter-input" title="To date">
+                        <button class="btn btn-outline btn-sm" id="filter-clear" type="button">Clear</button>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="export-csv" type="button">↓ CSV</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>User</th>
+                                <th>Category</th>
+                                <th>Action</th>
+                                <th>Status</th>
+                                <th>Tags</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span id="table-count" class="mono">0 entries</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-view" id="view-overview" role="tabpanel" aria-labelledby="nav-overview" hidden>
+            <div class="dash-topbar">
+                <h1 class="dash-title mono">// OVERVIEW</h1>
+            </div>
+            <div class="dash-overview-card">
+                <p class="chart-title mono">// DEVELOPMENT STATUS</p>
+                <p class="config-hint">Quick overview of the Admin Dashboard.</p>
+                <ul class="dash-overview-list">
+                    <li><span class="mono">Metrics</span> — Revenue, users, sessions, conversion; charts; configurable threshold alerts.</li>
+                    <li><span class="mono">Logs</span> — Activity log with filters and CSV export.</li>
+                    <li><span class="mono">Overview</span> — This page; summary and entry point to dashboard sections.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="dash-view" id="view-user-settings" role="tabpanel" aria-labelledby="nav-user-settings" hidden>
+            <div class="dash-topbar">
+                <h1 class="dash-title mono">// USER SETTINGS</h1>
+            </div>
+            <div class="dash-settings-card">
+                <p class="chart-title mono">// PROFILE</p>
+                <form id="form-user-settings" class="dash-settings-form" method="post" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label for="user-settings-name">Name</label>
+                        <input type="text" id="user-settings-name" name="username" value="{{ session.get('username', '') }}" autocomplete="username" maxlength="128">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-settings-email">Email</label>
+                        <input type="email" id="user-settings-email" name="email" value="" placeholder="your@email.com" autocomplete="email" maxlength="255">
+                    </div>
+                    <div class="dash-settings-actions">
+                        <button type="submit" class="btn btn-primary" id="user-settings-save">Save Changes</button>
+                        <span class="dash-settings-status" id="user-settings-status" aria-live="polite"></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
 {% endblock %}

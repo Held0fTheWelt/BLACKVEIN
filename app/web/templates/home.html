@@ -1,13 +1,140 @@
 {% extends "base.html" %}
-{% block title %}Home – World of Shadows{% endblock %}
-{% block content %}
-<div class="card card-center">
-    <h1>Welcome</h1>
-    <p>This is the World of Shadows server. Use the API at <code>/api/v1</code> or log in for the web session.</p>
-    {% if session.get('username') %}
-    <p><a href="{{ url_for('web.dashboard') }}" class="btn btn-primary">Dashboard</a></p>
-    {% else %}
-    <p><a href="{{ url_for('web.login') }}" class="btn btn-primary">Log in</a></p>
-    {% endif %}
+{% block title %}BLACKVEIGN - World of Shadows{% endblock %}
+{% block body_class %}landing{% endblock %}
+
+{% block site_main %}
+<section class="hero" id="hero" data-preload>
+  <div class="hero-content">
+    <p class="hero-eyebrow mono">// WORLD OF SHADOWS v1.0</p>
+    <h1 class="hero-title" id="hero-title">
+      Enter the<br><span class="hero-title-accent">Void.</span>
+    </h1>
+    <p class="hero-sub">
+      A dark foundation for your next project.<br>
+      Auth, API, sessions – production-ready from day one.
+    </p>
+    <div class="hero-actions">
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">
+        Get started
+      </a>
+      <a href="{{ url_for('web.login') }}" class="btn btn-ghost btn-lg">
+        Sign in →
+      </a>
+    </div>
+  </div>
+  <div class="hero-visual" aria-hidden="true">
+    <div class="refraction-orb refraction-orb--1"></div>
+    <div class="refraction-orb refraction-orb--2"></div>
+    <div class="refraction-orb refraction-orb--3"></div>
+    <div class="hero-grid-overlay"></div>
+  </div>
+</section>
+
+<section class="benefits" id="benefits" data-preload>
+  <div class="benefits-grid">
+    <div class="benefit-card" data-counter="99.9" data-suffix="%">
+      <span class="benefit-value mono"><span class="counter-num">0</span>%</span>
+      <p class="benefit-label">Uptime SLA</p>
+    </div>
+    <div class="benefit-card" data-counter="<50" data-suffix="ms">
+      <span class="benefit-value mono">&lt;50ms</span>
+      <p class="benefit-label">API Response</p>
+    </div>
+    <div class="benefit-card" data-counter="100" data-suffix="%">
+      <span class="benefit-value mono"><span class="counter-num">0</span>%</span>
+      <p class="benefit-label">Open Source</p>
+    </div>
+    <div class="benefit-card" data-counter="0" data-suffix=" CVEs">
+      <span class="benefit-value mono"><span class="counter-num">0</span> CVEs</span>
+      <p class="benefit-label">Known Vulnerabilities</p>
+    </div>
+  </div>
+</section>
+
+<div class="ticker-wrap" aria-hidden="true">
+  <div class="ticker-track">
+    {% set tags = ["FLASK 3", "JWT AUTH", "CSRF PROTECTED", "RATE LIMITED",
+                   "ALEMBIC MIGRATIONS", "DOCKER READY", "PYTEST 85%+",
+                   "OPEN REDIRECT SAFE", "SESSION FIXATION PROOF",
+                   "FLASK 3", "JWT AUTH", "CSRF PROTECTED", "RATE LIMITED",
+                   "ALEMBIC MIGRATIONS", "DOCKER READY", "PYTEST 85%+",
+                   "OPEN REDIRECT SAFE", "SESSION FIXATION PROOF"] %}
+    {% for tag in tags %}
+    <span class="ticker-item mono">{{ tag }}</span>
+    <span class="ticker-sep" aria-hidden="true">◆</span>
+    {% endfor %}
+  </div>
 </div>
+
+<section class="features" id="features" data-preload>
+  <div class="features-header">
+    <p class="section-eyebrow mono">// CAPABILITIES</p>
+    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">🔐</div>
+      <h3>Dual Auth</h3>
+      <p>Session-based web auth and JWT API auth. CSRF protection on all forms. Session fixation prevention on login.</p>
+    </div>
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">⚡</div>
+      <h3>Rate Limiting</h3>
+      <p>Per-route limits via Flask-Limiter. Configurable storage backend. 429 responses in JSON for API clients.</p>
+    </div>
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">🛡️</div>
+      <h3>Security First</h3>
+      <p>No hardcoded secrets. Open redirect protection. Password policy enforcement. Token-based password reset.</p>
+    </div>
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">🗄️</div>
+      <h3>Migrations</h3>
+      <p>Alembic via Flask-Migrate. Schema versioned from day one. Easy upgrade and downgrade paths.</p>
+    </div>
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">🐳</div>
+      <h3>Docker Ready</h3>
+      <p>Multi-stage Dockerfile. Non-root appuser. docker-compose for local dev. Gunicorn in production.</p>
+    </div>
+    <div class="feature-card" data-reveal>
+      <div class="feature-icon">✅</div>
+      <h3>85%+ Coverage</h3>
+      <p>pytest suite with conftest fixtures, CSRF tests, open-redirect tests, API and web route coverage.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="void-footer" id="void-footer" data-preload>
+  <div class="void-footer-inner">
+    <p class="void-eyebrow mono">// START BUILDING</p>
+    <h2 class="void-title">Ready to enter<br><span class="void-title-accent">the shadows?</span></h2>
+    <a href="{{ url_for('web.register') }}" class="btn btn-void-cta">
+      Create your account
+    </a>
+  </div>
+  <div class="void-footer-legal">
+    <span class="mono">World of Shadows</span>
+    <span>Flask Server Foundation</span>
+  </div>
+  <div class="void-bg-orb" aria-hidden="true"></div>
+</footer>
+
+<nav class="command-dock" role="navigation" aria-label="Site navigation">
+  <a href="{{ url_for('web.home') }}" class="dock-logo mono">WoS</a>
+  <div class="dock-links">
+    <a href="#benefits" class="dock-link">Metrics</a>
+    <a href="#features" class="dock-link">Features</a>
+    {% if session.get('username') %}
+    <a href="{{ url_for('web.dashboard') }}" class="dock-link dock-link--active">Dashboard</a>
+    {% else %}
+    <a href="{{ url_for('web.login') }}" class="dock-link">Sign in</a>
+    <a href="{{ url_for('web.register') }}" class="dock-cta">Get started</a>
+    {% endif %}
+  </div>
+</nav>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='landing.js') }}" defer></script>
 {% endblock %}
