@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Error handling:** Routes under `/api/` now receive JSON error responses for 404 and 500 (`{"error": "..."}`). Web routes continue to receive HTML error pages (404.html, 500.html). 429 remains JSON for all.
 - **Documentation:** Runbook documents health endpoints (web and API both return `{"status":"ok"}`), and error behavior: web vs API (HTML vs JSON), plus rate-limit 429.
+- **Config:** Single `TestingConfig`; removed duplicate. Central `env_bool(name, default)` for boolean env (1/true/yes/on only). `DEV_SECRETS_OK` and `PREFER_HTTPS`/`FLASK_DEBUG` use `env_bool`. Base/Development/Testing roles clarified; JWT_SECRET_KEY fallback to SECRET_KEY documented.
 
 ---
 
@@ -74,8 +75,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Test suite:** Pytest tests for web and API (19 tests), in-memory DB via TestingConfig, pytest.ini, pytest and pytest-cov in requirements.
 - **Development workflow docs:** Index and prompt files for planning and step-by-step execution of the server rebuild; no application code changes, documentation and task-index only.
-- Test suite: Pytest tests for web and API, in-memory DB config, pytest.ini, pytest and pytest-cov in requirements.
-- Planning docs: Milestone list and execution prompts for staged rebuild (no code changes).
 
 ---
 
@@ -111,5 +110,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Technical notes
 
-- Foundation is generic only: no movie, blog, or other domain logic; code and identifiers in English.
-- `.gitignore` excludes instance/, *.db, .env, __pycache__, and similar local artifacts.
+- No movie or blog domain logic; foundation only.
+- Code and identifiers in English.
+- `.gitignore` updated (instance/, *.db, .env, __pycache__, etc.).
+- Server foundation: Flask app factory, config, extensions (db, jwt, limiter, CORS), single entrypoint run.py.
+- Database: SQLite default, User model, flask init-db.
+- Web: Blueprint with home, health, login, logout; session auth; templates and static.
+- API: /api/v1 health, auth (register, login, me), protected test route; JWT and rate limiting.
+- Tooling and docs: requirements.txt, .env.example, Postman collection for API testing.
