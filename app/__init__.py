@@ -1,11 +1,16 @@
 import os
-from flask import jsonify, render_template
+from flask import jsonify, render_template, request
 from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
 from app.extensions import init_app as init_extensions, limiter
 from app.web import web_bp
 from app.api import register_api
+
+
+def _wants_json():
+    """True if the current request is for the API (JSON response expected)."""
+    return request.path.startswith("/api/")
 
 
 def create_app(config_object=None):
@@ -18,7 +23,7 @@ def create_app(config_object=None):
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 
-    # JWT error responses
+    # JWT error responses (API only)
     from app.extensions import jwt
     @jwt.unauthorized_loader
     def unauthorized_callback(_):
@@ -34,16 +39,20 @@ def create_app(config_object=None):
     from app.api.v1 import api_v1_bp
     csrf.exempt(api_v1_bp)
 
+    @app.errorhandler(404)
+    def not_found(_e):
+        if _wants_json():
+            return jsonify({"error": "Not found"}), 404
+        return render_template("404.html"), 404
+
     @app.errorhandler(429)
     def ratelimit_handler(_request):
         return jsonify({"error": "Too many requests. Please try again later."}), 429
 
-    @app.errorhandler(404)
-    def not_found(_e):
-        return render_template("404.html"), 404
-
     @app.errorhandler(500)
     def server_error(_e):
+        if _wants_json():
+            return jsonify({"error": "Internal server error"}), 500
         return render_template("500.html"), 500
 
     return app

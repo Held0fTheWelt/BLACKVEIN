@@ -9,6 +9,16 @@ except ImportError:
     pass
 
 
+def env_bool(name: str, default: bool = False) -> bool:
+    """Parse a boolean from environment. Only 1, true, yes, on (case-insensitive) are True.
+    Merely being set to any other value is False, so DEV_SECRETS_OK=0 or DEV_SECRETS_OK=foo
+    does not enable dev behavior."""
+    raw = (os.environ.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("1", "true", "yes", "on")
+
+
 def _parse_cors_origins():
     """Parse CORS_ORIGINS env: comma-separated list, or None for same-origin only."""
     raw = os.environ.get("CORS_ORIGINS", "").strip()
@@ -18,7 +28,9 @@ def _parse_cors_origins():
 
 
 class Config:
-    """Base config. SECRET_KEY and JWT_SECRET_KEY must be set via environment."""
+    """Base config for production. SECRET_KEY must be set via environment.
+    JWT_SECRET_KEY may fall back to SECRET_KEY if unset (documented single-secret option);
+    for production, set both explicitly when possible."""
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -46,38 +58,28 @@ class Config:
     # Session cookies: explicit and secure by default
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
-    _prefer_https = os.environ.get("PREFER_HTTPS", "").strip().lower() in ("1", "true", "yes")
-    SESSION_COOKIE_SECURE = _prefer_https
+    SESSION_COOKIE_SECURE = env_bool("PREFER_HTTPS", False)
 
     # Rate limiting
     RATELIMIT_DEFAULT = os.environ.get("RATELIMIT_DEFAULT", "100 per minute")
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")
 
 
-class TestingConfig(Config):
-    """Config for tests: in-memory DB, high rate limit, fixed JWT key."""
-
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
-    RATELIMIT_DEFAULT = "1000 per minute"
-    WTF_CSRF_ENABLED = False
-    # CSRF: enabled for web forms; API is exempted in create_app
-    WTF_CSRF_ENABLED = True
-    WTF_CSRF_TIME_LIMIT = None
-
-
 class DevelopmentConfig(Config):
-    """Dev-only: fallback secrets when DEV_SECRETS_OK=1. Do not use in production."""
+    """Dev-only: fallback secrets when DEV_SECRETS_OK is explicitly 1/true/yes/on.
+    Do not use in production."""
 
-    _dev_ok = os.environ.get("DEV_SECRETS_OK", "").strip() in ("1", "true", "yes")
-    if _dev_ok:
+    if env_bool("DEV_SECRETS_OK", False):
         SECRET_KEY = os.environ.get("SECRET_KEY") or "dev-secret-do-not-use-in-production"
-        JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ.get("SECRET_KEY") or "dev-jwt-secret-do-not-use-in-production"
+        JWT_SECRET_KEY = (
+            os.environ.get("JWT_SECRET_KEY")
+            or os.environ.get("SECRET_KEY")
+            or "dev-jwt-secret-do-not-use-in-production"
+        )
 
 
 class TestingConfig(Config):
-    """Config for tests: in-memory DB, fixed secrets, CSRF disabled."""
+    """Config for tests only: in-memory DB, fixed secrets, CSRF disabled, high rate limit."""
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"

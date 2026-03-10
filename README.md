@@ -1,6 +1,4 @@
-![Logo](https://github.com/Held0fTheWelt/BLACKVEIN/blob/master/promo/Logo.png)
-
-# BLACKVEIGN - World of Shadows
+# World of Shadows
 
 Flask server foundation: server-rendered web pages with session auth, and a versioned REST API with JWT auth. No game logic or domain features yet; ready for extension.
 
@@ -32,7 +30,7 @@ run.py              # entrypoint, init-db, seed-dev-user
 3. **Environment:** Copy `.env.example` to `.env` and set at least:
    - `SECRET_KEY` and `JWT_SECRET_KEY` (required; no default secrets in production).
    - For local dev only: `DEV_SECRETS_OK=1` to allow dev fallback secrets and `flask seed-dev-user`.
-4. **Database:** `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1`.
+4. **Database:** `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1` (supply credentials via env `SEED_DEV_USERNAME`/`SEED_DEV_PASSWORD`, CLI `--username`/`--password`, or `--generate` to print a random password).
 5. **Run:** `python run.py` or `flask run`. Default port 5000; debug when `FLASK_DEBUG=1`.
 
 ## Environment configuration

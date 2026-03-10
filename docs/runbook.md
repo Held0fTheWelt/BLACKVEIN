@@ -8,7 +8,8 @@ cp .env.example .env
 # Edit .env: set SECRET_KEY and JWT_SECRET_KEY (or set DEV_SECRETS_OK=1 for dev fallbacks)
 flask init-db
 # Optional, only when DEV_SECRETS_OK=1:
-flask seed-dev-user
+flask seed-dev-user --generate
+# Or: set SEED_DEV_USERNAME and SEED_DEV_PASSWORD, or use --username and --password
 ```
 
 ## Start the server
@@ -25,7 +26,7 @@ Server: http://127.0.0.1:5000
 ## Web flow
 
 1. Open http://127.0.0.1:5000/
-2. Click "Log in" → enter username/password (e.g. admin/admin if you ran seed-dev-user with DEV_SECRETS_OK=1).
+2. Click "Log in" → enter username/password (e.g. the credentials you used with seed-dev-user).
 3. After login you are redirected to /dashboard.
 4. Use "Log out" (button in header) to logout; it sends a POST.
 
@@ -50,8 +51,14 @@ curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/protect
 
 ## Health checks
 
-- Web: `GET /health` → `{"status":"ok"}`
-- API: `GET /api/v1/health` → `{"status":"ok"}`
+- **Web:** `GET /health` → JSON `{"status":"ok"}`. Use for load balancers or simple uptime checks that hit the web app.
+- **API:** `GET /api/v1/health` → JSON `{"status":"ok"}`. Same payload; use when your client talks to the API and you want a consistent JSON health check. Both endpoints are unauthenticated.
+
+## Errors
+
+- **Web routes** (e.g. `/`, `/login`, `/dashboard`): 404 and 500 return HTML error pages (templates).
+- **API routes** (under `/api/`): 404, 429, 500 and JWT 401 return JSON `{"error": "..."}`. Use the API for programmatic clients so errors are always JSON.
+- **Rate limiting:** 429 is returned as JSON (including for API). Default limit is from config (`RATELIMIT_DEFAULT`).
 
 ## Troubleshooting
 
