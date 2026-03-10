@@ -15,6 +15,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY app ./app
 COPY run.py .
 COPY migrations ./migrations
+RUN mkdir -p /app/instance && chown -R appuser:appuser /app/instance
 USER appuser
 EXPOSE 8000
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "run:app"]
