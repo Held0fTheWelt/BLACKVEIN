@@ -229,6 +229,7 @@
             if (loading) loading.hidden = true;
             if (errEl) errEl.hidden = true;
             if (!content) return;
+            document.title = (article.title || 'News') + ' – World of Shadows';
             var title = document.createElement('h1');
             title.textContent = article.title || 'Untitled';
             var meta = document.createElement('p');
@@ -245,6 +246,12 @@
             content.innerHTML = '';
             content.appendChild(title);
             content.appendChild(meta);
+            if (article.summary) {
+                var summary = document.createElement('p');
+                summary.className = 'summary';
+                summary.textContent = article.summary;
+                content.appendChild(summary);
+            }
             content.appendChild(body);
             content.hidden = false;
         }

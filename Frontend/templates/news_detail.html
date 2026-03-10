@@ -1,13 +1,22 @@
 {% extends "base.html" %}
 {% block title %}News – World of Shadows{% endblock %}
+{% block meta_description %}News article – World of Shadows.{% endblock %}
+{% block body_class %}page-news-detail{% endblock %}
 
 {% block content %}
+<p class="back-link back-link-top">
+    <a href="{{ url_for('news_list') }}">← Back to News</a>
+</p>
+
 <div id="news-detail" class="news-detail" data-news-id="{{ news_id }}" data-api-url="{{ backend_api_url }}">
-    <p class="loading" id="news-detail-loading">Loading…</p>
-    <article id="news-detail-content" class="news-detail-content" hidden></article>
-    <p id="news-detail-error" class="error" hidden></p>
+    <p class="news-detail-state loading" id="news-detail-loading" role="status">Loading…</p>
+    <article id="news-detail-content" class="news-detail-content" hidden aria-live="polite"></article>
+    <p class="news-detail-state error" id="news-detail-error" hidden role="alert"></p>
 </div>
-<p class="back-link"><a href="{{ url_for('news_list') }}">← Back to News</a></p>
+
+<p class="back-link back-link-bottom">
+    <a href="{{ url_for('news_list') }}">← Back to News</a>
+</p>
 {% endblock %}
 
 {% block extra_scripts %}
