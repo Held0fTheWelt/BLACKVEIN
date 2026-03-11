@@ -7,6 +7,7 @@ All notable changes to the World of Shadows project are documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Phase 1 audit (roles and access control):** Documented current state for role and access-control upgrade: User model (role_id, no ban fields), Role model (user, moderator, editor, admin), auth/session/JWT flow, permission helpers (current_user_is_admin, current_user_can_write_news using editor/admin), news write protection (editor-or-admin), user API and admin/dashboard protections, absence of banned-user handling and blocked-user view, Postman collection (editor references, no ban/assign-role). Audit file: `docs/audit-phase1-roles-access-control.md`. Lists all editor references to replace with moderator, migration path for editor→moderator, and gaps (ban state, blocked-user UX, admin-only role/ban API). No behavior changes.
 - **Admin logs & roles audit:** Recorded current state of the dashboard logs area (log rows come from a hardcoded DEMO_ROWS array in dashboard.js; no API), user model and role column (user/editor/admin only; migration 004 uses server_default editor), auth and session/JWT flow, existing role checks (API only; dashboard has none), logger usage (technical logs only; no persisted activity/audit log), CSV export (client-side from demo data only), and test coverage for dashboard/auth/admin. No code or behavior change; audit only.
 - **Role foundation:** Role model and `roles` table with seeded names: user, moderator, editor, admin. User model has `role_id` FK to Role; `role` property returns role name. New users get default role user. Centralized helpers: `user.has_role(name)`, `user.has_any_role(names)`, `user.is_admin`, `user.is_moderator_or_admin`; API permissions use `user.is_admin`; web guard `require_web_admin`. Migration 007: create roles, backfill from `users.role`, drop string column. `ensure_roles_seeded()` on init-db and in tests.
 - **ActivityLog and migration:** Persistent `activity_logs` table (id, created_at, actor_user_id, actor_username_snapshot, actor_role_snapshot, category, action, status, message, route, method, tags, meta, target_type, target_id). Migration 008.
@@ -28,6 +29,7 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ### Changed
 - **ActivityLog model:** Column `metadata` renamed to `meta` (SQLAlchemy reserved name).
+- **Email registration optional:** New config `REGISTRATION_REQUIRE_EMAIL` (default **False**): when False, registration does not require email (API and web). Users without email can log in immediately; verification email is only sent when an email is provided. Set `REGISTRATION_REQUIRE_EMAIL=1` to restore the previous behaviour (email required, verify before login). `create_user()` accepts optional email; API register and web register only require and send verification when config is True or when email is given. Template `register.html` shows "Email (optional)" and drops the required attribute when email is not required. Tests updated (register without email returns 201 / redirects to login when optional; 400 / error when required).
 
 ---
 
