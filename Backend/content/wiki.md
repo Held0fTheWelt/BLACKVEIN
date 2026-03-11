@@ -10,7 +10,7 @@ World of Shadows is a Flask-based backend with API, authentication, news system,
 
 - **News:** Published articles at `/news` (or via the frontend) and via the API `GET /api/v1/news`.
 - **Registration & login:** Email verification (activation link) is required; login is blocked until verification.
-- **Users & roles:** Roles `user`, `editor`, `admin`. Editors and admins can create and edit news; admins have access to user management (CRUD via the API).
+- **Users & roles:** Roles `user`, `moderator`, `admin`. Moderators and admins can create and edit news; admins have access to user management (CRUD, assign role, ban/unban via the API).
 
 ## Technical stack
 

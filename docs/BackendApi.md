@@ -123,7 +123,7 @@ Example of a protected route. Callable only with a valid JWT.
 
 ## 3. News (CRUD)
 
-Public read (list, detail): no auth; only **published** articles. With **optional** JWT (editor/admin): list can include drafts via `published_only=0` or `include_drafts=1`; detail returns draft articles too (full CRUD read). Write and status changes (Create, Update, Delete, Publish, Unpublish) require JWT and role **editor** or **admin**; otherwise 401 (no token) or 403 (Forbidden).
+Public read (list, detail): no auth; only **published** articles. With **optional** JWT (moderator/admin): list can include drafts via `published_only=0` or `include_drafts=1`; detail returns draft articles too (full CRUD read). Write and status changes (Create, Update, Delete, Publish, Unpublish) require JWT and role **moderator** or **admin**; otherwise 401 (no token) or 403 (Forbidden).
 
 ---
 
@@ -131,10 +131,10 @@ Public read (list, detail): no auth; only **published** articles. With **optiona
 
 **`GET /api/v1/news`**
 
-Returns a paginated list of articles. **Default:** published only. With **Bearer JWT** (editor or admin) and `published_only=0` or `include_drafts=1`, returns all articles including drafts (for CRUD workflows).
+Returns a paginated list of articles. **Default:** published only. With **Bearer JWT** (moderator or admin) and `published_only=0` or `include_drafts=1`, returns all articles including drafts (for CRUD workflows).
 
 - **Rate limit:** 60 per minute  
-- **Auth:** None (public). Optional JWT for editor/admin to include drafts.  
+- **Auth:** None (public). Optional JWT for moderator/admin to include drafts.  
 
 **Query parameters:**
 
@@ -146,8 +146,8 @@ Returns a paginated list of articles. **Default:** published only. With **Bearer
 | `page`          | int    | 1              | Page number (≥ 1)                                |
 | `limit`         | int    | 20             | Items per page (1–100)                           |
 | `category`      | string | –              | Filter by category                               |
-| `published_only`| string | (effective 1)   | `0` or `false` with editor/admin JWT: include drafts |
-| `include_drafts` | string | –              | `1` or `true` with editor/admin JWT: include drafts |
+| `published_only`| string | (effective 1)   | `0` or `false` with moderator/admin JWT: include drafts |
+| `include_drafts` | string | –              | `1` or `true` with moderator/admin JWT: include drafts |
 
 **Response:**
 
@@ -163,15 +163,15 @@ Returns a paginated list of articles. **Default:** published only. With **Bearer
 
 **`GET /api/v1/news/<id>`**
 
-Returns an article by numeric ID. **Without auth:** only published articles; unpublished or scheduled return 404. **With Bearer JWT (editor/admin):** returns the article even if draft (so editors can view/edit drafts).
+Returns an article by numeric ID. **Without auth:** only published articles; unpublished or scheduled return 404. **With Bearer JWT (moderator/admin):** returns the article even if draft (so moderators can view/edit drafts).
 
 - **Rate limit:** 60 per minute  
-- **Auth:** None (public). Optional JWT for editor/admin to read drafts.  
+- **Auth:** None (public). Optional JWT for moderator/admin to read drafts.  
 
 **Response:**
 
 - **200 OK:** A single news object (same fields as in list).
-- **404 Not Found:** `{ "error": "Not found" }` (not found, or draft without editor/admin token)
+- **404 Not Found:** `{ "error": "Not found" }` (not found, or draft without moderator/admin token)
 
 ---
 
@@ -182,7 +182,7 @@ Returns an article by numeric ID. **Without auth:** only published articles; unp
 Creates a new news article. Author is taken from the JWT identity.
 
 - **Rate limit:** 30 per minute  
-- **Auth:** Bearer JWT, role **editor** or **admin**  
+- **Auth:** Bearer JWT, role **moderator** or **admin**  
 
 **Request body (JSON):**
 
@@ -200,7 +200,7 @@ Creates a new news article. Author is taken from the JWT identity.
 
 - **201 Created:** The created news object.
 - **400 Bad Request:** `{ "error": "title, slug, and content are required" }` or other validation errors.
-- **401/403:** No token or role not editor/admin.
+- **401/403:** No token or role not moderator/admin.
 - **409 Conflict:** `{ "error": "Slug already in use" }`
 
 ---
@@ -212,7 +212,7 @@ Creates a new news article. Author is taken from the JWT identity.
 Updates an existing article. Only provided fields are changed.
 
 - **Rate limit:** 30 per minute  
-- **Auth:** Bearer JWT, role **editor** or **admin**  
+- **Auth:** Bearer JWT, role **moderator** or **admin**  
 
 **Request body (JSON):** All fields optional: `title`, `slug`, `summary`, `content`, `cover_image`, `category`.
 
@@ -232,7 +232,7 @@ Updates an existing article. Only provided fields are changed.
 Deletes an article.
 
 - **Rate limit:** 30 per minute  
-- **Auth:** Bearer JWT, role **editor** or **admin**  
+- **Auth:** Bearer JWT, role **moderator** or **admin**  
 
 **Response:**
 
@@ -249,7 +249,7 @@ Deletes an article.
 Sets the article to "published" (and `published_at` to now).
 
 - **Rate limit:** 30 per minute  
-- **Auth:** Bearer JWT, role **editor** or **admin**  
+- **Auth:** Bearer JWT, role **moderator** or **admin**  
 
 **Response:**
 
@@ -266,7 +266,7 @@ Sets the article to "published" (and `published_at` to now).
 Sets the article to "not published" (`is_published: false`, `published_at` optionally cleared).
 
 - **Rate limit:** 30 per minute  
-- **Auth:** Bearer JWT, role **editor** or **admin**  
+- **Auth:** Bearer JWT, role **moderator** or **admin**  
 
 **Response:**
 

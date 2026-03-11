@@ -100,7 +100,7 @@ Server: http://127.0.0.1:5000
 | Create new migration | `flask db revision -m "description"` | `python -m flask db revision -m "description"` |
 | Show migration status | `flask db current` | `python -m flask db current` |
 | Stamp revision (without running) | `flask db stamp 006_evt` | `python -m flask db stamp 006_evt` |
-| Create dev user (editor) | `flask seed-dev-user --username dev --password Pass1` | `python -m flask seed-dev-user --username dev --password Pass1` |
+| Create dev user (moderator) | `flask seed-dev-user --username dev --password Pass1` | `python -m flask seed-dev-user --username dev --password Pass1` |
 | Create admin user (testing) | `flask seed-admin-user --username admin --password Admin1` | `python -m flask seed-admin-user --username admin --password Admin1` |
 | Seed example news | `flask seed-news` | `python -m flask seed-news` |
 | Run tests | `pytest tests` | `python -m pytest tests` |
@@ -183,4 +183,4 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/pro
 - **CORS errors from frontend:** In `.env` set `CORS_ORIGINS` to the frontend origin (e.g. `http://localhost:3000`).
 - **PowerShell: "&&" unknown:** On PowerShell separate commands with `;` (e.g. `cd Backend; python -m flask db upgrade`) or use one command per line.
 - **flask: command not found:** Use `python -m flask` instead of `flask` (from the Backend directory).
-- **401 Unauthorized on API:** Two cases: (1) **Login** (`POST /auth/login`) returns 401 → wrong username or password. (2) **Other API calls** (e.g. `GET /api/v1/users`) return 401 → missing or invalid JWT: first call `POST /auth/login` with JSON `{"username":"...","password":"..."}`, then send the returned `access_token` in the header `Authorization: Bearer <access_token>`. Note: `seed-dev-user` creates an **editor** user; for admin-only endpoints use `seed-admin-user` (e.g. `flask seed-admin-user --username admin --password Admin1` with `DEV_SECRETS_OK=1`).
+- **401 Unauthorized on API:** Two cases: (1) **Login** (`POST /auth/login`) returns 401 → wrong username or password. (2) **Other API calls** (e.g. `GET /api/v1/users`) return 401 → missing or invalid JWT: first call `POST /auth/login` with JSON `{"username":"...","password":"..."}`, then send the returned `access_token` in the header `Authorization: Bearer <access_token>`. Note: `seed-dev-user` creates a **moderator** user; for admin-only endpoints use `seed-admin-user` (e.g. `flask seed-admin-user --username admin --password Admin1` with `DEV_SECRETS_OK=1`).

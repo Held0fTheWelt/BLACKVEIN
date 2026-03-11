@@ -36,5 +36,5 @@ The frontend fetches data from the backend over HTTP (e.g. `GET /api/v1/news`). 
 
 ## Seed data (optional)
 
-- **Dev user:** `flask seed-dev-user` (requires `DEV_SECRETS_OK=1`). Creates a user with editor role for testing news write API.
+- **Dev user:** `flask seed-dev-user` (requires `DEV_SECRETS_OK=1`). Creates a user with moderator role for testing news write API.
 - **Example news:** `flask seed-news` (requires `DEV_SECRETS_OK=1`). Creates a small set of example news entries (published and draft) for testing list, search, sort, category filter, and detail views. See CHANGELOG or Backend run.py for details.
