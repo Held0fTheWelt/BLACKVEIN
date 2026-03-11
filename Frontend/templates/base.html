@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" class="{% block html_class %}{% endblock %}">
+<html lang="{{ current_lang | default('de') }}" class="{% block html_class %}{% endblock %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}World of Shadows{% endblock %}</title>
+    <title>{% block title %}{{ t.site_name | default('World of Shadows') }}{% endblock %}</title>
     <meta name="description" content="{% block meta_description %}World of Shadows – Enter the World of Blackveign.{% endblock %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,18 +13,23 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
-    <a href="#main" class="skip-link">Skip to main content</a>
+    <a href="#main" class="skip-link">{{ t.skip_to_main | default('Skip to main content') }}</a>
 
     <header class="site-header">
         <div class="header-inner">
-            <a href="{{ url_for('index') }}" class="logo" aria-label="World of Shadows home">World of Shadows</a>
+            <a href="{{ url_for('index') }}" class="logo" aria-label="{{ t.site_name | default('World of Shadows') }} home">{{ t.site_name | default('World of Shadows') }}</a>
             <nav class="nav" aria-label="Main">
-                <a href="{{ url_for('news_list') }}" class="nav-link">News</a>
-                <a href="{{ backend_api_url }}/wiki" class="nav-link">Wiki</a>
-                <a href="{{ backend_api_url }}/community" class="nav-link">Community</a>
-                <a href="{{ backend_api_url }}/login" class="nav-link">Log in</a>
-                <a href="{{ backend_api_url }}/register" class="nav-link nav-link-cta">Register</a>
-                <a href="{{ backend_api_url }}/dashboard" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('news_list') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_news | default('News') }}</a>
+                <a href="{{ url_for('wiki_index') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_wiki | default('Wiki') }}</a>
+                <a href="{{ backend_api_url }}/community" class="nav-link">{{ t.nav_community | default('Community') }}</a>
+                <a href="{{ backend_api_url }}/login" class="nav-link">{{ t.nav_login | default('Log in') }}</a>
+                <a href="{{ backend_api_url }}/register" class="nav-link nav-link-cta">{{ t.nav_register | default('Register') }}</a>
+                <a href="{{ backend_api_url }}/dashboard" class="nav-link">{{ t.nav_dashboard | default('Dashboard') }}</a>
+                <span class="lang-switcher">
+                    {% for lang in supported_languages %}
+                    <a href="{{ request.path }}?lang={{ lang }}" class="nav-link{% if lang == current_lang %} active{% endif %}" hreflang="{{ lang }}">{{ lang | upper }}</a>
+                    {% endfor %}
+                </span>
             </nav>
         </div>
     </header>
@@ -35,7 +40,7 @@
 
     <footer class="site-footer">
         <div class="footer-inner">
-            <p><span class="footer-brand">World of Shadows</span> – Public site. <a href="{{ url_for('manage_index') }}">Manage</a> (staff)</p>
+            <p><span class="footer-brand">{{ t.site_name | default('World of Shadows') }}</span> – Public site. <a href="{{ url_for('manage_index') }}">{{ t.nav_manage | default('Manage') }}</a> ({{ t.footer_manage_staff | default('staff') }})</p>
         </div>
     </footer>
 

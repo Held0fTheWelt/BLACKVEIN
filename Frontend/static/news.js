@@ -20,8 +20,14 @@
         }
     }
 
+        function getCurrentLang() {
+        var c = window.__FRONTEND_CONFIG__;
+        return (c && c.currentLanguage) ? c.currentLanguage : 'de';
+    }
+
     function buildListUrl(base, opts) {
         var params = new URLSearchParams();
+        params.set('lang', getCurrentLang());
         if (opts.q) params.set('q', opts.q);
         if (opts.sort) params.set('sort', opts.sort);
         if (opts.direction) params.set('direction', opts.direction);
@@ -257,7 +263,7 @@
         }
 
         showLoading(true);
-        var path = '/api/v1/news/' + id;
+        var path = '/api/v1/news/' + id + '?lang=' + encodeURIComponent(getCurrentLang());
         var apiFetchFn = window.FrontendConfig && window.FrontendConfig.apiFetch;
         var req = apiFetchFn
             ? apiFetchFn(path)
