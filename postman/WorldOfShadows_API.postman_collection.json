@@ -709,7 +709,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "users", "{{user_id}}"]
             },
-            "description": "Update own profile. Body: optional username, email, password (with current_password)."
+            "description": "Update user. Body: optional username, email, preferred_language, role (admin only), role_level (admin only; hierarchy: target must have lower level; only SuperAdmin may set own level to >= 100)."
           }
         },
         {
@@ -785,7 +785,7 @@
                   "if (pm.response.code === 200) {",
                   "  const j = pm.response.json();",
                   "  pm.expect(j).to.have.property('role');",
-                  "  pm.expect(['user','moderator','admin']).to.include(j.role);",
+                  "  pm.expect(['user','qa','moderator','admin']).to.include(j.role);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -804,7 +804,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "users", "{{target_user_id}}", "role"]
             },
-            "description": "Assign role to a user (admin only). Body: role (user, moderator, or admin). Uses target_user_id. 403 if not admin."
+            "description": "Assign role to a user (admin only). Body: role (user, qa, moderator, admin). Hierarchy: target must have lower role_level; new role default_level must be below your level. Uses target_user_id."
           }
         },
         {
@@ -877,7 +877,7 @@
     },
     {
       "name": "Roles",
-      "description": "Role CRUD. Admin only. Name: lowercase, digits, underscore; 1-20 chars.",
+      "description": "Role CRUD. Admin only. Name: lowercase, digits, underscore; 1-20 chars. Optional: description, default_role_level (0-9999)."
       "item": [
         {
           "name": "Roles List",
