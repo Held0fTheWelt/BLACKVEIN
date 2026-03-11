@@ -416,6 +416,57 @@ def dashboard_api_metrics():
     return jsonify(data)
 
 
+@web_bp.route("/dashboard/api/site-settings", methods=["GET"])
+@require_web_admin
+@limiter.limit("30 per minute")
+def dashboard_api_site_settings_get():
+    """Get site settings (admin only). Returns slogan_rotation_interval_seconds, slogan_rotation_enabled."""
+    from app.models import SiteSetting
+    rows = SiteSetting.query.all()
+    data = {}
+    for r in rows:
+        data[r.key] = r.value
+    interval = data.get("slogan_rotation_interval_seconds")
+    enabled = data.get("slogan_rotation_enabled")
+    return jsonify({
+        "slogan_rotation_interval_seconds": int(interval) if interval is not None and str(interval).isdigit() else 60,
+        "slogan_rotation_enabled": str(enabled).lower() in ("1", "true", "yes", "on") if enabled is not None else True,
+    })
+
+
+@web_bp.route("/dashboard/api/site-settings", methods=["PUT"])
+@require_web_admin
+@limiter.limit("30 per minute")
+def dashboard_api_site_settings_put():
+    """Update site settings (admin only). Body: slogan_rotation_interval_seconds, slogan_rotation_enabled."""
+    from app.models import SiteSetting
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    interval = data.get("slogan_rotation_interval_seconds")
+    enabled = data.get("slogan_rotation_enabled")
+    if interval is not None:
+        try:
+            v = int(interval)
+            v = max(5, min(86400, v))
+        except (TypeError, ValueError):
+            v = 60
+        rec = db.session.get(SiteSetting, "slogan_rotation_interval_seconds")
+        if rec:
+            rec.value = str(v)
+        else:
+            db.session.add(SiteSetting(key="slogan_rotation_interval_seconds", value=str(v)))
+    if enabled is not None:
+        rec = db.session.get(SiteSetting, "slogan_rotation_enabled")
+        val = "true" if enabled else "false"
+        if rec:
+            rec.value = val
+        else:
+            db.session.add(SiteSetting(key="slogan_rotation_enabled", value=val))
+    db.session.commit()
+    return dashboard_api_site_settings_get()
+
+
 @web_bp.route("/dashboard/api/logs")
 @require_web_admin
 @limiter.limit("60 per minute")

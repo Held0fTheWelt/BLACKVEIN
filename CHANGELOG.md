@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Real dashboard metrics:** Admin Metrics view uses only real user data. Active Users = users with `last_seen_at` in the last 15 minutes; Registered, Verified, Banned totals from DB. Active Users Over Time and User Growth charts from `GET /dashboard/api/metrics?range=24h|7d|30d|12m` with hourly/daily/monthly bucketing. Chart scales derived from actual data maxima. Fake revenue, sessions, and conversion metrics removed.
 - **User activity tracking:** `last_seen_at` on User (migration 014), updated on web login and on JWT API requests (throttled to at most once per 5 minutes). `created_at` added for user growth series.
+- **Slogan system:** Slogans are a managed content type with CRUD API (`/api/v1/slogans`, moderator+). Placement resolution via `GET /api/v1/site/slogan?placement=&lang=` (public). Categories and placement keys for landing hero/teaser, promo, ad slots. Active/validity/pinned/priority rules; language fallback to default.
+- **Slogan management UI:** Frontend `/manage/slogans` for list, create, edit, delete, activate/deactivate. Landing teaser slogan is loaded dynamically from the API; fallback to static text when none or on error.
+- **Site Management:** Admin dashboard section “Site Management” with slogan rotation settings: `slogan_rotation_interval_seconds` and `slogan_rotation_enabled` (persisted in `site_settings` table, migration 016).
 
 ### Changed
 

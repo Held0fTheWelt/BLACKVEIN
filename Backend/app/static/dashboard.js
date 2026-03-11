@@ -308,9 +308,46 @@
     });
   }
 
+  function loadSiteSettings() {
+    fetch('/dashboard/api/site-settings', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .catch(function() { return null; })
+      .then(function(data) {
+        if (data) {
+          var el = document.getElementById('site-setting-rotation-interval');
+          var en = document.getElementById('site-setting-rotation-enabled');
+          if (el) el.value = data.slogan_rotation_interval_seconds != null ? data.slogan_rotation_interval_seconds : 60;
+          if (en) en.checked = data.slogan_rotation_enabled !== false;
+        }
+      });
+  }
+
+  function saveSiteSettings(e) {
+    e.preventDefault();
+    var interval = document.getElementById('site-setting-rotation-interval');
+    var enabled = document.getElementById('site-setting-rotation-enabled');
+    var status = document.getElementById('site-settings-status');
+    var payload = {
+      slogan_rotation_interval_seconds: parseInt(interval && interval.value, 10) || 60,
+      slogan_rotation_enabled: enabled ? enabled.checked : true
+    };
+    fetch('/dashboard/api/site-settings', {
+      credentials: 'same-origin',
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function(r) {
+        if (r.ok && status) { status.textContent = 'Saved.'; status.setAttribute('aria-live', 'polite'); setTimeout(function() { status.textContent = ''; }, 3000); }
+      })
+      .catch(function() { if (status) status.textContent = 'Save failed.'; });
+  }
+
   function bindEvents() {
     var rangeEl = document.getElementById('metrics-range');
     if (rangeEl) rangeEl.addEventListener('change', fetchAndDisplayMetrics);
+    var siteForm = document.getElementById('site-settings-form');
+    if (siteForm) siteForm.addEventListener('submit', saveSiteSettings);
 
     var searchEl = document.getElementById('filter-search');
     if (searchEl) searchEl.addEventListener('input', filterAndRender);
@@ -356,6 +393,7 @@
     setupDashboardNav();
     fetchAndDisplayMetrics();
     fetchAndRenderLogs();
+    loadSiteSettings();
     bindEvents();
   }
 

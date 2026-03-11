@@ -6,6 +6,7 @@ from app.models.email_verification_token import EmailVerificationToken
 from app.models.news_article import NewsArticle, NewsArticleTranslation
 from app.models.wiki_page import WikiPage, WikiPageTranslation
 from app.models.slogan import Slogan
+from app.models.site_setting import SiteSetting
 
 __all__ = [
     "ActivityLog",
@@ -18,4 +19,5 @@ __all__ = [
     "WikiPage",
     "WikiPageTranslation",
     "Slogan",
+    "SiteSetting",
 ]
