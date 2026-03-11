@@ -594,7 +594,7 @@ Export filtered activity logs as CSV. Same query parameters as list; `limit` max
 
 ### 7.3 CORS
 
-- When frontend and backend use different origins, **CORS_ORIGINS** must be set in the backend (e.g. `http://localhost:5001,http://127.0.0.1:5001`) so the browser allows API requests.
+- When frontend and backend use different origins, **CORS_ORIGINS** must be set in the backend so the browser allows API requests. Comma-separated list of origins; no spaces around commas, no trailing slashes. Examples: local frontend → `http://127.0.0.1:5001,http://localhost:5001`; frontend on another subdomain (e.g. PythonAnywhere) → `https://deine-frontend-app.pythonanywhere.com`. See `.env.example` and `docs/development/LocalDevelopment.md`.
 
 ### 7.4 Rate limits
 

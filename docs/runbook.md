@@ -198,7 +198,7 @@ curl.exe -H "Authorization: Bearer $TOKEN" http://127.0.0.1:5000/api/v1/test/pro
 
 - **SECRET_KEY must be set:** In `.env` set `SECRET_KEY` and `JWT_SECRET_KEY`, or for local dev set `DEV_SECRETS_OK=1`.
 - **CSRF invalid on login:** Login form must include CSRF token (already present in templates).
-- **CORS errors from frontend:** In `.env` set `CORS_ORIGINS` to the frontend origin (e.g. `http://localhost:3000`).
+- **CORS / "Network error" vom Frontend:** Am Backend (z. B. in den Environment-Variablen der Web-App oder in `.env`) `CORS_ORIGINS` auf die exakte Frontend-Origin setzen. Keine Leerzeichen um Kommas, keine trailing slashes. Beispiele: Frontend lokal → `CORS_ORIGINS=http://127.0.0.1:5001,http://localhost:5001`; Frontend auf PythonAnywhere-Subdomain → `CORS_ORIGINS=https://deine-frontend-app.pythonanywhere.com`. Danach Backend-Web-App neu laden. Siehe `.env.example` (CORS-Abschnitt).
 - **PowerShell: "&&" unknown:** On PowerShell separate commands with `;` (e.g. `cd Backend; python -m flask db upgrade`) or use one command per line.
 - **flask: command not found:** Use `python -m flask` instead of `flask` (from the Backend directory).
 - **401 Unauthorized on API:** Two cases: (1) **Login** (`POST /auth/login`) returns 401 → wrong username or password. (2) **Other API calls** (e.g. `GET /api/v1/users`) return 401 → missing or invalid JWT: first call `POST /auth/login` with JSON `{"username":"...","password":"..."}`, then send the returned `access_token` in the header `Authorization: Bearer <access_token>`. Note: `seed-dev-user` creates a **moderator** user; for admin-only endpoints use `seed-admin-user` (e.g. `flask seed-admin-user --username admin --password Admin1` with `DEV_SECRETS_OK=1`).
