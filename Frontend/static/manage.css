@@ -170,6 +170,15 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     margin-top: 1rem;
 }
 
+.manage-wiki-list-panel { min-width: 200px; }
+.manage-wiki-page-list { list-style: none; padding: 0; margin: 0; }
+.manage-wiki-page-list li { margin: 0.25rem 0; }
+.manage-wiki-page-list li.selected .manage-wiki-page-link { font-weight: 600; color: var(--primary); }
+.manage-wiki-page-link { color: var(--text); text-decoration: none; display: block; padding: 0.35rem 0.5rem; border-radius: var(--radius); }
+.manage-wiki-page-link:hover { background: var(--surface); color: var(--primary); }
+.manage-wiki-actions-top { margin-bottom: 0.75rem; }
+.manage-wiki-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
+@media (max-width: 768px) { .manage-wiki-split { grid-template-columns: 1fr; } }
 .manage-wiki-wrap { margin-top: 1rem; }
 .manage-wiki-textarea { font-family: var(--mono-font); font-size: 0.9rem; }
 .manage-wiki-actions { margin-top: 1rem; display: flex; align-items: center; gap: 1rem; }
