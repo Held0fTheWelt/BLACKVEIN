@@ -22,10 +22,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **User data: Created and Last seen:** User API and dashboards now expose `created_at` and `last_seen_at` (ISO 8601). `User.to_dict()` includes both; list and detail endpoints return them.
 - **Backend dashboard – User Settings:** Profile section shows read-only **Created** and **Last seen** (UTC) for the current user.
 - **Frontend manage users:** Users table has **Created** and **Last seen** columns; user detail form shows **Created** and **Last seen** (locale-formatted).
+- **Landing teaser slogans with rotation:** Slogans with placement `landing.teaser.primary` are shown on both Backend and Frontend landing pages in the hero subtitle (replacing the static “Where power is automated…” / “A dark foundation…” text). When multiple slogans exist and rotation is enabled in Site Settings, they alternate at the configured interval.
+- **Public site APIs:** `GET /api/v1/site/slogans?placement=&lang=` returns all slogans for a placement (for rotation); `GET /api/v1/site/settings` returns read-only `slogan_rotation_interval_seconds` and `slogan_rotation_enabled`. Both are public (no auth).
+- **Postman:** Site collection extended with **Site Slogans (list for placement)** and **Site Settings (public)** requests.
+- **Tests:** `test_slogans.py` extended with tests for `site/slogans` (public, requires placement, response structure, create-then-list, deactivate-excluded, multiple slogans) and `site/settings` (public, rotation fields).
 
 ### Changed
 
 - **API:** `GET /api/v1/users` and `GET /api/v1/users/<id>` responses now include `created_at` and `last_seen_at`.
+- **Landing pages:** Backend `home.html` and Frontend `index.html` load teaser slogans via the new slogans API and optional rotation (interval and enabled from site settings).
 
 ---
 

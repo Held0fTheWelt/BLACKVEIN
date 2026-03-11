@@ -27,15 +27,34 @@
     var el = document.getElementById("hero-teaser-slogan");
     var base = ({{ backend_api_url | tojson }} || "").replace(/\/$/, "");
     var lang = {{ current_lang | default("de") | tojson }};
+    var defaultText = el ? el.innerHTML : "";
     if (!el || !base) return;
-    fetch(base + "/api/v1/site/slogan?placement=landing.teaser.primary&lang=" + encodeURIComponent(lang), { credentials: "omit" })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .catch(function() { return null; })
-        .then(function(data) {
-            if (data && data.text && typeof data.text === "string") {
-                el.innerHTML = data.text.replace(/\n/g, "<br>");
-            }
-        });
+    function setText(text) {
+        if (typeof text !== "string") return;
+        el.innerHTML = text.replace(/\n/g, "<br>");
+    }
+    function run(items, intervalSec, enabled) {
+        if (!items || !items.length) return;
+        setText(items[0].text);
+        if (items.length === 1 || !enabled || intervalSec < 1) return;
+        var idx = 0;
+        setInterval(function(){
+            idx = (idx + 1) % items.length;
+            setText(items[idx].text);
+        }, intervalSec * 1000);
+    }
+    var api = base + "/api/v1";
+    Promise.all([
+        fetch(api + "/site/slogans?placement=landing.teaser.primary&lang=" + encodeURIComponent(lang), { credentials: "omit" }).then(function(r){ return r.ok ? r.json() : { items: [] }; }).catch(function(){ return { items: [] }; }),
+        fetch(api + "/site/settings", { credentials: "omit" }).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; })
+    ]).then(function(res){
+        var data = res[0];
+        var settings = res[1];
+        var items = data.items || [];
+        var intervalSec = (settings.slogan_rotation_interval_seconds != null && settings.slogan_rotation_interval_seconds > 0) ? settings.slogan_rotation_interval_seconds : 60;
+        var enabled = settings.slogan_rotation_enabled !== false;
+        if (items.length) run(items, intervalSec, enabled); else if (defaultText) setText(defaultText);
+    });
 })();
 </script>
 

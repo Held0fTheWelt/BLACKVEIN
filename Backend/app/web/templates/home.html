@@ -10,9 +10,8 @@
       <h1 class="hero-title" id="hero-title">
         <span class="hero-title-line">Enter the World of</span><br><span class="hero-title-accent">BLACKVEIN.</span>
       </h1>
-      <p class="hero-sub">
-        Where power is automated, 
-        mercy is obsolete, and the future is no longer human.
+      <p class="hero-sub" id="hero-teaser-slogan">
+        Where power is automated, mercy is obsolete, and the future is no longer human.
       </p>
       <div class="hero-actions">
         <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-lg">
@@ -139,4 +138,38 @@
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='landing.js') }}" defer></script>
+<script>
+(function(){
+  var el = document.getElementById("hero-teaser-slogan");
+  var defaultText = el ? el.innerHTML : "";
+  var lang = "de";
+  var api = "/api/v1";
+  if (!el) return;
+  function setText(text) {
+    if (typeof text !== "string") return;
+    el.innerHTML = text.replace(/\n/g, "<br>");
+  }
+  function run(items, intervalSec, enabled) {
+    if (!items || !items.length) return;
+    setText(items[0].text);
+    if (items.length === 1 || !enabled || intervalSec < 1) return;
+    var idx = 0;
+    setInterval(function(){
+      idx = (idx + 1) % items.length;
+      setText(items[idx].text);
+    }, intervalSec * 1000);
+  }
+  Promise.all([
+    fetch(api + "/site/slogans?placement=landing.teaser.primary&lang=" + encodeURIComponent(lang), { credentials: "same-origin" }).then(function(r){ return r.ok ? r.json() : { items: [] }; }).catch(function(){ return { items: [] }; }),
+    fetch(api + "/site/settings", { credentials: "same-origin" }).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; })
+  ]).then(function(res){
+    var data = res[0];
+    var settings = res[1];
+    var items = data.items || [];
+    var intervalSec = (settings.slogan_rotation_interval_seconds != null && settings.slogan_rotation_interval_seconds > 0) ? settings.slogan_rotation_interval_seconds : 60;
+    var enabled = settings.slogan_rotation_enabled !== false;
+    if (items.length) run(items, intervalSec, enabled); else if (defaultText) setText(defaultText);
+  });
+})();
+</script>
 {% endblock %}

@@ -1241,7 +1241,7 @@
     },
     {
       "name": "Site",
-      "description": "Public site API: slogan resolution (no auth).",
+      "description": "Public site API: slogan resolution and site settings (no auth).",
       "item": [
         {
           "name": "Site Slogan (resolve placement)",
@@ -1259,6 +1259,38 @@
               ]
             },
             "description": "Resolve one slogan for placement and language. Public. Returns { text, placement_key, language_code } or text null."
+          }
+        },
+        {
+          "name": "Site Slogans (list for placement)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/site/slogans?placement=landing.teaser.primary&lang=de",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "site", "slogans"],
+              "query": [
+                { "key": "placement", "value": "landing.teaser.primary" },
+                { "key": "lang", "value": "de" }
+              ]
+            },
+            "description": "List all slogans for a placement and language (for rotation). Public. Returns { items: [ { text, placement_key, language_code }, ... ] }."
+          }
+        },
+        {
+          "name": "Site Settings (public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/site/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "site", "settings"]
+            },
+            "description": "Public read-only site settings. Returns { slogan_rotation_interval_seconds, slogan_rotation_enabled }."
           }
         }
       ]

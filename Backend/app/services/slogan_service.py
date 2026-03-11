@@ -177,6 +177,37 @@ def deactivate_slogan(slogan_id):
     return update_slogan(slogan_id, is_active=False)
 
 
+def _slogans_query_for_placement(placement_key: str, lang: str):
+    """Base query for placement+lang: active, valid window, ordered by priority desc, id asc."""
+    now = _utc_now()
+    return (
+        Slogan.query.filter(
+            Slogan.placement_key == placement_key,
+            Slogan.language_code == lang,
+            Slogan.is_active.is_(True),
+        )
+        .filter(or_(Slogan.valid_from.is_(None), Slogan.valid_from <= now))
+        .filter(or_(Slogan.valid_until.is_(None), Slogan.valid_until > now))
+        .order_by(Slogan.priority.desc(), Slogan.id.asc())
+    )
+
+
+def list_slogans_for_placement(placement_key: str, lang: str):
+    """
+    Return all slogans for the placement and language (for rotation).
+    Same filters as resolve_slogan_for_placement; tries lang then DEFAULT_LANGUAGE.
+    Returns list of Slogan (may be empty).
+    """
+    default_lang = current_app.config.get("DEFAULT_LANGUAGE", "de")
+    for try_lang in (lang, default_lang):
+        if not try_lang:
+            continue
+        items = _slogans_query_for_placement(placement_key, try_lang).all()
+        if items:
+            return items
+    return []
+
+
 def resolve_slogan_for_placement(placement_key: str, lang: str):
     """
     Return one slogan for the placement and language. Selection: active only;
@@ -184,28 +215,15 @@ def resolve_slogan_for_placement(placement_key: str, lang: str):
     Language fallback: try lang, then DEFAULT_LANGUAGE.
     Returns Slogan or None.
     """
-    now = _utc_now()
     default_lang = current_app.config.get("DEFAULT_LANGUAGE", "de")
     for try_lang in (lang, default_lang):
         if not try_lang:
             continue
-        q = (
-            Slogan.query.filter(
-                Slogan.placement_key == placement_key,
-                Slogan.language_code == try_lang,
-                Slogan.is_active.is_(True),
-            )
-            .filter(
-                or_(Slogan.valid_from.is_(None), Slogan.valid_from <= now)
-            )
-            .filter(
-                or_(Slogan.valid_until.is_(None), Slogan.valid_until > now)
-            )
-        )
-        pinned = q.filter(Slogan.is_pinned.is_(True)).order_by(Slogan.priority.desc(), Slogan.id.asc()).first()
+        q = _slogans_query_for_placement(placement_key, try_lang)
+        pinned = q.filter(Slogan.is_pinned.is_(True)).first()
         if pinned:
             return pinned
-        first = q.order_by(Slogan.priority.desc(), Slogan.id.asc()).first()
+        first = q.first()
         if first:
             return first
     return None
