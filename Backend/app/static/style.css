@@ -674,7 +674,7 @@ body.dashboard { background: var(--void); }
 
 .dash-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
 .dash-topbar .dash-title-main { margin: 0; font-size: 1.5rem; letter-spacing: 0.1em; color: var(--violet-bright); }
-.dash-subtitle { margin: 0; font-size: .6rem; letter-spacing: 0.1em; color: var(--violet-bright); }
+.dash-subtitle { margin-top: -1rem; font-size: .8rem; letter-spacing: 0.1em;}
 .dash-title { margin: 0; font-size: 1rem; letter-spacing: 0.1em; color: var(--violet-bright); }
 .dash-topbar-actions { display: flex; align-items: center; gap: 1rem; }
 .dash-metrics-toolbar { margin-bottom: 0.5rem; }
