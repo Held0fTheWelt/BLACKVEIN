@@ -31,6 +31,7 @@
         if (el) el.hidden = true;
     }
 
+    /** Returns sanitized HTML when DOMPurify is available; otherwise null (caller must use textContent only). */
     function sanitizePreviewHtml(html) {
         if (typeof DOMPurify !== "undefined") {
             return DOMPurify.sanitize(html, {
@@ -38,7 +39,7 @@
                 ALLOWED_ATTR: ["href", "title"]
             });
         }
-        return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, "");
+        return null;
     }
 
     function updatePreview() {
@@ -49,7 +50,12 @@
         if (typeof marked !== "undefined") {
             try {
                 var parsed = marked.parse(raw);
-                preview.innerHTML = sanitizePreviewHtml(parsed);
+                var sanitized = sanitizePreviewHtml(parsed);
+                if (sanitized !== null) {
+                    preview.innerHTML = sanitized;
+                } else {
+                    preview.textContent = raw || "(empty)";
+                }
             } catch (e) {
                 preview.textContent = raw || "(empty)";
             }

@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Wiki HTML sanitization:** Server-side allowlist sanitization (bleach) for all wiki markdown-rendered HTML. Script tags, event handlers, and `javascript:` URLs are removed. Public wiki API, legacy wiki GET, and backend `/wiki` route use sanitized output. Manage wiki preview sanitizes with DOMPurify (and fallback) before `innerHTML`.
+- **Wiki HTML sanitization:** Server-side allowlist sanitization (bleach) for all wiki markdown-rendered HTML. Script tags, event handlers, and `javascript:` URLs are removed. Public wiki API, legacy wiki GET, and backend `/wiki` route use sanitized output. Manage wiki preview uses DOMPurify only; when DOMPurify is unavailable, preview shows raw text (textContent) and never injects unsanitized HTML (weak regex fallback removed).
 - **Dedicated password change endpoint:** `PUT /api/v1/users/<id>/password` (self only) with body `current_password` and `new_password`. Current password is required and validated before any change.
 - **Security headers:** Backend and frontend set `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and `Content-Security-Policy`. Optional `Strict-Transport-Security` when `ENFORCE_HTTPS` is set (backend).
 - **CSP hardening:** Backend and frontend CSP include `object-src 'none'`. Frontend `connect-src` explicitly allows the backend API origin (derived from `BACKEND_API_URL`) so split frontend/backend setups (e.g. frontend :5001, backend :5000) can communicate. Regression test asserts backend CSP contains `object-src 'none'`.
