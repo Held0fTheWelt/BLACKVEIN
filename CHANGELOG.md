@@ -6,7 +6,8 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ## [Unreleased]
 
-_(No changes yet.)_
+### Added
+- **Admin logs & roles audit:** `docs/PHASE1_AUDIT_ADMIN_LOGS_ROLES.md` documents current dashboard logs (DEMO_ROWS in dashboard.js), user model and role (user/editor/admin, no moderator, migration 004 server_default editor), auth and session/JWT, existing role checks, logger usage (technical only; no activity log), CSV export (client-side demo only), and tests. Identifies where fake logs come from, where role checks exist or are missing, and which actions to instrument for structured activity logging. No behavior change; audit only.
 
 ---
 
