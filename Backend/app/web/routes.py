@@ -42,6 +42,18 @@ def login():
         return render_template("login.html")
     user = verify_user(username, password)
     if user:
+        if getattr(user, "is_banned", False):
+            log_activity(
+                actor=user,
+                category="auth",
+                action="login_blocked_banned",
+                status="warning",
+                message="Login attempted by banned user",
+                route=request.path,
+                method=request.method,
+                tags=["web"],
+            )
+            return redirect(url_for("web.blocked"))
         if user.email and user.email_verified_at is None:
             log_activity(
                 actor=user,
@@ -88,6 +100,12 @@ def login():
     )
     flash("Invalid username or password.", "error")
     return render_template("login.html")
+
+
+@web_bp.route("/blocked")
+def blocked():
+    """Dedicated view for banned/blocked users. No login required."""
+    return render_template("blocked.html")
 
 
 @web_bp.route("/logout", methods=["POST"])

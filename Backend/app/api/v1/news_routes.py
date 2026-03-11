@@ -21,7 +21,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
 from app.auth import current_user_can_write_news
-from app.auth.permissions import get_current_user
+from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
 from app.extensions import limiter
 from app.services import log_activity
 from app.services.news_service import (
@@ -146,14 +146,12 @@ def news_detail(news_id):
 
 @api_v1_bp.route("/news", methods=["POST"])
 @limiter.limit("30 per minute")
-@jwt_required()
+@require_jwt_moderator_or_admin
 def news_create():
     """
     Create a news article. Requires JWT and moderator/admin role. Body: title, slug, content; optional summary, is_published, cover_image, category.
     author_id is set from JWT identity.
     """
-    if not current_user_can_write_news():
-        return jsonify({"error": "Forbidden"}), 403
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
@@ -206,13 +204,11 @@ def news_create():
 
 @api_v1_bp.route("/news/<int:news_id>", methods=["PUT"])
 @limiter.limit("30 per minute")
-@jwt_required()
+@require_jwt_moderator_or_admin
 def news_update(news_id):
     """
     Update a news article. Requires JWT and moderator/admin role. Body: optional title, slug, summary, content, cover_image, category.
     """
-    if not current_user_can_write_news():
-        return jsonify({"error": "Forbidden"}), 403
     data = request.get_json(silent=True)
     if data is None:
         return jsonify({"error": "Invalid or missing JSON body"}), 400
@@ -250,11 +246,9 @@ def news_update(news_id):
 
 @api_v1_bp.route("/news/<int:news_id>", methods=["DELETE"])
 @limiter.limit("30 per minute")
-@jwt_required()
+@require_jwt_moderator_or_admin
 def news_delete(news_id):
     """Delete a news article. Requires JWT and moderator/admin role."""
-    if not current_user_can_write_news():
-        return jsonify({"error": "Forbidden"}), 403
     ok, err = delete_news(news_id)
     if err:
         return jsonify({"error": err}), 404
@@ -274,11 +268,9 @@ def news_delete(news_id):
 
 @api_v1_bp.route("/news/<int:news_id>/publish", methods=["POST"])
 @limiter.limit("30 per minute")
-@jwt_required()
+@require_jwt_moderator_or_admin
 def news_publish(news_id):
     """Set article as published. Requires JWT and moderator/admin role."""
-    if not current_user_can_write_news():
-        return jsonify({"error": "Forbidden"}), 403
     news, err = publish_news(news_id)
     if err:
         return jsonify({"error": err}), 404
@@ -298,11 +290,9 @@ def news_publish(news_id):
 
 @api_v1_bp.route("/news/<int:news_id>/unpublish", methods=["POST"])
 @limiter.limit("30 per minute")
-@jwt_required()
+@require_jwt_moderator_or_admin
 def news_unpublish(news_id):
     """Set article as unpublished. Requires JWT and moderator/admin role."""
-    if not current_user_can_write_news():
-        return jsonify({"error": "Forbidden"}), 403
     news, err = unpublish_news(news_id)
     if err:
         return jsonify({"error": err}), 404

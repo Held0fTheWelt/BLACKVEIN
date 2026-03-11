@@ -1,10 +1,9 @@
 """Admin-only API: activity logs list and export."""
 import json
 from flask import jsonify, request, Response
-from flask_jwt_extended import jwt_required
 
 from app.api.v1 import api_v1_bp
-from app.auth.permissions import current_user_is_admin
+from app.auth.permissions import require_jwt_admin
 from app.extensions import limiter
 from app.services.activity_log_service import list_activity_logs
 
@@ -25,14 +24,12 @@ def _parse_int(value, default, min_val=None, max_val=None):
 
 @api_v1_bp.route("/admin/logs", methods=["GET"])
 @limiter.limit("60 per minute")
-@jwt_required()
+@require_jwt_admin
 def admin_logs_list():
     """
     List activity logs (admin only). Query: q, category, status, date_from, date_to, page, limit.
     Response: items, total, page, limit. Newest first.
     """
-    if not current_user_is_admin():
-        return jsonify({"error": "Forbidden"}), 403
     page = _parse_int(request.args.get("page"), 1, min_val=1)
     limit = _parse_int(request.args.get("limit"), 50, min_val=1, max_val=100)
     q = request.args.get("q", "").strip() or None
@@ -60,11 +57,9 @@ def admin_logs_list():
 
 @api_v1_bp.route("/admin/logs/export", methods=["GET"])
 @limiter.limit("10 per minute")
-@jwt_required()
+@require_jwt_admin
 def admin_logs_export():
     """Export activity logs as CSV (admin only). Same filters as list; limit max 5000."""
-    if not current_user_is_admin():
-        return jsonify({"error": "Forbidden"}), 403
     limit = _parse_int(request.args.get("limit"), 5000, min_val=1, max_val=5000)
     q = request.args.get("q", "").strip() or None
     category = request.args.get("category", "").strip() or None

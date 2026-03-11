@@ -26,8 +26,13 @@ def _user_needs_verification(user) -> bool:
     return bool(user and user.email and user.email_verified_at is None)
 
 
+def _user_is_banned(user) -> bool:
+    """True if user exists and is banned."""
+    return bool(user and getattr(user, "is_banned", False))
+
+
 def require_web_login(f):
-    """Redirect to login if no session user or if user is unverified (has email but no verification)."""
+    """Redirect to login if no session user, unverified, or banned. Banned users are sent to blocked page."""
     @wraps(f)
     def wrapped(*args, **kwargs):
         uid = session.get("user_id")
@@ -38,12 +43,15 @@ def require_web_login(f):
             session.clear()
             flash("Please verify your email to log in.", "error")
             return redirect(url_for("web.login"))
+        if _user_is_banned(user):
+            session.clear()
+            return redirect(url_for("web.blocked"))
         return f(*args, **kwargs)
     return wrapped
 
 
 def require_web_admin(f):
-    """Require logged-in session and admin role. Use after or instead of require_web_login for admin-only routes."""
+    """Require logged-in session and admin role. Banned users are redirected to blocked page."""
     @wraps(f)
     def wrapped(*args, **kwargs):
         uid = session.get("user_id")
@@ -54,6 +62,9 @@ def require_web_admin(f):
             session.clear()
             flash("Please verify your email to log in.", "error")
             return redirect(url_for("web.login"))
+        if _user_is_banned(user):
+            session.clear()
+            return redirect(url_for("web.blocked"))
         if not user.is_admin:
             flash("Access denied. Admin only.", "error")
             return redirect(url_for("web.dashboard"))
