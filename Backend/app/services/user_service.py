@@ -342,3 +342,70 @@ def delete_user(user_id: int) -> tuple[bool, str | None]:
     db.session.commit()
     logger.info("User deleted: id=%s", user_id)
     return True, None
+
+
+# --- Admin: assign role, ban, unban ---
+
+ALLOWED_ROLE_NAMES = (Role.NAME_USER, Role.NAME_MODERATOR, Role.NAME_ADMIN)
+
+
+def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) -> tuple[User | None, str | None]:
+    """
+    Set a user's role (admin only). role_name must be user, moderator, or admin.
+    Returns (user, None) or (None, error_message).
+    actor_id: optional caller user id (e.g. to prevent self-demotion; not enforced here).
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        return None, "User not found"
+    name = (role_name or "").strip().lower()
+    if name not in ALLOWED_ROLE_NAMES:
+        return None, "Invalid role; allowed: user, moderator, admin"
+    role_obj = Role.query.filter_by(name=name).first()
+    if not role_obj:
+        return None, "Invalid role"
+    user.role_id = role_obj.id
+    db.session.commit()
+    db.session.refresh(user)
+    logger.info("User role assigned: user_id=%s role=%s", user_id, name)
+    return user, None
+
+
+def ban_user(user_id: int, reason: str | None = None, *, actor_id: int | None = None) -> tuple[User | None, str | None]:
+    """
+    Ban a user. Sets is_banned=True, banned_at=now, ban_reason=reason.
+    Returns (user, None) or (None, error_message).
+    If actor_id is set and equals user_id, returns (None, "Cannot ban yourself").
+    Idempotent if already banned (updates reason if provided).
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        return None, "User not found"
+    if actor_id is not None and actor_id == user_id:
+        return None, "Cannot ban yourself"
+    now = datetime.now(timezone.utc)
+    user.is_banned = True
+    user.banned_at = user.banned_at or now
+    if reason is not None:
+        user.ban_reason = (reason or "").strip() or None
+    db.session.commit()
+    db.session.refresh(user)
+    logger.info("User banned: user_id=%s", user_id)
+    return user, None
+
+
+def unban_user(user_id: int) -> tuple[User | None, str | None]:
+    """
+    Remove ban from a user. Sets is_banned=False, banned_at=None, ban_reason=None.
+    Returns (user, None) or (None, error_message). Idempotent if not banned.
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        return None, "User not found"
+    user.is_banned = False
+    user.banned_at = None
+    user.ban_reason = None
+    db.session.commit()
+    db.session.refresh(user)
+    logger.info("User unbanned: user_id=%s", user_id)
+    return user, None

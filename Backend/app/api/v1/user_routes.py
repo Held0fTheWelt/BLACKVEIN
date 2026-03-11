@@ -5,12 +5,15 @@ from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
-from app.auth.permissions import current_user_is_admin, get_current_user
+from app.auth.permissions import current_user_is_admin, get_current_user, require_jwt_admin
 from app.extensions import limiter
 from app.services import log_activity
 from app.services.user_service import (
+    assign_role as assign_role_service,
+    ban_user as ban_user_service,
     get_user_by_id,
     list_users,
+    unban_user as unban_user_service,
     update_user as update_user_service,
     delete_user as delete_user_service,
 )
@@ -158,3 +161,86 @@ def users_delete(user_id):
         target_id=str(user_id),
     )
     return jsonify({"message": "Deleted"}), 200
+
+
+@api_v1_bp.route("/users/<int:user_id>/role", methods=["PATCH"])
+@limiter.limit("30 per minute")
+@require_jwt_admin
+def users_assign_role(user_id):
+    """Assign role to a user (admin only). Body: role (user, moderator, or admin)."""
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    role_name = data.get("role")
+    if role_name is None:
+        return jsonify({"error": "role is required"}), 400
+    current = get_current_user()
+    user, err = assign_role_service(user_id, role_name, actor_id=current.id if current else None)
+    if err:
+        status = 404 if err == "User not found" else 400
+        return jsonify({"error": err}), status
+    log_activity(
+        actor=current,
+        category="admin",
+        action="user_role_changed",
+        status="success",
+        message=f"User role set to {user.role}",
+        route=request.path,
+        method=request.method,
+        target_type="user",
+        target_id=str(user.id),
+        metadata={"new_role": user.role},
+    )
+    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200
+
+
+@api_v1_bp.route("/users/<int:user_id>/ban", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_admin
+def users_ban(user_id):
+    """Ban a user (admin only). Body: optional reason."""
+    data = request.get_json(silent=True) or {}
+    reason = data.get("reason") if isinstance(data.get("reason"), str) else None
+    if reason is not None:
+        reason = reason.strip() or None
+    current = get_current_user()
+    user, err = ban_user_service(user_id, reason=reason, actor_id=current.id if current else None)
+    if err:
+        status = 404 if err == "User not found" else 400
+        return jsonify({"error": err}), status
+    log_activity(
+        actor=current,
+        category="admin",
+        action="user_banned",
+        status="success",
+        message=f"User banned: {user.username}",
+        route=request.path,
+        method=request.method,
+        target_type="user",
+        target_id=str(user.id),
+    )
+    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200
+
+
+@api_v1_bp.route("/users/<int:user_id>/unban", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_admin
+def users_unban(user_id):
+    """Unban a user (admin only)."""
+    current = get_current_user()
+    user, err = unban_user_service(user_id)
+    if err:
+        status = 404 if err == "User not found" else 400
+        return jsonify({"error": err}), status
+    log_activity(
+        actor=current,
+        category="admin",
+        action="user_unbanned",
+        status="success",
+        message=f"User unbanned: {user.username}",
+        route=request.path,
+        method=request.method,
+        target_type="user",
+        target_id=str(user.id),
+    )
+    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200

@@ -10,7 +10,7 @@ The backend API is served under the prefix **`/api/v1`**. All responses are JSON
 |----------|---------------------------------------------------------------------------|
 | **Auth** | Register, Login, Me                                                       |
 | **System** | Health, Test Protected                                                   |
-| **Users** | List (GET, Admin), Get (GET), Update (PUT), Delete (DELETE, Admin)       |
+| **Users** | List (GET, Admin), Get (GET), Update (PUT), Delete (DELETE, Admin), Assign role (PATCH, Admin), Ban (POST, Admin), Unban (POST, Admin) |
 | **News** | List (GET), Detail (GET), Create (POST), Update (PUT), Delete, Publish, Unpublish |
 
 ---
@@ -80,7 +80,7 @@ Returns the user identified by the JWT.
 **Response:**
 
 - **200 OK:** `{ "id": <number>, "username": "<string>", "role": "<string>" }`  
-  Possible roles: `user`, `moderator`, `editor`, `admin`.
+  Possible roles: `user`, `moderator`, `admin`.
 - **401 Unauthorized:** Missing or invalid token: `{ "error": "Authorization required. Missing or invalid token." }` or `"Invalid or expired token."`
 - **404 Not Found:** `{ "error": "User not found" }` (token valid but user no longer in DB)
 
@@ -336,7 +336,7 @@ Update user: **Admin** may update any user and may set `role`; otherwise only **
 | `email`             | string | New email (unique, valid format)                         |
 | `password`          | string | New password (same rules as registration)                |
 | `current_password`  | string | Required when changing **own** password                  |
-| `role`              | string | **Admin** only: `user`, `moderator`, `editor`, `admin`   |
+| `role`              | string | **Admin** only: `user`, `moderator`, `admin`   |
 
 **Response:**
 
@@ -365,9 +365,76 @@ Permanently delete a user. **Admin** only. The user's news entries are kept; `au
 
 ---
 
+### 4.5 Users Assign role – Set user role (Admin)
+
+**`PATCH /api/v1/users/<id>/role`**
+
+Set a user's role. **Admin** only. Allowed values: `user`, `moderator`, `admin`.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Request body (JSON):**
+
+| Field  | Type   | Required | Description                    |
+|--------|--------|----------|--------------------------------|
+| `role` | string | yes      | One of: `user`, `moderator`, `admin` |
+
+**Response:**
+
+- **200 OK:** Updated user object including `email` and ban fields (`is_banned`, `banned_at`, `ban_reason`)
+- **400:** Invalid or missing body, or "Invalid role; allowed: user, moderator, admin"
+- **403:** Not admin
+- **404:** User not found
+
+---
+
+### 4.6 Users Ban – Ban user (Admin)
+
+**`POST /api/v1/users/<id>/ban`**
+
+Ban a user. **Admin** only. Banned users cannot log in (web and API) and are shown the blocked-user page. Admins cannot ban themselves.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Request body (JSON):**
+
+| Field    | Type   | Required | Description        |
+|----------|--------|----------|--------------------|
+| `reason` | string | no       | Optional ban reason |
+
+**Response:**
+
+- **200 OK:** User object including `email` and ban fields (`is_banned`, `banned_at`, `ban_reason`)
+- **400:** "Cannot ban yourself" or invalid body
+- **403:** Not admin
+- **404:** User not found
+
+---
+
+### 4.7 Users Unban – Unban user (Admin)
+
+**`POST /api/v1/users/<id>/unban`**
+
+Remove ban from a user. **Admin** only.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Request body:** None required (JSON body ignored).
+
+**Response:**
+
+- **200 OK:** User object including `email` and ban fields (`is_banned`, `banned_at`, `ban_reason`)
+- **403:** Not admin
+- **404:** User not found
+
+---
+
 ## 5. Roles (CRUD)
 
-All role endpoints require **Bearer JWT** and **admin** role. Role names: lowercase letters, digits, underscore; 1–20 characters. Default seeded roles: `user`, `moderator`, `editor`, `admin`. User update accepts any existing role name (from this list or custom roles).
+All role endpoints require **Bearer JWT** and **admin** role. Role names: lowercase letters, digits, underscore; 1–20 characters. Default seeded roles: `user`, `moderator`, `admin`. User update and assign-role accept only these role names.
 
 ### 5.1 Roles List
 
