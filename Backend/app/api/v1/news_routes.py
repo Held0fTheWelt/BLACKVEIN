@@ -21,7 +21,9 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
 from app.auth import current_user_can_write_news
+from app.auth.permissions import get_current_user
 from app.extensions import limiter
+from app.services import log_activity
 from app.services.news_service import (
     SORT_FIELDS,
     SORT_ORDERS,
@@ -50,11 +52,33 @@ def _parse_int(value, default, min_val=None, max_val=None):
         return default
 
 
+def _request_wants_include_drafts():
+    """True if request has valid JWT with editor/admin and query published_only=0 or include_drafts=1."""
+    try:
+        from flask_jwt_extended import get_jwt_identity
+        raw = get_jwt_identity()
+        if raw is None:
+            return False
+    except Exception:
+        return False
+    if not current_user_can_write_news():
+        return False
+    p = request.args.get("published_only", "").strip().lower()
+    if p in ("0", "false", "no"):
+        return True
+    d = request.args.get("include_drafts", "").strip().lower()
+    if d in ("1", "true", "yes"):
+        return True
+    return False
+
+
 @api_v1_bp.route("/news", methods=["GET"])
 @limiter.limit("60 per minute")
+@jwt_required(optional=True)
 def news_list():
     """
-    List published news. Query params: q (search), sort, direction, page, limit, category.
+    List news. By default only published. With JWT (editor/admin) and published_only=0 or include_drafts=1, includes drafts.
+    Query params: q (search), sort, direction, page, limit, category, published_only (0 to include drafts).
     Response: { "items": [...], "total": N, "page": P, "per_page": L }.
     """
     q = request.args.get("q", "").strip() or None
@@ -67,9 +91,10 @@ def news_list():
     page = _parse_int(request.args.get("page"), 1, min_val=1)
     limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
     category = request.args.get("category", "").strip() or None
+    published_only = not _request_wants_include_drafts()
 
     items, total = list_news(
-        published_only=True,
+        published_only=published_only,
         search=q,
         sort=sort,
         order=direction,
@@ -87,13 +112,24 @@ def news_list():
 
 @api_v1_bp.route("/news/<int:news_id>", methods=["GET"])
 @limiter.limit("60 per minute")
+@jwt_required(optional=True)
 def news_detail(news_id):
     """
-    Get a single published news article by id. 404 if not found or not published.
+    Get a single news article by id. Public: only published articles; 404 for draft.
+    With JWT (editor/admin): returns article even if draft (so they can view/edit).
     Response: single news object (id, title, slug, summary, content, author_id, author_name, ...).
     """
     news = get_news_by_id(news_id)
-    if not news or not news.is_published:
+    if not news:
+        return jsonify({"error": "Not found"}), 404
+    # Editor/admin can read drafts
+    if not news.is_published:
+        try:
+            from flask_jwt_extended import get_jwt_identity
+            if get_jwt_identity() is not None and current_user_can_write_news():
+                return jsonify(news.to_dict()), 200
+        except Exception:
+            pass
         return jsonify({"error": "Not found"}), 404
     now = datetime.now(timezone.utc)
     if news.published_at is not None:
@@ -154,6 +190,17 @@ def news_create():
     if err:
         status = 409 if err == "Slug already in use" else 400
         return jsonify({"error": err}), status
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="news_created",
+        status="success",
+        message=f"News created: {news.slug}",
+        route=request.path,
+        method=request.method,
+        target_type="news",
+        target_id=str(news.id),
+    )
     return jsonify(news.to_dict()), 201
 
 
@@ -187,6 +234,17 @@ def news_update(news_id):
     if err:
         status = 409 if err == "Slug already in use" else (404 if err == "News not found" else 400)
         return jsonify({"error": err}), status
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="news_updated",
+        status="success",
+        message=f"News updated: {news.slug}",
+        route=request.path,
+        method=request.method,
+        target_type="news",
+        target_id=str(news.id),
+    )
     return jsonify(news.to_dict()), 200
 
 
@@ -200,6 +258,17 @@ def news_delete(news_id):
     ok, err = delete_news(news_id)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="news_deleted",
+        status="success",
+        message=f"News deleted: id={news_id}",
+        route=request.path,
+        method=request.method,
+        target_type="news",
+        target_id=str(news_id),
+    )
     return jsonify({"message": "Deleted"}), 200
 
 
@@ -213,6 +282,17 @@ def news_publish(news_id):
     news, err = publish_news(news_id)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="news_published",
+        status="success",
+        message=f"News published: {news.slug}",
+        route=request.path,
+        method=request.method,
+        target_type="news",
+        target_id=str(news.id),
+    )
     return jsonify(news.to_dict()), 200
 
 
@@ -226,4 +306,15 @@ def news_unpublish(news_id):
     news, err = unpublish_news(news_id)
     if err:
         return jsonify({"error": err}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="news_unpublished",
+        status="success",
+        message=f"News unpublished: {news.slug}",
+        route=request.path,
+        method=request.method,
+        target_type="news",
+        target_id=str(news.id),
+    )
     return jsonify(news.to_dict()), 200

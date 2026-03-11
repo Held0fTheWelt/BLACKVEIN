@@ -5,7 +5,7 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 
 from app.api.v1 import api_v1_bp
 from app.extensions import limiter
-from app.services import verify_user, create_user
+from app.services import create_user, log_activity, verify_user
 from app.services.user_service import create_email_verification_token
 from app.services.mail_service import send_verification_email
 
@@ -28,9 +28,29 @@ def register():
     if err:
         status = 409 if err in ("Username already taken", "Email already registered") else 400
         return jsonify({"error": err}), status
+    log_activity(
+        actor=user,
+        category="auth",
+        action="register",
+        status="success",
+        message="API registration successful",
+        route=request.path,
+        method=request.method,
+        tags=["api"],
+    )
     ttl = current_app.config.get("EMAIL_VERIFICATION_TTL_HOURS", 24)
     raw_token = create_email_verification_token(user, ttl_hours=ttl)
     send_verification_email(user, raw_token)
+    log_activity(
+        actor=user,
+        category="auth",
+        action="verification_email_sent",
+        status="success",
+        message="Verification email sent",
+        route=request.path,
+        method=request.method,
+        tags=["api", "email"],
+    )
     return jsonify({"id": user.id, "username": user.username}), 201
 
 
@@ -48,12 +68,43 @@ def login():
     user = verify_user(username, password)
     if user:
         if user.email and user.email_verified_at is None:
+            log_activity(
+                actor=user,
+                category="auth",
+                action="login_blocked_unverified",
+                status="warning",
+                message="API login attempted before email verification",
+                route=request.path,
+                method=request.method,
+                tags=["api"],
+            )
             return jsonify({"error": "Email not verified."}), 403
+        log_activity(
+            actor=user,
+            category="auth",
+            action="login",
+            status="success",
+            message="API login successful",
+            route=request.path,
+            method=request.method,
+            tags=["api"],
+        )
         access_token = create_access_token(identity=str(user.id))
         return jsonify({
             "access_token": access_token,
             "user": user.to_dict(include_email=True),
         }), 200
+    log_activity(
+        actor=None,
+        category="auth",
+        action="login",
+        status="error",
+        message="Invalid username or password",
+        route=request.path,
+        method=request.method,
+        tags=["api"],
+        metadata={"username_provided": bool(username)},
+    )
     logger.warning("API login 401 for username=%r", username)
     return jsonify({"error": "Invalid username or password"}), 401
 

@@ -7,6 +7,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import current_user_is_admin, get_current_user
 from app.extensions import limiter
+from app.services import log_activity
 from app.services.user_service import (
     get_user_by_id,
     list_users,
@@ -106,6 +107,30 @@ def users_update(user_id):
         if err == "Current password is incorrect":
             status = 400
         return jsonify({"error": err}), status
+    log_activity(
+        actor=current,
+        category="admin",
+        action="user_updated",
+        status="success",
+        message=f"User updated: {user.username}",
+        route=request.path,
+        method=request.method,
+        target_type="user",
+        target_id=str(user.id),
+    )
+    if "role" in kwargs:
+        log_activity(
+            actor=current,
+            category="admin",
+            action="user_role_changed",
+            status="success",
+            message=f"User role set to {user.role}",
+            route=request.path,
+            method=request.method,
+            target_type="user",
+            target_id=str(user.id),
+            metadata={"new_role": user.role},
+        )
     include_email = current_user_is_admin() or current.id == user.id
     return jsonify(user.to_dict(include_email=include_email)), 200
 
@@ -117,7 +142,19 @@ def users_delete(user_id):
     """Delete a user (admin only)."""
     if not current_user_is_admin():
         return jsonify({"error": "Forbidden"}), 403
+    target_user = get_user_by_id(user_id)
     ok, err = delete_user_service(user_id)
     if not ok:
         return jsonify({"error": err or "User not found"}), 404
+    log_activity(
+        actor=get_current_user(),
+        category="admin",
+        action="user_deleted",
+        status="success",
+        message=f"User deleted: id={user_id}" + (f" ({target_user.username})" if target_user else ""),
+        route=request.path,
+        method=request.method,
+        target_type="user",
+        target_id=str(user_id),
+    )
     return jsonify({"message": "Deleted"}), 200

@@ -1,0 +1,91 @@
+"""CRUD and helpers for Role model. Used by API and user_service."""
+import re
+
+from sqlalchemy import func
+
+from app.extensions import db
+from app.models import Role, User
+
+ROLE_NAME_PATTERN = re.compile(r"^[a-z0-9_]+$")
+
+
+def list_roles(page: int = 1, per_page: int = 50, q: str | None = None):
+    """Return (list of Role, total count). Optional search by name (case-insensitive contains)."""
+    query = Role.query
+    if q and q.strip():
+        term = f"%{q.strip().lower()}%"
+        query = query.filter(func.lower(Role.name).like(term))
+    total = query.count()
+    query = query.order_by(Role.name.asc()).offset((page - 1) * per_page).limit(per_page)
+    return query.all(), total
+
+
+def get_role_by_id(role_id) -> Role | None:
+    """Return Role by id or None."""
+    if role_id is None:
+        return None
+    try:
+        rid = int(role_id)
+    except (TypeError, ValueError):
+        return None
+    return db.session.get(Role, rid)
+
+
+def validate_role_name(name: str) -> str | None:
+    """Validate role name. Returns error message or None if valid."""
+    if not name or not isinstance(name, str):
+        return "Role name is required"
+    name = name.strip().lower()
+    if len(name) < 1:
+        return "Role name cannot be empty"
+    if len(name) > Role.NAME_MAX_LENGTH:
+        return f"Role name must be at most {Role.NAME_MAX_LENGTH} characters"
+    if not ROLE_NAME_PATTERN.match(name):
+        return "Role name may only contain lowercase letters, digits, and underscore"
+    return None
+
+
+def create_role(name: str) -> tuple[Role | None, str | None]:
+    """Create a role. Returns (role, None) or (None, error_message)."""
+    err = validate_role_name(name)
+    if err:
+        return None, err
+    name = name.strip().lower()
+    if Role.query.filter_by(name=name).first():
+        return None, "Role name already exists"
+    role = Role(name=name)
+    db.session.add(role)
+    db.session.commit()
+    db.session.refresh(role)
+    return role, None
+
+
+def update_role(role_id: int, name: str) -> tuple[Role | None, str | None]:
+    """Update a role's name. Returns (role, None) or (None, error_message)."""
+    role = get_role_by_id(role_id)
+    if not role:
+        return None, "Role not found"
+    err = validate_role_name(name)
+    if err:
+        return None, err
+    name = name.strip().lower()
+    existing = Role.query.filter_by(name=name).first()
+    if existing and existing.id != role_id:
+        return None, "Role name already exists"
+    role.name = name
+    db.session.commit()
+    db.session.refresh(role)
+    return role, None
+
+
+def delete_role(role_id: int) -> tuple[bool, str | None]:
+    """Delete a role. Fails if any user has this role. Returns (True, None) or (False, error_message)."""
+    role = get_role_by_id(role_id)
+    if not role:
+        return False, "Role not found"
+    user_count = User.query.filter_by(role_id=role_id).count()
+    if user_count > 0:
+        return False, f"Cannot delete role: {user_count} user(s) have this role"
+    db.session.delete(role)
+    db.session.commit()
+    return True, None

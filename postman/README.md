@@ -32,9 +32,11 @@
 ## Flow
 
 1. Run **Login (saves token)** → `access_token` and `user_id` are set.
-2. Protected requests (Me, Test Protected, **Users**, News Write) automatically use **Authorization: Bearer {{access_token}}**.
+2. Protected requests (Me, Test Protected, **Users**, **Roles**, **Admin Logs**, News Write) automatically use **Authorization: Bearer {{access_token}}**.
 3. **Users List** (admin only): sets `target_user_id` to another user for **Users Delete**.
-4. **News List** sets `news_id` when items exist, for **News Detail**.
+4. **Roles** (admin only): List, Get, Create, Update, Delete. Roles List/Create set `role_id` for Get/Update/Delete.
+5. **Admin Logs List** and **Admin Logs Export** (admin only): activity logs API; 403 if not admin.
+6. **News:** List (public) and **News List (editor, include drafts)** set `news_id`; **News Create** sets `news_id` on 201. Use editor/admin token for Create, Update, Delete, Publish, Unpublish.
 
 ## Collection Runner
 
@@ -42,4 +44,4 @@
 - Choose environment → **Run World of Shadows API**.
 - All requests run in sequence; **test scripts** run for each (green/red).
 
-Note: **Users List** and **Users Delete** require a user with **admin** role (in the DB `role='admin'`). "Register" creates a new user; on repeated runs you may get 409 (username/email already taken) unless `register_username`/`register_email` are changed. For a clean run, execute only **Login** and **System/News/Users** first, or use a one-off new registration user.
+Note: **Users**, **Roles**, and **Admin Logs** require a user with **admin** role (in the DB `role='admin'`). "Register" creates a new user; on repeated runs you may get 409 (username/email already taken) unless `register_username`/`register_email` are changed. For a clean run, execute only **Login** and **System/News/Users/Roles/Admin Logs** first, or use a one-off new registration user.

@@ -19,10 +19,11 @@
             <h2 class="dash-sidebar-title mono">// USER</h2>
         </div>
         <nav class="dash-nav" aria-label="User">
-            <button type="button" class="dash-nav-item" data-dash-view="user-settings" id="nav-user-settings">
+            <button type="button" class="dash-nav-item{% if not is_admin %} is-active{% endif %}" data-dash-view="user-settings" id="nav-user-settings">
                 User Settings
             </button>
         </nav>
+        {% if is_admin %}
         <div class="dash-sidebar-sep" aria-hidden="true"></div>
         <div class="dash-sidebar-header">
             <h2 class="dash-sidebar-title mono">// ADMIN</h2>
@@ -38,9 +39,11 @@
                 Logs
             </button>
         </nav>
+        {% endif %}
     </aside>
 
     <div class="dash-content">
+        {% if is_admin %}
         <div class="dash-view is-visible" id="view-metrics" role="tabpanel" aria-labelledby="nav-metrics">
             <div class="dash-topbar">
                 <h1 class="dash-title mono">// METRICS</h1>
@@ -129,12 +132,15 @@
                             <option value="auth">Auth</option>
                             <option value="api">API</option>
                             <option value="admin">Admin</option>
+                            <option value="news">News</option>
+                            <option value="system">System</option>
                         </select>
                         <select id="filter-status" class="filter-select">
                             <option value="">All status</option>
                             <option value="success">Success</option>
                             <option value="error">Error</option>
                             <option value="warning">Warning</option>
+                            <option value="info">Info</option>
                         </select>
                         <input type="date" id="filter-date-from" class="filter-input" title="From date">
                         <input type="date" id="filter-date-to" class="filter-input" title="To date">
@@ -162,7 +168,9 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
+        {% if is_admin %}
         <div class="dash-view" id="view-overview" role="tabpanel" aria-labelledby="nav-overview" hidden>
             <div class="dash-topbar">
                 <h1 class="dash-title mono">// OVERVIEW</h1>
@@ -177,8 +185,9 @@
                 </ul>
             </div>
         </div>
+        {% endif %}
 
-        <div class="dash-view" id="view-user-settings" role="tabpanel" aria-labelledby="nav-user-settings" hidden>
+        <div class="dash-view{% if not is_admin %} is-visible{% endif %}" id="view-user-settings" role="tabpanel" aria-labelledby="nav-user-settings" hidden>
             <div class="dash-topbar">
                 <h1 class="dash-title mono">// USER SETTINGS</h1>
             </div>

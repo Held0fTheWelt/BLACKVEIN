@@ -141,6 +141,36 @@ def editor_headers(editor_user, client):
 
 
 @pytest.fixture
+def admin_user(app):
+    """Create a user with admin role; returns (user, password)."""
+    with app.app_context():
+        role = Role.query.filter_by(name=Role.NAME_ADMIN).first()
+        user = User(
+            username="adminuser",
+            password_hash=generate_password_hash("Adminpass1"),
+            role_id=role.id,
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user, "Adminpass1"
+
+
+@pytest.fixture
+def admin_headers(admin_user, client):
+    """Return headers with valid JWT for admin_user (for admin API requests)."""
+    user, password = admin_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    return {"Authorization": "Bearer " + data["access_token"]}
+
+
+@pytest.fixture
 def sample_news(app, test_user):
     """Create sample published and draft news for list/detail/search/sort tests.
     Returns (published_news, published_news_2, draft_news) – two published (different title/sort), one draft."""

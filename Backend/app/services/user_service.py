@@ -302,9 +302,6 @@ def update_user(
 
     if role is not None:
         role_name = (role or "").strip().lower() or User.ROLE_USER
-        valid_roles = (User.ROLE_USER, User.ROLE_MODERATOR, User.ROLE_EDITOR, User.ROLE_ADMIN)
-        if role_name not in valid_roles:
-            return None, "Invalid role"
         role_obj = Role.query.filter_by(name=role_name).first()
         if not role_obj:
             return None, "Invalid role"

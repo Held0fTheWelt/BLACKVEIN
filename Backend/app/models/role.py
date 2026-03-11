@@ -11,6 +11,11 @@ class Role(db.Model):
     name = db.Column(db.String(20), unique=True, nullable=False)
 
     NAME_USER = "user"
+    NAME_MAX_LENGTH = 20
+
+    def to_dict(self):
+        return {"id": self.id, "name": self.name}
+
     NAME_MODERATOR = "moderator"
     NAME_EDITOR = "editor"
     NAME_ADMIN = "admin"

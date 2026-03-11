@@ -6,38 +6,9 @@
 
   var DEMO_METRICS = { revenue: 52340, users: 1847, sessions: 4210, conversion: 4.2 };
 
-  var DEMO_ROWS = [
-    { date: '2025-02-01', user: 'alice', category: 'auth', action: 'Login', status: 'success', tags: ['web'] },
-    { date: '2025-02-02', user: 'bob', category: 'api', action: 'API Call', status: 'success', tags: ['v1'] },
-    { date: '2025-02-03', user: 'carol', category: 'admin', action: 'Admin Action', status: 'warning', tags: ['audit'] },
-    { date: '2025-02-04', user: 'alice', category: 'auth', action: 'Password Reset', status: 'success', tags: ['email'] },
-    { date: '2025-02-05', user: 'bob', category: 'api', action: 'Token Refresh', status: 'success', tags: ['jwt'] },
-    { date: '2025-02-06', user: 'dave', category: 'auth', action: 'Register', status: 'success', tags: ['web'] },
-    { date: '2025-02-07', user: 'alice', category: 'api', action: 'API Call', status: 'error', tags: ['v1', 'timeout'] },
-    { date: '2025-02-08', user: 'bob', category: 'auth', action: '2FA Check', status: 'success', tags: ['mfa'] },
-    { date: '2025-02-09', user: 'carol', category: 'admin', action: 'Export', status: 'success', tags: ['csv'] },
-    { date: '2025-02-10', user: 'eve', category: 'api', action: 'Rate Limited', status: 'warning', tags: ['429'] },
-    { date: '2025-02-11', user: 'alice', category: 'auth', action: 'Logout', status: 'success', tags: ['web'] },
-    { date: '2025-02-12', user: 'bob', category: 'api', action: 'API Call', status: 'success', tags: ['v1'] },
-    { date: '2025-02-13', user: 'dave', category: 'auth', action: 'Login', status: 'success', tags: ['web'] },
-    { date: '2025-02-14', user: 'carol', category: 'admin', action: 'Admin Action', status: 'success', tags: ['audit'] },
-    { date: '2025-02-15', user: 'alice', category: 'auth', action: 'Token Refresh', status: 'success', tags: ['session'] },
-    { date: '2025-02-16', user: 'eve', category: 'api', action: 'API Call', status: 'error', tags: ['v1'] },
-    { date: '2025-02-17', user: 'bob', category: 'auth', action: 'Password Reset', status: 'success', tags: ['email'] },
-    { date: '2025-02-18', user: 'alice', category: 'api', action: 'API Call', status: 'success', tags: ['v1'] },
-    { date: '2025-02-19', user: 'dave', category: 'admin', action: 'Export', status: 'warning', tags: ['csv'] },
-    { date: '2025-02-20', user: 'carol', category: 'auth', action: '2FA Check', status: 'success', tags: ['mfa'] },
-    { date: '2025-03-01', user: 'alice', category: 'api', action: 'API Call', status: 'success', tags: ['v1'] },
-    { date: '2025-03-02', user: 'bob', category: 'auth', action: 'Login', status: 'success', tags: ['web'] },
-    { date: '2025-03-03', user: 'eve', category: 'api', action: 'Rate Limited', status: 'error', tags: ['429'] },
-    { date: '2025-03-04', user: 'carol', category: 'admin', action: 'Admin Action', status: 'success', tags: ['audit'] },
-    { date: '2025-03-05', user: 'alice', category: 'auth', action: 'Logout', status: 'success', tags: ['web'] },
-    { date: '2025-03-06', user: 'dave', category: 'api', action: 'Token Refresh', status: 'success', tags: ['jwt'] },
-    { date: '2025-03-07', user: 'bob', category: 'auth', action: 'Register', status: 'success', tags: ['web'] },
-    { date: '2025-03-08', user: 'alice', category: 'api', action: 'API Call', status: 'success', tags: ['v1'] },
-    { date: '2025-03-09', user: 'carol', category: 'admin', action: 'Export', status: 'success', tags: ['csv'] },
-    { date: '2025-03-10', user: 'eve', category: 'auth', action: 'Login', status: 'warning', tags: ['web'] }
-  ];
+  var LOGS_API = '/dashboard/api/logs';
+  var logsLoading = false;
+  var logsError = null;
 
   var STORAGE_KEY = 'wos-dashboard-thresholds';
   var chartRevenue = null;
@@ -205,22 +176,17 @@
     var status = (document.getElementById('filter-status') && document.getElementById('filter-status').value) || '';
     var from = (document.getElementById('filter-date-from') && document.getElementById('filter-date-from').value) || '';
     var to = (document.getElementById('filter-date-to') && document.getElementById('filter-date-to').value) || '';
-    return { search: search.toLowerCase(), category, status, from, to };
+    return { search: search.trim(), category, status, from, to };
   }
 
-  function filterRows() {
-    var f = getFilters();
-    return DEMO_ROWS.filter(function (r) {
-      if (f.category && r.category !== f.category) return false;
-      if (f.status && r.status !== f.status) return false;
-      if (f.from && r.date < f.from) return false;
-      if (f.to && r.date > f.to) return false;
-      if (f.search) {
-        var text = (r.user + ' ' + r.action + ' ' + (r.tags || []).join(' ')).toLowerCase();
-        if (text.indexOf(f.search) === -1) return false;
-      }
-      return true;
-    });
+  function formatLogDate(isoStr) {
+    if (!isoStr) return '';
+    try {
+      var d = new Date(isoStr);
+      return isNaN(d.getTime()) ? isoStr : d.toISOString().slice(0, 10);
+    } catch (e) {
+      return isoStr;
+    }
   }
 
   function tagClass(s) {
@@ -230,28 +196,92 @@
     return 'tag-info';
   }
 
-  function filterAndRender() {
-    var rows = filterRows();
-    var tbody = document.getElementById('table-body');
-    var countEl = document.getElementById('table-count');
-    if (!tbody) return;
+  function renderLogsLoading(tbody, countEl) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="logs-loading">Loading…</td></tr>';
+    if (countEl) countEl.textContent = '0 entries';
+  }
 
+  function renderLogsError(tbody, countEl, message) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="logs-error">' + escapeHtml(message) + '</td></tr>';
+    if (countEl) countEl.textContent = '0 entries';
+  }
+
+  function renderLogsEmpty(tbody, countEl) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="logs-empty">No log entries.</td></tr>';
+    if (countEl) countEl.textContent = '0 entries';
+  }
+
+  function renderLogsRows(items, total, tbody, countEl) {
+    if (!tbody) return;
     tbody.innerHTML = '';
-    rows.forEach(function (r) {
+    (items || []).forEach(function (r) {
       var tr = document.createElement('tr');
       var tags = (r.tags || []).map(function (t) {
         return '<span class="tag tag-info">' + escapeHtml(t) + '</span>';
       }).join('');
+      var dateStr = formatLogDate(r.created_at);
       tr.innerHTML =
-        '<td>' + escapeHtml(r.date) + '</td>' +
-        '<td>' + escapeHtml(r.user) + '</td>' +
+        '<td>' + escapeHtml(dateStr) + '</td>' +
+        '<td>' + escapeHtml(r.actor_username_snapshot || '—') + '</td>' +
         '<td>' + escapeHtml(r.category) + '</td>' +
         '<td>' + escapeHtml(r.action) + '</td>' +
         '<td><span class="tag ' + tagClass(r.status) + '">' + escapeHtml(r.status) + '</span></td>' +
         '<td>' + tags + '</td>';
       tbody.appendChild(tr);
     });
-    if (countEl) countEl.textContent = rows.length + ' entries';
+    if (countEl) countEl.textContent = (total != null ? total : (items || []).length) + ' entries';
+  }
+
+  function fetchAndRenderLogs() {
+    var tbody = document.getElementById('table-body');
+    var countEl = document.getElementById('table-count');
+    var f = getFilters();
+    var params = new URLSearchParams();
+    if (f.search) params.set('q', f.search);
+    if (f.category) params.set('category', f.category);
+    if (f.status) params.set('status', f.status);
+    if (f.from) params.set('date_from', f.from);
+    if (f.to) params.set('date_to', f.to);
+    params.set('page', '1');
+    params.set('limit', '100');
+    var url = LOGS_API + (params.toString() ? '?' + params.toString() : '');
+
+    logsLoading = true;
+    logsError = null;
+    renderLogsLoading(tbody, countEl);
+
+    fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (res) {
+        if (!res.ok) {
+          if (res.status === 403) return { _error: 'Access denied. Admin only.' };
+          return res.json().then(function (j) { return { _error: j.error || 'Failed to load logs' }; }).catch(function () { return { _error: 'Failed to load logs' }; });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        logsLoading = false;
+        if (data && data._error) {
+          logsError = data._error;
+          renderLogsError(tbody, countEl, data._error);
+          return;
+        }
+        var items = (data && data.items) || [];
+        var total = (data && typeof data.total === 'number') ? data.total : items.length;
+        if (items.length === 0 && total === 0) {
+          renderLogsEmpty(tbody, countEl);
+        } else {
+          renderLogsRows(items, total, tbody, countEl);
+        }
+      })
+      .catch(function () {
+        logsLoading = false;
+        logsError = 'Unable to load logs.';
+        renderLogsError(tbody, countEl, logsError);
+      });
+  }
+
+  function filterAndRender() {
+    fetchAndRenderLogs();
   }
 
   function escapeHtml(s) {
@@ -262,19 +292,16 @@
   }
 
   function exportCsv() {
-    var rows = filterRows();
-    var header = 'Date,User,Category,Action,Status,Tags\n';
-    var body = rows.map(function (r) {
-      return [r.date, r.user, r.category, r.action, r.status, (r.tags || []).join(';')].map(csvEscape).join(',');
-    }).join('\n');
-    var csv = header + body;
-    var blob = new Blob([csv], { type: 'text/csv' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'wos-activity-' + new Date().toISOString().slice(0, 10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    var f = getFilters();
+    var params = new URLSearchParams();
+    if (f.search) params.set('q', f.search);
+    if (f.category) params.set('category', f.category);
+    if (f.status) params.set('status', f.status);
+    if (f.from) params.set('date_from', f.from);
+    if (f.to) params.set('date_to', f.to);
+    params.set('limit', '5000');
+    var url = '/dashboard/api/logs/export' + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = url;
   }
 
   function csvEscape(s) {

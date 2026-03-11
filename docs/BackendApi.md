@@ -80,7 +80,7 @@ Returns the user identified by the JWT.
 **Response:**
 
 - **200 OK:** `{ "id": <number>, "username": "<string>", "role": "<string>" }`  
-  Possible roles: `user`, `editor`, `admin`.
+  Possible roles: `user`, `moderator`, `editor`, `admin`.
 - **401 Unauthorized:** Missing or invalid token: `{ "error": "Authorization required. Missing or invalid token." }` or `"Invalid or expired token."`
 - **404 Not Found:** `{ "error": "User not found" }` (token valid but user no longer in DB)
 
@@ -120,31 +120,33 @@ Example of a protected route. Callable only with a valid JWT.
 
 ---
 
-## 3. News
+## 3. News (CRUD)
 
-Public read endpoints (list, detail) require no auth. Write and status changes (Create, Update, Delete, Publish, Unpublish) require JWT and role **editor** or **admin**; otherwise 401 (no token) or 403 (Forbidden).
+Public read (list, detail): no auth; only **published** articles. With **optional** JWT (editor/admin): list can include drafts via `published_only=0` or `include_drafts=1`; detail returns draft articles too (full CRUD read). Write and status changes (Create, Update, Delete, Publish, Unpublish) require JWT and role **editor** or **admin**; otherwise 401 (no token) or 403 (Forbidden).
 
 ---
 
-### 3.1 News List – List published articles
+### 3.1 News List – List articles
 
 **`GET /api/v1/news`**
 
-Returns a paginated list of **published** articles only. Unpublished or scheduled articles are not included.
+Returns a paginated list of articles. **Default:** published only. With **Bearer JWT** (editor or admin) and `published_only=0` or `include_drafts=1`, returns all articles including drafts (for CRUD workflows).
 
 - **Rate limit:** 60 per minute  
-- **Auth:** None  
+- **Auth:** None (public). Optional JWT for editor/admin to include drafts.  
 
 **Query parameters:**
 
-| Parameter  | Type   | Default        | Description                                      |
-|------------|--------|----------------|--------------------------------------------------|
-| `q`        | string | –              | Search term (searches title/content)            |
-| `sort`     | string | `published_at` | Sort: `published_at`, `created_at`, `updated_at`, `title` |
-| `direction`| string | `desc`         | `asc` or `desc`                                 |
-| `page`     | int    | 1              | Page number (≥ 1)                                |
-| `limit`    | int    | 20             | Items per page (1–100)                           |
-| `category` | string | –              | Filter by category                               |
+| Parameter       | Type   | Default        | Description                                      |
+|-----------------|--------|----------------|--------------------------------------------------|
+| `q`             | string | –              | Search term (searches title/content)            |
+| `sort`          | string | `published_at` | Sort: `published_at`, `created_at`, `updated_at`, `title` |
+| `direction`     | string | `desc`         | `asc` or `desc`                                 |
+| `page`          | int    | 1              | Page number (≥ 1)                                |
+| `limit`         | int    | 20             | Items per page (1–100)                           |
+| `category`      | string | –              | Filter by category                               |
+| `published_only`| string | (effective 1)   | `0` or `false` with editor/admin JWT: include drafts |
+| `include_drafts` | string | –              | `1` or `true` with editor/admin JWT: include drafts |
 
 **Response:**
 
@@ -156,19 +158,19 @@ Returns a paginated list of **published** articles only. Unpublished or schedule
 
 ---
 
-### 3.2 News Detail – Get single article
+### 3.2 News Detail – Get single article (Read)
 
 **`GET /api/v1/news/<id>`**
 
-Returns a published article by numeric ID. Unpublished or scheduled articles return 404.
+Returns an article by numeric ID. **Without auth:** only published articles; unpublished or scheduled return 404. **With Bearer JWT (editor/admin):** returns the article even if draft (so editors can view/edit drafts).
 
 - **Rate limit:** 60 per minute  
-- **Auth:** None  
+- **Auth:** None (public). Optional JWT for editor/admin to read drafts.  
 
 **Response:**
 
 - **200 OK:** A single news object (same fields as in list).
-- **404 Not Found:** `{ "error": "Not found" }`
+- **404 Not Found:** `{ "error": "Not found" }` (not found, or draft without editor/admin token)
 
 ---
 
@@ -334,7 +336,7 @@ Update user: **Admin** may update any user and may set `role`; otherwise only **
 | `email`             | string | New email (unique, valid format)                         |
 | `password`          | string | New password (same rules as registration)                |
 | `current_password`  | string | Required when changing **own** password                  |
-| `role`              | string | **Admin** only: `user`, `editor`, `admin`                |
+| `role`              | string | **Admin** only: `user`, `moderator`, `editor`, `admin`   |
 
 **Response:**
 
@@ -363,24 +365,169 @@ Permanently delete a user. **Admin** only. The user's news entries are kept; `au
 
 ---
 
-## 5. General
+## 5. Roles (CRUD)
 
-### 5.1 Authentication
+All role endpoints require **Bearer JWT** and **admin** role. Role names: lowercase letters, digits, underscore; 1–20 characters. Default seeded roles: `user`, `moderator`, `editor`, `admin`. User update accepts any existing role name (from this list or custom roles).
+
+### 5.1 Roles List
+
+**`GET /api/v1/roles`**
+
+Paginated list of roles.
+
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Query parameters:**
+
+| Parameter | Type   | Default | Description           |
+|-----------|--------|--------|-----------------------|
+| `page`    | int    | 1      | Page number (≥ 1)     |
+| `limit`   | int    | 50     | Items per page (1–100)|
+| `q`       | string | –      | Search in role name   |
+
+**Response:**
+
+- **200 OK:** `{ "items": [ { "id", "name" }, ... ], "total", "page", "per_page" }`
+- **403:** Not admin
+
+### 5.2 Roles Get
+
+**`GET /api/v1/roles/<id>`**
+
+Single role by id.
+
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Response:**
+
+- **200 OK:** `{ "id", "name" }`
+- **403:** Not admin
+- **404:** Role not found
+
+### 5.3 Roles Create
+
+**`POST /api/v1/roles`**
+
+Create a new role.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Request body (JSON):**
+
+| Field  | Type   | Required | Description                                  |
+|--------|--------|----------|----------------------------------------------|
+| `name` | string | yes      | Unique name (lowercase, digits, underscore)  |
+
+**Response:**
+
+- **201 Created:** `{ "id", "name" }`
+- **400:** Validation error (e.g. invalid name format)
+- **403:** Not admin
+- **409:** Role name already exists
+
+### 5.4 Roles Update
+
+**`PUT /api/v1/roles/<id>`**
+
+Update a role's name.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Request body (JSON):**
+
+| Field  | Type   | Required | Description                                  |
+|--------|--------|----------|----------------------------------------------|
+| `name` | string | yes      | New unique name (same format as create)     |
+
+**Response:**
+
+- **200 OK:** `{ "id", "name" }`
+- **400/403/404/409:** Same as create
+
+### 5.5 Roles Delete
+
+**`DELETE /api/v1/roles/<id>`**
+
+Delete a role. Fails if any user has this role.
+
+- **Rate limit:** 30 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Response:**
+
+- **200 OK:** `{ "message": "Deleted" }`
+- **400:** Cannot delete: users have this role
+- **403:** Not admin
+- **404:** Role not found
+
+---
+
+## 6. Admin logs
+
+Activity logs are structured entries (auth, news, admin actions) for the admin dashboard. **Admin** role only.
+
+### 6.1 Admin logs list
+
+**`GET /api/v1/admin/logs`**
+
+Paginated list of activity log entries. Newest first.
+
+- **Rate limit:** 60 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Query parameters:**
+
+| Parameter   | Type   | Description                              |
+|------------|--------|------------------------------------------|
+| `q`        | string | Search in message, action, actor username |
+| `category` | string | Filter by category (e.g. auth, news, admin) |
+| `status`   | string | Filter by status (success, error, warning, info) |
+| `date_from`| string | From date (YYYY-MM-DD)                    |
+| `date_to`  | string | To date (YYYY-MM-DD)                     |
+| `page`     | int    | Page number (default 1)                  |
+| `limit`    | int    | Items per page (default 50, max 100)     |
+
+**Response:**
+
+- **200 OK:** `{ "items": [ { "id", "created_at", "actor_user_id", "actor_username_snapshot", "actor_role_snapshot", "category", "action", "status", "message", "route", "method", "tags", "metadata", "target_type", "target_id" }, ... ], "total", "page", "limit" }`
+- **403:** Not admin  
+- **401:** Missing or invalid token  
+
+### 6.2 Admin logs export (CSV)
+
+**`GET /api/v1/admin/logs/export`**
+
+Export filtered activity logs as CSV. Same query parameters as list; `limit` max 5000.
+
+- **Rate limit:** 10 per minute  
+- **Auth:** Bearer JWT, role **admin**  
+
+**Response:** CSV file (attachment); **403** if not admin.
+
+---
+
+## 7. General
+
+### 7.1 Authentication
 
 - Protected endpoints expect the header: **`Authorization: Bearer <access_token>`**  
   The token is obtained from **`POST /api/v1/auth/login`**.
 - Invalid or expired token: **401** with JSON `error`.
 - Valid token but insufficient rights (e.g. role `user` for news write): **403 Forbidden**.
 
-### 5.2 Error responses
+### 7.2 Error responses
 
 - API errors are JSON: `{ "error": "<message>" }`.
 - Missing or invalid JSON body: **400** with corresponding `error` message.
 
-### 5.3 CORS
+### 7.3 CORS
 
 - When frontend and backend use different origins, **CORS_ORIGINS** must be set in the backend (e.g. `http://localhost:5001,http://127.0.0.1:5001`) so the browser allows API requests.
 
-### 5.4 Rate limits
+### 7.4 Rate limits
 
 - Per-endpoint limits are as stated above (e.g. 10/min Register, 20/min Login, 60/min Health/News List). Exceeding them typically returns **429 Too Many Requests** (depending on config).

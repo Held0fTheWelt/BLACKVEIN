@@ -168,5 +168,9 @@ docker compose exec backend flask db upgrade
 
 - **Health:** `GET /api/v1/health`
 - **Auth:** `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me`
-- **News (public):** `GET /api/v1/news` (list; query: q, sort, direction, page, limit, category), `GET /api/v1/news/<id>` (detail)
-- **News (write):** `POST /api/v1/news`, `PUT /api/v1/news/<id>`, `DELETE /api/v1/news/<id>`, `POST /api/v1/news/<id>/publish`, `POST /api/v1/news/<id>/unpublish` – require JWT and editor/admin role.
+- **News (CRUD):** `GET /api/v1/news` (list; query: q, sort, direction, page, limit, category; with editor JWT: `published_only=0` for drafts), `GET /api/v1/news/<id>` (detail; with editor JWT returns drafts), `POST /api/v1/news`, `PUT /api/v1/news/<id>`, `DELETE /api/v1/news/<id>`, `POST /api/v1/news/<id>/publish`, `POST /api/v1/news/<id>/unpublish` – write/publish require JWT and editor/admin role.
+- **Users (CRUD):** `GET /api/v1/users` (admin only), `GET /api/v1/users/<id>`, `PUT /api/v1/users/<id>`, `DELETE /api/v1/users/<id>` (admin only for list/delete).
+- **Roles (CRUD):** `GET /api/v1/roles` (admin only; query: page, limit, q), `GET /api/v1/roles/<id>`, `POST /api/v1/roles`, `PUT /api/v1/roles/<id>`, `DELETE /api/v1/roles/<id>` (admin only).
+- **Admin logs:** `GET /api/v1/admin/logs` (admin only; query: q, category, status, date_from, date_to, page, limit), `GET /api/v1/admin/logs/export` (admin only; CSV). Dashboard uses session-authenticated `/dashboard/api/logs` and `/dashboard/api/logs/export` (admin only).
+
+**Roles:** Default roles are user, moderator, editor, admin; admins can manage roles via the Roles CRUD API. New registrations get role **user**. Editor and admin can write news; only **admin** can access user list, user delete, roles CRUD, and activity logs API. Role checks are centralized (`user.is_admin`, `user.has_role(...)`, `require_web_admin`). Activity logging is done via `log_activity(...)`; auth, account, news, and admin actions produce structured entries visible in the admin dashboard Logs tab.

@@ -1,3 +1,4 @@
+from app.services.activity_log_service import log_activity
 from app.services.user_service import (
     create_user,
     get_user_by_email,
@@ -16,6 +17,7 @@ from app.services.news_service import (
 )
 
 __all__ = [
+    "log_activity",
     "get_user_by_username",
     "get_user_by_email",
     "verify_user",

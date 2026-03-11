@@ -81,11 +81,45 @@ def test_news_list_only_published(client, sample_news):
 
 
 def test_news_detail_draft_returns_404(client, sample_news):
-    """GET /api/v1/news/<id> for unpublished article returns 404."""
+    """GET /api/v1/news/<id> for unpublished article returns 404 (no auth)."""
     _pub1, _pub2, draft = sample_news
     response = client.get("/api/v1/news/{}".format(draft.id))
     assert response.status_code == 404
     assert response.get_json().get("error") == "Not found"
+
+
+def test_news_detail_draft_with_editor_returns_200(client, editor_headers, sample_news):
+    """GET /api/v1/news/<id> for draft with editor JWT returns 200 (CRUD read for drafts)."""
+    _pub1, _pub2, draft = sample_news
+    response = client.get("/api/v1/news/{}".format(draft.id), headers=editor_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["id"] == draft.id
+    assert data["is_published"] is False
+
+
+def test_news_list_include_drafts_with_editor(client, editor_headers, sample_news):
+    """GET /api/v1/news?published_only=0 with editor JWT returns all items including drafts."""
+    _pub1, _pub2, draft = sample_news
+    response = client.get(
+        "/api/v1/news",
+        query_string={"published_only": "0", "limit": "20"},
+        headers=editor_headers,
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    ids = [i["id"] for i in data["items"]]
+    assert draft.id in ids
+
+
+def test_news_list_without_drafts_param_unchanged(client, editor_headers, sample_news):
+    """GET /api/v1/news without published_only=0 still returns only published (backward compatible)."""
+    _pub1, _pub2, draft = sample_news
+    response = client.get("/api/v1/news", headers=editor_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    ids = [i["id"] for i in data["items"]]
+    assert draft.id not in ids
 
 
 # --- Search ---

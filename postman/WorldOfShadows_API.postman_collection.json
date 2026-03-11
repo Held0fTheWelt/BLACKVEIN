@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "world-of-shadows-api-v1",
     "name": "World of Shadows API",
-    "description": "REST API v1: Auth, System, Users (CRUD), News.\n\n**Test Environment:** Select an environment with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token` and `user_id`; protected requests use the token automatically. For **Users List** and **Users Delete** use an admin account (role=admin).\n\n**Collection Runner:** All requests include test scripts (status codes and response body assertions). Users List sets `target_user_id` to another user for Delete (admin only).",
+    "description": "REST API v1: Auth, System, Users (CRUD), Roles (CRUD), News, Admin Logs.\n\n**Test Environment:** Select an environment with `baseUrl`, `username`, `password`, `email`. Run **Login** to save `access_token` and `user_id`; protected requests use the token automatically. For **Users**, **Roles**, and **Admin Logs** use an admin account (role=admin).\n\n**Collection Runner:** All requests include test scripts (status codes and response body assertions). Users List sets `target_user_id` to another user for Delete (admin only).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -17,6 +17,7 @@
   },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "remoteUrl", "value": "https://held0fthewelt.pythonanywhere.com/" },
     { "key": "apiPath", "value": "/api/v1" },
     { "key": "access_token", "value": "" },
     { "key": "username", "value": "admin" },
@@ -27,7 +28,8 @@
     { "key": "register_username", "value": "postman_user" },
     { "key": "register_email", "value": "postman@example.com" },
     { "key": "register_password", "value": "PostmanPass1" },
-    { "key": "target_user_id", "value": "" }
+    { "key": "target_user_id", "value": "" },
+    { "key": "role_id", "value": "" }
   ],
   "item": [
     {
@@ -274,7 +276,7 @@
     },
     {
       "name": "News",
-      "description": "Public read: list and detail. Write (POST/PUT/DELETE/publish) require editor/admin role.",
+      "description": "News CRUD: List (public published; with editor JWT use published_only=0 for drafts), Detail (public or draft with editor JWT), Create, Update, Delete, Publish, Unpublish. Write and publish require editor/admin role.",
       "item": [
         {
           "name": "News List",
@@ -385,6 +387,211 @@
               "path": ["api", "v1", "news", "999999"]
             },
             "description": "Expect 404 for non-existent id."
+          }
+        },
+        {
+          "name": "News List (editor, include drafts)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('items');",
+                  "  if (j.items && j.items.length > 0 && j.items[0].id) {",
+                  "    pm.collectionVariables.set('news_id', String(j.items[0].id));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news?page=1&limit=20&published_only=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "published_only", "value": "0" }
+              ]
+            },
+            "description": "List all news including drafts. Requires editor/admin JWT. Sets news_id from first item."
+          }
+        },
+        {
+          "name": "News Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 400 or 401 or 403 or 409', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 400, 401, 403, 409]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  const j = pm.response.json();",
+                  "  pm.expect(j).to.have.property('id');",
+                  "  pm.expect(j).to.have.property('title');",
+                  "  if (j.id) pm.collectionVariables.set('news_id', String(j.id));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Created Article\",\n  \"slug\": \"postman-created-article\",\n  \"content\": \"Content from Postman.\",\n  \"summary\": \"Optional summary\",\n  \"is_published\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news"]
+            },
+            "description": "Create news. Editor/admin JWT required. Body: title, slug, content; optional summary, is_published, cover_image, category. Sets news_id on 201."
+          }
+        },
+        {
+          "name": "News Update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400 or 401 or 403 or 404 or 409', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 403, 404, 409]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has id, title', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('id');",
+                  "    pm.expect(j).to.have.property('title');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title\",\n  \"content\": \"Updated content.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/{{news_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "{{news_id}}"]
+            },
+            "description": "Update news. Editor/admin JWT. Body: optional title, slug, summary, content, cover_image, category. Uses news_id."
+          }
+        },
+        {
+          "name": "News Publish",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 401 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has is_published true', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j.is_published).to.eql(true);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/{{news_id}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "{{news_id}}", "publish"]
+            },
+            "description": "Publish article. Editor/admin JWT. Sets is_published true, published_at to now."
+          }
+        },
+        {
+          "name": "News Unpublish",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 401 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has is_published false', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j.is_published).to.eql(false);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/{{news_id}}/unpublish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "{{news_id}}", "unpublish"]
+            },
+            "description": "Unpublish article. Editor/admin JWT."
+          }
+        },
+        {
+          "name": "News Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 401 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 401, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has message', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/{{news_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "news", "{{news_id}}"]
+            },
+            "description": "Delete article. Editor/admin JWT. Use news_id of an article you can delete (e.g. one you created)."
           }
         }
       ]
@@ -562,6 +769,288 @@
               "path": ["api", "v1", "users", "{{target_user_id}}"]
             },
             "description": "Delete a user (admin only). Uses target_user_id from Users List (another user, not self). 403 if not admin; 404 if target_user_id empty or invalid."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "description": "Role CRUD. Admin only. Name: lowercase, digits, underscore; 1-20 chars.",
+      "item": [
+        {
+          "name": "Roles List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (admin) or 403 (non-admin)', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has items, total, page, per_page', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('items');",
+                  "    pm.expect(j.items).to.be.an('array');",
+                  "    pm.expect(j).to.have.property('total');",
+                  "    pm.expect(j).to.have.property('page');",
+                  "    pm.expect(j).to.have.property('per_page');",
+                  "  });",
+                  "  const j = pm.response.json();",
+                  "  if (j.items && j.items.length > 0 && !pm.collectionVariables.get('role_id')) {",
+                  "    pm.collectionVariables.set('role_id', String(j.items[0].id));",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "roles"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "q", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List roles (admin only). 403 if not admin. Optionally sets role_id for Get/Update/Delete."
+          }
+        },
+        {
+          "name": "Roles Get",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has id and name', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('id');",
+                  "    pm.expect(j).to.have.property('name');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/{{role_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "roles", "{{role_id}}"]
+            },
+            "description": "Get one role by id (admin only). Use role_id from Roles List or variable."
+          }
+        },
+        {
+          "name": "Roles Create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 400 or 403 or 409', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([201, 400, 403, 409]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "  pm.test('Body has id and name', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('id');",
+                  "    pm.expect(j).to.have.property('name');",
+                  "    if (j.id) pm.collectionVariables.set('role_id', String(j.id));",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"custom_role\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "roles"]
+            },
+            "description": "Create a role (admin only). Body: name (lowercase, digits, underscore). 409 if name exists."
+          }
+        },
+        {
+          "name": "Roles Update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400 or 403 or 404 or 409', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404, 409]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has id and name', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('id');",
+                  "    pm.expect(j).to.have.property('name');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"custom_updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/{{role_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "roles", "{{role_id}}"]
+            },
+            "description": "Update a role's name (admin only). Body: name. Use role_id from List/Create."
+          }
+        },
+        {
+          "name": "Roles Delete",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 or 400 or 403 or 404', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 400, 403, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has message', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('message');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/roles/{{role_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "roles", "{{role_id}}"]
+            },
+            "description": "Delete a role (admin only). 400 if users have this role. Use role_id of a role with no users (e.g. custom role just created)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Logs",
+      "description": "Activity logs list and CSV export. Admin role only. Same token as Users (admin).",
+      "item": [
+        {
+          "name": "Admin Logs List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (admin) or 403 (non-admin)', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Body has items, total, page, limit', function () {",
+                  "    const j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('items');",
+                  "    pm.expect(j.items).to.be.an('array');",
+                  "    pm.expect(j).to.have.property('total');",
+                  "    pm.expect(j).to.have.property('page');",
+                  "    pm.expect(j).to.have.property('limit');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/logs?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "logs"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "category", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "date_from", "value": "", "disabled": true },
+                { "key": "date_to", "value": "", "disabled": true }
+              ]
+            },
+            "description": "List activity logs (admin only). Query: q, category, status, date_from, date_to, page, limit. 403 if not admin."
+          }
+        },
+        {
+          "name": "Admin Logs Export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200 (admin) or 403 (non-admin)', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  pm.test('Content-Type is CSV', function () {",
+                  "    const ct = pm.response.headers.get('Content-Type');",
+                  "    pm.expect(ct).to.include('text/csv');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/logs/export?limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "logs", "export"],
+              "query": [
+                { "key": "limit", "value": "100" },
+                { "key": "q", "value": "", "disabled": true },
+                { "key": "category", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "date_from", "value": "", "disabled": true },
+                { "key": "date_to", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Export activity logs as CSV (admin only). Same filters as list; limit max 5000. 403 if not admin."
           }
         }
       ]
