@@ -1,10 +1,9 @@
 /**
  * User administration: list (admin only), search, pagination, edit (no password), role, ban, unban, delete.
+ * Initializes on DOMContentLoaded; requires ManageAuth from manage_auth.js (loaded before this script in extra_scripts).
  */
 (function() {
-    var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
-    if (!api) return;
-
+    var apiRef = null; // set at init from ManageAuth.apiFetchWithAuth
     function $(id) { return document.getElementById(id); }
 
     var state = {
@@ -108,9 +107,10 @@
     }
 
     function fetchList() {
+        if (!apiRef) return;
         var params = getListParams();
         showLoading(true);
-        api(buildListUrl(params))
+        apiRef(buildListUrl(params))
             .then(function(data) {
                 var items = data.items || [];
                 var total = typeof data.total === "number" ? data.total : items.length;
@@ -140,7 +140,7 @@
         }
         if (empty) empty.hidden = true;
         if (form) form.hidden = false;
-        api("/api/v1/users/" + id)
+        apiRef("/api/v1/users/" + id)
             .then(function(user) {
                 ($("manage-users-id") || {}).value = user.id;
                 ($("manage-users-username") || {}).value = user.username || "";
@@ -202,7 +202,7 @@
         if (payload.preferred_language === "") payload.preferred_language = null;
         var saveBtn = $("manage-users-save");
         if (saveBtn) saveBtn.disabled = true;
-        api("/api/v1/users/" + id, { method: "PUT", body: JSON.stringify(payload) })
+        apiRef("/api/v1/users/" + id, { method: "PUT", body: JSON.stringify(payload) })
             .then(function(user) {
                 showFormSuccess("Updated.");
                 if (saveBtn) saveBtn.disabled = false;
@@ -221,7 +221,7 @@
         var reason = window.prompt("Ban reason (optional):");
         if (reason === null) return;
         var payload = reason ? { reason: reason } : {};
-        api("/api/v1/users/" + id + "/ban", { method: "POST", body: JSON.stringify(payload) })
+        apiRef("/api/v1/users/" + id + "/ban", { method: "POST", body: JSON.stringify(payload) })
             .then(function() {
                 showFormSuccess("User banned.");
                 selectUser(parseInt(id, 10));
@@ -235,7 +235,7 @@
     function onUnban() {
         var id = ($("manage-users-id") || {}).value;
         if (!id) return;
-        api("/api/v1/users/" + id + "/unban", { method: "POST" })
+        apiRef("/api/v1/users/" + id + "/unban", { method: "POST" })
             .then(function() {
                 showFormSuccess("User unbanned.");
                 selectUser(parseInt(id, 10));
@@ -250,7 +250,7 @@
         var id = ($("manage-users-id") || {}).value;
         if (!id) return;
         if (!confirm("Delete this user? This cannot be undone.")) return;
-        api("/api/v1/users/" + id, { method: "DELETE" })
+        apiRef("/api/v1/users/" + id, { method: "DELETE" })
             .then(function() {
                 state.selectedId = null;
                 var form = $("manage-users-form");
@@ -265,7 +265,16 @@
             });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function initUsersPage() {
+        var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+        if (!api) {
+            console.error("[manage_users] ManageAuth.apiFetchWithAuth not available. Ensure manage_auth.js loads before this script.");
+            var errEl = $("manage-users-error");
+            if (errEl) { errEl.textContent = "Auth not loaded. Refresh the page."; errEl.hidden = false; }
+            return;
+        }
+        apiRef = api;
+
         var applyBtn = $("manage-users-apply");
         var form = $("manage-users-form");
         var saveBtn = $("manage-users-save");
@@ -275,7 +284,11 @@
         var prevBtn = $("manage-users-prev");
         var nextBtn = $("manage-users-next");
 
+        var searchInput = $("manage-users-q");
         if (applyBtn) applyBtn.addEventListener("click", function() { state.page = 1; fetchList(); });
+        if (searchInput) searchInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") { e.preventDefault(); state.page = 1; fetchList(); }
+        });
         if (form) form.addEventListener("submit", onSave);
         if (banBtn) banBtn.addEventListener("click", onBan);
         if (unbanBtn) unbanBtn.addEventListener("click", onUnban);
@@ -288,5 +301,14 @@
         });
 
         fetchList();
-    });
+    }
+
+    function run() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initUsersPage);
+        } else {
+            initUsersPage();
+        }
+    }
+    run();
 })();

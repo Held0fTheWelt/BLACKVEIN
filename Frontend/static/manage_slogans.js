@@ -1,10 +1,9 @@
 /**
  * Slogan management: list, create, edit, delete, activate/deactivate. Uses backend API with JWT.
+ * Initializes on DOMContentLoaded; requires ManageAuth (loaded before this script in extra_scripts).
  */
 (function() {
-    var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
-    if (!api) return;
-
+    var apiRef = null;
     function $(id) { return id ? document.getElementById(id) : null; }
 
     function getFilters() {
@@ -42,13 +41,14 @@
     }
 
     function fetchList() {
+        if (!apiRef) return;
         showLoading(true);
         var f = getFilters();
         var qs = [];
         if (f.placement) qs.push("placement_key=" + encodeURIComponent(f.placement));
         if (f.language_code) qs.push("language_code=" + encodeURIComponent(f.language_code));
         var url = "/api/v1/slogans" + (qs.length ? "?" + qs.join("&") : "");
-        api(url)
+        apiRef(url)
             .then(function(data) {
                 showLoading(false);
                 var items = (data && data.items) || [];
@@ -95,7 +95,7 @@
             $("slogan-priority").value = "0";
             return;
         }
-        api("/api/v1/slogans/" + editId)
+        apiRef("/api/v1/slogans/" + editId)
             .then(function(s) {
                 $("slogan-text").value = s.text || "";
                 $("slogan-category").value = s.category || "landing_teaser";
@@ -133,7 +133,7 @@
         }
         var method = id ? "PUT" : "POST";
         var url = id ? "/api/v1/slogans/" + id : "/api/v1/slogans";
-        api(url, { method: method, body: JSON.stringify(payload) })
+        apiRef(url, { method: method, body: JSON.stringify(payload) })
             .then(function() {
                 hideForm();
                 fetchList();
@@ -145,31 +145,41 @@
 
     function deleteSlogan(id) {
         if (!confirm("Delete this slogan?")) return;
-        api("/api/v1/slogans/" + id, { method: "DELETE" })
+        apiRef("/api/v1/slogans/" + id, { method: "DELETE" })
             .then(function() { fetchList(); })
             .catch(function(e) { showError(e && e.message ? e.message : "Delete failed."); });
     }
 
     function activateSlogan(id) {
-        api("/api/v1/slogans/" + id + "/activate", { method: "POST" })
+        apiRef("/api/v1/slogans/" + id + "/activate", { method: "POST" })
             .then(function() { fetchList(); })
             .catch(function(e) { showError(e && e.message ? e.message : "Activate failed."); });
     }
 
     function deactivateSlogan(id) {
-        api("/api/v1/slogans/" + id + "/deactivate", { method: "POST" })
+        apiRef("/api/v1/slogans/" + id + "/deactivate", { method: "POST" })
             .then(function() { fetchList(); })
             .catch(function(e) { showError(e && e.message ? e.message : "Deactivate failed."); });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function initSlogansPage() {
+        var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+        if (!api) {
+            console.error("[manage_slogans] ManageAuth.apiFetchWithAuth not available.");
+            var errEl = $("slogan-error");
+            if (errEl) { errEl.textContent = "Auth not loaded. Refresh the page."; errEl.hidden = false; }
+            return;
+        }
+        apiRef = api;
+
         fetchList();
         if ($("slogan-filter-placement")) $("slogan-filter-placement").addEventListener("change", fetchList);
         if ($("slogan-filter-lang")) $("slogan-filter-lang").addEventListener("change", fetchList);
         if ($("slogan-new")) $("slogan-new").addEventListener("click", function() { showForm(null); });
         if ($("slogan-form-cancel")) $("slogan-form-cancel").addEventListener("click", hideForm);
         if ($("slogan-form")) $("slogan-form").addEventListener("submit", saveSlogan);
-        $("slogan-tbody").addEventListener("click", function(e) {
+        var tbody = $("slogan-tbody");
+        if (tbody) tbody.addEventListener("click", function(e) {
             var t = e.target;
             if (!t || !t.classList) return;
             var id = t.getAttribute("data-id");
@@ -179,5 +189,14 @@
             else if (t.classList.contains("slogan-activate")) activateSlogan(id);
             else if (t.classList.contains("slogan-deactivate")) deactivateSlogan(id);
         });
-    });
+    }
+
+    function run() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initSlogansPage);
+        } else {
+            initSlogansPage();
+        }
+    }
+    run();
 })();

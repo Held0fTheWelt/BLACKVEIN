@@ -2,11 +2,10 @@
  * News management: list (with drafts), filters (status, language), pagination,
  * create/edit with language tabs (de/en), translation status, save/publish/unpublish/delete,
  * submit-review, approve, auto-translate. Uses real backend APIs.
+ * Initializes on DOMContentLoaded; requires ManageAuth (loaded before this script in extra_scripts).
  */
 (function() {
-    var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
-    if (!api) return;
-
+    var apiRef = null;
     var LANGS = ["de", "en"];
     var DEFAULT_LANG = "de";
 
@@ -142,9 +141,10 @@
     }
 
     function fetchList() {
+        if (!apiRef) return;
         var params = getListParams();
         showLoading(true);
-        api(buildListUrl(params))
+        apiRef(buildListUrl(params))
             .then(function(data) {
                 var items = data.items || [];
                 var status = ($("manage-news-status") || {}).value;
@@ -251,7 +251,7 @@
         if (empty) empty.hidden = true;
         if (form) form.hidden = false;
 
-        api("/api/v1/news/" + id)
+        apiRef("/api/v1/news/" + id)
             .then(function(article) {
                 state.article = article;
                 ($("manage-news-id") || {}).value = article.id;
@@ -264,7 +264,7 @@
                     content: article.content,
                     translation_status: "published",
                 };
-                return api("/api/v1/news/" + id + "/translations");
+                return apiRef("/api/v1/news/" + id + "/translations");
             })
             .then(function(res) {
                 state.translations = res;
@@ -348,7 +348,7 @@
             };
             var saveBtn = $("manage-news-save");
             if (saveBtn) saveBtn.disabled = true;
-            api("/api/v1/news", { method: "POST", body: JSON.stringify(payload) })
+            apiRef("/api/v1/news", { method: "POST", body: JSON.stringify(payload) })
                 .then(function(article) {
                     showFormSuccess("Created.");
                     if (saveBtn) saveBtn.disabled = false;
@@ -374,8 +374,8 @@
         if (saveBtn) saveBtn.disabled = true;
 
         Promise.all([
-            api("/api/v1/news/" + id, { method: "PUT", body: JSON.stringify(payloadBase) }),
-            api("/api/v1/news/" + id + "/translations/" + lang, {
+            apiRef("/api/v1/news/" + id, { method: "PUT", body: JSON.stringify(payloadBase) }),
+            apiRef("/api/v1/news/" + id + "/translations/" + lang, {
                 method: "PUT",
                 body: JSON.stringify({
                     title: trans.title,
@@ -394,7 +394,7 @@
                 state.translationData[lang].summary = trans.summary;
                 state.translationData[lang].content = trans.content;
                 fetchList();
-                return api("/api/v1/news/" + id + "/translations");
+                return apiRef("/api/v1/news/" + id + "/translations");
             })
             .then(function(res) {
                 state.translations = res;
@@ -410,7 +410,7 @@
     function onPublish() {
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
-        api("/api/v1/news/" + id + "/publish", { method: "POST" })
+        apiRef("/api/v1/news/" + id + "/publish", { method: "POST" })
             .then(function() {
                 showFormSuccess("Published.");
                 selectArticle(parseInt(id, 10));
@@ -424,7 +424,7 @@
     function onUnpublish() {
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
-        api("/api/v1/news/" + id + "/unpublish", { method: "POST" })
+        apiRef("/api/v1/news/" + id + "/unpublish", { method: "POST" })
             .then(function() {
                 showFormSuccess("Unpublished.");
                 selectArticle(parseInt(id, 10));
@@ -439,12 +439,12 @@
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
         var lang = state.currentLang;
-        api("/api/v1/news/" + id + "/translations/" + lang + "/submit-review", { method: "POST" })
+        apiRef("/api/v1/news/" + id + "/translations/" + lang + "/submit-review", { method: "POST" })
             .then(function(data) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = data.translation_status;
                 showFormSuccess("Submitted for review.");
-                return api("/api/v1/news/" + id + "/translations");
+                return apiRef("/api/v1/news/" + id + "/translations");
             })
             .then(function(res) {
                 state.translations = res;
@@ -460,12 +460,12 @@
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
         var lang = state.currentLang;
-        api("/api/v1/news/" + id + "/translations/" + lang + "/approve", { method: "POST" })
+        apiRef("/api/v1/news/" + id + "/translations/" + lang + "/approve", { method: "POST" })
             .then(function(data) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = data.translation_status;
                 showFormSuccess("Approved.");
-                return api("/api/v1/news/" + id + "/translations");
+                return apiRef("/api/v1/news/" + id + "/translations");
             })
             .then(function(res) {
                 state.translations = res;
@@ -481,12 +481,12 @@
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
         var lang = state.currentLang;
-        api("/api/v1/news/" + id + "/translations/" + lang + "/publish", { method: "POST" })
+        apiRef("/api/v1/news/" + id + "/translations/" + lang + "/publish", { method: "POST" })
             .then(function(data) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = data.translation_status;
                 showFormSuccess("Translation published.");
-                return api("/api/v1/news/" + id + "/translations");
+                return apiRef("/api/v1/news/" + id + "/translations");
             })
             .then(function(res) {
                 state.translations = res;
@@ -501,7 +501,7 @@
     function onAutoTranslate() {
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
-        api("/api/v1/news/" + id + "/translations/auto-translate", { method: "POST", body: JSON.stringify({}) })
+        apiRef("/api/v1/news/" + id + "/translations/auto-translate", { method: "POST", body: JSON.stringify({}) })
             .then(function(res) {
                 showFormSuccess("Auto-translate requested. Refresh or reselect to see new translations.");
                 state.translations = res.translations ? { items: res.translations } : res;
@@ -516,7 +516,7 @@
         var id = ($("manage-news-id") || {}).value;
         if (!id) return;
         if (!confirm("Delete this article? This cannot be undone.")) return;
-        api("/api/v1/news/" + id, { method: "DELETE" })
+        apiRef("/api/v1/news/" + id, { method: "DELETE" })
             .then(function() {
                 showFormEmpty();
                 fetchList();
@@ -539,7 +539,16 @@
         });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function initNewsPage() {
+        var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+        if (!api) {
+            console.error("[manage_news] ManageAuth.apiFetchWithAuth not available.");
+            var errEl = $("manage-news-error");
+            if (errEl) { errEl.textContent = "Auth not loaded. Refresh the page."; errEl.hidden = false; }
+            return;
+        }
+        apiRef = api;
+
         var applyBtn = $("manage-news-apply");
         var newBtn = $("manage-news-new");
         var form = $("manage-news-form");
@@ -577,7 +586,7 @@
                 var lang = tab.getAttribute("data-lang");
                 var hasContent = state.translationData[lang] && state.translationData[lang].content !== undefined;
                 if (state.selectedId && !hasContent && (state.translations || {}).items && (state.translations.items || []).some(function(t) { return t.language_code === lang; })) {
-                    api("/api/v1/news/" + state.selectedId + "/translations/" + lang)
+                    apiRef("/api/v1/news/" + state.selectedId + "/translations/" + lang)
                         .then(function(data) {
                             state.translationData[lang] = {
                                 title: data.title,
@@ -596,5 +605,14 @@
         });
 
         fetchList();
-    });
+    }
+
+    function run() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initNewsPage);
+        } else {
+            initNewsPage();
+        }
+    }
+    run();
 })();

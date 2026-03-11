@@ -42,13 +42,18 @@
     text-decoration: none;
     border-radius: var(--radius);
     font-size: 0.9rem;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-.manage-nav-link:hover,
-.manage-nav-link:focus-visible {
+.manage-nav-link:hover {
+    background: rgba(122, 92, 158, 0.12);
     color: var(--primary-hover);
+}
+
+.manage-nav-link:focus-visible {
     outline: 2px solid var(--violet-bright);
     outline-offset: 2px;
+    color: var(--text);
 }
 
 .manage-auth-bar {
@@ -138,7 +143,9 @@
     border-bottom: 1px solid var(--border);
 }
 .manage-table th { color: var(--text-muted); font-weight: 600; }
-.manage-table tr:hover { background: rgba(255,255,255,0.03); }
+.manage-table tbody tr { cursor: pointer; transition: background 0.15s ease; }
+.manage-table tbody tr:hover { background: rgba(255,255,255,0.05); }
+.manage-table tbody tr:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: -2px; }
 .manage-table tr.selected { background: rgba(122, 92, 158, 0.15); }
 .manage-table tr.selected td { border-left: 3px solid var(--primary); }
 .manage-table .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.85rem; }
@@ -174,8 +181,9 @@ textarea.form-input { min-height: 100px; resize: vertical; }
 .manage-wiki-page-list { list-style: none; padding: 0; margin: 0; }
 .manage-wiki-page-list li { margin: 0.25rem 0; }
 .manage-wiki-page-list li.selected .manage-wiki-page-link { font-weight: 600; color: var(--primary); }
-.manage-wiki-page-link { color: var(--text); text-decoration: none; display: block; padding: 0.35rem 0.5rem; border-radius: var(--radius); }
-.manage-wiki-page-link:hover { background: var(--surface); color: var(--primary); }
+.manage-wiki-page-link { color: var(--text); text-decoration: none; display: block; padding: 0.35rem 0.5rem; border-radius: var(--radius); transition: background 0.15s ease, color 0.15s ease; }
+.manage-wiki-page-link:hover { background: rgba(122, 92, 158, 0.1); color: var(--primary); }
+.manage-wiki-page-link:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
 .manage-wiki-actions-top { margin-bottom: 0.75rem; }
 .manage-wiki-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
 @media (max-width: 768px) { .manage-wiki-split { grid-template-columns: 1fr; } }
@@ -197,8 +205,10 @@ textarea.form-input { min-height: 100px; resize: vertical; }
 .manage-wiki-preview code { font-family: var(--mono-font); font-size: 0.9em; }
 
 .manage-empty { color: var(--text-muted); padding: 1.5rem; text-align: center; }
-.manage-loading { color: var(--text-muted); padding: 1rem; }
+.manage-loading { color: var(--text-muted); padding: 1rem; font-style: italic; }
 .manage-state { margin: 0.5rem 0; }
+/* Disabled state during in-flight actions */
+.btn:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .manage-news-base-fields { margin-bottom: 1rem; }
 .manage-news-section-title { font-size: 1rem; margin: 0 0 0.5rem 0; color: var(--text-muted); }
@@ -211,8 +221,10 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     color: var(--text);
     font: inherit;
     cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
-.manage-news-tab:hover { border-color: var(--primary); }
+.manage-news-tab:hover { border-color: var(--primary); background: rgba(122, 92, 158, 0.1); }
+.manage-news-tab:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
 .manage-news-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .manage-news-tab-panel { display: none; }
 .manage-news-tab-panel.active { display: block; }

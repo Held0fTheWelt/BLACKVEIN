@@ -35,6 +35,8 @@
     </script>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="{{ url_for('static', filename='manage_auth.js') }}"></script>
-    {% block extra_scripts %}{% endblock %}
+    {% block extra_scripts %}
+    {# Page-specific scripts MUST be in extra_scripts so they run after ManageAuth is available. #}
+    {% endblock %}
 </body>
 </html>

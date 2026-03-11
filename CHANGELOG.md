@@ -5,6 +5,34 @@ All notable changes to the World of Shadows project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+# Version Description
+
+- Version 0.0: Foundation, Web-Api with Backend and Frontend to administrate the system
+- Version 0.1: Integration of a content framework to organize role playing game
+- Version 0.2: Integration of Game Rules and Game System
+- Version 0.3: Integration of dynamic evolving content with rules and drafts
+
+
+---
+
+## [0.0.14] - (unreleased)
+
+### Fixed (frontend only)
+
+- **Management frontend script order:** Page-specific scripts (users, news, wiki, slogans, login, dashboard) were included inside `{% block content %}`, so they ran before `manage_auth.js`. As a result, `ManageAuth` was undefined and pages failed silently. All page scripts are now in `{% block extra_scripts %}` so they run after the shared auth bootstrap.
+- **Management page initialization:** Page modules no longer bail out at parse time with `if (!api) return`. They initialize on `DOMContentLoaded` (or immediately if already loaded), resolve `ManageAuth.apiFetchWithAuth` at init time, and set an `apiRef` used by all handlers. If auth is missing, the module logs to the console and shows an inline “Auth not loaded. Refresh the page.” message instead of failing silently.
+- **Users page search:** Search input now triggers list reload on Enter in addition to the Apply button.
+- **Frontend API config:** Default `BACKEND_API_URL` is again `http://127.0.0.1:5000` so local development works without env override. Set `BACKEND_API_URL` in the environment for deployment.
+
+### Changed (frontend only)
+
+- **Management UI states:** Loading, empty, and error states are surfaced; failed requests show messages in the UI; save/action buttons disable during in-flight requests where applicable.
+- **Management hover/focus styling:** Nav links, table rows, tabs, and wiki page links use subtle hover (background/color) and distinct `focus-visible` outlines for accessibility. No layout jump or heavy outline on hover.
+
+### Added (frontend only)
+
+- **Regression documentation:** `docs/frontend/ManagementFrontend.md` describes required script order (config → main.js → manage_auth.js → extra_scripts) and a manual verification checklist for the management area.
+
 ---
 
 ## [0.0.13] - 2026-03-11

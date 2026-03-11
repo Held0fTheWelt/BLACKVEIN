@@ -1,11 +1,10 @@
 /**
  * Wiki editor: list pages (wiki-admin), select page, edit translations (de/en) with markdown + preview,
  * save, submit-review, approve, publish translation, auto-translate. Uses real backend wiki-admin APIs.
+ * Initializes on DOMContentLoaded; requires ManageAuth (loaded before this script in extra_scripts).
  */
 (function() {
-    var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
-    if (!api) return;
-
+    var apiRef = null;
     function $(id) { return id ? document.getElementById(id) : null; }
 
     var LANGS = ["de", "en"];
@@ -126,8 +125,9 @@
     }
 
     function fetchPages() {
+        if (!apiRef) return;
         showLoading(true);
-        api("/api/v1/wiki-admin/pages")
+        apiRef("/api/v1/wiki-admin/pages")
             .then(function(data) {
                 renderPageList(data.items || []);
             })
@@ -203,7 +203,7 @@
         var page = state.pages.find(function(p) { return p.id === pageId; });
         ($("manage-wiki-page-title") || {}).textContent = page ? "Page: " + page.key : "Page";
 
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations")
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations")
             .then(function(data) {
                 state.translations = data;
                 (data.items || []).forEach(function(t) {
@@ -217,7 +217,7 @@
                 setTab(state.currentLang);
                 updateTranslationStatusDisplay();
                 return Promise.all(LANGS.map(function(lang) {
-                    return api("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang)
+                    return apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang)
                         .then(function(tr) {
                             state.translationData[lang] = {
                                 title: tr.title,
@@ -252,7 +252,7 @@
         var saveBtn = $("manage-wiki-save");
         var savedEl = $("manage-wiki-saved");
         if (saveBtn) saveBtn.disabled = true;
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang, {
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang, {
             method: "PUT",
             body: JSON.stringify({
                 title: title,
@@ -272,7 +272,7 @@
                 if (savedEl) { savedEl.hidden = false; setTimeout(function() { savedEl.hidden = true; }, 3000); }
                 updateTranslationStatusDisplay();
                 updateWikiTranslationActions(lang);
-                return api("/api/v1/wiki-admin/pages/" + pageId + "/translations");
+                return apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations");
             })
             .then(function(data) {
                 state.translations = data;
@@ -292,7 +292,7 @@
         var pageId = state.selectedPageId;
         if (!pageId) return;
         var lang = state.currentLang;
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/submit-review", { method: "POST" })
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/submit-review", { method: "POST" })
             .then(function(tr) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = tr.translation_status;
@@ -309,7 +309,7 @@
         var pageId = state.selectedPageId;
         if (!pageId) return;
         var lang = state.currentLang;
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/approve", { method: "POST" })
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/approve", { method: "POST" })
             .then(function(tr) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = tr.translation_status;
@@ -326,7 +326,7 @@
         var pageId = state.selectedPageId;
         if (!pageId) return;
         var lang = state.currentLang;
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/publish", { method: "POST" })
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/" + lang + "/publish", { method: "POST" })
             .then(function(tr) {
                 state.translationData[lang] = state.translationData[lang] || {};
                 state.translationData[lang].translation_status = tr.translation_status;
@@ -342,7 +342,7 @@
     function onAutoTranslate() {
         var pageId = state.selectedPageId;
         if (!pageId) return;
-        api("/api/v1/wiki-admin/pages/" + pageId + "/translations/auto-translate", { method: "POST", body: JSON.stringify({}) })
+        apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations/auto-translate", { method: "POST", body: JSON.stringify({}) })
             .then(function(data) {
                 state.translations = data.translations ? { items: data.translations } : data;
                 updateTranslationStatusDisplay();
@@ -357,7 +357,7 @@
         var key = window.prompt("Page key (e.g. index, faq):");
         if (!key || !key.trim()) return;
         key = key.trim().toLowerCase().replace(/\s+/g, "-");
-        api("/api/v1/wiki-admin/pages", {
+        apiRef("/api/v1/wiki-admin/pages", {
             method: "POST",
             body: JSON.stringify({ key: key, is_published: true }),
         })
@@ -377,7 +377,16 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    function initWikiPage() {
+        var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+        if (!api) {
+            console.error("[manage_wiki] ManageAuth.apiFetchWithAuth not available.");
+            var errEl = $("manage-wiki-error");
+            if (errEl) { errEl.textContent = "Auth not loaded. Refresh the page."; errEl.hidden = false; }
+            return;
+        }
+        apiRef = api;
+
         var ta = $("manage-wiki-content");
         var saveBtn = $("manage-wiki-save");
         if (ta) {
@@ -401,5 +410,14 @@
 
         window.addEventListener("beforeunload", checkUnload);
         fetchPages();
-    });
+    }
+
+    function run() {
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", initWikiPage);
+        } else {
+            initWikiPage();
+        }
+    }
+    run();
 })();

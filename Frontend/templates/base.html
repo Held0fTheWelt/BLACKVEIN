@@ -17,7 +17,7 @@
 
     <header class="site-header">
         <div class="header-inner">
-            <a href="{{ url_for('index') }}" class="logo" aria-label="{{ t.site_name | default('World of Shadows') }} home">{{ t.site_name | default('World of Shadows') }}</a>
+            <a href="{{ url_for('index') }}" class="logo" aria-label="{{ t.site_name | default('BLACKVEIN') }} home">{{ t.site_name | default('BLACKVEIN') }}</a>
             <nav class="nav" aria-label="Main">
                 <a href="{{ url_for('news_list') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_news | default('News') }}</a>
                 <a href="{{ url_for('wiki_index') }}?lang={{ current_lang }}" class="nav-link">{{ t.nav_wiki | default('Wiki') }}</a>
@@ -40,7 +40,7 @@
 
     <footer class="site-footer">
         <div class="footer-inner">
-            <p><span class="footer-brand">{{ t.site_name | default('World of Shadows') }}</span> – Public site. <a href="{{ url_for('manage_index') }}">{{ t.nav_manage | default('Manage') }}</a> ({{ t.footer_manage_staff | default('staff') }})</p>
+            <p><span class="footer-brand">{{ t.site_name | default('BLACKVEIN') }}</span> – Public site. <a href="{{ url_for('manage_index') }}">{{ t.nav_manage | default('Manage') }}</a> ({{ t.footer_manage_staff | default('staff') }})</p>
         </div>
     </footer>
 
