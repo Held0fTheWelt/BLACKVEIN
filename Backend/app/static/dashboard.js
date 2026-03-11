@@ -331,14 +331,21 @@
       slogan_rotation_interval_seconds: parseInt(interval && interval.value, 10) || 60,
       slogan_rotation_enabled: enabled ? enabled.checked : true
     };
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+    var headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    if (csrfToken) headers['X-CSRFToken'] = csrfToken;
     fetch('/dashboard/api/site-settings', {
       credentials: 'same-origin',
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: headers,
       body: JSON.stringify(payload)
     })
       .then(function(r) {
-        if (r.ok && status) { status.textContent = 'Saved.'; status.setAttribute('aria-live', 'polite'); setTimeout(function() { status.textContent = ''; }, 3000); }
+        if (status) {
+          if (r.ok) { status.textContent = 'Saved.'; status.setAttribute('aria-live', 'polite'); setTimeout(function() { status.textContent = ''; }, 3000); }
+          else status.textContent = 'Save failed.';
+        }
       })
       .catch(function() { if (status) status.textContent = 'Save failed.'; });
   }
