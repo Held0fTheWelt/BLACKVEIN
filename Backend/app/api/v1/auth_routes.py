@@ -70,6 +70,18 @@ def login():
         return jsonify({"error": "Username and password are required"}), 400
     user = verify_user(username, password)
     if user:
+        if getattr(user, "is_banned", False):
+            log_activity(
+                actor=user,
+                category="auth",
+                action="login_blocked_banned",
+                status="warning",
+                message="API login attempted by banned user",
+                route=request.path,
+                method=request.method,
+                tags=["api"],
+            )
+            return jsonify({"error": "Account is restricted."}), 403
         if user.email and user.email_verified_at is None:
             log_activity(
                 actor=user,
@@ -116,11 +128,13 @@ def login():
 @limiter.limit("60 per minute")
 @jwt_required()
 def me():
-    """Return current user from JWT."""
+    """Return current user from JWT. Banned users receive 403."""
     from app.models import User
     from app.extensions import db
     uid = get_jwt_identity()
     user = db.session.get(User, int(uid))
     if user is None:
         return jsonify({"error": "User not found"}), 404
+    if getattr(user, "is_banned", False):
+        return jsonify({"error": "Account is restricted."}), 403
     return jsonify(user.to_dict(include_email=True)), 200

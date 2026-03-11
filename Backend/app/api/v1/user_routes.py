@@ -67,6 +67,8 @@ def users_get(user_id):
     user = get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if current.id == user_id and getattr(user, "is_banned", False):
+        return jsonify({"error": "Account is restricted."}), 403
     include_email = current_user_is_admin() or current.id == user_id
     return jsonify(user.to_dict(include_email=include_email)), 200
 

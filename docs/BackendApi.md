@@ -64,7 +64,7 @@ Authenticates with username and password and returns a JWT and user data. If the
   `{ "access_token": "<JWT>", "user": { "id": <number>, "username": "<string>", "role": "<string>" } }`
 - **400 Bad Request:** `{ "error": "Invalid or missing JSON body" }` or `"Username and password are required"`
 - **401 Unauthorized:** `{ "error": "Invalid username or password" }`
-- **403 Forbidden:** `{ "error": "Email not verified." }` – email not yet confirmed
+- **403 Forbidden:** `{ "error": "Email not verified." }` – email not yet confirmed; or `{ "error": "Account is restricted." }` – user is banned
 
 ---
 
@@ -82,6 +82,7 @@ Returns the user identified by the JWT.
 - **200 OK:** `{ "id": <number>, "username": "<string>", "role": "<string>" }`  
   Possible roles: `user`, `moderator`, `admin`.
 - **401 Unauthorized:** Missing or invalid token: `{ "error": "Authorization required. Missing or invalid token." }` or `"Invalid or expired token."`
+- **403 Forbidden:** `{ "error": "Account is restricted." }` – user is banned
 - **404 Not Found:** `{ "error": "User not found" }` (token valid but user no longer in DB)
 
 ---
