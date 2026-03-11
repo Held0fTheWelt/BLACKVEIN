@@ -4,7 +4,7 @@ All notable changes to the World of Shadows project are documented in this file.
 
 ---
 
-### Added (0.0.10 – editorial/admin frontend)
+### [0.0.10] – editorial/admin frontend - 2026-03-11
 
 - **Management area (Frontend):** Protected editorial and admin area at `/manage` (login at `/manage/login`). JWT-based auth: login form calls backend `POST /api/v1/auth/login`; token stored in `sessionStorage`; central `ManageAuth.apiFetchWithAuth()` attaches `Authorization: Bearer <token>` and redirects to login on 401. Current user bootstrapped via `GET /api/v1/auth/me`; username and role shown in header; logout clears token. Role-based nav: Users link visible only to admin.
 - **News management UI:** `/manage/news` – list with pagination, search, category and published/draft filters, sort; row selection; create/edit form (title, slug, summary, content, category, cover_image, is_published); publish, unpublish, delete with confirmation; uses existing news API (list with `include_drafts=1` for staff, get/create/update/delete/publish/unpublish).
