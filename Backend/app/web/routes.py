@@ -9,8 +9,21 @@ from app.services import create_user, log_activity, verify_user
 from app.services.user_service import create_email_verification_token
 from app.services.mail_service import send_verification_email
 from app.web.auth import is_safe_redirect, require_web_login, require_web_admin
+from app.services.user_service import update_user_last_seen
 
 web_bp = Blueprint("web", __name__)
+
+
+@web_bp.after_request
+def _track_web_activity(response):
+    """Update last_seen_at for session-authenticated users (throttled). So dashboard and API calls with session refresh activity."""
+    try:
+        uid = session.get("user_id")
+        if uid is not None:
+            update_user_last_seen(uid)
+    except Exception:
+        pass
+    return response
 
 
 @web_bp.route("/health")
