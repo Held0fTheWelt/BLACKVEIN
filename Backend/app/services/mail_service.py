@@ -24,10 +24,13 @@ def send_verification_email(user, raw_token: str) -> bool:
     """
     url = _activation_url(raw_token)
     if current_app.config.get("TESTING") or not current_app.config.get("MAIL_ENABLED"):
-        if current_app.config.get("MAIL_SERVER") == "localhost" and not current_app.config.get("MAIL_USERNAME"):
-            logger.info("DEV: Verification URL for %r: %s", user.username, url)
-        else:
-            logger.info("Verification URL for %r (MAIL_ENABLED=False): %s", user.username, url)
+        mode = "TESTING" if current_app.config.get("TESTING") else "MAIL_ENABLED=False"
+        logger.warning(
+            "DEV email verification mode (%s). Activation URL for %r: %s",
+            mode,
+            user.username,
+            url,
+        )
         return True
     try:
         msg = Message(

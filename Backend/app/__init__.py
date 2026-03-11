@@ -35,6 +35,16 @@ def create_app(config_object=None):
         ph = logging.StreamHandler()
         ph.setFormatter(logging.Formatter("%(levelname)s [%(name)s] %(message)s"))
         pkg_logger.addHandler(ph)
+
+    # Startup log: always show which mode we're in
+    if app.config.get("TESTING"):
+        mode = "TESTING"
+    elif app.config.get("MAIL_ENABLED"):
+        mode = "NORMAL (MAIL_ENABLED=1)"
+    else:
+        mode = "DEV (MAIL_ENABLED=0)"
+    app.logger.warning("Running BLACKVEIN Backend [mode: %s]", mode)
+
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]
 
