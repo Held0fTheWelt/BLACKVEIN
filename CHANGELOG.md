@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 # Version Description
 
 - Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
+
+**Current repository paths:** Docs and README use `backend/` and `administration-tool/`. Older entries may mention `Backend/` or `Frontend/` as they were at release time. The administration-tool default for `BACKEND_API_URL` is now remote-first (PythonAnywhere); local is for override/troubleshooting only (see README).
 - Version 0.1: Integration of a content framework to organize role playing game
 - Version 0.2: Integration of Game Rules and Game System
 - Version 0.3: Integration of dynamic evolving content with rules and drafts
@@ -182,7 +184,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Management frontend script order:** Page-specific scripts (users, news, wiki, slogans, login, dashboard) were included inside `{% block content %}`, so they ran before `manage_auth.js`. As a result, `ManageAuth` was undefined and pages failed silently. All page scripts are now in `{% block extra_scripts %}` so they run after the shared auth bootstrap.
 - **Management page initialization:** Page modules no longer bail out at parse time with `if (!api) return`. They initialize on `DOMContentLoaded` (or immediately if already loaded), resolve `ManageAuth.apiFetchWithAuth` at init time, and set an `apiRef` used by all handlers. If auth is missing, the module logs to the console and shows an inline “Auth not loaded. Refresh the page.” message instead of failing silently.
 - **Users page search:** Search input now triggers list reload on Enter in addition to the Apply button.
-- **Frontend API config:** Default `BACKEND_API_URL` is again `http://127.0.0.1:5000` so local development works without env override. Set `BACKEND_API_URL` in the environment for deployment.
+- **Frontend API config (historical):** At 0.0.14 the default `BACKEND_API_URL` was set to `http://127.0.0.1:5000` for local development. **Current default is remote-first** (PythonAnywhere); set `BACKEND_API_URL` for deployment or use it to override for local troubleshooting (see README).
 
 ### Changed (frontend only)
 
