@@ -36,6 +36,7 @@ from app.services.forum_service import (
     create_report,
     create_thread,
     delete_category,
+    delete_tag,
     get_category_by_slug_for_user,
     get_post_by_id,
     get_report_by_id,
@@ -45,11 +46,14 @@ from app.services.forum_service import (
     hide_thread,
     increment_thread_view,
     like_post,
+    list_all_tags,
     list_categories_for_user,
     list_posts_for_thread,
     list_reports,
     list_reports_for_target,
     list_threads_for_category,
+    list_tags_for_threads,
+    bookmarked_thread_ids_for_user,
     merge_threads,
     move_thread,
     recalc_thread_counters,
@@ -62,6 +66,7 @@ from app.services.forum_service import (
     soft_delete_thread,
     split_thread_from_post,
     subscribe_thread,
+    tag_thread_count,
     unsubscribe_thread,
     unhide_post,
     unlike_post,
@@ -78,6 +83,7 @@ from app.services.forum_service import (
     user_can_soft_delete_post,
     user_can_view_post,
     user_can_view_thread,
+    user_is_moderator,
     _utc_now,
     bookmark_thread,
     unbookmark_thread,
@@ -178,10 +184,18 @@ def forum_category_threads(slug):
     end = start + limit
     page_items = visible[start:end]
 
+    # Batch-load tags and bookmarks for the page items
+    thread_ids = [t.id for t in page_items]
+    tags_map = list_tags_for_threads(thread_ids)
+    user_id = user.id if user else None
+    bookmarked_ids = bookmarked_thread_ids_for_user(user_id, thread_ids)
+
     items_data = []
     for t in page_items:
         d = t.to_dict()
         d["author_username"] = t.author.username if t.author else None
+        d["bookmarked_by_me"] = t.id in bookmarked_ids
+        d["tags"] = tags_map.get(t.id, [])
         items_data.append(d)
     return jsonify(
         {
@@ -299,12 +313,27 @@ def forum_search():
     if len(q_raw) > 200:
         q_raw = q_raw[:200]
     like_pattern = f"%{q_raw}%" if q_raw else None
-    q = ForumThread.query.filter(ForumThread.status != "deleted")
+
+    is_mod = user_is_moderator(user) if user else False
+
+    # Base query with SQL-level visibility filtering
+    q = ForumThread.query
+    if not is_mod:
+        # Regular users: exclude deleted and hidden threads at SQL level
+        q = q.filter(ForumThread.status.notin_(("deleted", "hidden")))
+    else:
+        # Moderators see everything except deleted (keep consistency with list behavior)
+        q = q.filter(ForumThread.status != "deleted")
+
     if like_pattern:
         q = q.filter(ForumThread.title.ilike(like_pattern))
 
-    # Optional category filter (slug)
-    q = q.join(ForumCategory).filter(ForumCategory.id == ForumThread.category_id)
+    # Join category for access filtering and optional category filter
+    q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id)
+    if not is_mod:
+        # Only active, non-private categories for regular users (SQL-level)
+        q = q.filter(ForumCategory.is_active.is_(True))
+        q = q.filter(ForumCategory.is_private.is_(False))
     if category_slug:
         q = q.filter(ForumCategory.slug == category_slug)
 
@@ -314,10 +343,10 @@ def forum_search():
 
     # Optional tag filter
     if tag_slug:
-        from app.models import ForumTag  # local import
+        from app.models import ForumTag as ForumTagModel  # local import
         q = q.join(ForumThreadTag, ForumThreadTag.thread_id == ForumThread.id).join(
-            ForumTag, ForumTag.id == ForumThreadTag.tag_id
-        ).filter(ForumTag.slug == tag_slug)
+            ForumTagModel, ForumTagModel.id == ForumThreadTag.tag_id
+        ).filter(ForumTagModel.slug == tag_slug)
 
     # Optional post content search (best-effort, limited to reasonable query length)
     if include_content and like_pattern and len(q_raw) >= 3:
@@ -333,15 +362,14 @@ def forum_search():
             )
         )
 
-    # Apply per-thread visibility rules in Python; for large data sets this could be optimized.
-    all_matches = q.order_by(ForumThread.is_pinned.desc(), ForumThread.last_post_at.desc().nullslast(), ForumThread.id.asc()).all()
-    visible = [t for t in all_matches if user_can_view_thread(user, t)]
-    total = len(visible)
+    # SQL-level pagination (visibility already pushed into SQL)
+    q = q.order_by(ForumThread.is_pinned.desc(), ForumThread.last_post_at.desc().nullslast(), ForumThread.id.asc())
+    total = q.count()
     page = max(1, page)
     limit = max(1, min(limit, 100))
-    start = (page - 1) * limit
-    end = start + limit
-    items = visible[start:end]
+    offset = (page - 1) * limit
+    items = q.offset(offset).limit(limit).all()
+
     items_data = []
     for t in items:
         d = t.to_dict()
@@ -1548,6 +1576,67 @@ def forum_admin_category_delete(category_id: int):
         method=request.method,
         target_type="forum_category",
         target_id=str(category_id),
+    )
+    return jsonify({"message": "Deleted"}), 200
+
+
+# --- Tag admin ---------------------------------------------------------------
+
+
+@api_v1_bp.route("/forum/tags", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_tags_list():
+    """
+    List all tags (moderator/admin only). Paginated with optional search.
+    Query: q, page, limit.
+    """
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    page = _parse_int(request.args.get("page"), 1, min_val=1)
+    limit = _parse_int(request.args.get("limit"), 50, min_val=1, max_val=100)
+    q = (request.args.get("q") or "").strip() or None
+    tags, total = list_all_tags(page=page, per_page=limit, q=q)
+    items = []
+    for t in tags:
+        items.append({
+            "id": t.id,
+            "slug": t.slug,
+            "label": t.label,
+            "thread_count": tag_thread_count(t),
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        })
+    return jsonify({"items": items, "total": total, "page": page, "per_page": limit}), 200
+
+
+@api_v1_bp.route("/forum/tags/<int:tag_id>", methods=["DELETE"])
+@limiter.limit("30 per minute")
+@jwt_required()
+def forum_tag_delete(tag_id: int):
+    """
+    Delete a tag if unused (admin only). Returns 409 if tag has thread associations.
+    """
+    user, err_resp = _require_admin()
+    if err_resp:
+        return err_resp
+    tag = ForumTag.query.get(tag_id)
+    if not tag:
+        return jsonify({"error": "Tag not found"}), 404
+    from app.services.forum_service import delete_tag
+    err = delete_tag(tag)
+    if err:
+        return jsonify({"error": err}), 409
+    log_activity(
+        actor=user,
+        category="forum",
+        action="tag_deleted",
+        status="success",
+        message=f"Forum tag deleted: {tag.slug}",
+        route=request.path,
+        method=request.method,
+        target_type="forum_tag",
+        target_id=str(tag_id),
     )
     return jsonify({"message": "Deleted"}), 200
 

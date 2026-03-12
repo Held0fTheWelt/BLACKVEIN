@@ -143,6 +143,39 @@
         </div>
     </div>
 
+    <div class="manage-card" id="manage-forum-tags-card">
+        <div class="manage-card-header">
+            <h2 class="manage-card-title mono">// TAGS</h2>
+            <div class="table-filters">
+                <label for="manage-forum-tags-search" class="visually-hidden">Search tags</label>
+                <input type="text" id="manage-forum-tags-search" class="filter-input" placeholder="Search tags...">
+                <button type="button" class="btn btn-outline btn-sm" id="manage-forum-tags-refresh">Refresh</button>
+            </div>
+        </div>
+        <div class="manage-card-body">
+            <p class="manage-state" id="manage-forum-tags-loading" role="status">Loading...</p>
+            <p class="manage-state manage-state-error" id="manage-forum-tags-error" role="alert" hidden></p>
+            <p class="manage-state" id="manage-forum-tags-empty" hidden>No tags found.</p>
+            <div class="table-wrap" id="manage-forum-tags-table-wrap" hidden>
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>Slug</th>
+                        <th>Label</th>
+                        <th>Threads</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody id="manage-forum-tags-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="manage-card-footer" id="manage-forum-tags-footer" hidden>
+            <span id="manage-forum-tags-count" class="mono">0 tags</span>
+        </div>
+    </div>
+
     <div class="manage-card" id="manage-forum-reports-card">
         <div class="manage-card-header">
             <h2 class="manage-card-title mono">// REPORTS</h2>

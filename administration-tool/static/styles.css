@@ -373,6 +373,10 @@ body {
 .forum-thread-meta { font-size: 0.85rem; }
 .forum-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; background: var(--border); color: var(--text-muted); }
 .forum-badge-pinned { background: var(--primary); color: var(--text); }
+.forum-badge-tag { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-size: 0.7rem; }
+.forum-bookmark-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); padding: 0 0.25rem; flex-shrink: 0; line-height: 1; }
+.forum-bookmark-btn:hover { color: var(--primary); }
+.forum-bookmark-btn.forum-bookmark-active { color: var(--primary); }
 .forum-pagination { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
 .forum-pagination-info { color: var(--text-muted); font-size: 0.9rem; }
 .forum-pagination-btns { display: flex; gap: 0.5rem; }

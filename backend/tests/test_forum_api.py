@@ -11,6 +11,9 @@ from app.models import (
     ForumPostLike,
     ForumReport,
     ForumThreadSubscription,
+    ForumTag,
+    ForumThreadTag,
+    ForumThreadBookmark,
     Notification,
     User,
     Role,
@@ -278,7 +281,7 @@ def test_forum_search_filter_by_tag_and_category(app, client, auth_headers):
         cat = ForumCategory(slug="search-cat", title="SearchCat", is_active=True, is_private=False)
         db.session.add(cat)
         db.session.flush()
-        thread = ForumThread(category_id=cat.id, slug="search-thread", title="Searchable Thread", status="open")
+        thread = ForumThread(category_id=cat.id, slug="search-thread", title="Searchable Thread", status="open", author_id=user.id)
         db.session.add(thread)
         db.session.commit()
         thread_id = thread.id
@@ -1264,3 +1267,258 @@ def test_mention_creates_notification(app, client, moderator_headers, auth_heade
         ).all()
         assert len(mention_notifications) == 1
         assert "mentioned you" in (mention_notifications[0].message or "")
+
+
+# ============= PHASE 3: BOOKMARKED_BY_ME FLAG IN THREAD LIST =============
+
+
+def test_bookmarked_by_me_in_thread_list(app, client, auth_headers):
+    """Thread list includes bookmarked_by_me=True for bookmarked threads, False for others."""
+    with app.app_context():
+        cat = ForumCategory(slug="bm-cat", title="BM Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t1 = ForumThread(category_id=cat.id, slug="bm-thread-1", title="BM Thread 1", status="open")
+        t2 = ForumThread(category_id=cat.id, slug="bm-thread-2", title="BM Thread 2", status="open")
+        db.session.add_all([t1, t2])
+        db.session.commit()
+        t1_id = t1.id
+
+    # Bookmark only the first thread
+    resp = client.post(f"/api/v1/forum/threads/{t1_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # List threads for category
+    resp = client.get("/api/v1/forum/categories/bm-cat/threads", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    thread_map = {t["slug"]: t for t in data["items"]}
+    assert thread_map["bm-thread-1"]["bookmarked_by_me"] is True
+    assert thread_map["bm-thread-2"]["bookmarked_by_me"] is False
+
+
+def test_bookmarked_by_me_false_for_anonymous(app, client):
+    """Thread list returns bookmarked_by_me=False for anonymous users."""
+    with app.app_context():
+        cat = ForumCategory(slug="anon-bm-cat", title="Anon BM", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="anon-bm-thread", title="Anon Thread", status="open")
+        db.session.add(t)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/categories/anon-bm-cat/threads")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data["items"]) >= 1
+    for item in data["items"]:
+        assert item["bookmarked_by_me"] is False
+
+
+# ============= PHASE 3: TAGS IN THREAD LIST =============
+
+
+def test_tags_in_thread_list(app, client, auth_headers):
+    """Thread list includes tags array for each thread."""
+    with app.app_context():
+        cat = ForumCategory(slug="tags-cat", title="Tags Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="tags-thread", title="Tags Thread", status="open", author_id=User.query.filter_by(username="testuser").first().id)
+        db.session.add(t)
+        db.session.commit()
+        t_id = t.id
+
+    # Set tags via API
+    resp = client.put(
+        f"/api/v1/forum/threads/{t_id}/tags",
+        json={"tags": ["Bug", "Help"]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+
+    # List threads
+    resp = client.get("/api/v1/forum/categories/tags-cat/threads", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    thread = next(t for t in data["items"] if t["slug"] == "tags-thread")
+    assert "tags" in thread
+    tag_slugs = {t["slug"] for t in thread["tags"]}
+    assert "bug" in tag_slugs
+    assert "help" in tag_slugs
+
+
+# ============= PHASE 3: TAG ADMIN ENDPOINTS =============
+
+
+def test_list_tags_requires_moderator(app, client, auth_headers):
+    """GET /api/v1/forum/tags requires moderator or admin role."""
+    resp = client.get("/api/v1/forum/tags", headers=auth_headers)
+    assert resp.status_code == 403
+
+
+def test_list_tags_moderator(app, client, moderator_headers):
+    """Moderator can list all tags."""
+    with app.app_context():
+        tag = ForumTag(slug="mod-list-tag", label="ModListTag")
+        db.session.add(tag)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/tags", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "mod-list-tag" in slugs
+
+
+def test_list_tags_with_search(app, client, moderator_headers):
+    """Tags list can be filtered by q parameter."""
+    with app.app_context():
+        t1 = ForumTag(slug="alpha-tag", label="Alpha")
+        t2 = ForumTag(slug="beta-tag", label="Beta")
+        db.session.add_all([t1, t2])
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/tags?q=alpha", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "alpha-tag" in slugs
+    assert "beta-tag" not in slugs
+
+
+def test_delete_unused_tag(app, client, admin_headers):
+    """Admin can delete a tag that has no thread associations."""
+    with app.app_context():
+        tag = ForumTag(slug="unused-tag", label="Unused")
+        db.session.add(tag)
+        db.session.commit()
+        tag_id = tag.id
+
+    resp = client.delete(f"/api/v1/forum/tags/{tag_id}", headers=admin_headers)
+    assert resp.status_code == 200
+
+    # Verify deleted
+    with app.app_context():
+        assert ForumTag.query.get(tag_id) is None
+
+
+def test_delete_tag_in_use_rejected(app, client, admin_headers):
+    """Deleting a tag with thread associations returns 409."""
+    with app.app_context():
+        tag = ForumTag(slug="in-use-tag", label="InUse")
+        db.session.add(tag)
+        db.session.flush()
+        cat = ForumCategory(slug="tag-del-cat", title="TagDelCat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="tag-del-thread", title="Tag Thread", status="open")
+        db.session.add(t)
+        db.session.flush()
+        link = ForumThreadTag(thread_id=t.id, tag_id=tag.id)
+        db.session.add(link)
+        db.session.commit()
+        tag_id = tag.id
+
+    resp = client.delete(f"/api/v1/forum/tags/{tag_id}", headers=admin_headers)
+    assert resp.status_code == 409
+    assert "in use" in resp.get_json()["error"].lower()
+
+
+def test_delete_tag_requires_admin(app, client, moderator_headers):
+    """Moderator cannot delete tags (admin only)."""
+    with app.app_context():
+        tag = ForumTag(slug="mod-del-tag", label="ModDel")
+        db.session.add(tag)
+        db.session.commit()
+        tag_id = tag.id
+
+    resp = client.delete(f"/api/v1/forum/tags/{tag_id}", headers=moderator_headers)
+    assert resp.status_code == 403
+
+
+# ============= PHASE 3: SEARCH HARDENING =============
+
+
+def test_search_hidden_threads_not_visible_to_regular_users(app, client, auth_headers):
+    """Search results exclude hidden threads for regular users at SQL level."""
+    with app.app_context():
+        cat = ForumCategory(slug="search-vis-cat", title="SearchVis", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t_open = ForumThread(category_id=cat.id, slug="search-vis-open", title="SearchOpen", status="open")
+        t_hidden = ForumThread(category_id=cat.id, slug="search-vis-hidden", title="SearchHidden", status="hidden")
+        db.session.add_all([t_open, t_hidden])
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=Search&category=search-vis-cat", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "search-vis-open" in slugs
+    assert "search-vis-hidden" not in slugs
+
+
+def test_search_hidden_threads_visible_to_moderator(app, client, moderator_headers):
+    """Moderators can see hidden threads in search when filtering by hidden status."""
+    with app.app_context():
+        cat = ForumCategory(slug="search-mod-cat", title="SearchMod", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t_hidden = ForumThread(category_id=cat.id, slug="search-mod-hidden", title="ModHidden", status="hidden")
+        db.session.add(t_hidden)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=ModHidden&category=search-mod-cat&status=hidden", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "search-mod-hidden" in slugs
+
+
+def test_search_private_category_excluded_for_regular_users(app, client, auth_headers):
+    """Search excludes threads in private categories for regular users."""
+    with app.app_context():
+        cat = ForumCategory(slug="search-priv-cat", title="SearchPriv", is_active=True, is_private=True)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="search-priv-thread", title="PrivateThread", status="open")
+        db.session.add(t)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=PrivateThread", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "search-priv-thread" not in slugs
+
+
+# ============= PHASE 3: BOOKMARK REMOVAL =============
+
+
+def test_bookmark_removal(app, client, auth_headers):
+    """DELETE /api/v1/forum/threads/<id>/bookmark removes a bookmark."""
+    with app.app_context():
+        cat = ForumCategory(slug="bm-rm-cat", title="BM RM Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t = ForumThread(category_id=cat.id, slug="bm-rm-thread", title="BM RM Thread", status="open")
+        db.session.add(t)
+        db.session.commit()
+        t_id = t.id
+
+    # Bookmark
+    resp = client.post(f"/api/v1/forum/threads/{t_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # Verify in list
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert any(b["slug"] == "bm-rm-thread" for b in resp.get_json()["items"])
+
+    # Remove bookmark
+    resp = client.delete(f"/api/v1/forum/threads/{t_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # Verify removed from list
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert not any(b["slug"] == "bm-rm-thread" for b in resp.get_json()["items"])
