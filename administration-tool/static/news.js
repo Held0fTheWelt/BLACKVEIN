@@ -258,6 +258,45 @@
                 summary.textContent = article.summary;
                 content.appendChild(summary);
             }
+
+            // Discussion entry point
+            if (article.discussion_thread_slug) {
+                var discuss = document.createElement('p');
+                discuss.className = 'news-discussion-entry';
+                var discussLink = document.createElement('a');
+                discussLink.href = '/forum/threads/' + encodeURIComponent(article.discussion_thread_slug);
+                discussLink.textContent = 'Discuss this article in the forum';
+                discuss.appendChild(discussLink);
+                content.appendChild(discuss);
+            }
+
+            // Related threads block (safe, public subset)
+            if (article.related_threads && article.related_threads.length) {
+                var relatedWrap = document.createElement('section');
+                relatedWrap.className = 'news-related-threads';
+                var heading = document.createElement('h2');
+                heading.textContent = 'Related discussions';
+                relatedWrap.appendChild(heading);
+                var list = document.createElement('ul');
+                list.className = 'news-related-threads-list';
+                article.related_threads.forEach(function(t) {
+                    if (!t || !t.slug) return;
+                    var li = document.createElement('li');
+                    var a = document.createElement('a');
+                    a.href = '/forum/threads/' + encodeURIComponent(t.slug);
+                    a.textContent = t.title || 'Forum thread';
+                    li.appendChild(a);
+                    if (t.category && t.category.slug) {
+                        var catSpan = document.createElement('span');
+                        catSpan.className = 'news-related-thread-category';
+                        catSpan.textContent = ' (' + t.category.slug + ')';
+                        li.appendChild(catSpan);
+                    }
+                    list.appendChild(li);
+                });
+                relatedWrap.appendChild(list);
+                content.appendChild(relatedWrap);
+            }
             content.appendChild(body);
             if (article.discussion_thread_slug) {
                 var discussWrap = document.createElement('p');

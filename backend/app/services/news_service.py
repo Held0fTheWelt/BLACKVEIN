@@ -19,7 +19,7 @@ from app.i18n import (
     TRANSLATION_STATUS_REVIEW_REQUIRED,
     TRANSLATION_STATUSES,
 )
-from app.models import NewsArticle, NewsArticleTranslation, ForumThread
+from app.models import NewsArticle, NewsArticleTranslation, ForumThread, NewsArticleForumThread
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +127,42 @@ def _article_to_public_dict(article: NewsArticle, translation: NewsArticleTransl
         out["discussion_thread_id"] = None
         out["discussion_thread_slug"] = None
     return out
+
+
+def list_related_threads_for_article(article_id: int, *, limit: int = 5) -> list[dict]:
+    """Return safe related forum threads for a news article."""
+    if not article_id:
+        return []
+    from app.models import ForumCategory  # local import to avoid cycles
+
+    q = (
+        db.session.query(ForumThread)
+        .join(NewsArticleForumThread, NewsArticleForumThread.thread_id == ForumThread.id)
+        .filter(NewsArticleForumThread.article_id == article_id)
+        .filter(ForumThread.deleted_at.is_(None))
+    )
+    # Restrict to public categories (no required_role, not private, active)
+    q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id).filter(
+        ForumCategory.is_active.is_(True),
+        ForumCategory.is_private.is_(False),
+        ForumCategory.required_role.is_(None),
+    )
+    q = q.order_by(ForumThread.is_pinned.desc(), ForumThread.last_post_at.desc().nullslast())
+    threads = q.limit(max(1, min(limit, 20))).all()
+    items: list[dict] = []
+    for t in threads:
+        d = {
+            "id": t.id,
+            "slug": t.slug,
+            "title": t.title,
+            "status": t.status,
+            "reply_count": t.reply_count,
+            "last_post_at": t.last_post_at.isoformat() if t.last_post_at else None,
+        }
+        if t.category:
+            d["category"] = {"id": t.category.id, "slug": t.category.slug, "title": t.category.title}
+        items.append(d)
+    return items
 
 
 def list_news(

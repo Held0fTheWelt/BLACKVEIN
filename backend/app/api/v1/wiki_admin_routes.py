@@ -18,6 +18,7 @@ from app.services.wiki_service import (
     submit_review_wiki_translation,
     update_wiki_page,
     upsert_wiki_page_translation,
+    list_related_threads_for_page,
 )
 
 
@@ -324,3 +325,102 @@ def wiki_unlink_discussion_thread(page_id: int):
         target_id=str(page_id),
     )
     return jsonify({"message": "Discussion thread unlinked"}), 200
+
+
+@api_v1_bp.route("/wiki/<int:page_id>/related-threads", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+def wiki_related_threads_get(page_id: int):
+    """
+    List related forum threads for a wiki page. Moderator/admin only.
+    """
+    page = get_wiki_page_by_id(page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+    items = list_related_threads_for_page(page.id, limit=20)
+    return jsonify({"items": items}), 200
+
+
+@api_v1_bp.route("/wiki/<int:page_id>/related-threads", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def wiki_related_threads_add(page_id: int):
+    """
+    Add a related forum thread to a wiki page.
+    Body: thread_id.
+    """
+    page = get_wiki_page_by_id(page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    try:
+        thread_id = int(data.get("thread_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "thread_id must be an integer"}), 400
+
+    thread = ForumThread.query.get(thread_id)
+    if not thread or thread.deleted_at is not None:
+        return jsonify({"error": "Forum thread not found"}), 404
+
+    from app.models import WikiPageForumThread
+
+    existing = WikiPageForumThread.query.filter_by(page_id=page.id, thread_id=thread.id).first()
+    if not existing:
+        mapping = WikiPageForumThread(
+            page_id=page.id,
+            thread_id=thread.id,
+            relation_type="related",
+        )
+        db.session.add(mapping)
+        db.session.commit()
+
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="related_thread_added",
+        status="success",
+        message=f"Related thread {thread.id} added to wiki page {page.id}",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_page",
+        target_id=str(page.id),
+    )
+    items = list_related_threads_for_page(page.id, limit=20)
+    return jsonify({"items": items}), 200
+
+
+@api_v1_bp.route("/wiki/<int:page_id>/related-threads/<int:thread_id>", methods=["DELETE"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def wiki_related_threads_delete(page_id: int, thread_id: int):
+    """
+    Remove a related forum thread from a wiki page.
+    """
+    page = get_wiki_page_by_id(page_id)
+    if not page:
+        return jsonify({"error": "Wiki page not found"}), 404
+
+    from app.models import WikiPageForumThread
+
+    mapping = WikiPageForumThread.query.filter_by(page_id=page.id, thread_id=thread_id).first()
+    if not mapping:
+        return jsonify({"error": "Related thread mapping not found"}), 404
+    db.session.delete(mapping)
+    db.session.commit()
+
+    log_activity(
+        actor=get_current_user(),
+        category="wiki",
+        action="related_thread_removed",
+        status="success",
+        message=f"Related thread {thread_id} removed from wiki page {page.id}",
+        route=request.path,
+        method=request.method,
+        target_type="wiki_page",
+        target_id=str(page.id),
+    )
+    items = list_related_threads_for_page(page.id, limit=20)
+    return jsonify({"items": items}), 200

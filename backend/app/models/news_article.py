@@ -63,3 +63,29 @@ class NewsArticleTranslation(db.Model):
         db.UniqueConstraint("article_id", "language_code", name="uq_news_article_translation_article_lang"),
         db.UniqueConstraint("language_code", "slug", name="uq_news_article_translation_lang_slug"),
     )
+
+
+class NewsArticleForumThread(db.Model):
+    """Explicit related forum threads for a news article."""
+
+    __tablename__ = "news_article_forum_threads"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    article_id = db.Column(
+        db.Integer,
+        db.ForeignKey("news_articles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    thread_id = db.Column(
+        db.Integer,
+        db.ForeignKey("forum_threads.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    relation_type = db.Column(db.String(32), nullable=False, default="related")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
+
+    __table_args__ = (
+        db.UniqueConstraint("article_id", "thread_id", name="uq_news_article_forum_threads_article_thread"),
+    )

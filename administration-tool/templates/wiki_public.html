@@ -41,6 +41,32 @@
                     discussWrap.appendChild(discussLink);
                     content.appendChild(discussWrap);
                 }
+                if (data.related_threads && data.related_threads.length) {
+                    var relatedWrap = document.createElement('section');
+                    relatedWrap.className = 'wiki-related-threads';
+                    var heading = document.createElement('h2');
+                    heading.textContent = 'Related discussions';
+                    relatedWrap.appendChild(heading);
+                    var list = document.createElement('ul');
+                    list.className = 'wiki-related-threads-list';
+                    data.related_threads.forEach(function(t) {
+                        if (!t || !t.slug) return;
+                        var li = document.createElement('li');
+                        var a = document.createElement('a');
+                        a.href = '/forum/threads/' + encodeURIComponent(t.slug);
+                        a.textContent = t.title || 'Forum thread';
+                        li.appendChild(a);
+                        if (t.category && t.category.slug) {
+                            var catSpan = document.createElement('span');
+                            catSpan.className = 'wiki-related-thread-category';
+                            catSpan.textContent = ' (' + t.category.slug + ')';
+                            li.appendChild(catSpan);
+                        }
+                        list.appendChild(li);
+                    });
+                    relatedWrap.appendChild(list);
+                    content.appendChild(relatedWrap);
+                }
                 content.hidden = false;
                 if (data.title) document.title = data.title + ' – ' + (window.__FRONTEND_CONFIG__ && window.__FRONTEND_CONFIG__.siteName ? window.__FRONTEND_CONFIG__.siteName : 'BLACKVEIN');
             } else {

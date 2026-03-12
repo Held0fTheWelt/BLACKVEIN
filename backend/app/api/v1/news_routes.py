@@ -45,6 +45,7 @@ from app.services.news_service import (
     update_news,
     upsert_article_translation,
     _translation_to_dict,
+    list_related_threads_for_article,
 )
 
 
@@ -158,6 +159,11 @@ def news_detail(id_or_slug):
                 return jsonify({"error": "Not found"}), 404
         except (ValueError, TypeError):
             pass
+    # Attach related forum threads for integration layer (public, safe subset).
+    if news.get("id"):
+        related = list_related_threads_for_article(news["id"], limit=5)
+        if related:
+            news["related_threads"] = related
     return jsonify(news), 200
 
 
@@ -576,3 +582,105 @@ def news_unlink_discussion_thread(article_id: int):
         target_id=str(article_id),
     )
     return jsonify({"message": "Discussion thread unlinked"}), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/related-threads", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required(optional=True)
+def news_related_threads_get(article_id: int):
+    """
+    List related forum threads for a news article.
+    Public, but only returns threads in public categories.
+    """
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News article not found"}), 404
+    items = list_related_threads_for_article(article.id, limit=10)
+    return jsonify({"items": items}), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/related-threads", methods=["POST"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_related_threads_add(article_id: int):
+    """
+    Add a related forum thread to a news article.
+    Body: thread_id.
+    """
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News article not found"}), 404
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+    try:
+        thread_id = int(data.get("thread_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "thread_id must be an integer"}), 400
+
+    thread = ForumThread.query.get(thread_id)
+    if not thread or thread.deleted_at is not None:
+        return jsonify({"error": "Forum thread not found"}), 404
+
+    from app.models import NewsArticleForumThread
+
+    existing = NewsArticleForumThread.query.filter_by(article_id=article.id, thread_id=thread.id).first()
+    if existing:
+        mapping = existing
+    else:
+        mapping = NewsArticleForumThread(
+            article_id=article.id,
+            thread_id=thread.id,
+            relation_type="related",
+        )
+        db.session.add(mapping)
+        db.session.commit()
+
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="related_thread_added",
+        status="success",
+        message=f"Related thread {thread.id} added to article {article.id}",
+        route=request.path,
+        method=request.method,
+        target_type="news_article",
+        target_id=str(article.id),
+    )
+    items = list_related_threads_for_article(article.id, limit=10)
+    return jsonify({"items": items}), 200
+
+
+@api_v1_bp.route("/news/<int:article_id>/related-threads/<int:thread_id>", methods=["DELETE"])
+@limiter.limit("30 per minute")
+@require_jwt_moderator_or_admin
+def news_related_threads_delete(article_id: int, thread_id: int):
+    """
+    Remove a related forum thread from a news article.
+    """
+    article = get_news_article_by_id(article_id)
+    if not article:
+        return jsonify({"error": "News article not found"}), 404
+
+    from app.models import NewsArticleForumThread
+
+    mapping = NewsArticleForumThread.query.filter_by(article_id=article.id, thread_id=thread_id).first()
+    if not mapping:
+        return jsonify({"error": "Related thread mapping not found"}), 404
+    db.session.delete(mapping)
+    db.session.commit()
+
+    log_activity(
+        actor=get_current_user(),
+        category="news",
+        action="related_thread_removed",
+        status="success",
+        message=f"Related thread {thread_id} removed from article {article.id}",
+        route=request.path,
+        method=request.method,
+        target_type="news_article",
+        target_id=str(article.id),
+    )
+    items = list_related_threads_for_article(article.id, limit=10)
+    return jsonify({"items": items}), 200

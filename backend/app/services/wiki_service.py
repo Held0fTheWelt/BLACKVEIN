@@ -10,7 +10,7 @@ from app.i18n import (
     get_default_language,
     normalize_language,
 )
-from app.models import WikiPage, WikiPageTranslation
+from app.models import WikiPage, WikiPageTranslation, WikiPageForumThread
 
 
 def get_wiki_page_by_key(key: str):
@@ -77,6 +77,42 @@ def get_wiki_page_by_slug(slug: str, lang: str | None = None):
         if trans and trans.page and trans.page.is_published:
             return trans.page, trans
     return None, None
+
+
+def list_related_threads_for_page(page_id: int, *, limit: int = 5):
+    """Return safe related forum threads for a wiki page."""
+    if not page_id:
+        return []
+    from app.models import ForumThread, ForumCategory  # local import to avoid cycles
+
+    q = (
+        db.session.query(ForumThread)
+        .join(WikiPageForumThread, WikiPageForumThread.thread_id == ForumThread.id)
+        .filter(WikiPageForumThread.page_id == page_id)
+        .filter(ForumThread.deleted_at.is_(None))
+    )
+    # Restrict to public categories (no required_role, not private, active)
+    q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id).filter(
+        ForumCategory.is_active.is_(True),
+        ForumCategory.is_private.is_(False),
+        ForumCategory.required_role.is_(None),
+    )
+    q = q.order_by(ForumThread.is_pinned.desc(), ForumThread.last_post_at.desc().nullslast())
+    threads = q.limit(max(1, min(limit, 20))).all()
+    items = []
+    for t in threads:
+        d = {
+            "id": t.id,
+            "slug": t.slug,
+            "title": t.title,
+            "status": t.status,
+            "reply_count": t.reply_count,
+            "last_post_at": t.last_post_at.isoformat() if t.last_post_at else None,
+        }
+        if t.category:
+            d["category"] = {"id": t.category.id, "slug": t.category.slug, "title": t.category.title}
+        items.append(d)
+    return items
 
 
 # --- Wiki admin (pages + translations) ---

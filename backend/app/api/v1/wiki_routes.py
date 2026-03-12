@@ -10,7 +10,7 @@ from app.auth.permissions import get_current_user, require_jwt_moderator_or_admi
 from app.extensions import db, limiter
 from app.models import ForumThread
 from app.services import log_activity
-from app.services.wiki_service import get_wiki_page_by_slug
+from app.services.wiki_service import get_wiki_page_by_slug, list_related_threads_for_page
 
 
 def _wiki_path():
@@ -50,6 +50,11 @@ def wiki_page_get(slug):
     else:
         payload["discussion_thread_id"] = None
         payload["discussion_thread_slug"] = None
+
+    related = list_related_threads_for_page(page.id, limit=5)
+    if related:
+        payload["related_threads"] = related
+
     return jsonify(payload), 200
 
 

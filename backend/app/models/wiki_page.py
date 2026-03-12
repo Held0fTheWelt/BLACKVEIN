@@ -53,3 +53,29 @@ class WikiPageTranslation(db.Model):
         db.UniqueConstraint("page_id", "language_code", name="uq_wiki_page_translation_page_lang"),
         db.UniqueConstraint("language_code", "slug", name="uq_wiki_page_translation_lang_slug"),
     )
+
+
+class WikiPageForumThread(db.Model):
+    """Explicit related forum threads for a wiki page."""
+
+    __tablename__ = "wiki_page_forum_threads"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    page_id = db.Column(
+        db.Integer,
+        db.ForeignKey("wiki_pages.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    thread_id = db.Column(
+        db.Integer,
+        db.ForeignKey("forum_threads.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    relation_type = db.Column(db.String(32), nullable=False, default="related")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
+
+    __table_args__ = (
+        db.UniqueConstraint("page_id", "thread_id", name="uq_wiki_page_forum_threads_page_thread"),
+    )
