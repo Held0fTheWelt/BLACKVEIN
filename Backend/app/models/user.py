@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
+from app.models.area import user_areas
 
 # SuperAdmin: admin role with role_level >= this value. Used for hierarchy and self-elevation.
 SUPERADMIN_THRESHOLD = 100
@@ -30,6 +31,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=True, default=_utc_now)
 
     role_rel = db.relationship("Role", backref="users", lazy="joined")
+    areas = db.relationship("Area", secondary=user_areas, lazy="select", backref=db.backref("users", lazy="dynamic"))
 
     ROLE_USER = "user"
     ROLE_MODERATOR = "moderator"
@@ -65,14 +67,17 @@ class User(db.Model):
         """True if this user has moderator or admin role."""
         return self.has_any_role((self.ROLE_MODERATOR, self.ROLE_ADMIN))
 
-    def to_dict(self, include_email: bool = False, include_ban: bool = False):
+    def to_dict(self, include_email: bool = False, include_ban: bool = False, include_areas: bool = False):
         out = {
             "id": self.id,
             "username": self.username,
             "role": self.role,
             "role_id": self.role_id,
             "role_level": getattr(self, "role_level", 0) or 0,
+            "area_ids": [a.id for a in self.areas] if self.areas else [],
         }
+        if include_areas and self.areas:
+            out["areas"] = [a.to_dict() for a in self.areas]
         if self.preferred_language is not None:
             out["preferred_language"] = self.preferred_language
         out["created_at"] = self.created_at.isoformat() if self.created_at else None

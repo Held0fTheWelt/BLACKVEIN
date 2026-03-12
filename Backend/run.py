@@ -17,9 +17,11 @@ def init_db():
     """Create database tables and seed default roles. Does not create any users.
     Also stamps Alembic at 'head' so that 'flask db upgrade' won't re-run migrations."""
     from app.models.role import ensure_roles_seeded
+    from app.models.area import ensure_areas_seeded
     with app.app_context():
         db.create_all()
         ensure_roles_seeded()
+        ensure_areas_seeded()
         try:
             from flask import current_app
             migrate_cfg = current_app.extensions.get("migrate")
@@ -70,10 +72,12 @@ def seed_dev_user(username, password, generate, superadmin):
             return
 
     from app.models.role import ensure_roles_seeded
+    from app.models.area import ensure_areas_seeded
 
     with app.app_context():
         db.create_all()
         ensure_roles_seeded()
+        ensure_areas_seeded()
         if User.query.filter_by(username=u_name).first():
             print(f"User {u_name} already exists.")
             return
@@ -139,10 +143,12 @@ def seed_admin_user(username, password, generate):
             return
 
     from app.models.role import ensure_roles_seeded
+    from app.models.area import ensure_areas_seeded
 
     with app.app_context():
         db.create_all()
         ensure_roles_seeded()
+        ensure_areas_seeded()
         if User.query.filter_by(username=u_name).first():
             print(f"User {u_name} already exists.")
             return
