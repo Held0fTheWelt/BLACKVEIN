@@ -18,3 +18,7 @@ temp_tests_backup/
 *.egg-info/
 dist/
 build/
+ARCHITECTURE.md
+CLAUDE.md
+MODEL_POLICY.md
+QUALITY_TRACKING.md
