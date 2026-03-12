@@ -1,25 +1,16 @@
 """Data export/import API (admin only, high-risk operations)."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, request
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 
-from app.auth.feature_registry import (
-    FEATURE_MANAGE_DATA_EXPORT,
-    FEATURE_MANAGE_DATA_IMPORT,
-)
-from app.auth.permissions import (
-    current_user_is_admin,
-    current_user_is_super_admin,
-    require_feature,
-)
+from app.api.v1 import api_v1_bp
+from app.auth.feature_registry import FEATURE_MANAGE_DATA_EXPORT, FEATURE_MANAGE_DATA_IMPORT
+from app.auth.permissions import current_user_is_admin, current_user_is_super_admin, require_feature
 from app.services import data_export_service, data_import_service
 
 
-bp = Blueprint("data", __name__, url_prefix="/api/v1/data")
-
-
-@bp.route("/export", methods=["POST"])
+@api_v1_bp.route("/data/export", methods=["POST"])
 @jwt_required()
 @require_feature(FEATURE_MANAGE_DATA_EXPORT)
 def export_data():
@@ -59,7 +50,7 @@ def export_data():
     return jsonify(export), 200
 
 
-@bp.route("/import/preflight", methods=["POST"])
+@api_v1_bp.route("/data/import/preflight", methods=["POST"])
 @jwt_required()
 @require_feature(FEATURE_MANAGE_DATA_IMPORT)
 def import_preflight():
@@ -85,7 +76,7 @@ def import_preflight():
     )
 
 
-@bp.route("/import/execute", methods=["POST"])
+@api_v1_bp.route("/data/import/execute", methods=["POST"])
 @jwt_required()
 @require_feature(FEATURE_MANAGE_DATA_IMPORT)
 def import_execute():
