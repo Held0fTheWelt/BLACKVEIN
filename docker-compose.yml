@@ -20,7 +20,7 @@ services:
 
   frontend:
     build:
-      context: ./Frontend
+      context: ./administration-tool
       dockerfile: Dockerfile
     ports:
       - "5001:5001"

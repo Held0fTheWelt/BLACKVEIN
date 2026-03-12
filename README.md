@@ -11,7 +11,7 @@ Backend/                 # API, auth, dashboard, DB, migrations, tests
   tests/                  # pytest (test_api, test_web, test_news_api, …)
   run.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
   requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
-Frontend/                 # Public website + management area
+administration-tool/      # Public website + management area
   frontend_app.py         # Flask app: /, /news, /news/<id>; /manage, /manage/login, /manage/news, /manage/users, /manage/wiki
   templates/, static/
   requirements.txt, Dockerfile
@@ -76,7 +76,7 @@ Default: **http://127.0.0.1:5000**. Health: `GET /api/v1/health`.
 ### 2. Frontend
 
 ```bash
-cd Frontend
+cd administration-tool
 pip install -r requirements.txt
 python frontend_app.py
 ```

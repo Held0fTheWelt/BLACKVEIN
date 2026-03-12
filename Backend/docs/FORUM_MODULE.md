@@ -4,7 +4,7 @@
 
 - **Module scope:** Discussion forum for the community (and staff) with categories, threads, posts, likes, and moderation.
 - **Backend:** Own models, services, and API routes under `app.models.forum_*`, `app.services.forum_service`, `app.api.v1.forum_routes`.
-- **Frontend:** Public pages under `Frontend/templates/forum/` and admin/moderation under `Frontend/templates/manage/forum_*` with JS in `Frontend/static/`.
+- **Frontend:** Public pages under `administration-tool/templates/forum/` and admin/moderation under `administration-tool/templates/manage/forum_*` with JS in `administration-tool/static/`.
 
 Entities:
 

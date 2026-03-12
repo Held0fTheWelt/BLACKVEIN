@@ -20,7 +20,7 @@ The frontend fetches data from the backend over HTTP (e.g. `GET /api/v1/news`). 
    - For local dev with Frontend on another port, set `CORS_ORIGINS=http://127.0.0.1:5001,http://localhost:5001` (comma-separated, no spaces).
 
 2. **Frontend**
-   - From `Frontend/`: `python frontend_app.py`.
+   - From `administration-tool/`: `python frontend_app.py`.
    - Default port 5001 (override with `PORT`).
    - Set `BACKEND_API_URL=http://127.0.0.1:5000` if the backend is not on that URL (e.g. different host/port). No trailing slash. This value is injected into the page as `window.__FRONTEND_CONFIG__.backendApiUrl` and used by the frontend for all API requests and for login/register/dashboard links.
 
@@ -47,7 +47,7 @@ To test with a local backend:
 ```bash
 # Set the environment variable before starting the Frontend
 export BACKEND_API_URL=http://127.0.0.1:5000
-python Frontend/frontend_app.py
+python administration-tool/frontend_app.py
 ```
 
 Or in `.env`:
@@ -73,7 +73,7 @@ Leave `BACKEND_API_URL` unset or set to the production URL. The Frontend will co
 ### Testing News creation locally
 
 1. Start backend: `cd Backend && python run.py` (port 5000)
-2. Start frontend with local backend: `BACKEND_API_URL=http://127.0.0.1:5000 python Frontend/frontend_app.py` (port 5001)
+2. Start frontend with local backend: `BACKEND_API_URL=http://127.0.0.1:5000 python administration-tool/frontend_app.py` (port 5001)
 3. Open http://127.0.0.1:5001/manage/login
 4. Login with test user (e.g., created via `flask seed-dev-user`)
 5. Navigate to `/manage/news`

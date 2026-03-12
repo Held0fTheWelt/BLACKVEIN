@@ -54,12 +54,12 @@ Backend owns all data, API, authentication, dashboard (admin/authenticated UI), 
 
 Backend does **not** serve the public marketing/news pages; those move to the frontend.
 
-### 3.2 Frontend/ (Public Website, Public News, Static Assets, API Consumption)
+### 3.2 administration-tool/ (Public Website, Public News, Static Assets, API Consumption)
 
 Frontend is the public face: home, news list, news detail, and any other public pages. It consumes backend via JSON API only.
 
-| Belongs in Frontend/ | Purpose |
-|----------------------|---------|
+| Belongs in administration-tool/ | Purpose |
+|---------------------------------|---------|
 | `frontend_app.py` | Minimal Flask (or similar) server: serves HTML and static assets only; no DB, no business logic. |
 | `templates/` | Public pages only: base, home, news (list), news detail, optionally wiki/community placeholders. |
 | `static/` | CSS, JS (e.g. style.css, landing.js; news page can load data via API). |
@@ -111,7 +111,7 @@ WorldOfShadows/
 │   ├── run.py
 │   ├── requirements.txt
 │   └── requirements-dev.txt
-├── Frontend/
+├── administration-tool/
 │   ├── frontend_app.py
 │   ├── templates/               # base, home, news (list), news (detail), optional wiki/community
 │   └── static/                  # style.css, landing.js, optional news.js
@@ -136,7 +136,7 @@ WorldOfShadows/
 
 ## 6. Next Steps (Not Done in This Audit)
 
-1. Create `Backend/` and `Frontend/` and move/restructure files as per above.
+1. Create `Backend/` and `administration-tool/` and move/restructure files as per above.
 2. Implement news model and `/api/v1/news` in Backend.
 3. Add `frontend_app.py` and move public templates/static into Frontend; wire frontend to backend API URL.
 4. Update run scripts, docker-compose, and docs (e.g. ServerArchitecture.md, README) to describe two processes (Backend + Frontend) and the API boundary.

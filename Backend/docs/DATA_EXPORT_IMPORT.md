@@ -111,8 +111,8 @@ Import execution:
 
 Located in the public frontend:
 
-- Template: `Frontend/templates/manage/data.html`.
-- Script: `Frontend/static/manage_data.js`.
+- Template: `administration-tool/templates/manage/data.html`.
+- Script: `administration-tool/static/manage_data.js`.
 
 Features:
 

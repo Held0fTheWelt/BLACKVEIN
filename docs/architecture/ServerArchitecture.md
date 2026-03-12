@@ -18,7 +18,7 @@ Backend/
   run.py            # entrypoint, init-db, seed-dev-user
 ```
 
-Frontend: `Frontend/frontend_app.py`, `templates/`, `static/` (public site; placeholder). Root: README, CHANGELOG, docker-compose, docs, .env.example.
+Frontend: `administration-tool/frontend_app.py`, `templates/`, `static/` (public site; placeholder). Root: README, CHANGELOG, docker-compose, docs, .env.example.
 
 ## Setup
 

@@ -6,7 +6,7 @@ The management area uses a shared auth layer (`manage_auth.js`) that must be ava
 
 ### Template structure
 
-In `Frontend/templates/manage/base.html`:
+In `administration-tool/templates/manage/base.html`:
 
 1. Inline script: `window.__FRONTEND_CONFIG__` (backend API URL and i18n).
 2. `main.js` – public frontend helpers (getApiBaseUrl, apiFetch).
