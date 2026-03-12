@@ -55,7 +55,7 @@ def users_list():
     search = request.args.get("q", "").strip() or None
     items, total = list_users(page=page, per_page=limit, search=search)
     return jsonify({
-        "items": [u.to_dict(include_email=True, include_ban=True) for u in items],
+        "items": [u.to_dict(include_email=True, include_ban=True, include_areas=True) for u in items],
         "total": total,
         "page": page,
         "per_page": limit,
@@ -79,7 +79,8 @@ def users_get(user_id):
         return jsonify({"error": "Account is restricted."}), 403
     include_email = current_user_is_admin() or current.id == user_id
     include_ban = current_user_is_admin()
-    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
+    include_areas = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban, include_areas=include_areas)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>/preferences", methods=["PUT"])
@@ -106,7 +107,8 @@ def users_preferences(user_id):
         return jsonify({"error": err}), status
     include_email = current_user_is_admin() or current.id == user.id
     include_ban = current_user_is_admin()
-    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
+    include_areas = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban, include_areas=include_areas)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>/password", methods=["PUT"])
@@ -233,7 +235,8 @@ def users_update(user_id):
         )
     include_email = current_user_is_admin() or current.id == user.id
     include_ban = current_user_is_admin()
-    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban)), 200
+    include_areas = current_user_is_admin()
+    return jsonify(user.to_dict(include_email=include_email, include_ban=include_ban, include_areas=include_areas)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>", methods=["DELETE"])
@@ -306,7 +309,7 @@ def users_assign_role(user_id):
         target_id=str(user.id),
         metadata={"new_role": user.role},
     )
-    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200
+    return jsonify(user.to_dict(include_email=True, include_ban=True, include_areas=True)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>/ban", methods=["POST"])
@@ -341,7 +344,7 @@ def users_ban(user_id):
         target_type="user",
         target_id=str(user.id),
     )
-    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200
+    return jsonify(user.to_dict(include_email=True, include_ban=True, include_areas=True)), 200
 
 
 @api_v1_bp.route("/users/<int:user_id>/unban", methods=["POST"])
@@ -372,4 +375,4 @@ def users_unban(user_id):
         target_type="user",
         target_id=str(user.id),
     )
-    return jsonify(user.to_dict(include_email=True, include_ban=True)), 200
+    return jsonify(user.to_dict(include_email=True, include_ban=True, include_areas=True)), 200

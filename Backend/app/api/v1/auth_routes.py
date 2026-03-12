@@ -141,4 +141,4 @@ def me():
         return jsonify({"error": "User not found"}), 404
     if getattr(user, "is_banned", False):
         return jsonify({"error": "Account is restricted."}), 403
-    return jsonify(user.to_dict(include_email=True)), 200
+    return jsonify(user.to_dict(include_email=True, include_areas=True)), 200
