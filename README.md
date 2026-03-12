@@ -28,11 +28,11 @@ README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 Copy `.env.example` to `.env` at the **repo root**. Backend and administration-tool both read from the root `.env` when run locally. Set at least:
 
 - **SECRET_KEY**, **JWT_SECRET_KEY** (required in production; or set **DEV_SECRETS_OK=1** for local dev fallbacks).
-- **FLASK_APP=run:app** (so Flask finds the app when running from `Backend/`).
+- **FLASK_APP=run:app** (so Flask finds the app when running from `backend/`).
 
 Optional for local dev:
 
-- **PORT** – Backend default 5000, Frontend default 5001.
+- **PORT** – Backend default 5000; administration-tool (frontend) default 5001.
 - **BACKEND_API_URL** – Administration tool: backend base URL for API and auth (no trailing slash). Default in code is the remote PythonAnywhere backend for initial testing; for local troubleshooting set e.g. `BACKEND_API_URL=http://127.0.0.1:5000`.
 - **CORS_ORIGINS** – Backend: comma-separated origins allowed to call the API (e.g. `http://127.0.0.1:5001,http://localhost:5001`). Required when the frontend runs on another port.
 - **FRONTEND_URL** – Backend: when set, `GET /` and `GET /news` redirect to this URL (e.g. `http://127.0.0.1:5001`).
@@ -132,9 +132,9 @@ From **repo root**:
 docker compose up --build
 ```
 
-- **Backend** at http://localhost:8000 (Gunicorn in container).
-- **Frontend** at http://localhost:5001.
-- Frontend env **BACKEND_API_URL=http://localhost:8000** so the browser can call the API. Backend env **CORS_ORIGINS** includes http://localhost:5001 so requests from the frontend origin are allowed.
+- **backend** service at http://localhost:8000 (Gunicorn in container).
+- **frontend** (administration-tool) service at http://localhost:5001.
+- Frontend env **BACKEND_API_URL=http://localhost:8000** so the browser can call the API when using Docker. Backend env **CORS_ORIGINS** includes http://localhost:5001 so requests from the frontend origin are allowed.
 
 Database is persisted in `backend/instance/` (mounted volume). Run migrations inside the backend container if needed:
 
@@ -154,7 +154,7 @@ docker compose exec backend flask db upgrade
 | CORS_ORIGINS | Backend | Comma-separated origins for API (e.g. frontend URL) |
 | FRONTEND_URL | Backend | Optional; redirects GET / and GET /news to frontend |
 | DEV_SECRETS_OK | Backend | 1 = dev secrets and seed-dev-user / seed-news allowed |
-| DATABASE_URI | Backend | Default SQLite in `Backend/instance/wos.db` |
+| DATABASE_URI | Backend | Default SQLite in `backend/instance/wos.db` |
 
 ## Documentation
 
