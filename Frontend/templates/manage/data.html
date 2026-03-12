@@ -1,0 +1,76 @@
+{% extends "manage/base.html" %}
+
+{% block title %}Data export / import{% endblock %}
+
+{% block content %}
+<section class="manage-section">
+  <header class="manage-section-header">
+    <h1 class="manage-section-title">Data export / import</h1>
+    <p class="manage-section-subtitle">Backup and migration of application data. Import is SuperAdmin-only.</p>
+  </header>
+
+  <div class="manage-grid manage-grid--two">
+    <div class="card">
+      <h2 class="card-title">Export</h2>
+      <p class="card-subtitle">Download structured JSON exports with version metadata.</p>
+
+      <form id="data-export-form" class="form-grid">
+        <label class="form-field">
+          <span class="form-label">Scope</span>
+          <select id="data-export-scope" name="scope">
+            <option value="full">Full database</option>
+            <option value="table">Single table</option>
+            <option value="rows">Selected rows</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Table (for table/rows export)</span>
+          <select id="data-export-table" name="table">
+            <option value="">-- select table --</option>
+          </select>
+        </label>
+
+        <label class="form-field" id="data-export-rows-field">
+          <span class="form-label">Primary keys (comma-separated)</span>
+          <input type="text" id="data-export-pks" name="primary_keys" placeholder="1,2,3">
+        </label>
+
+        <button type="submit" class="btn btn-primary" id="data-export-submit">Export</button>
+        <p class="form-help">Result is returned as JSON in the browser; copy/save as needed.</p>
+      </form>
+
+      <pre class="code-preview" id="data-export-output" aria-live="polite"></pre>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Import</h2>
+      <p class="card-subtitle">Validate and execute imports from previously exported JSON files.</p>
+
+      <form id="data-import-form" class="form-grid">
+        <label class="form-field">
+          <span class="form-label">Payload (JSON)</span>
+          <textarea id="data-import-json" rows="8" placeholder="Paste exported JSON here"></textarea>
+        </label>
+
+        <div class="button-row">
+          <button type="button" class="btn btn-secondary" id="data-import-preflight">Preflight only</button>
+          <button type="button" class="btn btn-danger" id="data-import-execute">Execute import (SuperAdmin)</button>
+        </div>
+      </form>
+
+      <h3 class="card-subtitle">Preflight result</h3>
+      <pre class="code-preview" id="data-import-preflight-output" aria-live="polite"></pre>
+
+      <h3 class="card-subtitle">Import execution</h3>
+      <pre class="code-preview" id="data-import-execute-output" aria-live="polite"></pre>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='manage_data.js') }}"></script>
+{% endblock %}
+

@@ -21,6 +21,7 @@
                 <a href="{{ url_for('manage_roles') }}" class="manage-nav-link" data-page="roles" id="manage-nav-roles" data-feature="manage.roles">Roles</a>
                 <a href="{{ url_for('manage_areas') }}" class="manage-nav-link" data-page="areas" id="manage-nav-areas" data-feature="manage.areas">Areas</a>
                 <a href="{{ url_for('manage_feature_areas') }}" class="manage-nav-link" data-page="feature-areas" id="manage-nav-feature-areas" data-feature="manage.feature_areas">Feature access</a>
+                <a href="{{ url_for('manage_data') }}" class="manage-nav-link" data-page="data" id="manage-nav-data" data-feature="manage.data_export">{{ t.manage_data | default('Data') }}</a>
                 <a href="{{ url_for('manage_wiki') }}" class="manage-nav-link" data-page="wiki" id="manage-nav-wiki" data-feature="manage.wiki">{{ t.manage_wiki | default('Wiki') }}</a>
                 <a href="{{ url_for('manage_slogans') }}" class="manage-nav-link" data-page="slogans" id="manage-nav-slogans" data-feature="manage.slogans">Slogans</a>
             </nav>

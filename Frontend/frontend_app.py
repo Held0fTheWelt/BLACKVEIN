@@ -162,6 +162,12 @@ def manage_slogans():
     return render_template("manage/slogans.html")
 
 
+@app.route("/manage/data")
+def manage_data():
+    """Data export/import (admin only)."""
+    return render_template("manage/data.html")
+
+
 def _backend_origin():
     """Origin (scheme + netloc) of BACKEND_API_URL for CSP connect-src in split frontend/backend setups."""
     parsed = urlparse(BACKEND_API_URL)
