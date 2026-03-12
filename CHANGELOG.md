@@ -15,6 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.21] - 2026-03-12
+
+### Added
+
+- **Postman collection:** Updated `postman/WorldOfShadows_API.postman_collection.json` with forum module endpoints (categories, threads, posts, likes, reports).
+
+---
+
 ## [0.0.20] - 2026-03-12
 
 ### Added
