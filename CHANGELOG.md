@@ -21,7 +21,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Forum expansion wave:** Moderation dashboard, notification center polishing, advanced thread moderation (move, archive/unarchive), mentions (@username), focused tests, Postman and docs updates. See entries below as implemented.
+- **Moderation dashboard (admin UI):** New dashboard card on `/manage/forum` for moderator/admin: metrics (open reports, hidden posts, locked threads, pinned threads), open reports list with quick status actions, recently handled reports, and expandable lists for locked threads, pinned threads, and hidden posts. Backend: `GET /forum/moderation/recently-handled`, `locked-threads`, `pinned-threads`, `hidden-posts`; metrics response includes `pinned_threads`; report list responses enriched with `thread_slug` and `target_title` for linking.
+- **Notification center polishing:** Notifications list returns `thread_slug` and `target_post_id` for `forum_post` targets so links can point to the specific post. `PUT /api/v1/notifications/read-all` marks all current user's notifications as read. Frontend: "Mark all as read" button, thread links use `#post-<id>` when applicable; thread page posts have `id="post-<id>"` for anchor navigation.
+- **Advanced thread moderation:** Move thread to another category: `POST /forum/threads/<id>/move` (body `category_id`). Archive/unarchive: `POST /forum/threads/<id>/archive` and `.../unarchive` (thread status `archived` / `open`). Service: `move_thread`, `set_thread_archived`, `set_thread_unarchived`. Public thread page mod bar: Archive/Unarchive and Move (category dropdown).
+- **Mentions (@username):** Post content can include `@username`; on create/update the backend extracts mentions, resolves usernames to users, and creates a `mention` notification for each (excluding author and banned users, no duplicates). Notifications list and thread links support mention targets. Frontend: post body and edit flow render content with `.forum-mention` styling for @username.
+- **Tests:** Moderation metrics (pinned_threads), recently-handled reports, locked/pinned/hidden lists; move thread; archive/unarchive; notifications mark-all-read; notifications `thread_slug`/`target_post_id` for forum_post; mention creates notification. Forum test count: 38.
+- **Postman:** New requests: Get Recently Handled Reports, Get Locked Threads, Get Pinned Threads, Get Hidden Posts; Move Thread, Archive Thread, Unarchive Thread. Notifications Mark All Read already present.
 
 ---
 

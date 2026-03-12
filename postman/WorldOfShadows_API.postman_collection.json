@@ -566,6 +566,40 @@
                   ]
                 }
               }
+            },
+            {
+              "name": "Move Thread",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {"mode": "raw", "raw": "{\n  \"category_id\": 2\n}"},
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/move",
+                  "path": ["api", "v1", "forum", "threads", "1", "move"]
+                }
+              }
+            },
+            {
+              "name": "Archive Thread",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/archive",
+                  "path": ["api", "v1", "forum", "threads", "1", "archive"]
+                }
+              }
+            },
+            {
+              "name": "Unarchive Thread",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/unarchive",
+                  "path": ["api", "v1", "forum", "threads", "1", "unarchive"]
+                }
+              }
             }
           ]
         },
@@ -986,6 +1020,54 @@
                       "value": "10"
                     }
                   ]
+                }
+              }
+            },
+            {
+              "name": "Get Recently Handled Reports",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/recently-handled?limit=10",
+                  "path": ["api", "v1", "forum", "moderation", "recently-handled"],
+                  "query": [{"key": "limit", "value": "10"}]
+                }
+              }
+            },
+            {
+              "name": "Get Locked Threads",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/locked-threads?limit=20",
+                  "path": ["api", "v1", "forum", "moderation", "locked-threads"],
+                  "query": [{"key": "limit", "value": "20"}]
+                }
+              }
+            },
+            {
+              "name": "Get Pinned Threads",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/pinned-threads?limit=20",
+                  "path": ["api", "v1", "forum", "moderation", "pinned-threads"],
+                  "query": [{"key": "limit", "value": "20"}]
+                }
+              }
+            },
+            {
+              "name": "Get Hidden Posts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/moderation/hidden-posts?limit=20",
+                  "path": ["api", "v1", "forum", "moderation", "hidden-posts"],
+                  "query": [{"key": "limit", "value": "20"}]
                 }
               }
             }
