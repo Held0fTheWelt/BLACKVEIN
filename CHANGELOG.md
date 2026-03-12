@@ -15,6 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.19] - 2026-03-12
+
+### Added
+
+- **Forum architecture contracts:** Documented forum module boundaries, entities (categories, threads, posts, likes, reports, subscriptions), role behavior (public, user, moderator, admin), soft-delete semantics, slug strategy, pagination/search expectations, moderation rules, and high-level API contracts in `Backend/docs/FORUM_MODULE.md` to guide the implementation.
+
+---
+
 ## [0.0.18] - 2026-03-12
 
 ### Added

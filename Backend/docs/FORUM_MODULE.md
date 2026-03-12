@@ -1,142 +1,129 @@
-# Forum module overview (0.0.19 – Phase 0)
+# Forum module (0.0.19)
 
-## Boundaries and architecture
+## Boundaries and entities
 
-- **Backend (source of truth)**: Forum lives in `app/forum/` (models, services, routes, permissions).
-- **Frontend**: Public and management UIs live in `Frontend/templates/forum/` and `Frontend/static/forum_*.js`, consuming only `/api/v1/forum/*` APIs.
-- **Separation**:
-  - Forum is independent of News, Wiki, and User Admin, but reuses the shared auth/role/area system.
-  - No direct cross-coupling to News/Wiki; future links (e.g. “discuss this article”) are left for later.
+- **Module scope:** Discussion forum for the community (and staff) with categories, threads, posts, likes, and moderation.
+- **Backend:** Own models, services, and API routes under `app.models.forum_*`, `app.services.forum_service`, `app.api.v1.forum_routes`.
+- **Frontend:** Public pages under `Frontend/templates/forum/` and admin/moderation under `Frontend/templates/manage/forum_*` with JS in `Frontend/static/`.
 
-## Entities and relationships
+Entities:
 
-- `ForumCategory`
-  - `id`, `parent_id` (optional simple hierarchy), `slug`, `title`, `description`,
-    `sort_order`, `is_active`, `is_private`, `required_role`, `created_at`, `updated_at`.
-  - Relationships: `categories` 1–N `threads`.
-  - Access is enforced per category (public vs. requires role vs. private).
-
-- `ForumThread`
-  - `id`, `category_id`, `author_id`, `slug`, `title`, `status`,
-    `is_pinned`, `is_locked`, `view_count`, `reply_count`,
-    `last_post_at`, `last_post_id`, `created_at`, `updated_at`, `deleted_at`.
-  - Status: `open`, `locked`, `archived`, `hidden`, `deleted` (hidden/deleted are soft states, not hard-delete).
-  - Relationships: belongs to one category; has many posts.
-
-- `ForumPost`
-  - `id`, `thread_id`, `author_id`, `parent_post_id` (nullable, only one-level replies),
-    `content`, `status`, `like_count`, `created_at`, `updated_at`, `edited_at`, `edited_by`, `deleted_at`.
-  - Status: `visible`, `edited`, `hidden`, `deleted` (deleted = soft delete via `deleted_at`).
-
-- `ForumPostLike`
-  - `id`, `post_id`, `user_id`, `created_at`, unique `(post_id, user_id)`.
-
-- `ForumReport`
-  - `id`, `target_type` (`thread` | `post`), `target_id`, `reported_by`, `reason`,
-    `status` (`open` | `reviewed` | `resolved | dismissed`), `handled_by`, `handled_at`, `created_at`.
-
-- `ForumThreadSubscription` (optional, minimal in this iteration)
-  - `id`, `thread_id`, `user_id`, `created_at`.
+- `forum_categories`: top-level grouping of threads.
+- `forum_threads`: discussion topics inside a category.
+- `forum_posts`: individual messages in a thread (flat or shallow replies via `parent_post_id`).
+- `forum_post_likes`: per-user likes on posts.
+- `forum_reports`: user reports on threads or posts.
+- `forum_thread_subscriptions` (optional): user follows on threads (for future notifications).
 
 ## Roles and behavior
 
-- **Anonymous user**
-  - Can read public categories/threads/posts in non-private categories.
-  - Cannot create threads/posts, like, or report.
+Roles reuse existing system roles:
 
-- **Authenticated user (role `user` or higher)**
-  - Can read all non-private categories plus those where `required_role` is satisfied.
-  - Can create threads in allowed categories (category not locked/private for them).
-  - Can reply in open threads (status `open`, not `locked`/`archived`).
-  - Can edit own posts within backend-enforced rules (e.g. only non-deleted, non-hidden posts).
-  - Can soft-delete own posts if policy allows (we allow soft-delete: mark `deleted_at`, status `deleted`).
-  - Can like/unlike visible, non-deleted posts.
-  - Can report threads/posts.
+- **Public (anonymous):**
+  - View public categories, threads, and visible posts (no posting/liking).
+- **Authenticated user (role=user/qa/moderator/admin):**
+  - View all non-private categories plus any private categories where `required_role` <= own role.
+  - Create threads in categories that are active, not private beyond their role, and not restricted to staff.
+  - Create posts in open, unlocked threads within accessible categories.
+  - Edit own posts (time-window or status based; initial policy: always allowed until post is hidden/deleted).
+  - Soft-delete own posts if they are not already moderated (status becomes `deleted` and `deleted_at` set).
+  - Like/unlike visible posts in unlocked threads.
+  - Report threads/posts.
+- **Moderator (role=moderator):**
+  - All authenticated user capabilities.
+  - Hide/unhide posts.
+  - Lock/unlock threads.
+  - Pin/unpin threads.
+  - Review and update `forum_reports` for accessible categories.
+  - Soft-delete/hide inappropriate content.
+- **Admin (role=admin):**
+  - Full forum control.
+  - Create/edit/delete categories.
+  - Configure `is_active`, `is_private`, `required_role`.
+  - Access all private/staff categories.
+  - All moderator actions across all categories.
 
-- **Moderator**
-  - Can moderate in assigned areas/categories (same area-based feature model as News/Wiki where applicable).
-  - Actions:
-    - hide/unhide posts (status `hidden` vs `visible`).
-    - lock/unlock threads (`status` / `is_locked`).
-    - pin/unpin threads (`is_pinned`).
-    - handle reports (set status, add resolution).
-    - soft-delete inappropriate content (threads/posts) via status/`deleted_at`.
+Role-level (`role_level`) and areas are respected where they already apply to admin actions (e.g. category management screens behind appropriate features).
 
-- **Admin**
-  - All moderator capabilities.
-  - Category management: create/edit/delete categories, set `is_active`, `is_private`, `required_role`.
-  - Full access to private/staff categories and all reports.
-
-## Soft-delete behavior and lifecycle
+## Soft-delete and status
 
 - Threads:
-  - Normal delete = soft-delete: set `deleted_at` and status `deleted` or `hidden`.
-  - Hidden/deleted threads are not listed in public lists; moderators/admins can still see them in moderation views.
-  - Hard delete (DB row removal) is reserved for explicit admin-only destructive actions and is not part of the default flows.
-
+  - Fields: `status` (`open`, `locked`, `archived`, `hidden`, `deleted`), `deleted_at`.
+  - Normal user deletion: soft-delete own threads where allowed (status `deleted`, `deleted_at` set, content hidden from public lists).
+  - Moderation hides: set `status=hidden` without removing from DB.
+  - Locked threads cannot receive new posts from regular users.
 - Posts:
-  - User delete = soft-delete own post: sets `deleted_at`, status `deleted`, keeps audit trail.
-  - Moderation hide = status `hidden` (may or may not set `deleted_at`, but not shown to public).
-  - Likes on deleted/hidden posts are not allowed and not shown.
+  - Fields: `status` (`visible`, `edited`, `hidden`, `deleted`), `deleted_at`.
+  - Soft-delete: own deletion or moderator deletion sets `deleted_at` and `status=deleted`; content hidden from normal views.
+  - Hidden: moderator hide sets `status=hidden` (e.g. for temporary removals).
+  - Edited posts track `edited_at` and `edited_by`.
 
-## Slug strategy
+No hard-deletes for threads/posts in normal flows; only admins may have specific hard-delete endpoints if later required.
+
+## Slugs and routing
 
 - Categories:
-  - `slug` is required, unique, URL-safe (lowercase, `[a-z0-9-]`).
-  - Generated from title if not provided; uniqueness ensured with suffixes (`-2`, `-3`, ...).
-
+  - `slug` unique; stable identifier for `/forum/categories/<slug>` both API and frontend.
 - Threads:
-  - `slug` is required, unique per category (or globally, depending on route design); we will enforce uniqueness across all threads for simpler lookup.
-  - Generated from title, normalized as for categories, with numeric suffixes if necessary.
+  - `slug` unique across all threads; used for `/forum/threads/<slug>` (public) and `/api/v1/forum/threads/<slug>` (API).
+  - Generated from title with collision handling by appending `-<short-id>` when needed.
+
+Posts are referenced by numeric ID in API routes (no public slug).
 
 ## Pagination and search
 
 - Pagination:
-  - Category thread lists: `page`, `limit` (default limit ~20), ordered by `is_pinned` desc, `last_post_at` desc.
-  - Thread post lists: `page`, `limit`, ordered by `created_at` asc (stable).
-
+  - Category thread lists: `page`, `limit` query params (default sensible values; hard max per_page).
+  - Thread post lists: same pagination parameters.
+  - Stable ordering:
+    - Threads: primarily by `is_pinned` desc, then `last_post_at` desc, then `created_at` desc.
+    - Posts: by `created_at` asc (oldest first); moderation can affect visibility but not order.
 - Search:
-  - Endpoint for searching thread titles (and optionally post content) via simple `ILIKE` matching.
-  - Query parameters: `q`, `page`, `limit`, optional `category` filter.
-  - Results respect category access rules and visibility (exclude hidden/deleted where appropriate).
+  - Endpoint `/api/v1/forum/search`:
+    - Searches thread titles (and optionally post content) for a text query.
+    - Returns paginated results with basic metadata.
+  - Exact matching strategy kept simple (ILIKE `%query%` or equivalent).
 
-## Moderation rules summary
+## Moderation rules
 
-- Regular users:
-  - Cannot post in locked threads.
-  - Cannot access private categories unless their role satisfies `required_role`.
-  - Cannot edit or delete others’ posts.
+- Only moderators/admins may:
+  - Lock/unlock, pin/unpin threads.
+  - Hide/unhide posts.
+  - Change report statuses (`open`, `reviewed`, `resolved`, `dismissed`).
+  - Access full report lists and details.
+- Regular users may:
+  - File reports on threads or posts they can see.
+  - Not see internal report handling details.
+- Reports:
+  - `target_type`: `thread` or `post`.
+  - `status`: `open` (new), `reviewed` (seen but not resolved), `resolved` (action taken), `dismissed` (no action needed).
 
-- Moderators:
-  - May lock/unlock and pin/unpin threads in allowed categories.
-  - May hide/unhide posts and threads (status flags, no hard-delete).
-  - May change report status; backend logs moderation actions via existing `ActivityLog` where appropriate.
+Moderation and admin actions should be logged via the existing activity log service where appropriate (e.g. category changes, locks, hides).
 
-- Admins:
-  - Global moderation; no category restrictions.
-  - Category CRUD and visibility configuration.
+## API contracts (high-level)
 
-All permission checks are enforced on the backend; frontend only mirrors allowed actions in the UI.
+Public/community:
 
-## Thread/post lifecycle states
+- `GET /api/v1/forum/categories` → list visible categories.
+- `GET /api/v1/forum/categories/<slug>` → category detail (+ limited stats).
+- `GET /api/v1/forum/categories/<slug>/threads` → paginated threads in category.
+- `GET /api/v1/forum/threads/<slug>` → thread detail.
+- `GET /api/v1/forum/threads/<id>/posts` → paginated posts for thread.
+- `GET /api/v1/forum/search` → search threads (and optionally posts).
 
-- Thread:
-  - `open` → default, users can reply.
-  - `locked` → no new posts; moderators/admins can still modify metadata.
-  - `archived` → read-only; not shown in “active” lists except via filters.
-  - `hidden`/`deleted` → removed from public listings; visible only to staff.
+Authenticated:
 
-- Post:
-  - `visible` → normal state.
-  - `edited` → same as visible but with `edited_at`/`edited_by` populated.
-  - `hidden` → hidden from public, visible to staff.
-  - `deleted` → soft-deleted; not shown publicly, but retained for audit.
+- Thread CRUD: `POST/PUT/DELETE /api/v1/forum/threads[...]` with permission checks.
+- Post CRUD: `POST/PUT/DELETE /api/v1/forum/posts[...]` with permission checks.
+- Likes: `POST/DELETE /api/v1/forum/posts/<id>/like`.
+- Reports: `POST /api/v1/forum/reports`.
 
-## API contract expectations (high level)
+Moderator/admin:
 
-- Base prefix: `/api/v1/forum/...`
-- All GET list endpoints return `{ items: [...], total, page, per_page }`.
-- Detail endpoints return single objects with derived fields (e.g. `reply_count`, `last_post_at`, `like_count`).
-- Mutating endpoints return the updated resource where practical, or `{ message, id }` on deletes.
-- Permission failures always return `403` with `{ "error": "..." }`.
+- Thread moderation: lock/unlock, pin/unpin.
+- Post moderation: hide/unhide.
+- Reports: list + update status.
+- Category admin: create/edit/delete categories.
+
+All endpoints will follow existing API conventions: JSON bodies, error structures with `{"error": "..."} ` or typed issues, and pagination fields (`items`, `total`, `page`, `per_page`).
 
