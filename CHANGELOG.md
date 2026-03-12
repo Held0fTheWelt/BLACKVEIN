@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Forum architecture contracts:** Documented forum module boundaries, entities (categories, threads, posts, likes, reports, subscriptions), role behavior (public, user, moderator, admin), soft-delete semantics, slug strategy, pagination/search expectations, moderation rules, and high-level API contracts in `Backend/docs/FORUM_MODULE.md` to guide the implementation.
+- **Forum schema and migrations:** Added persistent tables for `forum_categories`, `forum_threads`, `forum_posts`, `forum_post_likes`, `forum_reports`, and `forum_thread_subscriptions` via Alembic migration `021_forum_models`, with SQLite-safe, idempotent behavior and optional foreign key for `forum_threads.last_post_id`.
 
 ---
 
