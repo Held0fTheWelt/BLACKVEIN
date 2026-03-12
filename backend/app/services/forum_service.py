@@ -444,6 +444,82 @@ def merge_threads(source: ForumThread, target: ForumThread) -> Optional[str]:
     return None
 
 
+def split_thread_from_post(
+    *,
+    source_thread: ForumThread,
+    root_post: ForumPost,
+    new_title: str,
+    new_category: Optional[ForumCategory] = None,
+) -> Tuple[Optional[ForumThread], Optional[str]]:
+    """
+    Split a thread starting from a given top-level post.
+
+    Safe, constrained behavior:
+    - root_post must belong to source_thread.
+    - root_post must be a top-level post (parent_post_id is None) to avoid
+      creating broken reply chains where a parent lives in another thread.
+    - All direct replies whose parent_post_id == root_post.id move together
+      with the root_post into the new thread.
+    - Status/visibility of posts is preserved.
+    - reply_count, last_post_at, last_post_id are recalculated for both
+      source and new threads after the move.
+    """
+    if not source_thread or not root_post:
+        return None, "Thread and root post are required"
+    if root_post.thread_id != source_thread.id:
+        return None, "Root post must belong to the source thread"
+    if root_post.parent_post_id is not None:
+        return None, "Only top-level posts can be used as split roots"
+
+    title = (new_title or "").strip()
+    if not title:
+        return None, "New thread title is required"
+
+    base_slug = _normalize_slug(title)
+    slug = _ensure_unique_thread_slug(base_slug)
+    now = _utc_now()
+
+    category = new_category or source_thread.category
+    if category is None:
+        return None, "Source thread has no category"
+
+    new_thread = ForumThread(
+        category_id=category.id,
+        author_id=root_post.author_id,
+        slug=slug,
+        title=title,
+        status="open",
+        is_pinned=False,
+        is_locked=False,
+        is_featured=False,
+        view_count=0,
+        reply_count=0,
+        created_at=now,
+        updated_at=now,
+    )
+    db.session.add(new_thread)
+    db.session.flush()
+
+    # Move the root post and all its direct replies (single-level reply model).
+    posts_to_move = ForumPost.query.filter(
+        ForumPost.thread_id == source_thread.id,
+        db.or_(ForumPost.id == root_post.id, ForumPost.parent_post_id == root_post.id),
+    ).all()
+
+    if not posts_to_move:
+        return None, "No posts found to move for this split"
+
+    for post in posts_to_move:
+        post.thread_id = new_thread.id
+
+    db.session.commit()
+
+    # Recalculate counters for both threads after split.
+    recalc_thread_counters(source_thread)
+    recalc_thread_counters(new_thread)
+    return new_thread, None
+
+
 def increment_thread_view(thread: ForumThread) -> None:
     thread.view_count = (thread.view_count or 0) + 1
     thread.updated_at = _utc_now()

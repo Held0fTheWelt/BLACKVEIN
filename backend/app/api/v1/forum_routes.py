@@ -50,6 +50,7 @@ from app.services.forum_service import (
     set_thread_unarchived,
     soft_delete_post,
     soft_delete_thread,
+    split_thread_from_post,
     subscribe_thread,
     unsubscribe_thread,
     unhide_post,
@@ -1009,6 +1010,84 @@ def forum_thread_merge(source_thread_id: int):
     if target.category:
         data["category"] = target.category.to_dict()
     return jsonify(data), 200
+
+
+@api_v1_bp.route("/forum/threads/<int:thread_id>/split", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+def forum_thread_split(thread_id: int):
+    """
+    Split a thread starting from a top-level post into a new thread (moderator/admin only).
+
+    Safe, constrained behavior:
+    - root_post_id must refer to a top-level post in the source thread (parent_post_id is null).
+    - The root post and its direct replies (single-level replies) move into the new thread.
+    - New thread title is required; category defaults to the source thread's category
+      unless a target category_id is provided.
+    """
+    source_thread = get_thread_by_id(thread_id)
+    if not source_thread or not source_thread.category:
+        return jsonify({"error": "Thread not found"}), 404
+
+    user, err_resp = _require_moderator_for_category(source_thread.category)
+    if err_resp:
+        return err_resp
+
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON body"}), 400
+
+    try:
+        root_post_id = int(data.get("root_post_id"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "root_post_id must be an integer"}), 400
+
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "title is required"}), 400
+
+    category_id = data.get("category_id")
+    target_category: Optional[ForumCategory] = None
+    if category_id is not None:
+        try:
+            category_id_int = int(category_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "category_id must be an integer"}), 400
+        target_category = ForumCategory.query.get(category_id_int)
+        if not target_category:
+            return jsonify({"error": "Category not found"}), 404
+        if not user_can_moderate_category(user, target_category):
+            return jsonify({"error": "Forbidden"}), 403
+
+    root_post = get_post_by_id(root_post_id)
+    if not root_post:
+        return jsonify({"error": "Root post not found"}), 404
+
+    new_thread, err = split_thread_from_post(
+        source_thread=source_thread,
+        root_post=root_post,
+        new_title=title,
+        new_category=target_category,
+    )
+    if err:
+        return jsonify({"error": err}), 400
+
+    log_activity(
+        actor=user,
+        category="forum",
+        action="thread_split",
+        status="success",
+        message=f"Thread {source_thread.id} split into new thread {new_thread.id} from post {root_post.id}",
+        route=request.path,
+        method=request.method,
+        target_type="forum_thread",
+        target_id=str(new_thread.id),
+    )
+    resp_data = new_thread.to_dict()
+    resp_data["author_username"] = new_thread.author.username if new_thread.author else None
+    if new_thread.category:
+        resp_data["category"] = new_thread.category.to_dict()
+    return jsonify(resp_data), 201
 
 
 @api_v1_bp.route("/forum/posts/<int:post_id>/hide", methods=["POST"])
