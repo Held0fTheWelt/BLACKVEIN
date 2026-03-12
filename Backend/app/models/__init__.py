@@ -9,6 +9,14 @@ from app.models.news_article import NewsArticle, NewsArticleTranslation
 from app.models.wiki_page import WikiPage, WikiPageTranslation
 from app.models.slogan import Slogan
 from app.models.site_setting import SiteSetting
+from app.models.forum import (
+    ForumCategory,
+    ForumThread,
+    ForumPost,
+    ForumPostLike,
+    ForumReport,
+    ForumThreadSubscription,
+)
 
 __all__ = [
     "ActivityLog",
@@ -25,4 +33,10 @@ __all__ = [
     "WikiPageTranslation",
     "Slogan",
     "SiteSetting",
+    "ForumCategory",
+    "ForumThread",
+    "ForumPost",
+    "ForumPostLike",
+    "ForumReport",
+    "ForumThreadSubscription",
 ]
