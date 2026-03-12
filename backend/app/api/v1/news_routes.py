@@ -508,7 +508,7 @@ def news_link_discussion_thread(article_id: int):
     Body: discussion_thread_id.
     """
     user = get_current_user()
-    if not user or not current_user_can_write_news():
+    if not user or not current_user_can_write_news(user):
         return jsonify({"error": "Forbidden"}), 403
 
     article = get_news_article_by_id(article_id)
@@ -555,7 +555,7 @@ def news_unlink_discussion_thread(article_id: int):
     Unlink a discussion thread from a news article (moderator/admin only).
     """
     user = get_current_user()
-    if not user or not current_user_can_write_news():
+    if not user or not current_user_can_write_news(user):
         return jsonify({"error": "Forbidden"}), 403
 
     article = get_news_article_by_id(article_id)
@@ -575,4 +575,4 @@ def news_unlink_discussion_thread(article_id: int):
         target_type="news_article",
         target_id=str(article_id),
     )
-    return jsonify({"message": "Discussion thread unlinked", "id": article.id, "discussion_thread_id": None}), 200
+    return jsonify({"message": "Discussion thread unlinked"}), 200

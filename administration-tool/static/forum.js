@@ -631,42 +631,10 @@
             }
         }
 
-        // Subscribe button wiring (requires token)
-        var subscribeBar = document.getElementById("forum-subscribe-bar");
-        var subscribeBtn = document.getElementById("forum-subscribe-btn");
-        var subscribeStatus = document.getElementById("forum-subscribe-status");
-        var subscribed = false;
-        function updateSubscribeBtn(isSub) {
-            subscribed = isSub;
-            if (subscribeBtn) subscribeBtn.textContent = isSub ? "Unsubscribe" : "Subscribe";
-            if (subscribeStatus) subscribeStatus.textContent = isSub ? "You are subscribed." : "";
-        }
-        if (hasToken && subscribeBar) {
-            subscribeBar.hidden = false;
-        }
-
         showLoading(true);
         apiGet("threads/" + encodeURIComponent(threadSlug))
             .then(function(thread) {
                 state.thread = thread;
-                // Check subscription status
-                if (hasToken && thread.id) {
-                    apiGet("threads/" + thread.id + "/subscription").then(function(sub) {
-                        updateSubscribeBtn(sub && sub.subscribed);
-                    }).catch(function() {});
-                }
-                if (subscribeBtn) {
-                    subscribeBtn.addEventListener("click", function() {
-                        if (!state.thread) return;
-                        subscribeBtn.disabled = true;
-                        var method = subscribed ? "DELETE" : "POST";
-                        var path = "threads/" + state.thread.id + "/subscribe";
-                        (method === "POST" ? apiPost(path, {}) : apiDelete(path))
-                            .then(function() { updateSubscribeBtn(!subscribed); })
-                            .catch(function() {})
-                            .then(function() { subscribeBtn.disabled = false; });
-                    });
-                }
                 if (header) {
                     header.innerHTML = "";
                     var h1 = document.createElement("h1");
@@ -942,33 +910,6 @@
                     }
                 }).catch(function() {}).then(function() { hideBtn.disabled = false; });
             }
-    }
-
-    function initNotificationCount() {
-        var hasToken = !!(window.ManageAuth && window.ManageAuth.getToken && window.ManageAuth.getToken());
-        if (!hasToken) return;
-        var wrap = document.getElementById("nav-notifications-wrap");
-        var countEl = document.getElementById("nav-notifications-count");
-        if (!wrap) return;
-        var apiBase = (window.__FRONTEND_CONFIG__ && window.__FRONTEND_CONFIG__.backendApiUrl) ? window.__FRONTEND_CONFIG__.backendApiUrl : "";
-        var token = window.ManageAuth.getToken();
-        fetch(apiBase + "/api/v1/notifications?unread_only=true&limit=1", {
-            headers: { "Authorization": "Bearer " + token, "Accept": "application/json" }
-        }).then(function(res) { return res.ok ? res.json() : null; })
-          .then(function(data) {
-            if (!data) return;
-            wrap.hidden = false;
-            if (countEl && data.total > 0) {
-                countEl.textContent = data.total > 99 ? "99+" : String(data.total);
-                countEl.hidden = false;
-            }
-          }).catch(function() {});
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initNotificationCount);
-    } else {
-        initNotificationCount();
     }
 
     window.ForumApp = {

@@ -25,7 +25,6 @@
                 <a href="{{ backend_api_url }}/login" class="nav-link">{{ t.nav_login | default('Log in') }}</a>
                 <a href="{{ backend_api_url }}/register" class="nav-link nav-link-cta">{{ t.nav_register | default('Register') }}</a>
                 <a href="{{ backend_api_url }}/dashboard" class="nav-link">{{ t.nav_dashboard | default('Dashboard') }}</a>
-                <span id="nav-notifications-wrap" hidden><a href="#" id="nav-notifications-link" class="nav-link">Notifications <span id="nav-notifications-count" class="badge" hidden></span></a></span>
                 <span class="lang-switcher">
                     {% for lang in supported_languages %}
                     <a href="{{ request.path }}?lang={{ lang }}" class="nav-link{% if lang == current_lang %} active{% endif %}" hreflang="{{ lang }}">{{ lang | upper }}</a>

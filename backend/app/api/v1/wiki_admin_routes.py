@@ -22,18 +22,12 @@ from app.services.wiki_service import (
 
 
 def _page_to_dict(page):
-    thread_slug = None
-    if page.discussion_thread_id:
-        thread = db.session.get(ForumThread, page.discussion_thread_id)
-        thread_slug = thread.slug if thread else None
     return {
         "id": page.id,
         "key": page.key,
         "parent_id": page.parent_id,
         "sort_order": page.sort_order,
         "is_published": page.is_published,
-        "discussion_thread_id": page.discussion_thread_id,
-        "discussion_thread_slug": thread_slug,
         "created_at": page.created_at.isoformat() if page.created_at else None,
         "updated_at": page.updated_at.isoformat() if page.updated_at else None,
     }

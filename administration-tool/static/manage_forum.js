@@ -298,81 +298,12 @@
         loadReports();
     }
 
-    function initMetrics() {
-        var loading = $("manage-forum-metrics-loading");
-        var errEl = $("manage-forum-metrics-error");
-        var contentEl = $("manage-forum-metrics-content");
-        var openReportsEl = $("manage-forum-metrics-open-reports");
-        var hiddenPostsEl = $("manage-forum-metrics-hidden-posts");
-        var lockedThreadsEl = $("manage-forum-metrics-locked-threads");
-        var recentWrap = $("manage-forum-recent-reports-wrap");
-        var recentTbody = $("manage-forum-recent-reports-tbody");
-        var recentEmpty = $("manage-forum-recent-reports-empty");
-        var refreshBtn = $("manage-forum-metrics-refresh");
-
-        function formatDate(iso) {
-            if (!iso) return "";
-            var d = new Date(iso);
-            return isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { dateStyle: "short" });
-        }
-
-        function loadMetrics() {
-            if (loading) loading.hidden = false;
-            if (errEl) errEl.hidden = true;
-            if (contentEl) contentEl.hidden = true;
-
-            var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
-            if (!api) return;
-            Promise.all([
-                api("/api/v1/forum/moderation/metrics"),
-                api("/api/v1/forum/moderation/recent-reports?limit=10"),
-            ]).then(function(results) {
-                var metrics = results[0];
-                var recentData = results[1];
-                if (loading) loading.hidden = true;
-                if (contentEl) contentEl.hidden = false;
-                if (openReportsEl) openReportsEl.textContent = metrics.open_reports != null ? String(metrics.open_reports) : "–";
-                if (hiddenPostsEl) hiddenPostsEl.textContent = metrics.hidden_posts != null ? String(metrics.hidden_posts) : "–";
-                if (lockedThreadsEl) lockedThreadsEl.textContent = metrics.locked_threads != null ? String(metrics.locked_threads) : "–";
-
-                var items = (recentData && recentData.items) || [];
-                if (items.length === 0) {
-                    if (recentWrap) recentWrap.hidden = true;
-                    if (recentEmpty) recentEmpty.hidden = false;
-                } else {
-                    if (recentEmpty) recentEmpty.hidden = true;
-                    if (recentTbody) {
-                        recentTbody.innerHTML = "";
-                        items.forEach(function(r) {
-                            var tr = document.createElement("tr");
-                            tr.innerHTML = "<td>" + (r.target_type || "").replace(/</g, "&lt;") + "</td>"
-                                + "<td>" + (r.target_id || "") + "</td>"
-                                + "<td>" + (r.reason || "").replace(/</g, "&lt;").slice(0, 80) + "</td>"
-                                + "<td><span class=\"badge\">" + (r.status || "").replace(/</g, "&lt;") + "</span></td>"
-                                + "<td>" + formatDate(r.created_at) + "</td>";
-                            recentTbody.appendChild(tr);
-                        });
-                    }
-                    if (recentWrap) recentWrap.hidden = false;
-                }
-            }).catch(function(e) {
-                if (loading) loading.hidden = true;
-                if (errEl) { errEl.textContent = "Failed to load metrics."; errEl.hidden = false; }
-            });
-        }
-
-        if (refreshBtn) refreshBtn.addEventListener("click", loadMetrics);
-        loadMetrics();
-    }
-
     function init() {
         if (!window.ManageAuth) return;
         window.ManageAuth.ensureAuth().then(function(user) {
-            var isMod = user && (user.role === "admin" || user.role === "moderator" || (user.allowed_features && user.allowed_features.indexOf("manage.users") >= 0));
             var isAdmin = user && (user.role === "admin" || (user.allowed_features && user.allowed_features.indexOf("manage.users") >= 0));
             var categoriesCard = $("manage-forum-categories-card");
             var categoryEditor = $("manage-forum-category-editor");
-            var metricsCard = $("manage-forum-metrics-card");
             if (!isAdmin) {
                 if (categoriesCard) categoriesCard.style.display = "none";
                 if (categoryEditor) categoryEditor.style.display = "none";
@@ -380,11 +311,7 @@
                 if (categoriesCard) categoriesCard.style.display = "";
                 if (categoryEditor) categoryEditor.style.display = "";
             }
-            if (!isMod && metricsCard) {
-                metricsCard.style.display = "none";
-            }
             if (isAdmin) initCategories();
-            if (isMod) initMetrics();
             initReports();
         }).catch(function() {});
     }

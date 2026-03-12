@@ -6,7 +6,7 @@ Authenticated endpoints require JWT; moderation/admin flows are role-restricted.
 from datetime import datetime
 from typing import Optional
 
-from flask import current_app, jsonify, request
+from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
@@ -472,23 +472,6 @@ def forum_post_create(thread_id: int):
         target_type="forum_post",
         target_id=str(post.id),
     )
-    # Notify all thread subscribers except the post author
-    try:
-        subs = ForumThreadSubscription.query.filter_by(thread_id=thread.id).all()
-        for sub in subs:
-            if sub.user_id != user.id:
-                notif = Notification(
-                    user_id=sub.user_id,
-                    event_type="thread_reply",
-                    target_type="forum_post",
-                    target_id=post.id,
-                    message=f"New reply in thread: {thread.title}",
-                )
-                db.session.add(notif)
-        db.session.commit()
-    except Exception as notify_err:
-        db.session.rollback()
-        current_app.logger.warning("Notification creation failed: %s", notify_err)
     return jsonify(post.to_dict()), 201
 
 
@@ -1244,59 +1227,4 @@ def notifications_list():
         "page": page,
         "per_page": limit,
     }), 200
-
-
-@api_v1_bp.route("/notifications/<int:notification_id>/read", methods=["PUT"])
-@limiter.limit("60 per minute")
-@jwt_required()
-def notification_mark_read(notification_id: int):
-    """Mark a single notification as read for current user."""
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-
-    notif = db.session.get(Notification, notification_id)
-    if not notif or notif.user_id != user.id:
-        return jsonify({"error": "Not found"}), 404
-
-    if not notif.is_read:
-        notif.is_read = True
-        notif.read_at = _utc_now()
-        db.session.commit()
-
-    return jsonify(notif.to_dict()), 200
-
-
-@api_v1_bp.route("/notifications/read-all", methods=["PUT"])
-@limiter.limit("30 per minute")
-@jwt_required()
-def notification_mark_all_read():
-    """Mark all unread notifications as read for current user."""
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-
-    now = _utc_now()
-    Notification.query.filter_by(user_id=user.id, is_read=False).update(
-        {"is_read": True, "read_at": now}, synchronize_session=False
-    )
-    db.session.commit()
-    return jsonify({"message": "All notifications marked as read"}), 200
-
-
-@api_v1_bp.route("/forum/threads/<int:thread_id>/subscription", methods=["GET"])
-@limiter.limit("60 per minute")
-@jwt_required()
-def forum_thread_subscription_status(thread_id: int):
-    """Check if current user is subscribed to a thread."""
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-
-    thread = get_thread_by_id(thread_id)
-    if not thread:
-        return jsonify({"error": "Thread not found"}), 404
-
-    sub = ForumThreadSubscription.query.filter_by(thread_id=thread_id, user_id=user.id).first()
-    return jsonify({"subscribed": sub is not None, "subscription_id": sub.id if sub else None}), 200
 

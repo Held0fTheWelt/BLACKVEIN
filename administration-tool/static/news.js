@@ -259,16 +259,6 @@
                 content.appendChild(summary);
             }
             content.appendChild(body);
-            if (article.discussion_thread_slug) {
-                var disc = document.createElement('div');
-                disc.className = 'news-discussion-link';
-                disc.style.marginTop = '1.5rem';
-                var discLink = document.createElement('a');
-                discLink.href = '/forum/threads/' + encodeURIComponent(article.discussion_thread_slug);
-                discLink.textContent = 'Join Discussion';
-                disc.appendChild(discLink);
-                content.appendChild(disc);
-            }
             content.hidden = false;
         }
 

@@ -8,32 +8,6 @@
         <p class="manage-section-subtitle">Moderation and category management.</p>
     </header>
 
-    <div class="manage-card" id="manage-forum-metrics-card" style="margin-bottom:1.5rem">
-        <div class="manage-card-header">
-            <h2 class="manage-card-title mono">// MODERATION METRICS</h2>
-            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-metrics-refresh">Refresh</button>
-        </div>
-        <div class="manage-card-body">
-            <p class="manage-state" id="manage-forum-metrics-loading" role="status">Loading…</p>
-            <p class="manage-state manage-state-error" id="manage-forum-metrics-error" role="alert" hidden></p>
-            <div id="manage-forum-metrics-content" hidden>
-                <div style="display:flex;gap:2rem;flex-wrap:wrap;margin-bottom:1rem">
-                    <div class="metric-box"><span class="metric-value" id="manage-forum-metrics-open-reports">–</span><span class="metric-label">Open Reports</span></div>
-                    <div class="metric-box"><span class="metric-value" id="manage-forum-metrics-hidden-posts">–</span><span class="metric-label">Hidden Posts</span></div>
-                    <div class="metric-box"><span class="metric-value" id="manage-forum-metrics-locked-threads">–</span><span class="metric-label">Locked Threads</span></div>
-                </div>
-                <h3 class="mono" style="margin-bottom:0.5rem">// RECENT OPEN REPORTS</h3>
-                <p id="manage-forum-recent-reports-empty" class="muted" hidden>No open reports.</p>
-                <div class="table-wrap" id="manage-forum-recent-reports-wrap" hidden>
-                    <table class="data-table">
-                        <thead><tr><th>Type</th><th>Target ID</th><th>Reason</th><th>Status</th><th>Created</th></tr></thead>
-                        <tbody id="manage-forum-recent-reports-tbody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="manage-grid-2">
         <div class="manage-card" id="manage-forum-categories-card">
             <div class="manage-card-header">

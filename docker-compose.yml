@@ -1,19 +1,19 @@
-# World of Shadows – backend + administration-tool split
-# backend: API, auth, dashboard, DB (Flask + Gunicorn). administration-tool: public site, news (Flask).
+# World of Shadows – Backend + Frontend split
+# Backend: API, auth, dashboard, DB (Flask + Gunicorn). Frontend: public site, news (Flask).
 # From repo root: docker compose up --build
-# Then: backend http://localhost:8000, administration-tool http://localhost:5001
+# Then: Backend http://localhost:8000, Frontend http://localhost:5001
 # Browser uses BACKEND_API_URL (frontend env) to call the API; set so the browser can reach backend (e.g. http://localhost:8000).
 
 services:
   backend:
     build:
-      context: ./backend
+      context: ./Backend
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file: .env
     volumes:
-      - ./backend/instance:/app/instance
+      - ./Backend/instance:/app/instance
     environment:
       - FLASK_APP=run:app
       - CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001

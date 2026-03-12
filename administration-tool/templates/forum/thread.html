@@ -24,11 +24,6 @@
         </div>
     </nav>
 
-    <div id="forum-subscribe-bar" class="forum-subscribe-bar" hidden style="margin:1rem 0">
-        <button type="button" id="forum-subscribe-btn" class="btn btn-ghost">Subscribe</button>
-        <span id="forum-subscribe-status" class="muted" style="margin-left:0.5rem"></span>
-    </div>
-
     <section id="forum-reply-section" class="forum-reply-section" hidden>
         <h2 class="forum-reply-title">{{ t.forum_reply | default('Reply') }}</h2>
         <p id="forum-reply-login-hint" class="forum-login-hint" hidden>{{ t.forum_login_to_post | default('Please log in to reply.') }} <a href="{{ url_for('manage_login') }}?next={{ request.url | urlencode }}">{{ t.nav_login | default('Log in') }}</a></p>

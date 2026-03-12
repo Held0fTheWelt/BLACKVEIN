@@ -7,10 +7,9 @@ from flask import current_app, jsonify, request
 from app.api.v1 import api_v1_bp
 from app.utils.html_sanitizer import sanitize_wiki_html
 from app.auth.permissions import get_current_user, require_jwt_moderator_or_admin
-from app.extensions import limiter, db
+from app.extensions import limiter
 from app.services import log_activity
 from app.services.wiki_service import get_wiki_page_by_slug
-from app.models.forum import ForumThread
 
 
 def _wiki_path():
@@ -32,21 +31,12 @@ def wiki_page_get(slug):
         html = sanitize_wiki_html(raw_html) if raw_html else None
     except Exception:
         html = None
-    # Discussion thread link (null-safe)
-    discussion_thread_id = page.discussion_thread_id
-    discussion_thread_slug = None
-    if discussion_thread_id:
-        thread = db.session.get(ForumThread, discussion_thread_id)
-        discussion_thread_slug = thread.slug if thread else None
-
     return jsonify({
         "title": trans.title,
         "slug": trans.slug,
         "content_markdown": trans.content_markdown,
         "html": html,
         "language_code": trans.language_code,
-        "discussion_thread_id": discussion_thread_id,
-        "discussion_thread_slug": discussion_thread_slug,
     }), 200
 
 

@@ -202,10 +202,6 @@
         if (wrap) wrap.hidden = false;
         var page = state.pages.find(function(p) { return p.id === pageId; });
         ($("manage-wiki-page-title") || {}).textContent = page ? "Page: " + page.key : "Page";
-        var discInput = $("manage-wiki-discussion-thread-id");
-        var discStatus = $("manage-wiki-discussion-status");
-        if (discInput) discInput.value = (page && page.discussion_thread_id) ? page.discussion_thread_id : "";
-        if (discStatus) discStatus.textContent = (page && page.discussion_thread_id) ? ("Linked to thread #" + page.discussion_thread_id + (page.discussion_thread_slug ? " (" + page.discussion_thread_slug + ")" : "")) : "No discussion thread linked.";
 
         apiRef("/api/v1/wiki-admin/pages/" + pageId + "/translations")
             .then(function(data) {
@@ -405,40 +401,6 @@
         if ($("manage-wiki-publish-translation")) $("manage-wiki-publish-translation").addEventListener("click", onPublishTranslation);
         if ($("manage-wiki-auto-translate")) $("manage-wiki-auto-translate").addEventListener("click", onAutoTranslate);
         if ($("manage-wiki-new-page")) $("manage-wiki-new-page").addEventListener("click", onNewPage);
-
-        var wikiDiscLinkBtn = $("manage-wiki-discussion-link-btn");
-        var wikiDiscUnlinkBtn = $("manage-wiki-discussion-unlink-btn");
-        if (wikiDiscLinkBtn) wikiDiscLinkBtn.addEventListener("click", function() {
-            if (!state.selectedPageId) return;
-            var input = $("manage-wiki-discussion-thread-id");
-            var threadId = input ? parseInt(input.value, 10) : NaN;
-            if (!threadId || isNaN(threadId)) { alert("Enter a valid thread ID."); return; }
-            apiRef("/api/v1/wiki/" + state.selectedPageId + "/discussion-thread", {
-                method: "POST",
-                body: JSON.stringify({ discussion_thread_id: threadId }),
-            }).then(function(res) {
-                var discStatus = $("manage-wiki-discussion-status");
-                if (discStatus) discStatus.textContent = "Linked to thread #" + threadId + ".";
-                var page = state.pages.find(function(p) { return p.id === state.selectedPageId; });
-                if (page) page.discussion_thread_id = threadId;
-            }).catch(function(e) {
-                alert("Failed to link: " + (e && e.message ? e.message : "Error"));
-            });
-        });
-        if (wikiDiscUnlinkBtn) wikiDiscUnlinkBtn.addEventListener("click", function() {
-            if (!state.selectedPageId) return;
-            apiRef("/api/v1/wiki/" + state.selectedPageId + "/discussion-thread", { method: "DELETE" })
-                .then(function() {
-                    var discStatus = $("manage-wiki-discussion-status");
-                    var discInput = $("manage-wiki-discussion-thread-id");
-                    if (discInput) discInput.value = "";
-                    if (discStatus) discStatus.textContent = "No discussion thread linked.";
-                    var page = state.pages.find(function(p) { return p.id === state.selectedPageId; });
-                    if (page) { page.discussion_thread_id = null; page.discussion_thread_slug = null; }
-                }).catch(function(e) {
-                    alert("Failed to unlink: " + (e && e.message ? e.message : "Error"));
-                });
-        });
 
         document.querySelectorAll("#manage-wiki-lang-tabs .manage-news-tab").forEach(function(tab) {
             tab.addEventListener("click", function() {

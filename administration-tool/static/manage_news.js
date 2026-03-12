@@ -257,10 +257,6 @@
                 ($("manage-news-id") || {}).value = article.id;
                 ($("manage-news-category-edit") || {}).value = article.category || "";
                 ($("manage-news-cover") || {}).value = article.cover_image || "";
-                var discInput = $("manage-news-discussion-thread-id");
-                var discStatus = $("manage-news-discussion-status");
-                if (discInput) discInput.value = article.discussion_thread_id || "";
-                if (discStatus) discStatus.textContent = article.discussion_thread_id ? ("Linked to thread #" + article.discussion_thread_id + (article.discussion_thread_slug ? " (" + article.discussion_thread_slug + ")" : "")) : "No discussion thread linked.";
                 state.translationData[article.language_code || DEFAULT_LANG] = {
                     title: article.title,
                     slug: article.slug,
@@ -578,37 +574,6 @@
         if (pubTransBtn) pubTransBtn.addEventListener("click", onPublishTranslation);
         if (autoBtn) autoBtn.addEventListener("click", onAutoTranslate);
         if (delBtn) delBtn.addEventListener("click", onDelete);
-
-        var discLinkBtn = $("manage-news-discussion-link-btn");
-        var discUnlinkBtn = $("manage-news-discussion-unlink-btn");
-        if (discLinkBtn) discLinkBtn.addEventListener("click", function() {
-            if (!state.selectedId) return;
-            var input = $("manage-news-discussion-thread-id");
-            var threadId = input ? parseInt(input.value, 10) : NaN;
-            if (!threadId || isNaN(threadId)) { alert("Enter a valid thread ID."); return; }
-            apiRef("/api/v1/news/" + state.selectedId + "/discussion-thread", {
-                method: "POST",
-                body: JSON.stringify({ discussion_thread_id: threadId }),
-            }).then(function(res) {
-                var discStatus = $("manage-news-discussion-status");
-                if (discStatus) discStatus.textContent = "Linked to thread #" + threadId + ".";
-            }).catch(function(e) {
-                alert("Failed to link: " + (e && e.message ? e.message : "Error"));
-            });
-        });
-        if (discUnlinkBtn) discUnlinkBtn.addEventListener("click", function() {
-            if (!state.selectedId) return;
-            apiRef("/api/v1/news/" + state.selectedId + "/discussion-thread", { method: "DELETE" })
-                .then(function() {
-                    var discStatus = $("manage-news-discussion-status");
-                    var discInput = $("manage-news-discussion-thread-id");
-                    if (discInput) discInput.value = "";
-                    if (discStatus) discStatus.textContent = "No discussion thread linked.";
-                }).catch(function(e) {
-                    alert("Failed to unlink: " + (e && e.message ? e.message : "Error"));
-                });
-        });
-
         if (prevBtn) prevBtn.addEventListener("click", function() {
             if (state.page > 1) { state.page--; fetchList(); }
         });

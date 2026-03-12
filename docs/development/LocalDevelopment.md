@@ -14,7 +14,7 @@ The frontend fetches data from the backend over HTTP (e.g. `GET /api/v1/news`). 
 ## Startup flow
 
 1. **Backend**
-   - From repo root or `backend/`: set `FLASK_APP=run:app`, then `flask run` or `python run.py`.
+   - From repo root or `Backend/`: set `FLASK_APP=run:app`, then `flask run` or `python run.py`.
    - Default port 5000 (override with `PORT`).
    - Ensure `.env` or environment has at least `SECRET_KEY` and `JWT_SECRET_KEY` (or use `DEV_SECRETS_OK=1` for dev fallbacks).
    - For local dev with Frontend on another port, set `CORS_ORIGINS=http://127.0.0.1:5001,http://localhost:5001` (comma-separated, no spaces).
@@ -72,7 +72,7 @@ Leave `BACKEND_API_URL` unset or set to the production URL. The Frontend will co
 
 ### Testing News creation locally
 
-1. Start backend: `cd backend && python run.py` (port 5000)
+1. Start backend: `cd Backend && python run.py` (port 5000)
 2. Start frontend with local backend: `BACKEND_API_URL=http://127.0.0.1:5000 python administration-tool/frontend_app.py` (port 5001)
 3. Open http://127.0.0.1:5001/manage/login
 4. Login with test user (e.g., created via `flask seed-dev-user`)

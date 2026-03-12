@@ -15,32 +15,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.0.23] - 2026-03-12
-
-### Added
-
-- **Notification creation on reply:** When a post is created, all subscribers to the thread (except the post author) receive a `Notification` record with `event_type=forum_reply`. Notification creation failures are caught and logged without blocking post creation.
-- **Notification endpoints:** PUT `/api/v1/notifications/<id>/read` and PUT `/api/v1/notifications/read-all` for marking notifications read individually or in bulk.
-- **Subscription status endpoint:** GET `/api/v1/forum/threads/<id>/subscription` returns `{"subscribed": true/false}` for the authenticated user.
-- **Discussion link serialization:** `discussion_thread_id` and `discussion_thread_slug` included in public GET responses for both news articles and wiki pages.
-- **Admin UI — discussion thread linking:** News and wiki management pages include a discussion thread ID field with Link and Unlink buttons to connect/disconnect forum threads.
-- **Public UI — discussion link:** News article detail and wiki page views show a "Join Discussion" link when a discussion thread is linked.
-- **Subscribe bar in forum threads:** Thread pages show Subscribe/Unsubscribe button that checks current subscription status and toggles via API.
-- **Notification badge in nav:** Navigation bar shows unread notification count for authenticated users.
-- **Moderation metrics dashboard:** Management forum page includes a moderation metrics card (open reports, hidden posts, locked threads) and a recent open reports table, visible to moderators and admins.
-- **Migration 023:** `notifications` table created with `user_id`, `event_type`, `target_type`, `target_id`, `message`, `is_read`, `created_at`, `read_at` columns and appropriate indices.
-
-### Fixed
-
-- **Postman collection:** Replaced all `{{base_url}}` variable references with `{{baseUrl}}` to match environment file definitions. Added Mark Notification Read, Mark All Notifications Read, and Get Subscription Status requests.
-- **docker-compose.yml:** Fixed build context (`./backend`) and volume mount (`./backend/instance`) to match lowercase directory name after rename.
-
-### Changed
-
-- **Documentation:** `docs/development/LocalDevelopment.md` and `docs/architecture/ServerArchitecture.md` updated to reflect lowercase `backend/` directory and `administration-tool/` frontend service name.
-
----
-
 ## [0.0.22] - 2026-03-12
 
 ### Added
