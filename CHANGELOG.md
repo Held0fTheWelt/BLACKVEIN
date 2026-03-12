@@ -15,6 +15,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.18] - 2026-03-12
+
+### Added
+
+- **Versioned data export/import:** Structured JSON export format with `metadata` (format_version, application_version, schema_revision, exported_at, scope, tables, generator, checksum) and `data.tables` for rows. Supports full database, single-table, and row-level exports.
+- **Export/import services:** `app.services.data_export_service` and `app.services.data_import_service` implement export logic, metadata generation, import validation, schema/version checks, and deterministic all-or-nothing import execution.
+- **Data-tool CLI:** `data-tool/data_tool.py` provides `inspect`, `validate`, and `transform` commands for export payloads. Validates metadata and data structure, optionally compares against a provided current schema revision, and can write sanitized copies for supported formats.
+- **Admin data API:** `POST /api/v1/data/export`, `POST /api/v1/data/import/preflight`, `POST /api/v1/data/import/execute`. Export requires admin + feature `manage.data_export`; preflight requires admin + `manage.data_import`; execute requires **SuperAdmin** + `manage.data_import`. All endpoints enforce role/role_level/area-based permissions server-side.
+- **Admin frontend UI:** New **Data** page under Manage (`/manage/data`) with export (scope/table/rows) and import (preflight + execute) flows wired to the real API; nav entry visible only when the user has `manage.data_export` in `allowed_features`.
+- **Tests:** `tests/test_data_api.py` covering auth protection, export metadata, table validation, metadata/format/schema validation, SuperAdmin requirement, and primary-key collision handling. Full backend suite (203 tests) passes with the new features.
+- **Docs & Postman:** `Backend/docs/DATA_EXPORT_IMPORT.md` documents format, metadata, validation, collision strategy, data-tool usage, and security model; Postman collection extended with a **Data Export/Import** folder (Export Full/Table/Rows, Import Preflight/Execute).
+
+### Collision / import strategy
+
+- **Primary key collisions:** For single-column PK tables, existing rows with the same primary keys are detected during preflight with `PRIMARY_KEY_CONFLICT`. Policy: **fail on conflict** – imports do not upsert or skip; they abort without any changes if conflicts exist.
+- **Unsupported versions:** Payloads with `metadata.format_version` != 1 are rejected; schema mismatches are reported via `SCHEMA_MISMATCH` and should be resolved with the data-tool once transformation rules exist.
+
+---
+
 ## [0.0.17] - 2026-03-12
 
 ### Added

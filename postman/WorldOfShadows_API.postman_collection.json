@@ -1246,6 +1246,88 @@
       ]
     },
     {
+      "name": "Data Export/Import",
+      "description": "Versioned data export/import (0.0.18). Admin-only export; SuperAdmin-only import execution. Uses structured JSON payload with metadata + data.tables.",
+      "item": [
+        {
+          "name": "Export Full",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"scope\": \"full\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/data/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "data", "export"]
+            },
+            "description": "Full database export. Admin JWT required; feature manage.data_export. Returns JSON with metadata + data.tables."
+          }
+        },
+        {
+          "name": "Export Table (users)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"scope\": \"table\",\n  \"table\": \"users\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/data/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "data", "export"]
+            },
+            "description": "Export users table only."
+          }
+        },
+        {
+          "name": "Export Rows (users 1,2)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"scope\": \"rows\",\n  \"table\": \"users\",\n  \"primary_keys\": [1, 2]\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/data/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "data", "export"]
+            },
+            "description": "Export selected user rows by primary key."
+          }
+        },
+        {
+          "name": "Import Preflight",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"format_version\": 1,\n    \"schema_revision\": \"rev-or-empty\",\n    \"scope\": { \"type\": \"table\", \"table\": \"users\" },\n    \"tables\": [],\n    \"application_version\": \"0.0.18\",\n    \"exported_at\": \"2026-03-12T00:00:00Z\",\n    \"generator\": {\"name\": \"WorldOfShadows Backend\", \"host\": \"local\"},\n    \"checksum\": {\"algorithm\": \"sha256\", \"value\": \"\"}\n  },\n  \"data\": {\n    \"tables\": { \"users\": [] }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/data/import/preflight",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "data", "import", "preflight"]
+            },
+            "description": "Validate payload only. Admin JWT required; feature manage.data_import. Returns ok + issues + metadata."
+          }
+        },
+        {
+          "name": "Import Execute",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metadata\": {\n    \"format_version\": 1,\n    \"schema_revision\": \"rev-or-empty\",\n    \"scope\": { \"type\": \"table\", \"table\": \"users\" },\n    \"tables\": [],\n    \"application_version\": \"0.0.18\",\n    \"exported_at\": \"2026-03-12T00:00:00Z\",\n    \"generator\": {\"name\": \"WorldOfShadows Backend\", \"host\": \"local\"},\n    \"checksum\": {\"algorithm\": \"sha256\", \"value\": \"\"}\n  },\n  \"data\": {\n    \"tables\": { \"users\": [] }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/data/import/execute",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "data", "import", "execute"]
+            },
+            "description": "Execute import. SuperAdmin + feature manage.data_import required. Uses same payload as preflight."
+          }
+        }
+      ]
+    },
+    {
       "name": "Admin Logs",
       "description": "Activity logs list and CSV export. Admin role only. Same token as Users (admin).",
       "item": [
