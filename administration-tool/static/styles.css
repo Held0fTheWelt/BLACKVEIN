@@ -393,6 +393,7 @@ body {
 }
 .forum-post-meta { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 .forum-post-body { white-space: pre-wrap; line-height: 1.6; }
+.forum-post-body .forum-mention { background: var(--border); color: var(--primary, #7c3aed); padding: 0 0.2em; border-radius: 3px; font-weight: 500; }
 .forum-post-actions { margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.85rem; }
 .forum-post-like-count { color: var(--text-muted); margin-right: 0.25rem; }
 .forum-edit-wrap { display: flex; flex-direction: column; gap: 0.5rem; }

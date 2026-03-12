@@ -76,6 +76,10 @@
         div.textContent = s;
         return div.innerHTML;
     }
+    function formatPostContent(content) {
+        var escaped = escapeHtml(content || "");
+        return escaped.replace(/@([a-zA-Z0-9_]+)/g, "<span class=\"forum-mention\">@$1</span>");
+    }
 
     // --- Index: categories list ---
     function initIndex() {
@@ -648,7 +652,7 @@
                 meta.innerHTML = metaParts.join(" · ");
                 var body = document.createElement("div");
                 body.className = "forum-post-body";
-                body.textContent = p.content || "";
+                body.innerHTML = formatPostContent(p.content || "");
                 post.appendChild(meta);
                 if (p.status === "hidden" && state.canModerate) {
                     var hiddenBadge = document.createElement("span");
@@ -916,7 +920,7 @@
                 function restore() {
                     var newBody = document.createElement("div");
                     newBody.className = "forum-post-body";
-                    newBody.textContent = textarea.value;
+                    newBody.innerHTML = formatPostContent(textarea.value);
                     wrap.replaceWith(newBody);
                 }
                 cancelBtn.addEventListener("click", restore);
@@ -928,7 +932,7 @@
                         .then(function() {
                             var newBody = document.createElement("div");
                             newBody.className = "forum-post-body";
-                            newBody.textContent = newContent;
+                            newBody.innerHTML = formatPostContent(newContent);
                             wrap.replaceWith(newBody);
                         })
                         .catch(function(err) {

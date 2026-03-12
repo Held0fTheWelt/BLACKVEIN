@@ -1,8 +1,9 @@
 """Forum service layer: categories, threads, posts, likes, reports, subscriptions, permissions."""
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set, Tuple
 
 from flask import current_app
 
@@ -485,7 +486,50 @@ def create_post(*, thread: ForumThread, author_id: int | None, content: str, par
     thread.last_post_at = now
     thread.last_post_id = post.id
     db.session.commit()
+    _create_mention_notifications_for_post(post, author_id)
     return post, None
+
+
+def _mention_usernames_from_content(content: str) -> Set[str]:
+    """Extract unique @username mentions from content (alphanumeric + underscore)."""
+    if not content:
+        return set()
+    return set(re.findall(r"@([a-zA-Z0-9_]+)", content))
+
+
+def _create_mention_notifications_for_post(post: ForumPost, author_id: Optional[int]) -> None:
+    """Create mention notifications for users @mentioned in post content. Skip author and duplicates."""
+    content = post.content or ""
+    usernames = _mention_usernames_from_content(content)
+    if not usernames:
+        return
+    thread = post.thread
+    thread_title = (thread.title or "Post")[:60] if thread else "Post"
+    author_username = post.author.username if post.author else "Someone"
+    message = f"{author_username} mentioned you in: {thread_title}"
+    already = set(
+        n.user_id
+        for n in Notification.query.filter_by(
+            event_type="mention",
+            target_type="forum_post",
+            target_id=post.id,
+        ).all()
+    )
+    for name in usernames:
+        user = User.query.filter_by(username=name).first()
+        if not user or user.id == author_id or user.id in already or getattr(user, "is_banned", False):
+            continue
+        already.add(user.id)
+        n = Notification(
+            user_id=user.id,
+            event_type="mention",
+            target_type="forum_post",
+            target_id=post.id,
+            message=message,
+            is_read=False,
+        )
+        db.session.add(n)
+    db.session.commit()
 
 
 def update_post(post: ForumPost, *, content: str, editor_id: Optional[int]) -> ForumPost:
@@ -496,6 +540,7 @@ def update_post(post: ForumPost, *, content: str, editor_id: Optional[int]) -> F
         post.status = "edited"
     post.updated_at = _utc_now()
     db.session.commit()
+    _create_mention_notifications_for_post(post, post.author_id)
     return post
 
 
