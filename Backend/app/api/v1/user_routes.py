@@ -7,7 +7,6 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import (
     admin_may_assign_role_level,
-    admin_may_assign_role_with_level,
     admin_may_edit_target,
     current_user_is_admin,
     current_user_is_super_admin,
@@ -179,17 +178,6 @@ def users_update(user_id):
         kwargs["preferred_language"] = data.get("preferred_language")
     if current.id != user_id and current_user_is_admin():
         if "role" in data:
-            role_name = (data.get("role") or "").strip().lower()
-            if role_name:
-                from app.models import Role
-                role_obj = Role.query.filter_by(name=role_name).first()
-                if not role_obj:
-                    return jsonify({"error": "Invalid role"}), 400
-                actor_level = getattr(current, "role_level", 0) or 0
-                target_level = getattr(target, "role_level", 0) or 0
-                new_default = getattr(role_obj, "default_role_level", None)
-                if not admin_may_assign_role_with_level(actor_level, target_level, new_default):
-                    return jsonify({"error": "Forbidden. Cannot assign that role (would exceed your role level)."}), 403
             kwargs["role"] = data.get("role")
         if "role_level" in data:
             try:
@@ -302,9 +290,6 @@ def users_assign_role(user_id):
     role_obj = Role.query.filter_by(name=(role_name or "").strip().lower()).first()
     if not role_obj:
         return jsonify({"error": "Invalid role"}), 400
-    new_default = getattr(role_obj, "default_role_level", None)
-    if not admin_may_assign_role_with_level(actor_level, target_level, new_default):
-        return jsonify({"error": "Forbidden. Cannot assign that role (its default level would exceed or match your level)."}), 403
     user, err = assign_role_service(user_id, role_name, actor_id=current.id if current else None)
     if err:
         status = 404 if err == "User not found" else 400

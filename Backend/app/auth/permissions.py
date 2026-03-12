@@ -67,28 +67,12 @@ def admin_may_edit_target(actor_level: int, target_level: int) -> bool:
 def admin_may_assign_role_level(actor_level: int, target_user_id: int, new_level: int, actor_id: int) -> bool:
     """
     True if the admin may set target's role_level to new_level.
-    - Editing another user: actor_level > target.role_level and new_level < actor_level.
+    - Editing another user: new_level < actor_level.
     - Editing self: only SuperAdmin may set own role_level, and only to >= SUPERADMIN_THRESHOLD.
-    Caller must pass target_user and actor for self-check; we only get actor_level and actor_id here.
-    Returns False if new_level would exceed actor_level when assigning to another user.
     """
     if target_user_id == actor_id:
-        # Self: only SuperAdmin can change own level, and only to >= threshold
         return new_level >= SUPERADMIN_THRESHOLD  # Caller must also check current_user_is_super_admin()
-    # Other: new_level must be strictly below actor_level
     return new_level < actor_level
-
-
-def admin_may_assign_role_with_level(actor_level: int, target_level: int, new_role_default_level: int | None) -> bool:
-    """
-    True if admin may assign a role (whose default_level is new_role_default_level) to a user with target_level.
-    Requires actor_level > target_level and (new_role_default_level is None or new_role_default_level < actor_level).
-    """
-    if not admin_may_edit_target(actor_level, target_level):
-        return False
-    if new_role_default_level is None:
-        return True
-    return new_role_default_level < actor_level
 
 
 def current_user_is_moderator_or_admin() -> bool:

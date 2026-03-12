@@ -22,9 +22,9 @@ def init_db():
         ensure_roles_seeded()
         try:
             from flask import current_app
-            migrate = current_app.extensions.get("migrate")
-            if migrate:
-                config = migrate.get_config()
+            migrate_cfg = current_app.extensions.get("migrate")
+            if migrate_cfg:
+                config = migrate_cfg.migrate.get_config()
                 from alembic import command
                 command.stamp(config, "head")
         except Exception as e:
@@ -37,8 +37,9 @@ def init_db():
 @click.option("--username", default=None, help="Username for dev user (or set SEED_DEV_USERNAME)")
 @click.option("--password", default=None, help="Password (or set SEED_DEV_PASSWORD); omit when using --generate")
 @click.option("--generate", is_flag=True, help="Generate a random password and print it; username from SEED_DEV_USERNAME or 'dev'")
-def seed_dev_user(username, password, generate):
-    """Create a dev user. For local dev only; set DEV_SECRETS_OK=1. Credentials via env SEED_DEV_USERNAME/SEED_DEV_PASSWORD, or --username/--password, or --generate."""
+@click.option("--superadmin", is_flag=True, help="Create as admin with role_level 100 (SuperAdmin). Use for initial admin e.g. admin / Admin123.")
+def seed_dev_user(username, password, generate, superadmin):
+    """Create a dev user. For local dev only; set DEV_SECRETS_OK=1. Default: moderator, role_level 0. Use --superadmin for initial SuperAdmin (admin role, role_level 100)."""
     if not env_bool("DEV_SECRETS_OK", False):
         print("Refusing to seed: set DEV_SECRETS_OK=1 for local development only.")
         return
@@ -77,18 +78,27 @@ def seed_dev_user(username, password, generate):
             print(f"User {u_name} already exists.")
             return
         from app.models import Role
-        moderator_role = Role.query.filter_by(name=Role.NAME_MODERATOR).first()
-        if not moderator_role:
-            print("Moderator role not found. Run migrations or ensure roles are seeded.")
-            return
+        if superadmin:
+            role = Role.query.filter_by(name=Role.NAME_ADMIN).first()
+            if not role:
+                print("Admin role not found. Run migrations or ensure roles are seeded.")
+                return
+            role_level = 100
+        else:
+            role = Role.query.filter_by(name=Role.NAME_MODERATOR).first()
+            if not role:
+                print("Moderator role not found. Run migrations or ensure roles are seeded.")
+                return
+            role_level = 0
         u = User(
             username=u_name,
             password_hash=generate_password_hash(u_pass),
-            role_id=moderator_role.id,
+            role_id=role.id,
+            role_level=role_level,
         )
         db.session.add(u)
         db.session.commit()
-        print(f"Created dev user: {u_name}")
+        print(f"Created dev user: {u_name}" + (" (SuperAdmin, role_level 100)" if superadmin else " (moderator, role_level 0)"))
         if generate:
             print(f"Generated password (use once, then change or store securely): {u_pass}")
 
@@ -144,12 +154,35 @@ def seed_admin_user(username, password, generate):
             username=u_name,
             password_hash=generate_password_hash(u_pass),
             role_id=admin_role.id,
+            role_level=100,
         )
         db.session.add(u)
         db.session.commit()
-        print(f"Created admin user: {u_name}")
+        print(f"Created admin user: {u_name} (SuperAdmin, role_level 100)")
         if generate:
             print(f"Generated password (use once, then change or store securely): {u_pass}")
+
+
+@app.cli.command("set-user-role-level")
+@click.option("--username", required=True, help="Username of the user to update")
+@click.option("--role-level", default=100, type=int, help="role_level to set (default 100 = SuperAdmin)")
+def set_user_role_level(username, role_level):
+    """Set role_level for an existing user (e.g. promote admin to SuperAdmin with 100). No DEV_SECRETS_OK required."""
+    from app.models import User
+
+    u_name = username.strip() if username else ""
+    if not u_name:
+        print("Provide --username.")
+        return
+    with app.app_context():
+        user = User.query.filter(db.func.lower(User.username) == u_name.lower()).first()
+        if not user:
+            print(f"User {u_name!r} not found.")
+            return
+        old = user.role_level
+        user.role_level = role_level
+        db.session.commit()
+        print(f"Updated {user.username}: role_level {old} -> {role_level}")
 
 
 @app.cli.command("seed-news")

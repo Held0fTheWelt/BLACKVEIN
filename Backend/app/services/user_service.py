@@ -86,7 +86,10 @@ def update_user_last_seen(user_id) -> None:
         user.last_seen_at = now
         db.session.commit()
         return
-    delta = (now - user.last_seen_at).total_seconds()
+    last_seen = user.last_seen_at
+    if last_seen.tzinfo is None:
+        last_seen = last_seen.replace(tzinfo=timezone.utc)
+    delta = (now - last_seen).total_seconds()
     if delta >= LAST_SEEN_THROTTLE_SECONDS:
         user.last_seen_at = now
         db.session.commit()
@@ -164,14 +167,12 @@ def create_user(username, password, email=None):
     default_role = Role.query.filter_by(name=Role.NAME_USER).first()
     if not default_role:
         return None, "Default role not found; run migrations and ensure roles are seeded."
-    default_level = getattr(default_role, "default_role_level", None)
-    role_level = int(default_level) if default_level is not None else 0
     user = User(
         username=username,
         email=email_val,
         password_hash=generate_password_hash(password),
         role_id=default_role.id,
-        role_level=role_level,
+        role_level=0,
     )
     # When email verification is disabled, treat accounts as verified on creation.
     email_verification_enabled = current_app.config.get("EMAIL_VERIFICATION_ENABLED", False)
@@ -372,10 +373,7 @@ def update_user(
         if not role_obj:
             return None, "Invalid role"
         user.role_id = role_obj.id
-        # When changing role, set role_level to role's default if present
-        default_lvl = getattr(role_obj, "default_role_level", None)
-        if default_lvl is not None:
-            user.role_level = int(default_lvl)
+        # role_level is not changed when role changes; authority is per-user
 
     if role_level is not None:
         try:
@@ -430,7 +428,7 @@ ALLOWED_ROLE_NAMES = (Role.NAME_USER, Role.NAME_QA, Role.NAME_MODERATOR, Role.NA
 def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) -> tuple[User | None, str | None]:
     """
     Set a user's role (admin only). role_name must be user, qa, moderator, or admin.
-    Sets user.role_level to the role's default_role_level when present.
+    Does not change user.role_level; authority level is independent of role.
     Returns (user, None) or (None, error_message). Hierarchy must be enforced in route.
     """
     user = get_user_by_id(user_id)
@@ -443,9 +441,6 @@ def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) ->
     if not role_obj:
         return None, "Invalid role"
     user.role_id = role_obj.id
-    default_lvl = getattr(role_obj, "default_role_level", None)
-    if default_lvl is not None:
-        user.role_level = int(default_lvl)
     db.session.commit()
     db.session.refresh(user)
     logger.info("User role assigned: user_id=%s role=%s", user_id, name)

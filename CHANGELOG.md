@@ -21,8 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Role QA:** New role `qa` added; seeded with default_role_level 5. Users can be assigned the QA role.
 - **RoleLevel on users:** Users have a persistent `role_level` (integer). Stored in DB (migration 017), exposed in user API and dashboards. Used for strict hierarchy.
-- **SuperAdmin:** Admin with `role_level >= 100` is SuperAdmin. Only SuperAdmin may increase their own role_level (self-elevation). Threshold constant: `SUPERADMIN_THRESHOLD = 100`.
-- **Role model extended:** Roles support optional `description` and `default_role_level`. Create/update via API; seed sets defaults (user=0, qa=5, moderator=10, admin=50).
+- **SuperAdmin:** Admin with `role_level >= 100` is SuperAdmin (semantic label only). Only SuperAdmin may increase their own role_level. All users start at role_level 0; create the initial SuperAdmin with `flask seed-dev-user --username admin --password Admin123 --superadmin` or `flask seed-admin-user`.
+- **Role model extended:** Roles support optional `description` and `default_role_level` (metadata only; user role_level is not set from this). Seed sets defaults for roles; user authority (role_level) is always 0 except when created by seed.
 - **Hierarchy enforcement (backend):** Admins may only edit/ban/unban/delete users with **strictly lower** role_level. Admins may not assign a role whose default_role_level is >= their own. Non-SuperAdmin cannot set own role_level; SuperAdmin may set own role_level only to >= 100. All enforced in user_routes and permissions.
 - **Admin role management (frontend):** New **Roles** page under Manage: list roles, create, edit (name, description, default_role_level), delete. Role dropdown in Users is loaded from API (includes QA).
 - **User management (frontend):** Users table shows **Level** (role_level). User form has **Role level** field; Save/Ban/Unban/Delete disabled when target has equal or higher role_level. Clear message when editing is forbidden.
@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **API:** User list/detail include `role_id` and `role_level`. PUT `/api/v1/users/<id>` accepts optional `role_level` (subject to hierarchy). Role create/update accept `description`, `default_role_level`.
 - **Permissions:** `admin_may_edit_target`, `admin_may_assign_role_level`, `admin_may_assign_role_with_level`; `current_user_role_level`, `current_user_is_super_admin`. ALLOWED_ROLES includes `qa`.
-- **Migrations:** 017 adds `roles.description`, `roles.default_role_level`, `users.role_level`; seeds QA; backfills role_level from role defaults.
+- **Migrations:** 017 adds `roles.description`, `roles.default_role_level`, `users.role_level`; seeds QA. 018 sets all users’ `role_level` to 0 (authority is per-user; only seed creates SuperAdmin).
 
 ---
 
