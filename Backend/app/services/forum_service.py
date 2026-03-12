@@ -89,6 +89,35 @@ def user_can_post_in_thread(user: Optional[User], thread: ForumThread) -> bool:
     return True
 
 
+def user_can_view_thread(user: Optional[User], thread: ForumThread) -> bool:
+    """True if user may view the thread itself (ignores per-post moderation)."""
+    if thread.status == "deleted":
+        # Deleted threads are only visible to moderators/admins.
+        return user_is_moderator(user) or user_is_admin(user)
+    if thread.category is None:
+        return False
+    if thread.status in ("hidden", "archived"):
+        # Hidden/archived threads are staff-only.
+        return user_is_moderator(user) or user_is_admin(user)
+    return user_can_access_category(user, thread.category)
+
+
+def user_can_view_post(user: Optional[User], post: ForumPost) -> bool:
+    """True if user may view a specific post."""
+    thread = post.thread
+    if thread is None:
+        return False
+    if not user_can_view_thread(user, thread):
+        return False
+    if post.status == "deleted":
+        # Deleted posts: moderators/admins only.
+        return user_is_moderator(user) or user_is_admin(user)
+    if post.status == "hidden":
+        # Hidden posts are staff-only.
+        return user_is_moderator(user) or user_is_admin(user)
+    return True
+
+
 def user_can_edit_post(user: Optional[User], post: ForumPost) -> bool:
     if user is None or user.is_banned:
         return False
@@ -286,6 +315,51 @@ def soft_delete_thread(thread: ForumThread) -> ForumThread:
     return thread
 
 
+def hide_thread(thread: ForumThread) -> ForumThread:
+    """Hide a thread from normal listings without deleting it."""
+    thread.status = "hidden"
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread
+
+
+def unhide_thread(thread: ForumThread) -> ForumThread:
+    """Unhide a previously hidden thread (re-open it)."""
+    if thread.status == "hidden":
+        thread.status = "open"
+        thread.updated_at = _utc_now()
+        db.session.commit()
+    return thread
+
+
+def set_thread_lock(thread: ForumThread, locked: bool) -> ForumThread:
+    """Lock or unlock a thread for new posts."""
+    thread.is_locked = bool(locked)
+    if locked:
+        thread.status = "locked"
+    elif thread.status == "locked":
+        thread.status = "open"
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread
+
+
+def set_thread_pinned(thread: ForumThread, pinned: bool) -> ForumThread:
+    """Pin or unpin a thread within its category."""
+    thread.is_pinned = bool(pinned)
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread
+
+
+def set_thread_featured(thread: ForumThread, featured: bool) -> ForumThread:
+    """Mark a thread as featured (for future highlighting)."""
+    thread.is_featured = bool(featured)
+    thread.updated_at = _utc_now()
+    db.session.commit()
+    return thread
+
+
 def increment_thread_view(thread: ForumThread) -> None:
     thread.view_count = (thread.view_count or 0) + 1
     thread.updated_at = _utc_now()
@@ -293,8 +367,8 @@ def increment_thread_view(thread: ForumThread) -> None:
 
 
 def recalc_thread_counters(thread: ForumThread) -> None:
-    """Recalculate reply_count, last_post_at, last_post_id based on visible/edited posts (including deleted?)."""
-    q = ForumPost.query.filter_by(thread_id=thread.id)
+    """Recalculate reply_count, last_post_at, last_post_id based on non-deleted posts."""
+    q = ForumPost.query.filter_by(thread_id=thread.id).filter(ForumPost.status != "deleted")
     # Count posts excluding the first one as replies
     total_posts = q.count()
     thread.reply_count = max(0, total_posts - 1)
@@ -308,8 +382,24 @@ def recalc_thread_counters(thread: ForumThread) -> None:
 # --- Post operations ---------------------------------------------------------
 
 
-def list_posts_for_thread(thread: ForumThread, page: int = 1, per_page: int = 20) -> Tuple[List[ForumPost], int]:
+def list_posts_for_thread(
+    thread: ForumThread,
+    page: int = 1,
+    per_page: int = 20,
+    include_hidden: bool = False,
+    include_deleted: bool = False,
+) -> Tuple[List[ForumPost], int]:
+    """
+    List posts for a thread.
+
+    By default, excludes posts with status 'hidden' or 'deleted'. Moderation
+    views can set include_hidden/include_deleted to True to see everything.
+    """
     q = ForumPost.query.filter_by(thread_id=thread.id)
+    if not include_deleted:
+        q = q.filter(ForumPost.status != "deleted")
+    if not include_hidden:
+        q = q.filter(ForumPost.status != "hidden")
     q = q.order_by(ForumPost.created_at.asc())
     total = q.count()
     page = max(1, page)
@@ -380,6 +470,21 @@ def unhide_post(post: ForumPost) -> ForumPost:
         post.updated_at = _utc_now()
         db.session.commit()
     return post
+
+
+# --- Reports helpers -----------------------------------------------------------
+
+
+def get_report_by_id(report_id: int) -> Optional[ForumReport]:
+    return ForumReport.query.get(report_id)
+
+
+def list_reports_for_target(target_type: str, target_id: int) -> List[ForumReport]:
+    return (
+        ForumReport.query.filter_by(target_type=target_type, target_id=target_id)
+        .order_by(ForumReport.created_at.desc())
+        .all()
+    )
 
 
 # --- Likes -------------------------------------------------------------------
