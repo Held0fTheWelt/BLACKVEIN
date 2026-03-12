@@ -5,14 +5,14 @@ Flask-based backend (API, auth, dashboard, news, DB) and a separate Flask fronte
 ## Repository structure
 
 ```
-Backend/                 # API, auth, dashboard, DB, migrations, tests
+backend/                  # API, auth, dashboard, DB, migrations, tests
   app/                    # create_app, config, models, services, api, web, auth
   migrations/             # Flask-Migrate (Alembic)
   tests/                  # pytest (test_api, test_web, test_news_api, …)
   run.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
   requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
 administration-tool/      # Public website + management area
-  frontend_app.py         # Flask app: /, /news, /news/<id>; /manage, /manage/login, /manage/news, /manage/users, /manage/wiki
+  frontend_app.py         # Flask app: /, /news, /forum, /manage, …
   templates/, static/
   requirements.txt, Dockerfile
 README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
@@ -25,7 +25,7 @@ README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 
 ## Environment
 
-Copy `.env.example` to `.env` at the **repo root**. Backend and Frontend both read from the root `.env` when run locally. Set at least:
+Copy `.env.example` to `.env` at the **repo root**. Backend and administration-tool both read from the root `.env` when run locally. Set at least:
 
 - **SECRET_KEY**, **JWT_SECRET_KEY** (required in production; or set **DEV_SECRETS_OK=1** for local dev fallbacks).
 - **FLASK_APP=run:app** (so Flask finds the app when running from `Backend/`).
@@ -33,7 +33,7 @@ Copy `.env.example` to `.env` at the **repo root**. Backend and Frontend both re
 Optional for local dev:
 
 - **PORT** – Backend default 5000, Frontend default 5001.
-- **BACKEND_API_URL** – Frontend: backend base URL (default `http://127.0.0.1:5000`). No trailing slash.
+- **BACKEND_API_URL** – Administration tool: backend base URL for API and auth (no trailing slash). Default in code is the remote PythonAnywhere backend for initial testing; for local troubleshooting set e.g. `BACKEND_API_URL=http://127.0.0.1:5000`.
 - **CORS_ORIGINS** – Backend: comma-separated origins allowed to call the API (e.g. `http://127.0.0.1:5001,http://localhost:5001`). Required when the frontend runs on another port.
 - **FRONTEND_URL** – Backend: when set, `GET /` and `GET /news` redirect to this URL (e.g. `http://127.0.0.1:5001`).
 - **DEV_SECRETS_OK=1** – Enables dev fallback secrets and CLI commands `flask seed-dev-user`, `flask seed-news`.
@@ -46,7 +46,7 @@ Optional for local dev:
 ### 1. Backend
 
 ```bash
-cd Backend
+cd backend
 pip install -r requirements.txt
 flask init-db
 flask db upgrade
@@ -65,7 +65,7 @@ flask seed-news
 Start the backend:
 
 ```bash
-# From Backend/
+# From backend/
 export FLASK_APP=run:app   # or set in .env
 python run.py
 # or: flask run
@@ -81,9 +81,9 @@ pip install -r requirements.txt
 python frontend_app.py
 ```
 
-Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`. **Management area:** `/manage` (staff login at `/manage/login`); JWT in sessionStorage; news, user admin (admin only), and wiki editing. See `docs/runbook.md` for management frontend and wiki API.
+Default: **http://127.0.0.1:5001**. Open in browser; login/register/dashboard links point to the backend (using **BACKEND_API_URL**). News list and detail load data from `GET /api/v1/news` and `GET /api/v1/news/<id>`. **Management area:** `/manage` (staff login at `/manage/login`); JWT in sessionStorage; news, user admin (admin only), wiki, forum. See `docs/runbook.md` for management and wiki API.
 
-### 3. CORS (when Backend and Frontend on different ports)
+### 3. CORS (when backend and administration-tool run on different ports)
 
 Set in `.env` (or backend environment):
 
@@ -95,7 +95,7 @@ Otherwise the browser blocks frontend requests to the backend API.
 
 ## Migrations
 
-From **Backend/**:
+From **backend/**:
 
 ```bash
 export FLASK_APP=run:app
@@ -112,17 +112,17 @@ flask db upgrade
 
 ## Tests
 
-All tests live under **Backend/tests/** (API, web, news API, config, security). Run from **Backend/**:
+All tests live under **backend/tests/** (API, web, news API, config, security). Run from **backend/**:
 
 ```bash
-cd Backend
+cd backend
 pip install -r requirements-dev.txt
 pytest
 # or: pytest tests/ -v
 # or: pytest tests/test_news_api.py tests/test_api.py -v
 ```
 
-Default pytest config: `pytest.ini` in Backend (testpaths = tests, coverage on `app`).
+Default pytest config: `pytest.ini` in backend (testpaths = tests, coverage on `app`).
 
 ## Docker (compose)
 
@@ -136,7 +136,7 @@ docker compose up --build
 - **Frontend** at http://localhost:5001.
 - Frontend env **BACKEND_API_URL=http://localhost:8000** so the browser can call the API. Backend env **CORS_ORIGINS** includes http://localhost:5001 so requests from the frontend origin are allowed.
 
-Database is persisted in `Backend/instance/` (mounted volume). Run migrations inside the backend container if needed:
+Database is persisted in `backend/instance/` (mounted volume). Run migrations inside the backend container if needed:
 
 ```bash
 docker compose exec backend flask db upgrade
@@ -150,7 +150,7 @@ docker compose exec backend flask db upgrade
 | JWT_SECRET_KEY | Backend | JWT signing (required or fallback to SECRET_KEY) |
 | FLASK_APP | Backend | Set to `run:app` |
 | PORT | Backend / Frontend | Backend default 5000, Frontend default 5001 |
-| BACKEND_API_URL | Frontend | Backend base URL for API and auth links (no trailing slash) |
+| BACKEND_API_URL | Administration tool | Backend base URL for API and auth (no trailing slash); default in code is remote PythonAnywhere for initial testing |
 | CORS_ORIGINS | Backend | Comma-separated origins for API (e.g. frontend URL) |
 | FRONTEND_URL | Backend | Optional; redirects GET / and GET /news to frontend |
 | DEV_SECRETS_OK | Backend | 1 = dev secrets and seed-dev-user / seed-news allowed |
@@ -159,10 +159,10 @@ docker compose exec backend flask db upgrade
 ## Documentation
 
 - **Local development (split):** `docs/development/LocalDevelopment.md` – URLs, startup order, how frontend and backend talk, CORS, seed commands.
-- **Architecture:** `docs/architecture/FrontendBackendRestructure.md` – Backend/Frontend responsibilities.
+- **Architecture:** `docs/architecture/FrontendBackendRestructure.md` – backend/administration-tool responsibilities.
 - **Runbook:** `docs/runbook.md` – Example flows.
 - **Security:** `docs/security.md` – Auth, CSRF, CORS, cookies.
-- **Backend tests:** `Backend/tests/README.md` – Fixtures and test modules.
+- **Backend tests:** `backend/tests/README.md` – Fixtures and test modules.
 
 ## API (summary)
 

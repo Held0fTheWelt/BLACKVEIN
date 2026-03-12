@@ -7,11 +7,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # Version Description
 
-- Version 0.0: Foundation, Web-Api with Backend and Frontend to administrate the system
+- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
 - Version 0.1: Integration of a content framework to organize role playing game
 - Version 0.2: Integration of Game Rules and Game System
 - Version 0.3: Integration of dynamic evolving content with rules and drafts
 
+
+---
+
+## [0.0.23] - 2026-03-12
+
+### Added
+
+- **Discussion-link integration (News):** Public news API and list/detail responses now include `discussion_thread_id` and `discussion_thread_slug` when a thread is linked. Management UI (`/manage/news`) supports view/set/clear of linked discussion thread (thread ID input, Link/Unlink). Public news detail page shows "Discuss this article" when a thread is linked.
+- **Discussion-link integration (Wiki):** Public wiki page API (`GET /api/v1/wiki/<slug>`) includes `discussion_thread_id` and `discussion_thread_slug` when linked. Wiki admin `_page_to_dict` includes discussion fields. Management UI (`/manage/wiki`) supports view/set/clear of linked thread. Public wiki page shows "Discuss this page" when linked.
+- **Notifications (functional):** On forum post create, notifications are created for all thread subscribers except the author (`create_notifications_for_thread_reply` in forum_service). Thread detail API returns `subscribed_by_me`. PATCH/PUT `/api/v1/notifications/<id>/read` to mark one as read. Notifications list response includes `thread_slug` for forum_thread targets so the UI can link to the thread.
+- **Subscribe/notification UI:** Forum thread page shows Subscribe/Unsubscribe button when logged in. New page `/forum/notifications` lists user notifications with links to threads and "Mark as read"; linked from forum index.
+
+### Changed
+
+- **Docs/path consistency:** README and changelog use `backend/` and `administration-tool/` consistently. README states remote-first default (PythonAnywhere) for BACKEND_API_URL and local troubleshooting override.
 
 ---
 
@@ -47,7 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Test coverage strategy:** Forum module now has dedicated test suite in `Backend/tests/test_forum_api.py` with 27 comprehensive tests. Global repository coverage remains at pytest.ini gate of 85%; forum-specific tests demonstrate correct functionality independent of full repo coverage, allowing incremental improvements to broader test suite without blocking forum QA.
+- **Test coverage strategy:** Forum module now has dedicated test suite in `backend/tests/test_forum_api.py` with 27 comprehensive tests. Global repository coverage remains at pytest.ini gate of 85%; forum-specific tests demonstrate correct functionality independent of full repo coverage, allowing incremental improvements to broader test suite without blocking forum QA.
 
 ### Fixed
 
