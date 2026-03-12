@@ -212,6 +212,36 @@ body.landing {
 }
 body.landing main { padding: 0; max-width: 100%; }
 
+/* Matrix-Layer: zwischen Hintergrund und Vordergrund, dunkelblau mit Rand-Glow */
+/* Header und Footer müssen über dem Layer liegen, halbtransparenter Hintergrund */
+body.landing .header,
+body.landing .footer { position: relative; z-index: 2; }
+body.landing .header { background: rgba(26, 26, 32, 0.35); }
+body.landing .footer { background: rgba(26, 26, 32, 0.35); }
+.landing-content { position: relative; z-index: 2; }
+.matrix-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    box-shadow: inset 0 0 180px rgba(15, 30, 60, 0.4), 0 0 220px rgba(25, 50, 95, 0.2);
+}
+.matrix-layer__canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.matrix-layer__glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 120% 120% at 50% 50%, transparent 40%, rgba(10, 25, 50, 0.15) 100%);
+}
+
 /*
  * ========== Hero-Glitch: Zeiten selbst einstellen ==========
  * Alle Werte unten in .hero { ... } anpassen.
@@ -365,6 +395,16 @@ body.landing main { padding: 0; max-width: 100%; }
     padding-right: 2vw;
     padding-top: 0;
 }
+.hero-title-image {
+    position: relative;
+    z-index: 1;
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    margin-top: -4vh;
+}
 .refraction-orb {
     position: absolute;
     border-radius: 50%;
@@ -406,7 +446,7 @@ body.landing main { padding: 0; max-width: 100%; }
     .refraction-orb { animation: none; }
 }
 
-.benefits { padding: 5rem 6vw; background: var(--void); }
+.benefits { padding: 5rem 6vw; background: transparent; }
 .benefits-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -520,18 +560,36 @@ body.landing main { padding: 0; max-width: 100%; }
     min-height: 85vh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: var(--void);
+    align-items: stretch;
+    justify-content: flex-start;
+    background: transparent;
     position: relative;
     overflow: hidden;
-    padding: 4rem 2rem;
+    border: 1px solid var(--border);
+    transition: border-color 0.6s ease, box-shadow 0.6s ease;
+    padding: 0;
     text-align: center;
-    border-top: 1px solid var(--border);
-    transition: background 0.6s ease;
     cursor: default;
 }
-.void-footer:hover { background: var(--violet-glow-strong); }
+.void-footer-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 4rem 2rem;
+    margin-bottom: 0;
+    transition: background 0.6s ease;
+}
+.void-footer:hover {
+    border-color: var(--violet);
+    box-shadow: 0 0 40px rgba(122, 92, 158, 0.15), inset 0 0 60px rgba(122, 92, 158, 0.04);
+}
+.void-footer:hover .void-footer-inner {
+    background: var(--violet-glow-strong);
+    border-radius: 0;
+}
 .void-footer {
     --void-glitch-word-duration-ready: 2.5s;
     --void-glitch-word-duration-enter: 5s;
@@ -639,12 +697,16 @@ body.landing main { padding: 0; max-width: 100%; }
 }
 .void-footer-legal {
     position: absolute;
-    bottom: 1.5rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
+    justify-content: center;
     gap: 2rem;
     color: var(--text-muted);
     font-size: 0.8rem;
     align-items: center;
+    padding: 1.5rem 2rem;
 }
 .void-slogan-wrap {
     overflow: hidden;
@@ -665,7 +727,7 @@ body.landing main { padding: 0; max-width: 100%; }
 
 .command-dock {
     position: fixed;
-    bottom: 1.5rem;
+    top: .7rem;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(26, 26, 32, 0.85);

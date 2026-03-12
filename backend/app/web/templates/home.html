@@ -3,6 +3,11 @@
 {% block body_class %}landing{% endblock %}
 
 {% block site_main %}
+<div class="matrix-layer" id="matrix-layer" aria-hidden="true">
+  <canvas id="matrixCanvas" class="matrix-layer__canvas"></canvas>
+  <div class="matrix-layer__glow"></div>
+</div>
+<div class="landing-content">
 <section class="hero glitch-in-view" id="hero" data-preload>
   <div class="hero-content">
     <div class="hero-text">
@@ -33,6 +38,7 @@
     </div>
   </div>
   <div class="hero-visual" aria-hidden="true">
+    <img class="hero-title-image" src="{{ url_for('static', filename='BLACKVEIN-title-1.png') }}" alt="" width="800" height="600">
     <div class="refraction-orb refraction-orb--1"></div>
     <div class="refraction-orb refraction-orb--2"></div>
     <div class="refraction-orb refraction-orb--3"></div>
@@ -154,10 +160,12 @@
     {% endif %}
   </div>
 </nav>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='splitting.min.js') }}"></script>
+<script src="{{ url_for('static', filename='matrix-layer.js') }}" defer></script>
 <script src="{{ url_for('static', filename='landing.js') }}" defer></script>
 <script>
 (function(){
