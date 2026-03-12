@@ -653,6 +653,30 @@
                     if (thread.category && thread.category.slug) {
                         setBackLink("/forum/categories/" + encodeURIComponent(thread.category.slug));
                     }
+                    if (state.hasToken) {
+                        var subWrap = document.createElement("div");
+                        subWrap.className = "forum-thread-subscribe-wrap";
+                        var subBtn = document.createElement("button");
+                        subBtn.type = "button";
+                        subBtn.className = "btn btn-outline btn-sm forum-btn-subscribe";
+                        subBtn.textContent = thread.subscribed_by_me ? "Unsubscribe" : "Subscribe";
+                        subBtn.dataset.threadId = thread.id;
+                        subWrap.appendChild(subBtn);
+                        header.appendChild(subWrap);
+                        subBtn.addEventListener("click", function() {
+                            var tid = subBtn.dataset.threadId;
+                            if (!tid) return;
+                            subBtn.disabled = true;
+                            var isSub = state.thread.subscribed_by_me;
+                            var req = isSub
+                                ? apiDelete("threads/" + tid + "/subscribe")
+                                : apiPost("threads/" + tid + "/subscribe", {});
+                            req.then(function() {
+                                state.thread.subscribed_by_me = !isSub;
+                                subBtn.textContent = state.thread.subscribed_by_me ? "Unsubscribe" : "Subscribe";
+                            }).catch(function() {}).then(function() { subBtn.disabled = false; });
+                        });
+                    }
                     var modBar = document.createElement("div");
                     modBar.id = "forum-thread-mod-actions";
                     modBar.className = "forum-thread-mod-actions";
@@ -912,9 +936,140 @@
             }
     }
 
+    function initNotifications() {
+        var loading = document.getElementById("forum-notifications-loading");
+        var errEl = document.getElementById("forum-notifications-error");
+        var empty = document.getElementById("forum-notifications-empty");
+        var loginHint = document.getElementById("forum-notifications-login-hint");
+        var list = document.getElementById("forum-notifications-list");
+        var pagination = document.getElementById("forum-notifications-pagination");
+        var paginationInfo = document.getElementById("forum-notifications-pagination-info");
+        var prevBtn = document.getElementById("forum-notifications-prev");
+        var nextBtn = document.getElementById("forum-notifications-next");
+        var hasToken = !!(window.ManageAuth && window.ManageAuth.getToken && window.ManageAuth.getToken());
+        var state = { page: 1, total: 0, perPage: 20, totalPages: 0 };
+
+        function hideAll() {
+            if (loading) loading.hidden = true;
+            if (errEl) errEl.hidden = true;
+            if (empty) empty.hidden = true;
+            if (loginHint) loginHint.hidden = true;
+            if (list) list.hidden = true;
+            if (pagination) pagination.hidden = true;
+        }
+        if (!hasToken) {
+            hideAll();
+            if (loginHint) loginHint.hidden = false;
+            return;
+        }
+        var api = window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
+        if (!api) {
+            hideAll();
+            if (errEl) { errEl.textContent = "Auth not available."; errEl.hidden = false; }
+            return;
+        }
+        var base = (window.FrontendConfig && window.FrontendConfig.getApiBaseUrl) ? window.FrontendConfig.getApiBaseUrl() : "";
+        function fetchNotifications(page) {
+            var url = (base ? base.replace(/\/$/, "") : "") + "/api/v1/notifications?page=" + page + "&limit=" + state.perPage;
+            return api(url);
+        }
+        function markRead(id) {
+            var url = (base ? base.replace(/\/$/, "") : "") + "/api/v1/notifications/" + id + "/read";
+            return api(url, { method: "PATCH" });
+        }
+        function render(items, page, total, perPage) {
+            hideAll();
+            if (!list) return;
+            state.total = total;
+            state.totalPages = perPage > 0 ? Math.ceil(total / perPage) : 0;
+            if (!items || items.length === 0) {
+                if (empty) empty.hidden = false;
+                return;
+            }
+            list.innerHTML = "";
+            items.forEach(function(n) {
+                var li = document.createElement("li");
+                li.className = "forum-notification-item" + (n.is_read ? " forum-notification-read" : "");
+                var link = document.createElement("a");
+                link.href = n.thread_slug ? "/forum/threads/" + encodeURIComponent(n.thread_slug) : "#";
+                link.className = "forum-notification-link";
+                link.textContent = n.message || "Notification";
+                li.appendChild(link);
+                var meta = document.createElement("span");
+                meta.className = "forum-notification-meta muted";
+                meta.textContent = formatDate(n.created_at) || "";
+                li.appendChild(meta);
+                if (!n.is_read) {
+                    var readBtn = document.createElement("button");
+                    readBtn.type = "button";
+                    readBtn.className = "btn btn-ghost btn-sm forum-notification-mark-read";
+                    readBtn.textContent = "Mark as read";
+                    readBtn.dataset.id = n.id;
+                    readBtn.addEventListener("click", function() {
+                        var id = readBtn.dataset.id;
+                        if (!id) return;
+                        readBtn.disabled = true;
+                        markRead(id).then(function() {
+                            li.classList.add("forum-notification-read");
+                            readBtn.remove();
+                        }).catch(function() {}).then(function() { readBtn.disabled = false; });
+                    });
+                    li.appendChild(readBtn);
+                }
+                list.appendChild(li);
+            });
+            list.hidden = false;
+            if (pagination) {
+                pagination.hidden = state.totalPages <= 1;
+                if (paginationInfo) paginationInfo.textContent = "Page " + page + " of " + (state.totalPages || 1) + " (" + total + " total)";
+                if (prevBtn) prevBtn.disabled = page <= 1;
+                if (nextBtn) nextBtn.disabled = page >= state.totalPages;
+            }
+        }
+        if (loading) loading.hidden = false;
+        fetchNotifications(1)
+            .then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : 0;
+                var page = (data && typeof data.page === "number") ? data.page : 1;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                state.page = page;
+                render(items, page, total, perPage);
+            })
+            .catch(function(e) {
+                hideAll();
+                if (errEl) { errEl.textContent = (e && e.message) || "Failed to load notifications."; errEl.hidden = false; }
+            });
+        if (prevBtn) prevBtn.addEventListener("click", function() {
+            if (state.page <= 1) return;
+            state.page--;
+            if (loading) loading.hidden = false;
+            fetchNotifications(state.page).then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : 0;
+                var page = (data && typeof data.page === "number") ? data.page : state.page;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                render(items, page, total, perPage);
+            }).catch(function() { if (loading) loading.hidden = true; });
+        });
+        if (nextBtn) nextBtn.addEventListener("click", function() {
+            if (state.page >= state.totalPages) return;
+            state.page++;
+            if (loading) loading.hidden = false;
+            fetchNotifications(state.page).then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : 0;
+                var page = (data && typeof data.page === "number") ? data.page : state.page;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                render(items, page, total, perPage);
+            }).catch(function() { if (loading) loading.hidden = true; });
+        });
+    }
+
     window.ForumApp = {
         initIndex: initIndex,
         initCategory: initCategory,
-        initThread: initThread
+        initThread: initThread,
+        initNotifications: initNotifications
     };
 })();

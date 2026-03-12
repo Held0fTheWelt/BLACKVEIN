@@ -14,6 +14,7 @@ from app.models import (
     ForumPostLike,
     ForumReport,
     ForumThreadSubscription,
+    Notification,
     User,
 )
 
@@ -593,5 +594,29 @@ def unsubscribe_thread(user: User, thread: ForumThread) -> None:
     if not existing:
         return
     db.session.delete(existing)
+    db.session.commit()
+
+
+def create_notifications_for_thread_reply(
+    thread: ForumThread,
+    post: ForumPost,
+    author_id: Optional[int],
+) -> None:
+    """Create notification for each thread subscriber except the post author."""
+    subs = ForumThreadSubscription.query.filter_by(thread_id=thread.id).all()
+    title_snippet = (thread.title or "Thread")[:80]
+    message = f"New reply in: {title_snippet}"
+    for sub in subs:
+        if sub.user_id == author_id:
+            continue
+        n = Notification(
+            user_id=sub.user_id,
+            event_type="thread_reply",
+            target_type="forum_thread",
+            target_id=thread.id,
+            message=message,
+            is_read=False,
+        )
+        db.session.add(n)
     db.session.commit()
 

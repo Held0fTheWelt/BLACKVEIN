@@ -128,6 +128,12 @@ def forum_thread(slug):
     return render_template("forum/thread.html", thread_slug=slug)
 
 
+@app.route("/forum/notifications")
+def forum_notifications():
+    """Notifications list (requires login). Data loaded by JS from backend API."""
+    return render_template("forum/notifications.html")
+
+
 # --- Management / editorial area (protected by frontend auth; backend enforces roles) ---
 
 @app.route("/manage")

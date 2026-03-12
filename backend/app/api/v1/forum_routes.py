@@ -21,6 +21,7 @@ from app.models import ForumCategory, ForumPostLike, ForumThread, ForumPost, For
 from app.services import log_activity
 from app.services.forum_service import (
     create_category,
+    create_notifications_for_thread_reply,
     create_post,
     create_report,
     create_thread,
@@ -189,6 +190,11 @@ def forum_thread_detail(slug):
     data["author_username"] = thread.author.username if thread.author else None
     if thread.category:
         data["category"] = thread.category.to_dict()
+    if user and user.id:
+        sub = ForumThreadSubscription.query.filter_by(thread_id=thread.id, user_id=user.id).first()
+        data["subscribed_by_me"] = sub is not None
+    else:
+        data["subscribed_by_me"] = False
     return jsonify(data), 200
 
 
@@ -461,6 +467,7 @@ def forum_post_create(thread_id: int):
     )
     if err:
         return jsonify({"error": err}), 400
+    create_notifications_for_thread_reply(thread, post, user.id)
     log_activity(
         actor=user,
         category="forum",
@@ -1219,7 +1226,15 @@ def notifications_list():
     end = start + limit
 
     items = q.offset(start).limit(limit).all()
-    items_data = [n.to_dict() for n in items]
+    items_data = []
+    for n in items:
+        d = n.to_dict()
+        if n.target_type == "forum_thread":
+            thread = get_thread_by_id(n.target_id)
+            d["thread_slug"] = thread.slug if thread and thread.deleted_at is None else None
+        else:
+            d["thread_slug"] = None
+        items_data.append(d)
 
     return jsonify({
         "items": items_data,
@@ -1227,4 +1242,21 @@ def notifications_list():
         "page": page,
         "per_page": limit,
     }), 200
+
+
+@api_v1_bp.route("/notifications/<int:notification_id>/read", methods=["PATCH", "PUT"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def notification_mark_read(notification_id: int):
+    """Mark a notification as read. Only the owner can mark it."""
+    user, err_resp = _require_user()
+    if err_resp:
+        return err_resp
+    n = Notification.query.filter_by(id=notification_id, user_id=user.id).first()
+    if not n:
+        return jsonify({"error": "Not found"}), 404
+    n.is_read = True
+    n.read_at = _utc_now()
+    db.session.commit()
+    return jsonify(n.to_dict()), 200
 
