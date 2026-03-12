@@ -600,6 +600,46 @@
                   "path": ["api", "v1", "forum", "threads", "1", "unarchive"]
                 }
               }
+            },
+            {
+              "name": "Merge Thread (Moderator+)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target_thread_id\": 2\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/merge",
+                  "path": ["api", "v1", "forum", "threads", "1", "merge"]
+                }
+              }
+            },
+            {
+              "name": "Split Thread (Moderator+)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"root_post_id\": 1,\n  \"title\": \"Split from root post\",\n  \"category_id\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/threads/1/split",
+                  "path": ["api", "v1", "forum", "threads", "1", "split"]
+                }
+              }
             }
           ]
         },
