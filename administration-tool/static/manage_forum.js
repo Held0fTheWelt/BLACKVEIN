@@ -298,10 +298,244 @@
         loadReports();
     }
 
+    function forumThreadUrl(slug) {
+        if (!slug) return "#";
+        return "/forum/threads/" + encodeURIComponent(slug);
+    }
+
+    function initModerationDashboard() {
+        var apiRef = api();
+        if (!apiRef) return;
+        var card = $("manage-forum-dashboard-card");
+        if (!card) return;
+        card.hidden = false;
+
+        var loading = $("manage-forum-dashboard-loading");
+        var errorEl = $("manage-forum-dashboard-error");
+        var content = $("manage-forum-dashboard-content");
+        var refreshBtn = $("manage-forum-dashboard-refresh");
+
+        function setError(msg) {
+            if (errorEl) { errorEl.textContent = msg || ""; errorEl.hidden = !msg; }
+        }
+
+        function loadMetrics() {
+            apiRef("/api/v1/forum/moderation/metrics")
+                .then(function(m) {
+                    var el = $("manage-forum-metrics");
+                    if (el) {
+                        el.innerHTML =
+                            "<span class=\"manage-metric\">Open reports: <strong>" + (m.open_reports || 0) + "</strong></span> " +
+                            "<span class=\"manage-metric\">Hidden posts: <strong>" + (m.hidden_posts || 0) + "</strong></span> " +
+                            "<span class=\"manage-metric\">Locked threads: <strong>" + (m.locked_threads || 0) + "</strong></span> " +
+                            "<span class=\"manage-metric\">Pinned threads: <strong>" + (m.pinned_threads || 0) + "</strong></span>";
+                    }
+                })
+                .catch(function() {});
+        }
+
+        function loadOpenReports() {
+            var wrap = $("manage-forum-open-reports-wrap");
+            var loadEl = $("manage-forum-open-reports-loading");
+            var emptyEl = $("manage-forum-open-reports-empty");
+            if (loadEl) loadEl.hidden = false;
+            if (emptyEl) emptyEl.hidden = true;
+            if (wrap) { wrap.hidden = true; wrap.innerHTML = ""; }
+            apiRef("/api/v1/forum/moderation/recent-reports?limit=15")
+                .then(function(data) {
+                    if (loadEl) loadEl.hidden = true;
+                    var items = (data && data.items) || [];
+                    if (!items.length) {
+                        if (emptyEl) emptyEl.hidden = false;
+                        return;
+                    }
+                    var table = document.createElement("table");
+                    table.className = "data-table";
+                    table.innerHTML = "<thead><tr><th>Target</th><th>Reason</th><th>Created</th><th>Actions</th></tr></thead><tbody></tbody>";
+                    items.forEach(function(r) {
+                        var slug = r.thread_slug;
+                        var link = slug ? "<a href=\"" + forumThreadUrl(slug) + "\">" + (r.target_title || r.target_type + "#" + r.target_id) + "</a>" : (r.target_type + "#" + r.target_id);
+                        var tr = document.createElement("tr");
+                        tr.innerHTML =
+                            "<td>" + link + "</td>" +
+                            "<td>" + (r.reason || "").substring(0, 60) + (r.reason && r.reason.length > 60 ? "…" : "") + "</td>" +
+                            "<td>" + formatDate(r.created_at) + "</td>" +
+                            "<td>" +
+                            "<button type=\"button\" class=\"btn btn-sm btn-outline\" data-status=\"reviewed\">Reviewed</button> " +
+                            "<button type=\"button\" class=\"btn btn-sm btn-outline\" data-status=\"resolved\">Resolved</button> " +
+                            "<button type=\"button\" class=\"btn btn-sm btn-outline\" data-status=\"dismissed\">Dismiss</button>" +
+                            "</td>";
+                        tr.querySelectorAll("button[data-status]").forEach(function(btn) {
+                            btn.addEventListener("click", function() {
+                                var newStatus = btn.getAttribute("data-status");
+                                apiRef("/api/v1/forum/reports/" + r.id, { method: "PUT", body: JSON.stringify({ status: newStatus }) })
+                                    .then(function() { loadOpenReports(); loadMetrics(); loadHandled(); })
+                                    .catch(function(e) { setError((e && e.message) || "Failed to update report."); });
+                            });
+                        });
+                        table.querySelector("tbody").appendChild(tr);
+                    });
+                    if (wrap) { wrap.appendChild(table); wrap.hidden = false; }
+                })
+                .catch(function(e) {
+                    if (loadEl) loadEl.hidden = true;
+                    setError((e && e.message) || "Failed to load open reports.");
+                });
+        }
+
+        function loadHandled() {
+            var wrap = $("manage-forum-handled-wrap");
+            var loadEl = $("manage-forum-handled-loading");
+            var emptyEl = $("manage-forum-handled-empty");
+            if (loadEl) loadEl.hidden = false;
+            if (emptyEl) emptyEl.hidden = true;
+            if (wrap) { wrap.hidden = true; wrap.innerHTML = ""; }
+            apiRef("/api/v1/forum/moderation/recently-handled?limit=10")
+                .then(function(data) {
+                    if (loadEl) loadEl.hidden = true;
+                    var items = (data && data.items) || [];
+                    if (!items.length) {
+                        if (emptyEl) emptyEl.hidden = false;
+                        return;
+                    }
+                    var table = document.createElement("table");
+                    table.className = "data-table";
+                    table.innerHTML = "<thead><tr><th>Target</th><th>Status</th><th>Handled</th></tr></thead><tbody></tbody>";
+                    items.forEach(function(r) {
+                        var slug = r.thread_slug;
+                        var link = slug ? "<a href=\"" + forumThreadUrl(slug) + "\">" + (r.target_title || r.target_type + "#" + r.target_id) + "</a>" : (r.target_type + "#" + r.target_id);
+                        var tr = document.createElement("tr");
+                        tr.innerHTML =
+                            "<td>" + link + "</td>" +
+                            "<td>" + (r.status || "") + "</td>" +
+                            "<td>" + formatDate(r.handled_at) + "</td>";
+                        table.querySelector("tbody").appendChild(tr);
+                    });
+                    if (wrap) { wrap.appendChild(table); wrap.hidden = false; }
+                })
+                .catch(function() {
+                    if (loadEl) loadEl.hidden = true;
+                    if (emptyEl) emptyEl.hidden = false;
+                });
+        }
+
+        function loadLocked() {
+            var wrap = $("manage-forum-locked-wrap");
+            var loadEl = $("manage-forum-locked-loading");
+            var emptyEl = $("manage-forum-locked-empty");
+            if (loadEl) loadEl.hidden = false;
+            if (emptyEl) emptyEl.hidden = true;
+            if (wrap) { wrap.hidden = true; wrap.innerHTML = ""; }
+            apiRef("/api/v1/forum/moderation/locked-threads?limit=20")
+                .then(function(data) {
+                    if (loadEl) loadEl.hidden = true;
+                    var items = (data && data.items) || [];
+                    if (!items.length) {
+                        if (emptyEl) emptyEl.hidden = false;
+                        return;
+                    }
+                    var table = document.createElement("table");
+                    table.className = "data-table";
+                    table.innerHTML = "<thead><tr><th>Thread</th><th>Category</th><th>Updated</th></tr></thead><tbody></tbody>";
+                    items.forEach(function(t) {
+                        var link = "<a href=\"" + forumThreadUrl(t.slug) + "\">" + (t.title || "") + "</a>";
+                        var tr = document.createElement("tr");
+                        tr.innerHTML = "<td>" + link + "</td><td>" + (t.category_slug || "") + "</td><td>" + formatDate(t.updated_at) + "</td>";
+                        table.querySelector("tbody").appendChild(tr);
+                    });
+                    if (wrap) { wrap.appendChild(table); wrap.hidden = false; }
+                })
+                .catch(function() { if (loadEl) loadEl.hidden = true; });
+        }
+
+        function loadPinned() {
+            var wrap = $("manage-forum-pinned-wrap");
+            var loadEl = $("manage-forum-pinned-loading");
+            var emptyEl = $("manage-forum-pinned-empty");
+            if (loadEl) loadEl.hidden = false;
+            if (emptyEl) emptyEl.hidden = true;
+            if (wrap) { wrap.hidden = true; wrap.innerHTML = ""; }
+            apiRef("/api/v1/forum/moderation/pinned-threads?limit=20")
+                .then(function(data) {
+                    if (loadEl) loadEl.hidden = true;
+                    var items = (data && data.items) || [];
+                    if (!items.length) {
+                        if (emptyEl) emptyEl.hidden = false;
+                        return;
+                    }
+                    var table = document.createElement("table");
+                    table.className = "data-table";
+                    table.innerHTML = "<thead><tr><th>Thread</th><th>Category</th><th>Updated</th></tr></thead><tbody></tbody>";
+                    items.forEach(function(t) {
+                        var link = "<a href=\"" + forumThreadUrl(t.slug) + "\">" + (t.title || "") + "</a>";
+                        var tr = document.createElement("tr");
+                        tr.innerHTML = "<td>" + link + "</td><td>" + (t.category_slug || "") + "</td><td>" + formatDate(t.updated_at) + "</td>";
+                        table.querySelector("tbody").appendChild(tr);
+                    });
+                    if (wrap) { wrap.appendChild(table); wrap.hidden = false; }
+                })
+                .catch(function() { if (loadEl) loadEl.hidden = true; });
+        }
+
+        function loadHidden() {
+            var wrap = $("manage-forum-hidden-wrap");
+            var loadEl = $("manage-forum-hidden-loading");
+            var emptyEl = $("manage-forum-hidden-empty");
+            if (loadEl) loadEl.hidden = false;
+            if (emptyEl) emptyEl.hidden = true;
+            if (wrap) { wrap.hidden = true; wrap.innerHTML = ""; }
+            apiRef("/api/v1/forum/moderation/hidden-posts?limit=20")
+                .then(function(data) {
+                    if (loadEl) loadEl.hidden = true;
+                    var items = (data && data.items) || [];
+                    if (!items.length) {
+                        if (emptyEl) emptyEl.hidden = false;
+                        return;
+                    }
+                    var table = document.createElement("table");
+                    table.className = "data-table";
+                    table.innerHTML = "<thead><tr><th>Thread</th><th>Snippet</th><th>Updated</th></tr></thead><tbody></tbody>";
+                    items.forEach(function(p) {
+                        var link = p.thread_slug ? "<a href=\"" + forumThreadUrl(p.thread_slug) + "\">" + (p.thread_title || p.thread_slug) + "</a>" : ("post#" + p.id);
+                        var tr = document.createElement("tr");
+                        tr.innerHTML = "<td>" + link + "</td><td>" + (p.content_snippet || "").replace(/</g, "&lt;") + "</td><td>" + formatDate(p.updated_at) + "</td>";
+                        table.querySelector("tbody").appendChild(tr);
+                    });
+                    if (wrap) { wrap.appendChild(table); wrap.hidden = false; }
+                })
+                .catch(function() { if (loadEl) loadEl.hidden = true; });
+        }
+
+        function loadAll() {
+            setError("");
+            if (loading) loading.hidden = false;
+            if (content) content.hidden = true;
+            apiRef("/api/v1/forum/moderation/metrics")
+                .then(function(m) {
+                    if (loading) loading.hidden = true;
+                    if (content) content.hidden = false;
+                    loadMetrics();
+                    loadOpenReports();
+                    loadHandled();
+                    loadLocked();
+                    loadPinned();
+                    loadHidden();
+                })
+                .catch(function(e) {
+                    if (loading) loading.hidden = true;
+                    setError((e && e.message) || "Failed to load dashboard.");
+                });
+        }
+
+        if (refreshBtn) refreshBtn.addEventListener("click", loadAll);
+        loadAll();
+    }
+
     function init() {
         if (!window.ManageAuth) return;
         window.ManageAuth.ensureAuth().then(function(user) {
             var isAdmin = user && (user.role === "admin" || (user.allowed_features && user.allowed_features.indexOf("manage.users") >= 0));
+            var isModeratorOrAdmin = user && (user.role === "moderator" || user.role === "admin");
             var categoriesCard = $("manage-forum-categories-card");
             var categoryEditor = $("manage-forum-category-editor");
             if (!isAdmin) {
@@ -313,6 +547,7 @@
             }
             if (isAdmin) initCategories();
             initReports();
+            if (isModeratorOrAdmin) initModerationDashboard();
         }).catch(function() {});
     }
 

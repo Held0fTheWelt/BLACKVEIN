@@ -1168,12 +1168,35 @@ def forum_moderation_metrics():
     open_reports = ForumReport.query.filter_by(status="open").count()
     hidden_posts = ForumPost.query.filter_by(status="hidden").count()
     locked_threads = ForumThread.query.filter_by(is_locked=True).count()
+    pinned_threads = ForumThread.query.filter_by(is_pinned=True).filter(ForumThread.status != "deleted").count()
 
     return jsonify({
         "open_reports": open_reports,
         "hidden_posts": hidden_posts,
         "locked_threads": locked_threads,
+        "pinned_threads": pinned_threads,
     }), 200
+
+
+def _enrich_report_dict(r):
+    """Add thread_slug and target_title for dashboard linking."""
+    d = r.to_dict()
+    if r.target_type == "thread":
+        t = get_thread_by_id(r.target_id)
+        d["thread_slug"] = t.slug if t and t.deleted_at is None else None
+        d["target_title"] = t.title if t else None
+    elif r.target_type == "post":
+        p = get_post_by_id(r.target_id)
+        if p and p.thread:
+            d["thread_slug"] = p.thread.slug if p.thread.deleted_at is None else None
+            d["target_title"] = (p.content or "")[:80] + ("..." if len(p.content or "") > 80 else "")
+        else:
+            d["thread_slug"] = None
+            d["target_title"] = None
+    else:
+        d["thread_slug"] = None
+        d["target_title"] = None
+    return d
 
 
 @api_v1_bp.route("/forum/moderation/recent-reports", methods=["GET"])
@@ -1191,7 +1214,115 @@ def forum_moderation_recent_reports():
     limit = _parse_int(request.args.get("limit"), 10, min_val=1, max_val=50)
 
     reports = ForumReport.query.filter_by(status="open").order_by(ForumReport.created_at.desc()).limit(limit).all()
-    items = [r.to_dict() for r in reports]
+    items = [_enrich_report_dict(r) for r in reports]
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+@api_v1_bp.route("/forum/moderation/recently-handled", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_recently_handled():
+    """
+    Get recently handled reports (moderator/admin only).
+    Query: limit (default 10, max 50). Returns reports with status reviewed/resolved/dismissed, ordered by handled_at desc.
+    """
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    limit = _parse_int(request.args.get("limit"), 10, min_val=1, max_val=50)
+    reports = (
+        ForumReport.query.filter(ForumReport.status.in_(["reviewed", "resolved", "dismissed"]))
+        .filter(ForumReport.handled_at.isnot(None))
+        .order_by(ForumReport.handled_at.desc())
+        .limit(limit)
+        .all()
+    )
+    items = [_enrich_report_dict(r) for r in reports]
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+@api_v1_bp.route("/forum/moderation/locked-threads", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_locked_threads():
+    """List locked threads for dashboard (moderator/admin only). Query: limit (default 20, max 100)."""
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
+    threads = (
+        ForumThread.query.filter_by(is_locked=True)
+        .filter(ForumThread.status != "deleted")
+        .order_by(ForumThread.updated_at.desc().nullslast())
+        .limit(limit)
+        .all()
+    )
+    items = []
+    for t in threads:
+        items.append({
+            "id": t.id,
+            "slug": t.slug,
+            "title": t.title,
+            "category_slug": t.category.slug if t.category else None,
+            "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+        })
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+@api_v1_bp.route("/forum/moderation/pinned-threads", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_pinned_threads():
+    """List pinned threads for dashboard (moderator/admin only). Query: limit (default 20, max 100)."""
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
+    threads = (
+        ForumThread.query.filter_by(is_pinned=True)
+        .filter(ForumThread.status != "deleted")
+        .order_by(ForumThread.updated_at.desc().nullslast())
+        .limit(limit)
+        .all()
+    )
+    items = []
+    for t in threads:
+        items.append({
+            "id": t.id,
+            "slug": t.slug,
+            "title": t.title,
+            "category_slug": t.category.slug if t.category else None,
+            "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+        })
+    return jsonify({"items": items, "total": len(items)}), 200
+
+
+@api_v1_bp.route("/forum/moderation/hidden-posts", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+def forum_moderation_hidden_posts():
+    """List hidden posts for dashboard (moderator/admin only). Query: limit (default 20, max 100)."""
+    user, err_resp = _require_moderator_or_admin()
+    if err_resp:
+        return err_resp
+    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
+    posts = (
+        ForumPost.query.filter_by(status="hidden")
+        .order_by(ForumPost.updated_at.desc().nullslast())
+        .limit(limit)
+        .all()
+    )
+    items = []
+    for p in posts:
+        thread = p.thread
+        items.append({
+            "id": p.id,
+            "thread_id": p.thread_id,
+            "thread_slug": thread.slug if thread and thread.deleted_at is None else None,
+            "thread_title": thread.title if thread else None,
+            "content_snippet": (p.content or "")[:120] + ("..." if len(p.content or "") > 120 else ""),
+            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+        })
     return jsonify({"items": items, "total": len(items)}), 200
 
 

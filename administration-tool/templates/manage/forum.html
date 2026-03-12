@@ -8,6 +8,52 @@
         <p class="manage-section-subtitle">Moderation and category management.</p>
     </header>
 
+    <div id="manage-forum-dashboard-card" class="manage-card" hidden>
+        <div class="manage-card-header">
+            <h2 class="manage-card-title mono">// MODERATION DASHBOARD</h2>
+            <button type="button" class="btn btn-outline btn-sm" id="manage-forum-dashboard-refresh">Refresh</button>
+        </div>
+        <div class="manage-card-body">
+            <p class="manage-state" id="manage-forum-dashboard-loading" role="status">Loading…</p>
+            <p class="manage-state manage-state-error" id="manage-forum-dashboard-error" role="alert" hidden></p>
+            <div id="manage-forum-dashboard-content" hidden>
+                <div class="manage-forum-metrics" id="manage-forum-metrics"></div>
+                <div class="manage-grid-2" style="margin-top:1rem;">
+                    <div>
+                        <h3 class="mono" style="margin-bottom:0.5rem;">Open reports</h3>
+                        <p class="manage-state" id="manage-forum-open-reports-loading">Loading…</p>
+                        <p class="manage-state" id="manage-forum-open-reports-empty" hidden>No open reports.</p>
+                        <div id="manage-forum-open-reports-wrap" class="table-wrap" hidden></div>
+                    </div>
+                    <div>
+                        <h3 class="mono" style="margin-bottom:0.5rem;">Recently handled</h3>
+                        <p class="manage-state" id="manage-forum-handled-loading">Loading…</p>
+                        <p class="manage-state" id="manage-forum-handled-empty" hidden>No recently handled reports.</p>
+                        <div id="manage-forum-handled-wrap" class="table-wrap" hidden></div>
+                    </div>
+                </div>
+                <details class="manage-forum-details" style="margin-top:1rem;">
+                    <summary class="mono">Locked threads</summary>
+                    <p class="manage-state" id="manage-forum-locked-loading">Loading…</p>
+                    <p class="manage-state" id="manage-forum-locked-empty" hidden>None.</p>
+                    <div id="manage-forum-locked-wrap" class="table-wrap" hidden></div>
+                </details>
+                <details class="manage-forum-details" style="margin-top:0.5rem;">
+                    <summary class="mono">Pinned threads</summary>
+                    <p class="manage-state" id="manage-forum-pinned-loading">Loading…</p>
+                    <p class="manage-state" id="manage-forum-pinned-empty" hidden>None.</p>
+                    <div id="manage-forum-pinned-wrap" class="table-wrap" hidden></div>
+                </details>
+                <details class="manage-forum-details" style="margin-top:0.5rem;">
+                    <summary class="mono">Hidden posts</summary>
+                    <p class="manage-state" id="manage-forum-hidden-loading">Loading…</p>
+                    <p class="manage-state" id="manage-forum-hidden-empty" hidden>None.</p>
+                    <div id="manage-forum-hidden-wrap" class="table-wrap" hidden></div>
+                </details>
+            </div>
+        </div>
+    </div>
+
     <div class="manage-grid-2">
         <div class="manage-card" id="manage-forum-categories-card">
             <div class="manage-card-header">
