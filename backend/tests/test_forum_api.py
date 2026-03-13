@@ -1264,3 +1264,25 @@ def test_mention_creates_notification(app, client, moderator_headers, auth_heade
         ).all()
         assert len(mention_notifications) == 1
         assert "mentioned you" in (mention_notifications[0].message or "")
+
+
+def test_search_deleted_threads_visible_to_moderator(app, client, moderator_headers):
+    """Moderators can see deleted threads in forum search results."""
+    with app.app_context():
+        cat = ForumCategory(slug="del-search-cat", title="Del Search Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id,
+            slug="deleted-search-thread",
+            title="DeletedSearchTarget",
+            status="deleted",
+        )
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=DeletedSearchTarget", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "deleted-search-thread" in slugs

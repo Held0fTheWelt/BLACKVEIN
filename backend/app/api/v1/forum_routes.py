@@ -299,7 +299,10 @@ def forum_search():
     if len(q_raw) > 200:
         q_raw = q_raw[:200]
     like_pattern = f"%{q_raw}%" if q_raw else None
-    q = ForumThread.query.filter(ForumThread.status != "deleted")
+    is_mod_or_admin = user is not None and (current_user_is_moderator() or current_user_is_admin())
+    q = ForumThread.query
+    if not is_mod_or_admin:
+        q = q.filter(ForumThread.status != "deleted")
     if like_pattern:
         q = q.filter(ForumThread.title.ilike(like_pattern))
 
