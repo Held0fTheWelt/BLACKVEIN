@@ -93,14 +93,14 @@ def test_category_threads_hidden_excluded_for_user(app, client, auth_headers):
         cat = ForumCategory(slug="vis-cat", title="Vis", is_active=True, is_private=False)
         db.session.add(cat)
         db.session.flush()
-        ForumThread(category_id=cat.id, slug="vis-open", title="Open", status="open", author_id=user.id)
         db.session.add(ForumThread(category_id=cat.id, slug="vis-open", title="Open", status="open", author_id=user.id))
+        db.session.add(ForumThread(category_id=cat.id, slug="vis-open-2", title="Open 2", status="open", author_id=user.id))
         db.session.add(ForumThread(category_id=cat.id, slug="vis-hidden", title="Hidden", status="hidden", author_id=user.id))
         db.session.commit()
     resp = client.get("/api/v1/forum/categories/vis-cat/threads", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data["total"] == 1  # hidden excluded
+    assert data["total"] == 2  # hidden excluded, 2 visible threads remain
 
 
 def test_category_threads_hidden_visible_for_mod(app, client, moderator_headers):
