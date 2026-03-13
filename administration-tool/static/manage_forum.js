@@ -7,6 +7,15 @@
         return isNaN(d.getTime()) ? "" : d.toLocaleString();
     }
 
+    function escapeHtml(s) {
+        if (s == null) return "";
+        return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
     function api() {
         return window.ManageAuth && window.ManageAuth.apiFetchWithAuth;
     }
@@ -43,12 +52,12 @@
                         var tr = document.createElement("tr");
                         tr.dataset.id = cat.id;
                         tr.innerHTML =
-                            "<td>" + (cat.title || "") + "</td>" +
-                            "<td>" + (cat.slug || "") + "</td>" +
+                            "<td>" + escapeHtml(cat.title || "") + "</td>" +
+                            "<td>" + escapeHtml(cat.slug || "") + "</td>" +
                             "<td>" + (cat.sort_order != null ? String(cat.sort_order) : "") + "</td>" +
                             "<td>" + (cat.is_active ? "Yes" : "No") + "</td>" +
                             "<td>" + (cat.is_private ? "Yes" : "No") + "</td>" +
-                            "<td>" + (cat.required_role || "") + "</td>";
+                            "<td>" + escapeHtml(cat.required_role || "") + "</td>";
                         tr.addEventListener("click", function() { selectCategory(cat); });
                         tbody.appendChild(tr);
                     });
@@ -287,12 +296,12 @@
                             var tr = document.createElement("tr");
                             var target = (r.target_type || "?") + "#" + String(r.target_id || "");
                             var created = formatDate(r.created_at);
-                            var noteSnippet = r.resolution_note ? r.resolution_note.substring(0, 40) + (r.resolution_note.length > 40 ? "..." : "") : "";
+                            var noteSnippet = escapeHtml(r.resolution_note ? r.resolution_note.substring(0, 40) + (r.resolution_note.length > 40 ? "..." : "") : "");
                             tr.innerHTML =
                                 "<td><input type=\"checkbox\" class=\"report-check\" value=\"" + r.id + "\"></td>" +
                                 "<td>" + r.id + "</td>" +
                                 "<td>" + target + "</td>" +
-                                "<td>" + (r.reason || "") + "</td>" +
+                                "<td>" + escapeHtml(r.reason || "") + "</td>" +
                                 "<td class=\"mono\" style=\"font-size:0.85em;\">" + noteSnippet + "</td>" +
                                 "<td>" + (r.status || "") + "</td>" +
                                 "<td>" + created + "</td>" +
@@ -441,7 +450,7 @@
                         var tr = document.createElement("tr");
                         tr.innerHTML =
                             "<td>" + link + "</td>" +
-                            "<td>" + (r.reason || "").substring(0, 60) + (r.reason && r.reason.length > 60 ? "…" : "") + "</td>" +
+                            "<td>" + escapeHtml((r.reason || "").substring(0, 60)) + (r.reason && r.reason.length > 60 ? "…" : "") + "</td>" +
                             "<td>" + formatDate(r.created_at) + "</td>" +
                             "<td>" +
                             "<button type=\"button\" class=\"btn btn-sm btn-outline\" data-status=\"reviewed\">Reviewed</button> " +
@@ -614,7 +623,7 @@
                     items.forEach(function(p) {
                         var link = p.thread_slug ? "<a href=\"" + forumThreadUrl(p.thread_slug) + "\">" + (p.thread_title || p.thread_slug) + "</a>" : ("post#" + p.id);
                         var tr = document.createElement("tr");
-                        tr.innerHTML = "<td><input type=\"checkbox\" class=\"hidden-check\" value=\"" + p.id + "\"></td><td>" + link + "</td><td>" + (p.content_snippet || "").replace(/</g, "&lt;") + "</td><td>" + formatDate(p.updated_at) + "</td>";
+                        tr.innerHTML = "<td><input type=\"checkbox\" class=\"hidden-check\" value=\"" + p.id + "\"></td><td>" + link + "</td><td>" + escapeHtml(p.content_snippet || "") + "</td><td>" + formatDate(p.updated_at) + "</td>";
                         table.querySelector("tbody").appendChild(tr);
                     });
                     var theadCb = table.querySelector(".hidden-thead-check");
@@ -718,10 +727,10 @@
                         items.forEach(function(entry) {
                             var tr = document.createElement("tr");
                             tr.innerHTML =
-                                "<td>" + (entry.actor_username_snapshot || "system") + "</td>" +
-                                "<td>" + (entry.action || "") + "</td>" +
+                                "<td>" + escapeHtml(entry.actor_username_snapshot || "system") + "</td>" +
+                                "<td>" + escapeHtml(entry.action || "") + "</td>" +
                                 "<td>" + (entry.target_type || "") + (entry.target_id ? "#" + entry.target_id : "") + "</td>" +
-                                "<td>" + (entry.message || "").substring(0, 80) + "</td>" +
+                                "<td>" + escapeHtml((entry.message || "").substring(0, 80)) + "</td>" +
                                 "<td>" + formatDate(entry.created_at) + "</td>";
                             tbody.appendChild(tr);
                         });
