@@ -1,4 +1,4 @@
-# Forum module (0.0.19)
+# Forum module (0.0.27)
 
 ## Boundaries and entities
 
@@ -96,7 +96,8 @@ Posts are referenced by numeric ID in API routes (no public slug).
   - Not see internal report handling details.
 - Reports:
   - `target_type`: `thread` or `post`.
-  - `status`: `open` (new), `reviewed` (seen but not resolved), `resolved` (action taken), `dismissed` (no action needed).
+  - `status`: `open` (new), `reviewed` (seen but not resolved), `escalated`, `resolved` (action taken), `dismissed` (no action needed).
+  - No `resolution_note` field exists (as of v0.0.27).
 
 Moderation and admin actions should be logged via the existing activity log service where appropriate (e.g. category changes, locks, hides).
 
@@ -106,10 +107,10 @@ Public/community:
 
 - `GET /api/v1/forum/categories` → list visible categories.
 - `GET /api/v1/forum/categories/<slug>` → category detail (+ limited stats).
-- `GET /api/v1/forum/categories/<slug>/threads` → paginated threads in category.
+- `GET /api/v1/forum/categories/<slug>/threads` → paginated threads in category. Each thread includes `bookmarked_by_me` (bool) and `tags` (array). Response includes `total`.
 - `GET /api/v1/forum/threads/<slug>` → thread detail.
 - `GET /api/v1/forum/threads/<id>/posts` → paginated posts for thread.
-- `GET /api/v1/forum/search` → search threads (and optionally posts).
+- `GET /api/v1/forum/search` → search threads (and optionally posts). Supports `category`, `status`, `tag`, `include_content` filters.
 
 Authenticated:
 
@@ -117,13 +118,33 @@ Authenticated:
 - Post CRUD: `POST/PUT/DELETE /api/v1/forum/posts[...]` with permission checks.
 - Likes: `POST/DELETE /api/v1/forum/posts/<id>/like`.
 - Reports: `POST /api/v1/forum/reports`.
+- Bookmarks: `POST/DELETE /api/v1/forum/threads/<id>/bookmark`, `GET /api/v1/forum/bookmarks`.
+- Subscriptions: `POST/DELETE /api/v1/forum/threads/<id>/subscribe`, `GET /api/v1/forum/threads/<id>/subscription`.
 
 Moderator/admin:
 
-- Thread moderation: lock/unlock, pin/unpin.
+- Thread moderation: lock/unlock, pin/unpin, archive/unarchive, move, merge, split.
 - Post moderation: hide/unhide.
-- Reports: list + update status.
+- Reports: `GET /api/v1/forum/reports?status=<status>` (filter by status; no pagination), `PUT /api/v1/forum/reports/<id>` (update status), `POST /api/v1/forum/reports/bulk-status` (bulk status update by IDs).
+- Tags: `GET /api/v1/forum/tags` (list all with thread counts; supports `q`, `page`, `limit`).
 - Category admin: create/edit/delete categories.
+- Bulk operations: `POST /api/v1/forum/moderation/bulk-threads/status`, `POST /api/v1/forum/moderation/bulk-posts/hide`.
+- Thread tags: `PUT /api/v1/forum/threads/<id>/tags` — set tags for a thread (author or moderator/admin).
 
-All endpoints will follow existing API conventions: JSON bodies, error structures with `{"error": "..."} ` or typed issues, and pagination fields (`items`, `total`, `page`, `per_page`).
+Admin only:
+
+- `DELETE /api/v1/forum/tags/<id>` — delete unused tag (409 if in use by any thread).
+- Category management: `POST/PUT/DELETE /api/v1/forum/admin/categories[...]`.
+
+All endpoints follow existing API conventions: JSON bodies, error structures `{"error": "..."}`, and pagination fields (`items`, `total`, `page`, `per_page`) where applicable.
+
+## Tag management
+
+Tags are created implicitly when set on threads. Tag slugs are normalized from labels. The `GET /api/v1/forum/tags` endpoint returns each tag's `id`, `slug`, `label`, `thread_count`, and `created_at`. Tags cannot be deleted while any thread associations exist (409 Conflict).
+
+## Thread list `bookmarked_by_me` and `tags` fields
+
+Added in v0.0.27. The category thread list endpoint batch-loads bookmark state and tags for the current page. Anonymous requests always receive `bookmarked_by_me: false`. Tags are an array of label strings.
+
+**Known limitation:** Visibility filtering for the thread list runs in Python after loading up to 1000 threads. Categories with more than 1000 non-deleted threads may not expose threads beyond that threshold at higher page numbers.
 

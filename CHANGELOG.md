@@ -17,6 +17,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.27] - 2026-03-13
+
+### Added
+
+- **Forum tag management endpoints:** `GET /api/v1/forum/tags` (moderator/admin, paginated, searchable) lists all tags with thread counts. `DELETE /api/v1/forum/tags/<id>` (admin only) deletes unused tags; returns 409 if the tag has thread associations.
+- **Thread list enhancements:** `GET /api/v1/forum/categories/<slug>/threads` now returns `bookmarked_by_me` (bool) and `tags` (array of label strings) per thread, and includes `total` in the response envelope. Tags and bookmark state are batch-loaded per page.
+
+### Changed
+
+- **Postman collection:** Added `Forum > Tags` folder with `List Tags (Moderator+)` and `Delete Tag (Admin only)` requests including response examples. Updated `List Category Threads` with a response example showing `bookmarked_by_me`, `tags`, and `total`. Corrected `List Reports (Moderator+)` URL to remove non-functional `page`/`limit` params and added an accurate response example.
+- **`backend/docs/FORUM_MODULE.md`:** Updated to document all endpoints added since v0.0.19 including bookmarks, subscriptions, tags, bulk moderation, merges, splits, and search filters.
+
+### Known limitations
+
+- `GET /api/v1/forum/reports` does not support `page`, `limit`, or `target_type` filtering. It supports `status` only and returns all matching reports in a single list.
+- Thread list visibility filtering runs in Python over up to 1000 threads per category; categories with more than 1000 non-deleted threads may not surface all content at higher page offsets.
+
+---
+
 ## [0.0.26] - 2026-03-12
 
 ### Added

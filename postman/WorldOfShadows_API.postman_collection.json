@@ -67,9 +67,9 @@
         }
       ]
     },
-        {
-          "name": "News",
-          "item": [
+    {
+      "name": "News",
+      "item": [
         {
           "name": "List News",
           "request": {
@@ -268,98 +268,98 @@
             }
           }
         },
-            {
-              "name": "Unlink Discussion Thread",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/news/1/discussion-thread",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "news",
-                    "1",
-                    "discussion-thread"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Related Threads (Public)",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/news/1/related-threads",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "news",
-                    "1",
-                    "related-threads"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Add Related Thread (Moderator+)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"thread_id\": 1\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/news/1/related-threads",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "news",
-                    "1",
-                    "related-threads"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Remove Related Thread (Moderator+)",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/news/1/related-threads/1",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "news",
-                    "1",
-                    "related-threads",
-                    "1"
-                  ]
-                }
-              }
+        {
+          "name": "Unlink Discussion Thread",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/1/discussion-thread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "discussion-thread"
+              ]
             }
-          ]
+          }
         },
+        {
+          "name": "List Related Threads (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/1/related-threads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "related-threads"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Related Thread (Moderator+)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thread_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/1/related-threads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "related-threads"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Related Thread (Moderator+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/news/1/related-threads/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "news",
+                "1",
+                "related-threads",
+                "1"
+              ]
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Forum",
       "item": [
@@ -466,8 +466,24 @@
                       "value": "20"
                     }
                   ]
+                },
+                "description": "List visible threads in a category. Supports `page` and `limit` for pagination. Each thread object includes `bookmarked_by_me` (bool, requires auth) and `tags` (array of tag label strings). Response includes `total` (count of all visible threads in the category)."
+              },
+              "response": [
+                {
+                  "name": "200 OK \u2013 thread list with tags and bookmark state",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "_postman_previewlanguage": "json",
+                  "body": "{\n  \"items\": [\n    {\n      \"id\": 1,\n      \"slug\": \"welcome-to-general\",\n      \"title\": \"Welcome to General\",\n      \"status\": \"open\",\n      \"is_pinned\": true,\n      \"is_locked\": false,\n      \"reply_count\": 5,\n      \"view_count\": 120,\n      \"last_post_at\": \"2026-03-12T14:00:00+00:00\",\n      \"created_at\": \"2026-02-01T09:00:00+00:00\",\n      \"author_id\": 3,\n      \"author_username\": \"admin\",\n      \"bookmarked_by_me\": true,\n      \"tags\": [\n        \"announcement\",\n        \"lore\"\n      ]\n    },\n    {\n      \"id\": 2,\n      \"slug\": \"off-topic-chat\",\n      \"title\": \"Off-topic chat\",\n      \"status\": \"open\",\n      \"is_pinned\": false,\n      \"is_locked\": false,\n      \"reply_count\": 2,\n      \"view_count\": 45,\n      \"last_post_at\": \"2026-03-10T11:30:00+00:00\",\n      \"created_at\": \"2026-02-15T12:00:00+00:00\",\n      \"author_id\": 7,\n      \"author_username\": \"shadowrunner\",\n      \"bookmarked_by_me\": false,\n      \"tags\": []\n    }\n  ],\n  \"total\": 2,\n  \"page\": 1,\n  \"per_page\": 20\n}"
                 }
-              }
+              ]
             },
             {
               "name": "Get Thread",
@@ -641,11 +657,26 @@
               "name": "Move Thread",
               "request": {
                 "method": "POST",
-                "header": [{"key": "Content-Type", "value": "application/json"}],
-                "body": {"mode": "raw", "raw": "{\n  \"category_id\": 2\n}"},
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"category_id\": 2\n}"
+                },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/threads/1/move",
-                  "path": ["api", "v1", "forum", "threads", "1", "move"]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "move"
+                  ]
                 }
               }
             },
@@ -656,7 +687,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/threads/1/archive",
-                  "path": ["api", "v1", "forum", "threads", "1", "archive"]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "archive"
+                  ]
                 }
               }
             },
@@ -667,7 +705,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/threads/1/unarchive",
-                  "path": ["api", "v1", "forum", "threads", "1", "unarchive"]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "unarchive"
+                  ]
                 }
               }
             },
@@ -687,7 +732,14 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/threads/1/merge",
-                  "path": ["api", "v1", "forum", "threads", "1", "merge"]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "merge"
+                  ]
                 }
               }
             },
@@ -707,7 +759,14 @@
                 },
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/threads/1/split",
-                  "path": ["api", "v1", "forum", "threads", "1", "split"]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "threads",
+                    "1",
+                    "split"
+                  ]
                 }
               }
             },
@@ -1036,7 +1095,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/forum/reports?page=1&limit=20&status=open",
+                  "raw": "{{baseUrl}}/api/v1/forum/reports?status=open",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -1048,20 +1107,29 @@
                   ],
                   "query": [
                     {
-                      "key": "page",
-                      "value": "1"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "20"
-                    },
-                    {
                       "key": "status",
-                      "value": "open"
+                      "value": "open",
+                      "description": "Filter by status: open, reviewed, escalated, resolved, dismissed. Omit for all."
                     }
                   ]
+                },
+                "description": "List forum reports. Requires moderator or admin role. Filter by `status` (open, reviewed, escalated, resolved, dismissed). Note: the `page` and `limit` query params shown here are accepted but ignored \u2014 the endpoint returns all matching reports in a single response. Each report object contains `id`, `target_type`, `target_id`, `reported_by`, `reason`, `status`, `handled_by`, `handled_at`, `created_at`."
+              },
+              "response": [
+                {
+                  "name": "200 OK \u2013 report list",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "_postman_previewlanguage": "json",
+                  "body": "{\n  \"items\": [\n    {\n      \"id\": 1,\n      \"target_type\": \"post\",\n      \"target_id\": 42,\n      \"reported_by\": 5,\n      \"reason\": \"Inappropriate language\",\n      \"status\": \"open\",\n      \"handled_by\": null,\n      \"handled_at\": null,\n      \"created_at\": \"2026-03-12T10:00:00+00:00\"\n    }\n  ]\n}"
                 }
-              }
+              ]
             },
             {
               "name": "Update Report Status (Moderator+)",
@@ -1220,6 +1288,112 @@
           ]
         },
         {
+          "name": "Tags",
+          "item": [
+            {
+              "name": "List Tags (Moderator+)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/tags?page=1&limit=50&q=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "tags"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number (default 1)"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50",
+                      "description": "Results per page (max 100, default 50)"
+                    },
+                    {
+                      "key": "q",
+                      "value": "",
+                      "description": "Optional search term to filter tags by label/slug"
+                    }
+                  ]
+                },
+                "description": "List all forum tags with thread counts. Requires moderator or admin role. Returns paginated results with `id`, `slug`, `label`, `thread_count`, `created_at`."
+              },
+              "response": [
+                {
+                  "name": "200 OK \u2013 tag list",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "_postman_previewlanguage": "json",
+                  "body": "{\n  \"items\": [\n    {\n      \"id\": 1,\n      \"slug\": \"lore\",\n      \"label\": \"lore\",\n      \"thread_count\": 12,\n      \"created_at\": \"2026-03-01T10:00:00+00:00\"\n    },\n    {\n      \"id\": 2,\n      \"slug\": \"announcement\",\n      \"label\": \"announcement\",\n      \"thread_count\": 3,\n      \"created_at\": \"2026-03-05T08:30:00+00:00\"\n    }\n  ],\n  \"total\": 2,\n  \"page\": 1,\n  \"per_page\": 50\n}"
+                }
+              ]
+            },
+            {
+              "name": "Delete Tag (Admin only)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forum/tags/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "tags",
+                    "1"
+                  ]
+                },
+                "description": "Delete a forum tag by ID. Requires admin role. Returns 409 if the tag is currently associated with any threads. Returns 200 on success."
+              },
+              "response": [
+                {
+                  "name": "200 OK \u2013 tag deleted",
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "_postman_previewlanguage": "json",
+                  "body": "{\n  \"message\": \"Deleted\"\n}"
+                },
+                {
+                  "name": "409 Conflict \u2013 tag in use",
+                  "status": "Conflict",
+                  "code": 409,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "_postman_previewlanguage": "json",
+                  "body": "{\n  \"error\": \"Tag is in use by one or more threads\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "Moderation Dashboard",
           "item": [
             {
@@ -1275,8 +1449,19 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/moderation/recently-handled?limit=10",
-                  "path": ["api", "v1", "forum", "moderation", "recently-handled"],
-                  "query": [{"key": "limit", "value": "10"}]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "recently-handled"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 }
               }
             },
@@ -1287,8 +1472,19 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/moderation/locked-threads?limit=20",
-                  "path": ["api", "v1", "forum", "moderation", "locked-threads"],
-                  "query": [{"key": "limit", "value": "20"}]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "locked-threads"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
                 }
               }
             },
@@ -1299,8 +1495,19 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/moderation/pinned-threads?limit=20",
-                  "path": ["api", "v1", "forum", "moderation", "pinned-threads"],
-                  "query": [{"key": "limit", "value": "20"}]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "pinned-threads"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
                 }
               }
             },
@@ -1311,8 +1518,19 @@
                 "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/api/v1/forum/moderation/hidden-posts?limit=20",
-                  "path": ["api", "v1", "forum", "moderation", "hidden-posts"],
-                  "query": [{"key": "limit", "value": "20"}]
+                  "path": [
+                    "api",
+                    "v1",
+                    "forum",
+                    "moderation",
+                    "hidden-posts"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
                 }
               }
             },
