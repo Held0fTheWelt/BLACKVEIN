@@ -49,23 +49,26 @@
   </div>
 </section>
 
-<section class="benefits" id="benefits" data-preload>
-  <div class="benefits-grid">
-    <div class="benefit-card" data-counter="99.9" data-suffix="%">
-      <span class="benefit-value mono"><span class="counter-num">0</span>%</span>
-      <p class="benefit-label">Uptime SLA</p>
+<section class="overview" id="overview" data-preload>
+  <div class="overview-logo-wrap">
+    <img class="overview-logo js-lightbox-open" src="{{ url_for('static', filename='Logo.png') }}" alt="BLACKVEIN">
+  </div>
+  <div class="overview-grid">
+    <div class="overview-card" data-counter="99.9" data-suffix="%">
+      <span class="overview-value mono"><span class="counter-num">0</span>%</span>
+      <p class="overview-label">Uptime SLA</p>
     </div>
-    <div class="benefit-card" data-counter="<50" data-suffix="ms">
-      <span class="benefit-value mono">&lt;50ms</span>
-      <p class="benefit-label">API Response</p>
+    <div class="overview-card" data-counter="<50" data-suffix="ms">
+      <span class="overview-value mono">&lt;50ms</span>
+      <p class="overview-label">API Response</p>
     </div>
-    <div class="benefit-card" data-counter="100" data-suffix="%">
-      <span class="benefit-value mono"><span class="counter-num">0</span>%</span>
-      <p class="benefit-label">Open Source</p>
+    <div class="overview-card" data-counter="100" data-suffix="%">
+      <span class="overview-value mono"><span class="counter-num">0</span>%</span>
+      <p class="overview-label">Open Source</p>
     </div>
-    <div class="benefit-card" data-counter="0" data-suffix=" CVEs">
-      <span class="benefit-value mono"><span class="counter-num">0</span> CVEs</span>
-      <p class="benefit-label">Known Vulnerabilities</p>
+    <div class="overview-card" data-counter="0" data-suffix=" CVEs">
+      <span class="overview-value mono"><span class="counter-num">0</span> CVEs</span>
+      <p class="overview-label">Known Vulnerabilities</p>
     </div>
   </div>
 </section>
@@ -153,7 +156,7 @@
 <nav class="command-dock" role="navigation" aria-label="Site navigation">
   <a href="{{ url_for('web.home') }}" class="dock-logo mono">WoS</a>
   <div class="dock-links">
-    <a href="#benefits" class="dock-link">Metrics</a>
+    <a href="#overview" class="dock-link">Overview</a>
     <a href="#features" class="dock-link">Features</a>
     {% if session.get('username') %}
     <a href="{{ url_for('web.dashboard') }}" class="dock-link dock-link--active">Dashboard</a>
@@ -163,6 +166,7 @@
     {% endif %}
   </div>
 </nav>
+</div>
 
 <div class="lightbox" id="hero-lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Bild vergrößert">
   <div class="lightbox__backdrop" aria-hidden="true"></div>
@@ -170,7 +174,6 @@
     <img class="lightbox__image" src="" alt="">
     <button class="lightbox__close" type="button" aria-label="Schließen">&times;</button>
   </div>
-</div>
 </div>
 {% endblock %}
 

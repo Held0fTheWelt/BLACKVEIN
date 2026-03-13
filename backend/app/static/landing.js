@@ -50,7 +50,7 @@
   }
 
   function counters() {
-    var cards = document.querySelectorAll('.benefit-card[data-counter]');
+    var cards = document.querySelectorAll('.overview-card[data-counter]');
     cards.forEach(function (card) {
       var raw = card.getAttribute('data-counter');
       var suffix = card.getAttribute('data-suffix') || '';
