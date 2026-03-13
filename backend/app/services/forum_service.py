@@ -845,7 +845,7 @@ def _normalize_tag_value(raw: str) -> Optional[str]:
     if not raw or not isinstance(raw, str):
         return None
     s = raw.strip().lower()
-    s = re.sub(r"[^a-z0-9\\-_]+", "-", s)
+    s = re.sub(r"[^a-z0-9_-]+", "-", s)
     s = re.sub(r"-{2,}", "-", s).strip("-")
     return s or None
 
@@ -960,6 +960,20 @@ def list_all_tags(*, page: int = 1, per_page: int = 50, q: Optional[str] = None)
 def tag_thread_count(tag: ForumTag) -> int:
     """Return number of thread-tag associations for a tag."""
     return ForumThreadTag.query.filter_by(tag_id=tag.id).count()
+
+
+def batch_tag_thread_counts(tag_ids: List[int]) -> dict[int, int]:
+    """Return a dict of tag_id -> thread count for all given tag IDs in a single query."""
+    if not tag_ids:
+        return {}
+    from sqlalchemy import func
+    rows = (
+        db.session.query(ForumThreadTag.tag_id, func.count(ForumThreadTag.id))
+        .filter(ForumThreadTag.tag_id.in_(tag_ids))
+        .group_by(ForumThreadTag.tag_id)
+        .all()
+    )
+    return dict(rows)
 
 
 def delete_tag(tag: ForumTag) -> Optional[str]:

@@ -66,7 +66,7 @@ from app.services.forum_service import (
     soft_delete_thread,
     split_thread_from_post,
     subscribe_thread,
-    tag_thread_count,
+    batch_tag_thread_counts,
     unsubscribe_thread,
     unhide_post,
     unlike_post,
@@ -172,9 +172,18 @@ def forum_category_threads(slug):
     page = _parse_int(request.args.get("page"), 1, min_val=1)
     limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
 
-    # Get raw threads for the category ...
-    raw_items, _total = list_threads_for_category(cat, page=1, per_page=1000)
-    # ... then apply per-thread visibility rules to avoid leaking hidden/archived/private threads.
+    # THREAD_FETCH_CAP: We load up to this many threads from the DB before
+    # applying Python-side per-thread visibility filtering (user_can_view_thread).
+    # Visibility rules depend on the requesting user's role and thread status, so
+    # they cannot be expressed as a simple SQL WHERE clause without duplicating
+    # service-layer logic.  The SQL-level optimisation belongs in Phase 5.
+    #
+    # KNOWN LIMITATION: if a category contains more than THREAD_FETCH_CAP
+    # non-deleted threads, threads beyond that position are silently invisible
+    # to all users until a Phase 5 rewrite replaces this approach.
+    THREAD_FETCH_CAP = 1000
+    raw_items, _total = list_threads_for_category(cat, page=1, per_page=THREAD_FETCH_CAP)
+    # Apply per-thread visibility rules to avoid leaking hidden/archived/private threads.
     visible = [t for t in raw_items if user_can_view_thread(user, t)]
 
     total_visible = len(visible)
@@ -1598,13 +1607,14 @@ def forum_tags_list():
     limit = _parse_int(request.args.get("limit"), 50, min_val=1, max_val=100)
     q = (request.args.get("q") or "").strip() or None
     tags, total = list_all_tags(page=page, per_page=limit, q=q)
+    counts = batch_tag_thread_counts([t.id for t in tags])
     items = []
     for t in tags:
         items.append({
             "id": t.id,
             "slug": t.slug,
             "label": t.label,
-            "thread_count": tag_thread_count(t),
+            "thread_count": counts.get(t.id, 0),
             "created_at": t.created_at.isoformat() if t.created_at else None,
         })
     return jsonify({"items": items, "total": total, "page": page, "per_page": limit}), 200
@@ -1623,7 +1633,6 @@ def forum_tag_delete(tag_id: int):
     tag = ForumTag.query.get(tag_id)
     if not tag:
         return jsonify({"error": "Tag not found"}), 404
-    from app.services.forum_service import delete_tag
     err = delete_tag(tag)
     if err:
         return jsonify({"error": err}), 409
