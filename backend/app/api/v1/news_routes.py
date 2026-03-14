@@ -735,7 +735,7 @@ def news_suggested_threads_get(article_id: int):
     article = get_news_article_by_id(article_id)
     if not article:
         return jsonify({"error": "Article not found"}), 404
-    if not article.is_published:
+    if article.status != "published":
         # Non-published articles don't show suggestions to public
         return jsonify({"items": [], "total": 0}), 200
 
