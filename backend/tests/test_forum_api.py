@@ -1806,3 +1806,357 @@ def test_tag_edit_duplicate_tags(app, client, auth_headers):
     # Count occurrences of tag-dup
     dup_count = tag_slugs.count("tag-dup")
     assert dup_count == 1, f"Expected 1 tag-dup, got {dup_count}"
+
+
+# ============= PHASE 5: BOOKMARKS SERIALIZATION TESTS =============
+
+
+def test_bookmarks_list_includes_tags_array(app, client, auth_headers):
+    """GET /api/v1/forum/bookmarks response includes tags array per item."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-bm-tags-cat", title="P5 BM Tags", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id,
+            slug="p5-bm-tags-thread",
+            title="P5 Tags Thread",
+            status="open",
+            author_id=user.id
+        )
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Set tags on thread
+    resp_tags = client.put(
+        f"/api/v1/forum/threads/{thread_id}/tags",
+        json={"tags": ["Phase5", "Testing"]},
+        headers=auth_headers
+    )
+    assert resp_tags.status_code == 200
+
+    # Bookmark the thread
+    resp_bookmark = client.post(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp_bookmark.status_code == 200
+
+    # Get bookmarks list and verify tags array is present
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data["items"]) >= 1
+    thread_item = next((t for t in data["items"] if t["slug"] == "p5-bm-tags-thread"), None)
+    assert thread_item is not None
+    assert "tags" in thread_item
+    assert isinstance(thread_item["tags"], list)
+    tag_slugs = {t["slug"] for t in thread_item["tags"]}
+    assert "phase5" in tag_slugs
+    assert "testing" in tag_slugs
+
+
+def test_bookmarks_list_includes_basic_thread_fields(app, client, auth_headers):
+    """GET /api/v1/forum/bookmarks response includes thread fields like title, slug, status."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-bm-fields-cat", title="P5 BM Fields", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        t1 = ForumThread(category_id=cat.id, slug="p5-bm-fields-1", title="P5 BM Fields 1", status="open", author_id=user.id)
+        t2 = ForumThread(category_id=cat.id, slug="p5-bm-fields-2", title="P5 BM Fields 2", status="open", author_id=user.id)
+        db.session.add_all([t1, t2])
+        db.session.commit()
+        t1_id = t1.id
+        t2_id = t2.id
+
+    # Bookmark both threads
+    resp = client.post(f"/api/v1/forum/threads/{t1_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+    resp = client.post(f"/api/v1/forum/threads/{t2_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # Get bookmarks list
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert len(data["items"]) >= 2
+
+    # Verify items have expected thread fields
+    for item in data["items"]:
+        assert "id" in item
+        assert "slug" in item
+        assert "title" in item
+        assert "status" in item
+        assert "author_username" in item
+
+
+# ============= PHASE 5: BOOKMARK ADD/REMOVE FLOW TESTS =============
+
+
+def test_bookmark_add_idempotent(app, client, auth_headers):
+    """POST /forum/threads/{id}/bookmark twice returns 200 both times (idempotent)."""
+    with app.app_context():
+        cat = ForumCategory(slug="p5-bm-idempotent-cat", title="P5 BM Idempotent", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-bm-idempotent", title="P5 BM Idempotent", status="open")
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # First bookmark
+    resp1 = client.post(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp1.status_code == 200
+
+    # Second bookmark (should be idempotent)
+    resp2 = client.post(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp2.status_code == 200
+
+    # Verify only one bookmark exists
+    with app.app_context():
+        bookmark_count = ForumThreadBookmark.query.filter_by(thread_id=thread_id).count()
+        assert bookmark_count == 1
+
+
+def test_bookmark_remove_nonexistent(app, client, auth_headers):
+    """DELETE /forum/threads/{id}/bookmark when not bookmarked returns 200 (idempotent)."""
+    with app.app_context():
+        cat = ForumCategory(slug="p5-bm-remove-cat", title="P5 BM Remove", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-bm-remove", title="P5 BM Remove", status="open")
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Try to remove when not bookmarked (should return 200 for idempotency)
+    resp = client.delete(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # Try again (should also return 200)
+    resp = client.delete(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+
+# ============= PHASE 5: TAG NORMALIZATION/FILTERING TESTS =============
+
+
+def test_tag_normalization_in_response(app, client, auth_headers):
+    """Tags in thread detail include both slug and label."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-tag-norm-cat", title="P5 Tag Norm", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id,
+            slug="p5-tag-norm-thread",
+            title="P5 Tag Norm",
+            status="open",
+            author_id=user.id
+        )
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Set tags
+    resp = client.put(
+        f"/api/v1/forum/threads/{thread_id}/tags",
+        json={"tags": ["Bug Report", "High Priority"]},
+        headers=auth_headers
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    tags = data["tags"]
+    assert len(tags) >= 2
+
+    # Each tag should have both slug and label
+    for tag in tags:
+        assert "slug" in tag
+        assert "label" in tag
+        assert isinstance(tag["slug"], str)
+        assert isinstance(tag["label"], str)
+
+
+def test_tag_edit_updates_thread_tag_list(app, client, auth_headers):
+    """After editing tags, thread detail response reflects new tags immediately."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-tag-edit-cat", title="P5 Tag Edit", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id,
+            slug="p5-tag-edit-thread",
+            title="P5 Tag Edit",
+            status="open",
+            author_id=user.id
+        )
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Set initial tags
+    resp1 = client.put(
+        f"/api/v1/forum/threads/{thread_id}/tags",
+        json={"tags": ["OldTag"]},
+        headers=auth_headers
+    )
+    assert resp1.status_code == 200
+    data1 = resp1.get_json()
+    tags1 = {t["slug"] for t in data1["tags"]}
+    assert "oldtag" in tags1
+
+    # Update tags
+    resp2 = client.put(
+        f"/api/v1/forum/threads/{thread_id}/tags",
+        json={"tags": ["NewTag", "AnotherNew"]},
+        headers=auth_headers
+    )
+    assert resp2.status_code == 200
+    data2 = resp2.get_json()
+    tags2 = {t["slug"] for t in data2["tags"]}
+    assert "newtag" in tags2
+    assert "anothernew" in tags2
+    assert "oldtag" not in tags2
+
+    # Fetch thread detail (by slug) to confirm immediate update
+    resp3 = client.get(f"/api/v1/forum/threads/p5-tag-edit-thread", headers=auth_headers)
+    assert resp3.status_code == 200
+    data3 = resp3.get_json()
+    tags3 = {t["slug"] for t in data3["tags"]}
+    assert "newtag" in tags3
+    assert "anothernew" in tags3
+    assert "oldtag" not in tags3
+
+
+# ============= PHASE 5: LIKES SYSTEM REGRESSION TESTS =============
+
+
+def test_likes_post_still_works(app, client, auth_headers):
+    """POST /forum/posts/{id}/like still increments like_count."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-likes-cat", title="P5 Likes", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-likes-thread", title="P5 Likes", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        post = ForumPost(thread_id=thread.id, author_id=user.id, content="P5 test post", status="visible", like_count=0)
+        db.session.add(post)
+        db.session.commit()
+        post_id = post.id
+
+    # Like the post
+    resp = client.post(f"/api/v1/forum/posts/{post_id}/like", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["like_count"] == 1
+    assert data["liked_by_me"] is True
+
+
+def test_likes_unlike_still_works(app, client, auth_headers):
+    """DELETE /forum/posts/{id}/like decrements like_count."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-unlike-cat", title="P5 Unlike", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-unlike-thread", title="P5 Unlike", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        post = ForumPost(thread_id=thread.id, author_id=user.id, content="P5 unlike post", status="visible", like_count=1)
+        db.session.add(post)
+        db.session.flush()
+        like = ForumPostLike(post_id=post.id, user_id=user.id)
+        db.session.add(like)
+        db.session.commit()
+        post_id = post.id
+
+    # Unlike the post
+    resp = client.delete(f"/api/v1/forum/posts/{post_id}/like", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["like_count"] == 0
+    assert data["liked_by_me"] is False
+
+
+def test_likes_and_bookmarks_independent(app, client, auth_headers):
+    """Like and bookmark actions are independent (liking a post doesn't affect thread bookmark status)."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-independent-cat", title="P5 Independent", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-independent-thread", title="P5 Independent", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        post = ForumPost(thread_id=thread.id, author_id=user.id, content="P5 post", status="visible", like_count=0)
+        db.session.add(post)
+        db.session.commit()
+        thread_id = thread.id
+        post_id = post.id
+
+    # Like the post
+    resp_like = client.post(f"/api/v1/forum/posts/{post_id}/like", headers=auth_headers)
+    assert resp_like.status_code == 200
+
+    # Check thread in category list - should not be bookmarked
+    resp_threads_list = client.get("/api/v1/forum/categories/p5-independent-cat/threads", headers=auth_headers)
+    assert resp_threads_list.status_code == 200
+    data_list = resp_threads_list.get_json()
+    thread_item = next((t for t in data_list["items"] if t["slug"] == "p5-independent-thread"), None)
+    assert thread_item is not None
+    assert thread_item["bookmarked_by_me"] is False
+
+    # Now bookmark the thread
+    resp_bookmark = client.post(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp_bookmark.status_code == 200
+
+    # Check thread in category list - should now be bookmarked
+    resp_threads_list2 = client.get("/api/v1/forum/categories/p5-independent-cat/threads", headers=auth_headers)
+    assert resp_threads_list2.status_code == 200
+    data_list2 = resp_threads_list2.get_json()
+    thread_item2 = next((t for t in data_list2["items"] if t["slug"] == "p5-independent-thread"), None)
+    assert thread_item2 is not None
+    assert thread_item2["bookmarked_by_me"] is True
+
+    # Like should still be recorded on the post
+    resp_post = client.get(f"/api/v1/forum/threads/{thread_id}/posts", headers=auth_headers)
+    assert resp_post.status_code == 200
+    posts = resp_post.get_json()
+    post_data = next(p for p in posts["items"] if p["id"] == post_id)
+    assert post_data["like_count"] == 1
+    assert post_data["liked_by_me"] is True
+
+
+# ============= PHASE 5: REACTIONS NOT PRESENT TEST =============
+
+
+def test_no_reactions_endpoint(app, client, auth_headers):
+    """Verify that no /forum/reactions or /forum/posts/{id}/reactions endpoint exists (404)."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="p5-reactions-cat", title="P5 Reactions", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="p5-reactions-thread", title="P5 Reactions", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        post = ForumPost(thread_id=thread.id, author_id=user.id, content="P5 reactions test", status="visible")
+        db.session.add(post)
+        db.session.commit()
+        post_id = post.id
+
+    # Try to access reactions endpoint (should not exist)
+    resp1 = client.get("/api/v1/forum/reactions", headers=auth_headers)
+    assert resp1.status_code == 404
+
+    # Try to access post reactions endpoint (should not exist)
+    resp2 = client.get(f"/api/v1/forum/posts/{post_id}/reactions", headers=auth_headers)
+    assert resp2.status_code == 404
+
+    # Try to post a reaction (should not exist)
+    resp3 = client.post(f"/api/v1/forum/posts/{post_id}/reactions", json={"emoji": "👍"}, headers=auth_headers)
+    assert resp3.status_code == 404
