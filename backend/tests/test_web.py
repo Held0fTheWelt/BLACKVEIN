@@ -6,7 +6,7 @@ def test_home_returns_200(client):
     """GET / returns 200 and renders home."""
     response = client.get("/")
     assert response.status_code == 200
-    assert b"WORLD OF SHADOWS" in response.data or b"BLACKVEIN" in response.data or b"Welcome" in response.data
+    assert b"WORLD OF SHADOWS" in response.data or b"BETTER TOMORROW" in response.data or b"Welcome" in response.data
 
 
 def test_web_health_returns_ok(client):

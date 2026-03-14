@@ -43,7 +43,7 @@ def create_app(config_object=None):
         mode = "NORMAL (MAIL_ENABLED=1)"
     else:
         mode = "DEV (MAIL_ENABLED=0)"
-    app.logger.warning("Running BLACKVEIN Backend [mode: %s]", mode)
+    app.logger.warning("Running BETTER TOMORROW Backend [mode: %s]", mode)
 
     init_extensions(app)
     limiter.default_limits = [app.config.get("RATELIMIT_DEFAULT", "100 per minute")]

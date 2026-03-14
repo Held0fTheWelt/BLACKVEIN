@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}BLACKVEIN{% endblock %}</title>
+    <title>{% block title %}BETTER TOMORROW{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -13,7 +13,7 @@
 
     {% block site_header %}
     <header class="header">
-        <a href="{{ url_for('web.home') }}" class="logo" aria-label="BLACKVEIN">BLACKVEIN</a>
+        <a href="{{ url_for('web.home') }}" class="logo" aria-label="BETTER TOMORROW">BETTER TOMORROW</a>
         <a href="{{ url_for('web.news') }}" class="btn btn-outline">News</a>
         {% if session.get('username') %}
         <a href="{{ url_for('web.game_menu') }}" class="btn btn-outline">Enter Game</a>
@@ -50,7 +50,7 @@
 
     {% block site_footer %}
     <footer class="footer">
-        <p><span class="footer-brand">BLACKVEIN</span> – Yves Tanas.</p>
+        <p><span class="footer-brand">BETTER TOMORROW</span> – Yves Tanas.</p>
     </footer>
     {% endblock %}
 
