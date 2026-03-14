@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Saved Threads – {{ t.site_name | default('BLACKVEIN') }}{% endblock %}
+{% block meta_description %}Your saved forum threads.{% endblock %}
+{% block body_class %}page-forum-saved{% endblock %}
+
+{% block content %}
+<p class="back-link back-link-top">
+    <a href="{{ url_for('forum_index') }}">← {{ t.forum_back_categories | default('Back to Forum') }}</a>
+</p>
+
+<div id="forum-saved" class="forum-saved" data-page="1">
+    <h1 class="forum-page-title">{{ t.forum_saved_threads | default('Saved Threads') }}</h1>
+    <p class="forum-state loading" id="forum-saved-loading" role="status">{{ t.common_loading | default('Loading…') }}</p>
+    <div id="forum-saved-content" class="forum-threads-content" hidden aria-live="polite"></div>
+    <p class="forum-state empty" id="forum-saved-empty" hidden role="status">{{ t.forum_no_saved_threads | default('You have no saved threads yet.') }}</p>
+    <p class="forum-state error" id="forum-saved-error" hidden role="alert"></p>
+    <nav class="forum-pagination" id="forum-saved-pagination" hidden aria-label="Pagination">
+        <span class="forum-pagination-info" id="forum-saved-pagination-info"></span>
+        <div class="forum-pagination-btns">
+            <button type="button" id="forum-saved-prev" class="btn btn-outline" disabled>{{ t.news_previous | default('Previous') }}</button>
+            <button type="button" id="forum-saved-next" class="btn btn-outline">{{ t.news_next | default('Next') }}</button>
+        </div>
+    </nav>
+</div>
+
+<p class="back-link back-link-bottom">
+    <a href="{{ url_for('forum_index') }}">← {{ t.forum_back_categories | default('Back to Forum') }}</a>
+</p>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_auth.js') }}"></script>
+<script src="{{ url_for('static', filename='forum.js') }}"></script>
+<script>
+(function() {
+    if (window.ForumApp && window.ForumApp.initSavedThreads) {
+        window.ForumApp.initSavedThreads();
+    }
+})();
+</script>
+{% endblock %}

@@ -134,6 +134,12 @@ def forum_notifications():
     return render_template("forum/notifications.html")
 
 
+@app.route("/forum/saved")
+def forum_saved_threads():
+    """Saved threads / bookmarks list (requires login). Data loaded by JS from backend API."""
+    return render_template("forum/saved_threads.html")
+
+
 # --- Management / editorial area (protected by frontend auth; backend enforces roles) ---
 
 @app.route("/manage")

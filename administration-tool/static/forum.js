@@ -1331,10 +1331,180 @@
         });
     }
 
+    // --- Saved Threads: bookmarks list ---
+    function initSavedThreads() {
+        var loading = document.getElementById("forum-saved-loading");
+        var content = document.getElementById("forum-saved-content");
+        var empty = document.getElementById("forum-saved-empty");
+        var errEl = document.getElementById("forum-saved-error");
+        var pagination = document.getElementById("forum-saved-pagination");
+        var paginationInfo = document.getElementById("forum-saved-pagination-info");
+        var prevBtn = document.getElementById("forum-saved-prev");
+        var nextBtn = document.getElementById("forum-saved-next");
+        var state = { page: 1, total: 0, perPage: 20, totalPages: 0 };
+
+        function showLoading(show) {
+            if (loading) loading.hidden = !show;
+            if (content) content.hidden = true;
+            if (empty) empty.hidden = true;
+            if (errEl) errEl.hidden = true;
+            if (pagination) pagination.hidden = true;
+        }
+
+        function showError(msg) {
+            if (loading) loading.hidden = true;
+            if (content) content.hidden = true;
+            if (empty) empty.hidden = true;
+            if (errEl) { errEl.textContent = msg || "Failed to load."; errEl.hidden = false; }
+            if (pagination) pagination.hidden = true;
+        }
+
+        function toggleBookmark(threadId, btn) {
+            var isBookmarked = btn.getAttribute("data-bookmarked") === "true";
+            var method = isBookmarked ? "DELETE" : "POST";
+            var url = "/threads/" + threadId + "/bookmark";
+            if (window.ManageAuth && window.ManageAuth.getToken && window.ManageAuth.getToken()) {
+                window.ManageAuth.apiFetchWithAuth("/api/v1/forum" + url, { method: method })
+                    .then(function() {
+                        // Remove the thread from the list when unbookmarked
+                        if (isBookmarked) {
+                            var row = btn.closest(".forum-thread-row");
+                            if (row) row.remove();
+                            // Update pagination info
+                            state.total--;
+                            if (state.total === 0) {
+                                if (content) content.hidden = true;
+                                if (empty) empty.hidden = false;
+                                if (pagination) pagination.hidden = true;
+                            } else {
+                                state.totalPages = state.perPage > 0 ? Math.ceil(state.total / state.perPage) : 0;
+                                if (paginationInfo) paginationInfo.textContent = "Page " + state.page + " of " + (state.totalPages || 1) + " (" + state.total + " total)";
+                                if (nextBtn) nextBtn.disabled = state.page >= state.totalPages;
+                            }
+                        }
+                    })
+                    .catch(function() {});
+            }
+        }
+
+        function renderThreads(items, page, total, perPage) {
+            if (loading) loading.hidden = true;
+            if (empty) empty.hidden = true;
+            if (errEl) errEl.hidden = true;
+            if (!content) return;
+            while (content.firstChild) content.removeChild(content.firstChild);
+            items.forEach(function(t) {
+                var row = document.createElement("div");
+                row.className = "forum-thread-row";
+                var link = document.createElement("a");
+                link.href = "/forum/threads/" + encodeURIComponent(t.slug || "");
+                link.className = "forum-thread-link";
+                var title = document.createElement("span");
+                title.className = "forum-thread-title";
+                title.textContent = t.title || "Untitled";
+                if (t.is_pinned) {
+                    var pin = document.createElement("span");
+                    pin.className = "forum-badge forum-badge-pinned";
+                    pin.textContent = "Pinned";
+                    link.appendChild(pin);
+                }
+                link.appendChild(title);
+                // Tags badges
+                if (t.tags && t.tags.length) {
+                    t.tags.forEach(function(tag) {
+                        var badge = document.createElement("span");
+                        badge.className = "forum-badge forum-badge-tag";
+                        badge.textContent = tag.label || tag.slug;
+                        link.appendChild(badge);
+                    });
+                }
+                var meta = document.createElement("span");
+                meta.className = "forum-thread-meta muted";
+                var parts = [];
+                if (t.reply_count != null) parts.push(t.reply_count + " replies");
+                if (t.last_post_at) parts.push(formatDate(t.last_post_at));
+                meta.textContent = parts.join(" \u00b7 ");
+                row.appendChild(link);
+                // Bookmark button (should always be bookmarked, but keep button to unbookmark)
+                var bmBtn = document.createElement("button");
+                bmBtn.type = "button";
+                bmBtn.className = "forum-bookmark-btn forum-bookmark-active";
+                bmBtn.setAttribute("data-bookmarked", "true");
+                bmBtn.textContent = "\u2605";
+                bmBtn.title = "Remove bookmark";
+                (function(tid, btn) {
+                    btn.addEventListener("click", function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleBookmark(tid, btn);
+                    });
+                })(t.id, bmBtn);
+                row.appendChild(bmBtn);
+                row.appendChild(meta);
+                content.appendChild(row);
+            });
+            content.hidden = false;
+            state.total = total;
+            state.totalPages = perPage > 0 ? Math.ceil(total / perPage) : 0;
+            if (pagination) {
+                pagination.hidden = state.totalPages <= 1;
+                if (paginationInfo) paginationInfo.textContent = "Page " + page + " of " + (state.totalPages || 1) + " (" + total + " total)";
+                if (prevBtn) prevBtn.disabled = page <= 1;
+                if (nextBtn) nextBtn.disabled = page >= state.totalPages;
+            }
+        }
+
+        function fetchBookmarks(page) {
+            return apiGet("bookmarks?page=" + page + "&limit=" + state.perPage);
+        }
+
+        showLoading(true);
+        fetchBookmarks(1)
+            .then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : items.length;
+                var page = (data && typeof data.page === "number") ? data.page : 1;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                state.page = page;
+                if (items.length === 0) {
+                    if (loading) loading.hidden = true;
+                    if (content) content.hidden = true;
+                    if (empty) empty.hidden = false;
+                } else renderThreads(items, page, total, perPage);
+            })
+            .catch(function(e) { showError(typeof e === "string" ? e : (e && e.message) || "Failed to load."); });
+
+        if (prevBtn) prevBtn.addEventListener("click", function() {
+            if (state.page <= 1) return;
+            state.page--;
+            showLoading(true);
+            fetchBookmarks(state.page).then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : 0;
+                var page = (data && typeof data.page === "number") ? data.page : state.page;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                renderThreads(items, page, total, perPage);
+            }).catch(function(e) { showError(e && e.message); });
+        });
+        if (nextBtn) nextBtn.addEventListener("click", function() {
+            if (state.page >= state.totalPages) return;
+            state.page++;
+            showLoading(true);
+            fetchBookmarks(state.page).then(function(data) {
+                var items = (data && data.items) ? data.items : [];
+                var total = (data && typeof data.total === "number") ? data.total : 0;
+                var page = (data && typeof data.page === "number") ? data.page : state.page;
+                var perPage = (data && typeof data.per_page === "number") ? data.per_page : state.perPage;
+                renderThreads(items, page, total, perPage);
+            }).catch(function(e) { showError(e && e.message); });
+        });
+    }
+
     window.ForumApp = {
         initIndex: initIndex,
         initCategory: initCategory,
         initThread: initThread,
-        initNotifications: initNotifications
+        initNotifications: initNotifications,
+        initSavedThreads: initSavedThreads
     };
 })();

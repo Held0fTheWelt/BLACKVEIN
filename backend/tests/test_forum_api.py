@@ -1546,3 +1546,87 @@ def test_bookmark_removal(app, client, auth_headers):
     # Verify removed from list
     resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
     assert not any(b["slug"] == "bm-rm-thread" for b in resp.get_json()["items"])
+
+
+@pytest.mark.usefixtures("app")
+def test_saved_threads_list_requires_auth(client):
+    """GET /api/v1/forum/bookmarks requires authentication (401)."""
+    resp = client.get("/api/v1/forum/bookmarks")
+    assert resp.status_code == 401
+
+
+@pytest.mark.usefixtures("app")
+def test_saved_threads_list_pagination(app, client, auth_headers):
+    """Saved threads list respects pagination (page, limit, total, per_page)."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="test-cat", title="Test", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        # Create 25 threads and bookmark them all
+        threads = []
+        for i in range(25):
+            t = ForumThread(
+                category_id=cat.id,
+                slug=f"paginated-thread-{i}",
+                title=f"Paginated Thread {i}",
+                status="open"
+            )
+            db.session.add(t)
+            db.session.flush()
+            threads.append(t)
+        db.session.commit()
+        # Bookmark all threads
+        for t in threads:
+            bookmark = ForumThreadBookmark(user_id=user.id, thread_id=t.id)
+            db.session.add(bookmark)
+        db.session.commit()
+
+    # Page 1 (default limit 20)
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["page"] == 1
+    assert data["per_page"] == 20
+    assert data["total"] == 25
+    assert len(data["items"]) == 20
+
+    # Page 2 with custom limit
+    resp = client.get("/api/v1/forum/bookmarks?page=2&limit=10", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["page"] == 2
+    assert data["per_page"] == 10
+    assert data["total"] == 25
+    assert len(data["items"]) == 10
+
+
+@pytest.mark.usefixtures("app")
+def test_unbookmark_from_saved_threads(app, client, auth_headers):
+    """Unbooking (DELETE) removes thread from saved list."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="del-cat", title="Delete Test", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="del-thread", title="Delete Thread", status="open")
+        db.session.add(thread)
+        db.session.flush()
+        bookmark = ForumThreadBookmark(user_id=user.id, thread_id=thread.id)
+        db.session.add(bookmark)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Verify thread in saved list
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert resp.status_code == 200
+    assert any(t["slug"] == "del-thread" for t in resp.get_json()["items"])
+
+    # Delete bookmark
+    resp = client.delete(f"/api/v1/forum/threads/{thread_id}/bookmark", headers=auth_headers)
+    assert resp.status_code == 200
+
+    # Verify thread removed from saved list
+    resp = client.get("/api/v1/forum/bookmarks", headers=auth_headers)
+    assert resp.status_code == 200
+    assert not any(t["slug"] == "del-thread" for t in resp.get_json()["items"])
