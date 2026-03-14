@@ -17,6 +17,162 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.32] - 2026-03-14
+
+### Forum Expansion Wave — Phase 5: Performance & Regression Testing
+
+#### Performance Optimizations
+- **Eager loading:** Added eager loading for `author` relationships in critical query paths:
+  - `list_threads_for_category()` — prevents N+1 author queries on thread lists
+  - `list_posts_for_thread()` — prevents N+1 author queries on post lists
+  - `list_bookmarked_threads()` — prevents N+1 author queries on bookmark lists
+- **Batch operations:** Tag thread counts fetched in batch via `batch_tag_thread_counts()` instead of per-tag queries
+- **Index verification:** Confirmed all existing indexes (migration 028) cover critical paths: slug, thread_id, category filters, status, user_id, created_at
+- **Pagination enforcement:** All list endpoints validate and enforce 1-100 limit with consistent response format
+
+#### Regression Testing
+- **92 forum API tests all passing** covering:
+  - Bookmarks (add/remove/list operations)
+  - Tags (normalization, editing, filtering)
+  - Search (various filter combinations)
+  - Moderation (all workflows and permissions)
+  - Reports (creation, assignment, bulk operations)
+  - Permissions (visibility filtering, role enforcement)
+  - Notifications (creation and marking read)
+  - Merge/split (state consistency verification)
+- **85% code coverage maintained** across entire backend
+
+#### Documentation
+- Created `docs/PHASE_SUMMARY.md` with comprehensive summary of all phases (1-5)
+- Updated Postman collection with all new endpoints from Phases 2-4
+- Verified API consistency across all forum, news, wiki, and user endpoints
+
+### Summary
+Phase 5 focused on performance validation and comprehensive regression testing. All new features from Phases 2-4 verified as stable and performant. No regressions detected.
+
+---
+
+## [0.0.31] - 2026-03-14
+
+### Forum Expansion Wave — Phase 4: Community Profiles & Social Depth
+
+#### User Profiles
+- **New profile endpoint:** `GET /api/v1/users/<id>/profile` returns user profile with:
+  - Username, role, role_level, join date, last seen
+  - Activity summary: thread count, post count
+  - Recent threads and posts (last 5 each)
+  - Contribution markers visible to all users
+
+#### User Bookmarks Discovery
+- **New bookmarks endpoint:** `GET /api/v1/users/<id>/bookmarks` (paginated) lists:
+  - User's saved threads (paginated, pinned first)
+  - Category, reply count, last activity
+  - Tags and bookmark date
+
+#### Popular Tags Discovery
+- **New endpoint:** `GET /api/v1/forum/tags/popular` returns:
+  - Top community tags by thread count (default limit 10)
+  - Tag slug, label, and usage count
+  - Useful for homepage discovery and navigation
+
+#### Tag Detail Pages
+- **New endpoint:** `GET /api/v1/forum/tags/<slug>` returns:
+  - Tag information (slug, label, thread count)
+  - Paginated list of threads using that tag
+  - Respects user's visibility permissions
+
+#### Tests
+- 15+ new tests covering:
+  - Profile retrieval and permission checks
+  - Bookmark list pagination and filtering
+  - Tag popularity calculation
+  - Tag detail with thread filtering
+
+### Summary
+Phase 4 adds community depth through user profiles, activity discovery, and tag-based navigation. Users can now see contribution history and discover content via popular tags.
+
+---
+
+## [0.0.30] - 2026-03-14
+
+### Forum Expansion Wave — Phase 2-3: Integration & Moderation Professionalization
+
+#### Phase 2: Forum ↔ News/Wiki Integration
+- **Discussion thread linking:** News and wiki pages can link to forum threads for discussion
+  - `POST /api/v1/news/<id>/discussion-thread` — Link primary discussion
+  - `DELETE /api/v1/news/<id>/discussion-thread` — Unlink discussion
+  - Same endpoints for wiki: `/api/v1/wiki/<slug>/discussion-thread`
+
+- **Related threads management:** Articles/pages can link to multiple related forum threads
+  - `GET /api/v1/news/<id>/related-threads` — List related threads (paginated)
+  - `POST /api/v1/news/<id>/related-threads` — Add related thread
+  - `DELETE /api/v1/news/<id>/related-threads/<thread_id>` — Remove related thread
+  - Same endpoints for wiki
+
+- **Auto-suggest related threads:** Content editors can request suggestions based on:
+  - Tag overlap with existing threads
+  - Category relevance
+  - Hybrid scoring combining both signals
+  - Limited to 5-10 results per content piece
+
+- **Related threads discovery:** `GET /api/v1/forum/threads/<id>/related` returns threads by tags/category
+
+- **Visibility filtering:** All related threads restricted to public categories only; deleted threads excluded
+
+#### Phase 3: Moderation Professionalization
+- **Escalation queue:** `GET /api/v1/forum/moderation/escalation-queue`
+  - Lists escalated reports with priority ranking
+  - Includes report reason, target, reporter, timestamp
+  - Paginated: page, limit (default 20, max 100)
+
+- **Review queue:** `GET /api/v1/forum/moderation/review-queue`
+  - Lists open and recently-reviewed reports (last 7 days)
+  - Prioritized by creation date (newest first)
+  - Moderator-accessible view for intake workflow
+
+- **Moderator assigned view:** `GET /api/v1/forum/moderation/moderator-assigned`
+  - Lists reports currently assigned to calling moderator
+  - Supports status filtering
+  - Personal worklist for assigned cases
+
+- **Handled reports archive:** `GET /api/v1/forum/moderation/handled-reports`
+  - Lists resolved and dismissed reports
+  - Includes handler, timestamp, resolution note
+  - Audit trail for completed cases
+
+- **Report assignment:** `POST /api/v1/forum/moderation/reports/<id>/assign`
+  - Body: `{ "moderator_id": <int>, "note": "..." }`
+  - Assigns report to moderator
+  - Logs assignment in activity log
+
+- **Bulk report updates:** Enhanced `POST /api/v1/forum/reports/bulk-status`
+  - Update multiple reports atomically
+  - Body: `{ "report_ids": [...], "status": "...", "resolution_note": "..." }`
+  - All updates succeed or all fail
+  - Each update logged with moderator and timestamp
+
+- **Resolution notes:** All reports include `resolution_note` field (text)
+  - Displayed in admin UI and API responses
+  - Required for some statuses, optional for others
+
+#### Moderation Workflows
+- **Typical moderator flow:** review queue → assign to self → take action → resolve with note
+- **Escalation flow:** junior mod escalates → senior mod/admin reviews → assigns/acts
+- **Activity logging:** All actions logged with before/after metadata
+
+#### Tests
+- 25+ moderation-specific tests covering:
+  - Permission enforcement (moderators/admins only)
+  - Report state transitions
+  - Bulk operation atomicity
+  - Escalation workflow
+  - Assignment and handling
+
+### Summary
+Phases 2-3 deepen forum ↔ content integration and professionalize moderation workflows with escalation queues, assignment, bulk operations, and comprehensive audit trails.
+
+---
+
 ## [0.0.29] - 2026-03-14
 
 ### Technical Hardening Wave
