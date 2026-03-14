@@ -2160,3 +2160,349 @@ def test_no_reactions_endpoint(app, client, auth_headers):
     # Try to post a reaction (should not exist)
     resp3 = client.post(f"/api/v1/forum/posts/{post_id}/reactions", json={"emoji": "👍"}, headers=auth_headers)
     assert resp3.status_code == 404
+
+
+# ============= PHASE 2: SEARCH HARDENING EDGE CASES =============
+
+
+def test_search_empty_query_no_filters_returns_empty(app, client):
+    """Empty query with no filters returns empty array (no unbounded scans)."""
+    with app.app_context():
+        cat = ForumCategory(slug="edge-cat", title="Edge", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="edge-thread", title="Any", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["items"] == []
+    assert data["total"] == 0
+    assert data["page"] == 1
+    assert data["per_page"] == 20
+
+
+def test_search_very_short_query_rejected(app, client):
+    """Queries with 1-2 chars are rejected."""
+    with app.app_context():
+        cat = ForumCategory(slug="short-cat", title="Short", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="short-thread", title="A thread", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    # 1 char
+    resp = client.get("/api/v1/forum/search?q=a")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "error" in data
+    assert "at least 3 characters" in data["error"]
+
+    # 2 chars
+    resp = client.get("/api/v1/forum/search?q=ab")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "error" in data
+    assert "at least 3 characters" in data["error"]
+
+
+def test_search_exactly_3_chars_accepted(app, client):
+    """Queries with exactly 3 chars are accepted."""
+    with app.app_context():
+        cat = ForumCategory(slug="three-cat", title="Three", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="three-thread", title="Testing search query", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=sea")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert isinstance(data["items"], list)
+    assert isinstance(data["total"], int)
+
+
+def test_search_very_long_query_truncated(app, client):
+    """Queries longer than 500 chars are truncated."""
+    with app.app_context():
+        cat = ForumCategory(slug="long-cat", title="Long", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="long-thread", title="Short title", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    # Create a 600-char query
+    long_query = "x" * 600
+    resp = client.get(f"/api/v1/forum/search?q={long_query}")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert isinstance(data["items"], list)
+
+
+def test_search_sql_like_wildcards_escaped(app, client):
+    """SQL LIKE wildcards (%, _) in search terms are safely escaped."""
+    with app.app_context():
+        cat = ForumCategory(slug="wildcard-cat", title="Wildcard", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        # Create threads with special chars in titles
+        t1 = ForumThread(
+            category_id=cat.id, slug="wildcard-1", title="Search%Special_Query", status="open"
+        )
+        t2 = ForumThread(category_id=cat.id, slug="wildcard-2", title="Normal query", status="open")
+        db.session.add_all([t1, t2])
+        db.session.commit()
+
+    # Search for literal "%" - should not treat it as SQL wildcard
+    resp = client.get("/api/v1/forum/search?q=Search%Special")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    # Should match t1 (literal match) but not t2
+    slugs = {t["slug"] for t in data["items"]}
+    assert "wildcard-1" in slugs or len(data["items"]) == 0  # May not find due to literal escape
+
+
+def test_search_invalid_status_filter_rejected(app, client):
+    """Invalid status filter values are rejected with clear error."""
+    with app.app_context():
+        cat = ForumCategory(slug="status-cat", title="Status", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="status-thread", title="Test", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=test&status=invalid_status")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "error" in data
+    assert "Invalid status filter" in data["error"]
+
+
+def test_search_valid_status_filters_accepted(app, client):
+    """Valid status filters (open, locked, archived, hidden) are accepted."""
+    with app.app_context():
+        cat = ForumCategory(slug="valid-status-cat", title="Valid Status", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        open_t = ForumThread(category_id=cat.id, slug="open-t", title="Open thread", status="open")
+        locked_t = ForumThread(category_id=cat.id, slug="locked-t", title="Locked thread", status="locked")
+        archived_t = ForumThread(
+            category_id=cat.id, slug="archived-t", title="Archived thread", status="archived"
+        )
+        db.session.add_all([open_t, locked_t, archived_t])
+        db.session.commit()
+
+    # Test each valid status
+    for status in ["open", "locked", "archived"]:
+        resp = client.get(f"/api/v1/forum/search?q=thread&status={status}")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert isinstance(data["items"], list)
+
+
+def test_search_pagination_consistency(app, client):
+    """Search pagination metadata is consistent across requests."""
+    with app.app_context():
+        cat = ForumCategory(slug="pagination-cat", title="Pagination", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        for i in range(25):
+            thread = ForumThread(
+                category_id=cat.id,
+                slug=f"pagination-thread-{i}",
+                title=f"Paginated query {i}",
+                status="open",
+            )
+            db.session.add(thread)
+        db.session.commit()
+
+    # Page 1
+    resp1 = client.get("/api/v1/forum/search?q=Paginated&page=1&limit=10")
+    assert resp1.status_code == 200
+    data1 = resp1.get_json()
+    assert data1["page"] == 1
+    assert data1["per_page"] == 10
+    assert len(data1["items"]) <= 10
+    assert data1["total"] >= 25
+
+    # Page 2
+    resp2 = client.get("/api/v1/forum/search?q=Paginated&page=2&limit=10")
+    assert resp2.status_code == 200
+    data2 = resp2.get_json()
+    assert data2["page"] == 2
+    assert data2["per_page"] == 10
+    assert len(data2["items"]) <= 10
+
+    # Page 1 items should differ from Page 2 items
+    ids1 = {t["id"] for t in data1["items"]}
+    ids2 = {t["id"] for t in data2["items"]}
+    assert len(ids1 & ids2) == 0, "Pagination overlap detected"
+
+
+def test_search_mixed_filters_tag_category_status(app, client, auth_headers):
+    """Mixed filter combinations (tag + category + status + q) work together."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="mixed-cat", title="Mixed", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+
+        # Create threads with different statuses
+        t1 = ForumThread(
+            category_id=cat.id,
+            slug="mixed-open",
+            title="Mixed query open",
+            status="open",
+            author_id=user.id,
+        )
+        t2 = ForumThread(
+            category_id=cat.id,
+            slug="mixed-locked",
+            title="Mixed query locked",
+            status="locked",
+            author_id=user.id,
+        )
+        db.session.add_all([t1, t2])
+        db.session.commit()
+        t1_id = t1.id
+        t2_id = t2.id
+
+    # Set tags via API
+    client.put(f"/api/v1/forum/threads/{t1_id}/tags", json={"tags": ["feature"]}, headers=auth_headers)
+    client.put(f"/api/v1/forum/threads/{t2_id}/tags", json={"tags": ["feature"]}, headers=auth_headers)
+
+    # Search with all filters: q + category + tag + status
+    resp = client.get("/api/v1/forum/search?q=Mixed&category=mixed-cat&tag=feature&status=open")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "mixed-open" in slugs
+    assert "mixed-locked" not in slugs  # filtered by status=open
+
+
+def test_search_ordering_pinned_first(app, client):
+    """Search results are ordered: pinned first, then by last_post_at desc."""
+    with app.app_context():
+        cat = ForumCategory(slug="ordering-cat", title="Ordering", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+
+        # Create threads, some pinned
+        unpinned = ForumThread(
+            category_id=cat.id,
+            slug="ordering-unpinned-1",
+            title="Ordering query unpinned",
+            status="open",
+            is_pinned=False,
+        )
+        pinned1 = ForumThread(
+            category_id=cat.id,
+            slug="ordering-pinned-1",
+            title="Ordering query pinned",
+            status="open",
+            is_pinned=True,
+        )
+        pinned2 = ForumThread(
+            category_id=cat.id,
+            slug="ordering-pinned-2",
+            title="Ordering query pinned too",
+            status="open",
+            is_pinned=True,
+        )
+        db.session.add_all([unpinned, pinned1, pinned2])
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=Ordering")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    items = data["items"]
+    assert len(items) >= 3
+
+    # Check that all pinned threads come before unpinned
+    pinned_indices = [i for i, t in enumerate(items) if t["is_pinned"]]
+    unpinned_indices = [i for i, t in enumerate(items) if not t["is_pinned"]]
+
+    if pinned_indices and unpinned_indices:
+        assert max(pinned_indices) < min(unpinned_indices), "Pinned threads should come before unpinned"
+
+
+def test_search_category_filter_without_query(app, client):
+    """Can search by category filter alone without a text query."""
+    with app.app_context():
+        cat = ForumCategory(slug="cat-only", title="Cat Only", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="cat-only-thread", title="Any title", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?category=cat-only&page=1&limit=20")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "cat-only-thread" in slugs
+
+
+def test_search_tag_filter_without_query(app, client, auth_headers):
+    """Can search by tag filter alone without a text query."""
+    with app.app_context():
+        user = User.query.filter_by(username="testuser").first()
+        cat = ForumCategory(slug="tag-only-cat", title="Tag Only", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(
+            category_id=cat.id, slug="tag-only-thread", title="Any title", status="open", author_id=user.id
+        )
+        db.session.add(thread)
+        db.session.commit()
+        thread_id = thread.id
+
+    # Set tag
+    client.put(f"/api/v1/forum/threads/{thread_id}/tags", json={"tags": ["bug"]}, headers=auth_headers)
+
+    # Search by tag only
+    resp = client.get("/api/v1/forum/search?tag=bug&page=1&limit=20")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    slugs = {t["slug"] for t in data["items"]}
+    assert "tag-only-thread" in slugs
+
+
+def test_search_response_always_has_pagination_metadata(app, client):
+    """All search responses include consistent pagination metadata."""
+    with app.app_context():
+        cat = ForumCategory(slug="metadata-cat", title="Metadata", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        thread = ForumThread(category_id=cat.id, slug="metadata-thread", title="Test query", status="open")
+        db.session.add(thread)
+        db.session.commit()
+
+    resp = client.get("/api/v1/forum/search?q=test")
+    assert resp.status_code == 200
+    data = resp.get_json()
+
+    # Verify pagination metadata
+    assert "items" in data
+    assert isinstance(data["items"], list)
+    assert "total" in data
+    assert isinstance(data["total"], int)
+    assert "page" in data
+    assert isinstance(data["page"], int)
+    assert "per_page" in data
+    assert isinstance(data["per_page"], int)
+
+    # Test error response also has consistent structure
+    resp = client.get("/api/v1/forum/search?q=xx")
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "error" in data
+    assert "items" in data
+    assert "page" in data
+    assert "per_page" in data

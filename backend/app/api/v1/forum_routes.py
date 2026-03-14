@@ -281,32 +281,83 @@ def forum_thread_posts(thread_id: int):
     ), 200
 
 
+def _escape_sql_like_wildcards(s: str) -> str:
+    """Escape SQL LIKE wildcards (%, _) in a string for safe LIKE pattern matching."""
+    if not s:
+        return s
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @api_v1_bp.route("/forum/search", methods=["GET"])
 @limiter.limit("30 per minute")
 @jwt_required(optional=True)
 def forum_search():
     """
-    Simple search over thread titles (and optionally post content), with basic filters.
-    Query: q, page, limit, category (slug), status, tag, include_content=1.
+    Search over thread titles and optionally post content with filters.
+
+    Query parameters:
+      - q: search query string (0-500 chars). Will be normalized and escaped.
+      - page: page number (default 1, min 1, max 10000)
+      - limit: results per page (default 20, min 1, max 100)
+      - category: filter by category slug
+      - status: filter by status (open, locked, archived, hidden)
+      - tag: filter by tag slug
+      - include_content: if 1/true/yes and q is 3+ chars, search post content too
+
+    Validation:
+      - Empty queries with no other filters return empty array (no unbounded scans)
+      - Very short queries (1-2 chars) are rejected
+      - Queries are truncated to 500 chars max
+      - SQL LIKE wildcards are escaped for safety
+      - Filter values are validated against known enums
+
+    Ordering: pinned first, then by last_post_at desc, then by id asc
+
+    Response: {items: [], total: int, page: int, per_page: int}
     """
     from app.models import ForumThread, ForumPost, ForumCategory, ForumThreadTag  # imported lazily to avoid cycles
 
     user = _current_user_optional()
+
+    # Extract and normalize query
     q_raw = (request.args.get("q") or "").strip()
-    page = _parse_int(request.args.get("page"), 1, min_val=1)
+    page = _parse_int(request.args.get("page"), 1, min_val=1, max_val=10000)
     limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
     category_slug = (request.args.get("category") or "").strip() or None
     status_filter = (request.args.get("status") or "").strip() or None
     tag_slug = (request.args.get("tag") or "").strip().lower() or None
     include_content = (request.args.get("include_content", "").strip().lower() in ("1", "true", "yes"))
 
+    # Input validation: empty query with no other filters
     if not q_raw and not category_slug and not status_filter and not tag_slug:
-        # Explicitly handle empty/very broad queries: no filters means no results to avoid huge scans.
-        return jsonify({"items": [], "total": 0, "page": page, "per_page": limit}), 200
-    # Truncate overly long search terms to keep LIKE patterns reasonable
-    if len(q_raw) > 200:
-        q_raw = q_raw[:200]
-    like_pattern = f"%{q_raw}%" if q_raw else None
+        return jsonify(
+            {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "per_page": limit,
+            }
+        ), 200
+
+    # Input validation: very short queries (1-2 chars) are too broad
+    if q_raw and len(q_raw) < 3:
+        return jsonify(
+            {
+                "error": "Search query must be at least 3 characters",
+                "items": [],
+                "total": 0,
+                "page": page,
+                "per_page": limit,
+            }
+        ), 400
+
+    # Input validation: truncate overly long search terms
+    if len(q_raw) > 500:
+        q_raw = q_raw[:500]
+
+    # Escape SQL LIKE wildcards for safety, then build pattern
+    q_escaped = _escape_sql_like_wildcards(q_raw)
+    like_pattern = f"%{q_escaped}%" if q_escaped else None
 
     is_mod = user_is_moderator(user) if user else False
 
@@ -320,7 +371,7 @@ def forum_search():
         q = q.filter(ForumThread.status != "deleted")
 
     if like_pattern:
-        q = q.filter(ForumThread.title.ilike(like_pattern))
+        q = q.filter(ForumThread.title.ilike(like_pattern, escape="\\"))
 
     # Join category for access filtering and optional category filter
     q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id)
@@ -331,8 +382,18 @@ def forum_search():
     if category_slug:
         q = q.filter(ForumCategory.slug == category_slug)
 
-    # Optional status filter
-    if status_filter in ("open", "locked", "archived", "hidden"):
+    # Optional status filter: validate enum
+    if status_filter:
+        if status_filter not in ("open", "locked", "archived", "hidden"):
+            return jsonify(
+                {
+                    "error": f"Invalid status filter: {status_filter}. Must be one of: open, locked, archived, hidden",
+                    "items": [],
+                    "total": 0,
+                    "page": page,
+                    "per_page": limit,
+                }
+            ), 400
         q = q.filter(ForumThread.status == status_filter)
 
     # Optional tag filter
@@ -342,22 +403,26 @@ def forum_search():
             ForumTagModel, ForumTagModel.id == ForumThreadTag.tag_id
         ).filter(ForumTagModel.slug == tag_slug)
 
-    # Optional post content search (best-effort, limited to reasonable query length)
+    # Optional post content search (requires 3+ chars for performance)
     if include_content and like_pattern and len(q_raw) >= 3:
         sub = (
             ForumPost.query.with_entities(ForumPost.thread_id)
-            .filter(ForumPost.content.ilike(like_pattern))
+            .filter(ForumPost.content.ilike(like_pattern, escape="\\"))
             .subquery()
         )
         q = q.filter(
             db.or_(
-                ForumThread.title.ilike(like_pattern),
+                ForumThread.title.ilike(like_pattern, escape="\\"),
                 ForumThread.id.in_(sub),
             )
         )
 
     # SQL-level pagination (visibility already pushed into SQL)
-    q = q.order_by(ForumThread.is_pinned.desc(), ForumThread.last_post_at.desc().nullslast(), ForumThread.id.asc())
+    q = q.order_by(
+        ForumThread.is_pinned.desc(),
+        ForumThread.last_post_at.desc().nullslast(),
+        ForumThread.id.asc(),
+    )
     total = q.count()
     page = max(1, page)
     limit = max(1, min(limit, 100))
@@ -369,6 +434,7 @@ def forum_search():
         d = t.to_dict()
         d["author_username"] = t.author.username if t.author else None
         items_data.append(d)
+
     return jsonify(
         {
             "items": items_data,

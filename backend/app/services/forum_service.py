@@ -241,6 +241,10 @@ def list_threads_for_category(
         ForumThread.last_post_at.desc().nullslast(),
         ForumThread.created_at.desc(),
     )
+    # Eager load author to prevent N+1 queries
+    from sqlalchemy.orm import joinedload
+    q = q.options(joinedload(ForumThread.author))
+
     total = q.count()
     page = max(1, page)
     per_page = max(1, min(per_page, 100))
@@ -573,6 +577,10 @@ def list_posts_for_thread(
     if not include_hidden:
         q = q.filter(ForumPost.status != "hidden")
     q = q.order_by(ForumPost.created_at.asc())
+    # Eager load author to prevent N+1 queries
+    from sqlalchemy.orm import joinedload
+    q = q.options(joinedload(ForumPost.author))
+
     total = q.count()
     page = max(1, page)
     per_page = max(1, min(per_page, 100))
@@ -848,6 +856,8 @@ def unbookmark_thread(user: User, thread: ForumThread) -> None:
 
 def list_bookmarked_threads(user: User, *, page: int = 1, per_page: int = 20) -> Tuple[List[ForumThread], int]:
     """Return visible bookmarked threads for a user with pagination."""
+    from sqlalchemy.orm import joinedload
+
     q = (
         ForumThread.query.join(ForumThreadBookmark, ForumThreadBookmark.thread_id == ForumThread.id)
         .filter(ForumThreadBookmark.user_id == user.id)
@@ -855,6 +865,9 @@ def list_bookmarked_threads(user: User, *, page: int = 1, per_page: int = 20) ->
     )
     q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id)
     q = q.filter(ForumCategory.is_active.is_(True))
+    # Eager load author to prevent N+1 queries
+    q = q.options(joinedload(ForumThread.author))
+
     total = q.count()
     page = max(1, page)
     per_page = max(1, min(per_page, 100))
