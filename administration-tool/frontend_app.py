@@ -226,6 +226,12 @@ def manage_analytics():
     return render_template("manage_analytics.html")
 
 
+@app.route("/manage/moderator-dashboard")
+def manage_moderator_dashboard():
+    """Moderator dashboard with queue and recent actions."""
+    return render_template("manage_moderator_dashboard.html")
+
+
 def _backend_origin():
     """Origin (scheme + netloc) of BACKEND_API_URL for CSP connect-src in split frontend/backend setups."""
     parsed = urlparse(BACKEND_API_URL)

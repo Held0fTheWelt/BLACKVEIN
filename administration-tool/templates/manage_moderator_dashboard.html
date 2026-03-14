@@ -1,0 +1,73 @@
+{% extends "base_manage.html" %}
+
+{% block title %}Moderator Dashboard{% endblock %}
+
+{% block content %}
+<div class="manage-container">
+    <header class="manage-header">
+        <h1>Moderator Dashboard</h1>
+        <p class="subtitle">Quick stats and action items</p>
+        <div class="refresh-info">Auto-refreshing every 30 seconds • Last updated: <span id="last-updated">now</span></div>
+    </header>
+
+    <!-- Quick Stats -->
+    <section class="moderator-stats">
+        <div class="stat-card">
+            <div class="stat-label">Pending Reports</div>
+            <div class="stat-value" id="pending-reports">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">In Review</div>
+            <div class="stat-value" id="in-review-reports">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Resolved (Today)</div>
+            <div class="stat-value" id="resolved-today">-</div>
+        </div>
+    </section>
+
+    <!-- Recent Actions -->
+    <section class="moderator-section">
+        <h2>Recent Moderation Actions (Last 10)</h2>
+        <table class="moderator-table">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>By</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="actions-table-body">
+                <tr><td colspan="4" class="no-data">Loading...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Report Queue Summary -->
+    <section class="moderator-section">
+        <h2>Report Queue Status</h2>
+        <div class="queue-summary">
+            <div class="queue-item">
+                <span class="queue-label">Open</span>
+                <span class="queue-count" id="queue-open">-</span>
+            </div>
+            <div class="queue-item">
+                <span class="queue-label">In Review</span>
+                <span class="queue-count" id="queue-in-review">-</span>
+            </div>
+            <div class="queue-item">
+                <span class="queue-label">Resolved</span>
+                <span class="queue-count" id="queue-resolved">-</span>
+            </div>
+        </div>
+        <a href="/manage/forum" class="btn btn-primary" style="margin-top: 15px;">View Full Report Queue</a>
+    </section>
+
+    <!-- Error Message -->
+    <div class="error-message" id="error_message" style="display: none;"></div>
+</div>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage_moderator_dashboard.css') }}">
+<script src="{{ url_for('static', filename='manage_moderator_dashboard.js') }}"></script>
+{% endblock %}
