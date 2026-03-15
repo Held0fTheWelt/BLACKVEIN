@@ -17,6 +17,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.0.34] - 2026-03-15
+
+### Narrow Follow-up: News/Wiki Auto-Suggestions Gaps Corrective Pass
+
+#### Gap A: Ranking Determinism (Already Complete)
+- Auto-suggestions use deterministic category-based ranking
+- Verified in test suite with consistent ordering
+
+#### Gap B: Public Product Integration - Suggested Threads Visible on Public Pages
+- **News detail page:** Suggested threads now rendered in public `/news/<id>` detail pages
+  - Added section after related threads displaying auto-suggested forum threads
+  - Uses vanilla JavaScript to dynamically render thread links with category metadata
+  - XSS-safe URL encoding via `encodeURIComponent`
+
+- **Wiki page:** Suggested threads now rendered in public `/wiki/<slug>` pages
+  - Added inline JavaScript section rendering suggested_threads from API response
+  - Creates section with heading "Suggested discussions" and thread list
+  - Follows same structure as News for consistency
+
+#### Gap C: Management Flows - Suggestion Candidates Visible in Admin Interface
+- **News management:** Added "Suggested threads (auto-generated)" section showing candidates
+  - Loads via `fetchSuggestedThreads()` when article is selected
+  - Renders with "Add as related" buttons for promotion to related threads
+  - Updated `onRelatedThreadAdd()` to accept optional threadId from suggestions
+  - After adding thread, suggestions refresh to exclude newly-related thread
+
+- **Wiki management:** Added identical suggested threads section
+  - Same functionality as News for consistency
+  - Loads suggestions when wiki page is selected
+  - Supports promotion of suggestions to related threads
+  - Updated `onWikiRelatedThreadAdd()` for optional threadId parameter
+
+#### Gap D: Wiki API/Docs Consistency (Already Complete)
+- Added `GET /api/v1/wiki/<id>/suggested-threads` endpoint for feature parity with News
+- All tests passing and documented
+
+#### Bug Fix
+- Updated `test_wiki_public.py` to match actual API structure
+  - Tests now correctly check for `discussion` object instead of legacy flat fields
+  - Verified with endpoint returning type, thread_id, thread_slug, thread_title, category
+
+#### Test Coverage
+- All 11 related tests passing (test_narrow_followup.py + test_wiki_public.py)
+- No regressions detected in features
+
+### Summary
+All four gaps in the News/Wiki auto-suggestions feature corrected. Suggestions now visible to end users on public pages and visible to administrators in management interfaces with ability to promote suggestions to manually-curated related threads.
+
+---
+
 ## [0.0.33] - 2026-03-15
 
 ### Narrow Follow-up: News/Wiki Auto-Suggestions & Documentation (Phase 6)
