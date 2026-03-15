@@ -1517,7 +1517,7 @@ def forum_reports_bulk_status():
         "priority": "low|normal|high|critical" (optional),
         "resolution_note": "str" (optional)
     }
-    Response: { "success_ids": [...], "failed_items": [{"id": int, "reason": str}, ...] }
+    Response: { "updated_ids": [...], "failed_items": [{"id": int, "reason": str}, ...] }
     """
     user, err_resp = _require_moderator_or_admin()
     if err_resp:
@@ -1569,7 +1569,7 @@ def forum_reports_bulk_status():
                 "after": {"status": status, "count": len(success_ids)},
             },
         )
-    return jsonify({"success_ids": success_ids, "failed_items": failed_items}), 200
+    return jsonify({"updated_ids": success_ids, "failed_items": failed_items}), 200
 
 
 @api_v1_bp.route("/forum/moderation/escalation-queue", methods=["GET"])

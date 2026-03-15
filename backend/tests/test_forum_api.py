@@ -270,8 +270,8 @@ def test_reports_bulk_status_update(app, client, admin_headers):
     )
     assert resp.status_code == 200
     data = resp.get_json()
-    # New response format: success_ids and failed_items
-    assert set(data["success_ids"]) == set(ids)
+    # New response format: updated_ids and failed_items
+    assert set(data["updated_ids"]) == set(ids)
     assert len(data["failed_items"]) == 0
 
 
@@ -2740,7 +2740,7 @@ def test_phase3_bulk_update_with_feedback(app, client, moderator_headers, test_u
     )
     assert resp.status_code == 200
     data = resp.get_json()
-    assert len(data["success_ids"]) == 3
+    assert len(data["updated_ids"]) == 3
     assert len(data["failed_items"]) == 1
     assert data["failed_items"][0]["id"] == invalid_id
 
