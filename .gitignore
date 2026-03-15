@@ -31,3 +31,6 @@ FORUM_QA_REPORT_0.0.20.md
 /.clockwork_runtime
 /.llama_runtime
 INFRASTRUCTURE.md
+.clockwork_integration
+EXTENSION_IMPLEMENTATION_PLAN.md
+EXTENSION_TASKS.md
