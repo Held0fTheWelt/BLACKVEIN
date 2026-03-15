@@ -1,0 +1,226 @@
+=============================================================================
+SQLALCHEMY DETACHEDINSTANCEERROR ANALYSIS - EXECUTIVE SUMMARY
+=============================================================================
+
+PROJECT: World of Shadows (Blackveign)
+AFFECTED TESTS: 57 tests across 5 test files
+ROOT CAUSE: Session lifecycle mismatch - objects created in one context, 
+            used in another
+
+LOCATION OF PRIMARY ERROR:
+  File: backend/app/services/forum_service.py
+  Line: 291 (category.id access in create_thread())
+  
+ERROR MESSAGE:
+  "Instance <ForumCategory at 0x...> is not bound to a Session; 
+   attribute refresh operation cannot proceed"
+
+=============================================================================
+ROOT CAUSE ANALYSIS
+=============================================================================
+
+The problem is a FIXTURE DESIGN ISSUE in conftest.py (line 334-350):
+
+  @pytest.fixture
+  def forum_category(app):
+      with app.app_context():           ← Session created
+          cat = ForumCategory(...)
+          db.session.add(cat)
+          db.session.commit()
+          return cat                     ← Instance returned
+      # Context exits; session closed  ← Instance now DETACHED
+
+Tests then use this detached instance in a NEW context:
+
+  def test_something(self, ..., forum_category):  ← Detached fixture
+      with app.app_context():                      ← NEW context
+          create_thread(category=forum_category, ...)
+                         ↑ 
+              Detached instance passed to service
+
+Service function tries to access attribute:
+
+  def create_thread(*, category: ForumCategory, ...):
+      thread = ForumThread(
+          category_id=category.id,   ← BOOM! .id access triggers refresh
+          ...
+      )
+
+WHY IT FAILS:
+- category object belongs to closed session (from fixture context)
+- SQLAlchemy tries to refresh .id from database
+- Old session no longer exists → error
+
+=============================================================================
+AFFECTED FUNCTIONS INVENTORY
+=============================================================================
+
+DIRECT HITS (3):
+  1. create_thread()           [L.282-320] - Accesses category.id (L.291)
+  2. move_thread()             [L.399-408] - Accesses new_category.id (L.403,405)
+  3. split_thread()            [L.467-540] - Accesses category.id (L.501)
+
+INDIRECT HITS (11+):
+  4. create_post()             [L.596-634] - Uses thread.id (L.619)
+  5. recalc_thread_counters()  [L.543-590] - Uses thread.id (L.545,574)
+  6. increment_thread_view()   [L.537-541] - Uses thread.id (L.540)
+  7. set_thread_tags()         [L.1150-76] - Uses thread.id (L.1155,1164)
+  8. bookmark_thread()         [L.1064-72] - Uses thread.id (L.1066,1069)
+  9. subscribe_to_thread()     [L.1042-54] - Uses thread.id (L.1047,1050)
+ 10. like_post()               [L.738-758] - Uses post.id (L.745)
+ 11. soft_delete_thread()      [L.330-334] - Accesses thread (L.331-333)
+ 12. hide_thread()             [L.337-342] - Accesses thread (L.339-341)
+ 13. merge_threads()           [L.411-536] - Uses source.id, target.id
+ 14. split_thread()            (Complex) - Uses multiple detached objects
+
+TOTAL RISK SURFACE: 14+ functions affected
+
+=============================================================================
+AFFECTED TEST FILES (57 tests total)
+=============================================================================
+
+1. test_forum_phase4.py             - Phase 4 moderation/reporting
+2. test_moderation_escalation.py    - Escalation/review queues
+3. test_performance_regression.py   - N+1 prevention tests
+4. test_phase4_regression.py        - Phases 2-4 regression suite
+5. test_search_stability.py         - Search/discovery tests
+
+COMMON PATTERN:
+  def test_something(self, ..., forum_category):  ← Detached fixture
+      with app.app_context():
+          create_thread(category=forum_category, ...)  ← Error here
+
+=============================================================================
+RECOMMENDED FIX STRATEGIES
+=============================================================================
+
+STRATEGY 1: Refactor Service Signatures (LONG-TERM, PREFERRED)
+────────────────────────────────────────────────────────────
+Change function signatures to accept IDs instead of objects:
+
+  Before: create_thread(category: ForumCategory, ...)
+  After:  create_thread(category_id: int, ...)
+
+Affected: create_thread(), move_thread(), split_thread()
+
+Pros:
+  ✓ Eliminates detached object handling entirely
+  ✓ Cleaner API (primitives never detach)
+  ✓ Type-safe
+  ✓ Future-proof for caching scenarios
+
+Cons:
+  ✗ Breaks existing API (~20-30 call sites to update)
+  ✗ Slight perf loss (one extra PK lookup if category needed)
+
+Effort: 2-3 days (refactor service layer + update all call sites)
+
+────────────────────────────────────────────────────────────
+
+STRATEGY 2: Fix Fixture Design (IMMEDIATE, RECOMMENDED)
+────────────────────────────────────────────────────────────
+Change forum_category fixture to return ID, not object:
+
+  Before: return cat         (returns detached instance)
+  After:  return cat.id      (returns primitive)
+
+Update test calls:
+  Before: create_thread(category=forum_category, ...)
+  After:  cat = ForumCategory.query.get(forum_category)
+          create_thread(category=cat, ...)
+
+Affected: conftest.py fixture + test files using it
+
+Pros:
+  ✓ Fixes root cause (fixture design)
+  ✓ No service layer changes needed
+  ✓ Unblocks tests within 1 day
+  ✓ Teaches correct SQLAlchemy patterns
+
+Cons:
+  ✗ Requires updating test files
+  ✗ Fixture signature change (minor backward compat issue)
+
+Effort: 1 day (change fixture + bulk update ~20 test functions)
+
+────────────────────────────────────────────────────────────
+
+STRATEGY 3: Re-Query Objects in Service (MIDDLE GROUND)
+────────────────────────────────────────────────────────────
+Add refresh check at function entry:
+
+  def create_thread(*, category: ForumCategory, ...):
+      if not db.session.is_modified(category):
+          category = ForumCategory.query.get(category.id)
+      ...
+
+Affected: All 14+ functions
+
+Pros:
+  ✓ No signature changes
+  ✓ Backward compatible
+  ✓ Works with both attached/detached
+
+Cons:
+  ✗ Extra DB query per call (perf regression)
+  ✗ Masks root cause
+  ✗ Difficult to test/verify
+
+Effort: 2-3 days (update 14+ functions + regression testing)
+
+────────────────────────────────────────────────────────────
+
+COMBINED APPROACH (BEST):
+────────────────────────────────────────────────────────────
+1. Immediate: Use Strategy 2 to unblock 57 failing tests (1 day)
+2. Long-term: Use Strategy 1 in future refactor (2-3 sprints)
+
+This gets tests passing quickly without technical debt.
+
+=============================================================================
+IMPLEMENTATION CHECKLIST
+=============================================================================
+
+FOR IMMEDIATE FIX (Strategy 2):
+
+  [ ] Modify forum_category fixture to return cat.id
+  [ ] Update all test functions using forum_category fixture
+      - test_search_stability.py (20+ functions)
+      - test_forum_phase4.py (5-10 functions)
+      - test_moderation_escalation.py (5-10 functions)
+      - test_phase4_regression.py (10+ functions)
+      - test_performance_regression.py (5+ functions)
+  [ ] Add inline category re-query in test setup:
+      category = ForumCategory.query.get(forum_category)
+  [ ] Run full test suite: pytest backend/tests/ -v
+  [ ] Verify all 57 tests pass
+  [ ] Verify coverage still ≥ 85%
+  [ ] Commit with message: "fix: resolve DetachedInstanceError in forum tests"
+
+FOR LONG-TERM FIX (Strategy 1):
+  [ ] Refactor create_thread(category_id: int, ...)
+  [ ] Refactor move_thread(..., new_category_id: int)
+  [ ] Refactor split_thread(..., new_category_id: Optional[int])
+  [ ] Update all route handlers (API + web)
+  [ ] Update all test calls
+  [ ] Update documentation/runbook
+  [ ] Run full regression suite
+
+=============================================================================
+FILE LOCATIONS
+=============================================================================
+
+Analysis document: DETACHED_INSTANCE_ANALYSIS.md (in repo root)
+
+Key files to modify:
+  - backend/tests/conftest.py                 (fixture definition)
+  - backend/tests/test_search_stability.py    (~20 test functions)
+  - backend/tests/test_forum_phase4.py        (~8 test functions)
+  - backend/tests/test_moderation_escalation.py (~8 test functions)
+  - backend/tests/test_phase4_regression.py   (~10 test functions)
+  - backend/tests/test_performance_regression.py (~5 test functions)
+
+Service layer (no changes needed for immediate fix):
+  - backend/app/services/forum_service.py    (11+ functions at risk)
+
+=============================================================================

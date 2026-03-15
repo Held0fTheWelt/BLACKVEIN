@@ -8,12 +8,18 @@ from app.models import ForumCategory, ForumThread, ForumPost, ForumThreadBookmar
 
 @pytest.fixture
 def forum_category(app):
-    """Create a public forum category for testing."""
+    """Create a public forum category for testing.
+
+    Returns the category ID (integer) to avoid DetachedInstanceError.
+    Tests should reload the category from the database with:
+        category = ForumCategory.query.get(forum_category)
+    within an app context when they need the full object.
+    """
     with app.app_context():
         cat = ForumCategory(slug="general", title="General", is_active=True, is_private=False)
         db.session.add(cat)
         db.session.commit()
-        yield cat
+        yield cat.id
 
 
 @pytest.fixture
@@ -35,7 +41,7 @@ def user_with_threads_and_posts(app, forum_category):
         # Create 5 threads by this user
         for i in range(5):
             thread = ForumThread(
-                category_id=forum_category.id,
+                category_id=forum_category,
                 author_id=user.id,
                 slug=f"thread-{i}",
                 title=f"Test Thread {i}",
@@ -181,7 +187,7 @@ def test_profile_activity_counts_accurate(app, client, forum_category):
         # Create exactly 3 threads
         for i in range(3):
             thread = ForumThread(
-                category_id=forum_category.id,
+                category_id=forum_category,
                 author_id=user.id,
                 slug=f"cnt-thread-{i}",
                 title=f"Counter Thread {i}",
@@ -278,7 +284,7 @@ def test_bookmarks_pagination(app, client, forum_category):
         # Create 5 threads and bookmark them all
         for i in range(5):
             thread = ForumThread(
-                category_id=forum_category.id,
+                category_id=forum_category,
                 author_id=None,
                 slug=f"bookmark-test-{i}",
                 title=f"Bookmark Test {i}",
@@ -338,7 +344,7 @@ def test_popular_tags_returns_200(app, client, forum_category):
 
         # Create thread with tag
         thread = ForumThread(
-            category_id=forum_category.id,
+            category_id=forum_category,
             author_id=user.id,
             slug="tagged-thread",
             title="Tagged Thread",
@@ -404,7 +410,7 @@ def test_tag_detail_returns_200(app, client, forum_category):
         # Create 3 threads with this tag
         for i in range(3):
             thread = ForumThread(
-                category_id=forum_category.id,
+                category_id=forum_category,
                 author_id=user.id,
                 slug=f"detailed-thread-{i}",
                 title=f"Detailed Thread {i}",
@@ -460,7 +466,7 @@ def test_tag_detail_pagination(app, client, forum_category):
         # Create 5 threads with this tag
         for i in range(5):
             thread = ForumThread(
-                category_id=forum_category.id,
+                category_id=forum_category,
                 author_id=user.id,
                 slug=f"paginated-thread-{i}",
                 title=f"Paginated Thread {i}",

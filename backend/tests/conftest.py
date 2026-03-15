@@ -332,7 +332,13 @@ def sample_news(app, test_user):
 
 @pytest.fixture
 def forum_category(app):
-    """Create a default forum category for tests."""
+    """Create a default forum category for tests.
+
+    Returns the category ID (integer) to avoid DetachedInstanceError.
+    Tests should reload the category from the database with:
+        category = ForumCategory.query.get(forum_category)
+    within an app context when they need the full object.
+    """
     with app.app_context():
         from app.models import ForumCategory
         cat = ForumCategory.query.filter_by(slug="general").first()
@@ -347,4 +353,4 @@ def forum_category(app):
             )
             db.session.add(cat)
             db.session.commit()
-        return cat
+        return cat.id

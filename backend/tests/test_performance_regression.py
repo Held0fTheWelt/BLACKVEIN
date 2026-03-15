@@ -26,15 +26,16 @@ class TestQueryPerformance:
     """Test that critical queries complete efficiently."""
 
     @pytest.mark.slow
-    def test_list_threads_for_category_performance(self, app, test_user):
+    def test_list_threads_for_category_performance(self, app, test_user, forum_category):
         """list_threads_for_category should complete in <500ms with 1000 threads."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread
 
             # Create 1000 threads
             for i in range(1000):
-                create_thread(category=cat, author_id=test_user.id,
+                create_thread(category=cat, author_id=user.id,
                             title=f"Thread {i}", content="Content")
 
             start = time.perf_counter()
@@ -46,15 +47,16 @@ class TestQueryPerformance:
             assert total >= 1000
 
     @pytest.mark.slow
-    def test_search_forum_performance(self, client, auth_headers, app, test_user):
+    def test_search_forum_performance(self, client, auth_headers, app, test_user, forum_category):
         """Forum search should complete in <500ms with 1000 threads."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread
 
             # Create 1000 threads
             for i in range(1000):
-                create_thread(category=cat, author_id=test_user.id,
+                create_thread(category=cat, author_id=user.id,
                             title=f"Performance Test {i % 100}", content="Content")
 
         start = time.perf_counter()
@@ -64,20 +66,21 @@ class TestQueryPerformance:
         assert response.status_code == 200
         assert elapsed < 0.5, f"Search took {elapsed:.3f}s, should be <0.5s"
 
-    def test_list_bookmarked_threads_performance(self, app, test_user):
+    def test_list_bookmarked_threads_performance(self, app, test_user, forum_category):
         """Bookmarked threads listing should complete efficiently."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread, bookmark_thread
 
             # Create and bookmark threads
             for i in range(50):
-                t, _, _ = create_thread(category=cat, author_id=test_user.id,
+                t, _, _ = create_thread(category=cat, author_id=user.id,
                                        title=f"Bookmark {i}", content="Content")
-                bookmark_thread(test_user, t)
+                bookmark_thread(user, t)
 
             start = time.perf_counter()
-            threads, total = list_bookmarked_threads(test_user, page=1, per_page=20)
+            threads, total = list_bookmarked_threads(user, page=1, per_page=20)
             elapsed = time.perf_counter() - start
 
             assert elapsed < 0.5, f"Bookmark listing took {elapsed:.3f}s, should be <0.5s"
@@ -135,15 +138,16 @@ class TestQueryPerformance:
 
             assert elapsed < 0.5, f"Review queue took {elapsed:.3f}s, should be <0.5s"
 
-    def test_list_tags_performance(self, app, test_user):
+    def test_list_tags_performance(self, app, test_user, forum_category):
         """Tag listing should be fast."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread, set_thread_tags
 
             # Create threads with many tags
             for i in range(100):
-                t, _, _ = create_thread(category=cat, author_id=test_user.id,
+                t, _, _ = create_thread(category=cat, author_id=user.id,
                                        title=f"Thread {i}", content="Content")
                 tags = [f"tag{j}" for j in range(i % 5)]
                 set_thread_tags(t, tags=tags)
@@ -154,19 +158,20 @@ class TestQueryPerformance:
 
             assert elapsed < 0.5, f"Tag listing took {elapsed:.3f}s, should be <0.5s"
 
-    def test_user_recent_threads_performance(self, app, test_user):
+    def test_user_recent_threads_performance(self, app, test_user, forum_category):
         """User recent threads should be fast."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread
 
             # Create many threads
             for i in range(500):
-                create_thread(category=cat, author_id=test_user.id,
+                create_thread(category=cat, author_id=user.id,
                             title=f"Thread {i}", content="Content")
 
             start = time.perf_counter()
-            threads = get_user_recent_threads(test_user.id, limit=20)
+            threads = get_user_recent_threads(user.id, limit=20)
             elapsed = time.perf_counter() - start
 
             assert elapsed < 0.5, f"Recent threads took {elapsed:.3f}s, should be <0.5s"
@@ -176,20 +181,25 @@ class TestQueryPerformance:
 class TestNoN1Queries:
     """Test that common operations don't have N+1 query problems."""
 
-    def test_list_threads_category_no_n1(self, app, test_user):
+    def test_list_threads_category_no_n1(self, app, test_user, forum_category):
         """list_threads_for_category should eager load authors (no N+1)."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread
             from app.extensions import db
 
             # Create 10 threads
+            cat_id = cat.id  # Save the ID before expunge
             for i in range(10):
-                create_thread(category=cat, author_id=test_user.id,
+                create_thread(category=cat, author_id=user.id,
                             title=f"Thread {i}", content="Content")
 
             # Flush to clear session cache
             db.session.expunge_all()
+
+            # Reload the detached category
+            cat = ForumCategory.query.get(cat_id)
 
             # Patch db.session.execute to count queries
             execute_count = [0]
@@ -209,18 +219,19 @@ class TestNoN1Queries:
             # (eager loading authors in the main query)
             assert execute_count[0] <= 5, f"Too many queries: {execute_count[0]}"
 
-    def test_list_bookmarked_threads_no_n1(self, app, test_user):
+    def test_list_bookmarked_threads_no_n1(self, app, test_user, forum_category):
         """list_bookmarked_threads should eager load authors."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread, bookmark_thread
             from app.extensions import db
 
             # Create and bookmark threads
             for i in range(10):
-                t, _, _ = create_thread(category=cat, author_id=test_user.id,
+                t, _, _ = create_thread(category=cat, author_id=user.id,
                                        title=f"Thread {i}", content="Content")
-                bookmark_thread(test_user, t)
+                bookmark_thread(user, t)
 
             db.session.expunge_all()
 
@@ -233,7 +244,7 @@ class TestNoN1Queries:
 
             db.session.execute = counting_execute
 
-            threads, _ = list_bookmarked_threads(test_user, page=1, per_page=20)
+            threads, _ = list_bookmarked_threads(user, page=1, per_page=20)
 
             db.session.execute = original_execute
 
@@ -244,15 +255,16 @@ class TestNoN1Queries:
 class TestIndexUsage:
     """Test that indexes are being used effectively."""
 
-    def test_search_uses_thread_status_index(self, client, auth_headers, app, test_user):
+    def test_search_uses_thread_status_index(self, client, auth_headers, app, test_user, forum_category):
         """Search should use thread status index for visibility filtering."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread, hide_thread
 
             # Create mix of visible and hidden threads
             for i in range(100):
-                t, _, _ = create_thread(category=cat, author_id=test_user.id,
+                t, _, _ = create_thread(category=cat, author_id=user.id,
                                        title=f"Thread {i}", content="Content")
                 if i % 10 == 0:
                     hide_thread(t)
@@ -265,15 +277,16 @@ class TestIndexUsage:
         for item in data.get("items", []):
             assert "hidden" not in item.get("title", "").lower()
 
-    def test_category_listing_uses_composite_index(self, app, test_user):
+    def test_category_listing_uses_composite_index(self, app, test_user, forum_category):
         """Category listing should use (category_id, status, created_at) index."""
         with app.app_context():
-            cat = ForumCategory.query.first()
+            user, _ = test_user
+            cat = ForumCategory.query.get(forum_category)
             from app.services.forum_service import create_thread
 
             # Create threads in bulk
             for i in range(500):
-                create_thread(category=cat, author_id=test_user.id,
+                create_thread(category=cat, author_id=user.id,
                             title=f"Thread {i}", content="Content")
 
             # List should be fast (index is being used)

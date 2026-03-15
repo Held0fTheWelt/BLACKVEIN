@@ -55,10 +55,12 @@ class TestSearchEdgeCases:
     def test_search_special_characters_escaped(self, client, auth_headers, app, test_user, forum_category):
         """SQL wildcard characters (%, _) should be escaped for safe searching."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread
+            category = ForumCategory.query.get(forum_category)
             thread, post, err = create_thread(
-                category=forum_category,
+                category=category,
                 author_id=user.id,
                 title="Test%_Special",
                 content="Test content with special chars"
@@ -71,15 +73,17 @@ class TestSearchEdgeCases:
     def test_search_with_category_filter(self, client, auth_headers, app, test_user, forum_category):
         """Search with category filter should only return threads from that category."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread
+            category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="General Discussion", content="Content"
             )
 
-            response = client.get(f"/api/v1/forum/search?q=general&category={forum_category.slug}", headers=auth_headers)
+            response = client.get(f"/api/v1/forum/search?q=general&category={category.slug}", headers=auth_headers)
             assert response.status_code == 200
             data = response.get_json()
             # Should get results
@@ -124,10 +128,12 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_empty_tags_returns_empty(self, app, test_user, forum_category):
         """Thread with no tags should return empty suggestions."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread
+            category = ForumCategory.query.get(forum_category)
             thread, post, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Untagged Thread", content="Content"
             )
 
@@ -137,15 +143,17 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_single_tag(self, app, test_user, forum_category):
         """Threads with single tag should still suggest related threads."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags
+            category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Thread 1", content="Content 1"
             )
             t2, p2, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Thread 2", content="Content 2"
             )
 
@@ -159,15 +167,17 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_excludes_deleted(self, app, test_user, forum_category):
         """Deleted threads should be excluded from suggestions."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags, soft_delete_thread
+            category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Active Thread", content="Content"
             )
             t2, p2, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Deleted Thread", content="Content"
             )
 
@@ -182,15 +192,17 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_excludes_hidden(self, app, test_user, forum_category):
         """Hidden threads should be excluded from suggestions."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags, hide_thread
+            category = ForumCategory.query.get(forum_category)
 
             t1, p1, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Visible Thread", content="Content"
             )
             t2, p2, _ = create_thread(
-                category=forum_category, author_id=user.id,
+                category=category, author_id=user.id,
                 title="Hidden Thread", content="Content"
             )
 
@@ -205,15 +217,17 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_deterministic_ordering(self, app, test_user, forum_category):
         """Suggestions should be deterministic (reproducible order)."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags
+            category = ForumCategory.query.get(forum_category)
 
-            t1, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t1, _, _ = create_thread(category=category, author_id=user.id,
                                      title="Main Thread", content="Content")
 
             # Create multiple threads with shared tags
             for i in range(5):
-                t, _, _ = create_thread(category=forum_category, author_id=user.id,
+                t, _, _ = create_thread(category=category, author_id=user.id,
                                        title=f"Related {i}", content="Content")
                 set_thread_tags(t, tags=["shared"])
             set_thread_tags(t1, tags=["shared"])
@@ -227,15 +241,17 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_respects_limit(self, app, test_user, forum_category):
         """Related threads should respect the limit parameter."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags
+            category = ForumCategory.query.get(forum_category)
 
-            t1, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t1, _, _ = create_thread(category=category, author_id=user.id,
                                     title="Main", content="Content")
 
             # Create 20 related threads
             for i in range(20):
-                t, _, _ = create_thread(category=forum_category, author_id=user.id,
+                t, _, _ = create_thread(category=category, author_id=user.id,
                                        title=f"Related {i}", content="Content")
                 set_thread_tags(t, tags=["shared"])
             set_thread_tags(t1, tags=["shared"])
@@ -247,10 +263,12 @@ class TestRelatedThreadsSuggestions:
     def test_related_threads_excludes_self(self, app, test_user, forum_category):
         """Thread should never be included in its own suggestions."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags
+            category = ForumCategory.query.get(forum_category)
 
-            t1, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t1, _, _ = create_thread(category=category, author_id=user.id,
                                     title="Self Thread", content="Content")
             set_thread_tags(t1, tags=["self"])
 
@@ -264,18 +282,21 @@ class TestProfileActivityDiscovery:
     def test_user_with_no_threads_shows_empty(self, app, test_user, forum_category):
         """User with no threads should show empty list gracefully."""
         with app.app_context():
+            user, _ = test_user
             threads = get_user_recent_threads(user.id, limit=10)
             assert threads == []
 
     def test_user_recent_threads_pagination(self, app, test_user, forum_category):
         """Recent threads should be paginated correctly."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread
+            category = ForumCategory.query.get(forum_category)
 
             # Create 25 threads
             for i in range(25):
-                create_thread(category=forum_category, author_id=user.id,
+                create_thread(category=category, author_id=user.id,
                             title=f"Thread {i}", content="Content")
 
             # Default limit should work
@@ -289,12 +310,14 @@ class TestProfileActivityDiscovery:
     def test_user_recent_threads_excludes_deleted(self, app, test_user, forum_category):
         """Deleted threads should not appear in user's recent threads."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, soft_delete_thread
+            category = ForumCategory.query.get(forum_category)
 
-            t1, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t1, _, _ = create_thread(category=category, author_id=user.id,
                                     title="Active", content="Content")
-            t2, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t2, _, _ = create_thread(category=category, author_id=user.id,
                                     title="Deleted", content="Content")
 
             soft_delete_thread(t2)
@@ -307,16 +330,19 @@ class TestProfileActivityDiscovery:
     def test_user_recent_posts_empty(self, app, test_user, forum_category):
         """User with no posts should show empty list."""
         with app.app_context():
+            user, _ = test_user
             posts = get_user_recent_posts(user.id, limit=10)
             assert posts == []
 
     def test_user_recent_posts_pagination(self, app, test_user, forum_category):
         """Recent posts should be paginated."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, create_post
+            category = ForumCategory.query.get(forum_category)
 
-            t, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t, _, _ = create_thread(category=category, author_id=user.id,
                                    title="Thread", content="First post")
 
             for i in range(5):
@@ -328,11 +354,13 @@ class TestProfileActivityDiscovery:
     def test_user_recent_posts_content_preview(self, app, test_user, forum_category):
         """Post content should be truncated to preview."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, create_post
+            category = ForumCategory.query.get(forum_category)
 
             long_content = "x" * 500
-            t, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t, _, _ = create_thread(category=category, author_id=user.id,
                                    title="Thread", content="Content")
             create_post(thread=t, author_id=user.id, content=long_content)
 
@@ -343,12 +371,14 @@ class TestProfileActivityDiscovery:
     def test_count_user_threads_accuracy(self, app, test_user, forum_category):
         """Thread count should match actual threads."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread
+            category = ForumCategory.query.get(forum_category)
 
             count_before = count_user_threads(user.id)
 
-            create_thread(category=forum_category, author_id=user.id,
+            create_thread(category=category, author_id=user.id,
                          title="New", content="Content")
 
             count_after = count_user_threads(user.id)
@@ -357,12 +387,14 @@ class TestProfileActivityDiscovery:
     def test_count_user_posts_accuracy(self, app, test_user, forum_category):
         """Post count should match actual posts."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, create_post
+            category = ForumCategory.query.get(forum_category)
 
             count_before = count_user_posts(user.id)
 
-            t, _, _ = create_thread(category=forum_category, author_id=user.id,
+            t, _, _ = create_thread(category=category, author_id=user.id,
                                    title="Thread", content="First post")
             create_post(thread=t, author_id=user.id, content="Reply")
 
@@ -384,12 +416,14 @@ class TestBatchOperations:
     def test_batch_tag_thread_counts_single_query(self, app, test_user, forum_category):
         """Batch tag counts should use single query not N queries."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags, list_all_tags
+            category = ForumCategory.query.get(forum_category)
 
             # Create threads with tags
             for i in range(5):
-                t, _, _ = create_thread(category=forum_category, author_id=user.id,
+                t, _, _ = create_thread(category=category, author_id=user.id,
                                        title=f"Thread {i}", content="Content")
                 set_thread_tags(t, tags=[f"tag{i % 3}"])
 
@@ -407,12 +441,14 @@ class TestBatchOperations:
     def test_list_tags_for_threads_batch_query(self, app, test_user, forum_category):
         """list_tags_for_threads should batch load tags."""
         with app.app_context():
+            from app.models import ForumCategory
             user, _ = test_user
             from app.services.forum_service import create_thread, set_thread_tags
+            category = ForumCategory.query.get(forum_category)
 
             threads = []
             for i in range(10):
-                t, _, _ = create_thread(category=forum_category, author_id=user.id,
+                t, _, _ = create_thread(category=category, author_id=user.id,
                                        title=f"Thread {i}", content="Content")
                 set_thread_tags(t, tags=["shared", f"tag{i}"])
                 threads.append(t)

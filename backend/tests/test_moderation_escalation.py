@@ -30,6 +30,7 @@ class TestEscalationQueueManagement:
 
     def test_escalation_queue_includes_only_escalated(self, app, test_user):
         """Escalation queue should only include 'escalated' status reports."""
+        user, _ = test_user
         with app.app_context():
             from app.extensions import db
 
@@ -68,6 +69,7 @@ class TestEscalationQueueManagement:
 
     def test_escalation_queue_priority_ordering(self, app, test_user):
         """Escalation queue should order by priority: critical > high > normal > low."""
+        user, _ = test_user
         with app.app_context():
             from app.extensions import db
 
@@ -144,6 +146,8 @@ class TestEscalationQueueManagement:
 
     def test_escalation_queue_assigned_filter(self, app, test_user, moderator_user):
         """Escalation queue should support filtering by assigned moderator."""
+        user, _ = test_user
+        mod_user, _ = moderator_user
         with app.app_context():
             from app.extensions import db
 
@@ -163,7 +167,7 @@ class TestEscalationQueueManagement:
                     status="escalated",
                     priority="high" if i % 2 else "normal",
                     escalated_at=_utc_now(),
-                    assigned_to=moderator_user.id if i % 2 == 0 else None
+                    assigned_to=mod_user.id if i % 2 == 0 else None
                 )
                 db.session.add(report)
             db.session.commit()
@@ -171,11 +175,11 @@ class TestEscalationQueueManagement:
             # Filter for assigned to moderator
             queue, total = list_escalation_queue(
                 page=1, per_page=50,
-                assigned_to_id=moderator_user.id
+                assigned_to_id=mod_user.id
             )
 
             assigned_to = {r.assigned_to for r in queue}
-            assert assigned_to == {moderator_user.id}
+            assert assigned_to == {mod_user.id}
 
     def test_escalation_queue_date_filter(self, app, test_user):
         """Escalation queue should support filtering by creation date."""
@@ -357,13 +361,15 @@ class TestReportAssignment:
 
     def test_assign_report_to_moderator(self, app, test_user, moderator_user):
         """Should be able to assign report to a moderator."""
+        user, _ = test_user
+        mod_user, _ = moderator_user
         with app.app_context():
             from app.extensions import db
 
             report = ForumReport(
                 target_type="thread",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test report",
                 status="open"
             )
@@ -374,11 +380,13 @@ class TestReportAssignment:
             assert report.assigned_to is None
 
             # Assign to moderator
-            report = assign_report_to_moderator(report, moderator_user.id)
-            assert report.assigned_to == moderator_user.id
+            report = assign_report_to_moderator(report, mod_user.id)
+            assert report.assigned_to == mod_user.id
 
     def test_list_moderator_assigned_reports(self, app, test_user, moderator_user):
         """Should be able to list reports assigned to a specific moderator."""
+        user, _ = test_user
+        mod_user, _ = moderator_user
         with app.app_context():
             from app.extensions import db
 
@@ -387,42 +395,45 @@ class TestReportAssignment:
                 report = ForumReport(
                     target_type="thread",
                     target_id=i,
-                    reported_by=test_user.id,
+                    reported_by=user.id,
                     reason=f"Report {i}",
                     status="open",
-                    assigned_to=moderator_user.id if i % 2 == 0 else None
+                    assigned_to=mod_user.id if i % 2 == 0 else None
                 )
                 db.session.add(report)
             db.session.commit()
 
             # List assigned reports
             assigned, total = list_moderator_assigned_reports(
-                moderator_user.id, page=1, per_page=50
+                mod_user.id, page=1, per_page=50
             )
 
             # Should have 3 reports (i = 0, 2, 4)
             assigned_to = {r.assigned_to for r in assigned}
-            assert assigned_to == {moderator_user.id}
+            assert assigned_to == {mod_user.id}
 
     def test_reassign_report(self, app, test_user, moderator_user, admin_user):
         """Should be able to reassign report to a different moderator."""
+        user, _ = test_user
+        mod_user, _ = moderator_user
+        admin, _ = admin_user
         with app.app_context():
             from app.extensions import db
 
             report = ForumReport(
                 target_type="post",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test report",
                 status="open",
-                assigned_to=moderator_user.id
+                assigned_to=mod_user.id
             )
             db.session.add(report)
             db.session.commit()
 
             # Reassign to admin
-            report = assign_report_to_moderator(report, admin_user.id)
-            assert report.assigned_to == admin_user.id
+            report = assign_report_to_moderator(report, admin.id)
+            assert report.assigned_to == admin.id
 
 
 class TestReportStatusTransitions:
@@ -431,33 +442,37 @@ class TestReportStatusTransitions:
     def test_open_to_reviewed_transition(self, app, test_user, moderator_user):
         """Report can transition from open to reviewed."""
         with app.app_context():
+            user, _ = test_user
+            mod_user, _ = moderator_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="thread",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="open"
             )
             db.session.add(report)
             db.session.commit()
 
-            report = update_report_status(report, status="reviewed", handled_by=moderator_user.id)
+            report = update_report_status(report, status="reviewed", handled_by=mod_user.id)
 
             assert report.status == "reviewed"
-            assert report.handled_by == moderator_user.id
+            assert report.handled_by == mod_user.id
             assert report.handled_at is not None
 
     def test_review_to_escalate_transition(self, app, test_user, moderator_user):
         """Report can transition from reviewed to escalated."""
         with app.app_context():
+            user, _ = test_user
+            mod_user, _ = moderator_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="post",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="reviewed"
             )
@@ -465,7 +480,7 @@ class TestReportStatusTransitions:
             db.session.commit()
 
             report = update_report_status(
-                report, status="escalated", handled_by=moderator_user.id,
+                report, status="escalated", handled_by=mod_user.id,
                 priority="high", escalation_reason="Needs admin review"
             )
 
@@ -477,12 +492,14 @@ class TestReportStatusTransitions:
     def test_escalated_to_resolved_transition(self, app, test_user, admin_user):
         """Report can transition from escalated to resolved."""
         with app.app_context():
+            user, _ = test_user
+            admin, _ = admin_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="thread",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="escalated",
                 priority="critical",
@@ -492,7 +509,7 @@ class TestReportStatusTransitions:
             db.session.commit()
 
             report = update_report_status(
-                report, status="resolved", handled_by=admin_user.id,
+                report, status="resolved", handled_by=admin.id,
                 resolution_note="Thread deleted, user warned"
             )
 
@@ -503,12 +520,14 @@ class TestReportStatusTransitions:
     def test_open_to_dismissed_transition(self, app, test_user, moderator_user):
         """Report can be dismissed without escalation."""
         with app.app_context():
+            user, _ = test_user
+            mod_user, _ = moderator_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="post",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="False report",
                 status="open"
             )
@@ -516,7 +535,7 @@ class TestReportStatusTransitions:
             db.session.commit()
 
             report = update_report_status(
-                report, status="dismissed", handled_by=moderator_user.id,
+                report, status="dismissed", handled_by=mod_user.id,
                 resolution_note="Not a violation"
             )
 
@@ -529,12 +548,14 @@ class TestHandledReportsHistory:
     def test_list_handled_reports_includes_resolved(self, app, test_user, admin_user):
         """Handled reports should include resolved reports."""
         with app.app_context():
+            user, _ = test_user
+            admin, _ = admin_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="thread",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="open"
             )
@@ -542,7 +563,7 @@ class TestHandledReportsHistory:
             db.session.commit()
 
             # Mark as resolved
-            report = update_report_status(report, status="resolved", handled_by=admin_user.id)
+            report = update_report_status(report, status="resolved", handled_by=admin.id)
 
             # Should appear in handled reports
             handled, total = list_handled_reports(page=1, per_page=50)
@@ -552,12 +573,14 @@ class TestHandledReportsHistory:
     def test_list_handled_reports_includes_dismissed(self, app, test_user, moderator_user):
         """Handled reports should include dismissed reports."""
         with app.app_context():
+            user, _ = test_user
+            mod_user, _ = moderator_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="post",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="open"
             )
@@ -565,7 +588,7 @@ class TestHandledReportsHistory:
             db.session.commit()
 
             # Mark as dismissed
-            report = update_report_status(report, status="dismissed", handled_by=moderator_user.id)
+            report = update_report_status(report, status="dismissed", handled_by=mod_user.id)
 
             # Should appear in handled reports
             handled, total = list_handled_reports(page=1, per_page=50)
@@ -575,12 +598,13 @@ class TestHandledReportsHistory:
     def test_list_handled_reports_excludes_open(self, app, test_user):
         """Handled reports should not include open reports."""
         with app.app_context():
+            user, _ = test_user
             from app.extensions import db
 
             report = ForumReport(
                 target_type="thread",
                 target_id=1,
-                reported_by=test_user.id,
+                reported_by=user.id,
                 reason="Test",
                 status="open"
             )
@@ -595,6 +619,8 @@ class TestHandledReportsHistory:
     def test_handled_reports_pagination(self, app, test_user, admin_user):
         """Handled reports should support pagination."""
         with app.app_context():
+            user, _ = test_user
+            admin, _ = admin_user
             from app.extensions import db
 
             # Create 100 reports and mark as resolved
@@ -602,7 +628,7 @@ class TestHandledReportsHistory:
                 report = ForumReport(
                     target_type="thread",
                     target_id=i % 20,
-                    reported_by=test_user.id,
+                    reported_by=user.id,
                     reason=f"Report {i}",
                     status="open"
                 )
@@ -612,7 +638,7 @@ class TestHandledReportsHistory:
             # Mark all as resolved
             reports = ForumReport.query.filter_by(status="open").all()
             for report in reports:
-                update_report_status(report, status="resolved", handled_by=admin_user.id)
+                update_report_status(report, status="resolved", handled_by=admin.id)
 
             # Get first page
             page1, total = list_handled_reports(page=1, per_page=10)
