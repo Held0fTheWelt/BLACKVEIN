@@ -15,7 +15,7 @@ services:
     volumes:
       - ./Backend/instance:/app/instance
     environment:
-      - FLASK_APP=run:app
+      - FLASK_APP=app:app
       - CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001
 
   frontend:

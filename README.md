@@ -9,7 +9,7 @@ backend/                  # API, auth, dashboard, DB, migrations, tests
   app/                    # create_app, config, models, services, api, web, auth
   migrations/             # Flask-Migrate (Alembic)
   tests/                  # pytest (test_api, test_web, test_news_api, …)
-  run.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
+  app.py                  # entrypoint; CLI: init-db, seed-dev-user, seed-news
   requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
 administration-tool/      # Public website + management area
   frontend_app.py         # Flask app: /, /news, /forum, /manage, …
@@ -28,7 +28,7 @@ README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 Copy `.env.example` to `.env` at the **repo root**. Backend and administration-tool both read from the root `.env` when run locally. Set at least:
 
 - **SECRET_KEY**, **JWT_SECRET_KEY** (required in production; or set **DEV_SECRETS_OK=1** for local dev fallbacks).
-- **FLASK_APP=run:app** (so Flask finds the app when running from `backend/`).
+- **FLASK_APP=app:app** (so Flask finds the app when running from `backend/`).
 
 Optional for local dev:
 
@@ -66,7 +66,7 @@ Start the backend:
 
 ```bash
 # From backend/
-export FLASK_APP=run:app   # or set in .env
+export FLASK_APP=app:app   # or set in .env
 python app.py
 # or: flask run
 ```
@@ -98,7 +98,7 @@ Otherwise the browser blocks frontend requests to the backend API.
 From **backend/**:
 
 ```bash
-export FLASK_APP=run:app
+export FLASK_APP=app:app
 flask db upgrade
 ```
 
@@ -148,7 +148,7 @@ docker compose exec backend flask db upgrade
 |----------|--------|-------------|
 | SECRET_KEY | Backend | Session/CSRF (required unless DEV_SECRETS_OK=1) |
 | JWT_SECRET_KEY | Backend | JWT signing (required or fallback to SECRET_KEY) |
-| FLASK_APP | Backend | Set to `run:app` |
+| FLASK_APP | Backend | Set to `app:app` |
 | PORT | Backend / administration-tool | Backend default 5000; administration-tool default 5001 |
 | BACKEND_API_URL | Administration tool | Backend base URL for API and auth (no trailing slash); default in code is remote PythonAnywhere for initial testing |
 | CORS_ORIGINS | Backend | Comma-separated origins for API (e.g. frontend URL) |
