@@ -1,4 +1,4 @@
-# World of Shadows (Blackveign)
+# World of Shadows (Better Tomorrow)
 
 Flask-based backend (API, auth, dashboard, news, DB) and a separate Flask frontend (public site, news pages). The frontend consumes the backend API only; no database in the frontend.
 
