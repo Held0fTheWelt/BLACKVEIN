@@ -10,9 +10,10 @@ from app.content.models import (
     Effect,
     EffectType,
     ExperienceTemplate,
-    ParticipantMode,
 )
 from app.runtime.models import CommandResult, ParticipantState, RuntimeEvent, RuntimeInstance, RuntimeSnapshot, TranscriptEntry
+from app.runtime.npc_behaviors import RuntimeNpcDirector
+from app.runtime.visibility import RuntimeVisibilityPolicy
 
 
 class RuntimeEngine:
@@ -22,35 +23,11 @@ class RuntimeEngine:
         self.roles = template.role_map()
         self.props = template.prop_map()
         self.actions = template.action_map()
+        self.visibility = RuntimeVisibilityPolicy(template)
+        self.npc_director = RuntimeNpcDirector(template, self._emit_npc_event)
 
     def build_snapshot(self, instance: RuntimeInstance, viewer_participant_id: str) -> RuntimeSnapshot:
         viewer = instance.participants[viewer_participant_id]
-        room_occupants: dict[str, list[dict[str, Any]]] = {room.id: [] for room in self.template.rooms}
-        for participant in instance.participants.values():
-            room_occupants.setdefault(participant.current_room_id, []).append(
-                {
-                    "participant_id": participant.id,
-                    "display_name": participant.display_name,
-                    "role_id": participant.role_id,
-                    "mode": participant.mode.value,
-                    "connected": participant.connected,
-                }
-            )
-
-        rooms_payload: list[dict[str, Any]] = []
-        for room in self.template.rooms:
-            room_props = [self._prop_payload(instance, prop_id) for prop_id in room.prop_ids]
-            rooms_payload.append(
-                {
-                    "id": room.id,
-                    "name": room.name,
-                    "description": room.description,
-                    "artwork_prompt": room.artwork_prompt,
-                    "exits": [exit_.model_dump() for exit_ in room.exits],
-                    "props": room_props,
-                }
-            )
-
         available_actions = self.available_actions(instance, viewer)
         return RuntimeSnapshot(
             run_id=instance.id,
@@ -61,16 +38,17 @@ class RuntimeEngine:
             status=instance.status,
             beat_id=instance.beat_id,
             tension=instance.tension,
-            flags=sorted(instance.flags),
             viewer_participant_id=viewer.id,
+            viewer_account_id=viewer.account_id,
+            viewer_character_id=viewer.character_id,
             viewer_room_id=viewer.current_room_id,
             viewer_role_id=viewer.role_id,
             viewer_display_name=viewer.display_name,
-            rooms=rooms_payload,
-            room_occupants=room_occupants,
+            current_room=self.visibility.build_current_room_payload(instance, viewer),
+            visible_occupants=self.visibility.visible_occupants(instance, viewer),
             available_actions=available_actions,
-            transcript_tail=instance.transcript[-30:],
-            metadata=instance.metadata,
+            transcript_tail=self.visibility.visible_transcript(instance, viewer),
+            metadata=self.visibility.public_metadata(instance),
         )
 
     def available_actions(self, instance: RuntimeInstance, viewer: ParticipantState) -> list[dict[str, Any]]:
@@ -110,88 +88,13 @@ class RuntimeEngine:
         return CommandResult(accepted=False, reason=f"Unknown command: {action}")
 
     def run_npc_cycle(self, instance: RuntimeInstance, trigger_actor_id: str | None = None) -> list[RuntimeEvent]:
-        events: list[RuntimeEvent] = []
-        if self.template.kind.value == "solo_story":
-            events.extend(self._solo_npc_cycle(instance))
-        elif self.template.kind.value == "open_world":
-            events.extend(self._open_world_npc_cycle(instance))
-        elif self.template.kind.value == "group_story":
-            events.extend(self._group_npc_cycle(instance))
+        self._npc_instance = instance
+        try:
+            events = self.npc_director.run_cycle(instance)
+        finally:
+            self._npc_instance = None
         if events:
             instance.updated_at = datetime.now(timezone.utc)
-        return events
-
-    def _group_npc_cycle(self, instance: RuntimeInstance) -> list[RuntimeEvent]:
-        if "house_ai_prompted" in instance.flags:
-            return []
-        instance.flags.add("house_ai_prompted")
-        return self._append_event(
-            instance,
-            event_type="npc_reacted",
-            text="House Recorder: All participants are reminded that tone, interruption, and silence are part of the scene contract.",
-            actor="House Recorder",
-            room_id="parlor",
-            payload={"npc_role": "house_ai"},
-        )
-
-    def _open_world_npc_cycle(self, instance: RuntimeInstance) -> list[RuntimeEvent]:
-        if "patrol_pattern_seen" in instance.flags and "drone_announced" not in instance.flags:
-            instance.flags.add("drone_announced")
-            return self._append_event(
-                instance,
-                event_type="npc_reacted",
-                text="Patrol Drone: Civic reminder. Unregistered loitering near transit assets may trigger secondary review.",
-                actor="Patrol Drone",
-                room_id="plaza",
-                payload={"npc_role": "patrol_drone"},
-            )
-        return []
-
-    def _solo_npc_cycle(self, instance: RuntimeInstance) -> list[RuntimeEvent]:
-        events: list[RuntimeEvent] = []
-        beat = instance.beat_id
-        if beat == "courtesy" and "entered_living_room" in instance.flags and "courtesy_intro_done" not in instance.flags:
-            instance.flags.add("courtesy_intro_done")
-            events.extend(
-                self._append_event(
-                    instance,
-                    event_type="npc_reacted",
-                    actor="Veronique",
-                    room_id="living_room",
-                    text="Veronique folds her hands. 'Thank you for coming. Let us try to remain clear and decent.'",
-                    payload={"npc_role": "host_veronique"},
-                )
-            )
-            events.extend(
-                self._append_event(
-                    instance,
-                    event_type="npc_reacted",
-                    actor="Alain",
-                    room_id="living_room",
-                    text="Alain glances at his phone instead of your face, already apologizing with only half his attention.",
-                    payload={"npc_role": "guest_alain"},
-                )
-            )
-        if beat == "first_fracture" and "fracture_exchange_done" not in instance.flags:
-            instance.flags.add("fracture_exchange_done")
-            text = (
-                "Annette presses a hand to her temple. Michel's smile goes tight. The room keeps speaking in"
-                " polite sentences while abandoning any polite intention."
-            )
-            events.extend(self._append_event(instance, event_type="npc_reacted", actor="Annette", room_id="living_room", text=text, payload={"npc_role": "guest_annette"}))
-        if beat == "unmasked" and "unmasked_exchange_done" not in instance.flags:
-            instance.flags.add("unmasked_exchange_done")
-            text = (
-                "Michel pours without asking. Veronique stops editing herself. Alain sounds more like counsel"
-                " than husband. Everyone has chosen their weapon."
-            )
-            events.extend(self._append_event(instance, event_type="npc_reacted", actor="Michel", room_id="living_room", text=text, payload={"npc_role": "host_michel"}))
-        if beat == "collapse" and "collapse_exchange_done" not in instance.flags:
-            instance.flags.add("collapse_exchange_done")
-            text = (
-                "The room loses its last fiction of control. Objects are no longer neutral. Neither is anyone else."
-            )
-            events.extend(self._append_event(instance, event_type="npc_reacted", actor="System", room_id="living_room", text=text, payload={"npc_role": "system"}))
         return events
 
     def _move(self, instance: RuntimeInstance, actor: ParticipantState, target_room_id: str) -> CommandResult:
@@ -202,62 +105,79 @@ class RuntimeEngine:
         actor.current_room_id = target_room_id
         if target_room_id == "living_room":
             instance.flags.add("entered_living_room")
-        return CommandResult(accepted=True, events=self._append_event(
-            instance,
-            event_type="room_changed",
-            actor=actor.display_name,
-            room_id=target_room_id,
-            text=f"{actor.display_name} moves to {self.rooms[target_room_id].name}.",
-            payload={"participant_id": actor.id, "target_room_id": target_room_id},
-        ))
+        return CommandResult(
+            accepted=True,
+            events=self._append_event(
+                instance,
+                event_type="room_changed",
+                actor=actor.display_name,
+                room_id=target_room_id,
+                text=f"{actor.display_name} moves to {self.rooms[target_room_id].name}.",
+                payload={"participant_id": actor.id, "target_room_id": target_room_id},
+            ),
+        )
 
     def _say(self, instance: RuntimeInstance, actor: ParticipantState, text: str) -> CommandResult:
         if not text:
             return CommandResult(accepted=False, reason="Say what?")
-        return CommandResult(accepted=True, events=self._append_event(
-            instance,
-            event_type="speech_committed",
-            actor=actor.display_name,
-            room_id=actor.current_room_id,
-            text=f'{actor.display_name} says: "{text}"',
-            payload={"participant_id": actor.id, "text": text},
-        ))
+        return CommandResult(
+            accepted=True,
+            events=self._append_event(
+                instance,
+                event_type="speech_committed",
+                actor=actor.display_name,
+                room_id=actor.current_room_id,
+                text=f'{actor.display_name} says: "{text}"',
+                payload={"participant_id": actor.id, "text": text},
+            ),
+        )
 
     def _emote(self, instance: RuntimeInstance, actor: ParticipantState, text: str) -> CommandResult:
         if not text:
             return CommandResult(accepted=False, reason="Emote what?")
-        return CommandResult(accepted=True, events=self._append_event(
-            instance,
-            event_type="emote_committed",
-            actor=actor.display_name,
-            room_id=actor.current_room_id,
-            text=f"{actor.display_name} {text}",
-            payload={"participant_id": actor.id, "text": text},
-        ))
+        return CommandResult(
+            accepted=True,
+            events=self._append_event(
+                instance,
+                event_type="emote_committed",
+                actor=actor.display_name,
+                room_id=actor.current_room_id,
+                text=f"{actor.display_name} {text}",
+                payload={"participant_id": actor.id, "text": text},
+            ),
+        )
 
     def _inspect(self, instance: RuntimeInstance, actor: ParticipantState, target_id: str) -> CommandResult:
+        if not self.visibility.can_inspect_target(instance, actor, target_id):
+            return CommandResult(accepted=False, reason="That target is not visible from your current room.")
         if target_id in self.props:
             prop = instance.props[target_id]
             text = f"You inspect {prop.name}: {prop.description} (state: {prop.state})."
-            return CommandResult(accepted=True, events=self._append_event(
-                instance,
-                event_type="inspection_committed",
-                actor=actor.display_name,
-                room_id=actor.current_room_id,
-                text=text,
-                payload={"participant_id": actor.id, "target_id": target_id},
-            ))
-        if target_id in self.rooms:
+            return CommandResult(
+                accepted=True,
+                events=self._append_event(
+                    instance,
+                    event_type="inspection_committed",
+                    actor=actor.display_name,
+                    room_id=actor.current_room_id,
+                    text=text,
+                    payload={"participant_id": actor.id, "target_id": target_id},
+                ),
+            )
+        if target_id == actor.current_room_id:
             room = self.rooms[target_id]
             text = f"You look over {room.name}: {room.description}"
-            return CommandResult(accepted=True, events=self._append_event(
-                instance,
-                event_type="inspection_committed",
-                actor=actor.display_name,
-                room_id=actor.current_room_id,
-                text=text,
-                payload={"participant_id": actor.id, "target_id": target_id},
-            ))
+            return CommandResult(
+                accepted=True,
+                events=self._append_event(
+                    instance,
+                    event_type="inspection_committed",
+                    actor=actor.display_name,
+                    room_id=actor.current_room_id,
+                    text=text,
+                    payload={"participant_id": actor.id, "target_id": target_id},
+                ),
+            )
         return CommandResult(accepted=False, reason="Nothing by that id can be inspected.")
 
     def _use_action(self, instance: RuntimeInstance, actor: ParticipantState, action_id: str) -> CommandResult:
@@ -359,15 +279,22 @@ class RuntimeEngine:
             return actor.current_room_id == condition.value
         return True
 
-    def _prop_payload(self, instance: RuntimeInstance, prop_id: str) -> dict[str, Any]:
-        prop = instance.props[prop_id]
-        return {
-            "id": prop.id,
-            "name": prop.name,
-            "description": prop.description,
-            "state": prop.state,
-            "room_id": prop.room_id,
-        }
+    def _emit_npc_event(
+        self,
+        event_type: str,
+        text: str,
+        actor: str | None,
+        room_id: str | None,
+        payload: dict[str, Any],
+    ) -> list[RuntimeEvent]:
+        return self._append_event(
+            self._npc_instance,
+            event_type=event_type,
+            text=text,
+            actor=actor,
+            room_id=room_id,
+            payload=payload,
+        )
 
     def _append_event(
         self,
@@ -384,3 +311,14 @@ class RuntimeEngine:
         instance.transcript.append(transcript)
         instance.updated_at = datetime.now(timezone.utc)
         return [event]
+
+    @property
+    def _npc_instance(self) -> RuntimeInstance:
+        instance = getattr(self, "__npc_instance", None)
+        if instance is None:
+            raise RuntimeError("NPC cycle invoked without active runtime instance binding")
+        return instance
+
+    @_npc_instance.setter
+    def _npc_instance(self, instance: RuntimeInstance | None) -> None:
+        setattr(self, "__npc_instance", instance)

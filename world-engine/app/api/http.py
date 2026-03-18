@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import AliasChoices, BaseModel, Field
 
 from app.runtime.manager import RuntimeManager
 
@@ -14,12 +14,16 @@ def get_manager(request: Request) -> RuntimeManager:
 
 class CreateRunRequest(BaseModel):
     template_id: str
-    player_name: str = Field(min_length=1, max_length=50)
+    account_id: str = Field(min_length=1, max_length=120)
+    display_name: str = Field(validation_alias=AliasChoices("display_name", "player_name"), min_length=1, max_length=50)
+    character_id: str | None = Field(default=None, max_length=120)
 
 
 class TicketRequest(BaseModel):
     run_id: str
-    player_name: str = Field(min_length=1, max_length=50)
+    account_id: str = Field(min_length=1, max_length=120)
+    display_name: str = Field(validation_alias=AliasChoices("display_name", "player_name"), min_length=1, max_length=50)
+    character_id: str | None = Field(default=None, max_length=120)
     preferred_role_id: str | None = None
 
 
@@ -41,7 +45,12 @@ def list_runs(manager: RuntimeManager = Depends(get_manager)) -> list[dict]:
 @router.post("/runs")
 def create_run(payload: CreateRunRequest, manager: RuntimeManager = Depends(get_manager)) -> dict:
     try:
-        instance = manager.create_run(payload.template_id, payload.player_name)
+        instance = manager.create_run(
+            payload.template_id,
+            account_id=payload.account_id,
+            display_name=payload.display_name,
+            character_id=payload.character_id,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Unknown template id") from exc
     except ValueError as exc:
@@ -55,7 +64,13 @@ def create_run(payload: CreateRunRequest, manager: RuntimeManager = Depends(get_
 @router.post("/tickets")
 def create_ticket(payload: TicketRequest, request: Request, manager: RuntimeManager = Depends(get_manager)) -> dict:
     try:
-        participant = manager.find_or_join_run(payload.run_id, payload.player_name, payload.preferred_role_id)
+        participant = manager.find_or_join_run(
+            payload.run_id,
+            account_id=payload.account_id,
+            display_name=payload.display_name,
+            character_id=payload.character_id,
+            preferred_role_id=payload.preferred_role_id,
+        )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Run not found") from exc
     except PermissionError as exc:
@@ -67,7 +82,9 @@ def create_ticket(payload: TicketRequest, request: Request, manager: RuntimeMana
         {
             "run_id": payload.run_id,
             "participant_id": participant.id,
-            "player_name": payload.player_name,
+            "account_id": participant.account_id,
+            "character_id": participant.character_id,
+            "display_name": participant.display_name,
             "role_id": participant.role_id,
         }
     )
@@ -89,12 +106,17 @@ def get_snapshot(run_id: str, participant_id: str, manager: RuntimeManager = Dep
 
 
 @router.get("/runs/{run_id}/transcript")
-def get_transcript(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict:
+def get_transcript(
+    run_id: str,
+    participant_id: str = Query(..., min_length=1),
+    manager: RuntimeManager = Depends(get_manager),
+) -> dict:
     try:
-        instance = manager.get_instance(run_id)
+        entries = manager.visible_transcript(run_id, participant_id)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Run not found") from exc
+        raise HTTPException(status_code=404, detail="Run or participant not found") from exc
     return {
         "run_id": run_id,
-        "entries": [entry.model_dump(mode="json") for entry in instance.transcript],
+        "participant_id": participant_id,
+        "entries": [entry.model_dump(mode="json") for entry in entries],
     }

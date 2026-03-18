@@ -14,8 +14,19 @@
 
       <div class="grid two-col">
         <div>
-          <label for="playerName">Player name</label>
-          <input id="playerName" type="text" placeholder="Hollywood">
+          <label for="accountId">Account id</label>
+          <input id="accountId" type="text" placeholder="local:hollywood">
+        </div>
+        <div>
+          <label for="displayName">Display name</label>
+          <input id="displayName" type="text" placeholder="Hollywood">
+        </div>
+      </div>
+
+      <div class="grid two-col">
+        <div>
+          <label for="characterId">Character id (optional)</label>
+          <input id="characterId" type="text" placeholder="char:hollywood:visitor">
         </div>
         <div>
           <label for="preferredRole">Preferred role id (optional)</label>
@@ -65,14 +76,14 @@
           <div>
             <h3>Props in room</h3>
             <div id="propList" class="token-list"></div>
-            <h3>Occupants</h3>
+            <h3>Visible occupants</h3>
             <div id="occupantList" class="token-list"></div>
           </div>
         </div>
       </article>
 
       <article class="panel transcript-panel">
-        <h2>Transcript</h2>
+        <h2>Visible transcript</h2>
         <div id="transcript" class="transcript"></div>
       </article>
 
@@ -83,7 +94,7 @@
           <button id="sayButton">Say</button>
           <textarea id="emoteText" placeholder="Describe an emote, e.g. folds your arms and leans back"></textarea>
           <button id="emoteButton">Emote</button>
-          <input id="inspectTarget" type="text" placeholder="prop or room id, e.g. tulips">
+          <input id="inspectTarget" type="text" placeholder="current room id or local prop id, e.g. tulips">
           <button id="inspectButton">Inspect</button>
         </div>
       </article>

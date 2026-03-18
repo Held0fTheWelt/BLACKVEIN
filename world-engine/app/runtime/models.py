@@ -19,12 +19,14 @@ class RunStatus(str, Enum):
 
 class ParticipantState(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
+    account_id: str
     display_name: str
+    character_id: str | None = None
     role_id: str
     mode: ParticipantMode
     current_room_id: str
     connected: bool = False
-    seat_owner: str | None = None
+    seat_owner_account_id: str | None = None
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -60,7 +62,8 @@ class RuntimeInstance(BaseModel):
     template_title: str
     kind: ExperienceKind
     join_policy: JoinPolicy
-    owner_player_name: str | None = None
+    owner_account_id: str | None = None
+    owner_display_name: str | None = None
     status: RunStatus = RunStatus.LOBBY
     beat_id: str
     tension: int = 0
@@ -87,7 +90,7 @@ class PublicRunSummary(BaseModel):
     total_humans: int
     tension: int
     beat_id: str
-    owner_player_name: str | None = None
+    owner_display_name: str | None = None
 
 
 class RuntimeSnapshot(BaseModel):
@@ -99,13 +102,14 @@ class RuntimeSnapshot(BaseModel):
     status: RunStatus
     beat_id: str
     tension: int
-    flags: list[str]
     viewer_participant_id: str
+    viewer_account_id: str
+    viewer_character_id: str | None
     viewer_room_id: str
     viewer_role_id: str
     viewer_display_name: str
-    rooms: list[dict[str, Any]]
-    room_occupants: dict[str, list[dict[str, Any]]]
+    current_room: dict[str, Any]
+    visible_occupants: list[dict[str, Any]]
     available_actions: list[dict[str, Any]]
     transcript_tail: list[TranscriptEntry]
     metadata: dict[str, Any]

@@ -8,7 +8,9 @@ const state = {
 };
 
 const el = {
-  playerName: document.getElementById('playerName'),
+  accountId: document.getElementById('accountId'),
+  displayName: document.getElementById('displayName'),
+  characterId: document.getElementById('characterId'),
   preferredRole: document.getElementById('preferredRole'),
   templateSelect: document.getElementById('templateSelect'),
   activeRunSelect: document.getElementById('activeRunSelect'),
@@ -45,8 +47,16 @@ async function getJson(path, options = {}) {
   return response.json();
 }
 
-function selectedPlayerName() {
-  return el.playerName.value.trim() || 'Guest';
+function selectedAccountId() {
+  return el.accountId.value.trim() || 'local:guest-hollywood';
+}
+
+function selectedDisplayName() {
+  return el.displayName.value.trim() || 'Hollywood';
+}
+
+function selectedCharacterId() {
+  return el.characterId.value.trim() || null;
 }
 
 function setStatus(text) {
@@ -65,7 +75,7 @@ function renderSelectOptions() {
 
 function currentRoom() {
   if (!state.snapshot) return null;
-  return state.snapshot.rooms.find(room => room.id === state.snapshot.viewer_room_id) || null;
+  return state.snapshot.current_room || null;
 }
 
 function renderSnapshot(snapshot) {
@@ -94,10 +104,10 @@ function renderSnapshot(snapshot) {
       </div>
     `).join('') || '<span class="muted small">No props in this room.</span>';
 
-    const occupants = snapshot.room_occupants[room.id] || [];
+    const occupants = snapshot.visible_occupants || [];
     el.occupantList.innerHTML = occupants.map(occupant => `
       <div class="token">
-        <span>${occupant.display_name}</span>
+        <span>${occupant.display_name}${occupant.is_self ? ' (you)' : ''}</span>
         <span class="small muted">${occupant.mode}</span>
       </div>
     `).join('') || '<span class="muted small">Nobody else is here.</span>';
@@ -158,7 +168,9 @@ function connectSocket(ticket) {
 async function createRun() {
   const payload = {
     template_id: el.templateSelect.value,
-    player_name: selectedPlayerName(),
+    account_id: selectedAccountId(),
+    display_name: selectedDisplayName(),
+    character_id: selectedCharacterId(),
   };
   const result = await getJson('/api/runs', {
     method: 'POST',
@@ -172,7 +184,9 @@ async function createRun() {
 async function joinRun(runId = el.activeRunSelect.value) {
   const payload = {
     run_id: runId,
-    player_name: selectedPlayerName(),
+    account_id: selectedAccountId(),
+    display_name: selectedDisplayName(),
+    character_id: selectedCharacterId(),
     preferred_role_id: el.preferredRole.value.trim() || null,
   };
   const result = await getJson('/api/tickets', {
@@ -227,7 +241,9 @@ el.inspectButton.onclick = () => {
 };
 
 (async function bootstrap() {
-  el.playerName.value = 'Hollywood';
+  el.accountId.value = 'local:hollywood';
+  el.displayName.value = 'Hollywood';
+  el.characterId.value = 'char:hollywood:visitor';
   try {
     await refreshTemplates();
     await refreshRuns();
