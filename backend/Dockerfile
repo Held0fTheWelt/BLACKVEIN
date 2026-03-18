@@ -13,7 +13,7 @@ RUN useradd --create-home --shell /bin/bash appuser
 COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY app ./app
-COPY run.py .
+COPY app.py .
 COPY migrations ./migrations
 RUN mkdir -p /app/instance && chown -R appuser:appuser /app/instance
 USER appuser

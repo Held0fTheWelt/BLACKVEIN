@@ -82,7 +82,7 @@ python -m flask seed-dev-user --username admin --password Admin123 --superadmin
 cd backend
 export FLASK_APP=run:app
 export FLASK_DEBUG=1
-python run.py
+python app.py
 flask run --port 5000
 python -m flask run --port 5000
 ```

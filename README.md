@@ -67,7 +67,7 @@ Start the backend:
 ```bash
 # From backend/
 export FLASK_APP=run:app   # or set in .env
-python run.py
+python app.py
 # or: flask run
 ```
 
