@@ -23,6 +23,8 @@ class RuntimeNpcDirector:
         return []
 
     def _group_cycle(self, instance: RuntimeInstance) -> list[RuntimeEvent]:
+        if instance.status.value == "lobby":
+            return []
         if "house_ai_prompted" in instance.flags:
             return []
         instance.flags.add("house_ai_prompted")

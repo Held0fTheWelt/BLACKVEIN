@@ -38,6 +38,7 @@ def get_manager(request: Request) -> RuntimeManager:
     return request.app.state.manager
 
 
+
 def _require_internal_api_key(x_play_service_key: str | None = Header(default=None)) -> None:
     expected = PLAY_SERVICE_INTERNAL_API_KEY.strip()
     if expected and x_play_service_key != expected:
@@ -49,6 +50,17 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@router.get("/health/ready")
+def ready(request: Request, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    return {
+        "status": "ready",
+        "app": request.app.title,
+        "store": manager.store.describe(),
+        "template_count": len(manager.list_templates()),
+        "run_count": len(manager.list_runs()),
+    }
+
+
 @router.get("/templates")
 def list_templates(manager: RuntimeManager = Depends(get_manager)) -> list[dict[str, Any]]:
     return [template.model_dump(mode="json") for template in manager.list_templates()]
@@ -57,6 +69,14 @@ def list_templates(manager: RuntimeManager = Depends(get_manager)) -> list[dict[
 @router.get("/runs")
 def list_runs(manager: RuntimeManager = Depends(get_manager)) -> list[dict[str, Any]]:
     return [run.model_dump(mode="json") for run in manager.list_runs()]
+
+
+@router.get("/runs/{run_id}")
+def get_run_details(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    try:
+        return manager.get_run_details(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Run not found") from exc
 
 
 @router.post("/runs")
@@ -74,6 +94,7 @@ def create_run(payload: CreateRunRequest, manager: RuntimeManager = Depends(get_
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "run": manager.get_instance(instance.id).model_dump(mode="json"),
+        "store": manager.store.describe(),
         "hint": "Use POST /api/tickets, POST /api/internal/join-context, or the integrated backend launcher to join the run over WebSocket.",
     }
 

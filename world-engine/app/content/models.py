@@ -116,6 +116,7 @@ class ExperienceTemplate(BaseModel):
     join_policy: JoinPolicy
     summary: str
     max_humans: int
+    min_humans_to_start: int = 1
     persistent: bool = False
     initial_beat_id: str
     roles: list[RoleTemplate]

@@ -10,7 +10,8 @@ A first downloadable prototype for the runtime architecture we discussed:
 - **authoritative state on the server**,
 - **WebSocket delivery** for live updates,
 - **template -> runtime instance** separation,
-- and a small browser client to prove the full loop.
+- **a lobby/seat/rejoin layer for group stories**,
+- and **switchable runtime persistence** with a JSON dev store or an SQL-backed store for local Postgres.
 
 This prototype is intentionally **standalone**. It does **not** integrate with your current Flask backend yet.
 That later integration step can plug into the ticket contract and run catalog without throwing away the runtime.
@@ -31,9 +32,11 @@ The prototype already distinguishes between:
    - live state created from templates
    - participants, beat, tension, flags, transcript, prop states
 
-3. **Participants**
+3. **Participants and lobby seats**
    - human seats and NPC seats
-   - same shape for solo, group, and open-world modes
+   - reserved seats for group stories
+   - ready state and explicit run start
+   - account-based rejoin without seat drift
 
 4. **Server-side command processing**
    - move
@@ -41,14 +44,17 @@ The prototype already distinguishes between:
    - emote
    - inspect
    - use scripted action
+   - set ready / unready in group lobbies
+   - start group run from the lobby
 
 5. **Snapshot broadcasting over WebSockets**
    - every connected client receives updated state
+   - snapshots are viewer-specific and visibility-filtered
    - the client only renders
 
-6. **JSON persistence**
-   - runtime instances are persisted to disk
-   - the public open-world shard survives restart
+6. **Persistence backends**
+   - JSON persistence for lightweight local development
+   - SQLAlchemy-backed persistence for Postgres (and SQLite for tests/local proofing)
 
 ### Included built-in templates
 
@@ -58,6 +64,7 @@ The prototype already distinguishes between:
 
 - `apartment_confrontation_group`
   - a party-style pre-authored scenario with multiple human seats
+  - includes lobby occupancy, ready state, host start, and rejoin behavior
 
 - `better_tomorrow_district_alpha`
   - a tiny public open-world shard proving the architecture can host a persistent shared layer
@@ -81,7 +88,7 @@ So the prototype avoids the usual trap of writing a single-player toy that later
 ## Project structure
 
 ```text
-wos_scene_prototype/
+world-engine/
 ├── app/
 │   ├── api/
 │   │   ├── http.py
@@ -95,7 +102,9 @@ wos_scene_prototype/
 │   │   ├── engine.py
 │   │   ├── manager.py
 │   │   ├── models.py
-│   │   └── store.py
+│   │   ├── npc_behaviors.py
+│   │   ├── store.py
+│   │   └── visibility.py
 │   ├── web/
 │   │   ├── static/
 │   │   │   ├── app.js
@@ -107,7 +116,7 @@ wos_scene_prototype/
 │   ├── config.py
 │   └── main.py
 ├── tests/
-├── render.yaml
+├── docker-compose.play-local.yml
 └── README.md
 ```
 
@@ -126,12 +135,14 @@ Contains:
 - `props`
 - `beats`
 - `scripted actions`
+- `min_humans_to_start`
 
 ### RuntimeInstance
 A live running copy of a template.
 
 Contains:
 - active participants
+- lobby seats
 - current beat
 - tension
 - flags
@@ -148,6 +159,8 @@ It currently supports:
 - free text emotes
 - inspection
 - scripted authored actions
+- ready/unready toggles in group lobbies
+- host-controlled group start
 - simple NPC follow-up reactions
 
 ### RuntimeManager
@@ -157,13 +170,14 @@ Responsibilities:
 - load templates
 - create runs
 - join runs
+- preserve seat ownership across reconnects
 - manage WebSocket connections
 - persist runtime state
 - broadcast fresh snapshots
 
 ---
 
-## Running locally
+## Running locally with the JSON store
 
 ### 1. Create and activate a virtual environment
 
@@ -199,11 +213,33 @@ http://127.0.0.1:8000/
 
 ---
 
+## Running locally with Postgres
+
+Set the runtime store environment before starting the app:
+
+```bash
+export RUN_STORE_BACKEND=sqlalchemy
+export RUN_STORE_URL=postgresql+psycopg://postgres:postgres@127.0.0.1:5434/world_engine
+uvicorn app.main:app --reload
+```
+
+Or use the included Docker Compose file:
+
+```bash
+docker compose -f docker-compose.play-local.yml up --build
+```
+
+That starts:
+- Postgres on `127.0.0.1:5434`
+- the play service on `127.0.0.1:8000`
+
+---
+
 ## How to try the three modes
 
 ### Solo story
 1. Choose `The Apartment Incident — Solo Study`
-2. Enter a player name
+2. Enter account id and display name
 3. Create run
 4. Move into the living room
 5. Use scripted actions and quick commands
@@ -213,7 +249,10 @@ http://127.0.0.1:8000/
 2. Choose `Apartment Incident — Group Story`
 3. Create from one tab
 4. Join the same run from the other tabs
-5. Use different player names and optionally preferred role ids
+5. Use different account ids and optionally preferred role ids
+6. Mark seats ready in the lobby
+7. Start the run once the lobby can start
+8. Reload one tab and rejoin with the same account id to verify seat resume
 
 Suggested role ids:
 - `mediator`
@@ -223,7 +262,7 @@ Suggested role ids:
 
 ### Open world shard
 1. Join the existing `Better Tomorrow District Alpha` run
-2. Open multiple tabs with different names
+2. Open multiple tabs with different accounts
 3. Move between plaza, noodle bar, and service alley
 4. Use say/emote and scripted room actions
 
@@ -233,8 +272,10 @@ Suggested role ids:
 
 ### HTTP
 - `GET /api/health`
+- `GET /api/health/ready`
 - `GET /api/templates`
 - `GET /api/runs`
+- `GET /api/runs/{run_id}`
 - `POST /api/runs`
 - `POST /api/tickets`
 - `GET /api/runs/{run_id}/snapshot/{participant_id}`
@@ -265,174 +306,28 @@ Suggested role ids:
 { "action": "use_action", "action_id": "offer_apology" }
 ```
 
----
-
-## Persistence model in the prototype
-
-This version stores runtime state as JSON files under:
-
-```text
-app/var/runs/
+```json
+{ "action": "set_ready", "ready": true }
 ```
-
-That is deliberate for the first prototype:
-
-- easy to inspect
-- no external services required
-- simple restart persistence
-- easy to replace later with Postgres + Redis
-
-### Later replacement path
-
-For your real system, the intended next step is:
-
-- **Flask control plane**: users, characters, story catalog, assets, admin, writers room
-- **Postgres**: authoritative persistent content + runtime records
-- **Redis**: presence, pub/sub, short-lived locks, shard routing
-- **Play service**: real-time authoritative runtime
-
----
-
-## Planned integration with your Flask backend
-
-This prototype already leaves a clean insertion point:
-
-### Later Flask responsibilities
-- issue authenticated game tickets
-- decide what templates/runs a user can access
-- provide character metadata
-- provide content and asset manifests
-- own admin/moderation workflows
-
-### Later play-service responsibilities
-- verify Flask-issued tickets
-- load or create runtime instances
-- run simulation
-- broadcast snapshots and transcripts
-
-### Ticket contract shape
-The current local ticket contains:
 
 ```json
-{
-  "run_id": "...",
-  "participant_id": "...",
-  "player_name": "...",
-  "role_id": "...",
-  "iat": 123,
-  "exp": 456
-}
+{ "action": "start_run" }
 ```
 
-Later your Flask backend can issue the same kind of signed ticket, and the play service can trust it after signature verification.
-
 ---
 
-## What is intentionally simplified in this first prototype
+## Test status
 
-This is a foundation build, not yet the full product. So several things are still intentionally small:
+The current pass covers:
+- JSON store flow
+- SQL store roundtrip via SQLite (same store abstraction used for Postgres)
+- viewer-specific visibility
+- account-based rejoin
+- group lobby ready/start flow
+- websocket resume flow
 
-- no database integration yet
-- no Redis yet
-- no moderation or observer tools yet
-- no replay UI yet
-- no rich NPC reasoning yet
-- no AI asset generation pipeline yet
-- no proper lobby / invites / ready-check flow yet
-- no save-slot browser yet
-- no Flask SSO yet
-- no horizontal scaling yet
-
-But the shape already points in the right direction.
-
----
-
-## Suggested next implementation steps
-
-### Step 1
-Integrate the play-service ticket flow into your Flask backend.
-
-### Step 2
-Move templates from hard-coded Python into a real content source:
-- database
-- JSON content packs
-- writers-room publish flow
-
-### Step 3
-Add party orchestration for group stories:
-- invitations
-- reserved seats
-- ready checks
-- reconnect handling
-
-### Step 4
-Add proper instance persistence:
-- Postgres snapshots
-- event log table
-- resumable story runs
-
-### Step 5
-Add client rendering layers for retro presentation:
-- room background art
-- portraits
-- props as hotspots
-- light 80s-adventure layout
-
-### Step 6
-Add controlled NPC logic and later AI-assisted NPC output under strict guardrails.
-
----
-
-## Testing
-
-Run:
+Run tests with:
 
 ```bash
-pytest
+pytest -q
 ```
-
-The included tests focus on:
-- run creation
-- snapshot shape
-- movement and scripted actions
-- persistent public shard bootstrapping
-
----
-
-## Deployment note
-
-A minimal `render.yaml` is included to make a first free-hosting attempt easier.
-For the eventual target system, this play service should remain separate from the Flask control plane.
-
----
-
-## Summary
-
-This prototype is already a real first cut of the architecture we discussed:
-
-- shared runtime model across all three content modes
-- authoritative play service
-- WebSocket live updates
-- template vs. runtime split
-- enough structure to be worth extending instead of discarding
-
-That makes it a useful entry point for the next round instead of just a throwaway demo.
-
-
-## Backend integration hook
-
-This prototype can now be driven by the existing Flask backend instead of issuing browser-side tickets directly.
-
-The intended flow is:
-
-1. Flask user logs in via existing session or JWT.
-2. Flask proxies template / run listing calls for the launcher.
-3. Flask calls `/api/internal/join-context` on the play service.
-4. Flask signs the short-lived play ticket with `PLAY_SERVICE_SHARED_SECRET`.
-5. Browser connects to `/ws?ticket=...` on the play service.
-
-Optional hardening:
-
-- set `PLAY_SERVICE_INTERNAL_API_KEY` on the play service
-- set the same value as `PLAY_SERVICE_INTERNAL_API_KEY` on the backend
-- the backend then sends `X-Play-Service-Key` for internal calls

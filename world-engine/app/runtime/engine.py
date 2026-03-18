@@ -9,9 +9,10 @@ from app.content.models import (
     ConditionType,
     Effect,
     EffectType,
+    ExperienceKind,
     ExperienceTemplate,
 )
-from app.runtime.models import CommandResult, ParticipantState, RuntimeEvent, RuntimeInstance, RuntimeSnapshot, TranscriptEntry
+from app.runtime.models import CommandResult, ParticipantState, RunStatus, RuntimeEvent, RuntimeInstance, RuntimeSnapshot, TranscriptEntry
 from app.runtime.npc_behaviors import RuntimeNpcDirector
 from app.runtime.visibility import RuntimeVisibilityPolicy
 
@@ -38,6 +39,7 @@ class RuntimeEngine:
             status=instance.status,
             beat_id=instance.beat_id,
             tension=instance.tension,
+            flags=sorted(instance.flags),
             viewer_participant_id=viewer.id,
             viewer_account_id=viewer.account_id,
             viewer_character_id=viewer.character_id,
@@ -48,8 +50,48 @@ class RuntimeEngine:
             visible_occupants=self.visibility.visible_occupants(instance, viewer),
             available_actions=available_actions,
             transcript_tail=self.visibility.visible_transcript(instance, viewer),
-            metadata=self.visibility.public_metadata(instance),
+            lobby=self.build_lobby_payload(instance),
+            metadata={
+                **self.visibility.public_metadata(instance),
+                "min_humans_to_start": self.template.min_humans_to_start,
+                "store_backend": instance.metadata.get("store_backend", "unknown"),
+            },
         )
+
+    def build_lobby_payload(self, instance: RuntimeInstance) -> dict[str, Any] | None:
+        if self.template.kind != ExperienceKind.GROUP_STORY:
+            return None
+        seats = []
+        for role in self.template.roles:
+            if role.mode.value != "human" or not role.can_join:
+                continue
+            seat = instance.lobby_seats.get(role.id)
+            if seat is None:
+                continue
+            seats.append(
+                {
+                    "role_id": seat.role_id,
+                    "role_display_name": seat.role_display_name,
+                    "participant_id": seat.participant_id,
+                    "occupant_display_name": seat.occupant_display_name,
+                    "reserved_for_account_id": seat.reserved_for_account_id,
+                    "reserved_for_display_name": seat.reserved_for_display_name,
+                    "connected": seat.connected,
+                    "ready": seat.ready,
+                    "joined_at": seat.joined_at,
+                }
+            )
+        occupied = [seat for seat in seats if seat["participant_id"]]
+        ready = [seat for seat in seats if seat["ready"]]
+        can_start = len(occupied) >= self.template.min_humans_to_start and len(occupied) == len(ready)
+        return {
+            "status": instance.status.value,
+            "min_humans_to_start": self.template.min_humans_to_start,
+            "occupied_human_seats": len(occupied),
+            "ready_human_seats": len(ready),
+            "can_start": can_start,
+            "seats": seats,
+        }
 
     def available_actions(self, instance: RuntimeInstance, viewer: ParticipantState) -> list[dict[str, Any]]:
         room = self.rooms[viewer.current_room_id]
@@ -85,6 +127,10 @@ class RuntimeEngine:
             return self._inspect(instance, actor, str(command.get("target_id", "")).strip())
         if action == "use_action":
             return self._use_action(instance, actor, str(command.get("action_id", "")).strip())
+        if action == "set_ready":
+            return self._set_ready(instance, actor, bool(command.get("ready", True)))
+        if action == "start_run":
+            return self._start_run(instance, actor)
         return CommandResult(accepted=False, reason=f"Unknown command: {action}")
 
     def run_npc_cycle(self, instance: RuntimeInstance, trigger_actor_id: str | None = None) -> list[RuntimeEvent]:
@@ -98,6 +144,8 @@ class RuntimeEngine:
         return events
 
     def _move(self, instance: RuntimeInstance, actor: ParticipantState, target_room_id: str) -> CommandResult:
+        if self.template.kind == ExperienceKind.GROUP_STORY and instance.status == RunStatus.LOBBY:
+            return CommandResult(accepted=False, reason="The group story is still in the lobby phase. Start the run first.")
         room = self.rooms[actor.current_room_id]
         possible = {exit_.target_room_id: exit_ for exit_ in room.exits}
         if target_room_id not in possible:
@@ -181,6 +229,8 @@ class RuntimeEngine:
         return CommandResult(accepted=False, reason="Nothing by that id can be inspected.")
 
     def _use_action(self, instance: RuntimeInstance, actor: ParticipantState, action_id: str) -> CommandResult:
+        if self.template.kind == ExperienceKind.GROUP_STORY and instance.status == RunStatus.LOBBY:
+            return CommandResult(accepted=False, reason="Scene actions unlock after the host starts the group story.")
         action = self.actions.get(action_id)
         if not action:
             return CommandResult(accepted=False, reason="Unknown action.")
@@ -192,6 +242,54 @@ class RuntimeEngine:
         if action.single_use:
             instance.flags.add(f"used:{action.id}")
         return CommandResult(accepted=True, events=events)
+
+    def _set_ready(self, instance: RuntimeInstance, actor: ParticipantState, ready: bool) -> CommandResult:
+        if self.template.kind != ExperienceKind.GROUP_STORY:
+            return CommandResult(accepted=False, reason="Ready state only applies to group story lobbies.")
+        seat = instance.lobby_seats.get(actor.role_id)
+        if seat is None or seat.participant_id != actor.id:
+            return CommandResult(accepted=False, reason="You do not control a lobby seat in this run.")
+        seat.ready = ready
+        text = f"{actor.display_name} marks {seat.role_display_name} as {'ready' if ready else 'not ready'}."
+        return CommandResult(
+            accepted=True,
+            events=self._append_event(
+                instance,
+                event_type="lobby_ready_changed",
+                actor=actor.display_name,
+                room_id=actor.current_room_id,
+                text=text,
+                payload={"participant_id": actor.id, "role_id": actor.role_id, "ready": ready},
+            ),
+        )
+
+    def _start_run(self, instance: RuntimeInstance, actor: ParticipantState) -> CommandResult:
+        if self.template.kind != ExperienceKind.GROUP_STORY:
+            return CommandResult(accepted=False, reason="Only group stories use an explicit lobby start.")
+        if instance.status != RunStatus.LOBBY:
+            return CommandResult(accepted=False, reason="This run has already started.")
+        if actor.account_id and instance.owner_account_id and actor.account_id != instance.owner_account_id:
+            return CommandResult(accepted=False, reason="Only the host can start this run.")
+        lobby = self.build_lobby_payload(instance) or {}
+        if not lobby.get("can_start"):
+            return CommandResult(
+                accepted=False,
+                reason=(
+                    f"Need at least {self.template.min_humans_to_start} occupied ready seats before starting."
+                ),
+            )
+        instance.status = RunStatus.RUNNING
+        return CommandResult(
+            accepted=True,
+            events=self._append_event(
+                instance,
+                event_type="run_started",
+                actor=actor.display_name,
+                room_id=actor.current_room_id,
+                text=f"{actor.display_name} starts the group story. The lobby dissolves into the scene.",
+                payload={"participant_id": actor.id},
+            ),
+        )
 
     def _apply_effect(self, instance: RuntimeInstance, actor: ParticipantState, action: ActionTemplate, effect: Effect) -> list[RuntimeEvent]:
         if effect.type == EffectType.SET_FLAG and effect.key:

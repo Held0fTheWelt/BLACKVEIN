@@ -293,6 +293,7 @@ def build_apartment_confrontation_group() -> ExperienceTemplate:
         join_policy=JoinPolicy.INVITED_PARTY,
         summary="A pre-authored group scenario for 2-4 players sharing a tightly framed dramatic scene.",
         max_humans=4,
+        min_humans_to_start=2,
         initial_beat_id="briefing",
         tags=["group-story", "party-instance", "social-conflict"],
         roles=[

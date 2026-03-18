@@ -44,6 +44,18 @@ class ParticipantState(BaseModel):
             self.seat_owner = self.seat_owner_account_id or self.seat_owner_display_name
 
 
+class LobbySeatState(BaseModel):
+    role_id: str
+    role_display_name: str
+    reserved_for_account_id: str | None = None
+    reserved_for_display_name: str | None = None
+    participant_id: str | None = None
+    occupant_display_name: str | None = None
+    connected: bool = False
+    ready: bool = False
+    joined_at: datetime | None = None
+
+
 class PropState(BaseModel):
     id: str
     name: str
@@ -84,6 +96,7 @@ class RuntimeInstance(BaseModel):
     tension: int = 0
     flags: set[str] = Field(default_factory=set)
     participants: dict[str, ParticipantState] = Field(default_factory=dict)
+    lobby_seats: dict[str, LobbySeatState] = Field(default_factory=dict)
     props: dict[str, PropState] = Field(default_factory=dict)
     transcript: list[TranscriptEntry] = Field(default_factory=list)
     event_log: list[RuntimeEvent] = Field(default_factory=list)
@@ -103,6 +116,8 @@ class PublicRunSummary(BaseModel):
     status: RunStatus
     connected_humans: int
     total_humans: int
+    open_human_seats: int = 0
+    ready_human_seats: int = 0
     tension: int
     beat_id: str
     owner_player_name: str | None = None
@@ -130,6 +145,7 @@ class RuntimeSnapshot(BaseModel):
     room_occupants: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     available_actions: list[dict[str, Any]]
     transcript_tail: list[TranscriptEntry]
+    lobby: dict[str, Any] | None = None
     metadata: dict[str, Any]
 
 

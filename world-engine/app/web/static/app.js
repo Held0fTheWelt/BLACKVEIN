@@ -18,6 +18,7 @@ const el = {
   joinRunButton: document.getElementById('joinRunButton'),
   connectionStatus: document.getElementById('connectionStatus'),
   currentRunLabel: document.getElementById('currentRunLabel'),
+  runtimeMeta: document.getElementById('runtimeMeta'),
   roomTitle: document.getElementById('roomTitle'),
   roomDescription: document.getElementById('roomDescription'),
   beatBadge: document.getElementById('beatBadge'),
@@ -33,6 +34,12 @@ const el = {
   sayButton: document.getElementById('sayButton'),
   emoteButton: document.getElementById('emoteButton'),
   inspectButton: document.getElementById('inspectButton'),
+  lobbyPanel: document.getElementById('lobbyPanel'),
+  lobbyStatus: document.getElementById('lobbyStatus'),
+  lobbySeatList: document.getElementById('lobbySeatList'),
+  readyButton: document.getElementById('readyButton'),
+  unreadyButton: document.getElementById('unreadyButton'),
+  startRunButton: document.getElementById('startRunButton'),
 };
 
 async function getJson(path, options = {}) {
@@ -69,7 +76,7 @@ function renderSelectOptions() {
     .join('');
 
   el.activeRunSelect.innerHTML = state.runs
-    .map(run => `<option value="${run.id}">${run.template_title} | ${run.id} | beat=${run.beat_id} | humans=${run.total_humans}</option>`)
+    .map(run => `<option value="${run.id}">${run.template_title} | ${run.id} | ${run.status} | ready=${run.ready_human_seats} | open=${run.open_human_seats}</option>`)
     .join('');
 }
 
@@ -78,12 +85,39 @@ function currentRoom() {
   return state.snapshot.current_room || null;
 }
 
+function renderLobby(snapshot) {
+  const lobby = snapshot.lobby;
+  if (!lobby) {
+    el.lobbyPanel.hidden = true;
+    return;
+  }
+  el.lobbyPanel.hidden = false;
+  el.lobbyStatus.textContent = `Lobby: ${lobby.occupied_human_seats}/${lobby.seats.length} seats occupied • ${lobby.ready_human_seats} ready • min start ${lobby.min_humans_to_start}`;
+  el.lobbySeatList.innerHTML = lobby.seats.map(seat => `
+    <div class="token token--stacked">
+      <strong>${seat.role_display_name}</strong>
+      <span class="small muted">role_id=${seat.role_id}</span>
+      <span>${seat.occupant_display_name || 'Open seat'}</span>
+      <span class="small muted">${seat.connected ? 'connected' : 'offline'} • ${seat.ready ? 'ready' : 'not ready'}</span>
+    </div>
+  `).join('') || '<span class="muted small">No lobby seats defined.</span>';
+
+  const mySeat = lobby.seats.find(seat => seat.participant_id === snapshot.viewer_participant_id);
+  const amReady = Boolean(mySeat && mySeat.ready);
+  el.readyButton.disabled = !mySeat || amReady;
+  el.unreadyButton.disabled = !mySeat || !amReady;
+  el.startRunButton.disabled = !(snapshot.viewer_account_id && lobby.can_start);
+}
+
 function renderSnapshot(snapshot) {
   state.snapshot = snapshot;
   const room = currentRoom();
   el.currentRunLabel.textContent = `Run: ${snapshot.run_id} | Template: ${snapshot.template_title} | Role: ${snapshot.viewer_role_id}`;
   el.beatBadge.textContent = `Beat: ${snapshot.beat_id}`;
   el.tensionBadge.textContent = `Tension: ${snapshot.tension}`;
+  el.runtimeMeta.textContent = `store=${snapshot.metadata.store_backend} • policy=${snapshot.join_policy} • status=${snapshot.status}`;
+
+  renderLobby(snapshot);
 
   if (room) {
     el.roomTitle.textContent = room.name;
@@ -218,6 +252,9 @@ async function refreshRuns() {
 
 el.createRunButton.onclick = () => createRun().catch(err => alert(err.message));
 el.joinRunButton.onclick = () => joinRun().catch(err => alert(err.message));
+el.readyButton.onclick = () => sendCommand({ action: 'set_ready', ready: true });
+el.unreadyButton.onclick = () => sendCommand({ action: 'set_ready', ready: false });
+el.startRunButton.onclick = () => sendCommand({ action: 'start_run' });
 el.sayButton.onclick = () => {
   const text = el.sayText.value.trim();
   if (text) {

@@ -9,9 +9,17 @@ from app.auth.tickets import TicketManager
 from app.runtime.manager import RuntimeManager
 
 
-def build_test_app(tmp_path: Path) -> FastAPI:
+def receive_until_snapshot(websocket, predicate, attempts: int = 5):
+    last = None
+    for _ in range(attempts):
+        last = websocket.receive_json()
+        if last.get("type") == "snapshot" and predicate(last["data"]):
+            return last
+    raise AssertionError(f"Did not receive matching snapshot; last payload was: {last}")
+
+def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: str | None = None) -> FastAPI:
     app = FastAPI()
-    app.state.manager = RuntimeManager(store_root=tmp_path)
+    app.state.manager = RuntimeManager(store_root=tmp_path, store_backend=store_backend, store_url=store_url)
     app.state.ticket_manager = TicketManager("test-secret")
     app.include_router(http_router)
     app.include_router(ws_router)
@@ -39,6 +47,31 @@ def test_create_run_and_ticket_include_backend_identity(tmp_path: Path):
     assert payload["display_name"] == "Hollywood"
 
 
+def test_ready_endpoint_reports_store(tmp_path: Path):
+    app = build_test_app(tmp_path)
+    client = TestClient(app)
+    response = client.get("/api/health/ready")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["store"]["backend"] == "json"
+
+
+def test_run_details_include_lobby_state(tmp_path: Path):
+    app = build_test_app(tmp_path)
+    client = TestClient(app)
+    run_response = client.post(
+        "/api/runs",
+        json={"template_id": "apartment_confrontation_group", "account_id": "100", "display_name": "Host"},
+    )
+    run_id = run_response.json()["run"]["id"]
+    detail_response = client.get(f"/api/runs/{run_id}")
+    assert detail_response.status_code == 200
+    body = detail_response.json()
+    assert body["lobby"]["status"] == "lobby"
+    assert body["template"]["min_humans_to_start"] == 2
+
+
 def test_internal_join_context_reuses_same_account_seat(tmp_path: Path):
     app = build_test_app(tmp_path)
     client = TestClient(app)
@@ -64,28 +97,65 @@ def test_internal_join_context_reuses_same_account_seat(tmp_path: Path):
     assert second.json()["display_name"] == "Host Updated"
 
 
-def test_websocket_move_flow(tmp_path: Path):
+def test_websocket_group_lobby_ready_start_and_resume(tmp_path: Path):
     app = build_test_app(tmp_path)
     client = TestClient(app)
 
     run_response = client.post(
         "/api/runs",
-        json={"template_id": "god_of_carnage_solo", "account_id": "7", "display_name": "Hollywood"},
+        json={"template_id": "apartment_confrontation_group", "account_id": "7", "display_name": "Host"},
     )
     run_id = run_response.json()["run"]["id"]
-    ticket_response = client.post(
+
+    guest_ticket_response = client.post(
         "/api/tickets",
-        json={"run_id": run_id, "account_id": "7", "display_name": "Hollywood"},
+        json={"run_id": run_id, "account_id": "8", "display_name": "Guest", "preferred_role_id": "parent_a"},
     )
-    ticket = ticket_response.json()["ticket"]
+    guest_ticket = guest_ticket_response.json()["ticket"]
 
-    with client.websocket_connect(f"/ws?ticket={ticket}") as websocket:
-        first_payload = websocket.receive_json()
-        assert first_payload["type"] == "snapshot"
-        assert first_payload["data"]["viewer_room_id"] == "hallway"
+    host_ticket_response = client.post(
+        "/api/tickets",
+        json={"run_id": run_id, "account_id": "7", "display_name": "Host"},
+    )
+    host_ticket = host_ticket_response.json()["ticket"]
 
-        websocket.send_json({"action": "move", "target_room_id": "living_room"})
-        second_payload = websocket.receive_json()
-        assert second_payload["type"] == "snapshot"
-        assert second_payload["data"]["viewer_room_id"] == "living_room"
-        assert any(entry["kind"] == "room_changed" for entry in second_payload["data"]["transcript_tail"])
+    with client.websocket_connect(f"/ws?ticket={host_ticket}") as host_ws, client.websocket_connect(f"/ws?ticket={guest_ticket}") as guest_ws:
+        receive_until_snapshot(host_ws, lambda data: data["viewer_role_id"] == "mediator")
+        guest_initial = receive_until_snapshot(guest_ws, lambda data: data["viewer_role_id"] == "parent_a")
+        assert guest_initial["data"]["lobby"]["status"] == "lobby"
+
+        host_ws.send_json({"action": "set_ready", "ready": True})
+        host_after_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
+        guest_after_host_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
+        assert host_after_ready["data"]["lobby"]["ready_human_seats"] == 1
+        assert guest_after_host_ready["data"]["lobby"]["ready_human_seats"] == 1
+
+        guest_ws.send_json({"action": "set_ready", "ready": True})
+        host_after_guest_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["can_start"] is True)
+        guest_after_guest_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["can_start"] is True)
+        assert host_after_guest_ready["data"]["lobby"]["can_start"] is True
+        assert guest_after_guest_ready["data"]["lobby"]["can_start"] is True
+
+        host_ws.send_json({"action": "start_run"})
+        host_started = receive_until_snapshot(host_ws, lambda data: data["status"] == "running")
+        guest_started = receive_until_snapshot(guest_ws, lambda data: data["status"] == "running")
+        assert host_started["data"]["status"] == "running"
+        assert guest_started["data"]["status"] == "running"
+
+    resume_ticket_response = client.post(
+        "/api/tickets",
+        json={"run_id": run_id, "account_id": "8", "display_name": "Guest Reloaded"},
+    )
+    with client.websocket_connect(f"/ws?ticket={resume_ticket_response.json()['ticket']}") as guest_rejoin_ws:
+        resumed = guest_rejoin_ws.receive_json()
+        assert resumed["data"]["viewer_display_name"] == "Guest Reloaded"
+        assert resumed["data"]["viewer_role_id"] == "parent_a"
+
+
+def test_sqlalchemy_ready_endpoint_with_sqlite(tmp_path: Path):
+    db_url = f"sqlite:///{tmp_path / 'runtime_api.db'}"
+    app = build_test_app(tmp_path, store_backend="sqlalchemy", store_url=db_url)
+    client = TestClient(app)
+    response = client.get("/api/health/ready")
+    assert response.status_code == 200
+    assert response.json()["store"]["backend"] == "sqlalchemy"
