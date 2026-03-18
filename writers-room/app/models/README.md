@@ -20,3 +20,10 @@ This pack separates **templates** from **implementations**.
 - Relationship map for chamber-play alliance shifts
 - Dedicated quick and director runtime stacks for the scenario
 - Expanded God of Carnage implementation split into characters, locations, and scene beats
+
+
+## Added in V3
+- Runtime-oriented preset files under `markdown/_presets/`
+- Clear load order and drop order for real prompt stacking
+- Dedicated presets for minimal play, scene direction, one-room social conflict, investigation, campaign bootstrap, and session resume
+- Scenario-specific runtime presets for the God of Carnage implementation

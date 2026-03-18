@@ -13,7 +13,82 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Version 0.1: Integration of a content framework to organize role playing game
 - Version 0.2: Integration of Game Rules and Game System
 - Version 0.3: Integration of dynamic evolving content with rules and drafts
+---
 
+## [0.1.4] - 2026-03-18
+### world-engine runtime model fix
+- Added `seat_owner_account_id` and `seat_owner_display_name` to `ParticipantState` and improved initialization rules to keep `seat_owner` consistent.
+- Refined `RuntimeSnapshot` shape (safe defaults + new `current_room` / `visible_occupants` fields) so the runtime manager and UI can rely on optional snapshot sections.
+- Updated the frontend snapshot rendering in `backend/app/static/game_menu.js` to use the refined snapshot fields and handle missing exits/actions/transcript data safely.
+
+### writers-room: runtime prompt stacking presets
+- Added `stack_presets.md` and runtime stack preset templates under `writers-room/app/models/markdown/_presets/` to define real load order for prompt stacking.
+- Updated the prompt registry pack documentation (`prompt_registry.yaml` and `writers-room/app/models/README.md`) to reference the new runtime stacking V3 content.
+
+
+
+---
+
+## [0.1.3] - 2026-03-18
+
+### writers-room: god_of_carnage model expansion
+- Expanded the god_of_carnage writers-room implementation with new/updated model definitions for characters, locations, scenes, and scenario bootstrapping.
+- Added/updated relationship and adaptation maps to keep cross-entity references consistent in the writers-room model layer.
+- Updated the prompt registry (`writers-room/app/models/markdown/_registry/prompt_registry.yaml`) to include the newly added content/model definitions for offline/structured operation.
+
+---
+
+## [0.1.2] - 2026-03-18
+
+### world-engine extension
+- Extended world-engine integration with updated HTTP/WS API surfaces.
+- Refined runtime management logic (engine/runtime manager/models) for the Flask play integration workflow.
+- Updated auth ticket handling and related configuration/runtime models.
+- Added `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` and strengthened world-engine test coverage for API/runtime manager behavior.
+
+---
+
+## [0.1.1] - 2026-03-18
+
+### writers-room integration
+- Adopted a shared “administration-style” layout for the Writers Room UI.
+- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
+- Loads configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
+- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
+- Improved offline/diagnostic behavior when the `openai` dependency is missing.
+
+---
+
+## [0.0.35] - 2026-03-18
+
+### Writers Room integration
+
+- Adopted a shared “administration-style” layout for the Writers Room UI.
+- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
+- Load configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
+- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
+- Improved offline/diagnostic behavior when the `openai` dependency is missing.
+
+### Runtime slash command
+
+- Implemented the `/runtime` slash command workflow (Tasks 1–6).
+- Added runtime integration tests and user documentation for the `/runtime` command.
+- Added design/implementation documentation to support the runtime workflow.
+
+### Suggested discussions correctness (docs + tests)
+
+- Corrected News/Wiki suggested-thread reason-label behavior and ensured the UI uses the same reason values as the backend.
+- Updated API docs/Postman examples so they match the implemented suggested-thread payload fields and route shape (including Wiki suggested-threads).
+- Strengthened backend tests to cover deterministic ordering, duplicate exclusion, exclusion of primary discussion / manually related threads, hidden/private thread filtering, and truthful reason labels.
+
+### Backend architecture cleanup
+
+- Implemented backend architecture separation improvements.
+- Integrated `TaskExecutor` into the Flask backend to support the runtime workflow.
+
+### Removed
+
+- Removed redundant/unused runtime analysis/request files that were no longer part of the active workflow.
 
 ---
 
@@ -67,63 +142,6 @@ All four gaps in the News/Wiki auto-suggestions feature corrected. Suggestions n
 
 ---
 
-## [0.0.35] - 2026-03-18
-
-### Writers Room integration
-
-- Adopted a shared “administration-style” layout for the Writers Room UI.
-- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
-- Load configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
-- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
-- Improved offline/diagnostic behavior when the `openai` dependency is missing.
-
-### Runtime slash command
-
-- Implemented the `/runtime` slash command workflow (Tasks 1–6).
-- Added runtime integration tests and user documentation for the `/runtime` command.
-- Added design/implementation documentation to support the runtime workflow.
-
-### Suggested discussions correctness (docs + tests)
-
-- Corrected News/Wiki suggested-thread reason-label behavior and ensured the UI uses the same reason values as the backend.
-- Updated API docs/Postman examples so they match the implemented suggested-thread payload fields and route shape (including Wiki suggested-threads).
-- Strengthened backend tests to cover deterministic ordering, duplicate exclusion, exclusion of primary discussion / manually related threads, hidden/private thread filtering, and truthful reason labels.
-
-### Backend architecture cleanup
-
-- Implemented backend architecture separation improvements.
-- Integrated `TaskExecutor` into the Flask backend to support the runtime workflow.
-
-### Removed
-
-- Removed redundant/unused runtime analysis/request files that were no longer part of the active workflow.
-
----
-## [0.1.3] - 2026-03-18
-
-### writers-room: god_of_carnage model expansion
-- Expanded the god_of_carnage writers-room implementation with new/updated model definitions for characters, locations, scenes, and scenario bootstrapping.
-- Added/updated relationship and adaptation maps to keep cross-entity references consistent in the writers-room model layer.
-- Updated the prompt registry (`writers-room/app/models/markdown/_registry/prompt_registry.yaml`) to include the newly added content/model definitions for offline/structured operation.
-
----
-## [0.1.2] - 2026-03-18
-
-### world-engine extension
-- Extended world-engine integration with updated HTTP/WS API surfaces.
-- Refined runtime management logic (engine/runtime manager/models) for the Flask play integration workflow.
-- Updated auth ticket handling and related configuration/runtime models.
-- Added `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` and strengthened world-engine test coverage for API/runtime manager behavior.
-
----
-## [0.1.1] - 2026-03-18
-
-### writers-room integration
-- Adopted a shared “administration-style” layout for the Writers Room UI.
-- Added Writers Room login that authenticates via the backend API (`POST /api/v1/auth/login`) and stores the JWT in the Writers Room session.
-- Loads configuration from the repository root `.env` (including `OPENAI_API_KEY` and `BACKEND_API_URL`).
-- Added a favicon link that reuses the Writers Room `static/favicon.ico`.
-- Improved offline/diagnostic behavior when the `openai` dependency is missing.
 
 ## [0.0.33] - 2026-03-15
 

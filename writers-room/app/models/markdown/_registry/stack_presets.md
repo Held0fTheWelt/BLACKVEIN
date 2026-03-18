@@ -1,34 +1,35 @@
-# Stack Presets
+# Runtime Stack Presets
 
-## Preset: ultra_light_scene
-- `template.characters.gm.quick_start`
-- `template.scenes.scene.quick`
-- `template.core.session_state.standard`
-- `template.scenes.setting_micro.standard`
-- `template.characters.npc.quick`
+These presets are for real runtime use rather than abstract taxonomy.
+They are ordered from lightest to heaviest.
 
-## Preset: guided_scene
-- `template.characters.gm.standard`
-- `template.scenes.scene.director`
-- `template.core.session_state.standard`
-- `template.core.world_state.standard`
-- `template.scenes.room_or_place.standard`
-- `template.characters.npc.standard`
-- `template.gameplay.consequence_heat.standard`
+## Fastest General Use
+- `preset.runtime.minimal`
+- `preset.runtime.session_resume`
 
-## Preset: investigation_scene
-- `template.characters.gm.standard`
-- `template.scenes.scene.director`
-- `template.gameplay.clue_secret.standard`
-- `template.gameplay.encounter.standard`
-- `template.core.truth_layer.standard`
-- `template.core.session_state.standard`
+## Strong Scene Leadership
+- `preset.runtime.scene_director`
+- `preset.runtime.one_room_social_conflict`
 
-## Preset: campaign_boot
-- `template.characters.gm.standard`
-- `template.scenes.setting_macro.standard`
-- `template.scenes.district.standard`
-- `template.factions.faction.standard`
-- `template.core.world_state.standard`
-- `template.core.session_state.standard`
-- `template.core.continuity_guard.standard`
+## Information-Heavy Play
+- `preset.runtime.investigation`
+
+## Campaign / Region Setup
+- `preset.runtime.campaign_bootstrap`
+
+## Scenario-Specific Chamber Play
+- `preset.runtime.god_of_carnage.quick`
+- `preset.runtime.god_of_carnage.director`
+
+## Practical Recommendation
+Start with the lightest stack that can still carry the scene.
+Only add heavier support when the current scene genuinely needs it.
+
+### Good Default Choices
+- quick test or chat play: `preset.runtime.minimal`
+- central conversation scene: `preset.runtime.scene_director`
+- contained social collapse: `preset.runtime.one_room_social_conflict`
+- mystery handling: `preset.runtime.investigation`
+- session restart: `preset.runtime.session_resume`
+- campaign opening: `preset.runtime.campaign_bootstrap`
+- God of Carnage style opening: `preset.runtime.god_of_carnage.quick` or `preset.runtime.god_of_carnage.director`

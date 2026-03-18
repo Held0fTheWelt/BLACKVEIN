@@ -100,3 +100,20 @@ implementations:
   file: implementations/god_of_carnage/scenes/s07_total_breakdown.md
 - id: implementation.god_of_carnage.scene.s08_unresolved_ring
   file: implementations/god_of_carnage/scenes/s08_unresolved_ring.md
+presets:
+- id: preset.runtime.minimal
+  file: markdown/_presets/minimal_runtime_stack.md
+- id: preset.runtime.scene_director
+  file: markdown/_presets/scene_director_runtime_stack.md
+- id: preset.runtime.one_room_social_conflict
+  file: markdown/_presets/one_room_social_conflict_stack.md
+- id: preset.runtime.investigation
+  file: markdown/_presets/investigation_runtime_stack.md
+- id: preset.runtime.campaign_bootstrap
+  file: markdown/_presets/campaign_bootstrap_stack.md
+- id: preset.runtime.session_resume
+  file: markdown/_presets/session_resume_stack.md
+- id: preset.runtime.god_of_carnage.quick
+  file: markdown/_presets/god_of_carnage_quick_runtime_stack.md
+- id: preset.runtime.god_of_carnage.director
+  file: markdown/_presets/god_of_carnage_director_runtime_stack.md
