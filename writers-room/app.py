@@ -18,15 +18,33 @@ try:
 except ImportError:  # pragma: no cover
     OpenAI = None
 
-# .env aus dem Projektordner laden (egal von wo du die App startest)
-_env_path = Path(__file__).resolve().parent / ".env"
-try:
-    from dotenv import load_dotenv
-    load_dotenv(_env_path)
-except ImportError:
-    pass
+_here = Path(__file__).resolve().parent
+_repo_root = _here.parent
+_app_dir = _here / "app"
 
-app = Flask(__name__, template_folder="templates", static_folder="static")
+# Load .env from repo root (WorldOfShadows/.env). Fall back to current working dir.
+_env_candidates = [
+    Path.cwd() / ".env",
+    _repo_root / ".env",
+    _here / ".env",
+]
+for _p in _env_candidates:
+    if _p.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(_p)
+        except ImportError:
+            pass
+        break
+
+_template_dir = (_app_dir / "templates") if (_app_dir / "templates").exists() else (_here / "templates")
+_static_dir = (_app_dir / "static") if (_app_dir / "static").exists() else (_here / "static")
+
+app = Flask(
+    __name__,
+    template_folder=str(_template_dir),
+    static_folder=str(_static_dir),
+)
 app.secret_key = (
     os.environ.get("WRITERS_ROOM_SECRET_KEY")
     or os.environ.get("SECRET_KEY")
