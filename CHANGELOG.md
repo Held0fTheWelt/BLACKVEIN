@@ -59,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.0.35] - 2026-03-18
+## [0.0.36] - 2026-03-18
 
 ### Writers Room integration
 
@@ -92,7 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.0.34] - 2026-03-15
+## [0.0.35] - 2026-03-15
 
 ### Narrow Follow-up: News/Wiki Auto-Suggestions Gaps Corrective Pass
 
@@ -139,6 +139,90 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Summary
 All four gaps in the News/Wiki auto-suggestions feature corrected. Suggestions now visible to end users on public pages and visible to administrators in management interfaces with ability to promote suggestions to manually-curated related threads.
+
+## [0.0.34] - 2026-03-15
+
+### Summary
+Admin and moderator dashboards with real-time community health metrics. Deterministic, fact-based analytics grounded in existing data (no AI recommendations).
+
+### Features Added
+
+**Backend Analytics API**
+- GET /api/v1/admin/analytics/summary → Community overview (users, content, reports)
+- GET /api/v1/admin/analytics/timeline → Daily activity trend visualization
+- GET /api/v1/admin/analytics/users → Top contributors and role distribution  
+- GET /api/v1/admin/analytics/content → Popular tags, trending threads, content freshness
+- GET /api/v1/admin/analytics/moderation → Report queue status and action trends
+
+All endpoints support optional `date_from` / `date_to` parameters (YYYY-MM-DD format) for custom date ranges.
+
+**Admin Dashboard** (`/manage/analytics`)
+- Date range picker with preset buttons (7d, 30d, 90d) and custom date inputs
+- 6 summary cards: Active users, Total users, Threads created, Posts created, Open reports, Avg resolution time
+- Timeline tab: Line chart with 4-metric daily activity (threads, posts, reports, moderation actions)
+- Users tab: Top contributors table and role distribution grid
+- Content tab: Popular tags, trending threads, content freshness distribution bars
+- Moderation tab: Report queue status and moderation action trends
+
+**Moderator Dashboard** (`/manage/moderator-dashboard`)
+- Quick stats: Pending reports, In review, Resolved (today)
+- Recent moderation actions table
+- Report queue summary
+- Auto-refreshes every 30 seconds
+- Quick link to full forum management
+
+### Permissions
+- Admin: Full access to /manage/analytics + all analytics endpoints
+- Moderator: Access to /manage/moderator-dashboard + limited analytics endpoints (timeline, content, moderation only)
+- Non-admin/non-moderator: 403 Forbidden
+
+### Technical Details
+- **Service Layer**: analytics_service.py with 5 deterministic query functions
+- **Database Queries**: Aggregated at DB level using SQLAlchemy func.count(), func.date(), group_by()
+- **Rate Limiting**: 30 per minute for all analytics endpoints
+- **Timestamps**: UTC, ISO 8601 format throughout
+- **Frontend Security**: escapeHtml() applied to all user-controlled data, FrontendConfig.apiFetch() for API calls
+- **Chart Visualization**: Chart.js for timeline visualization (fallback to tables if unavailable)
+- **Responsive Design**: Works on desktop, tablet; mobile responsive
+
+### Tests Added
+- 28 comprehensive backend API tests covering:
+  - Permission checks (admin-only, admin|moderator access)
+  - Response format validation
+  - Date range filtering
+  - Parameter edge cases (invalid limits, date ranges)
+  - Performance characteristics
+  - All tests passing, 100% endpoint coverage
+
+### Files Changed
+**Backend**:
+- app/services/analytics_service.py (NEW, 280 lines)
+- app/api/v1/analytics_routes.py (NEW, 135 lines)
+- app/api/v1/__init__.py (register analytics_routes)
+- tests/test_analytics_api.py (NEW, 350 lines, 28 tests)
+
+**Frontend**:
+- templates/manage_analytics.html (NEW, 350 lines)
+- templates/manage_moderator_dashboard.html (NEW, 150 lines)
+- static/manage_analytics.js (NEW, 400 lines)
+- static/manage_moderator_dashboard.js (NEW, 150 lines)
+- static/css/manage_analytics.css (NEW, 400 lines)
+- static/css/manage_moderator_dashboard.css (NEW, 140 lines)
+- frontend_app.py (add /manage/analytics, /manage/moderator-dashboard routes)
+
+### Known Limitations
+- Report queue status is a snapshot (not real-time assignment tracking)
+- Moderation action timeline shows action type counts, not individual actions
+- Chart.js visualization disabled on mobile (tables only) for performance
+
+### Backward Compatibility
+✅ All existing endpoints unchanged. Analytics is purely additive.
+
+### Deployment Notes
+- No database schema changes required
+- No migrations needed
+- PythonAnywhere: Restart web app after deployment
+- Requires Chart.js CDN access (https://cdn.jsdelivr.net/npm/chart.js)
 
 ---
 
@@ -957,87 +1041,5 @@ Release 0.0.9 focuses on the new role and access-control model (user/moderator/a
 - API: /api/v1 health, auth (register, login, me), protected test route; JWT and rate limiting.
 - Tooling and docs: requirements.txt, .env.example, Postman collection for API testing.
 
-## v0.0.34 — Community Analytics & Dashboard Enhancement
 
-### Summary
-Admin and moderator dashboards with real-time community health metrics. Deterministic, fact-based analytics grounded in existing data (no AI recommendations).
-
-### Features Added
-
-**Backend Analytics API**
-- GET /api/v1/admin/analytics/summary → Community overview (users, content, reports)
-- GET /api/v1/admin/analytics/timeline → Daily activity trend visualization
-- GET /api/v1/admin/analytics/users → Top contributors and role distribution  
-- GET /api/v1/admin/analytics/content → Popular tags, trending threads, content freshness
-- GET /api/v1/admin/analytics/moderation → Report queue status and action trends
-
-All endpoints support optional `date_from` / `date_to` parameters (YYYY-MM-DD format) for custom date ranges.
-
-**Admin Dashboard** (`/manage/analytics`)
-- Date range picker with preset buttons (7d, 30d, 90d) and custom date inputs
-- 6 summary cards: Active users, Total users, Threads created, Posts created, Open reports, Avg resolution time
-- Timeline tab: Line chart with 4-metric daily activity (threads, posts, reports, moderation actions)
-- Users tab: Top contributors table and role distribution grid
-- Content tab: Popular tags, trending threads, content freshness distribution bars
-- Moderation tab: Report queue status and moderation action trends
-
-**Moderator Dashboard** (`/manage/moderator-dashboard`)
-- Quick stats: Pending reports, In review, Resolved (today)
-- Recent moderation actions table
-- Report queue summary
-- Auto-refreshes every 30 seconds
-- Quick link to full forum management
-
-### Permissions
-- Admin: Full access to /manage/analytics + all analytics endpoints
-- Moderator: Access to /manage/moderator-dashboard + limited analytics endpoints (timeline, content, moderation only)
-- Non-admin/non-moderator: 403 Forbidden
-
-### Technical Details
-- **Service Layer**: analytics_service.py with 5 deterministic query functions
-- **Database Queries**: Aggregated at DB level using SQLAlchemy func.count(), func.date(), group_by()
-- **Rate Limiting**: 30 per minute for all analytics endpoints
-- **Timestamps**: UTC, ISO 8601 format throughout
-- **Frontend Security**: escapeHtml() applied to all user-controlled data, FrontendConfig.apiFetch() for API calls
-- **Chart Visualization**: Chart.js for timeline visualization (fallback to tables if unavailable)
-- **Responsive Design**: Works on desktop, tablet; mobile responsive
-
-### Tests Added
-- 28 comprehensive backend API tests covering:
-  - Permission checks (admin-only, admin|moderator access)
-  - Response format validation
-  - Date range filtering
-  - Parameter edge cases (invalid limits, date ranges)
-  - Performance characteristics
-  - All tests passing, 100% endpoint coverage
-
-### Files Changed
-**Backend**:
-- app/services/analytics_service.py (NEW, 280 lines)
-- app/api/v1/analytics_routes.py (NEW, 135 lines)
-- app/api/v1/__init__.py (register analytics_routes)
-- tests/test_analytics_api.py (NEW, 350 lines, 28 tests)
-
-**Frontend**:
-- templates/manage_analytics.html (NEW, 350 lines)
-- templates/manage_moderator_dashboard.html (NEW, 150 lines)
-- static/manage_analytics.js (NEW, 400 lines)
-- static/manage_moderator_dashboard.js (NEW, 150 lines)
-- static/css/manage_analytics.css (NEW, 400 lines)
-- static/css/manage_moderator_dashboard.css (NEW, 140 lines)
-- frontend_app.py (add /manage/analytics, /manage/moderator-dashboard routes)
-
-### Known Limitations
-- Report queue status is a snapshot (not real-time assignment tracking)
-- Moderation action timeline shows action type counts, not individual actions
-- Chart.js visualization disabled on mobile (tables only) for performance
-
-### Backward Compatibility
-✅ All existing endpoints unchanged. Analytics is purely additive.
-
-### Deployment Notes
-- No database schema changes required
-- No migrations needed
-- PythonAnywhere: Restart web app after deployment
-- Requires Chart.js CDN access (https://cdn.jsdelivr.net/npm/chart.js)
 
