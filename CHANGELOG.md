@@ -16,7 +16,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.1.5] - 2026-03-18
+## [0.1.6] - 2026-03-19
+
+## Added
+- Introduced SQL-backed runtime persistence with a Postgres-ready store path while keeping local development compatibility.
+- Added group story lobby support with seat reservations, ready/unready state, host-controlled start, and account-based rejoin flow.
+- Added local Postgres startup support via Docker Compose for end-to-end development.
+
+## Changed
+- Hardened the local end-to-end runtime flow across API, snapshot metadata, and browser client behavior.
+- Updated runtime models and manager logic to support lobby lifecycle, seat ownership, readiness tracking, and reconnect-safe participant restoration.
+- Expanded built-in content and configuration to support the new persistence and lobby flow.
+- Improved client rendering and UI handling for lobby state and multiplayer session transitions.
+- Updated documentation, environment examples, and container setup for the new local development path.
+
+## Fixed
+- Fixed inconsistencies between runtime state handling and multiplayer pre-start flow.
+- Fixed rejoin behavior to use account-based identity instead of fragile display-name matching.
+- Fixed several local integration edge cases affecting snapshot delivery, startup flow, and client/runtime synchronization.
+
+## Tests
+- Added and updated runtime and API tests covering SQL persistence, lobby lifecycle, ready/start flow, and reconnect behavior.
+
+---
+
+## [0.1.5] - 2026-03-19
 
 ### world-engine: SQL persistence, Group story lobby with seats, local hardening and more
 - SQL/Postgres-compatible persistence via a store abstraction
@@ -30,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.1.4] - 2026-03-18
+## [0.1.4] - 2026-03-19
 ### world-engine runtime model fix
 - Added `seat_owner_account_id` and `seat_owner_display_name` to `ParticipantState` and improved initialization rules to keep `seat_owner` consistent.
 - Refined `RuntimeSnapshot` shape (safe defaults + new `current_room` / `visible_occupants` fields) so the runtime manager and UI can rely on optional snapshot sections.
