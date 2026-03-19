@@ -16,6 +16,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.7] - 2026-03-19
+
+## Added
+- Added backend-managed game character profiles so launcher and runtime flows can use stable character identities.
+- Added backend-managed save-slot metadata and run bookmark support for story launch and resume flows.
+- Added a new `/api/v1/game/bootstrap` endpoint to provide launcher bootstrap data for characters, save slots, and available game-facing context.
+- Added a database migration for game profile and save-slot persistence.
+- Added backend tests covering character, save-slot, and launcher bootstrap behavior.
+
+## Changed
+- Updated the game menu flow to support backend-driven character selection and character creation.
+- Updated run start and ticket flows to use backend character identity instead of free-text player input.
+- Improved launcher preparation so the backend can act as the account and character authority for the play experience.
+
+## Fixed
+- Fixed identity handoff gaps between backend launcher flow and play-service startup by introducing stable backend-backed character selection.
+- Fixed resume-path inconsistencies by storing save-slot and run bookmark metadata in the backend.
+
+---
+
 ## [0.1.6] - 2026-03-19
 
 ## Added
