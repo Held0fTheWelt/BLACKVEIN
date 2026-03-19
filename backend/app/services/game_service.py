@@ -33,6 +33,14 @@ class PlayJoinContext:
     character_id: str | None = None
 
 
+
+
+def has_complete_play_service_config() -> bool:
+    public_url = (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").strip()
+    internal_url = (current_app.config.get("PLAY_SERVICE_INTERNAL_URL") or "").strip()
+    shared_secret = (current_app.config.get("PLAY_SERVICE_SHARED_SECRET") or "").strip()
+    return bool(public_url and internal_url and shared_secret)
+
 def _require_configured_url(kind: str) -> str:
     key = "PLAY_SERVICE_INTERNAL_URL" if kind == "internal" else "PLAY_SERVICE_PUBLIC_URL"
     value = (current_app.config.get(key) or "").strip()

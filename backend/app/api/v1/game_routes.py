@@ -26,6 +26,7 @@ from app.services.game_service import (
     GameServiceError,
     create_run as create_play_run,
     get_play_service_websocket_url,
+    has_complete_play_service_config,
     issue_play_ticket,
     list_runs as list_play_runs,
     list_templates as list_play_templates,
@@ -82,7 +83,7 @@ def _error_response(exc: Exception):
 
 def _play_service_bootstrap() -> dict[str, Any]:
     play_public_url = (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").strip() or None
-    configured = bool(play_public_url)
+    configured = has_complete_play_service_config()
     ws_base_url = None
     if configured:
         try:

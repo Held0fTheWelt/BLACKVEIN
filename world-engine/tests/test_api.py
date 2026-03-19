@@ -159,3 +159,21 @@ def test_sqlalchemy_ready_endpoint_with_sqlite(tmp_path: Path):
     response = client.get("/api/health/ready")
     assert response.status_code == 200
     assert response.json()["store"]["backend"] == "sqlalchemy"
+
+
+
+def test_ticket_manager_accepts_shared_secret_alias(monkeypatch):
+    from importlib import reload
+    import app.config as config_module
+    import app.auth.tickets as tickets_module
+
+    monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
+    monkeypatch.setenv("PLAY_SERVICE_SHARED_SECRET", "alias-secret")
+    reload(config_module)
+    reload(tickets_module)
+
+    manager = tickets_module.TicketManager()
+    token = manager.issue({"run_id": "run-1", "participant_id": "p-1"}, ttl_seconds=60)
+    payload = manager.verify(token)
+    assert payload["run_id"] == "run-1"
+    assert payload["participant_id"] == "p-1"

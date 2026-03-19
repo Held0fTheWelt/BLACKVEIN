@@ -1,161 +1,244 @@
-from pathlib import Path
+"""Tests for API v1 routes (REST, JWT)."""
+import pytest
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
-
-from app.api.http import router as http_router
-from app.api.ws import router as ws_router
-from app.auth.tickets import TicketManager
-from app.runtime.manager import RuntimeManager
+from app import create_app
+from app.config import TestingConfig
+from app.extensions import db
 
 
-def receive_until_snapshot(websocket, predicate, attempts: int = 5):
-    last = None
-    for _ in range(attempts):
-        last = websocket.receive_json()
-        if last.get("type") == "snapshot" and predicate(last["data"]):
-            return last
-    raise AssertionError(f"Did not receive matching snapshot; last payload was: {last}")
-
-def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: str | None = None) -> FastAPI:
-    app = FastAPI()
-    app.state.manager = RuntimeManager(store_root=tmp_path, store_backend=store_backend, store_url=store_url)
-    app.state.ticket_manager = TicketManager("test-secret")
-    app.include_router(http_router)
-    app.include_router(ws_router)
-    return app
+def test_api_health_returns_ok(client):
+    """GET /api/v1/health returns 200 and status ok."""
+    response = client.get("/api/v1/health")
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
 
 
-def test_create_run_and_ticket_include_backend_identity(tmp_path: Path):
-    app = build_test_app(tmp_path)
-    client = TestClient(app)
-
+def test_register_success(client):
+    """POST /api/v1/auth/register creates user and returns 201."""
     response = client.post(
-        "/api/runs",
-        json={"template_id": "god_of_carnage_solo", "account_id": "42", "display_name": "Hollywood"},
+        "/api/v1/auth/register",
+        json={"username": "newuser", "email": "newuser@example.com", "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["username"] == "newuser"
+    assert "id" in data
+
+
+def test_register_missing_json_returns_400(client):
+    """POST /api/v1/auth/register without JSON returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        data="not json",
+        content_type="text/plain",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_validation_returns_400(client):
+    """POST /api/v1/auth/register with short username returns 400."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "a", "email": "a@b.co", "password": "Longenough1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert "error" in response.get_json()
+
+
+def test_register_without_email_returns_201_when_email_optional(client):
+    """POST /api/v1/auth/register without email returns 201 when REGISTRATION_REQUIRE_EMAIL is False (default)."""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "noman", "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["username"] == "noman"
+    assert "id" in data
+
+
+def test_register_missing_email_returns_400_when_email_required(client):
+    """POST /api/v1/auth/register without email returns 400 when REGISTRATION_REQUIRE_EMAIL is True."""
+    client.application.config["REGISTRATION_REQUIRE_EMAIL"] = True
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "noman2", "password": "Secret123"},
+        content_type="application/json",
+    )
+    assert response.status_code == 400
+    assert response.get_json().get("error") == "Email is required"
+
+
+def test_register_duplicate_username_returns_409(client, test_user):
+    """POST /api/v1/auth/register with existing username returns 409."""
+    user, password = test_user
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": user.username, "email": "other@example.com", "password": "Otherpass1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 409
+    assert "error" in response.get_json()
+
+
+def test_login_success_returns_token(client, test_user):
+    """POST /api/v1/auth/login with valid credentials returns access_token and user."""
+    user, password = test_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
     )
     assert response.status_code == 200
-    run_id = response.json()["run"]["id"]
+    data = response.get_json()
+    assert "access_token" in data
+    assert data["user"]["username"] == user.username
+    assert data["user"]["id"] == user.id
 
-    ticket_response = client.post(
-        "/api/tickets",
-        json={"run_id": run_id, "account_id": "42", "display_name": "Hollywood"},
+
+def test_login_invalid_returns_401(client):
+    """POST /api/v1/auth/login with wrong credentials returns 401."""
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "nobody", "password": "wrong"},
+        content_type="application/json",
     )
-    assert ticket_response.status_code == 200
-    payload = app.state.ticket_manager.verify(ticket_response.json()["ticket"])
-    assert payload["account_id"] == "42"
-    assert payload["display_name"] == "Hollywood"
+    assert response.status_code == 401
+    assert "error" in response.get_json()
 
 
-def test_ready_endpoint_reports_store(tmp_path: Path):
-    app = build_test_app(tmp_path)
-    client = TestClient(app)
-    response = client.get("/api/health/ready")
+def test_login_unverified_email_returns_403_when_verification_enabled(client, app):
+    """POST /api/v1/auth/login with valid credentials but unverified email returns 403 when verification is enabled."""
+    from app.extensions import db
+    from app.models import Role, User
+    from werkzeug.security import generate_password_hash
+
+    with app.app_context():
+        app.config["EMAIL_VERIFICATION_ENABLED"] = True
+        role = Role.query.filter_by(name=Role.NAME_USER).first()
+        user = User(
+            username="apiverify",
+            email="apiverify@example.com",
+            password_hash=generate_password_hash("Apiverify1"),
+            email_verified_at=None,
+            role_id=role.id,
+        )
+        db.session.add(user)
+        db.session.commit()
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": "apiverify", "password": "Apiverify1"},
+        content_type="application/json",
+    )
+    assert response.status_code == 403
+    data = response.get_json()
+    assert "verified" in (data.get("error") or "").lower()
+
+
+def test_login_banned_user_returns_403(client, banned_user):
+    """POST /api/v1/auth/login with banned user returns 403 and Account is restricted."""
+    user, password = banned_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
+    )
+    assert response.status_code == 403
+    data = response.get_json()
+    assert "restricted" in (data.get("error") or "").lower()
+
+
+def test_login_missing_body_returns_400(client):
+    """POST /api/v1/auth/login without JSON returns 400."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data="x",
+        content_type="text/plain",
+    )
+    assert response.status_code == 400
+
+
+def test_me_without_token_returns_401(client):
+    """GET /api/v1/auth/me without Authorization returns 401."""
+    response = client.get("/api/v1/auth/me")
+    assert response.status_code == 401
+    assert "error" in response.get_json()
+
+
+def test_me_with_token_returns_user(client, auth_headers, test_user):
+    """GET /api/v1/auth/me with valid JWT returns current user."""
+    user, _ = test_user
+    response = client.get("/api/v1/auth/me", headers=auth_headers)
     assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ready"
-    assert body["store"]["backend"] == "json"
+    data = response.get_json()
+    assert data["username"] == user.username
+    assert data["id"] == user.id
 
 
-def test_run_details_include_lobby_state(tmp_path: Path):
-    app = build_test_app(tmp_path)
-    client = TestClient(app)
-    run_response = client.post(
-        "/api/runs",
-        json={"template_id": "apartment_confrontation_group", "account_id": "100", "display_name": "Host"},
-    )
-    run_id = run_response.json()["run"]["id"]
-    detail_response = client.get(f"/api/runs/{run_id}")
-    assert detail_response.status_code == 200
-    body = detail_response.json()
-    assert body["lobby"]["status"] == "lobby"
-    assert body["template"]["min_humans_to_start"] == 2
+def test_me_banned_user_returns_403(client, app, banned_user):
+    """GET /api/v1/auth/me with valid JWT for a banned user returns 403."""
+    user, _ = banned_user
+    with app.app_context():
+        from flask_jwt_extended import create_access_token
+        token = create_access_token(identity=str(user.id))
+    response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer " + token})
+    assert response.status_code == 403
+    assert "restricted" in (response.get_json().get("error") or "").lower()
 
 
-def test_internal_join_context_reuses_same_account_seat(tmp_path: Path):
-    app = build_test_app(tmp_path)
-    client = TestClient(app)
-
-    run_response = client.post(
-        "/api/runs",
-        json={"template_id": "apartment_confrontation_group", "account_id": "100", "display_name": "Host"},
-    )
-    run_id = run_response.json()["run"]["id"]
-
-    first = client.post(
-        "/api/internal/join-context",
-        json={"run_id": run_id, "account_id": "100", "display_name": "Host"},
-    )
-    second = client.post(
-        "/api/internal/join-context",
-        json={"run_id": run_id, "account_id": "100", "display_name": "Host Updated"},
-    )
-
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert first.json()["participant_id"] == second.json()["participant_id"]
-    assert second.json()["display_name"] == "Host Updated"
+def test_protected_without_token_returns_401(client):
+    """GET /api/v1/test/protected without token returns 401."""
+    response = client.get("/api/v1/test/protected")
+    assert response.status_code == 401
 
 
-def test_websocket_group_lobby_ready_start_and_resume(tmp_path: Path):
-    app = build_test_app(tmp_path)
-    client = TestClient(app)
-
-    run_response = client.post(
-        "/api/runs",
-        json={"template_id": "apartment_confrontation_group", "account_id": "7", "display_name": "Host"},
-    )
-    run_id = run_response.json()["run"]["id"]
-
-    guest_ticket_response = client.post(
-        "/api/tickets",
-        json={"run_id": run_id, "account_id": "8", "display_name": "Guest", "preferred_role_id": "parent_a"},
-    )
-    guest_ticket = guest_ticket_response.json()["ticket"]
-
-    host_ticket_response = client.post(
-        "/api/tickets",
-        json={"run_id": run_id, "account_id": "7", "display_name": "Host"},
-    )
-    host_ticket = host_ticket_response.json()["ticket"]
-
-    with client.websocket_connect(f"/ws?ticket={host_ticket}") as host_ws, client.websocket_connect(f"/ws?ticket={guest_ticket}") as guest_ws:
-        receive_until_snapshot(host_ws, lambda data: data["viewer_role_id"] == "mediator")
-        guest_initial = receive_until_snapshot(guest_ws, lambda data: data["viewer_role_id"] == "parent_a")
-        assert guest_initial["data"]["lobby"]["status"] == "lobby"
-
-        host_ws.send_json({"action": "set_ready", "ready": True})
-        host_after_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
-        guest_after_host_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
-        assert host_after_ready["data"]["lobby"]["ready_human_seats"] == 1
-        assert guest_after_host_ready["data"]["lobby"]["ready_human_seats"] == 1
-
-        guest_ws.send_json({"action": "set_ready", "ready": True})
-        host_after_guest_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["can_start"] is True)
-        guest_after_guest_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["can_start"] is True)
-        assert host_after_guest_ready["data"]["lobby"]["can_start"] is True
-        assert guest_after_guest_ready["data"]["lobby"]["can_start"] is True
-
-        host_ws.send_json({"action": "start_run"})
-        host_started = receive_until_snapshot(host_ws, lambda data: data["status"] == "running")
-        guest_started = receive_until_snapshot(guest_ws, lambda data: data["status"] == "running")
-        assert host_started["data"]["status"] == "running"
-        assert guest_started["data"]["status"] == "running"
-
-    resume_ticket_response = client.post(
-        "/api/tickets",
-        json={"run_id": run_id, "account_id": "8", "display_name": "Guest Reloaded"},
-    )
-    with client.websocket_connect(f"/ws?ticket={resume_ticket_response.json()['ticket']}") as guest_rejoin_ws:
-        resumed = guest_rejoin_ws.receive_json()
-        assert resumed["data"]["viewer_display_name"] == "Guest Reloaded"
-        assert resumed["data"]["viewer_role_id"] == "parent_a"
-
-
-def test_sqlalchemy_ready_endpoint_with_sqlite(tmp_path: Path):
-    db_url = f"sqlite:///{tmp_path / 'runtime_api.db'}"
-    app = build_test_app(tmp_path, store_backend="sqlalchemy", store_url=db_url)
-    client = TestClient(app)
-    response = client.get("/api/health/ready")
+def test_protected_with_token_returns_ok(client, auth_headers, test_user):
+    """GET /api/v1/test/protected with valid JWT returns message and user info."""
+    user, _ = test_user
+    response = client.get("/api/v1/test/protected", headers=auth_headers)
     assert response.status_code == 200
-    assert response.json()["store"]["backend"] == "sqlalchemy"
+    data = response.get_json()
+    assert data["message"] == "ok"
+    assert data["user_id"] == user.id
+    assert data["username"] == user.username
+
+
+def test_api_404_returns_json(client):
+    """GET /api/v1/nonexistent returns 404 with JSON error, not HTML."""
+    response = client.get("/api/v1/nonexistent")
+    assert response.status_code == 404
+    assert response.content_type and "application/json" in response.content_type
+    data = response.get_json()
+    assert "error" in data
+    assert "not found" in data["error"].lower() or data["error"] == "Not found"
+
+
+def test_cors_no_allow_origin_when_origins_not_configured(client):
+    """When CORS_ORIGINS is not set, API responses do not include Access-Control-Allow-Origin."""
+    response = client.get("/api/v1/health", headers={"Origin": "http://other.example"})
+    assert response.status_code == 200
+    assert response.headers.get("Access-Control-Allow-Origin") is None
+
+
+def test_cors_allow_origin_when_configured():
+    """When CORS_ORIGINS is set, API responds with correct Access-Control-Allow-Origin."""
+    class ConfigWithCORS(TestingConfig):
+        CORS_ORIGINS = ["http://test.example"]
+
+    application = create_app(ConfigWithCORS)
+    with application.app_context():
+        db.create_all()
+        try:
+            client = application.test_client()
+            response = client.get(
+                "/api/v1/health",
+                headers={"Origin": "http://test.example"}
+            )
+            assert response.status_code == 200
+            assert response.headers.get("Access-Control-Allow-Origin") == "http://test.example"
+        finally:
+            db.drop_all()

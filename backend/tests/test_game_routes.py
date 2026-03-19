@@ -191,3 +191,28 @@ def test_game_ticket_uses_selected_backend_character_and_returns_ws_url(client, 
     assert data["display_name"] == "Bruno Houille"
     assert captured["character_id"] == str(character_id)
     assert captured["display_name"] == "Bruno Houille"
+
+
+
+def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(client, auth_headers, app):
+    app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
+    app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
+    app.config["PLAY_SERVICE_SHARED_SECRET"] = None
+
+    response = client.get("/api/v1/game/bootstrap", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["play_service"]["configured"] is False
+    assert data["play_service"]["public_url"] == "https://play.example.com"
+
+
+def test_game_menu_marks_play_service_unconfigured_without_complete_bridge(client, test_user, app):
+    user, password = test_user
+    _login_session(client, user.username, password)
+    app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
+    app.config["PLAY_SERVICE_INTERNAL_URL"] = None
+    app.config["PLAY_SERVICE_SHARED_SECRET"] = None
+
+    response = client.get("/game-menu")
+    assert response.status_code == 200
+    assert b"PLAY_SERVICE_SHARED_SECRET" in response.data

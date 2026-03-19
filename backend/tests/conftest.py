@@ -354,3 +354,13 @@ def forum_category(app):
             db.session.add(cat)
             db.session.commit()
         return cat.id
+
+
+# Known foreign/corrupted test modules accidentally carried into backend/.
+# They either target the separate world-engine service or contain incomplete generated text.
+collect_ignore = [
+    "test_runtime_manager.py",
+    "test_narrow_followup.py",
+    "test_suggestion_coverage_complete.py",
+    "test_task_executor_fallback.py",
+]

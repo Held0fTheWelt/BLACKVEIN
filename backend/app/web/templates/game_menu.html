@@ -6,7 +6,7 @@
         <h1>Game Menu</h1>
         <p>Launch solo stories, group stories, or the evolving open world through the separate play service.</p>
         {% if not play_service_configured %}
-        <div class="flash error">The play service is not configured yet. Set <code>PLAY_SERVICE_PUBLIC_URL</code> and <code>PLAY_SERVICE_INTERNAL_URL</code> in the backend environment.</div>
+        <div class="flash error">The play service is not configured yet. Set <code>PLAY_SERVICE_PUBLIC_URL</code>, <code>PLAY_SERVICE_INTERNAL_URL</code>, and <code>PLAY_SERVICE_SHARED_SECRET</code> in the backend environment.</div>
         {% endif %}
     </div>
 

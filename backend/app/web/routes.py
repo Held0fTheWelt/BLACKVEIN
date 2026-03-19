@@ -8,6 +8,7 @@ from app.models import User
 from app.services import create_user, log_activity, verify_user
 from app.services.user_service import create_email_verification_token
 from app.services.mail_service import send_verification_email
+from app.services.game_service import has_complete_play_service_config
 from app.web.auth import is_safe_redirect, require_web_login, require_web_admin
 from app.services.user_service import update_user_last_seen
 
@@ -432,7 +433,7 @@ def game_menu():
     return render_template(
         "game_menu.html",
         current_user=user,
-        play_service_configured=bool(play_public_url),
+        play_service_configured=has_complete_play_service_config(),
         play_service_public_url=play_public_url,
     )
 
