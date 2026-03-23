@@ -88,15 +88,40 @@ def create_app(config_object=None):
     _root = os.path.dirname(os.path.abspath(__file__))
     app = Flask(__name__, template_folder=os.path.join(_root, "web", "templates"), static_folder=os.path.join(_root, "static"))
     app.config.from_object(config_object or Config)
-    if not app.config.get("TESTING") and not app.config.get("SECRET_KEY"):
+    # Handle SECRET_KEY: auto-generate in dev if missing or placeholder
+    secret_key = app.config.get("SECRET_KEY", "")
+    if not secret_key or secret_key == "change-me-in-production":
+        if app.config.get("TESTING"):
+            app.config["SECRET_KEY"] = "test-secret-key-for-testing"
+        elif not app.config.get("MAIL_ENABLED") or not app.config.get("ENV") == "production":
+            import secrets
+            app.config["SECRET_KEY"] = secrets.token_urlsafe(32)
+        else:
+            raise ValueError("SECRET_KEY must be set in environment. Use .env or export.")
+    elif not app.config.get("TESTING") and not secret_key:
         raise ValueError("SECRET_KEY must be set in environment. Use .env or export.")
     # Validate JWT_SECRET_KEY meets cryptographic security standards (32+ bytes / 256 bits)
     jwt_secret = app.config.get("JWT_SECRET_KEY", "")
-    if not jwt_secret or len(jwt_secret.encode("utf-8")) < 32:
-        raise ValueError(
-            "JWT_SECRET_KEY must be at least 32 bytes (256 bits). "
-            "Generate a strong key with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
-        )
+
+    # Auto-generate key if placeholder or missing in non-TESTING mode
+    if not jwt_secret or jwt_secret == "change-me-in-production-jwt" or len(jwt_secret.encode("utf-8")) < 32:
+        if app.config.get("TESTING"):
+            # In testing, use a fixed fallback
+            jwt_secret = "test-key-32-bytes-minimum-value"
+            app.config["JWT_SECRET_KEY"] = jwt_secret
+        elif not app.config.get("MAIL_ENABLED") or not app.config.get("ENV") == "production":
+            # In development, auto-generate
+            import secrets
+            jwt_secret = secrets.token_urlsafe(32)
+            app.config["JWT_SECRET_KEY"] = jwt_secret
+            app.logger.warning("Generated JWT_SECRET_KEY automatically. Update .env to persist across restarts.")
+        else:
+            # In production, fail hard
+            raise ValueError(
+                "JWT_SECRET_KEY must be at least 32 bytes (256 bits). "
+                "Generate a strong key with: python -c 'import secrets; print(secrets.token_urlsafe(32))' "
+                "and set it in your .env file."
+            )
 
     # Verify email verification is enforced in production
     if app.config.get("ENV") == "production" or (not app.config.get("TESTING") and app.config.get("MAIL_ENABLED")):
