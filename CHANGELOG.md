@@ -5,6 +5,39 @@ All notable changes to the World of Shadows project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
+## [0.0.8] - 2026-03-23
+
+### Security
+- **Critical Fixes:**
+  - Fixed path traversal vulnerability via `run_id` in the game engine file store (`runtime/store.py`).
+  - Addressed path traversal issue in `_wiki_path()` allowing directory escape (`wiki_routes.py`).
+  - Resolved IP whitelist bypass when `ADMIN_IP_WHITELIST` is empty, previously allowing unrestricted access (`admin_security.py`).
+  - Implemented thread-safe in-memory rate limit cache with TTL eviction to prevent race conditions (`forum_service.py`).
+  - Removed hardcoded `SECRET_KEY` and `JWT_SECRET_KEY` from `TestingConfig` (`config.py`).
+  - Added length and entropy validation for admin tool session secret loading (`administration-tool/app.py`).
+
+- **High Fixes:**
+  - Mitigated SQL injection vulnerability via unvalidated primary key list in data import service (`data_import_service.py`).
+  - Enforced JWT authentication to prevent unauthenticated access to game routes (`game_routes.py`).
+  - Secured password history storage by using a more robust format and validation (`user.py`).
+  - Fixed authorization bypass in news draft inclusion logic (`news_routes.py`).
+  - Resolved race condition in token blacklist cleanup, ensuring entries are not deleted prematurely (`token_blacklist.py`).
+  - Added category existence check to admin moderator assignment endpoint (`admin_routes.py`).
+  - Strengthened PBKDF2 password handling in encryption service (`encryption_service.py`).
+  - Implemented minimum length validation for N8N webhook secret (`n8n_trigger.py`).
+  - Added access control layer to data export service functions (`data_export_service.py`).
+  - Fixed rate limit key_func bypass via IP fallback in wiki admin routes (`wiki_admin_routes.py`).
+  - Ensured privilege change logging is not bypassed (`user_routes.py`).
+  - Removed hardcoded token comparison in N8N service permissions (`permissions.py`).
+  - Addressed unsafe fallback for `store_url` default value in runtime manager.
+  - Fixed forum category slug path traversal vulnerability (`forum_routes.py`).
+
+### Fixed
+- Resolved 22 critical and high-severity vulnerabilities identified during a comprehensive security audit (Round 3) performed by AI agents using phi4-14b:reviewer.
+- Previous versions have already addressed 70 additional vulnerabilities, including XSS, CSRF, privilege escalation, JWT blacklist issues, account lockout, email verification bypass, encrypted exports, and more.
+
+---
+
 # Version Description
 
 - Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
