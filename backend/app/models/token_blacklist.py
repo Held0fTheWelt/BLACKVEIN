@@ -109,5 +109,3 @@ class TokenBlacklist(db.Model):
 
     def __repr__(self):
         return f"<TokenBlacklist jti={self.jti[:8]}... user_id={self.user_id}>"
-
-ISSUE: Race Condition | LINE: 58-67 | DESCRIPTION: The add method attempts to enforce a 90-day retention policy by deleting entries older than 90 days within the same transaction, leading to potential race conditions. | FIX: Move the deletion logic outside of the add method and ensure it is executed in a separate cleanup job or transaction to maintain atomicity and consistency.

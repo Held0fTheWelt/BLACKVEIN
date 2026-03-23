@@ -163,5 +163,3 @@ def require_editor_or_n8n_service(f):
             return jsonify({"error": "Forbidden"}), 403
         return f(*args, **kwargs)
     return jwt_required(optional=True)(wrapped)
-
-ISSUE: Security | LINE: 97 | DESCRIPTION: The function `_is_n8n_service_request()` uses a hardcoded token from the configuration (N8N_SERVICE_TOKEN) to validate requests. If this token is not securely managed or rotated,
