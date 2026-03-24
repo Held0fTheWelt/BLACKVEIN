@@ -28,8 +28,8 @@ PROJECT_ROOT = TESTS_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 ADMIN_TOOL_DIR = PROJECT_ROOT / "administration-tool"
 WORLD_ENGINE_DIR = PROJECT_ROOT / "world-engine"
-REPORTS_DIR = PROJECT_ROOT / "test_reports"
-REPORTS_DIR.mkdir(exist_ok=True)
+REPORTS_DIR = PROJECT_ROOT / "test" / "reports"
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # ANSI colors
 class Colors:
