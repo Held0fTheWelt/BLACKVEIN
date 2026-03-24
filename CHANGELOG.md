@@ -4,6 +4,15 @@ All notable changes to the World of Shadows project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# Version Description
+
+- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
+
+**Current repository paths:** Docs and README use `backend/` and `administration-tool/`. Older entries may mention `Backend/` or `Frontend/` as they were at release time. The administration-tool default for `BACKEND_API_URL` is now remote-first (PythonAnywhere); local is for override/troubleshooting only (see README).
+- Version 0.1: Integration of a content framework to organize role playing game
+- Version 0.2: Integration of Game Rules and Game System
+- Version 0.3: Integration of dynamic evolving content with rules and drafts
+
 
 ## [0.1.8] - 2026-03-23
 
@@ -45,14 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-# Version Description
 
-- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
-
-**Current repository paths:** Docs and README use `backend/` and `administration-tool/`. Older entries may mention `Backend/` or `Frontend/` as they were at release time. The administration-tool default for `BACKEND_API_URL` is now remote-first (PythonAnywhere); local is for override/troubleshooting only (see README).
-- Version 0.1: Integration of a content framework to organize role playing game
-- Version 0.2: Integration of Game Rules and Game System
-- Version 0.3: Integration of dynamic evolving content with rules and drafts
 
 ---
 
