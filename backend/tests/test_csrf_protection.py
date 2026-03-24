@@ -227,20 +227,3 @@ class TestSecurityHeaders:
         assert "strict-origin" in referrer or "same-origin" in referrer
 
 
-@pytest.fixture
-def app():
-    """Create app with testing config."""
-    from app import create_app
-    app = create_app()
-    app.config["TESTING"] = True
-    with app.app_context():
-        db.create_all()
-        yield app
-        db.session.remove()
-        db.drop_all()
-
-
-@pytest.fixture
-def client(app):
-    """Create test client."""
-    return app.test_client()

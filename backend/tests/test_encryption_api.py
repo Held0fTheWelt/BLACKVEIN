@@ -199,8 +199,8 @@ class TestDecryptExport:
 
         response = client.post("/api/v1/data/export/decrypt", json=decrypt_payload, headers=admin_headers)
 
-        # Should fail with 401 (unauthenticated) since not admin
-        assert response.status_code in [401, 403]
+        # Admin passes auth/feature check, but decryption fails with bad data
+        assert response.status_code == 400
 
     def test_decrypt_corrupted_data_fails(self, client, admin_headers):
         """Test that corrupted encrypted data fails to decrypt."""
@@ -223,7 +223,7 @@ class TestDecryptExport:
             "password": "test_password",
         }
         decrypt_response = client.post(
-            "/api/v1/data/export/decrypt", json=decrypt_payload
+            "/api/v1/data/export/decrypt", json=decrypt_payload, headers=admin_headers
         )
 
         assert decrypt_response.status_code == 400
@@ -255,7 +255,7 @@ class TestEncryptionIntegration:
             "password": password,
         }
         decrypt_response = client.post(
-            "/api/v1/data/export/decrypt", json=decrypt_payload
+            "/api/v1/data/export/decrypt", json=decrypt_payload, headers=admin_headers
         )
         assert decrypt_response.status_code == 200
         decrypted_data = decrypt_response.get_json()
@@ -291,7 +291,7 @@ class TestEncryptionIntegration:
                 "password": password,
             }
             decrypt_response = client.post(
-                "/api/v1/data/export/decrypt", json=decrypt_payload
+                "/api/v1/data/export/decrypt", json=decrypt_payload, headers=admin_headers
             )
             assert decrypt_response.status_code == 200
             decrypted = decrypt_response.get_json()
