@@ -1238,13 +1238,13 @@ class TestUsersAssignRole:
         data = resp.get_json()
         assert "role_level must be between 0 and 9999" in data.get("error", "")
 
-    def test_assign_role_level_bounds_valid_max(self, app, client, admin_headers, test_user):
+    def test_assign_role_level_bounds_valid_max(self, app, client, high_privilege_admin_headers, test_user):
         """Can assign role_level = 9999 via PATCH /role endpoint."""
         user, _ = test_user
         resp = client.patch(
             f"/api/v1/users/{user.id}/role",
             json={"role": "qa", "role_level": 9999},
-            headers=admin_headers,
+            headers=high_privilege_admin_headers,
         )
         assert resp.status_code == 200
         data = resp.get_json()

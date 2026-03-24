@@ -1416,7 +1416,7 @@ def delete_tag(tag: ForumTag) -> Optional[str]:
     return None
 
 
-def suggest_related_threads_by_tags(thread_id: int, *, limit: int = 5, include_hidden: bool = True) -> List[ForumThread]:
+def suggest_related_threads_by_tags(thread_id: int, *, limit: int = 5, include_hidden: bool = False) -> List[ForumThread]:
     """Suggest related threads based on shared tags. Returns up to `limit` threads."""
     thread = ForumThread.query.get(thread_id)
     if not thread:

@@ -161,7 +161,7 @@ def test_create_thread_via_api(app, client, auth_headers):
         db.session.commit()
     resp = client.post(
         "/api/v1/forum/categories/create-cat/threads",
-        json={"title": "API Thread", "content": "Body text"},
+        json={"title": "API Thread", "content": "This is the body text"},
         headers=auth_headers,
     )
     assert resp.status_code == 201
@@ -252,14 +252,15 @@ def test_thread_detail_not_found(app, client, auth_headers):
 
 def test_create_post_via_api(app, client, auth_headers):
     cat_id, _, thread_id, _, _, _ = _setup_public_cat_and_thread(app)
+    reply_content = "This is a new reply message"
     resp = client.post(
         f"/api/v1/forum/threads/{thread_id}/posts",
-        json={"content": "New reply"},
+        json={"content": reply_content},
         headers=auth_headers,
     )
     assert resp.status_code == 201
     data = resp.get_json()
-    assert data["content"] == "New reply"
+    assert data["content"] == reply_content
 
 
 def test_create_post_empty_content(app, client, auth_headers):

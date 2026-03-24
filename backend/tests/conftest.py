@@ -202,7 +202,7 @@ def admin_headers(admin_user, client):
 
 @pytest.fixture
 def super_admin_user(app):
-    """Admin with role_level 100 (SuperAdmin). Used for hierarchy tests."""
+    """Admin with role_level 100 (SuperAdmin threshold). Used for hierarchy tests."""
     with app.app_context():
         role = Role.query.filter_by(name=Role.NAME_ADMIN).first()
         user = User(
@@ -221,6 +221,37 @@ def super_admin_user(app):
 def super_admin_headers(super_admin_user, client):
     """JWT headers for super_admin_user."""
     user, password = super_admin_user
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"username": user.username, "password": password},
+        content_type="application/json",
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    return {"Authorization": "Bearer " + data["access_token"]}
+
+
+@pytest.fixture
+def high_privilege_admin_user(app):
+    """Admin with role_level 10000 for tests requiring high privilege level assignment."""
+    with app.app_context():
+        role = Role.query.filter_by(name=Role.NAME_ADMIN).first()
+        user = User(
+            username="highprivilegeadmin",
+            password_hash=generate_password_hash("HighPriv1"),
+            role_id=role.id,
+            role_level=10000,
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user, "HighPriv1"
+
+
+@pytest.fixture
+def high_privilege_admin_headers(high_privilege_admin_user, client):
+    """JWT headers for high_privilege_admin_user."""
+    user, password = high_privilege_admin_user
     response = client.post(
         "/api/v1/auth/login",
         json={"username": user.username, "password": password},

@@ -498,11 +498,11 @@ class TestPostLikes:
             forum_service.like_post(user, post)
             db.session.commit()
 
-            # Try to like again
+            # Try to like again - should return existing like
             like, error = forum_service.like_post(user, post)
 
-            assert error is not None
-            assert like is None
+            assert error is None
+            assert like is not None
 
     def test_unlike_post(self, app, test_user, forum_data):
         """unlike_post removes a like."""

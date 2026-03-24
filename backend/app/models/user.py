@@ -18,7 +18,7 @@ class PasswordHistory(db.Model):
     __tablename__ = "password_histories"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
 
@@ -34,7 +34,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(254), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
     role_level = db.Column(db.Integer, nullable=False, default=0)
     email_verified_at = db.Column(db.DateTime(timezone=True), nullable=True, default=None)
     is_banned = db.Column(db.Boolean(), nullable=False, default=False)
