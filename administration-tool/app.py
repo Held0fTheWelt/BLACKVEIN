@@ -70,6 +70,12 @@ if not _secret:
     print("Warning: SECRET_KEY not found in environment. Generated a new one.")
 app.secret_key = _secret
 
+# Session cookie security hardening
+app.config["SESSION_COOKIE_SECURE"] = True  # Only send over HTTPS
+app.config["SESSION_COOKIE_HTTPONLY"] = True  # No JavaScript access
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+app.config["PERMANENT_SESSION_LIFETIME"] = 3600  # 1 hour
+
 
 def _load_translations(lang: str) -> dict:
     """Load translation dict for lang from translations/<lang>.json. Fallback to default keys."""
