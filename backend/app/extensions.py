@@ -15,7 +15,13 @@ jwt = JWTManager()
 def get_rate_limit_key():
     """Get a rate limit key, preferring JWT identity over remote address."""
     try:
-        from flask_jwt_extended import get_jwt_identity
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        # Manually verify JWT to extract identity even if @jwt_required() hasn't been called yet
+        # (rate limiter decorator is applied before @jwt_required())
+        try:
+            verify_jwt_in_request(optional=True)
+        except Exception:
+            pass
         identity = get_jwt_identity()
         if identity:
             return f"user:{identity}"

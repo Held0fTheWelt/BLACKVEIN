@@ -14,11 +14,20 @@ from werkzeug.security import generate_password_hash
 @pytest.fixture(autouse=True)
 def clear_rate_limiter():
     """Clear rate limiter state before each test to prevent cross-test contamination."""
-    if hasattr(limiter, 'request_times'):
-        limiter.request_times.clear()
+    # Reset the limiter's storage to clear all rate limit tracking
+    # Only reset if the limiter has been initialized (has a _storage attribute)
+    try:
+        if hasattr(limiter, '_storage') and limiter._storage is not None:
+            limiter.reset()
+    except Exception:
+        pass
     yield
-    if hasattr(limiter, 'request_times'):
-        limiter.request_times.clear()
+    # Clean up after test
+    try:
+        if hasattr(limiter, '_storage') and limiter._storage is not None:
+            limiter.reset()
+    except Exception:
+        pass
 
 
 @pytest.fixture
