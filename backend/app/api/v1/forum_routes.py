@@ -554,7 +554,7 @@ def forum_thread_create(slug):
         return jsonify({"error": error_msg}), 400
 
     # Validate content length (10-50000 characters)
-    is_valid, error_msg = _validate_content_length(content, min_len=2, max_len=50000)
+    is_valid, error_msg = _validate_content_length(content, min_len=10, max_len=50000)
     if not is_valid:
         return jsonify({"error": error_msg}), 400
 
@@ -712,7 +712,7 @@ def forum_post_create(thread_id: int):
             return jsonify({"error": "parent_post_id must be an integer"}), 400
 
     # Validate content length (10-50000 characters)
-    is_valid, error_msg = _validate_content_length(content, min_len=2, max_len=50000)
+    is_valid, error_msg = _validate_content_length(content, min_len=10, max_len=50000)
     if not is_valid:
         return jsonify({"error": error_msg}), 400
 
@@ -858,7 +858,7 @@ def forum_post_update(post_id: int):
         return jsonify({"error": "Content must be a string"}), 400
 
     # Validate content length (10-50000 characters)
-    is_valid, error_msg = _validate_content_length(content, min_len=2, max_len=50000)
+    is_valid, error_msg = _validate_content_length(content, min_len=10, max_len=50000)
     if not is_valid:
         return jsonify({"error": error_msg}), 400
 
