@@ -146,19 +146,20 @@ class TestPasswordComplexityIntegration:
 
     def test_password_change_with_weak_password(self, client, auth_user):
         """Test that password change fails with weak password."""
+        user, password = auth_user
         # Login first
         login_response = client.post("/api/v1/auth/login", json={
-            "username": auth_user.username,
-            "password": "TestPass123!"
+            "username": user.username,
+            "password": password
         })
         assert login_response.status_code == 200
         token = login_response.get_json()["access_token"]
 
         # Try to change password with weak one
         response = client.put(
-            f"/api/v1/users/{auth_user.id}/password",
+            f"/api/v1/users/{user.id}/password",
             json={
-                "current_password": "TestPass123!",
+                "current_password": password,
                 "new_password": "weak"
             },
             headers={"Authorization": f"Bearer {token}"}
@@ -170,19 +171,20 @@ class TestPasswordComplexityIntegration:
 
     def test_password_change_with_strong_password(self, client, auth_user):
         """Test that password change succeeds with strong password."""
+        user, password = auth_user
         # Login first
         login_response = client.post("/api/v1/auth/login", json={
-            "username": auth_user.username,
-            "password": "TestPass123!"
+            "username": user.username,
+            "password": password
         })
         assert login_response.status_code == 200
         token = login_response.get_json()["access_token"]
 
         # Change password with strong one
         response = client.put(
-            f"/api/v1/users/{auth_user.id}/password",
+            f"/api/v1/users/{user.id}/password",
             json={
-                "current_password": "TestPass123!",
+                "current_password": password,
                 "new_password": "NewValidPass123!"
             },
             headers={"Authorization": f"Bearer {token}"}
@@ -195,8 +197,9 @@ class TestPasswordComplexityIntegration:
         """Test that password reset fails with weak password."""
         from app.services.user_service import create_password_reset_token
 
+        user, _ = auth_user
         # Create reset token
-        token = create_password_reset_token(auth_user)
+        token = create_password_reset_token(user)
 
         # Try to reset with weak password
         response = client.post("/api/v1/auth/reset-password", json={
@@ -212,8 +215,9 @@ class TestPasswordComplexityIntegration:
         """Test that password reset succeeds with strong password."""
         from app.services.user_service import create_password_reset_token
 
+        user, _ = auth_user
         # Create reset token
-        token = create_password_reset_token(auth_user)
+        token = create_password_reset_token(user)
 
         # Reset with strong password
         response = client.post("/api/v1/auth/reset-password", json={

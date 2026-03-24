@@ -51,6 +51,12 @@ def test_user(app):
 
 
 @pytest.fixture
+def auth_user(test_user):
+    """Return the test user tuple (user, password) for authenticated tests."""
+    return test_user
+
+
+@pytest.fixture
 def auth_headers(test_user, client):
     """Return headers with valid JWT for test_user (for API requests)."""
     user, password = test_user
