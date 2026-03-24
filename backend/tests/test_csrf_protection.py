@@ -26,11 +26,11 @@ class TestCSRFConfiguration:
             # In production/development, CSRF should be enabled
             assert app.config.get("WTF_CSRF_ENABLED", True)
 
-    def test_csrf_enabled_in_testing(self, app):
+    def test_csrf_enabled_in_testing(self, app_csrf):
         """CSRF should be enabled in testing so we can verify protection works."""
-        if app.config.get("TESTING"):
-            # In testing, CSRF defaults to Flask-WTF's enabled state (True) so we can test it
-            assert app.config.get("WTF_CSRF_ENABLED") != False
+        if app_csrf.config.get("TESTING"):
+            # In testing, CSRF can be enabled for security testing
+            assert app_csrf.config.get("WTF_CSRF_ENABLED") == True
 
 
 class TestAPIEndpointsExemptFromCSRF:
@@ -59,23 +59,23 @@ class TestWebFormCSRFProtection:
     Verify that web form endpoints (non-API) require CSRF tokens.
     """
 
-    def test_web_login_requires_csrf_token(self, client):
+    def test_web_login_requires_csrf_token(self, client_csrf):
         """POST to /login without CSRF token should fail with 400."""
         # First, GET the login page to see the form
-        response = client.get("/login")
+        response = client_csrf.get("/login")
         assert response.status_code == 200
 
         # Try POST without CSRF token
-        response = client.post("/login", data={
+        response = client_csrf.post("/login", data={
             "username": "testuser",
             "password": "password"
         })
         # Should fail due to missing CSRF token
         assert response.status_code == 400
 
-    def test_web_register_requires_csrf_token(self, client):
+    def test_web_register_requires_csrf_token(self, client_csrf):
         """POST to /register without CSRF token should fail with 400."""
-        response = client.post("/register", data={
+        response = client_csrf.post("/register", data={
             "username": "newuser",
             "password": "TestPassword123!",
             "password_confirm": "TestPassword123!",
@@ -84,9 +84,9 @@ class TestWebFormCSRFProtection:
         # Should fail due to missing CSRF token
         assert response.status_code == 400
 
-    def test_web_logout_requires_csrf_token(self, client, app):
+    def test_web_logout_requires_csrf_token(self, client_csrf, app_csrf):
         """POST to /logout without CSRF token should fail with 400."""
-        with app.app_context():
+        with app_csrf.app_context():
             # Ensure roles are seeded
             ensure_roles_seeded()
 
@@ -105,14 +105,14 @@ class TestWebFormCSRFProtection:
             db.session.commit()
 
             # Login
-            client.post("/login", data={
+            client_csrf.post("/login", data={
                 "username": "testuser",
                 "password": "TestPassword123!",
                 "csrf_token": "dummy"  # This will fail anyway, testing CSRF requirement
             })
 
             # Try logout without valid CSRF token
-            response = client.post("/logout", data={})
+            response = client_csrf.post("/logout", data={})
             # Should fail due to missing/invalid CSRF token
             assert response.status_code == 400
 
@@ -122,9 +122,9 @@ class TestCSRFTokenValidation:
     Verify that CSRF token validation works correctly.
     """
 
-    def test_invalid_csrf_token_rejected(self, client):
+    def test_invalid_csrf_token_rejected(self, client_csrf):
         """POST with invalid CSRF token should be rejected."""
-        response = client.post("/login", data={
+        response = client_csrf.post("/login", data={
             "username": "testuser",
             "password": "password",
             "csrf_token": "invalid-token-here"
@@ -132,9 +132,9 @@ class TestCSRFTokenValidation:
         # Should reject due to invalid CSRF token
         assert response.status_code == 400
 
-    def test_missing_csrf_token_rejected(self, client):
+    def test_missing_csrf_token_rejected(self, client_csrf):
         """POST without CSRF token should be rejected."""
-        response = client.post("/login", data={
+        response = client_csrf.post("/login", data={
             "username": "testuser",
             "password": "password"
         })
