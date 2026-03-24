@@ -187,7 +187,7 @@ def test_post_creation_requires_auth(app, client):
 
     resp = client.post(
         f"/api/v1/forum/threads/{thread_id}/posts",
-        json={"content": "Reply"},
+        json={"content": "This is a reply message"},
     )
     assert resp.status_code == 401
 
@@ -206,7 +206,7 @@ def test_post_author_username_in_response(app, client, auth_headers):
 
     resp = client.post(
         f"/api/v1/forum/threads/{thread_id}/posts",
-        json={"content": "My post"},
+        json={"content": "This is my post content"},
         headers=auth_headers,
     )
     assert resp.status_code == 201
@@ -617,14 +617,15 @@ def test_own_post_edit(app, client, auth_headers):
         db.session.commit()
         post_id = post.id
 
+    edited_content = "This is edited"
     resp = client.put(
         f"/api/v1/forum/posts/{post_id}",
-        json={"content": "edited"},
+        json={"content": edited_content},
         headers=auth_headers,
     )
     assert resp.status_code == 200
     data = resp.get_json()
-    assert data["content"] == "edited"
+    assert data["content"] == edited_content
     assert data["edited_at"] is not None
 
 
@@ -713,7 +714,7 @@ def test_parent_post_validation_same_thread_only(app, client, auth_headers):
 
     resp = client.post(
         f"/api/v1/forum/threads/{t2_id}/posts",
-        json={"content": "reply", "parent_post_id": p1_id},
+        json={"content": "This is a reply to a post", "parent_post_id": p1_id},
         headers=auth_headers,
     )
     assert resp.status_code == 400
@@ -815,7 +816,7 @@ def test_notification_created_on_reply_for_subscribers(app, client, auth_headers
     resp = client.post(
         "/api/v1/forum/threads/{}/posts".format(thread_id),
         headers=moderator_headers,
-        json={"content": "A reply"},
+        json={"content": "This is a reply to something"},
         content_type="application/json",
     )
     assert resp.status_code == 201
