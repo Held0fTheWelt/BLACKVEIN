@@ -58,10 +58,12 @@ class TestJWTBanEnforcement:
             user.ban_reason = "Test ban enforcement"
             db.session.commit()
 
-        # Step 4: Try to use the same JWT token after ban - should be rejected
+        # Step 4: Try to use the same JWT token after ban - should be rejected with 403 Forbidden
+        # (JWT token is valid, but user is banned so access is forbidden)
         response = client.get("/api/v1/auth/me", headers=headers)
-        assert response.status_code == 401
+        assert response.status_code == 403
         assert "error" in response.get_json()
+        assert "restricted" in response.get_json()["error"].lower()
 
     def test_unbanned_user_can_login_again(self, app, client):
         """
@@ -165,7 +167,7 @@ class TestJWTBanEnforcement:
         token = response.get_json()["access_token"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        # Ban the user
+        # Ban the user (returns 403 Forbidden on ban check)
         with app.app_context():
             user = User.query.get(test_user_id)
             user.is_banned = True
@@ -173,7 +175,7 @@ class TestJWTBanEnforcement:
             user.ban_reason = "Testing endpoint access"
             db.session.commit()
 
-        # Test multiple protected endpoints
+        # Test multiple protected endpoints - should get 403 because user is banned
         endpoints_to_test = [
             ("/api/v1/auth/me", "GET"),
         ]
@@ -184,13 +186,13 @@ class TestJWTBanEnforcement:
             elif method == "PUT":
                 response = client.put(endpoint, headers=headers, json={})
 
-            assert response.status_code == 401, f"Endpoint {endpoint} should reject banned user"
+            assert response.status_code == 403, f"Endpoint {endpoint} should return 403 for banned user"
             assert "error" in response.get_json()
 
     def test_ban_enforcement_is_real_time_check(self, app, client):
         """
-        Test that ban enforcement is checked on every request (real-time).
-        This ensures admins can immediately revoke access by banning.
+        Test that ban enforcement is real-time - banned user's token is checked on every request.
+        This ensures admins can immediately revoke access by banning without waiting for token expiration.
         """
         with app.app_context():
             role_user = Role.query.filter_by(name=Role.NAME_USER).first()
@@ -225,9 +227,9 @@ class TestJWTBanEnforcement:
             user.ban_reason = "Real-time test"
             db.session.commit()
 
-        # Immediately after ban, token should be invalid (real-time check)
+        # Immediately after ban, token should be rejected (403 - account restricted)
         response = client.get("/api/v1/auth/me", headers=headers)
-        assert response.status_code == 401
+        assert response.status_code == 403
 
         # Unban the user
         with app.app_context():
