@@ -1,3 +1,9 @@
+import importlib.util
+
+import pytest
+
+SQLALCHEMY_AVAILABLE = importlib.util.find_spec("sqlalchemy") is not None
+
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -152,6 +158,7 @@ def test_websocket_group_lobby_ready_start_and_resume(tmp_path: Path):
         assert resumed["data"]["viewer_role_id"] == "parent_a"
 
 
+@pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="sqlalchemy not installed")
 def test_sqlalchemy_ready_endpoint_with_sqlite(tmp_path: Path):
     db_url = f"sqlite:///{tmp_path / 'runtime_api.db'}"
     app = build_test_app(tmp_path, store_backend="sqlalchemy", store_url=db_url)
@@ -163,14 +170,9 @@ def test_sqlalchemy_ready_endpoint_with_sqlite(tmp_path: Path):
 
 
 def test_ticket_manager_accepts_shared_secret_alias(monkeypatch):
-    from importlib import reload
-    import app.config as config_module
     import app.auth.tickets as tickets_module
 
-    monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
-    monkeypatch.setenv("PLAY_SERVICE_SHARED_SECRET", "alias-secret")
-    reload(config_module)
-    reload(tickets_module)
+    monkeypatch.setattr(tickets_module, "PLAY_SERVICE_SECRET", "alias-secret")
 
     manager = tickets_module.TicketManager()
     token = manager.issue({"run_id": "run-1", "participant_id": "p-1"}, ttl_seconds=60)

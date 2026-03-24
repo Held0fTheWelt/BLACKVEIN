@@ -1,3 +1,9 @@
+import importlib.util
+
+import pytest
+
+SQLALCHEMY_AVAILABLE = importlib.util.find_spec("sqlalchemy") is not None
+
 from app.runtime.engine import RuntimeEngine
 from app.runtime.manager import RuntimeManager
 from app.runtime.models import RunStatus
@@ -103,6 +109,7 @@ def test_inspect_rejects_remote_room_targets(tmp_path):
     assert result.reason == "That target is not visible from your current room."
 
 
+@pytest.mark.skipif(not SQLALCHEMY_AVAILABLE, reason="sqlalchemy not installed")
 def test_sqlalchemy_store_roundtrip_with_sqlite(tmp_path):
     db_url = f"sqlite:///{tmp_path / 'runtime.db'}"
     manager = RuntimeManager(store_root=tmp_path, store_backend="sqlalchemy", store_url=db_url)

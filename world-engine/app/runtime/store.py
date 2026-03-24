@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
-from sqlalchemy import Boolean, Column, DateTime, MetaData, String, Table, Text, create_engine, delete, insert, select
-from sqlalchemy.engine import Engine
+try:
+    from sqlalchemy import Boolean, Column, DateTime, MetaData, String, Table, Text, create_engine, delete, insert, select
+    from sqlalchemy.engine import Engine
+except ModuleNotFoundError:  # pragma: no cover - optional dependency in lightweight test envs
+    Boolean = Column = DateTime = MetaData = String = Table = Text = delete = insert = select = None
+    create_engine = None
+    Engine = Any
 
 from app.runtime.models import RuntimeInstance
 
@@ -54,6 +59,8 @@ class SqlAlchemyRunStore:
     backend_name = "sqlalchemy"
 
     def __init__(self, url: str) -> None:
+        if create_engine is None:
+            raise RuntimeError("sqlalchemy is required for SQL-backed runtime persistence.")
         self.url = url
         self.engine: Engine = create_engine(url, future=True)
         self.metadata = MetaData()

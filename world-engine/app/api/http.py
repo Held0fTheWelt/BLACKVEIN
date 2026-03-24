@@ -40,7 +40,7 @@ def get_manager(request: Request) -> RuntimeManager:
 
 
 def _require_internal_api_key(x_play_service_key: str | None = Header(default=None)) -> None:
-    expected = PLAY_SERVICE_INTERNAL_API_KEY.strip()
+    expected = (PLAY_SERVICE_INTERNAL_API_KEY or "").strip()
     if expected and x_play_service_key != expected:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing or invalid internal API key")
 
