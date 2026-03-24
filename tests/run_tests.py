@@ -167,6 +167,8 @@ def run_pytest(args, description):
 
     # Add JUnit XML report generation for failure tracking
     junit_report = REPORTS_DIR / "pytest_report.xml"
+    # Ensure tests path is correct (run from backend dir, tests are in tests/ subdir)
+    args = [arg if arg != "." else "tests" for arg in args]
     cmd = [sys.executable, "-m", "pytest"] + args + [f"--junit-xml={junit_report}"]
 
     try:

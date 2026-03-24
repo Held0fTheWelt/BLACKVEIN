@@ -204,7 +204,7 @@ run_full_tests() {
         --cov-report=html \
         --cov-fail-under=85 \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
@@ -228,7 +228,7 @@ run_quick_tests() {
         --no-cov \
         -x \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
@@ -254,7 +254,7 @@ run_coverage_tests() {
         --cov-report=json \
         --cov-fail-under=85 \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
@@ -283,7 +283,7 @@ run_api_tests() {
         --no-cov \
         -k "api" \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
@@ -306,7 +306,7 @@ run_security_tests() {
         --no-cov \
         -k "security or csrf or auth or injection or xss or privilege" \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
@@ -332,7 +332,7 @@ run_verbose_tests() {
         --cov-report=term-missing \
         --cov-fail-under=85 \
         --junit-xml="$JUNIT_REPORT" \
-        .
+        tests
 
     TEST_EXIT=$?
 
