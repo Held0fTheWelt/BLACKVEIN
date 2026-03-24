@@ -29,11 +29,24 @@ from werkzeug.security import generate_password_hash
 
 # ======================= HELPER =======================
 
-def _login_session(client, username, password):
+def _login_session(client, username, password, app=None, app):
     """Web login and return client with session cookie set."""
+    import re
+    # Ensure user has email verified (for web login)
+    if app:
+        with app.app_context():
+            user = User.query.filter_by(username=username).first()
+            if user and user.email_verified_at is None:
+                user.email_verified_at = datetime.now(timezone.utc)
+                db.session.commit()
+
+    # Get login page to extract CSRF token
+    login_page = client.get("/login")
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+    csrf_value = match.group(1) if match else ""
     return client.post(
         "/login",
-        data={"username": username, "password": password},
+        data={"username": username, "password": password, "csrf_token": csrf_value},
         follow_redirects=False,
     )
 
@@ -51,7 +64,7 @@ def _create_admin_session(app, client):
         db.session.add(u)
         db.session.commit()
         db.session.refresh(u)
-    _login_session(client, "webadmin", "Webadmin1")
+    _login_session(client, "webadmin", "Webadmin1", app)
     return u
 
 
@@ -61,12 +74,12 @@ class TestWebRoutesExtended:
 
     def test_web_login_post_success(self, app, client, test_user):
         user, password = test_user
-        resp = _login_session(client, user.username, password)
+        resp = _login_session(client, user.username, password, app)
         assert resp.status_code == 302
 
     def test_web_login_post_wrong_password(self, app, client, test_user):
         user, _ = test_user
-        resp = _login_session(client, user.username, "wrongpass")
+        resp = _login_session(client, user.username, "wrongpass", app)
         assert resp.status_code == 200  # re-renders login form
 
     def test_web_login_post_missing_fields(self, app, client):
@@ -75,13 +88,13 @@ class TestWebRoutesExtended:
 
     def test_web_login_already_logged_in(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.get("/login")
         assert resp.status_code == 302  # redirects to dashboard
 
     def test_web_login_banned_user(self, app, client, banned_user):
         user, password = banned_user
-        resp = _login_session(client, user.username, password)
+        resp = _login_session(client, user.username, password, app)
         assert resp.status_code == 302
         assert "blocked" in resp.headers.get("Location", "")
 
@@ -130,7 +143,7 @@ class TestWebRoutesExtended:
 
     def test_web_register_already_logged_in(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.get("/register", follow_redirects=False)
         assert resp.status_code == 302
 
@@ -203,7 +216,7 @@ class TestWebRoutesExtended:
 
     def test_web_logout_with_session(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.post("/logout", follow_redirects=False)
         assert resp.status_code == 302
 
@@ -213,13 +226,13 @@ class TestWebRoutesExtended:
 
     def test_web_dashboard_logged_in(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.get("/dashboard")
         assert resp.status_code == 200
 
     def test_web_game_menu_logged_in(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.get("/game-menu")
         assert resp.status_code == 200
 
@@ -230,7 +243,7 @@ class TestDashboardAPI:
 
     def test_dashboard_metrics_requires_admin(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password)
+        _login_session(client, user.username, password, app)
         resp = client.get("/dashboard/api/metrics")
         assert resp.status_code == 302  # redirects non-admin
 

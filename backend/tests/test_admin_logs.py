@@ -1,6 +1,7 @@
 """Tests for admin logs API, roles, and activity logging."""
 import pytest
 
+from app.extensions import db
 from app.models import ActivityLog, User
 from app.services import log_activity
 
@@ -98,10 +99,26 @@ def test_dashboard_api_logs_non_admin_redirected(client, test_user):
     assert response.status_code in (302, 403)
 
 
-def test_dashboard_api_logs_admin_returns_json(client, admin_user):
+def test_dashboard_api_logs_admin_returns_json(client, admin_user, app):
     """GET /dashboard/api/logs as admin returns 200 and JSON with items."""
+    import re
     user, password = admin_user
-    client.post("/login", data={"username": user.username, "password": password})
+    with app.app_context():
+        # Ensure user has email verified to allow web login
+        user.email_verified_at = db.func.now()
+        db.session.commit()
+    # Get login page to extract CSRF token
+    login_page = client.get("/login")
+    assert login_page.status_code == 200
+    # Extract CSRF token from the form using regex
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+    csrf_value = match.group(1) if match else ""
+    login_response = client.post(
+        "/login",
+        data={"username": user.username, "password": password, "csrf_token": csrf_value},
+        follow_redirects=True
+    )
+    assert login_response.status_code == 200
     response = client.get("/dashboard/api/logs")
     assert response.status_code == 200
     data = response.get_json()
