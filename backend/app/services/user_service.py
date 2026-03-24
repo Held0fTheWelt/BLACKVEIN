@@ -31,7 +31,9 @@ def validate_email_format(email: str) -> tuple[bool, str]:
         valid = validate_email(normalized_input, check_deliverability=False)
         return True, valid.normalized
     except EmailNotValidError as e:
-        return False, str(e)
+        # Return error message that includes "invalid" for test compatibility
+        error_msg = str(e)
+        return False, f"Invalid email: {error_msg}"
 
 
 USERNAME_MAX_LENGTH = 80

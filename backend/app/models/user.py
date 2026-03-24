@@ -45,6 +45,7 @@ class User(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), nullable=True, default=_utc_now)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
+    password_history = db.Column(db.Text, nullable=True)
 
     role_rel = db.relationship("Role", backref="users", lazy="joined")
     areas = db.relationship("Area", secondary=user_areas, lazy="select", backref=db.backref("users", lazy="dynamic"))
@@ -115,8 +116,11 @@ class User(db.Model):
         Check if plaintext_password matches any of the last 3 password hashes in history.
         Returns True if found (reuse detected), False otherwise.
         """
-        for history in self.password_histories.order_by(PasswordHistory.created_at.desc()).limit(3):
-            if check_password_hash(history.password_hash, plaintext_password):
+        if not self.password_history:
+            return False
+        history = json.loads(self.password_history)
+        for password_hash in history:
+            if check_password_hash(password_hash, plaintext_password):
                 return True
         return False
 
@@ -125,18 +129,13 @@ class User(db.Model):
         Add password_hash to history and keep only the last 3 hashes.
         Called after setting a new password.
         """
-        new_entry = PasswordHistory(user_id=self.id, password_hash=password_hash)
-        db.session.add(new_entry)
-        # Keep only last 3 entries by finding IDs to delete, then deleting them
-        # Get all entries ordered by created_at descending, skip first 3
-        to_delete_entries = db.session.query(PasswordHistory.id).filter(
-            PasswordHistory.user_id == self.id
-        ).order_by(PasswordHistory.created_at.desc()).offset(3).all()
-
-        if to_delete_entries:
-            delete_ids = [e[0] for e in to_delete_entries]
-            db.session.query(PasswordHistory).filter(PasswordHistory.id.in_(delete_ids)).delete(synchronize_session=False)
-
+        # Update JSON password_history field
+        history = json.loads(self.password_history or "[]")
+        history.append(password_hash)
+        # Keep only last 3
+        if len(history) > 3:
+            history = history[-3:]
+        self.password_history = json.dumps(history)
         db.session.commit()
 
     def __repr__(self):

@@ -1207,6 +1207,10 @@ def test_thread_split_rejects_non_top_level_root_post(app, client, moderator_hea
         db.session.commit()
         thread_id = thread.id
         child_id = child.id
+        cat_id = cat.id
+
+    # Assign moderators to category so they can perform moderation actions
+    _assign_moderators_to_category(app, cat_id)
 
     resp = client.post(
         f"/api/v1/forum/threads/{thread_id}/split",

@@ -902,7 +902,7 @@ def list_reports_for_target(target_type: str, target_id: int) -> List[ForumRepor
 def like_post(user: User, post: ForumPost) -> Tuple[Optional[ForumPostLike], Optional[str]]:
     existing = ForumPostLike.query.filter_by(post_id=post.id, user_id=user.id).first()
     if existing:
-        return None, "You have already liked this post"
+        return existing, None  # Idempotent: return existing like
     like = ForumPostLike(post_id=post.id, user_id=user.id, created_at=_utc_now())
     db.session.add(like)
     post.like_count = (post.like_count or 0) + 1

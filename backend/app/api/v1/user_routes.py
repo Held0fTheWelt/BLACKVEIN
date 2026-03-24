@@ -552,7 +552,7 @@ def users_update(user_id):
                 return jsonify({"error": "Forbidden. You may not assign a role level higher than or equal to your own."}), 403
             kwargs["role_level"] = new_level
     elif current.id == user_id and "role_level" in data:
-        # Non-SuperAdmin cannot change their own role_level
+        # Non-SuperAdmin cannot change their own role_level; silently ignore for non-SuperAdmin
         if current_user_is_super_admin():
             try:
                 new_level = int(data.get("role_level"))
@@ -565,9 +565,7 @@ def users_update(user_id):
             if new_level < SUPERADMIN_THRESHOLD:
                 return jsonify({"error": "Forbidden. SuperAdmin may only set own role level to at least 100."}), 403
             kwargs["role_level"] = new_level
-        else:
-            # Non-SuperAdmin cannot change own role_level
-            return jsonify({"error": "Forbidden. Only SuperAdmin may change their own role level."}), 403
+        # else: Non-SuperAdmin cannot change own role_level; silently ignore
 
     # Capture before values for role/role_level changes
     old_role = target.role if "role" in kwargs else None
@@ -742,9 +740,12 @@ def users_assign_role(user_id):
                     "code": "INSUFFICIENT_PRIVILEGE"
                 }), 403
         else:
-            # Other user: No additional privilege escalation check here
-            # (The admin_may_edit_target check on line 709 already ensures target is lower level)
-            pass
+            # Other user: new role_level must be strictly lower than actor's level
+            if new_role_level >= actor_level:
+                return jsonify({
+                    "error": f"Cannot assign a role level higher than your own ({actor_level}). You may only assign strictly lower levels.",
+                    "code": "PRIVILEGE_ESCALATION_DENIED"
+                }), 403
 
     user, err = assign_role_service(user_id, role_name, actor_id=current.id if current else None)
     if err:

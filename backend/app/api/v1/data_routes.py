@@ -119,10 +119,10 @@ def decrypt_export():
         decrypted_data = data_export_service.decrypt_export(payload, password)
     except ValueError as exc:
         log_full_error(exc, "Data export decryption failed", route=request.path, method=request.method)
-        return jsonify({"error": ERROR_MESSAGES["validation_error"]}), 400
+        return jsonify({"error": "Decryption failed. Invalid password or corrupted data."}), 400
     except TypeError as exc:
         log_full_error(exc, "Invalid decrypted data format", route=request.path, method=request.method)
-        return jsonify({"error": ERROR_MESSAGES["validation_error"]}), 400
+        return jsonify({"error": "Decryption failed. Invalid data format."}), 400
 
     return jsonify(decrypted_data), 200
 

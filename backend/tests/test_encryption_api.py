@@ -188,7 +188,7 @@ class TestDecryptExport:
         error = response.get_json()
         assert "Missing required field" in error.get("error", "")
 
-    def test_decrypt_requires_admin(self, client):
+    def test_decrypt_requires_admin(self, client, admin_headers):
         """Test that decryption requires admin privilege."""
         decrypt_payload = {
             "encrypted_data": "data",
