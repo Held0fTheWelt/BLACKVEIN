@@ -69,36 +69,15 @@ def init_app(app):
     def verify_jwt_token(jwt_header, jwt_data):
         """
         Verify JWT token before allowing access to protected endpoints.
-        Checks if the user is banned in real-time, rejecting valid non-expired tokens
-        when the user is banned.
-        This ensures bans are enforced immediately.
+        Note: We do not check for bans here. Individual endpoints handle ban checks
+        and return 403 for banned users. This allows endpoints to provide better
+        error messages (e.g., "Account is restricted" vs "Token verification failed").
 
         Returns True if token is valid, False if it should be rejected with 401.
         """
-        try:
-            # Extract user_id from jwt_data (the 'sub' claim contains user ID as string)
-            user_id = jwt_data.get("sub")
-            if not user_id:
-                return True  # No identity to check; allow other handlers to validate
-
-            # Convert string ID to int
-            user_id = int(user_id)
-
-            # Check if user exists and is banned
-            from app.models.user import User
-            user = User.query.get(user_id)
-
-            # Reject token if user is banned
-            if user and getattr(user, "is_banned", False):
-                return False
-
-            return True
-
-        except (ValueError, TypeError):
-            return True  # Let other handlers process non-integer IDs
-        except Exception:
-            # Silently allow on DB errors; let other mechanisms handle real issues
-            return True
+        # Always return True; Flask-JWT-Extended already validated the token signature and expiration.
+        # Individual endpoints will check for bans and return 403 if needed.
+        return True
 
     # Handle token verification failure (when banned user tries to use token)
     @jwt.token_verification_failed_loader

@@ -171,7 +171,13 @@ def get_analytics_timeline(
             )
         ).group_by(func.date(ForumThread.created_at)).all()
 
-        thread_dict = {d[0].isoformat() if d[0] else None: d[1] for d in thread_counts}
+        thread_dict = {}
+        for d in thread_counts:
+            if d[0]:
+                date_str = d[0].isoformat() if hasattr(d[0], 'isoformat') else str(d[0])
+                thread_dict[date_str] = d[1]
+            else:
+                thread_dict[None] = d[1]
         result["timeline"]["threads"] = [
             thread_dict.get(d.isoformat(), 0) for d in dates
         ]
@@ -189,7 +195,13 @@ def get_analytics_timeline(
             )
         ).group_by(func.date(ForumPost.created_at)).all()
 
-        post_dict = {d[0].isoformat() if d[0] else None: d[1] for d in post_counts}
+        post_dict = {}
+        for d in post_counts:
+            if d[0]:
+                date_str = d[0].isoformat() if hasattr(d[0], 'isoformat') else str(d[0])
+                post_dict[date_str] = d[1]
+            else:
+                post_dict[None] = d[1]
         result["timeline"]["posts"] = [
             post_dict.get(d.isoformat(), 0) for d in dates
         ]
@@ -206,7 +218,13 @@ def get_analytics_timeline(
             )
         ).group_by(func.date(ForumReport.created_at)).all()
 
-        report_dict = {d[0].isoformat() if d[0] else None: d[1] for d in report_counts}
+        report_dict = {}
+        for d in report_counts:
+            if d[0]:
+                date_str = d[0].isoformat() if hasattr(d[0], 'isoformat') else str(d[0])
+                report_dict[date_str] = d[1]
+            else:
+                report_dict[None] = d[1]
         result["timeline"]["reports"] = [
             report_dict.get(d.isoformat(), 0) for d in dates
         ]
@@ -224,7 +242,13 @@ def get_analytics_timeline(
             )
         ).group_by(func.date(ActivityLog.created_at)).all()
 
-        action_dict = {d[0].isoformat() if d[0] else None: d[1] for d in action_counts}
+        action_dict = {}
+        for d in action_counts:
+            if d[0]:
+                date_str = d[0].isoformat() if hasattr(d[0], 'isoformat') else str(d[0])
+                action_dict[date_str] = d[1]
+            else:
+                action_dict[None] = d[1]
         result["timeline"]["actions"] = [
             action_dict.get(d.isoformat(), 0) for d in dates
         ]
@@ -450,7 +474,13 @@ def get_analytics_moderation(
         )
     ).group_by(func.date(ForumReport.created_at)).all()
 
-    reports_by_date = {r[0].isoformat() if r[0] else None: r[1] for r in recent_reports}
+    reports_by_date = {}
+    for r in recent_reports:
+        if r[0]:
+            date_str = r[0].isoformat() if hasattr(r[0], 'isoformat') else str(r[0])
+            reports_by_date[date_str] = r[1]
+        else:
+            reports_by_date[None] = r[1]
 
     # Moderation actions (who did what)
     mod_actions = db.session.query(

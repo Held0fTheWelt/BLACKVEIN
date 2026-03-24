@@ -26,6 +26,59 @@ from app.models.user import SUPERADMIN_THRESHOLD
 logger = logging.getLogger(__name__)
 
 
+# Simple in-memory rate limiter for admin operations
+_rate_limit_cache = {}
+
+
+def _check_rate_limit(key: str, limit_string: str) -> bool:
+    """
+    Check if a rate limit has been exceeded.
+    limit_string format: "10/minute" or "100/hour"
+    Returns True if limit is NOT exceeded (request is allowed)
+    Returns False if limit IS exceeded (request should be rejected)
+    """
+    try:
+        parts = limit_string.split("/")
+        if len(parts) != 2:
+            return True  # Invalid format, allow request
+
+        limit_count = int(parts[0])
+        time_unit = parts[1].lower()
+
+        # Determine window in seconds
+        if "second" in time_unit:
+            window = 1
+        elif "minute" in time_unit:
+            window = 60
+        elif "hour" in time_unit:
+            window = 3600
+        elif "day" in time_unit:
+            window = 86400
+        else:
+            return True  # Invalid time unit, allow request
+
+        now = datetime.now(timezone.utc).timestamp()
+
+        # Clean old entries and get current count
+        if key not in _rate_limit_cache:
+            _rate_limit_cache[key] = []
+
+        # Remove entries outside the window
+        _rate_limit_cache[key] = [t for t in _rate_limit_cache[key] if now - t < window]
+
+        # Check if limit exceeded
+        if len(_rate_limit_cache[key]) >= limit_count:
+            return False  # Limit exceeded
+
+        # Record this request
+        _rate_limit_cache[key].append(now)
+        return True  # Limit not exceeded
+
+    except Exception as e:
+        logger.error(f"Error checking rate limit: {e}")
+        return True  # On error, allow request
+
+
 class AdminSecurityConfig:
     """Configuration for admin security checks."""
 
@@ -251,17 +304,14 @@ def admin_security(
             # 4. Per-admin rate limiting
             if config.rate_limit:
                 rate_limit_key = f"admin_action:{user.id}"
-                try:
-                    # Use limiter to enforce rate limit per user
-                    limiter.hit(rate_limit_key, config.rate_limit)
-                except Exception as e:
+                if not _check_rate_limit(rate_limit_key, config.rate_limit):
                     # Rate limit exceeded
                     _log_security_violation(
                         user,
                         "rate_limit_exceeded",
                         f"Admin rate limit exceeded for user {user.id}",
                     )
-                    logger.warning(f"Rate limit exceeded for admin {user.id}: {e}")
+                    logger.warning(f"Rate limit exceeded for admin {user.id}")
                     return jsonify({
                         "error": "Too many admin requests",
                         "code": "RATE_LIMIT_EXCEEDED"

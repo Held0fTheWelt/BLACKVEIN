@@ -1,0 +1,41 @@
+==========================================================================================
+FAILED TESTS REPORT
+==========================================================================================
+Generated: 2026-03-24 09:28:33
+Total failures: 1
+==========================================================================================
+
+
+──────────────────────────────────────────────────────────────────────────────────────────
+[1] tests.test_auth_permissions.TestGetCurrentUser::test_get_current_user_with_valid_user_id
+──────────────────────────────────────────────────────────────────────────────────────────
+Message: jwt.exceptions.InvalidSubjectError: Subject must be a string
+
+Details:
+tests/test_auth_permissions.py:139: in test_get_current_user_with_valid_user_id
+    result = check_user()
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/view_decorators.py:167: in decorator
+    verify_jwt_in_request(
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/view_decorators.py:94: in verify_jwt_in_request
+    jwt_data, jwt_header, jwt_location = _decode_jwt_from_request(
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/view_decorators.py:340: in _decode_jwt_from_request
+    decoded_token = decode_token(encoded_token, csrf_token)
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/utils.py:128: in decode_token
+    return jwt_manager._decode_jwt_from_config(encoded_token, csrf_value, allow_expired)
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/jwt_manager.py:557: in _decode_jwt_from_config
+    return _decode_jwt(**kwargs, allow_expired=allow_expired)
+/home/heldofthewelt/.local/lib/python3.10/site-packages/flask_jwt_extended/tokens.py:96: in _decode_jwt
+    decoded_token = jwt.decode(
+/home/heldofthewelt/.local/lib/python3.10/site-packages/jwt/api_jwt.py:371: in decode
+    decoded = self.decode_complete(
+/home/heldofthewelt/.local/lib/python3.10/site-packages/jwt/api_jwt.py:278: in decode_complete
+    self._validate_claims(
+/home/heldofthewelt/.local/lib/python3.10/site-packages/jwt/api_jwt.py:422: in _validate_claims
+    self._validate_sub(payload, subject)
+/home/heldofthewelt/.local/lib/python3.10/site-packages/jwt/api_jwt.py:451: in _validate_sub
+    raise InvalidSubjectError("Subject must be a string")
+E   jwt.exceptions.InvalidSubjectError: Subject must be a string
+
+==========================================================================================
+Summary: 1 test(s) failed
+==========================================================================================

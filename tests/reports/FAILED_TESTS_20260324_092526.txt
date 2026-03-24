@@ -1,0 +1,25 @@
+==========================================================================================
+FAILED TESTS REPORT
+==========================================================================================
+Generated: 2026-03-24 09:25:26
+Total failures: 1
+==========================================================================================
+
+
+──────────────────────────────────────────────────────────────────────────────────────────
+[1] tests.test_analytics_service_coverage.TestAnalyticsTimeline::test_timeline_threads_metric
+──────────────────────────────────────────────────────────────────────────────────────────
+Message: AttributeError: 'str' object has no attribute 'isoformat'. Did you mean: 'format'?
+
+Details:
+tests/test_analytics_service_coverage.py:208: in test_timeline_threads_metric
+    result = analytics_service.get_analytics_timeline(metric="threads")
+app/services/analytics_service.py:174: in get_analytics_timeline
+    thread_dict = {d[0].isoformat() if d[0] else None: d[1] for d in thread_counts}
+app/services/analytics_service.py:174: in <dictcomp>
+    thread_dict = {d[0].isoformat() if d[0] else None: d[1] for d in thread_counts}
+E   AttributeError: 'str' object has no attribute 'isoformat'. Did you mean: 'format'?
+
+==========================================================================================
+Summary: 1 test(s) failed
+==========================================================================================

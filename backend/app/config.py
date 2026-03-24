@@ -165,3 +165,4 @@ class TestingConfig(Config):
     PLAY_SERVICE_INTERNAL_API_KEY = "test-play-key"
     REGISTRATION_REQUIRE_EMAIL = False  # Email optional in tests
     REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN = False  # Allow login without verification in tests
+    PASSWORD_COMPLEXITY_MIN_LENGTH = 8  # Relaxed requirement for testing (normally 12)

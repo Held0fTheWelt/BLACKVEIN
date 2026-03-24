@@ -23,17 +23,19 @@ def log_activity(
     metadata: dict[str, Any] | None = None,
     target_type: str | None = None,
     target_id: str | int | None = None,
+    actor_username_snapshot: str | None = None,
 ) -> ActivityLog:
     """
     Create a structured activity log entry. Use this from routes and services;
     do not write to ActivityLog directly elsewhere.
     """
     actor_user_id = None
-    actor_username_snapshot = None
+    actor_username_snapshot_final = actor_username_snapshot
     actor_role_snapshot = None
     if actor is not None:
         actor_user_id = actor.id
-        actor_username_snapshot = actor.username
+        if actor_username_snapshot_final is None:
+            actor_username_snapshot_final = actor.username
         actor_role_snapshot = getattr(actor, "role", None)
         if actor_role_snapshot is None and hasattr(actor, "role_rel") and actor.role_rel:
             actor_role_snapshot = actor.role_rel.name
@@ -44,7 +46,7 @@ def log_activity(
 
     entry = ActivityLog(
         actor_user_id=actor_user_id,
-        actor_username_snapshot=actor_username_snapshot,
+        actor_username_snapshot=actor_username_snapshot_final,
         actor_role_snapshot=actor_role_snapshot,
         category=(category or "system").strip()[:32],
         action=(action or "unknown").strip()[:64],
@@ -68,13 +70,14 @@ def list_activity_logs(
     limit: int = 50,
     q: str | None = None,
     category: str | None = None,
+    action: str | None = None,
     status: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
 ):
     """
     Return (list of ActivityLog, total count) for admin logs API.
-    Newest first. Filters: q (search message, action, actor_username_snapshot), category, status, date_from, date_to.
+    Newest first. Filters: q (search message, action, actor_username_snapshot), category, action, status, date_from, date_to.
     """
     query = ActivityLog.query
     if q and q.strip():
@@ -88,6 +91,8 @@ def list_activity_logs(
         )
     if category and category.strip():
         query = query.filter(ActivityLog.category == category.strip())
+    if action and action.strip():
+        query = query.filter(ActivityLog.action == action.strip())
     if status and status.strip():
         query = query.filter(ActivityLog.status == status.strip())
     if date_from and date_from.strip():
