@@ -24,10 +24,11 @@ class TestCSRFConfiguration:
             # In production/development, CSRF should be enabled
             assert app.config.get("WTF_CSRF_ENABLED", True)
 
-    def test_csrf_disabled_in_testing(self, app):
-        """CSRF should be disabled for testing convenience."""
+    def test_csrf_enabled_in_testing(self, app):
+        """CSRF should be enabled in testing so we can verify protection works."""
         if app.config.get("TESTING"):
-            assert app.config.get("WTF_CSRF_ENABLED") == False
+            # In testing, CSRF defaults to Flask-WTF's enabled state (True) so we can test it
+            assert app.config.get("WTF_CSRF_ENABLED") != False
 
 
 class TestAPIEndpointsExemptFromCSRF:

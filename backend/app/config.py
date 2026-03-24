@@ -150,7 +150,7 @@ class DevelopmentConfig(Config):
 
 
 class TestingConfig(Config):
-    """Config for tests only: in-memory DB, fixed secrets, CSRF disabled, rate limiting enabled for testing."""
+    """Config for tests only: in-memory DB, fixed secrets, CSRF enabled for testing."""
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
@@ -158,7 +158,7 @@ class TestingConfig(Config):
     JWT_SECRET_KEY = "test-jwt-secret-key-at-least-32-bytes-long"
     RATELIMIT_ENABLED = True  # Enable rate limiting so tests can verify it works
     RATELIMIT_DEFAULT = "1000 per minute"
-    WTF_CSRF_ENABLED = False
+    # Note: CSRF is intentionally enabled in testing so we can test CSRF protection works
     CORS_ORIGINS = None
     PLAY_SERVICE_PUBLIC_URL = "http://play.example.test"
     PLAY_SERVICE_INTERNAL_URL = "http://play.example.test"
