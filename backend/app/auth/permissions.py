@@ -5,12 +5,24 @@ from functools import wraps
 
 from flask import current_app, g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token as _create_access_token_orig
 
 from app.models import User
 from app.models.user import SUPERADMIN_THRESHOLD
 
 # Role names for validation and checks. Single source for allowed roles.
 ALLOWED_ROLES = ("user", "moderator", "admin", "qa")
+
+
+def create_access_token(identity, **kwargs):
+    """Wrapper for Flask-JWT-Extended's create_access_token that ensures identity is a string.
+
+    PyJWT requires the 'sub' claim to be a string, so we convert identity to str() if needed.
+    """
+    # Ensure identity is a string (PyJWT requirement)
+    if identity is not None and not isinstance(identity, str):
+        identity = str(identity)
+    return _create_access_token_orig(identity=identity, **kwargs)
 
 
 def get_current_user():
