@@ -6,7 +6,7 @@ Complete documentation for running the backend test suite.
 
 ### Using Bash Script (Linux/macOS)
 ```bash
-cd backend/tests
+cd tests
 ./run_tests.sh              # Full suite with coverage
 ./run_tests.sh quick        # Fast tests (no coverage)
 ./run_tests.sh coverage     # Detailed coverage report
@@ -14,7 +14,7 @@ cd backend/tests
 
 ### Using Python (Cross-Platform)
 ```bash
-cd backend/tests
+cd tests
 python run_tests.py         # Full suite with coverage
 python run_tests.py --quick # Fast tests (no coverage)
 python run_tests.py --help  # Show options
@@ -22,7 +22,7 @@ python run_tests.py --help  # Show options
 
 ### Using Make (If installed)
 ```bash
-cd backend/tests
+cd tests
 make test               # Full suite (default)
 make test-quick        # Fast tests
 make test-coverage     # Detailed coverage
@@ -257,7 +257,7 @@ Reports are automatically printed to the console with their file path:
 
 You can also check the `tests/reports/` directory:
 ```bash
-cd backend/tests
+cd tests
 ls -lh reports/
 tail -f reports/FAILED_TESTS_*.txt
 ```
@@ -268,26 +268,25 @@ tail -f reports/FAILED_TESTS_*.txt
 
 ### Directory Structure
 ```
-backend/
-├── tests/
-│   ├── test_api.py                    # General API tests
-│   ├── test_auth_*.py                 # Authentication tests
-│   ├── test_csrf_*.py                 # CSRF protection tests
-│   ├── test_*_injection.py            # SQL injection tests
-│   ├── test_*_security.py             # Security-focused tests
-│   ├── test_admin_*.py                # Admin endpoint tests
-│   ├── test_forum_*.py                # Forum feature tests
-│   ├── test_news_*.py                 # News feature tests
-│   ├── test_data_*.py                 # Data import/export tests
-│   ├── conftest.py                    # Pytest fixtures (app, client, user)
-│   ├── reports/                       # Test failure reports (auto-generated)
-│   │   └── FAILED_TESTS_*.txt         # Timestamped failure reports
-│   ├── run_tests.sh                   # Bash test runner
-│   ├── run_tests.py                   # Python test runner (cross-platform)
-│   ├── Makefile                       # Make shortcuts
-│   ├── TESTING.md                     # This file
-│   ├── pytest.ini                     # Pytest configuration
-│   └── ... (70+ test files)
+tests/
+├── test_api.py                        # General API tests
+├── test_auth_*.py                     # Authentication tests
+├── test_csrf_*.py                     # CSRF protection tests
+├── test_*_injection.py                # SQL injection tests
+├── test_*_security.py                 # Security-focused tests
+├── test_admin_*.py                    # Admin endpoint tests
+├── test_forum_*.py                    # Forum feature tests
+├── test_news_*.py                     # News feature tests
+├── test_data_*.py                     # Data import/export tests
+├── conftest.py                        # Pytest fixtures (app, client, user)
+├── pytest.ini                         # Pytest configuration
+├── reports/                           # Test failure reports (auto-generated)
+│   └── FAILED_TESTS_*.txt             # Timestamped failure reports
+├── run_tests.sh                       # Bash test runner
+├── run_tests.py                       # Python test runner (cross-platform)
+├── Makefile                           # Make shortcuts
+├── TESTING.md                         # This file
+└── ... (70+ test files)
 ```
 
 ### Key Test Files
@@ -314,7 +313,7 @@ pip install -r requirements-dev.txt
 ### Tests fail with "no module named 'app'"
 **Solution:** Make sure you're in the `backend/tests/` directory
 ```bash
-cd backend/tests
+cd tests
 python run_tests.py
 ```
 

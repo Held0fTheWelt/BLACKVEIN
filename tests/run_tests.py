@@ -23,8 +23,8 @@ from datetime import datetime
 
 # Setup
 TESTS_DIR = Path(__file__).parent.absolute()
-BACKEND_DIR = TESTS_DIR.parent
-PROJECT_ROOT = BACKEND_DIR.parent
+PROJECT_ROOT = TESTS_DIR.parent
+BACKEND_DIR = PROJECT_ROOT / "backend"
 COVERAGE_DIR = BACKEND_DIR / "htmlcov"
 REPORTS_DIR = TESTS_DIR / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)

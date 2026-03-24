@@ -23,8 +23,8 @@ NC='\033[0m' # No Color
 
 # Config
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$(dirname "$TESTS_DIR")"
-PROJECT_ROOT="$(dirname "$BACKEND_DIR")"
+PROJECT_ROOT="$(dirname "$TESTS_DIR")"
+BACKEND_DIR="$PROJECT_ROOT/backend"
 COVERAGE_DIR="$BACKEND_DIR/htmlcov"
 REPORTS_DIR="$TESTS_DIR/reports"
 JUNIT_REPORT="$REPORTS_DIR/pytest_report.xml"
