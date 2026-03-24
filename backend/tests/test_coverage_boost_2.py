@@ -30,11 +30,19 @@ from werkzeug.security import generate_password_hash
 # ======================= HELPER =======================
 
 def _get_csrf_token(client, path="/login"):
-    """Extract CSRF token from a GET request."""
+    """Extract CSRF token from a GET request (from form input or meta tag). Follows redirects."""
     import re
-    page = client.get(path)
-    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', page.data.decode())
-    return match.group(1) if match else ""
+    page = client.get(path, follow_redirects=True)
+    decoded = page.data.decode()
+    # Try to find from form input first
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', decoded)
+    if match:
+        return match.group(1)
+    # Try to find from meta tag (used on dashboard)
+    match = re.search(r'<meta\s+name="csrf-token"\s+content="([^"]+)"', decoded)
+    if match:
+        return match.group(1)
+    return ""
 
 
 def _login_session(client, username, password, app=None):
@@ -121,27 +129,30 @@ class TestWebRoutesExtended:
         assert resp.status_code in (200, 302)
 
     def test_web_register_post_password_mismatch(self, app, client):
+        csrf_value = _get_csrf_token(client, "/register")
         resp = client.post(
             "/register",
-            data={"username": "mismatch", "password": "Pass1", "password_confirm": "Pass2"},
+            data={"username": "mismatch", "password": "Pass1", "password_confirm": "Pass2", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 200  # re-renders form
 
     def test_web_register_post_duplicate(self, app, client, test_user):
         user, _ = test_user
+        csrf_value = _get_csrf_token(client, "/register")
         resp = client.post(
             "/register",
-            data={"username": user.username, "password": "StrongPass1", "password_confirm": "StrongPass1"},
+            data={"username": user.username, "password": "StrongPass1", "password_confirm": "StrongPass1", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 200  # shows error
 
     def test_web_register_post_with_email(self, app, client):
         app.config["REGISTRATION_REQUIRE_EMAIL"] = True
+        csrf_value = _get_csrf_token(client, "/register")
         resp = client.post(
             "/register",
-            data={"username": "emailreg", "password": "StrongPass1", "password_confirm": "StrongPass1", "email": ""},
+            data={"username": "emailreg", "password": "StrongPass1", "password_confirm": "StrongPass1", "email": "", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 200  # missing email error
@@ -158,17 +169,19 @@ class TestWebRoutesExtended:
         assert resp.status_code == 302
 
     def test_web_forgot_password_post(self, app, client):
+        csrf_value = _get_csrf_token(client, "/forgot-password")
         resp = client.post(
             "/forgot-password",
-            data={"email": "nonexistent@example.com"},
+            data={"email": "nonexistent@example.com", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 302
 
     def test_web_forgot_password_post_empty(self, app, client):
+        csrf_value = _get_csrf_token(client, "/forgot-password")
         resp = client.post(
             "/forgot-password",
-            data={"email": ""},
+            data={"email": "", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 200
@@ -178,17 +191,19 @@ class TestWebRoutesExtended:
         assert resp.status_code == 200
 
     def test_web_resend_verification_post(self, app, client):
+        csrf_value = _get_csrf_token(client, "/login")
         resp = client.post(
             "/resend-verification",
-            data={"email": "nonexistent@example.com"},
+            data={"email": "nonexistent@example.com", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 302
 
     def test_web_resend_verification_post_empty(self, app, client):
+        csrf_value = _get_csrf_token(client, "/login")
         resp = client.post(
             "/resend-verification",
-            data={"email": ""},
+            data={"email": "", "csrf_token": csrf_value},
             follow_redirects=False,
         )
         assert resp.status_code == 200
@@ -226,7 +241,9 @@ class TestWebRoutesExtended:
 
     def test_web_logout_with_session(self, app, client, test_user):
         user, password = test_user
-        _login_session(client, user.username, password, app)
+        login_resp = _login_session(client, user.username, password, app)
+        # Login should redirect to dashboard
+        assert login_resp.status_code in (302, 200)
         resp = client.post("/logout", follow_redirects=False)
         assert resp.status_code == 302
 
