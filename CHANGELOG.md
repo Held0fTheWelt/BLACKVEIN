@@ -21,9 +21,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - Created `docs/testing/WORLD_ENGINE_TARGET_TEST_MATRIX.md` with similar comprehensive contract definitions
   - Added `browser` test marker to both pytest.ini files for browser integration test categorization
 
-- **WAVE 1: Administration-tool test foundation (107 tests)**
-  - `tests/test_app_factory.py` (17 tests): Deterministic app creation, configuration isolation, no global-state leakage
-  - `tests/test_config_contract.py` (29 tests): SECRET_KEY validation, BACKEND_API_URL contract, config isolation per app instance
+- **WAVE 1: Administration-tool testability and config hardening (126 tests)**
+  - Implemented proper `create_app(test_config=None)` factory function for deterministic, testable app creation
+  - Refactored route registration into `_register_routes()` to support factory-created apps
+  - Enhanced test infrastructure with `app_factory` pytest fixture for direct factory usage
+  - `tests/test_app_factory.py` (15 tests): Deterministic app creation, configuration isolation, no global-state leakage
+  - `tests/test_app_factory_contract.py` (19 tests, NEW): Factory function contract, route registration, determinism validation, test client compatibility
+  - `tests/test_config_contract.py` (33 tests): SECRET_KEY validation, BACKEND_API_URL contract, config isolation per app instance
+  - `tests/test_config.py` (5 tests): Configuration validation functions (validate_secret_key, validate_service_url)
   - `tests/test_context_processor.py` (24 tests): Context injection of backend_api_url, frontend_config, language metadata
   - `tests/test_language_resolution.py` (37 tests): Language resolution hierarchy (query param > session > Accept-Language > default), session persistence, fallback behavior
 
