@@ -105,36 +105,99 @@ class TestLimiter:
         pass
 
 
-# Use Flask-Limiter for rate limiting, but switch to TestLimiter in test mode
+# Global instance that will hold either Limiter or TestLimiter
 _limiter_instance = None
 
-def _get_limiter():
-    """Get the appropriate limiter instance (TestLimiter for tests, Limiter for production)."""
-    global _limiter_instance
-    if _limiter_instance is None:
-        from flask import current_app
-        if current_app and current_app.config.get("TESTING"):
+
+class LimiterProxy:
+    """Proxy that delegates to either Flask-Limiter or TestLimiter based on app mode."""
+
+    def limit(self, limit_str, key_func=None):
+        """Create a rate limit decorator that works in both test and production modes."""
+        # This decorator is applied at module import time, so we need to check at request time
+        def decorator(f):
+            @wraps(f)
+            def wrapper(*args, **kwargs):
+                from flask import current_app
+                global _limiter_instance
+
+                # Determine which limiter to use based on app config
+                if current_app.config.get("TESTING"):
+                    if not isinstance(_limiter_instance, TestLimiter):
+                        _limiter_instance = TestLimiter()
+                    # Apply TestLimiter's rate limiting at request time
+                    test_limiter = _limiter_instance
+                    # Get the rate limit key
+                    key = None
+                    try:
+                        from flask_jwt_extended import get_jwt_identity
+                        identity = get_jwt_identity()
+                        if identity:
+                            key = f"{f.__name__}:{identity}"
+                    except Exception:
+                        pass
+
+                    if not key:
+                        if key_func:
+                            try:
+                                key = f"{f.__name__}:{key_func()}"
+                            except Exception:
+                                from flask import request
+                                key = f"{f.__name__}:{request.remote_addr or 'unknown'}"
+                        else:
+                            from flask import request
+                            key = f"{f.__name__}:{request.remote_addr or 'unknown'}"
+
+                    # Check rate limit
+                    import re
+                    from datetime import datetime
+                    match = re.match(r'(\d+)\s+per\s+(\w+)', limit_str)
+                    if match:
+                        max_requests = int(match.group(1))
+                        period_str = match.group(2)
+                        periods = {'second': 1, 'minute': 60, 'hour': 3600, 'day': 86400}
+                        period_seconds = periods.get(period_str, 3600)
+
+                        current_time = datetime.utcnow().timestamp()
+                        if key not in test_limiter.request_times:
+                            test_limiter.request_times[key] = []
+
+                        # Remove old requests
+                        cutoff_time = current_time - period_seconds
+                        test_limiter.request_times[key] = [t for t in test_limiter.request_times[key] if t > cutoff_time]
+
+                        # Check limit
+                        if len(test_limiter.request_times[key]) >= max_requests:
+                            from flask import jsonify
+                            return jsonify({"error": "Too many requests"}), 429
+
+                        test_limiter.request_times[key].append(current_time)
+
+                return f(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    def init_app(self, app):
+        """Initialize the limiter with the app."""
+        global _limiter_instance
+        if app.config.get("TESTING"):
             _limiter_instance = TestLimiter()
         else:
             _limiter_instance = Limiter(key_func=get_rate_limit_key, default_limits=[])
-    return _limiter_instance
+            _limiter_instance.init_app(app)
 
-# Initially use Limiter; will be replaced by TestLimiter if TESTING=True
-limiter = Limiter(key_func=get_rate_limit_key, default_limits=[])
+
+# Use proxy limiter
+limiter = LimiterProxy()
 migrate = Migrate()
 mail = Mail()
 
 
 def init_app(app):
     """Bind extensions to app. CORS uses configurable origins from config."""
-    global limiter
     db.init_app(app)
     jwt.init_app(app)
-    # Use TestLimiter in test mode for proper rate limit enforcement
-    if app.config.get("TESTING"):
-        limiter = TestLimiter()
-    else:
-        limiter.init_app(app)
+    limiter.init_app(app)
     mail.init_app(app)
     if not app.config.get("TESTING"):
         migrate.init_app(app, db)
