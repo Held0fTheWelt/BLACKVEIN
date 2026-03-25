@@ -14,7 +14,7 @@ two independently deployable services.
 
 import pytest
 from app.models import User, Role
-from app.database import db
+from app.extensions import db
 
 
 class TestAdminBridgeUserContract:
