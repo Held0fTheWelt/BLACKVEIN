@@ -15,6 +15,11 @@ from fastapi.testclient import TestClient
 if "FLASK_ENV" not in os.environ:
     os.environ["FLASK_ENV"] = "test"
 
+# Provide test secret if not already set
+# Tests that need to verify missing secret behavior will override this
+if "PLAY_SERVICE_SECRET" not in os.environ:
+    os.environ["PLAY_SERVICE_SECRET"] = "test-secret-key-for-unit-tests"
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
