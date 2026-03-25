@@ -422,3 +422,95 @@ class TestWebSocketRejoin:
 
         # Host should still see guest present (2 occupied)
         assert occupied2 == 2
+
+    @pytest.mark.websocket
+    @pytest.mark.integration
+    def test_participant_marked_disconnected_on_graceful_close(self, app_for_rejoin: FastAPI):
+        """When WebSocket closes gracefully, participant should be marked disconnected."""
+        client = TestClient(app_for_rejoin)
+        manager = app_for_rejoin.state.manager
+
+        # Create run
+        run_response = client.post(
+            "/api/runs",
+            json={"template_id": "apartment_confrontation_group", "account_id": "1", "display_name": "Host"},
+        )
+        run_id = run_response.json()["run"]["id"]
+
+        # Get context to identify which participant will connect
+        context = client.post(
+            "/api/internal/join-context",
+            json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+        ).json()
+        participant_id = context["participant_id"]
+
+        ticket = client.post(
+            "/api/tickets",
+            json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+        ).json()["ticket"]
+
+        # Connect
+        with client.websocket_connect(f"/ws?ticket={ticket}") as ws:
+            ws.receive_json()
+            # While connected, participant should be marked connected
+            assert manager.get_instance(run_id).participants[participant_id].connected
+
+        # After graceful close (exit context), participant should be marked disconnected
+        assert not manager.get_instance(run_id).participants[participant_id].connected
+
+    @pytest.mark.websocket
+    @pytest.mark.security
+    def test_reconnect_with_wrong_run_id_fails(self, app_for_rejoin: FastAPI):
+        """Cannot reconnect to wrong run even with valid ticket for another run."""
+        client = TestClient(app_for_rejoin)
+        ticket_manager = app_for_rejoin.state.ticket_manager
+
+        # Create two runs
+        run1_response = client.post(
+            "/api/runs",
+            json={"template_id": "apartment_confrontation_group", "account_id": "1", "display_name": "Host1"},
+        )
+        run1_id = run1_response.json()["run"]["id"]
+
+        run2_response = client.post(
+            "/api/runs",
+            json={"template_id": "god_of_carnage_solo", "account_id": "2", "display_name": "Host2"},
+        )
+        run2_id = run2_response.json()["run"]["id"]
+
+        # Get contexts
+        context1 = client.post(
+            "/api/internal/join-context",
+            json={"run_id": run1_id, "account_id": "1", "display_name": "Host1"},
+        ).json()
+
+        context2 = client.post(
+            "/api/internal/join-context",
+            json={"run_id": run2_id, "account_id": "2", "display_name": "Host2"},
+        ).json()
+
+        # Create ticket for run1
+        ticket_for_run1 = ticket_manager.issue({
+            "run_id": run1_id,
+            "participant_id": context1["participant_id"],
+            "account_id": "1",
+        })
+
+        # Connect to run1 works
+        with client.websocket_connect(f"/ws?ticket={ticket_for_run1}") as ws:
+            ws.receive_json()
+
+        # Now try to use run1 ticket on run2 endpoint (fake by trying different participant)
+        # Create a cross-run ticket manipulation
+        cross_run_ticket = ticket_manager.issue({
+            "run_id": run2_id,  # Different run!
+            "participant_id": context1["participant_id"],  # But same participant from run1
+            "account_id": "1",
+        })
+
+        # Should be rejected because participant doesn't exist in run2
+        with pytest.raises(Exception) as exc_info:
+            with client.websocket_connect(f"/ws?ticket={cross_run_ticket}") as ws:
+                pass
+
+        assert exc_info.typename in ("WebSocketDisconnect", "Exception")

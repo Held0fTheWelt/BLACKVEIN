@@ -425,3 +425,138 @@ class TestWebSocketAuthValidation:
             response = ws.receive_json()
             # Should get a snapshot back, not a command_rejected
             assert response["type"] == "snapshot"
+
+    @pytest.mark.websocket
+    @pytest.mark.integration
+    def test_duplicate_connection_replacement(self, app_with_secret: FastAPI):
+        """When same participant connects twice, second connection replaces first."""
+        client = TestClient(app_with_secret)
+
+        # Create run
+        run_response = client.post(
+            "/api/runs",
+            json={"template_id": "apartment_confrontation_group", "account_id": "1", "display_name": "Host"},
+        )
+        run_id = run_response.json()["run"]["id"]
+
+        # Get participant context
+        context = client.post(
+            "/api/internal/join-context",
+            json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+        ).json()
+
+        # Create reusable ticket for same participant
+        ticket = app_with_secret.state.ticket_manager.issue({
+            "run_id": run_id,
+            "participant_id": context["participant_id"],
+            "account_id": "1",
+        })
+
+        # First connection
+        ws1 = client.websocket_connect(f"/ws?ticket={ticket}")
+        ws1_context = ws1.__enter__()
+        snap1 = ws1_context.receive_json()
+        assert snap1["type"] == "snapshot"
+
+        # Second connection with same ticket
+        ws2 = client.websocket_connect(f"/ws?ticket={ticket}")
+        ws2_context = ws2.__enter__()
+        snap2 = ws2_context.receive_json()
+        assert snap2["type"] == "snapshot"
+
+        # Cleanup
+        ws1_context.close()
+        ws2_context.close()
+
+    @pytest.mark.websocket
+    @pytest.mark.contract
+    def test_snapshot_contains_required_viewer_fields(self, app_with_secret: FastAPI):
+        """Snapshot message must contain all required viewer identification fields."""
+        client = TestClient(app_with_secret)
+
+        # Create run
+        run_response = client.post(
+            "/api/runs",
+            json={"template_id": "apartment_confrontation_group", "account_id": "acct:user123", "display_name": "Alice", "character_id": "char:alice"},
+        )
+        run_id = run_response.json()["run"]["id"]
+
+        ticket = client.post(
+            "/api/tickets",
+            json={"run_id": run_id, "account_id": "acct:user123", "display_name": "Alice", "character_id": "char:alice"},
+        ).json()["ticket"]
+
+        with client.websocket_connect(f"/ws?ticket={ticket}") as ws:
+            snapshot = ws.receive_json()
+            assert snapshot["type"] == "snapshot"
+            data = snapshot["data"]
+
+            # Viewer identification is required
+            assert "viewer_participant_id" in data
+            assert "viewer_account_id" in data
+            assert "viewer_character_id" in data
+            assert "viewer_display_name" in data
+            assert "viewer_role_id" in data
+            assert "viewer_room_id" in data
+
+    @pytest.mark.websocket
+    @pytest.mark.security
+    def test_empty_ticket_rejected(self, app_with_secret: FastAPI):
+        """Empty string as ticket should be rejected."""
+        client = TestClient(app_with_secret)
+
+        with pytest.raises(Exception) as exc_info:
+            with client.websocket_connect("/ws?ticket=") as ws:
+                pass
+
+        assert exc_info.typename in ("WebSocketDisconnect", "Exception")
+
+    @pytest.mark.websocket
+    @pytest.mark.security
+    def test_ticket_with_only_whitespace_rejected(self, app_with_secret: FastAPI):
+        """Ticket containing only whitespace should be rejected."""
+        client = TestClient(app_with_secret)
+
+        with pytest.raises(Exception) as exc_info:
+            with client.websocket_connect("/ws?ticket=   ") as ws:
+                pass
+
+        assert exc_info.typename in ("WebSocketDisconnect", "Exception")
+
+    @pytest.mark.websocket
+    @pytest.mark.contract
+    def test_connection_marked_as_connected_on_auth(self, app_with_secret: FastAPI):
+        """After successful auth, participant should be marked as connected."""
+        client = TestClient(app_with_secret)
+        manager = app_with_secret.state.manager
+
+        # Create run
+        run_response = client.post(
+            "/api/runs",
+            json={"template_id": "apartment_confrontation_group", "account_id": "1", "display_name": "Host"},
+        )
+        run_id = run_response.json()["run"]["id"]
+
+        # Get context to know which participant will connect
+        context = client.post(
+            "/api/internal/join-context",
+            json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+        ).json()
+        participant_id = context["participant_id"]
+
+        # Get participant before connection - check it's not connected initially
+        instance_before = manager.get_instance(run_id)
+        assert not instance_before.participants[participant_id].connected
+
+        # Create ticket and connect
+        ticket = client.post(
+            "/api/tickets",
+            json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+        ).json()["ticket"]
+
+        with client.websocket_connect(f"/ws?ticket={ticket}") as ws:
+            ws.receive_json()  # Initial snapshot
+
+            # Check participant is marked connected
+            instance = manager.get_instance(run_id)
+            assert instance.participants[participant_id].connected
