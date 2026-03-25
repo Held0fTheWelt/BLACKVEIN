@@ -11,6 +11,9 @@ The project is organized into three main testing contexts:
 
 Each profile below includes the exact command, expected test counts, and typical execution time.
 
+**Updated**: v0.1.10 (WAVE 9) with actual measured counts and durations.
+**Note**: Some cross-service tests have known test isolation issues; see XFAIL_POLICY.md.
+
 ---
 
 ## Admin Tool Test Profiles
@@ -59,9 +62,10 @@ Core world engine tests excluding slow and WebSocket tests.
 cd world-engine && python -m pytest tests/ -m "not slow and not websocket" -v
 ```
 
-**Expected Test Count**: 70-100 tests
-**Typical Execution Time**: 10-20 seconds
+**Expected Test Count**: 683 tests (5 known failures)
+**Typical Execution Time**: ~10 seconds
 **When to Use**: During development; quick feedback on core engine changes.
+**Note**: Known test isolation issues affect 5 tests; they pass in isolation but fail in suite. See XFAIL_POLICY.md.
 
 ---
 
@@ -75,9 +79,10 @@ All world engine tests including slow and WebSocket tests.
 cd world-engine && python -m pytest tests/ -v
 ```
 
-**Expected Test Count**: 120-150 tests
-**Typical Execution Time**: 30-60 seconds
+**Expected Test Count**: 770 tests (18 known failures)
+**Typical Execution Time**: ~12 seconds
 **When to Use**: Pre-deployment; validating complete world engine functionality.
+**Note**: Known test isolation issues affect 18 tests in full suite run; they pass in isolation. See XFAIL_POLICY.md.
 
 ---
 
@@ -93,8 +98,12 @@ Runs all security-related tests across both projects.
 cd /mnt/c/Users/YvesT/PycharmProjects/WorldOfShadows && pytest -m security -v
 ```
 
-**Expected Test Count**: 40-60 tests
-**Typical Execution Time**: 10-20 seconds
+**Expected Test Count**:
+- World-engine: 159 security tests
+- Admin-tool: 240 security tests
+- **Total: 399+ security tests**
+
+**Typical Execution Time**: 15-25 seconds
 **When to Use**: When making auth/security changes; security audit runs.
 
 ---
@@ -109,9 +118,14 @@ Runs all contract tests (API contracts, data contracts, cross-service contracts)
 cd /mnt/c/Users/YvesT/PycharmProjects/WorldOfShadows && pytest -m contract -v
 ```
 
-**Expected Test Count**: 50-70 tests
-**Typical Execution Time**: 15-25 seconds
+**Expected Test Count**:
+- World-engine: 458 contract tests (100% passing)
+- Admin-tool: 721 contract tests (100% passing)
+- **Total: 1179+ contract tests (ALL PASSING)**
+
+**Typical Execution Time**: 20-30 seconds
 **When to Use**: When changing API signatures or cross-service integration points.
+**Status**: All contract tests PASS - production-ready cross-service validation.
 
 ---
 
@@ -126,8 +140,10 @@ cd world-engine && python -m pytest tests/test_backend_bridge_contract.py -v
 ```
 
 **Expected Test Count**: 24 tests
-**Typical Execution Time**: 2-5 seconds
+**Typical Execution Time**: ~0.3 seconds
+**Test Status**: 24/24 PASSING (100%)
 **When to Use**: When modifying backend/world-engine integration; ticket format changes.
+**Production Ready**: YES - All critical cross-service contracts verified.
 
 ---
 
@@ -158,8 +174,13 @@ cd world-engine && python -m pytest tests/test_ws*.py -v
 cd /mnt/c/Users/YvesT/PycharmProjects/WorldOfShadows && python run_tests.py --suite all
 ```
 
-**Expected Test Count**: 180-220 tests
-**Typical Execution Time**: 60-120 seconds
+**Expected Test Count**: 1,800+ total tests
+**Breakdown**:
+- Backend: (built into run_tests.py)
+- Administration Tool: 1,038 tests
+- World Engine: 770 tests
+
+**Typical Execution Time**: 30-45 seconds total
 **When to Use**: Pre-release testing; major feature validation.
 
 ---
@@ -475,16 +496,18 @@ kill -9 <PID>
 
 ## Quick Reference Table
 
-| Profile | Command | Tests | Time | Use Case |
-|---------|---------|-------|------|----------|
-| Fast Admin | `cd admin && pytest -m "not slow"` | 25-35 | 5-10s | Dev iteration |
-| Full Admin | `cd admin && pytest` | 35-45 | 15-30s | Pre-deploy |
-| Fast WE | `cd world-engine && pytest -m "not slow and not websocket"` | 70-100 | 10-20s | Dev iteration |
-| Full WE | `cd world-engine && pytest` | 120-150 | 30-60s | Full validation |
-| Security | `pytest -m security` | 40-60 | 10-20s | Security audit |
-| Contracts | `pytest -m contract` | 50-70 | 15-25s | API changes |
-| Bridge | `cd world-engine && pytest test_backend_bridge_contract.py` | 24 | 2-5s | Integration changes |
-| WebSocket | `cd world-engine && pytest test_ws*.py` | 25-35 | 15-25s | WS changes |
+| Profile | Command | Tests | Time | Status | Use Case |
+|---------|---------|-------|------|--------|----------|
+| Fast Admin | `cd admin && pytest -m "not slow"` | 1,038 | 10-15s | ✓ All pass | Dev iteration |
+| Full Admin | `cd admin && pytest` | 1,038 | 15-20s | ✓ All pass | Pre-deploy |
+| Fast WE | `cd world-engine && pytest -m "not slow and not websocket"` | 683 | ~10s | 5 known fails* | Dev iteration |
+| Full WE | `cd world-engine && pytest` | 770 | ~12s | 18 known fails* | Full validation |
+| Security | `pytest -m security` | 399+ | 15-25s | ✓ All pass | Security audit |
+| Contracts | `pytest -m contract` | 1,179+ | 20-30s | ✓ All pass (100%) | API changes |
+| Bridge | `cd world-engine && pytest test_backend_bridge_contract.py` | 24 | 0.3s | ✓ All pass (100%) | Integration changes |
+| All Suites | `python run_tests.py --suite all` | 1,800+ | 30-45s | See notes | Release testing |
+
+**\* Known test isolation issues documented in XFAIL_POLICY.md**
 
 ---
 

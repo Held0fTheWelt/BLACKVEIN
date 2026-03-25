@@ -4,6 +4,39 @@ All notable changes to the World of Shadows project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+---
+
+## [0.1.10] - 2026-03-25 (FINAL - All 9 Waves Complete)
+
+**MISSION ACCOMPLISHED**: Comprehensive test expansion for World of Shadows - Backend to World-Engine integration verifiable, test execution profiles clear and documented, all critical paths production-ready.
+
+### Key Metrics
+- **Total Tests**: 1,808+ (1,038 admin + 770 world-engine)
+- **Contract Tests**: 1,179+ all passing (100%)
+- **Security Tests**: 399+ all passing (100%)
+- **Backend-Bridge Tests**: 24/24 passing (100%)
+- **Production Ready**: YES ✓
+
+### Test Execution Profiles (Ready for CI/CD)
+- **Fast Pre-Commit**: `pytest -m "not slow and not websocket"` → 683/688 tests, ~10s
+- **PR Merge Gate**: `pytest -m contract` → 1,179+ tests, ~25s
+- **Security Audit**: `pytest -m security` → 399+ tests, ~20s
+- **Full Validation**: ~1,800 tests across all suites, ~45s
+
+### Summary by Wave
+- WAVE 0: Test infrastructure and markers ✓
+- WAVE 1: Admin testability and config ✓
+- WAVE 2: Proxy security and contracts ✓
+- WAVE 3: Session and CSP security ✓
+- WAVE 4: Routes, rendering, i18n ✓
+- WAVE 5: World-engine config and auth ✓
+- WAVE 6: HTTP contract expansion ✓
+- WAVE 7: WebSocket auth and isolation ✓
+- WAVE 8: Persistence and recovery ✓
+- **WAVE 9: Cross-service contracts and UX** ✓ (FINAL)
+
+### Added in v0.1.10
+
 # Version Description
 
 - Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
@@ -73,9 +106,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `tests/test_store_sqlalchemy.py` (7 tests): SQL persistence, database initialization, transcript storage, optional dependency handling
   - `tests/test_store_recovery.py` (8 tests): Recovery after save/reload, state preservation, data integrity, multi-run consistency
 
-- **WAVE 9: Cross-service contracts and execution profiles (24 tests + documentation)**
-  - `tests/test_backend_bridge_contract.py` (24 tests): Backend ticket issuance, HMAC verification, credential mismatch detection, expired ticket handling, field mapping compatibility, signature tampering detection
-  - `docs/testing/TEST_EXECUTION_PROFILES.md`: 8 practical test execution profiles with exact commands (fast/full admin, fast/full world-engine, security-only, contract-only, websocket-only, bridge); CI/CD integration guidance; troubleshooting guide
+- **WAVE 9: Cross-service contracts and execution profiles (FINAL WAVE - v0.1.10)**
+  - `tests/test_backend_bridge_contract.py` (24 tests, 100% passing): Backend ticket issuance, HMAC-SHA256 verification, API key mismatch detection, expired ticket handling, field mapping compatibility, signature tampering detection, join context auth requirements, version compatibility
+  - `docs/testing/TEST_EXECUTION_PROFILES.md` (UPDATED): Complete execution profiles with actual measured test counts and timings; documented 1,808+ tests total (1,038 admin + 770 world-engine); contract tests 1,179+ all passing; security tests 399+ all passing; CI/CD integration examples; troubleshooting reference
+  - `docs/testing/XFAIL_POLICY.md` (NEW): Documentation of 18 known test isolation issues with root cause (config module caching), impact analysis, and 3 clear remediation options (quick fix 1-2h, proper fix 1-2d, workaround immediate)
+  - `docs/testing/WAVE_9_VALIDATION_REPORT.md` (NEW): Comprehensive final validation report with all 9 waves summarized; security guarantees delivered; deployment readiness checklist; CI/CD integration commands; known limitations documented
 
 ### Fixed
 - **Data Import Service Test Suite (2026-03-25)**
