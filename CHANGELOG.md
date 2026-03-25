@@ -4,6 +4,15 @@ All notable changes to the World of Shadows project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# Version Description
+
+- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
+
+**Current repository paths:** Docs and README use `backend/` and `administration-tool/`. Older entries may mention `Backend/` or `Frontend/` as they were at release time. The administration-tool default for `BACKEND_API_URL` is now remote-first (PythonAnywhere); local is for override/troubleshooting only (see README).
+- Version 0.1: Integration of a content framework to organize role playing game
+- Version 0.2: Integration of Game Rules and Game System
+- Version 0.3: Integration of dynamic evolving content with rules and drafts
+
 ## [Unreleased] - Test Expansion Waves (WAVE 0-1)
 
 ### Added
@@ -27,16 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `tests/test_session_security.py` (27 tests): Session cookie flags (Secure, HttpOnly, SameSite=Lax), lifetime configuration, session isolation, secret key validation
   - `tests/test_error_responses.py` (36 tests): 404/403/500 determinism, no information leakage, error page security headers, response consistency
 
-# Version Description
-
-- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
-
-**Current repository paths:** Docs and README use `backend/` and `administration-tool/`. Older entries may mention `Backend/` or `Frontend/` as they were at release time. The administration-tool default for `BACKEND_API_URL` is now remote-first (PythonAnywhere); local is for override/troubleshooting only (see README).
-- Version 0.1: Integration of a content framework to organize role playing game
-- Version 0.2: Integration of Game Rules and Game System
-- Version 0.3: Integration of dynamic evolving content with rules and drafts
-
-
+- **WAVE 4: Administration-tool routes and rendering (225 tests)**
+  - `tests/test_public_routes.py` (67 tests): Public routes (/, /news, /news/<id>, /wiki, /wiki/<slug>), template rendering, context injection (backend_api_url, frontend_config, language metadata)
+  - `tests/test_forum_routes.py` (75 tests): Forum routes (/forum*, /forum/categories/*, /forum/threads/*, /forum/notifications, /forum/saved, /forum/tags/*), rendering with context, parameter forwarding, graceful degradation
+  - `tests/test_manage_routes.py` (83 tests): Management routes (/manage*, /users/<id>/profile), context consistency, security headers, proxy access configuration, graceful rendering without backend
 
 ## [0.1.8] - 2026-03-23
 
