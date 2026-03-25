@@ -45,6 +45,11 @@ def load_frontend_module(
 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+
+    # Fix the app's root_path to point to the administration-tool directory
+    # (module loading via spec_from_file_location sets it to the project root)
+    module.app.root_path = str(ROOT)
+
     return module
 
 
@@ -55,24 +60,42 @@ def frontend_module(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.fixture
-def app(frontend_module):
-    """Fixture providing a test app instance from the frontend module.
+def app(app_factory):
+    """Fixture providing a test app instance.
 
+    Uses app_factory to ensure correct root_path for template loading in test environment.
     The app is configured in TESTING mode for isolated test execution.
     """
-    frontend_module.app.config.update(TESTING=True)
-    return frontend_module.app
+    return app_factory(test_config={
+        "TESTING": True,
+        "BACKEND_API_URL": "https://backend.example.test",
+        "SECRET_KEY": "test-secret-key",
+    })
 
 
 @pytest.fixture
-def app_factory():
+def app_factory(monkeypatch):
     """Fixture providing direct access to the create_app() factory.
 
     Allows tests to create apps with arbitrary test_config without
     module reloading. New tests should prefer this fixture.
     """
-    from app import create_app
-    return create_app
+    import sys
+    import importlib.util
+
+    # Load the app module fresh if not already loaded
+    app_module_name = "administration_tool_app_factory"
+    if app_module_name in sys.modules:
+        mod = sys.modules[app_module_name]
+    else:
+        spec = importlib.util.spec_from_file_location(app_module_name, ROOT / "app.py")
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Could not load administration-tool app module")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[app_module_name] = mod
+        spec.loader.exec_module(mod)
+
+    return mod.create_app
 
 
 @pytest.fixture
