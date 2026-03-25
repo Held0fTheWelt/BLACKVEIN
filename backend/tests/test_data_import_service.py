@@ -72,6 +72,11 @@ class TestGetSchemaRevision:
     def test_get_schema_revision_fallback_on_missing_table(self, app):
         """_get_schema_revision() returns empty string if alembic_version table doesn't exist."""
         with app.app_context():
+            # Drop the alembic_version table to test the missing table fallback
+            from app.extensions import db
+            if db.engine.dialect.has_table(db.engine.connect(), "alembic_version"):
+                db.session.execute(db.text("DROP TABLE alembic_version"))
+                db.session.commit()
             # In tests without Alembic, alembic_version won't exist; should return empty string
             result = _get_schema_revision()
             assert result == ""
