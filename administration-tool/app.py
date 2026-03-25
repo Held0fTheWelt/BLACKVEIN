@@ -89,18 +89,27 @@ def _backend_origin():
     return None
 
 
-# Explicit proxy allowlist and denylist rules for security hardening.
-# These define which paths are allowed to be proxied to the backend.
-PROXY_DENYLIST_PREFIXES = [
-    "admin",           # /_proxy/admin/* → 403 Forbidden
+# ALLOWLIST-based proxy security model.
+# The proxy enforces an explicit allowlist of approved backend path classes.
+# All other paths are rejected with 403 Forbidden.
+# This is security-by-default (deny, then explicitly allow).
+
+# Allowed backend path classes: paths matching these prefixes may be proxied.
+# Pattern: "api/" matches /_proxy/api/v1/*, /_proxy/api/v2/*, etc.
+PROXY_ALLOWLIST_PREFIXES = [
+    "api/",            # /_proxy/api/* → allowed (REST API endpoints)
 ]
 
-PROXY_ALLOWLIST_PREFIXES = [
-    "api/",            # /_proxy/api/* → allowed (REST API)
+# Forbidden backend path classes: hardcoded enforcement of known-dangerous paths.
+# These are redundant if allowlist is strict, but provide defense-in-depth.
+# Pattern: paths starting with these prefixes are blocked (403 Forbidden).
+PROXY_DENYLIST_PREFIXES = [
+    "admin",           # /_proxy/admin/* → 403 Forbidden (internal admin only)
 ]
 
 # Headers that are dangerous and must NEVER be forwarded to the backend.
-# These can be used for header injection or privilege escalation attacks.
+# These can be used for header injection, privilege escalation, or IP spoofing.
+# Defense-in-depth: blocked both in the allowlist and via explicit stripping.
 PROXY_DANGEROUS_HEADERS = {
     "Cookie",          # Session cookies from frontend (never forward)
     "Set-Cookie",      # Backend cookies (never forward from frontend)
@@ -110,7 +119,8 @@ PROXY_DANGEROUS_HEADERS = {
 }
 
 # Headers that are safe to forward from client to backend.
-# Only these headers will be forwarded; all others are dropped.
+# Allowlist-based: ONLY these headers will be forwarded; all others are dropped.
+# This prevents accidental leakage of sensitive headers (e.g., internal tracking headers).
 PROXY_ALLOWED_HEADERS = {
     "Authorization",   # Bearer tokens, Basic auth
     "Content-Type",    # Request body content type
@@ -163,20 +173,44 @@ def _register_routes(app):
         Client calls: /_proxy/api/v1/...
         Server forwards to: {BACKEND_API_URL}/api/v1/...
 
-        Security Model:
-        - Denylist: Paths starting with any PROXY_DENYLIST_PREFIXES are blocked (403 Forbidden)
-        - Headers: Only PROXY_ALLOWED_HEADERS are forwarded; PROXY_DANGEROUS_HEADERS are stripped
-        - Timeouts: 20-second timeout prevents hanging requests
-        - Error Mapping: HTTP and network errors are mapped consistently
+        Security Model (ALLOWLIST-BASED):
+        1. OPTIONS requests: Always return 204 (preflight) without backend call
+        2. Path Validation (ALLOWLIST):
+           - Check if path starts with any PROXY_ALLOWLIST_PREFIXES (must match)
+           - Check if path starts with any PROXY_DENYLIST_PREFIXES (must not match)
+           - If allowlist fails or denylist matches: return 403 Forbidden
+           - Otherwise: proceed to forward
+        3. Header Forwarding (ALLOWLIST):
+           - Only PROXY_ALLOWED_HEADERS are forwarded to backend
+           - All other headers are stripped (default-deny)
+           - PROXY_DANGEROUS_HEADERS are explicitly excluded (defense-in-depth)
+        4. Request Body:
+           - Forwarded as-is for POST/PUT/PATCH
+           - Stripped for GET/DELETE
+        5. Response Handling:
+           - HTTP errors from backend: forwarded as-is (status + body + Content-Type)
+           - Network errors (URLError): mapped to 502 Bad Gateway
+        6. Timeouts: 20-second upstream timeout (mapped to 502)
+
+        Audit Trail:
+        - All path rejections logged implicitly by 403 response
+        - All forwarded requests include only approved headers
+        - All upstream errors mapped deterministically
         """
         # Allow preflight to succeed quickly (browser shouldn't need it for same-origin, but harmless).
         if request.method == "OPTIONS":
             return Response(status=204)
 
-        # Security: Check denylist - block paths that start with forbidden prefixes
-        for forbidden_prefix in PROXY_DENYLIST_PREFIXES:
-            if subpath.startswith(forbidden_prefix):
-                return Response("Forbidden", status=403, mimetype="text/plain")
+        # Security: ALLOWLIST-based path validation
+        # Step 1: Check if path is in the ALLOWLIST (must match at least one prefix)
+        is_allowed = any(subpath.startswith(prefix) for prefix in PROXY_ALLOWLIST_PREFIXES)
+
+        # Step 2: Check if path is in the DENYLIST (must not match any prefix)
+        is_denied = any(subpath.startswith(prefix) for prefix in PROXY_DENYLIST_PREFIXES)
+
+        # Step 3: Reject if not in allowlist OR in denylist (defense-in-depth)
+        if not is_allowed or is_denied:
+            return Response("Forbidden", status=403, mimetype="text/plain")
 
         base = (app.config.get("BACKEND_API_URL") or "").rstrip("/")
         if not base:
@@ -190,14 +224,16 @@ def _register_routes(app):
 
         body = request.get_data() if request.method in ("POST", "PUT", "PATCH") else None
 
-        # Forward only explicitly allowed headers, strip all others and dangerous headers
+        # Forward only explicitly allowed headers (ALLOWLIST), strip all others
+        # This is defense-in-depth: we whitelist exactly which headers are safe to forward
         headers = {}
         for header_name in PROXY_ALLOWED_HEADERS:
             header_value = request.headers.get(header_name)
             if header_value:
                 headers[header_name] = header_value
 
-        # Ensure dangerous headers are explicitly not forwarded (defense in depth)
+        # Ensure dangerous headers are explicitly not forwarded (defense-in-depth)
+        # This is redundant with the allowlist above, but provides explicit protection
         for header in PROXY_DANGEROUS_HEADERS:
             headers.pop(header, None)
 
@@ -208,10 +244,12 @@ def _register_routes(app):
                 content_type = resp.headers.get("Content-Type", "application/json")
                 return Response(resp_body, status=resp.status, content_type=content_type)
         except HTTPError as e:
+            # Backend returned HTTP error: forward status code, body, and Content-Type
             err_body = e.read() if hasattr(e, "read") else b""
             content_type = getattr(e, "headers", {}).get("Content-Type", "application/json")
             return Response(err_body, status=int(getattr(e, "code", 502)), content_type=content_type)
         except URLError:
+            # Network error: upstream unreachable, timeout, or connection refused
             return Response("Upstream network error", status=502, mimetype="text/plain")
 
     @app.route("/")

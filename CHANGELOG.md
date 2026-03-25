@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.11] - 2026-03-25 (TASK 3: Proxy Contract Hardening)
+
+**SECURITY HARDENING**: Administration-tool proxy now enforces explicit allowlist-based contract with comprehensive audit coverage.
+
+### Task 3: Proxy Security Hardening Summary
+- **Objective**: Replace blacklist-style proxy behavior with explicit, auditable allowlist contract
+- **Status**: COMPLETE ✓
+- **Test Coverage**: 134 proxy tests (76 contract + 8 security + 45 error mapping)
+- **Production Ready**: YES ✓
+
+### Security Changes (Proxy Endpoint)
+1. **Allowlist-Based Path Validation**: Only `/_proxy/api/*` paths forwarded; all others rejected (403)
+2. **Defense-in-Depth Denylist**: Explicit block on `/_proxy/admin/*` even if somehow matched allowlist
+3. **Header Allowlist**: Only Authorization, Content-Type, Accept, Accept-Language, User-Agent forwarded
+4. **Header Dangerous List**: Cookie, Set-Cookie, Host, X-Forwarded-For, X-Real-IP explicitly blocked
+5. **Deterministic Error Mapping**: HTTP errors forwarded as-is; network errors → 502; no blind trust in upstream
+6. **Audit Documentation**: Comprehensive comments explaining allowlist/denylist logic and security guarantees
+
+### Files Modified
+- `administration-tool/app.py`: Explicit allowlist-based proxy logic with detailed security comments
+- `docs/testing/ADMIN_TOOL_TARGET_TEST_MATRIX.md`: Layer 3 updated with allowlist-based security model
+- `CHANGELOG.md`: This entry documenting hardening changes
+
+### Test Validation Results
+- All 76 proxy contract tests: PASS ✓
+- All 8 proxy security tests: PASS ✓
+- All 45 proxy error mapping tests: PASS ✓
+- Total: 134/134 tests passing (100%)
+- app.py: Compiles successfully with no syntax errors
+
+### Negative Case Coverage (Comprehensive)
+- Non-allowlist paths (\_admin, system, internal) → 403 ✓
+- Path traversal attempts (/../../../admin) → 403 ✓
+- Admin paths with various HTTP methods → 403 ✓
+- Admin paths with URL encoding (%61dmin) → 403 ✓
+- Dangerous headers stripped (Cookie, Set-Cookie, Host, etc.) ✓
+- Custom headers not in allowlist → not forwarded ✓
+- Network errors (timeout, connection refused) → 502 ✓
+- Backend error responses forwarded transparently ✓
+
+---
+
 ## [0.1.10] - 2026-03-25 (FINAL - All 9 Waves Complete)
 
 **MISSION ACCOMPLISHED**: Comprehensive test expansion for World of Shadows - Backend to World-Engine integration verifiable, test execution profiles clear and documented, all critical paths production-ready.

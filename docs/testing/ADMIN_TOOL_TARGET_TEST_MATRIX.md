@@ -89,33 +89,43 @@ The Administration Tool (`administration-tool/`) is a lightweight Flask public f
 
 ---
 
-### Layer 3: Proxy & Backend Integration
+### Layer 3: Proxy & Backend Integration (ALLOWLIST-BASED)
 **Scope**: `/_proxy/*` endpoint, request forwarding, header manipulation, error mapping
 **Type**: Integration + Security + Contract
+**Security Model**: ALLOWLIST-based (deny-by-default, explicitly allow `api/`, explicitly deny `admin/`)
 
 | Component | Current Tests | Target Tests | Markers | Test Examples |
 |-----------|---------------|--------------|---------|---------------|
-| Proxy Allowed Paths | 3 | 4 | contract, integration | test_proxy_forwards_api_paths, test_proxy_preserves_query_string |
-| Proxy Denied Paths (/admin) | 2 | 3 | security, contract | test_proxy_blocks_admin_paths, test_proxy_blocks_admin_wildcard |
-| HTTP Methods (GET, POST, PUT, DELETE) | 2 | 5 | contract, integration | test_proxy_GET_method_forwarded, test_proxy_POST_with_body |
-| Request Headers Forwarding | 2 | 4 | security, contract | test_proxy_forwards_authorization_header, test_proxy_strips_cookie_header |
-| Response Headers Preservation | 1 | 3 | contract, integration | test_proxy_preserves_content_type, test_proxy_preserves_response_headers |
-| Error Response Mapping | 2 | 4 | contract, integration | test_proxy_maps_upstream_404_to_404, test_proxy_maps_upstream_500_to_502 |
-| Proxy OPTIONS/Preflight | 1 | 2 | contract, integration | test_proxy_options_returns_204, test_proxy_options_no_body |
-| Upstream Network Errors | 1 | 3 | integration | test_proxy_timeout_returns_504, test_proxy_connection_refused_returns_502 |
+| Proxy Allowed Paths (Allowlist) | 3 | 4 | contract, integration | test_proxy_forwards_api_paths, test_proxy_allows_various_api_paths |
+| Proxy Denied Paths (Denylist + Allowlist) | 2 | 3 | security, contract | test_proxy_blocks_admin_paths, test_proxy_blocks_admin_with_post |
+| HTTP Methods (GET, POST, PUT, DELETE) | 2 | 5 | contract, integration | test_proxy_forwards_all_http_methods, test_proxy_POST_with_body |
+| Request Headers (Allowlist) | 2 | 4 | security, contract | test_proxy_forwards_authorization_header, test_proxy_strips_cookie_header |
+| Response Headers Preservation | 1 | 3 | contract, integration | test_proxy_preserves_content_type, test_proxy_preserves_empty_response_body |
+| Error Response Mapping | 2 | 4 | contract, integration | test_proxy_backend_404_forwarded, test_proxy_urlerror_returns_502 |
+| Proxy OPTIONS/Preflight | 1 | 2 | contract, integration | test_proxy_options_returns_204, test_proxy_options_no_call_to_backend |
+| Upstream Network Errors | 1 | 3 | integration | test_proxy_timeout_returns_502, test_proxy_urlerror_connection_refused_returns_502 |
 | **Layer 3 Total** | **14** | **28** | | |
 
-**Security Guarantees**:
-- Admin paths (/_proxy/admin/*) always return 403
-- Dangerous headers (Cookie, Set-Cookie, Host) never forwarded
-- Request body preserved for POST/PUT/PATCH
-- Authorization header forwarded only if present in request
-- Backend API URL never exposed in error responses
+**Security Guarantees** (ALLOWLIST-BASED):
+1. **Path Allowlist**: Only paths starting with `api/` are forwarded (explicit allow)
+2. **Path Denylist**: Paths starting with `admin` are blocked even if they somehow match allowlist (defense-in-depth)
+3. **Unmapped Paths**: All other paths (e.g., `_admin/*`, `system/*`, custom prefixes) return 403 Forbidden
+4. **Header Allowlist**: Only `Authorization`, `Content-Type`, `Accept`, `Accept-Language`, `User-Agent` are forwarded
+5. **Header Dangerous List**: `Cookie`, `Set-Cookie`, `Host`, `X-Forwarded-For`, `X-Real-IP` are explicitly blocked (defense-in-depth)
+6. **Request Bodies**: Preserved for POST/PUT/PATCH; stripped for GET/DELETE
+7. **Response Integrity**: Status codes, bodies, Content-Type headers forwarded as-is from backend
+8. **Upstream Errors**: HTTP errors (4xx/5xx) forwarded transparently; network errors mapped to 502
 
-**Negative Tests**:
-- Path traversal attempts (/../../../admin) blocked
-- Missing backend URL configured → 500
-- Timeout on slow backend → 504 (or 502)
+**Negative Tests** (Comprehensive Coverage):
+- Non-allowlist paths (`_admin/*`, `system/*`, `internal/*`) → 403 Forbidden
+- Path traversal attempts (`/../../../admin`) → 403 Forbidden
+- Admin paths with various HTTP methods (POST, PUT, DELETE) → 403 Forbidden
+- Admin paths with URL encoding (`%61dmin`) → 403 Forbidden
+- Dangerous headers stripped (Cookie, Set-Cookie, Host, X-Forwarded-For, X-Real-IP)
+- Custom headers not in allowlist → not forwarded
+- Missing backend URL configured → 500 Internal Server Error
+- Timeout on slow backend → 502 Bad Gateway
+- Network errors (connection refused, DNS resolution failure) → 502 Bad Gateway
 - Invalid upstream response → graceful error mapping
 - Malformed JSON body → forwarded as-is (backend validates)
 
