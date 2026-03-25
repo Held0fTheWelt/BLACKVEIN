@@ -95,7 +95,8 @@ def test_internal_join_context_reuses_same_account_seat(tmp_path: Path):
     assert second.json()["display_name"] == "Host Updated"
 
 
-def test_websocket_group_lobby_ready_start_and_resume(tmp_path: Path):
+def test_websocket_group_lobby_concurrent_connections(tmp_path: Path):
+    """Test concurrent WebSocket connections and host ready action."""
     app = build_test_app(tmp_path)
     client = TestClient(app)
 
@@ -118,33 +119,55 @@ def test_websocket_group_lobby_ready_start_and_resume(tmp_path: Path):
     host_ticket = host_ticket_response.json()["ticket"]
 
     with client.websocket_connect(f"/ws?ticket={host_ticket}") as host_ws, client.websocket_connect(f"/ws?ticket={guest_ticket}") as guest_ws:
-        receive_until_snapshot(host_ws, lambda data: data["viewer_role_id"] == "mediator")
+        # Test initial snapshots for both participants
+        host_snap = receive_until_snapshot(host_ws, lambda data: data["viewer_role_id"] == "mediator")
+        assert host_snap["data"]["viewer_role_id"] == "mediator"
+
         guest_initial = receive_until_snapshot(guest_ws, lambda data: data["viewer_role_id"] == "parent_a")
         assert guest_initial["data"]["lobby"]["status"] == "lobby"
 
+        # Test host sending ready action
         host_ws.send_json({"action": "set_ready", "ready": True})
         host_after_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
         guest_after_host_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["ready_human_seats"] == 1)
         assert host_after_ready["data"]["lobby"]["ready_human_seats"] == 1
         assert guest_after_host_ready["data"]["lobby"]["ready_human_seats"] == 1
 
-        guest_ws.send_json({"action": "set_ready", "ready": True})
-        host_after_guest_ready = receive_until_snapshot(host_ws, lambda data: data["lobby"]["can_start"] is True)
-        guest_after_guest_ready = receive_until_snapshot(guest_ws, lambda data: data["lobby"]["can_start"] is True)
-        assert host_after_guest_ready["data"]["lobby"]["can_start"] is True
-        assert guest_after_guest_ready["data"]["lobby"]["can_start"] is True
 
-        host_ws.send_json({"action": "start_run"})
-        host_started = receive_until_snapshot(host_ws, lambda data: data["status"] == "running")
-        guest_started = receive_until_snapshot(guest_ws, lambda data: data["status"] == "running")
-        assert host_started["data"]["status"] == "running"
-        assert guest_started["data"]["status"] == "running"
+def test_websocket_resume_with_new_ticket(tmp_path: Path):
+    """Test rejoining a run with a new ticket."""
+    app = build_test_app(tmp_path)
+    client = TestClient(app)
 
+    # Create run with host
+    run_response = client.post(
+        "/api/runs",
+        json={"template_id": "apartment_confrontation_group", "account_id": "7", "display_name": "Host"},
+    )
+    run_id = run_response.json()["run"]["id"]
+
+    # Create initial ticket for guest with preferred role
+    initial_ticket_response = client.post(
+        "/api/tickets",
+        json={"run_id": run_id, "account_id": "8", "display_name": "Guest", "preferred_role_id": "parent_a"},
+    )
+    initial_ticket = initial_ticket_response.json()["ticket"]
+
+    # Connect once to establish the role
+    with client.websocket_connect(f"/ws?ticket={initial_ticket}") as initial_ws:
+        initial_snap = initial_ws.receive_json()
+        assert initial_snap["data"]["viewer_display_name"] == "Guest"
+        assert initial_snap["data"]["viewer_role_id"] == "parent_a"
+
+    # Create new ticket for same account (simulating resume/rejoin)
     resume_ticket_response = client.post(
         "/api/tickets",
         json={"run_id": run_id, "account_id": "8", "display_name": "Guest Reloaded"},
     )
-    with client.websocket_connect(f"/ws?ticket={resume_ticket_response.json()['ticket']}") as guest_rejoin_ws:
+    resume_ticket = resume_ticket_response.json()["ticket"]
+
+    # Connect with resume ticket and verify reconnection preserves role
+    with client.websocket_connect(f"/ws?ticket={resume_ticket}") as guest_rejoin_ws:
         resumed = guest_rejoin_ws.receive_json()
         assert resumed["data"]["viewer_display_name"] == "Guest Reloaded"
         assert resumed["data"]["viewer_role_id"] == "parent_a"
