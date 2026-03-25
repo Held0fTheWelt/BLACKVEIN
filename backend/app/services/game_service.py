@@ -52,6 +52,16 @@ def get_play_service_websocket_url() -> str:
     return f"{scheme}://{parsed.netloc}".rstrip("/")
 
 
+def has_complete_play_service_config() -> bool:
+    """Check if PLAY_SERVICE is fully configured for operation."""
+    try:
+        _require_configured_url("public")
+        _require_configured_url("internal")
+        return True
+    except GameServiceConfigError:
+        return False
+
+
 def _internal_headers() -> dict[str, str]:
     headers = {"Accept": "application/json"}
     api_key = (current_app.config.get("PLAY_SERVICE_INTERNAL_API_KEY") or "").strip()

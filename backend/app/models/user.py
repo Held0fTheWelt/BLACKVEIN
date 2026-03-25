@@ -43,6 +43,8 @@ class User(db.Model):
     preferred_language = db.Column(db.String(10), nullable=True)
     last_seen_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=True, default=_utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=True, default=_utc_now, onupdate=_utc_now)
+    is_active = db.Column(db.Boolean(), nullable=False, default=True)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
     password_history = db.Column(db.Text, nullable=True)
@@ -92,12 +94,14 @@ class User(db.Model):
             "role_id": self.role_id,
             "role_level": getattr(self, "role_level", 0) or 0,
             "area_ids": [a.id for a in self.areas] if self.areas else [],
+            "is_active": self.is_active,
         }
         if include_areas and self.areas:
             out["areas"] = [a.to_dict() for a in self.areas]
         if self.preferred_language is not None:
             out["preferred_language"] = self.preferred_language
         out["created_at"] = self.created_at.isoformat() if self.created_at else None
+        out["updated_at"] = self.updated_at.isoformat() if self.updated_at else None
         out["last_seen_at"] = self.last_seen_at.isoformat() if self.last_seen_at else None
         if include_email:
             out["email"] = self.email
