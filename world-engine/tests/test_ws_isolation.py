@@ -40,6 +40,7 @@ class TestWebSocketIsolation:
 
     @pytest.mark.websocket
     @pytest.mark.security
+    @pytest.mark.timeout(10)
     def test_run_a_messages_do_not_reach_run_b(self, app_for_isolation: FastAPI):
         """Messages in run A should not be broadcast to run B participants."""
         client = TestClient(app_for_isolation)

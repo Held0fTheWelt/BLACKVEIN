@@ -102,6 +102,9 @@ class RuntimeManager:
         owner_character_id: str | None = None,
         forced_run_id: str | None = None,
     ) -> RuntimeInstance:
+        from app.runtime.models import LobbySeatState
+        from app.content.models import ExperienceKind
+
         instance = RuntimeInstance(
             id=forced_run_id or uuid4().hex,
             template_id=template.id,
@@ -134,6 +137,16 @@ class RuntimeManager:
                 room_id=room_id,
                 state=prop.initial_state,
             )
+
+        # Initialize lobby seats for GROUP_STORY templates
+        if template.kind == ExperienceKind.GROUP_STORY:
+            for role in template.roles:
+                if role.mode == ParticipantMode.HUMAN and role.can_join:
+                    instance.lobby_seats[role.id] = LobbySeatState(
+                        role_id=role.id,
+                        role_display_name=role.display_name,
+                    )
+
         self.instances[instance.id] = instance
         self.engines[instance.id] = RuntimeEngine(template)
         self.locks.setdefault(instance.id, asyncio.Lock())
@@ -157,6 +170,13 @@ class RuntimeManager:
             )
             instance.participants[participant.id] = participant
             instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
+
+            # Update lobby seat if it exists (for GROUP_STORY templates)
+            if role.id in instance.lobby_seats:
+                instance.lobby_seats[role.id].participant_id = participant.id
+                instance.lobby_seats[role.id].occupant_display_name = owner_display_name
+                instance.lobby_seats[role.id].joined_at = datetime.now(timezone.utc)
+
             instance.updated_at = datetime.now(timezone.utc)
             self.store.save(instance)
         return instance
@@ -207,6 +227,14 @@ class RuntimeManager:
         instance.participants[participant.id] = participant
         instance.status = RunStatus.RUNNING
         instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
+
+        # Update lobby seat if it exists
+        if role.id in instance.lobby_seats:
+            instance.lobby_seats[role.id].participant_id = participant.id
+            instance.lobby_seats[role.id].occupant_display_name = display_name
+            instance.lobby_seats[role.id].connected = False  # Will be set to True when WebSocket connects
+            instance.lobby_seats[role.id].joined_at = datetime.now(timezone.utc)
+
         self.store.save(instance)
         return participant
 
@@ -295,17 +323,31 @@ class RuntimeManager:
     async def connect(self, run_id: str, participant_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
         self.connections[run_id][participant_id] = websocket
-        self.instances[run_id].participants[participant_id].connected = True
-        self.instances[run_id].status = RunStatus.RUNNING
-        self.store.save(self.instances[run_id])
+        instance = self.instances[run_id]
+        participant = instance.participants[participant_id]
+        participant.connected = True
+        instance.status = RunStatus.RUNNING
+
+        # Update lobby seat connected status if it exists
+        if participant.role_id in instance.lobby_seats:
+            instance.lobby_seats[participant.role_id].connected = True
+
+        self.store.save(instance)
         await self.broadcast_snapshot(run_id)
 
     async def disconnect(self, run_id: str, participant_id: str) -> None:
         if run_id in self.connections:
             self.connections[run_id].pop(participant_id, None)
         if run_id in self.instances and participant_id in self.instances[run_id].participants:
-            self.instances[run_id].participants[participant_id].connected = False
-            self.store.save(self.instances[run_id])
+            instance = self.instances[run_id]
+            participant = instance.participants[participant_id]
+            participant.connected = False
+
+            # Update lobby seat connected status if it exists
+            if participant.role_id in instance.lobby_seats:
+                instance.lobby_seats[participant.role_id].connected = False
+
+            self.store.save(instance)
             await self.broadcast_snapshot(run_id)
 
     async def process_command(self, run_id: str, participant_id: str, command: dict[str, Any]) -> None:

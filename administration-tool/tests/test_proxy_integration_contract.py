@@ -13,7 +13,7 @@ These tests ensure the admin tool proxy layer is production-ready.
 
 import pytest
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class TestAdminProxyBackendContract:
@@ -202,7 +202,7 @@ class TestAdminProxyCachingContract:
         cached_data = {
             'key': 'user_list',
             'value': [{'id': 1, 'username': 'user1'}],
-            'cached_at': datetime.utcnow().isoformat(),
+            'cached_at': datetime.now(timezone.utc).isoformat(),
             'ttl_seconds': 300,  # 5 minute cache
         }
 
@@ -248,7 +248,7 @@ class TestAdminProxyRateLimitingContract:
             'headers': {
                 'X-RateLimit-Limit': '1000',
                 'X-RateLimit-Remaining': '999',
-                'X-RateLimit-Reset': str(int(datetime.utcnow().timestamp()) + 3600),
+                'X-RateLimit-Reset': str(int(datetime.now(timezone.utc).timestamp()) + 3600),
             }
         }
 
@@ -332,7 +332,7 @@ class TestAdminProxyLoggingContract:
     def test_proxy_logs_all_requests(self):
         """Proxy logs all forwarded requests."""
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'admin_id': 1,
             'action': 'user_deleted',
             'user_id': 2,
@@ -347,7 +347,7 @@ class TestAdminProxyLoggingContract:
     def test_proxy_logs_failed_requests(self):
         """Proxy logs failed forwarded requests."""
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'admin_id': 1,
             'action': 'user_updated',
             'user_id': 999,

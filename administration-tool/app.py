@@ -141,6 +141,8 @@ def _register_routes(app):
                 ct = resp.headers.get("Content-Type")
                 if ct:
                     response.headers["Content-Type"] = ct
+                else:
+                    response.headers["Content-Type"] = "application/json"
                 return response
         except HTTPError as e:
             body = e.read()
@@ -150,7 +152,7 @@ def _register_routes(app):
                 response.headers["Content-Type"] = ct
             return response
         except URLError:
-            return Response("Bad Gateway", status=502, mimetype="text/plain")
+            return Response("Upstream network error", status=502, mimetype="text/plain")
 
     @app.route("/")
     def index():
@@ -163,7 +165,7 @@ def _register_routes(app):
 
     @app.route("/news/<int:article_id>")
     def news_detail(article_id):
-        return render_template("news_detail.html", article_id=article_id)
+        return render_template("news_detail.html", news_id=article_id)
 
     @app.route("/wiki", endpoint="wiki_index")
     @app.route("/wiki", endpoint="wiki_page")

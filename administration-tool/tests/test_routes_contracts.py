@@ -631,6 +631,9 @@ class DummyUpstreamResponse:
     def read(self) -> bytes:
         return self._body
 
+    def getcode(self) -> int:
+        return self.status
+
     def __enter__(self):
         return self
 

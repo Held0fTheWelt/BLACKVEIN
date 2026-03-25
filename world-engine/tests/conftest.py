@@ -59,6 +59,10 @@ def receive_until_snapshot(websocket, predicate, attempts: int = 6, timeout: flo
                 return last
         except socket.timeout:
             raise TimeoutError(f"WebSocket receive timeout on attempt {attempt + 1}/{attempts}") from None
+        except Exception as e:
+            # If we can't set the timeout, raise an error so the test fails fast
+            # rather than hanging indefinitely
+            raise RuntimeError(f"WebSocket receive failed on attempt {attempt + 1}/{attempts}: {e}") from e
     raise AssertionError(f"Did not receive matching snapshot after {attempts} attempts; last payload was: {last}")
 
 
@@ -91,8 +95,7 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
     app = FastAPI()
     app.state.manager = runtime_manager_module.RuntimeManager(
         store_root=tmp_path,
-        store_backend=store_backend,
-        store_url=store_url,
+        content_source_url=store_url,
     )
     app.state.ticket_manager = tickets_module.TicketManager("test-secret")
     app.include_router(http_module.router)
