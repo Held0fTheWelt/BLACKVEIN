@@ -68,6 +68,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `tests/test_store_sqlalchemy.py` (7 tests): SQL persistence, database initialization, transcript storage, optional dependency handling
   - `tests/test_store_recovery.py` (8 tests): Recovery after save/reload, state preservation, data integrity, multi-run consistency
 
+- **WAVE 9: Cross-service contracts and execution profiles (24 tests + documentation)**
+  - `tests/test_backend_bridge_contract.py` (24 tests): Backend ticket issuance, HMAC verification, credential mismatch detection, expired ticket handling, field mapping compatibility, signature tampering detection
+  - `docs/testing/TEST_EXECUTION_PROFILES.md`: 8 practical test execution profiles with exact commands (fast/full admin, fast/full world-engine, security-only, contract-only, websocket-only, bridge); CI/CD integration guidance; troubleshooting guide
+
 ## [0.1.8] - 2026-03-23
 
 ### Security
