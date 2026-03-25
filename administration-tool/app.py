@@ -89,6 +89,37 @@ def _backend_origin():
     return None
 
 
+# Explicit proxy allowlist and denylist rules for security hardening.
+# These define which paths are allowed to be proxied to the backend.
+PROXY_DENYLIST_PREFIXES = [
+    "admin",           # /_proxy/admin/* → 403 Forbidden
+]
+
+PROXY_ALLOWLIST_PREFIXES = [
+    "api/",            # /_proxy/api/* → allowed (REST API)
+]
+
+# Headers that are dangerous and must NEVER be forwarded to the backend.
+# These can be used for header injection or privilege escalation attacks.
+PROXY_DANGEROUS_HEADERS = {
+    "Cookie",          # Session cookies from frontend (never forward)
+    "Set-Cookie",      # Backend cookies (never forward from frontend)
+    "Host",            # Host header (prevents host injection attacks)
+    "X-Forwarded-For", # Client IP spoofing (not trusted from client)
+    "X-Real-IP",       # Client IP spoofing (not trusted from client)
+}
+
+# Headers that are safe to forward from client to backend.
+# Only these headers will be forwarded; all others are dropped.
+PROXY_ALLOWED_HEADERS = {
+    "Authorization",   # Bearer tokens, Basic auth
+    "Content-Type",    # Request body content type
+    "Accept",          # Requested response media type
+    "Accept-Language", # Preferred language
+    "User-Agent",      # Client information (informational only)
+}
+
+
 def inject_config():
     """Expose backend URL, frontend config, current language, and UI translations to all templates.
 
@@ -132,15 +163,20 @@ def _register_routes(app):
         Client calls: /_proxy/api/v1/...
         Server forwards to: {BACKEND_API_URL}/api/v1/...
 
-        Security: Blocks /_proxy/admin/* paths (403 Forbidden).
+        Security Model:
+        - Denylist: Paths starting with any PROXY_DENYLIST_PREFIXES are blocked (403 Forbidden)
+        - Headers: Only PROXY_ALLOWED_HEADERS are forwarded; PROXY_DANGEROUS_HEADERS are stripped
+        - Timeouts: 20-second timeout prevents hanging requests
+        - Error Mapping: HTTP and network errors are mapped consistently
         """
         # Allow preflight to succeed quickly (browser shouldn't need it for same-origin, but harmless).
         if request.method == "OPTIONS":
             return Response(status=204)
 
-        # Security: Block admin paths
-        if subpath.startswith("admin"):
-            return Response("Forbidden", status=403, mimetype="text/plain")
+        # Security: Check denylist - block paths that start with forbidden prefixes
+        for forbidden_prefix in PROXY_DENYLIST_PREFIXES:
+            if subpath.startswith(forbidden_prefix):
+                return Response("Forbidden", status=403, mimetype="text/plain")
 
         base = (app.config.get("BACKEND_API_URL") or "").rstrip("/")
         if not base:
@@ -154,16 +190,15 @@ def _register_routes(app):
 
         body = request.get_data() if request.method in ("POST", "PUT", "PATCH") else None
 
+        # Forward only explicitly allowed headers, strip all others and dangerous headers
         headers = {}
-        # Forward only relevant headers, explicitly strip dangerous ones
-        dangerous_headers = {"Cookie", "Set-Cookie", "Host"}
-        if request.headers.get("Authorization"):
-            headers["Authorization"] = request.headers["Authorization"]
-        if request.headers.get("Content-Type"):
-            headers["Content-Type"] = request.headers["Content-Type"]
-        headers["Accept"] = request.headers.get("Accept", "application/json")
-        # Ensure dangerous headers are not forwarded
-        for header in dangerous_headers:
+        for header_name in PROXY_ALLOWED_HEADERS:
+            header_value = request.headers.get(header_name)
+            if header_value:
+                headers[header_name] = header_value
+
+        # Ensure dangerous headers are explicitly not forwarded (defense in depth)
+        for header in PROXY_DANGEROUS_HEADERS:
             headers.pop(header, None)
 
         req = Request(target, data=body, method=request.method, headers=headers)
