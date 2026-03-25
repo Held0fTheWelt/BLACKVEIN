@@ -377,6 +377,11 @@ def create_app(test_config=None):
 
     Deterministic: Same inputs produce identical app configurations.
     No import-time side effects: App creation is explicit and controllable.
+
+    Security Policy:
+    - Production mode: Requires SECRET_KEY in environment (fail-fast on missing)
+    - Test mode (TESTING=True): Allows fallback to generated key with warning
+    - Dev mode (create_app() with no test_config and explicit SECRET_KEY env var): Allowed
     """
     app = Flask(
         __name__,
@@ -385,7 +390,11 @@ def create_app(test_config=None):
         static_url_path="/static",
     )
 
-    # Load environment from .env (local dev convenience) only if not in test mode
+    # Determine if we're in explicit test mode (TESTING=True in test_config)
+    is_test_mode = test_config is not None and test_config.get("TESTING") is True
+
+    # Load environment from .env (local dev convenience) only if NOT using test_config
+    # When test_config is provided, we skip .env loading to ensure clean test isolation
     if test_config is None:
         try:
             from dotenv import load_dotenv
@@ -408,17 +417,27 @@ def create_app(test_config=None):
     app.config["BACKEND_API_URL"] = backend_url.rstrip("/")
 
     # Configure secret key with security validation
+    # Production policy: SECRET_KEY must be explicitly provided (fail-fast)
     if test_config and "SECRET_KEY" in test_config:
+        # Explicit SECRET_KEY in test_config: use it
         secret = test_config["SECRET_KEY"]
     else:
+        # Not in test_config, check environment
+        # Note: if test_config is provided, .env is NOT loaded (clean isolation)
         secret = os.environ.get("SECRET_KEY", "").strip()
 
     if not secret:
-        # Generate a secure random key if SECRET_KEY is not set
-        secret = secrets.token_urlsafe(32)
-        # Only print warning if not in test mode
-        if test_config is None or not test_config.get("TESTING"):
-            print("Warning: SECRET_KEY not found in environment. Generated a new one.")
+        if is_test_mode:
+            # Test mode (TESTING=True): allow fallback to generated key with warning
+            secret = secrets.token_urlsafe(32)
+            print("Warning: SECRET_KEY not found in test config. Generated a temporary test key.")
+        else:
+            # Production-like mode: require SECRET_KEY to be explicitly set
+            raise ValueError(
+                "SECRET_KEY must be provided in environment or test_config. "
+                "Do not rely on auto-generated keys in production-like mode. "
+                "Set the SECRET_KEY environment variable or pass it in test_config."
+            )
 
     app.secret_key = secret
 

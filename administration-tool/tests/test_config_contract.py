@@ -30,31 +30,42 @@ class TestSecretKeyContract:
         assert app.secret_key == secret
 
     @pytest.mark.contract
-    def test_secret_key_auto_generated_when_none(self, app_factory):
-        """Test that app generates a secret key when SECRET_KEY env var is not set."""
+    def test_secret_key_required_in_production_mode(self, app_factory, monkeypatch):
+        """Test that app raises error when SECRET_KEY is missing in production mode."""
+        # Clean environment to ensure no SECRET_KEY from .env or previous tests
+        monkeypatch.delenv("SECRET_KEY", raising=False)
+        with pytest.raises(ValueError, match="SECRET_KEY must be provided"):
+            app_factory(test_config={})
+
+    @pytest.mark.contract
+    def test_secret_key_fallback_allowed_in_test_mode(self, app_factory):
+        """Test that app generates key when SECRET_KEY missing but TESTING=True."""
         app = app_factory(test_config={"TESTING": True})
         # Should generate a key via secrets.token_urlsafe(32)
         assert app.secret_key is not None
         assert len(app.secret_key) > 0
 
     @pytest.mark.contract
-    def test_secret_key_auto_generated_is_different_each_time(self, app_factory):
-        """Test that auto-generated keys are different for each app."""
+    def test_secret_key_fallback_is_different_each_time_in_test_mode(self, app_factory, monkeypatch):
+        """Test that fallback-generated keys are different for each app in test mode."""
+        # Clean environment to force fallback generation
+        monkeypatch.delenv("SECRET_KEY", raising=False)
+
         app1 = app_factory(test_config={"TESTING": True})
         secret1 = app1.secret_key
 
         app2 = app_factory(test_config={"TESTING": True})
         secret2 = app2.secret_key
 
-        # Both should be non-empty (they might be the same if SECRET_KEY
-        # env var was already set in the environment, so we just check they exist)
+        # Both should be non-empty and different (random generation)
         assert secret1 and secret2
         assert len(secret1) > 0 and len(secret2) > 0
+        assert secret1 != secret2, "Fallback-generated keys should be random/different"
 
     @pytest.mark.contract
     def test_secret_key_is_not_empty_string(self, app_factory):
-        """Test that secret_key is never an empty string."""
-        app = app_factory(test_config={"TESTING": True})
+        """Test that secret_key is never an empty string (when provided)."""
+        app = app_factory(test_config={"SECRET_KEY": "test-secret", "TESTING": True})
         assert app.secret_key != ""
         assert app.secret_key is not None
 
