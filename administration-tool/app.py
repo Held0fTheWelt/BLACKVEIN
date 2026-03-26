@@ -168,89 +168,74 @@ def _register_routes(app):
 
     @app.route("/_proxy/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
     def proxy_api(subpath: str):
-        """Proxy API requests to the backend to avoid browser CORS limitations.
-
-        Client calls: /_proxy/api/v1/...
-        Server forwards to: {BACKEND_API_URL}/api/v1/...
-
-        Security Model (ALLOWLIST-BASED):
-        1. OPTIONS requests: Always return 204 (preflight) without backend call
-        2. Path Validation (ALLOWLIST):
-           - Check if path starts with any PROXY_ALLOWLIST_PREFIXES (must match)
-           - Check if path starts with any PROXY_DENYLIST_PREFIXES (must not match)
-           - If allowlist fails or denylist matches: return 403 Forbidden
-           - Otherwise: proceed to forward
-        3. Header Forwarding (ALLOWLIST):
-           - Only PROXY_ALLOWED_HEADERS are forwarded to backend
-           - All other headers are stripped (default-deny)
-           - PROXY_DANGEROUS_HEADERS are explicitly excluded (defense-in-depth)
-        4. Request Body:
-           - Forwarded as-is for POST/PUT/PATCH
-           - Stripped for GET/DELETE
-        5. Response Handling:
-           - HTTP errors from backend: forwarded as-is (status + body + Content-Type)
-           - Network errors (URLError): mapped to 502 Bad Gateway
-        6. Timeouts: 20-second upstream timeout (mapped to 502)
-
-        Audit Trail:
-        - All path rejections logged implicitly by 403 response
-        - All forwarded requests include only approved headers
-        - All upstream errors mapped deterministically
-        """
-        # Allow preflight to succeed quickly (browser shouldn't need it for same-origin, but harmless).
-        if request.method == "OPTIONS":
-            return Response(status=204)
-
-        # Security: ALLOWLIST-based path validation
-        # Step 1: Check if path is in the ALLOWLIST (must match at least one prefix)
-        is_allowed = any(subpath.startswith(prefix) for prefix in PROXY_ALLOWLIST_PREFIXES)
-
-        # Step 2: Check if path is in the DENYLIST (must not match any prefix)
-        is_denied = any(subpath.startswith(prefix) for prefix in PROXY_DENYLIST_PREFIXES)
-
-        # Step 3: Reject if not in allowlist OR in denylist (defense-in-depth)
-        if not is_allowed or is_denied:
-            return Response("Forbidden", status=403, mimetype="text/plain")
-
-        base = (app.config.get("BACKEND_API_URL") or "").rstrip("/")
-        if not base:
-            return Response("Backend API URL not configured", status=500, mimetype="text/plain")
-
-        # Preserve query string
-        path = "/" + subpath.lstrip("/")
-        target = base + path
-        if request.query_string:
-            target = target + "?" + request.query_string.decode("utf-8", errors="ignore")
-
-        body = request.get_data() if request.method in ("POST", "PUT", "PATCH") else None
-
-        # Forward only explicitly allowed headers (ALLOWLIST), strip all others
-        # This is defense-in-depth: we whitelist exactly which headers are safe to forward
-        headers = {}
-        for header_name in PROXY_ALLOWED_HEADERS:
-            header_value = request.headers.get(header_name)
-            if header_value:
-                headers[header_name] = header_value
-
-        # Ensure dangerous headers are explicitly not forwarded (defense-in-depth)
-        # This is redundant with the allowlist above, but provides explicit protection
-        for header in PROXY_DANGEROUS_HEADERS:
-            headers.pop(header, None)
-
-        req = Request(target, data=body, method=request.method, headers=headers)
+        """Proxy API requests to the backend to avoid browser CORS limitations."""
         try:
+            # Allow preflight to succeed quickly (browser shouldn't need it for same-origin, but harmless).
+            if request.method == "OPTIONS":
+                return Response(status=204)
+
+            # Security: ALLOWLIST-based path validation
+            is_allowed = any(subpath.startswith(prefix) for prefix in PROXY_ALLOWLIST_PREFIXES)
+            is_denied = any(subpath.startswith(prefix) for prefix in PROXY_DENYLIST_PREFIXES)
+
+            if not is_allowed or is_denied:
+                return Response("Forbidden", status=403, mimetype="text/plain")
+
+            base = (app.config.get("BACKEND_API_URL") or "").rstrip("/")
+            if not base:
+                return Response("Backend API URL not configured", status=500, mimetype="text/plain")
+
+            # Preserve query string
+            path = "/" + subpath.lstrip("/")
+            target = base + path
+            if request.query_string:
+                target = target + "?" + request.query_string.decode("utf-8", errors="ignore")
+
+            body = request.get_data() if request.method in ("POST", "PUT", "PATCH") else None
+
+            # Forward only explicitly allowed headers (ALLOWLIST), strip all others
+            headers = {}
+            for header_name in PROXY_ALLOWED_HEADERS:
+                header_value = request.headers.get(header_name)
+                if header_value:
+                    headers[header_name] = header_value
+
+            for header in PROXY_DANGEROUS_HEADERS:
+                headers.pop(header, None)
+
+            print(f"\n[PROXY DEBUG] {request.method} /_proxy/{subpath}")
+            print(f"[PROXY DEBUG] Target: {target}")
+            print(f"[PROXY DEBUG] Headers: {dict(headers)}")
+            print(f"[PROXY DEBUG] Body length: {len(body) if body else 0}")
+            if body:
+                try:
+                    print(f"[PROXY DEBUG] Body: {body.decode('utf-8')}")
+                except:
+                    print(f"[PROXY DEBUG] Body (raw): {body}")
+
+            req = Request(target, data=body, method=request.method, headers=headers)
             with urlopen(req, timeout=20) as resp:
                 resp_body = resp.read()
                 content_type = resp.headers.get("Content-Type", "application/json")
+                print(f"[PROXY DEBUG] Response: {resp.status}")
                 return Response(resp_body, status=resp.status, content_type=content_type)
         except HTTPError as e:
-            # Backend returned HTTP error: forward status code, body, and Content-Type
+            print(f"[PROXY DEBUG] HTTPError: {e.code}")
+            print(f"[PROXY DEBUG] Error body: {e.read()[:200] if hasattr(e, 'read') else 'N/A'}")
             err_body = e.read() if hasattr(e, "read") else b""
             content_type = getattr(e, "headers", {}).get("Content-Type", "application/json")
             return Response(err_body, status=int(getattr(e, "code", 502)), content_type=content_type)
-        except URLError:
-            # Network error: upstream unreachable, timeout, or connection refused
+        except URLError as e:
+            print(f"[PROXY DEBUG] URLError: {e}")
             return Response("Upstream network error", status=502, mimetype="text/plain")
+        except Exception as e:
+            print(f"\n{'!'*60}")
+            print(f"[PROXY DEBUG] UNEXPECTED ERROR")
+            print(f"Error: {e}")
+            import traceback
+            print(traceback.format_exc())
+            print(f"{'!'*60}\n")
+            raise
 
     @app.route("/")
     def index():
@@ -397,6 +382,19 @@ def _register_routes(app):
         """Moderator dashboard with queue and recent actions."""
         return render_template("manage_moderator_dashboard.html")
 
+    @app.errorhandler(500)
+    def handle_500_error(error):
+        """Log 500 errors with full details for debugging."""
+        import traceback
+        print(f"\n{'!'*60}")
+        print(f"500 ERROR OCCURRED")
+        print(f"{'!'*60}")
+        print(f"Error: {error}")
+        print(f"Traceback:")
+        print(traceback.format_exc())
+        print(f"{'!'*60}\n")
+        return "Internal Server Error", 500
+
     @app.after_request
     def add_security_headers(response):
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -537,5 +535,22 @@ app = create_app()
 if __name__ == "__main__":
     # Use FRONTEND_PORT to avoid clashing with backend's PORT in shared .env
     port = int(os.environ.get("FRONTEND_PORT") or os.environ.get("PORT", 5001))
-    debug = os.environ.get("FLASK_DEBUG", "0").strip().lower() in ("1", "true", "yes", "on")
-    app.run(host="0.0.0.0", port=port, debug=debug)
+
+    # Enable debug mode for better error reporting
+    app.config["DEBUG"] = True
+
+    # Show startup info
+    print(f"\n{'='*60}")
+    print(f"Administration Tool Starting")
+    print(f"{'='*60}")
+    print(f"Host: 0.0.0.0")
+    print(f"Port: {port}")
+    print(f"Debug: True (enabled for error diagnosis)")
+    print(f"Backend URL: {app.config.get('BACKEND_API_URL')}")
+    print(f"Template Folder: {app.template_folder}")
+    print(f"Static Folder: {app.static_folder}")
+    print(f"{'='*60}")
+    print(f"Open: http://127.0.0.1:{port}/manage/login")
+    print(f"{'='*60}\n")
+
+    app.run(host="0.0.0.0", port=port, debug=True)
