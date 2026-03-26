@@ -8,9 +8,11 @@ backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
 import pytest
-from flask import Flask
-from app.extensions import db as _db
-from run import app as create_app
+from app import create_app
+from app.config import TestingConfig
+from app.extensions import db as _db, limiter
+from app.models.role import ensure_roles_seeded
+from app.models.area import ensure_areas_seeded
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -22,18 +24,34 @@ def change_to_backend_dir():
     os.chdir(original_cwd)
 
 
+@pytest.fixture(autouse=True)
+def clear_rate_limiter():
+    """Clear rate limiter state before each test to prevent cross-test contamination."""
+    try:
+        if hasattr(limiter, '_storage') and limiter._storage is not None:
+            limiter.reset()
+    except Exception:
+        pass
+    yield
+    try:
+        if hasattr(limiter, '_storage') and limiter._storage is not None:
+            limiter.reset()
+    except Exception:
+        pass
+
+
 @pytest.fixture
 def app():
-    """Create Flask app for testing."""
-    app = create_app()
-    app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
-
-    with app.app_context():
+    """Create Flask app for testing with proper database configuration."""
+    application = create_app(TestingConfig)
+    with application.app_context():
+        # Enable foreign key constraints for SQLite (required for constraint violation tests)
+        _db.session.execute(_db.text('PRAGMA foreign_keys = ON'))
+        _db.session.commit()
         _db.create_all()
-        yield app
-        _db.session.remove()
-        _db.drop_all()
+        ensure_roles_seeded()
+        ensure_areas_seeded()
+        yield application
 
 
 @pytest.fixture
