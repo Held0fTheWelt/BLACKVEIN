@@ -13,9 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.1.17] - 2026-03-26 (UI/UX Improvements - View Refactoring)
+## [0.1.17] - 2026-03-26 (UI/UX Improvements, Layout, and Test Infrastructure)
 
-**Focus**: Improved readability and visual organization of game and wiki views with semantic HTML and responsive layouts.
+**Focus**: Improved readability and visual organization of views, responsive layout expansion, and test infrastructure fixes.
 
 ### Changed (UI/UX)
 
@@ -53,9 +53,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Improved maintainability through class-based styling
 - Better alignment with existing design system from index.html and play-service prototype
 
+### Test Infrastructure Fixes
+- **Backend Content Sync in Tests**: Disabled `BACKEND_CONTENT_SYNC_ENABLED` by default in test mode to prevent loading stale templates from live backend servers
+  - Tests now use only builtin templates unless explicitly testing content sync functionality
+  - Fixes `test_conditional_story_actions_unlock_across_beats` which was loading outdated god_of_carnage_solo template from backend
+  - Improves test isolation and reliability by avoiding external service dependencies
+  - Backend content sync can still be explicitly enabled per-test with monkeypatch
+
 ### Files Modified
 - `backend/app/web/templates/game_menu.html` - Complete refactor with semantic HTML and CSS classes
 - `backend/app/web/templates/wiki.html` - Modernized with `.app-shell` structure
+- `backend/app/static/style.css` - Increased `.container` max-width from 800px to 1500px
+- `world-engine/tests/conftest.py` - Disable backend content sync by default in tests
 
 ---
 
