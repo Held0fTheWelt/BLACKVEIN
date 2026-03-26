@@ -115,7 +115,7 @@ class RuntimeManager:
             owner_account_id=owner_account_id,
             owner_character_id=owner_character_id,
             beat_id=template.initial_beat_id,
-            status=RunStatus.RUNNING if template.kind.value == "open_world" else RunStatus.LOBBY,
+            status=RunStatus.RUNNING if template.kind.value in ("open_world", "solo_story") else RunStatus.LOBBY,
             persistent=template.persistent,
         )
         for role in template.roles:
@@ -225,8 +225,8 @@ class RuntimeManager:
             seat_owner=account_id or display_name,
         )
         instance.participants[participant.id] = participant
-        # Only transition to RUNNING for open_world templates; GROUP_STORY stays in LOBBY until start_run
-        if template.kind.value == "open_world":
+        # Only transition to RUNNING for open_world and solo_story templates; GROUP_STORY stays in LOBBY until start_run
+        if template.kind.value in ("open_world", "solo_story"):
             instance.status = RunStatus.RUNNING
         instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
 
@@ -330,8 +330,8 @@ class RuntimeManager:
         participant = instance.participants[participant_id]
         participant.connected = True
 
-        # Only transition to RUNNING for open_world templates; GROUP_STORY stays in LOBBY until start_run
-        if template.kind.value == "open_world":
+        # Only transition to RUNNING for open_world and solo_story templates; GROUP_STORY stays in LOBBY until start_run
+        if template.kind.value in ("open_world", "solo_story"):
             instance.status = RunStatus.RUNNING
 
         # Update lobby seat connected status if it exists
