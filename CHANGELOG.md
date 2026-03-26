@@ -13,6 +13,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.16] - 2026-03-26 (Test Fixes & Performance Optimization)
+
+**Focus**: Comprehensive test suite fixes, performance optimization, and test isolation improvements.
+
+### Added
+- Internal API endpoints for run operations:
+  - `GET /api/internal/runs/{run_id}` - Get detailed run information
+  - `GET /api/internal/runs/{run_id}/transcript` - Get run transcript
+  - `POST /api/internal/runs/{run_id}/terminate` - Terminate a run
+
+### Fixed
+- **test_internal_run_detail_and_terminate**: Corrected response structure access (nested under 'run' key)
+- **test_backend_published_content_overrides_builtin**: Fixed test isolation by using environment variables and proper module reloading
+- **test_conditional_story_actions_unlock_across_beats**: Fixed story beat action availability (pour_rum now unlocks in first_fracture beat)
+- **test_api_rejects_expired_tickets**: Fixed ticket expiration testing with ttl_seconds=-1 for immediate expiration
+- **test_remote_templates_override_and_load**: Fixed config and manager module reloading to properly pick up environment variables
+- Test interference issues by implementing proper cleanup of environment variables and module state
+- Config pollution from monkeypatch.setenv by reloading modules in test teardown
+
+### Performance
+- **WebSocket timeout optimization**: Reduced receive_until_snapshot timeout from 5.0s to 0.1s with 10 attempts (maintains reliability while speeding up tests)
+- **Test sleep reduction**: Reduced timing-based test sleeps from 1s to 0.3s (API security, timing enumeration tests)
+- Overall test suite execution time improved through optimized WebSocket receive patterns
+
+### Changed
+- pour_rum action availability condition: from "alliances" beat to "first_fracture" beat for earlier action unlock
+
+### Technical Details
+- Proper test isolation through explicit environment variable cleanup (monkeypatch.delenv)
+- Config module reloading to reset state between tests with backend content sync
+- Manager module reloading to prevent stale template cache issues
+- Improved monkeypatch lifecycle management to prevent cross-test contamination
+
+### Test Coverage
+- 5 previously failing tests now pass
+- All test isolation issues resolved
+- Performance improved without sacrificing test reliability
+
+---
+
 ## [0.1.15] - 2026-03-25 (PHASES 1-7: Quality Gate System Implementation)
 
 **QUALITY GATES**: Comprehensive 7-phase quality gate system implemented for production-ready testing and release governance.
