@@ -13,24 +13,82 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.1.16] - 2026-03-26 (Test Fixes & Performance Optimization)
+## [0.1.16] - 2026-03-26 (Backend-Authored Content Pipeline & Test Hardening)
 
-**Focus**: Comprehensive test suite fixes, performance optimization, and test isolation improvements.
+**Focus**: Backend-authored content framework, runtime operations bridge, and comprehensive test suite stabilization.
+
+### Major Features
+
+#### Backend-Authored Content Pipeline
+- **Experience Management**: Full CRUD operations for authored game experiences
+  - Create, read, update, delete authored experiences
+  - Draft/publish workflow for content
+  - Publish validation and error handling
+  - Published content feed endpoint for consumption
+- **World-Engine Content Consumption**:
+  - Automatic synchronization of backend-published content
+  - Template override mechanism (backend published > builtin)
+  - Configurable content sync interval (BACKEND_CONTENT_SYNC_ENABLED, BACKEND_CONTENT_FEED_URL)
+  - Fallback to builtin templates when backend unavailable
+- **Administration Tool Integration**:
+  - Game Content management page (/manage/game-content)
+  - Game Operations inspection page (/manage/game-operations)
+  - Real-time content listing and status monitoring
+  - Runtime operations bridge for backend-to-engine communication
+
+#### Runtime Operations Bridge
+- Backend can inspect, monitor, and terminate running game instances
+- `/api/v1/game/internal/runs/{run_id}` endpoints for ops commands
+- Support for multi-user and single-player scenarios
+- Status tracking across content types (SOLO_STORY, GROUP_STORY, OPEN_WORLD)
 
 ### Added
-- Internal API endpoints for run operations:
-  - `GET /api/internal/runs/{run_id}` - Get detailed run information
-  - `GET /api/internal/runs/{run_id}/transcript` - Get run transcript
-  - `POST /api/internal/runs/{run_id}/terminate` - Terminate a run
+- **API Endpoints**:
+  - `GET /api/internal/runs/{run_id}` - Get detailed run information (backend internal)
+  - `GET /api/internal/runs/{run_id}/transcript` - Get run transcript (backend internal)
+  - `POST /api/internal/runs/{run_id}/terminate` - Terminate a run (backend internal)
+  - `GET /api/runs/{run_id}` - Get public run details
+  - `GET /api/health/ready` - Health readiness check with store info
+- **Configuration**:
+  - RUN_STORE_BACKEND: JSON or SQLAlchemy store backend selection
+  - RUN_STORE_URL: Database URL for SQLAlchemy backend
+  - BACKEND_CONTENT_SYNC_ENABLED: Enable/disable backend content sync
+  - BACKEND_CONTENT_FEED_URL: Backend content feed endpoint
+  - BACKEND_CONTENT_SYNC_INTERVAL_SECONDS: Content sync frequency
+  - BACKEND_CONTENT_TIMEOUT_SECONDS: Timeout for content fetch
+- **Models & Templates**:
+  - Extended God of Carnage template with richer beat/room/prop/action structure
+  - Authored experience seeding for baseline content
+  - Support for status transitions (ready → running → completed)
+- **Tests**:
+  - Authored content CRUD/publish tests
+  - Backend-to-engine content consumption tests
+  - Runtime operations bridge tests
+  - Administration tool content management tests
 
 ### Fixed
-- **test_internal_run_detail_and_terminate**: Corrected response structure access (nested under 'run' key)
-- **test_backend_published_content_overrides_builtin**: Fixed test isolation by using environment variables and proper module reloading
-- **test_conditional_story_actions_unlock_across_beats**: Fixed story beat action availability (pour_rum now unlocks in first_fracture beat)
-- **test_api_rejects_expired_tickets**: Fixed ticket expiration testing with ttl_seconds=-1 for immediate expiration
-- **test_remote_templates_override_and_load**: Fixed config and manager module reloading to properly pick up environment variables
-- Test interference issues by implementing proper cleanup of environment variables and module state
-- Config pollution from monkeypatch.setenv by reloading modules in test teardown
+- **Test Failures**:
+  - **test_internal_run_detail_and_terminate**: Corrected response structure access (nested under 'run' key)
+  - **test_backend_published_content_overrides_builtin**: Fixed test isolation by using environment variables and proper module reloading
+  - **test_conditional_story_actions_unlock_across_beats**: Fixed story beat action availability (pour_rum now unlocks in first_fracture beat)
+  - **test_api_rejects_expired_tickets**: Fixed ticket expiration testing with ttl_seconds=-1 for immediate expiration
+  - **test_remote_templates_override_and_load**: Fixed config and manager module reloading to properly pick up environment variables
+
+- **Configuration & Startup**:
+  - Handle None PLAY_SERVICE_INTERNAL_API_KEY gracefully in test mode
+  - Proper RUN_STORE configuration defaults and validation
+  - Removed lingering store_url parameter conflicts
+  - Fixed pytest.ini timeout configuration conflicts
+
+- **Runtime & State Management**:
+  - Initialize lobby_seats properly in WebSocket connections
+  - Condition status transitions based on template kind (GROUP_STORY vs SOLO_STORY vs OPEN_WORLD)
+  - Add timeout protection to WebSocket receive operations
+
+- **Test Isolation**:
+  - Test interference issues by implementing proper cleanup of environment variables and module state
+  - Config pollution from monkeypatch.setenv by reloading modules in test teardown
+  - Restored original functions and reloaded manager module to prevent template cache corruption
 
 ### Performance
 - **WebSocket timeout optimization**: Reduced receive_until_snapshot timeout from 5.0s to 0.1s with 10 attempts (maintains reliability while speeding up tests)
@@ -39,17 +97,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - pour_rum action availability condition: from "alliances" beat to "first_fracture" beat for earlier action unlock
+- README.md: Added comprehensive project documentation with all three service descriptions
+- God of Carnage template extended with detailed room layouts, prop definitions, and action flows
 
 ### Technical Details
 - Proper test isolation through explicit environment variable cleanup (monkeypatch.delenv)
 - Config module reloading to reset state between tests with backend content sync
 - Manager module reloading to prevent stale template cache issues
 - Improved monkeypatch lifecycle management to prevent cross-test contamination
+- Store abstraction supports both JSON (default) and SQLAlchemy backends
+- Content sync mechanism handles network errors gracefully with fallback to builtin templates
 
-### Test Coverage
+### Test Coverage & Quality
 - 5 previously failing tests now pass
 - All test isolation issues resolved
 - Performance improved without sacrificing test reliability
+- Comprehensive tests for authored content pipeline (25+ new tests)
+- Backend-to-engine bridge contract tests
+- Administration tool integration tests
+
+### Files Modified (3,652+ insertions, 2,979+ deletions)
+- **Backend**: game_routes.py, models, tests (25+ files)
+- **Administration Tool**: app.py, templates, JavaScript, tests (10+ files)
+- **World Engine**: app.py, config, tests, fixtures (13+ files)
+- **Documentation**: README.md, CHANGELOG.md
 
 ---
 
