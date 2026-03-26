@@ -4,14 +4,23 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='wiki.css') }}">
 {% endblock %}
 {% block content %}
-<div class="card wiki-card">
-    <h1>{{ wiki_title or 'Wiki' }}</h1>
+<main class="app-shell">
+  {% if wiki_title %}
+  <article class="panel">
+    <h1>{{ wiki_title }}</h1>
     {% if wiki_html %}
-    <div class="wiki-content prose">
-        {{ wiki_html | safe }}
+    <div class="wiki-content prose" style="margin-top: 24px;">
+      {{ wiki_html | safe }}
     </div>
     {% else %}
-    <p>{% if wiki_title %}Page not found.{% else %}Coming soon.{% endif %}</p>
+    <p class="subtitle" style="margin-top: 24px;">Page not found.</p>
     {% endif %}
-</div>
+  </article>
+  {% else %}
+  <article class="panel">
+    <h1>Wiki</h1>
+    <p class="subtitle" style="margin-top: 24px;">Coming soon. Explore the world and its lore.</p>
+  </article>
+  {% endif %}
+</main>
 {% endblock %}

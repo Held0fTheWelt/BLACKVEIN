@@ -1,128 +1,158 @@
 {% extends "base.html" %}
 {% block title %}Game Menu – World of Shadows{% endblock %}
 {% block content %}
-<div class="card" style="max-width: 1280px; margin: 0 auto; display: grid; gap: 1.25rem;">
-    <div>
-        <h1>Game Menu</h1>
-        <p>Launch solo stories, group stories, or the evolving open world through the separate play service.</p>
-        {% if not play_service_configured %}
-        <div class="flash error">The play service is not configured yet. Set <code>PLAY_SERVICE_PUBLIC_URL</code>, <code>PLAY_SERVICE_INTERNAL_URL</code>, and <code>PLAY_SERVICE_SHARED_SECRET</code> in the backend environment.</div>
-        {% endif %}
-    </div>
+<main class="app-shell">
+  <section class="panel launcher">
+    <h1>Game Menu</h1>
+    <p class="subtitle">Launch solo stories, group stories, or explore the open world through the play service.</p>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; align-items:end;">
-        <div>
-            <label for="gameCharacterSelect">Character profile</label>
-            <select id="gameCharacterSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
-        </div>
-        <div>
-            <label for="gameDisplayName">Fallback display name</label>
-            <input id="gameDisplayName" type="text" value="{{ current_user.username if current_user else '' }}" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-        </div>
-        <div>
-            <label for="gamePreferredRole">Preferred role id (optional)</label>
-            <input id="gamePreferredRole" type="text" placeholder="mediator" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-        </div>
+    {% if not play_service_configured %}
+    <div class="flash error" style="margin-top: 16px;">
+      <strong>Configuration needed:</strong> Set <code>PLAY_SERVICE_PUBLIC_URL</code>, <code>PLAY_SERVICE_INTERNAL_URL</code>, and <code>PLAY_SERVICE_SHARED_SECRET</code> in the backend environment.
     </div>
+    {% endif %}
 
-    <div class="card" style="background: rgba(255,255,255,0.03); display:grid; gap: 0.75rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
-            <h2 style="margin:0;">Character workshop</h2>
-            <small id="characterMeta" class="muted">No character selected.</small>
-        </div>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; align-items:end;">
-            <div>
-                <label for="newCharacterName">Character name</label>
-                <input id="newCharacterName" type="text" placeholder="Véronique" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-            </div>
-            <div>
-                <label for="newCharacterDisplayName">Scene display name</label>
-                <input id="newCharacterDisplayName" type="text" placeholder="Véronique Houillé" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-            </div>
-            <div>
-                <label for="newCharacterBio">Bio / notes</label>
-                <input id="newCharacterBio" type="text" placeholder="Writer, socially engaged, easily provoked." style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-            </div>
-            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button id="createCharacterButton" class="btn" type="button">Create character</button>
-                <button id="setDefaultCharacterButton" class="btn" type="button">Set default</button>
-                <button id="archiveCharacterButton" class="btn" type="button">Archive</button>
-            </div>
-        </div>
-    </div>
-
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; align-items: end;">
+    <div style="margin-top: 24px;">
+      <h3 style="margin-bottom: 14px;">Session setup</h3>
+      <div class="grid two-col">
         <div>
-            <label for="templateSelect">Create from template</label>
-            <select id="templateSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
-            <button id="createRunButton" class="btn" type="button" style="margin-top: 0.75rem;">Create run</button>
+          <label for="gameCharacterSelect">Character profile</label>
+          <select id="gameCharacterSelect"></select>
         </div>
         <div>
-            <label for="activeRunSelect">Join active run</label>
-            <select id="activeRunSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
-            <button id="joinRunButton" class="btn" type="button" style="margin-top: 0.75rem;">Join run</button>
+          <label for="gameDisplayName">Display name</label>
+          <input id="gameDisplayName" type="text" value="{{ current_user.username if current_user else '' }}">
         </div>
         <div>
-            <label for="saveSlotSelect">Save slot / bookmark</label>
-            <select id="saveSlotSelect" style="width:100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></select>
-            <div style="display:flex; gap:0.5rem; margin-top:0.75rem; flex-wrap:wrap;">
-                <button id="saveCurrentRunButton" class="btn" type="button">Save current run</button>
-                <button id="loadSavedRunButton" class="btn" type="button">Join saved run</button>
-                <button id="deleteSaveSlotButton" class="btn" type="button">Delete slot</button>
-            </div>
+          <label for="gamePreferredRole">Preferred role (optional)</label>
+          <input id="gamePreferredRole" type="text" placeholder="mediator">
         </div>
+      </div>
     </div>
+  </section>
 
-    <div style="display:flex; flex-wrap: wrap; gap: 1rem; align-items: center; font-size: 0.95rem;">
-        <strong id="connectionStatus">Disconnected</strong>
-        <span id="currentRunLabel">No run joined</span>
-    </div>
+  <section class="grid layout-main" style="margin-top: 20px;">
+    <article class="panel">
+      <h2>Character Workshop</h2>
+      <p class="subtitle" id="characterMeta">No character selected</p>
 
-    <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
-        <div class="card" style="background: rgba(255,255,255,0.03);">
-            <div style="display:flex; justify-content: space-between; gap: 1rem; align-items: flex-start;">
-                <div>
-                    <h2 id="roomTitle">No room</h2>
-                    <p id="roomDescription">Create or join a run to begin.</p>
-                </div>
-                <div style="text-align:right;">
-                    <div id="beatBadge">Beat: -</div>
-                    <div id="tensionBadge">Tension: 0</div>
-                </div>
-            </div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                <div>
-                    <h3>Exits</h3>
-                    <div id="exitList"></div>
-                    <h3 style="margin-top:1rem;">Scene actions</h3>
-                    <div id="actionList"></div>
-                </div>
-                <div>
-                    <h3>Props in room</h3>
-                    <div id="propList"></div>
-                    <h3 style="margin-top:1rem;">Occupants</h3>
-                    <div id="occupantList"></div>
-                </div>
-            </div>
+      <div style="margin-top: 16px;">
+        <div class="grid two-col">
+          <div>
+            <label for="newCharacterName">Character name</label>
+            <input id="newCharacterName" type="text" placeholder="Véronique">
+          </div>
+          <div>
+            <label for="newCharacterDisplayName">Scene display name</label>
+            <input id="newCharacterDisplayName" type="text" placeholder="Véronique Houillé">
+          </div>
         </div>
-        <div class="card" style="background: rgba(255,255,255,0.03); min-height: 420px;">
-            <h2>Transcript</h2>
-            <div id="transcript" style="max-height: 420px; overflow-y: auto; display: grid; gap: 0.75rem;"></div>
+        <div style="margin-top: 12px;">
+          <label for="newCharacterBio">Bio / notes</label>
+          <input id="newCharacterBio" type="text" placeholder="Writer, socially engaged, easily provoked.">
         </div>
-    </div>
+        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+          <button id="createCharacterButton">Create</button>
+          <button id="setDefaultCharacterButton">Set default</button>
+          <button id="archiveCharacterButton">Archive</button>
+        </div>
+      </div>
+    </article>
 
-    <div class="card" style="background: rgba(255,255,255,0.03);">
-        <h2>Quick commands</h2>
-        <div style="display:grid; gap: 0.75rem; grid-template-columns: 1fr auto; align-items: start;">
-            <textarea id="sayText" placeholder="Type something to say..." style="min-height: 80px; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></textarea>
-            <button id="sayButton" class="btn" type="button">Say</button>
-            <textarea id="emoteText" placeholder="Describe an emote..." style="min-height: 80px; padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;"></textarea>
-            <button id="emoteButton" class="btn" type="button">Emote</button>
-            <input id="inspectTarget" type="text" placeholder="prop or room id" style="padding: 0.75rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #eee;">
-            <button id="inspectButton" class="btn" type="button">Inspect</button>
+    <article class="panel">
+      <h2>Game Launcher</h2>
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 14px;">
+          <label for="templateSelect">Create from template</label>
+          <select id="templateSelect"></select>
+          <button id="createRunButton" style="margin-top: 10px;">Create run</button>
         </div>
-    </div>
-</div>
+        <div style="margin-bottom: 14px;">
+          <label for="activeRunSelect">Join active run</label>
+          <select id="activeRunSelect"></select>
+          <button id="joinRunButton" style="margin-top: 10px;">Join run</button>
+        </div>
+        <div>
+          <label for="saveSlotSelect">Save slot / bookmark</label>
+          <select id="saveSlotSelect"></select>
+          <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+            <button id="saveCurrentRunButton">Save run</button>
+            <button id="loadSavedRunButton">Load save</button>
+            <button id="deleteSaveSlotButton">Delete</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel">
+      <h2>Status</h2>
+      <div class="status-bar" style="margin-top: 16px; flex-direction: column; gap: 10px;">
+        <div>
+          <span class="muted">Connection:</span>
+          <strong id="connectionStatus" style="display: block; margin-top: 4px;">Disconnected</strong>
+        </div>
+        <div>
+          <span class="muted">Current run:</span>
+          <strong id="currentRunLabel" style="display: block; margin-top: 4px;">No run joined</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid layout-main" style="margin-top: 20px;">
+    <article class="panel">
+      <div class="panel-header">
+        <div>
+          <h2 id="roomTitle">No room</h2>
+          <p class="subtitle" id="roomDescription">Create or join a run to begin.</p>
+        </div>
+        <div class="badge-stack">
+          <span class="badge" id="beatBadge">Beat: -</span>
+          <span class="badge" id="tensionBadge">Tension: 0</span>
+        </div>
+      </div>
+
+      <div class="room-columns">
+        <div>
+          <h3>Exits</h3>
+          <div id="exitList" class="token-list"></div>
+          <h3 style="margin-top: 18px;">Scene actions</h3>
+          <div id="actionList" class="token-list"></div>
+        </div>
+        <div>
+          <h3>Props in room</h3>
+          <div id="propList" class="token-list"></div>
+          <h3 style="margin-top: 18px;">Occupants</h3>
+          <div id="occupantList" class="token-list"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel transcript-panel">
+      <h2>Visible Transcript</h2>
+      <div id="transcript" class="transcript"></div>
+    </article>
+
+    <article class="panel">
+      <h2>Quick Commands</h2>
+      <div class="command-grid" style="margin-top: 16px;">
+        <div>
+          <textarea id="sayText" placeholder="Type something to say..."></textarea>
+          <button id="sayButton" style="margin-top: 10px;">Say</button>
+        </div>
+        <div>
+          <textarea id="emoteText" placeholder="Describe an emote..."></textarea>
+          <button id="emoteButton" style="margin-top: 10px;">Emote</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end;">
+          <input id="inspectTarget" type="text" placeholder="prop or room id">
+          <button id="inspectButton" style="width: auto;">Inspect</button>
+        </div>
+      </div>
+    </article>
+  </section>
+</main>
+
 <script type="application/json" id="game-config">
 {
     "playServiceConfigured": {{ 'true' if play_service_configured else 'false' }},

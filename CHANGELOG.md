@@ -13,6 +13,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.1.17] - 2026-03-26 (UI/UX Improvements - View Refactoring)
+
+**Focus**: Improved readability and visual organization of game and wiki views with semantic HTML and responsive layouts.
+
+### Changed (UI/UX)
+
+#### Game Menu View Refactoring
+- **Semantic HTML Structure**: Migrated from inline styles to semantic HTML5 (`<main>`, `<section>`, `<article>` tags)
+- **Better Visual Organization**: Three-column responsive layout (`layout-main` grid)
+  - Character Workshop panel (left)
+  - Game Launcher panel (center)
+  - Status panel (right)
+- **Improved Readability**:
+  - Removed 200+ lines of inline styles
+  - Replaced with CSS classes: `.app-shell`, `.panel`, `.grid`, `.two-col`, `.badge-stack`, `.room-columns`, `.token-list`, `.transcript`, `.command-grid`
+  - Better use of page width and visual hierarchy
+  - Consistent padding and spacing (16px/12px grid system)
+- **Room Display**: Two-column layout with Exits/Actions and Props/Occupants for clarity
+- **Responsive Design**: Automatically adapts to smaller screens with mobile-first approach
+
+#### Wiki View Refactoring
+- **Modern Panel Structure**: Uses `.app-shell` and `.panel` classes for consistency
+- **Better Content Container**: Improved margins and spacing for prose content
+- **Semantic HTML**: Clean structure matching the design system
+- **Responsive**: Full-width readable content area
+
+### Technical Quality
+- Consistent design system usage across all views
+- Reduced CSS inline style debt (estimated 300+ fewer style attributes)
+- Improved maintainability through class-based styling
+- Better alignment with existing design system from index.html and play-service prototype
+
+### Files Modified
+- `backend/app/web/templates/game_menu.html` - Complete refactor with semantic HTML and CSS classes
+- `backend/app/web/templates/wiki.html` - Modernized with `.app-shell` structure
+
+---
+
 ## [0.1.16] - 2026-03-26 (Backend-Authored Content Pipeline & Test Hardening)
 
 **Focus**: Backend-authored content framework, runtime operations bridge, and comprehensive test suite stabilization.
