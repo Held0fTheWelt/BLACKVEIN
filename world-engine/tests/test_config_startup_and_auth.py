@@ -325,6 +325,7 @@ class TestRunStoreConfigValidation:
     def test_store_backend_respects_env_var(self, monkeypatch):
         """RUN_STORE_BACKEND should respect environment variable."""
         monkeypatch.setenv("RUN_STORE_BACKEND", "sqlalchemy")
+        monkeypatch.setenv("RUN_STORE_URL", "sqlite:///:memory:")
 
         import app.config
         importlib.reload(app.config)
@@ -692,27 +693,20 @@ class TestFailFastValidation:
     @pytest.mark.unit
     @pytest.mark.config
     def test_invalid_store_backend_fails_immediately(self, tmp_path):
-        """Invalid store backend should fail immediately on RuntimeManager init."""
-        from app.runtime.manager import RuntimeManager
+        """Invalid store backend should fail immediately on store creation."""
+        from app.runtime.store import build_run_store
 
         with pytest.raises(ValueError, match="Unsupported run store backend"):
-            RuntimeManager(
-                store_root=tmp_path,
-                store_backend="invalid-backend"
-            )
+            build_run_store(root=tmp_path, backend="invalid-backend")
 
     @pytest.mark.unit
     @pytest.mark.config
     def test_missing_store_url_for_sqlalchemy_fails(self, tmp_path):
         """SQLAlchemy backend without URL should fail immediately."""
-        from app.runtime.manager import RuntimeManager
+        from app.runtime.store import build_run_store
 
         with pytest.raises(ValueError, match="RUN_STORE_URL is required"):
-            RuntimeManager(
-                store_root=tmp_path,
-                
-                store_url=None
-            )
+            build_run_store(root=tmp_path, backend="sqlalchemy", url=None)
 
 
 class TestErrorMessagesAreActionable:
@@ -722,13 +716,10 @@ class TestErrorMessagesAreActionable:
     @pytest.mark.config
     def test_missing_store_url_error_message_clear(self, tmp_path):
         """Error for missing store URL should clearly explain requirement."""
-        from app.runtime.manager import RuntimeManager
+        from app.runtime.store import build_run_store
 
         try:
-            RuntimeManager(
-                store_root=tmp_path,
-                store_backend="sqlalchemy"
-            )
+            build_run_store(root=tmp_path, backend="sqlalchemy", url=None)
             assert False, "Should have raised ValueError"
         except ValueError as e:
             # Error message should mention what's required

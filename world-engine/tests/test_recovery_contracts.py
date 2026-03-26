@@ -170,22 +170,8 @@ def test_store_reconnection_consistency(tmp_path, sqlalchemy_available):
     # Verify data is still available
     assert any(r.id == run1.id for r in loaded)
 
-    # Test with SQLAlchemy if available - use file-based DB for persistence across connections
-    if sqlalchemy_available:
-        db_path = tmp_path / "test.db"
-        db_url = f"sqlite:///{db_path}"
-        sql_tmp_path = tmp_path / "sql_store"
-        sql_tmp_path.mkdir()
-        manager_sql = RuntimeManager(store_root=sql_tmp_path)
-        run_sql = manager_sql.create_run("god_of_carnage_solo", account_id="acct:test", display_name="Test")
-        manager_sql.store.save(run_sql)
-
-        # Reconnect (new store instance with same URL)
-        from app.runtime.store import SqlAlchemyRunStore
-
-        store_sql2 = SqlAlchemyRunStore(db_url)
-        loaded_sql = store_sql2.load_all()
-        assert any(r.id == run_sql.id for r in loaded_sql)
+    # Note: SQLAlchemy store testing is done separately in test_store_sqlalchemy.py
+    # RuntimeManager only supports JsonRunStore, so we only test JSON persistence here
 
 
 @pytest.mark.persistence
@@ -274,18 +260,11 @@ def test_database_constraint_violation_handling(tmp_path, sqlalchemy_available):
 
 
 @pytest.mark.persistence
-def test_store_describe_accuracy(tmp_path, sqlalchemy_available):
+def test_store_describe_accuracy(tmp_path):
     """Verify that store description provides accurate backend information."""
-    # Test JSON store description
+    # Test JSON store description (RuntimeManager always uses JSON store)
     json_manager = RuntimeManager(store_root=tmp_path)
     desc = json_manager.store.describe()
     assert desc["backend"] == "json"
     assert "root" in desc
-
-    # Test SQLAlchemy store description
-    if sqlalchemy_available:
-        db_url = "sqlite:///:memory:"
-        sql_manager = RuntimeManager(store_root=tmp_path)
-        desc_sql = sql_manager.store.describe()
-        assert desc_sql["backend"] == "sqlalchemy"
-        assert "url" in desc_sql
+    # SQLAlchemy store description is tested separately in test_store_sqlalchemy.py

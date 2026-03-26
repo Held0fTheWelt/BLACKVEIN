@@ -62,7 +62,7 @@ def health_ready(manager: RuntimeManager = Depends(get_manager)) -> dict[str, An
         "app": "world-engine",
         "template_count": len(manager.list_templates()),
         "run_count": len(manager.list_runs()),
-        "store": "json",
+        "store": manager.store.describe(),
     }
 
 
