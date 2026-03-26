@@ -220,9 +220,9 @@ def _register_routes(app):
                 print(f"[PROXY DEBUG] Response: {resp.status}")
                 return Response(resp_body, status=resp.status, content_type=content_type)
         except HTTPError as e:
-            print(f"[PROXY DEBUG] HTTPError: {e.code}")
-            print(f"[PROXY DEBUG] Error body: {e.read()[:200] if hasattr(e, 'read') else 'N/A'}")
             err_body = e.read() if hasattr(e, "read") else b""
+            print(f"[PROXY DEBUG] HTTPError: {e.code}")
+            print(f"[PROXY DEBUG] Error body: {err_body[:200]}")
             content_type = getattr(e, "headers", {}).get("Content-Type", "application/json")
             return Response(err_body, status=int(getattr(e, "code", 502)), content_type=content_type)
         except URLError as e:
