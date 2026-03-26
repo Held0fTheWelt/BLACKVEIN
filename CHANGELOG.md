@@ -19,6 +19,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed (UI/UX)
 
+#### Container Layout
+- **Increased max-width** from 800px to 1500px
+- Enables responsive multi-column layouts and better use of screen space
+- Maintains consistency with `.app-shell` design pattern (1500px max-width)
+- Pages now: 1500px - 48px padding = 1452px usable width on wide screens
+
 #### Game Menu View Refactoring
 - **Semantic HTML Structure**: Migrated from inline styles to semantic HTML5 (`<main>`, `<section>`, `<article>` tags)
 - **Better Visual Organization**: Three-column responsive layout (`layout-main` grid)
