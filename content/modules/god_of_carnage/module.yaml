@@ -36,15 +36,16 @@ content:
 
 # Module organization references
 files:
-  - characters.yaml         # Character definitions and properties
-  - relationships.yaml      # Relationship axes and dynamics
-  - scenes.yaml            # Scene structure and sequence
-  - transitions.yaml       # Scene transition conditions
-  - triggers.yaml          # Trigger definitions and recognition set
-  - endings.yaml           # End state conditions and closure rules
-  - direction/system_prompt.md        # LLM system prompt guidance
-  - direction/scene_guidance.yaml     # Per-scene constraints and context
-  - direction/character_voice.yaml    # Character voice and tone guidance
+  - characters.yaml              # Character definitions and properties
+  - relationships.yaml           # Relationship axes and dynamics
+  - escalation_axes.yaml         # Escalation dimensions and measurement
+  - scenes.yaml                  # Scene structure and sequence
+  - transitions.yaml             # Scene transition conditions
+  - triggers.yaml                # Trigger definitions and recognition set
+  - endings.yaml                 # End state conditions and closure rules
+  - direction/system_prompt.md           # LLM system prompt guidance
+  - direction/scene_guidance.yaml        # Per-scene constraints and context
+  - direction/character_voice.yaml       # Character voice and tone guidance
 
 # Quality principles
 quality_principles:

@@ -274,7 +274,14 @@ Core module files (aligned with contract specifications):
    - Trigger recognition strategy and state durability rules
    - Mandatory output fields for AI story generation
 
-7. **`endings.yaml`** (218 lines)
+7. **`escalation_axes.yaml`** (242 lines)
+   - 4 escalation dimensions: Individual Emotional, Relationship Instability, Conversation Breakdown, Coalition Dynamics
+   - Per-axis: measurement metrics, escalation drivers, visible signs, phase bounds
+   - Trigger-to-axis mapping: how each trigger type affects each axis
+   - Escalation path validation: forbidden states, minimum valid run structure
+   - Meta-metric formula: weighted escalation level calculation
+
+8. **`endings.yaml`** (218 lines)
    - 5 ending type definitions: emotional_breakdown, forced_exit, stalemate_resolution, maximum_escalation_breach, maximum_turn_limit
    - Per-ending: trigger conditions, outcome, closure actions, narrative guidance
    - Final state recording: required fields, per-character final state, per-relationship final state, trigger summary
@@ -317,9 +324,9 @@ AI story generation guidance (optional but included):
 
 | Component | Files | Status |
 |-----------|-------|--------|
-| Core module files | 7 | ✅ Complete (1,278 lines) |
+| Core module files | 8 | ✅ Complete (1,520 lines) |
 | Direction guidance | 3 | ✅ Complete (730 lines) |
-| Total module content | 10 | ✅ Complete (2,008 lines) |
+| Total module content | 11 | ✅ Complete (2,250 lines) |
 | Wave references in content | 0 | ✅ Removed |
 | Memory documentation | 1 | ✅ Created (.claude memory) |
 

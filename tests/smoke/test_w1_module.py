@@ -23,6 +23,7 @@ class TestW1ModuleStructure:
         "module.yaml",
         "characters.yaml",
         "relationships.yaml",
+        "escalation_axes.yaml",
         "scenes.yaml",
         "transitions.yaml",
         "triggers.yaml",
@@ -191,6 +192,23 @@ class TestW1ModuleStructure:
         # Verify each trigger has recognition markers
         for trigger_id, trigger_data in triggers.items():
             assert "recognition_markers" in trigger_data, f"Trigger {trigger_id} missing recognition_markers"
+
+    def test_escalation_axes_yaml_structure(self):
+        """escalation_axes.yaml defines four escalation dimensions."""
+        with open(self.MODULE_ROOT / "escalation_axes.yaml") as f:
+            doc = yaml.safe_load(f)
+
+        assert "escalation_axes" in doc, "Missing escalation_axes section"
+        axes = doc["escalation_axes"]
+
+        required_axes = [
+            "axis_individual",
+            "axis_relationship",
+            "axis_conversation",
+            "axis_coalition",
+        ]
+        for axis_id in required_axes:
+            assert axis_id in axes, f"Missing escalation axis: {axis_id}"
 
     def test_endings_yaml_structure(self):
         """endings.yaml defines ending types."""
