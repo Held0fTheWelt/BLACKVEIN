@@ -1,5 +1,5 @@
 from app.extensions import db
-from app.models import GameCharacter, GameSaveSlot
+from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
 from app.services.game_service import PlayJoinContext
 
 
@@ -216,3 +216,68 @@ def test_game_menu_marks_play_service_unconfigured_without_complete_bridge(clien
     response = client.get("/game-menu")
     assert response.status_code == 200
     assert b"PLAY_SERVICE_SHARED_SECRET" in response.data
+
+
+def test_game_content_endpoints_seed_and_publish(client, moderator_headers):
+    list_response = client.get('/api/v1/game/content/experiences', headers=moderator_headers)
+    assert list_response.status_code == 200
+    experiences = list_response.get_json()['experiences']
+    assert experiences
+    seed = experiences[0]
+    assert seed['template_id'] == 'god_of_carnage_solo'
+    assert seed['is_published'] is True
+    assert seed['payload']['title'] == 'God of Carnage — Single Adventure'
+
+    new_payload = seed['payload'].copy()
+    new_payload['id'] = 'god_of_carnage_side_story'
+    new_payload['slug'] = 'god-of-carnage-side-story'
+    new_payload['title'] = 'God of Carnage — Side Story'
+    create_response = client.post('/api/v1/game/content/experiences', json={'payload': new_payload}, headers=moderator_headers)
+    assert create_response.status_code == 201
+    created = create_response.get_json()['experience']
+    assert created['is_published'] is False
+
+    new_payload['summary'] = 'Updated summary for authored content.'
+    update_response = client.patch(f"/api/v1/game/content/experiences/{created['id']}", json={'payload': new_payload}, headers=moderator_headers)
+    assert update_response.status_code == 200
+    assert update_response.get_json()['experience']['version'] == 2
+
+    publish_response = client.post(f"/api/v1/game/content/experiences/{created['id']}/publish", headers=moderator_headers)
+    assert publish_response.status_code == 200
+    assert publish_response.get_json()['experience']['is_published'] is True
+
+    published_feed = client.get('/api/v1/game/content/published')
+    assert published_feed.status_code == 200
+    template_ids = {item['id'] for item in published_feed.get_json()['templates']}
+    assert 'god_of_carnage_solo' in template_ids
+    assert 'god_of_carnage_side_story' in template_ids
+
+
+
+def test_game_content_requires_moderator_or_admin(client, auth_headers):
+    response = client.get('/api/v1/game/content/experiences', headers=auth_headers)
+    assert response.status_code == 403
+
+
+
+def test_game_ops_proxy_endpoints(client, moderator_headers, monkeypatch):
+    monkeypatch.setattr('app.api.v1.game_routes.list_play_runs', lambda: [{'id': 'run-123', 'template_title': 'God of Carnage', 'status': 'running'}])
+    monkeypatch.setattr('app.api.v1.game_routes.get_play_run_details', lambda run_id: {'run': {'id': run_id}, 'template_source': 'backend_published'})
+    monkeypatch.setattr('app.api.v1.game_routes.get_play_run_transcript', lambda run_id: {'run_id': run_id, 'entries': [{'text': 'One line.'}]})
+    monkeypatch.setattr('app.api.v1.game_routes.terminate_play_run', lambda run_id: {'run_id': run_id, 'terminated': True})
+
+    runs_response = client.get('/api/v1/game/ops/runs', headers=moderator_headers)
+    assert runs_response.status_code == 200
+    assert runs_response.get_json()['runs'][0]['id'] == 'run-123'
+
+    detail_response = client.get('/api/v1/game/ops/runs/run-123', headers=moderator_headers)
+    assert detail_response.status_code == 200
+    assert detail_response.get_json()['template_source'] == 'backend_published'
+
+    transcript_response = client.get('/api/v1/game/ops/runs/run-123/transcript', headers=moderator_headers)
+    assert transcript_response.status_code == 200
+    assert transcript_response.get_json()['entries'][0]['text'] == 'One line.'
+
+    terminate_response = client.post('/api/v1/game/ops/runs/run-123/terminate', headers=moderator_headers)
+    assert terminate_response.status_code == 200
+    assert terminate_response.get_json()['terminated'] is True

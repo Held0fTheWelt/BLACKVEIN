@@ -1,34 +1,39 @@
 {% extends "manage/base.html" %}
-{% block title %}Game operations{% endblock %}
+{% block title %}Game Operations{% endblock %}
 {% block content %}
-<div class="manage-page-grid">
-    <section class="card">
-        <h1 class="page-header">Game operations</h1>
-        <p class="muted">Inspect active runtime instances, review transcripts, and terminate problematic runs.</p>
-        <div id="game-ops-error" class="form-error" hidden></div>
-        <div class="manage-split-grid">
-            <div>
-                <div class="button-row">
-                    <button id="game-ops-refresh" class="btn">Refresh runs</button>
-                </div>
-                <div id="game-ops-runs" class="stack-list" style="margin-top: 1rem;"></div>
-            </div>
-            <div>
-                <h2 style="margin-top:0;">Run details</h2>
-                <pre id="game-ops-detail" class="code-block">Select a run.</pre>
-                <div class="form-row">
-                    <label for="game-ops-terminate-reason">Terminate reason</label>
-                    <input id="game-ops-terminate-reason" type="text" placeholder="Operational intervention">
-                </div>
-                <div class="button-row">
-                    <button id="game-ops-load-transcript" class="btn btn-secondary" disabled>Load transcript</button>
-                    <button id="game-ops-terminate" class="btn btn-danger" disabled>Terminate run</button>
-                </div>
-                <pre id="game-ops-transcript" class="code-block">Transcript not loaded.</pre>
-            </div>
+<section class="manage-section" data-page="game-operations">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Runtime Operations</p>
+            <h1>Game Operations</h1>
+            <p class="manage-lead">Inspect active runs, lobby state, detailed snapshots, transcripts, and termination controls.</p>
         </div>
-    </section>
-</div>
+        <div class="manage-actions-row">
+            <button class="btn" id="game-ops-refresh" type="button">Refresh</button>
+        </div>
+    </div>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Active Runs</h2>
+                <p>Runs reported by the backend runtime bridge.</p>
+            </header>
+            <div id="game-ops-runs" class="stacked-list"></div>
+        </section>
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Run Detail</h2>
+                <p>Inspect details, transcript, and terminate a selected run.</p>
+            </header>
+            <pre id="game-ops-detail" class="code-block"></pre>
+            <div class="manage-actions-row">
+                <button class="btn btn-danger" id="game-ops-terminate" type="button">Terminate run</button>
+            </div>
+            <pre id="game-ops-transcript" class="code-block"></pre>
+        </section>
+    </div>
+</section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_game_operations.js') }}"></script>

@@ -6,8 +6,20 @@ from flask import current_app, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 
 from app.api.v1 import api_v1_bp
+from app.auth.permissions import require_jwt_moderator_or_admin
 from app.extensions import db, limiter
 from app.models import User
+from app.services.game_content_service import (
+    GameContentConflictError,
+    GameContentNotFoundError,
+    GameContentValidationError,
+    create_experience,
+    get_experience,
+    list_experiences,
+    list_published_experience_payloads,
+    publish_experience,
+    update_experience,
+)
 from app.services.game_profile_service import (
     NotFoundError,
     OwnershipError,
@@ -25,6 +37,9 @@ from app.services.game_service import (
     GameServiceConfigError,
     GameServiceError,
     create_run as create_play_run,
+    get_run_details as get_play_run_details,
+    get_run_transcript as get_play_run_transcript,
+    terminate_run as terminate_play_run,
     get_play_service_websocket_url,
     has_complete_play_service_config,
     issue_play_ticket,
@@ -71,8 +86,12 @@ def _error_response(exc: Exception):
         return jsonify({"error": str(exc)}), 401 if "Authentication" in str(exc) else 403
     if isinstance(exc, NotFoundError):
         return jsonify({"error": str(exc)}), 404
-    if isinstance(exc, (OwnershipError, ValidationError)):
+    if isinstance(exc, (OwnershipError, ValidationError, GameContentValidationError)):
         return jsonify({"error": str(exc)}), 400
+    if isinstance(exc, GameContentNotFoundError):
+        return jsonify({"error": str(exc)}), 404
+    if isinstance(exc, GameContentConflictError):
+        return jsonify({"error": str(exc)}), 409
     if isinstance(exc, GameServiceConfigError):
         return jsonify({"error": str(exc)}), exc.status_code
     if isinstance(exc, GameServiceError):
@@ -365,5 +384,105 @@ def game_save_slots_delete(slot_id: int):
         user = _require_game_user()
         delete_save_slot_for_user(user.id, slot_id)
         return jsonify({"deleted": True, "slot_id": slot_id}), 200
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/published", methods=["GET"])
+@limiter.limit("60 per minute")
+def game_published_content_feed():
+    try:
+        return jsonify({"templates": list_published_experience_payloads()})
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/experiences", methods=["GET"])
+@require_jwt_moderator_or_admin
+def game_content_list():
+    try:
+        return jsonify({"experiences": list_experiences(include_payload=True)})
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/experiences", methods=["POST"])
+@require_jwt_moderator_or_admin
+def game_content_create():
+    try:
+        user = _current_user()
+        data = request.get_json(silent=True) or {}
+        payload = data.get("payload") if isinstance(data.get("payload"), dict) else data
+        experience = create_experience(payload=payload, actor_user_id=user.id if user else None)
+        return jsonify({"experience": experience}), 201
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/experiences/<int:experience_id>", methods=["GET"])
+@require_jwt_moderator_or_admin
+def game_content_get(experience_id: int):
+    try:
+        return jsonify({"experience": get_experience(experience_id, include_payload=True)})
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/experiences/<int:experience_id>", methods=["PATCH"])
+@require_jwt_moderator_or_admin
+def game_content_update(experience_id: int):
+    try:
+        user = _current_user()
+        data = request.get_json(silent=True) or {}
+        payload = data.get("payload") if isinstance(data.get("payload"), dict) else data
+        experience = update_experience(experience_id, payload=payload, actor_user_id=user.id if user else None)
+        return jsonify({"experience": experience}), 200
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/content/experiences/<int:experience_id>/publish", methods=["POST"])
+@require_jwt_moderator_or_admin
+def game_content_publish(experience_id: int):
+    try:
+        user = _current_user()
+        experience = publish_experience(experience_id, actor_user_id=user.id if user else None)
+        return jsonify({"experience": experience}), 200
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/ops/runs", methods=["GET"])
+@require_jwt_moderator_or_admin
+def game_ops_runs():
+    try:
+        return jsonify({"runs": list_play_runs()})
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/ops/runs/<run_id>", methods=["GET"])
+@require_jwt_moderator_or_admin
+def game_ops_run_detail(run_id: str):
+    try:
+        return jsonify(get_play_run_details(run_id))
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/ops/runs/<run_id>/transcript", methods=["GET"])
+@require_jwt_moderator_or_admin
+def game_ops_run_transcript(run_id: str):
+    try:
+        return jsonify(get_play_run_transcript(run_id))
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/ops/runs/<run_id>/terminate", methods=["POST"])
+@require_jwt_moderator_or_admin
+def game_ops_run_terminate(run_id: str):
+    try:
+        return jsonify(terminate_play_run(run_id))
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)

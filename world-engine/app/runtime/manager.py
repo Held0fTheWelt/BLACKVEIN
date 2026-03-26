@@ -2,43 +2,74 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import WebSocket
 
-from app.content.backend_source import RemoteContentError, load_remote_templates
+from app.config import BACKEND_CONTENT_FEED_URL, BACKEND_CONTENT_SYNC_ENABLED, BACKEND_CONTENT_SYNC_INTERVAL_SECONDS, BACKEND_CONTENT_TIMEOUT_SECONDS, RUN_STORE_BACKEND, RUN_STORE_URL
+from app.content.backend_loader import BackendContentLoadError, load_published_templates
 from app.content.builtins import load_builtin_templates
-from app.content.models import ExperienceTemplate, JoinPolicy, ParticipantMode
+from app.content.models import ExperienceKind, ExperienceTemplate, JoinPolicy, ParticipantMode, RoleTemplate
 from app.runtime.engine import RuntimeEngine
-from app.runtime.models import ParticipantState, PropState, PublicRunSummary, RunStatus, RuntimeInstance
-from app.runtime.store import JsonRunStore
+from app.runtime.models import LobbySeatState, ParticipantState, PropState, PublicRunSummary, RunStatus, RuntimeInstance
+from app.runtime.store import RunStore, build_run_store
 
 
 class RuntimeManager:
-    def __init__(self, store_root: Path, content_source_url: str | None = None) -> None:
+    def __init__(
+        self,
+        store_root: Path,
+        *,
+        store_backend: str | None = None,
+        store_url: str | None = None,
+    ) -> None:
         self.templates: dict[str, ExperienceTemplate] = load_builtin_templates()
-        self.content_source_url = (content_source_url or "").strip()
-        if self.content_source_url:
-            try:
-                self.templates.update(load_remote_templates(self.content_source_url))
-            except RemoteContentError:
-                pass
+        self.template_sources: dict[str, str] = {template_id: "builtin" for template_id in self.templates}
+        self.backend_content_feed_url = BACKEND_CONTENT_FEED_URL
+        self.backend_content_sync_enabled = BACKEND_CONTENT_SYNC_ENABLED
+        self.backend_content_timeout_seconds = BACKEND_CONTENT_TIMEOUT_SECONDS
+        self.backend_content_sync_interval = timedelta(seconds=BACKEND_CONTENT_SYNC_INTERVAL_SECONDS)
+        self._last_backend_content_sync_at: datetime | None = None
         self.instances: dict[str, RuntimeInstance] = {}
         self.engines: dict[str, RuntimeEngine] = {}
         self.connections: dict[str, dict[str, WebSocket]] = defaultdict(dict)
         self.locks: dict[str, asyncio.Lock] = {}
-        self.store = JsonRunStore(store_root)
+        self.store: RunStore = build_run_store(
+            root=store_root,
+            backend=store_backend or RUN_STORE_BACKEND,
+            url=store_url or RUN_STORE_URL or None,
+        )
+        self.sync_templates(force=True)
         self._load_persisted_instances()
         self._ensure_public_open_worlds()
+
+    def sync_templates(self, *, force: bool = False) -> None:
+        if not self.backend_content_sync_enabled or not self.backend_content_feed_url:
+            return
+        now = datetime.now(timezone.utc)
+        if not force and self._last_backend_content_sync_at is not None:
+            if now - self._last_backend_content_sync_at < self.backend_content_sync_interval:
+                return
+        try:
+            remote_templates = load_published_templates(self.backend_content_feed_url, timeout=self.backend_content_timeout_seconds)
+        except BackendContentLoadError:
+            self._last_backend_content_sync_at = now
+            return
+        if remote_templates:
+            for template_id, template in remote_templates.items():
+                self.templates[template_id] = template
+                self.template_sources[template_id] = "backend_published"
+        self._last_backend_content_sync_at = now
 
     def _load_persisted_instances(self) -> None:
         for instance in self.store.load_all():
             template = self.templates.get(instance.template_id)
             if template is None:
                 continue
+            self._normalize_instance(instance, template)
             self.instances[instance.id] = instance
             self.engines[instance.id] = RuntimeEngine(template)
             self.locks.setdefault(instance.id, asyncio.Lock())
@@ -51,13 +82,16 @@ class RuntimeManager:
                     self._bootstrap_instance(template, owner_display_name=None, forced_run_id=f"public-{template.id}")
 
     def list_templates(self) -> list[ExperienceTemplate]:
+        self.sync_templates()
         return list(self.templates.values())
 
     def list_runs(self) -> list[PublicRunSummary]:
         summaries: list[PublicRunSummary] = []
         for instance in sorted(self.instances.values(), key=lambda item: item.created_at):
-            human_count = len([p for p in instance.participants.values() if p.mode == ParticipantMode.HUMAN])
-            connected_humans = len([p for p in instance.participants.values() if p.mode == ParticipantMode.HUMAN and p.connected])
+            human_participants = [p for p in instance.participants.values() if p.mode == ParticipantMode.HUMAN]
+            connected_humans = len([p for p in human_participants if p.connected])
+            total_humans = len(human_participants)
+            seats = list(instance.lobby_seats.values())
             summaries.append(
                 PublicRunSummary(
                     id=instance.id,
@@ -68,7 +102,9 @@ class RuntimeManager:
                     persistent=instance.persistent,
                     status=instance.status,
                     connected_humans=connected_humans,
-                    total_humans=human_count,
+                    total_humans=total_humans,
+                    open_human_seats=len([seat for seat in seats if seat.participant_id is None]),
+                    ready_human_seats=len([seat for seat in seats if seat.ready]),
                     tension=instance.tension,
                     beat_id=instance.beat_id,
                     owner_player_name=instance.owner_player_name,
@@ -77,6 +113,7 @@ class RuntimeManager:
         return summaries
 
     def get_template(self, template_id: str) -> ExperienceTemplate:
+        self.sync_templates()
         return self.templates[template_id]
 
     def create_run(
@@ -102,9 +139,6 @@ class RuntimeManager:
         owner_character_id: str | None = None,
         forced_run_id: str | None = None,
     ) -> RuntimeInstance:
-        from app.runtime.models import LobbySeatState
-        from app.content.models import ExperienceKind
-
         instance = RuntimeInstance(
             id=forced_run_id or uuid4().hex,
             template_id=template.id,
@@ -115,9 +149,13 @@ class RuntimeManager:
             owner_account_id=owner_account_id,
             owner_character_id=owner_character_id,
             beat_id=template.initial_beat_id,
-            status=RunStatus.RUNNING if template.kind.value in ("open_world", "solo_story") else RunStatus.LOBBY,
+            status=self._initial_status_for(template),
             persistent=template.persistent,
         )
+        instance.metadata.setdefault("store_backend", self.store.backend_name)
+        instance.metadata.setdefault("min_humans_to_start", template.min_humans_to_start)
+        self._initialize_lobby_seats(instance, template)
+
         for role in template.roles:
             if role.mode == ParticipantMode.NPC:
                 npc = ParticipantState(
@@ -137,16 +175,6 @@ class RuntimeManager:
                 room_id=room_id,
                 state=prop.initial_state,
             )
-
-        # Initialize lobby seats for GROUP_STORY templates
-        if template.kind == ExperienceKind.GROUP_STORY:
-            for role in template.roles:
-                if role.mode == ParticipantMode.HUMAN and role.can_join:
-                    instance.lobby_seats[role.id] = LobbySeatState(
-                        role_id=role.id,
-                        role_display_name=role.display_name,
-                    )
-
         self.instances[instance.id] = instance
         self.engines[instance.id] = RuntimeEngine(template)
         self.locks.setdefault(instance.id, asyncio.Lock())
@@ -157,29 +185,95 @@ class RuntimeManager:
             if not joinable_roles:
                 raise ValueError(f"Template {template.id} has no joinable human roles")
             role = joinable_roles[0]
-            participant = ParticipantState(
+            participant = self._attach_human_participant(
+                instance,
+                role,
                 display_name=owner_display_name,
-                role_id=role.id,
-                mode=ParticipantMode.HUMAN,
-                current_room_id=role.initial_room_id,
                 account_id=account_id_or_none(owner_account_id),
                 character_id=owner_character_id,
-                seat_owner_account_id=account_id_or_none(owner_account_id),
-                seat_owner_display_name=owner_display_name,
-                seat_owner=owner_account_id or owner_display_name,
+                set_owner=True,
             )
-            instance.participants[participant.id] = participant
-            instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
-
-            # Update lobby seat if it exists (for GROUP_STORY templates)
-            if role.id in instance.lobby_seats:
-                instance.lobby_seats[role.id].participant_id = participant.id
-                instance.lobby_seats[role.id].occupant_display_name = owner_display_name
-                instance.lobby_seats[role.id].joined_at = datetime.now(timezone.utc)
-
+            if template.kind == ExperienceKind.SOLO_STORY:
+                instance.status = RunStatus.RUNNING
+                instance.lobby_seats[participant.role_id].ready = True
             instance.updated_at = datetime.now(timezone.utc)
             self.store.save(instance)
         return instance
+
+    def _initialize_lobby_seats(self, instance: RuntimeInstance, template: ExperienceTemplate) -> None:
+        instance.lobby_seats = {
+            role.id: LobbySeatState(role_id=role.id, role_display_name=role.display_name)
+            for role in template.roles
+            if role.mode == ParticipantMode.HUMAN and role.can_join
+        }
+
+    def _normalize_instance(self, instance: RuntimeInstance, template: ExperienceTemplate) -> None:
+        if not instance.lobby_seats:
+            self._initialize_lobby_seats(instance, template)
+        for role in template.roles:
+            if role.mode != ParticipantMode.HUMAN or not role.can_join:
+                continue
+            instance.lobby_seats.setdefault(role.id, LobbySeatState(role_id=role.id, role_display_name=role.display_name))
+        for participant in instance.participants.values():
+            if participant.mode != ParticipantMode.HUMAN:
+                continue
+            seat = instance.lobby_seats.get(participant.role_id)
+            if seat is None:
+                continue
+            seat.participant_id = participant.id
+            seat.occupant_display_name = participant.display_name
+            seat.connected = participant.connected
+            seat.joined_at = participant.joined_at
+            if participant.account_id and not seat.reserved_for_account_id:
+                seat.reserved_for_account_id = participant.account_id
+            if not seat.reserved_for_display_name:
+                seat.reserved_for_display_name = participant.display_name
+        instance.metadata.setdefault("store_backend", self.store.backend_name)
+        instance.metadata.setdefault("min_humans_to_start", template.min_humans_to_start)
+
+    def _initial_status_for(self, template: ExperienceTemplate) -> RunStatus:
+        if template.kind == ExperienceKind.OPEN_WORLD:
+            return RunStatus.RUNNING
+        if template.kind == ExperienceKind.GROUP_STORY:
+            return RunStatus.LOBBY
+        return RunStatus.LOBBY
+
+    def _attach_human_participant(
+        self,
+        instance: RuntimeInstance,
+        role: RoleTemplate,
+        *,
+        display_name: str,
+        account_id: str | None,
+        character_id: str | None,
+        set_owner: bool = False,
+    ) -> ParticipantState:
+        participant = ParticipantState(
+            display_name=display_name,
+            role_id=role.id,
+            mode=ParticipantMode.HUMAN,
+            current_room_id=role.initial_room_id,
+            account_id=account_id,
+            character_id=character_id,
+            seat_owner_account_id=account_id,
+            seat_owner_display_name=display_name,
+            seat_owner=account_id or display_name,
+        )
+        instance.participants[participant.id] = participant
+        seat = instance.lobby_seats[role.id]
+        seat.participant_id = participant.id
+        seat.occupant_display_name = display_name
+        seat.reserved_for_account_id = account_id
+        seat.reserved_for_display_name = display_name
+        seat.connected = False
+        seat.ready = instance.kind == ExperienceKind.SOLO_STORY
+        seat.joined_at = participant.joined_at
+        instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
+        if set_owner and account_id:
+            instance.owner_account_id = account_id
+        if set_owner:
+            instance.owner_player_name = display_name
+        return participant
 
     def find_or_join_run(
         self,
@@ -194,6 +288,8 @@ class RuntimeManager:
 
         existing = self._find_existing_human_participant(instance, account_id=account_id, character_id=character_id, display_name=display_name)
         if existing is not None:
+            self._sync_seat_from_participant(instance, existing)
+            self.store.save(instance)
             return existing
 
         if instance.join_policy == JoinPolicy.OWNER_ONLY:
@@ -203,42 +299,57 @@ class RuntimeManager:
             elif instance.owner_player_name and instance.owner_player_name != display_name:
                 raise PermissionError("This story run is private to its owner.")
 
-        occupied_roles = {participant.role_id for participant in instance.participants.values() if participant.mode == ParticipantMode.HUMAN}
-        available_roles = [
-            role for role in template.roles
-            if role.mode == ParticipantMode.HUMAN and role.can_join and role.id not in occupied_roles
-        ]
-        if preferred_role_id:
-            available_roles = [role for role in available_roles if role.id == preferred_role_id]
-        if not available_roles:
-            raise RuntimeError("No joinable human role is currently available.")
-        role = available_roles[0]
-        participant = ParticipantState(
+        role = self._resolve_join_role(instance, template, account_id=account_id, display_name=display_name, preferred_role_id=preferred_role_id)
+        if role is None:
+            raise RuntimeError("No joinable human seat is currently available.")
+
+        participant = self._attach_human_participant(
+            instance,
+            role,
             display_name=display_name,
-            role_id=role.id,
-            mode=ParticipantMode.HUMAN,
-            current_room_id=role.initial_room_id,
             account_id=account_id_or_none(account_id),
             character_id=character_id,
-            seat_owner_account_id=account_id_or_none(account_id),
-            seat_owner_display_name=display_name,
-            seat_owner=account_id or display_name,
         )
-        instance.participants[participant.id] = participant
-        # Only transition to RUNNING for open_world and solo_story templates; GROUP_STORY stays in LOBBY until start_run
-        if template.kind.value in ("open_world", "solo_story"):
+        if template.kind != ExperienceKind.GROUP_STORY:
             instance.status = RunStatus.RUNNING
-        instance.metadata.setdefault("seat_assignments", {})[role.id] = participant.id
-
-        # Update lobby seat if it exists
-        if role.id in instance.lobby_seats:
-            instance.lobby_seats[role.id].participant_id = participant.id
-            instance.lobby_seats[role.id].occupant_display_name = display_name
-            instance.lobby_seats[role.id].connected = False  # Will be set to True when WebSocket connects
-            instance.lobby_seats[role.id].joined_at = datetime.now(timezone.utc)
-
         self.store.save(instance)
         return participant
+
+    def _resolve_join_role(
+        self,
+        instance: RuntimeInstance,
+        template: ExperienceTemplate,
+        *,
+        account_id: str | None,
+        display_name: str,
+        preferred_role_id: str | None,
+    ) -> RoleTemplate | None:
+        joinable_roles = {
+            role.id: role
+            for role in template.roles
+            if role.mode == ParticipantMode.HUMAN and role.can_join
+        }
+        if preferred_role_id:
+            seat = instance.lobby_seats.get(preferred_role_id)
+            role = joinable_roles.get(preferred_role_id)
+            if seat and role and self._seat_can_be_claimed(seat, account_id=account_id, display_name=display_name):
+                return role
+            return None
+
+        for role_id, role in joinable_roles.items():
+            seat = instance.lobby_seats[role_id]
+            if self._seat_can_be_claimed(seat, account_id=account_id, display_name=display_name):
+                return role
+        return None
+
+    def _seat_can_be_claimed(self, seat: LobbySeatState, *, account_id: str | None, display_name: str) -> bool:
+        if seat.participant_id is None:
+            return True
+        if account_id and seat.reserved_for_account_id == account_id:
+            return True
+        if not account_id and seat.reserved_for_display_name == display_name:
+            return True
+        return False
 
     def _find_existing_human_participant(
         self,
@@ -254,66 +365,25 @@ class RuntimeManager:
                 if character_id is None or participant.character_id == character_id:
                     if display_name and participant.display_name != display_name:
                         participant.display_name = display_name
+                        if participant.role_id in instance.lobby_seats:
+                            instance.lobby_seats[participant.role_id].occupant_display_name = display_name
+                            instance.lobby_seats[participant.role_id].reserved_for_display_name = display_name
                     return participant
             if not account_id and participant.seat_owner_display_name == display_name:
                 return participant
         return None
 
-    def describe_run(self, run_id: str) -> dict[str, Any]:
-        instance = self.instances[run_id]
-        participants = []
-        for participant in instance.participants.values():
-            participants.append({
-                "id": participant.id,
-                "display_name": participant.display_name,
-                "role_id": participant.role_id,
-                "mode": participant.mode.value,
-                "current_room_id": participant.current_room_id,
-                "connected": participant.connected,
-                "account_id": participant.account_id,
-                "character_id": participant.character_id,
-                "seat_owner_account_id": participant.seat_owner_account_id,
-                "seat_owner_display_name": participant.seat_owner_display_name,
-            })
-        return {
-            "id": instance.id,
-            "template_id": instance.template_id,
-            "template_title": instance.template_title,
-            "kind": instance.kind.value,
-            "join_policy": instance.join_policy.value,
-            "status": instance.status.value,
-            "beat_id": instance.beat_id,
-            "tension": instance.tension,
-            "persistent": instance.persistent,
-            "owner_player_name": instance.owner_player_name,
-            "owner_account_id": instance.owner_account_id,
-            "owner_character_id": instance.owner_character_id,
-            "participants": participants,
-            "seat_assignments": dict(instance.metadata.get("seat_assignments", {})),
-            "flags": sorted(instance.flags),
-            "metadata": instance.metadata,
-            "created_at": instance.created_at.isoformat() if instance.created_at else None,
-            "updated_at": instance.updated_at.isoformat() if instance.updated_at else None,
-        }
-
-    def terminate_run(self, run_id: str, *, actor_display_name: str | None = None, reason: str | None = None) -> dict[str, Any]:
-        instance = self.instances[run_id]
-        if instance.status == RunStatus.COMPLETED:
-            return self.describe_run(run_id)
-        instance.status = RunStatus.COMPLETED
-        instance.metadata["terminated_reason"] = reason
-        instance.metadata["terminated_by"] = actor_display_name
-        engine = self.engines[run_id]
-        engine._append_event(
-            instance,
-            event_type="runtime_terminated",
-            text=reason or "Runtime terminated by operator.",
-            actor=actor_display_name or "operator",
-            room_id=None,
-            payload={"reason": reason, "terminated_by": actor_display_name},
-        )
-        self.store.save(instance)
-        return self.describe_run(run_id)
+    def _sync_seat_from_participant(self, instance: RuntimeInstance, participant: ParticipantState) -> None:
+        seat = instance.lobby_seats.get(participant.role_id)
+        if seat is None:
+            return
+        seat.participant_id = participant.id
+        seat.occupant_display_name = participant.display_name
+        seat.connected = participant.connected
+        seat.joined_at = participant.joined_at
+        if participant.account_id:
+            seat.reserved_for_account_id = participant.account_id
+        seat.reserved_for_display_name = participant.display_name
 
     def get_instance(self, run_id: str) -> RuntimeInstance:
         return self.instances[run_id]
@@ -322,38 +392,52 @@ class RuntimeManager:
         instance = self.instances[run_id]
         return self.engines[run_id].build_snapshot(instance, participant_id)
 
+    def get_run_details(self, run_id: str) -> dict[str, Any]:
+        instance = self.instances[run_id]
+        template = self.templates[instance.template_id]
+        return {
+            "run": instance.model_dump(mode="json"),
+            "template_source": self.template_sources.get(instance.template_id, "builtin"),
+            "template": {
+                "id": template.id,
+                "title": template.title,
+                "kind": template.kind.value,
+                "join_policy": template.join_policy.value,
+                "min_humans_to_start": template.min_humans_to_start,
+            },
+            "store": self.store.describe(),
+            "lobby": self.engines[run_id].build_lobby_payload(instance),
+        }
+
+    def terminate_run(self, run_id: str) -> dict[str, Any]:
+        instance = self.instances.pop(run_id, None)
+        self.engines.pop(run_id, None)
+        self.connections.pop(run_id, None)
+        self.locks.pop(run_id, None)
+        if instance is None:
+            raise KeyError(run_id)
+        self.store.delete(run_id)
+        return {"run_id": run_id, "terminated": True, "template_id": instance.template_id}
+
     async def connect(self, run_id: str, participant_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
         self.connections[run_id][participant_id] = websocket
-        instance = self.instances[run_id]
-        template = self.templates[instance.template_id]
-        participant = instance.participants[participant_id]
+        participant = self.instances[run_id].participants[participant_id]
         participant.connected = True
-
-        # Only transition to RUNNING for open_world and solo_story templates; GROUP_STORY stays in LOBBY until start_run
-        if template.kind.value in ("open_world", "solo_story"):
-            instance.status = RunStatus.RUNNING
-
-        # Update lobby seat connected status if it exists
-        if participant.role_id in instance.lobby_seats:
-            instance.lobby_seats[participant.role_id].connected = True
-
-        self.store.save(instance)
+        self._sync_seat_from_participant(self.instances[run_id], participant)
+        if self.instances[run_id].kind != ExperienceKind.GROUP_STORY or self.instances[run_id].status != RunStatus.LOBBY:
+            self.instances[run_id].status = RunStatus.RUNNING
+        self.store.save(self.instances[run_id])
         await self.broadcast_snapshot(run_id)
 
     async def disconnect(self, run_id: str, participant_id: str) -> None:
         if run_id in self.connections:
             self.connections[run_id].pop(participant_id, None)
         if run_id in self.instances and participant_id in self.instances[run_id].participants:
-            instance = self.instances[run_id]
-            participant = instance.participants[participant_id]
+            participant = self.instances[run_id].participants[participant_id]
             participant.connected = False
-
-            # Update lobby seat connected status if it exists
-            if participant.role_id in instance.lobby_seats:
-                instance.lobby_seats[participant.role_id].connected = False
-
-            self.store.save(instance)
+            self._sync_seat_from_participant(self.instances[run_id], participant)
+            self.store.save(self.instances[run_id])
             await self.broadcast_snapshot(run_id)
 
     async def process_command(self, run_id: str, participant_id: str, command: dict[str, Any]) -> None:
@@ -384,6 +468,7 @@ class RuntimeManager:
                 await websocket.send_json({"type": "snapshot", "data": snapshot.model_dump(mode="json")})
             except Exception:
                 self.connections[run_id].pop(participant_id, None)
+
 
 
 def account_id_or_none(value: str | None) -> str | None:

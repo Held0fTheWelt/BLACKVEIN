@@ -34,19 +34,32 @@ class JoinContextRequest(TicketRequest):
     pass
 
 
-class TerminateRunRequest(BaseModel):
-    actor_display_name: str | None = None
-    reason: str | None = None
-
-
 def get_manager(request: Request) -> RuntimeManager:
     return request.app.state.manager
 
 
+
 def _require_internal_api_key(x_play_service_key: str | None = Header(default=None)) -> None:
+    """Require valid internal API key for protected endpoints.
+
+    Behavior:
+    - If PLAY_SERVICE_INTERNAL_API_KEY is configured: key must match exactly (fail-fast)
+    - If PLAY_SERVICE_INTERNAL_API_KEY is not configured: no enforcement (lenient test mode)
+    - Empty/blank key values always rejected when configured
+
+    Raises:
+        HTTPException: 401 Unauthorized if key missing, invalid, or blank
+    """
     expected = (PLAY_SERVICE_INTERNAL_API_KEY or "").strip()
-    if expected and x_play_service_key != expected:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing or invalid internal API key")
+
+    if expected:
+        # API key is configured - enforce it
+        provided = (x_play_service_key or "").strip()
+        if not provided or provided != expected:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing or invalid internal API key"
+            )
 
 
 @router.get("/health")
@@ -55,14 +68,13 @@ def health() -> dict[str, str]:
 
 
 @router.get("/health/ready")
-def health_ready(manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    """Readiness probe endpoint with runtime state information."""
+def ready(request: Request, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
     return {
         "status": "ready",
-        "app": "world-engine",
+        "app": request.app.title,
+        "store": manager.store.describe(),
         "template_count": len(manager.list_templates()),
         "run_count": len(manager.list_runs()),
-        "store": manager.store.describe(),
     }
 
 
@@ -74,6 +86,14 @@ def list_templates(manager: RuntimeManager = Depends(get_manager)) -> list[dict[
 @router.get("/runs")
 def list_runs(manager: RuntimeManager = Depends(get_manager)) -> list[dict[str, Any]]:
     return [run.model_dump(mode="json") for run in manager.list_runs()]
+
+
+@router.get("/runs/{run_id}")
+def get_run_details(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    try:
+        return manager.get_run_details(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Run not found") from exc
 
 
 @router.post("/runs")
@@ -91,7 +111,7 @@ def create_run(payload: CreateRunRequest, manager: RuntimeManager = Depends(get_
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {
         "run": manager.get_instance(instance.id).model_dump(mode="json"),
-        "store": "json",
+        "store": manager.store.describe(),
         "hint": "Use POST /api/tickets, POST /api/internal/join-context, or the integrated backend launcher to join the run over WebSocket.",
     }
 
@@ -159,23 +179,14 @@ def create_join_context(payload: JoinContextRequest, manager: RuntimeManager = D
     }
 
 
-@router.get("/runs/{run_id}")
-def get_run_details_public(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    """Get run details for a specific run (publicly accessible)."""
-    try:
-        instance = manager.get_instance(run_id)
-        template = manager.get_template(instance.template_id)
-        # Get any participant to build a snapshot
-        participant_id = next(iter(instance.participants.keys()))
-        snapshot = manager.build_snapshot(run_id, participant_id)
-        return {
-            "template": template.model_dump(mode="json"),
-            "run": manager.describe_run(run_id),
-            "lobby": snapshot.lobby,
-        }
-    except (KeyError, StopIteration) as exc:
-        raise HTTPException(status_code=404, detail="Run not found") from exc
 
+
+@router.delete("/runs/{run_id}", dependencies=[Depends(_require_internal_api_key)])
+def delete_run(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    try:
+        return manager.terminate_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Run not found") from exc
 
 @router.get("/runs/{run_id}/snapshot/{participant_id}")
 def get_snapshot(run_id: str, participant_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
@@ -196,28 +207,3 @@ def get_transcript(run_id: str, manager: RuntimeManager = Depends(get_manager)) 
         "run_id": run_id,
         "entries": [entry.model_dump(mode="json") for entry in instance.transcript],
     }
-
-
-@router.get("/internal/runs/{run_id}", dependencies=[Depends(_require_internal_api_key)])
-def get_run_detail(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    try:
-        return manager.describe_run(run_id)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Run not found") from exc
-
-
-@router.get("/internal/runs/{run_id}/transcript", dependencies=[Depends(_require_internal_api_key)])
-def get_run_transcript_internal(run_id: str, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    try:
-        instance = manager.get_instance(run_id)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Run not found") from exc
-    return {"run_id": run_id, "entries": [entry.model_dump(mode="json") for entry in instance.transcript]}
-
-
-@router.post("/internal/runs/{run_id}/terminate", dependencies=[Depends(_require_internal_api_key)])
-def terminate_run_internal(run_id: str, payload: TerminateRunRequest, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
-    try:
-        return manager.terminate_run(run_id, actor_display_name=payload.actor_display_name, reason=payload.reason)
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail="Run not found") from exc

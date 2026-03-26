@@ -1,35 +1,66 @@
 (function () {
-  var api = null;
-  var currentRunId = null;
-  function $(id) { return document.getElementById(id); }
-  function showError(message) { var el = $('game-ops-error'); if (!el) return; if (!message) { el.hidden = true; el.textContent = ''; return; } el.hidden = false; el.textContent = message; }
-  function escapeHtml(value) { return String(value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-  function renderRuns(items) {
-    var wrap = $('game-ops-runs'); if (!wrap) return; wrap.innerHTML = '';
-    if (!items.length) { wrap.innerHTML = '<p class="muted">No active runs reported.</p>'; return; }
-    items.forEach(function (item) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'list-card-button' + (currentRunId === item.id ? ' is-active' : '');
-      button.innerHTML = '<strong>' + escapeHtml(item.template_title || item.template_id) + '</strong><br><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.status) + ' · humans ' + escapeHtml(item.connected_humans + '/' + item.total_humans) + '</small>';
-      button.addEventListener('click', function () { loadRun(item.id); });
-      wrap.appendChild(button);
+  const cfg = window.__FRONTEND_CONFIG__ || {};
+  const apiBase = (cfg.apiProxyBase || '') + '/api/v1';
+  const runsEl = document.getElementById('game-ops-runs');
+  const detailEl = document.getElementById('game-ops-detail');
+  const transcriptEl = document.getElementById('game-ops-transcript');
+  const refreshBtn = document.getElementById('game-ops-refresh');
+  const terminateBtn = document.getElementById('game-ops-terminate');
+  let selectedRunId = null;
+
+  if (!runsEl || !detailEl || !transcriptEl) return;
+
+  function token() { return localStorage.getItem('access_token') || ''; }
+  async function api(path, opts = {}) {
+    const headers = Object.assign({ 'Accept': 'application/json' }, opts.headers || {});
+    if (token()) headers['Authorization'] = 'Bearer ' + token();
+    const res = await fetch(apiBase + path, Object.assign({}, opts, { headers }));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.detail || ('Request failed: ' + res.status));
+    return data;
+  }
+
+  async function loadRuns() {
+    const data = await api('/game/ops/runs');
+    const runs = data.runs || [];
+    runsEl.innerHTML = '';
+    if (!runs.length) {
+      runsEl.innerHTML = '<p class="panel-note">No active runs reported.</p>';
+      detailEl.textContent = '';
+      transcriptEl.textContent = '';
+      selectedRunId = null;
+      return;
+    }
+    runs.forEach((run) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'list-card';
+      btn.textContent = run.template_title + ' · ' + run.id + ' · ' + run.status;
+      btn.addEventListener('click', () => inspectRun(run.id));
+      runsEl.appendChild(btn);
     });
+    if (!selectedRunId) await inspectRun(runs[0].id);
   }
-  function refreshRuns() { showError(''); api('/api/v1/game-admin/runtime/runs').then(function (data) { renderRuns(data.items || []); }).catch(function (err) { showError(err.message || 'Failed to load runtime runs.'); }); }
-  function loadRun(runId) {
-    currentRunId = runId; $('game-ops-load-transcript').disabled = false; $('game-ops-terminate').disabled = false; $('game-ops-transcript').textContent = 'Transcript not loaded.';
-    api('/api/v1/game-admin/runtime/runs/' + encodeURIComponent(runId)).then(function (data) { $('game-ops-detail').textContent = JSON.stringify(data, null, 2); refreshRuns(); }).catch(function (err) { showError(err.message || 'Failed to load runtime detail.'); });
+
+  async function inspectRun(runId) {
+    selectedRunId = runId;
+    const detail = await api('/game/ops/runs/' + runId);
+    const transcript = await api('/game/ops/runs/' + runId + '/transcript');
+    detailEl.textContent = JSON.stringify(detail, null, 2);
+    transcriptEl.textContent = JSON.stringify(transcript, null, 2);
   }
-  function loadTranscript() { if (!currentRunId) return; api('/api/v1/game-admin/runtime/runs/' + encodeURIComponent(currentRunId) + '/transcript').then(function (data) { $('game-ops-transcript').textContent = JSON.stringify(data, null, 2); }).catch(function (err) { showError(err.message || 'Failed to load transcript.'); }); }
-  function terminateRun() { if (!currentRunId) return; var reason = $('game-ops-terminate-reason').value.trim(); api('/api/v1/game-admin/runtime/runs/' + encodeURIComponent(currentRunId) + '/terminate', { method: 'POST', body: JSON.stringify({ reason: reason || null }) }).then(function (data) { $('game-ops-detail').textContent = JSON.stringify(data, null, 2); loadTranscript(); refreshRuns(); }).catch(function (err) { showError(err.message || 'Failed to terminate run.'); }); }
-  function init() {
-    if (!window.ManageAuth || !window.ManageAuth.apiFetchWithAuth) return;
-    api = window.ManageAuth.apiFetchWithAuth;
-    $('game-ops-refresh').addEventListener('click', refreshRuns);
-    $('game-ops-load-transcript').addEventListener('click', loadTranscript);
-    $('game-ops-terminate').addEventListener('click', terminateRun);
-    refreshRuns();
-  }
-  document.addEventListener('DOMContentLoaded', init);
+
+  terminateBtn.addEventListener('click', async () => {
+    if (!selectedRunId) return;
+    try {
+      await api('/game/ops/runs/' + selectedRunId + '/terminate', { method: 'POST' });
+      selectedRunId = null;
+      await loadRuns();
+    } catch (err) {
+      detailEl.textContent = err.message;
+    }
+  });
+
+  refreshBtn.addEventListener('click', () => loadRuns().catch((err) => { detailEl.textContent = err.message; }));
+  loadRuns().catch((err) => { detailEl.textContent = err.message; });
 })();

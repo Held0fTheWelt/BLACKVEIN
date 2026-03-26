@@ -33,6 +33,14 @@ class PlayJoinContext:
     character_id: str | None = None
 
 
+
+
+def has_complete_play_service_config() -> bool:
+    public_url = (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").strip()
+    internal_url = (current_app.config.get("PLAY_SERVICE_INTERNAL_URL") or "").strip()
+    shared_secret = (current_app.config.get("PLAY_SERVICE_SHARED_SECRET") or "").strip()
+    return bool(public_url and internal_url and shared_secret)
+
 def _require_configured_url(kind: str) -> str:
     key = "PLAY_SERVICE_INTERNAL_URL" if kind == "internal" else "PLAY_SERVICE_PUBLIC_URL"
     value = (current_app.config.get(key) or "").strip()
@@ -52,19 +60,6 @@ def get_play_service_websocket_url() -> str:
     return f"{scheme}://{parsed.netloc}".rstrip("/")
 
 
-def has_complete_play_service_config() -> bool:
-    """Check if PLAY_SERVICE is fully configured for operation."""
-    try:
-        _require_configured_url("public")
-        _require_configured_url("internal")
-        secret = (current_app.config.get("PLAY_SERVICE_SHARED_SECRET") or "").strip()
-        if not secret:
-            return False
-        return True
-    except GameServiceConfigError:
-        return False
-
-
 def _internal_headers() -> dict[str, str]:
     headers = {"Accept": "application/json"}
     api_key = (current_app.config.get("PLAY_SERVICE_INTERNAL_API_KEY") or "").strip()
@@ -75,8 +70,9 @@ def _internal_headers() -> dict[str, str]:
 
 def _request(method: str, path: str, *, json_payload: dict | None = None, internal: bool = False) -> dict | list:
     base_url = _require_configured_url("internal" if internal else "public")
+    timeout = current_app.config.get("PLAY_SERVICE_REQUEST_TIMEOUT", 30)  # Use config timeout (default 30s)
     try:
-        with httpx.Client(base_url=base_url, timeout=10.0) as client:
+        with httpx.Client(base_url=base_url, timeout=float(timeout)) as client:
             response = client.request(method, path, json=json_payload, headers=_internal_headers() if internal else None)
     except httpx.RequestError as exc:
         raise GameServiceError(f"Play service unavailable: {exc}", status_code=502) from exc
@@ -167,27 +163,22 @@ def issue_play_ticket(payload: dict, ttl_seconds: int | None = None) -> str:
     return base64.urlsafe_b64encode(raw + b"." + sig).decode("ascii")
 
 
-def get_run_detail(run_id: str) -> dict:
-    payload = _request("GET", f"/api/internal/runs/{run_id}", internal=True)
+def get_run_details(run_id: str) -> dict:
+    payload = _request("GET", f"/api/runs/{run_id}")
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected run detail payload.")
     return payload
 
 
 def get_run_transcript(run_id: str) -> dict:
-    payload = _request("GET", f"/api/internal/runs/{run_id}/transcript", internal=True)
+    payload = _request("GET", f"/api/runs/{run_id}/transcript")
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected transcript payload.")
     return payload
 
 
-def terminate_run(run_id: str, *, actor_display_name: str | None = None, reason: str | None = None) -> dict:
-    payload = _request(
-        "POST",
-        f"/api/internal/runs/{run_id}/terminate",
-        json_payload={"actor_display_name": actor_display_name, "reason": reason},
-        internal=True,
-    )
+def terminate_run(run_id: str) -> dict:
+    payload = _request("DELETE", f"/api/runs/{run_id}", internal=True)
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected terminate payload.")
     return payload

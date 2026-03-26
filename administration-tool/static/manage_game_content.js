@@ -1,122 +1,122 @@
 (function () {
-  var api = null;
-  var state = { selectedId: null, items: [] };
-  function $(id) { return document.getElementById(id); }
-  function showError(message) {
-    var el = $('game-content-error');
-    if (!el) return;
-    if (!message) { el.hidden = true; el.textContent = ''; return; }
-    el.hidden = false;
-    el.textContent = message;
+  const cfg = window.__FRONTEND_CONFIG__ || {};
+  const apiBase = (cfg.apiProxyBase || '') + '/api/v1';
+  const listEl = document.getElementById('game-content-list');
+  const payloadEl = document.getElementById('experience-payload');
+  const formEl = document.getElementById('game-content-form');
+  const statusEl = document.getElementById('game-content-status');
+  const publishBtn = document.getElementById('game-content-publish');
+  const refreshBtn = document.getElementById('game-content-refresh');
+  const createBtn = document.getElementById('game-content-create-default');
+  const idEl = document.getElementById('experience-id');
+
+  if (!listEl || !payloadEl || !formEl) return;
+
+  function token() {
+    return localStorage.getItem('access_token') || '';
   }
-  function defaultPayload(key, title, type, summary, tags, styleProfile) {
+
+  async function api(path, opts = {}) {
+    const headers = Object.assign({ 'Accept': 'application/json' }, opts.headers || {});
+    if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    if (token()) headers['Authorization'] = 'Bearer ' + token();
+    const res = await fetch(apiBase + path, Object.assign({}, opts, { headers }));
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.detail || ('Request failed: ' + res.status));
+    return data;
+  }
+
+  function canonicalDefaultPayload() {
     return {
-      id: key || 'new_experience',
-      title: title || 'New Experience',
-      kind: type || 'solo_story',
-      join_policy: type === 'open_world' ? 'public' : (type === 'group_story' ? 'invited_party' : 'owner_only'),
-      summary: summary || '',
-      max_humans: type === 'group_story' ? 4 : 1,
-      persistent: type === 'open_world',
-      initial_beat_id: 'intro',
-      roles: [{ id: 'player', display_name: 'Player', description: 'Primary human viewpoint role.', mode: 'human', initial_room_id: 'start', can_join: true }],
-      rooms: [{ id: 'start', name: 'Start', description: 'Author-defined starting room.', exits: [], prop_ids: [], action_ids: [] }],
+      id: 'god_of_carnage_solo',
+      slug: 'god-of-carnage',
+      title: 'God of Carnage — Single Adventure',
+      kind: 'solo_story',
+      join_policy: 'owner_only',
+      summary: 'Authored single-adventure slice for a social confrontation inside a Paris apartment.',
+      max_humans: 1,
+      min_humans_to_start: 1,
+      persistent: false,
+      initial_beat_id: 'courtesy',
+      roles: [],
+      rooms: [],
       props: [],
       actions: [],
-      beats: [{ id: 'intro', name: 'Intro', description: 'Initial authored beat.', summary: 'Initial authored beat.' }],
-      tags: tags || [],
-      style_profile: styleProfile || 'retro_pulp'
+      beats: [],
+      tags: ['authored', 'single-adventure', 'social-drama'],
+      style_profile: 'retro_pulp'
     };
   }
-  function escapeHtml(value) {
-    return String(value || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-  }
-  function renderList() {
-    var list = $('game-content-list'); if (!list) return; list.innerHTML = '';
-    if (!state.items.length) { list.innerHTML = '<p class="muted">No experiences found.</p>'; return; }
-    state.items.forEach(function (item) {
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'list-card-button' + (state.selectedId === item.id ? ' is-active' : '');
-      button.innerHTML = '<strong>' + escapeHtml(item.title) + '</strong><br><small>' + escapeHtml(item.key) + ' · ' + escapeHtml(item.experience_type) + ' · ' + escapeHtml(item.status) + '</small>';
-      button.addEventListener('click', function () { loadItem(item.id); });
-      list.appendChild(button);
+
+  function renderList(items) {
+    listEl.innerHTML = '';
+    if (!items.length) {
+      listEl.innerHTML = '<p class="panel-note">No authored experiences found yet.</p>';
+      return;
+    }
+    items.forEach((item) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'list-card';
+      card.innerHTML = '<strong>' + item.title + '</strong><span>' + item.template_id + '</span><span>' + (item.is_published ? 'Published' : 'Draft') + ' · v' + item.version + '</span>';
+      card.addEventListener('click', () => loadIntoEditor(item));
+      listEl.appendChild(card);
     });
   }
-  function syncPayloadDefaults() {
-    var payloadEl = $('game-content-payload'); if (!payloadEl || payloadEl.value.trim()) return;
-    var tags = (($('game-content-tags').value || '').split(',').map(function (v) { return v.trim(); }).filter(Boolean));
-    payloadEl.value = JSON.stringify(defaultPayload($('game-content-key').value.trim(), $('game-content-title').value.trim(), $('game-content-type').value, $('game-content-summary').value.trim(), tags, $('game-content-style').value.trim()), null, 2);
+
+  function loadIntoEditor(item) {
+    idEl.value = item.id || '';
+    payloadEl.value = JSON.stringify(item.payload || canonicalDefaultPayload(), null, 2);
+    statusEl.textContent = 'Loaded ' + item.title + ' (' + (item.is_published ? 'published' : 'draft') + ')';
   }
-  function fillForm(item) {
-    $('game-content-id').value = item.id || '';
-    $('game-content-key').value = item.key || '';
-    $('game-content-key').disabled = !!item.id;
-    $('game-content-title').value = item.title || '';
-    $('game-content-type').value = item.experience_type || 'solo_story';
-    $('game-content-style').value = item.style_profile || 'retro_pulp';
-    $('game-content-tags').value = (item.tags || []).join(', ');
-    $('game-content-summary').value = item.summary || '';
-    $('game-content-status').value = item.status || 'draft';
-    $('game-content-payload').value = JSON.stringify(item.draft_payload || defaultPayload(item.key, item.title, item.experience_type, item.summary, item.tags, item.style_profile), null, 2);
-    $('game-content-meta').textContent = JSON.stringify({ id: item.id, current_version: item.current_version, published_version: item.published_version, published_at: item.published_at, updated_at: item.updated_at }, null, 2);
-    $('game-content-publish').disabled = !item.id;
+
+  async function refresh() {
+    const data = await api('/game/content/experiences');
+    renderList(data.experiences || []);
+    if (!idEl.value && data.experiences && data.experiences[0]) {
+      loadIntoEditor(data.experiences[0]);
+    }
   }
-  function collectPayload() {
-    return {
-      key: $('game-content-key').value.trim(),
-      title: $('game-content-title').value.trim(),
-      experience_type: $('game-content-type').value,
-      style_profile: $('game-content-style').value.trim() || 'retro_pulp',
-      tags: ($('game-content-tags').value || '').split(',').map(function (v) { return v.trim(); }).filter(Boolean),
-      summary: $('game-content-summary').value.trim(),
-      status: $('game-content-status').value,
-      draft_payload: JSON.parse($('game-content-payload').value || '{}')
-    };
-  }
-  function refreshList() {
-    showError('');
-    var params = [];
-    var search = $('game-content-search').value.trim();
-    var status = $('game-content-status-filter').value;
-    if (search) params.push('q=' + encodeURIComponent(search));
-    if (status) params.push('status=' + encodeURIComponent(status));
-    api('/api/v1/game-admin/experiences?include_payload=0' + (params.length ? '&' + params.join('&') : ''))
-      .then(function (data) { state.items = data.items || []; renderList(); })
-      .catch(function (err) { showError(err.message || 'Failed to load game content.'); });
-  }
-  function loadItem(id) {
-    showError('');
-    api('/api/v1/game-admin/experiences/' + encodeURIComponent(id))
-      .then(function (data) { state.selectedId = data.id; renderList(); fillForm(data); })
-      .catch(function (err) { showError(err.message || 'Failed to load experience.'); });
-  }
-  function newItem() {
-    state.selectedId = null; renderList(); $('game-content-id').value = ''; $('game-content-key').disabled = false; $('game-content-form').reset(); $('game-content-type').value = 'solo_story'; $('game-content-style').value = 'retro_pulp'; $('game-content-status').value = 'draft'; $('game-content-meta').textContent = ''; $('game-content-publish').disabled = true; syncPayloadDefaults();
-  }
-  function saveItem(event) {
-    event.preventDefault(); showError('');
-    var payload; try { payload = collectPayload(); } catch (e) { showError('Invalid JSON payload: ' + e.message); return; }
-    var id = $('game-content-id').value;
-    api(id ? '/api/v1/game-admin/experiences/' + encodeURIComponent(id) : '/api/v1/game-admin/experiences', { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) })
-      .then(function (data) { state.selectedId = data.id; fillForm(data); refreshList(); })
-      .catch(function (err) { showError(err.message || 'Failed to save experience.'); });
-  }
-  function publishSelected() {
-    var id = $('game-content-id').value; if (!id) return; showError('');
-    api('/api/v1/game-admin/experiences/' + encodeURIComponent(id) + '/publish', { method: 'POST', body: JSON.stringify({}) })
-      .then(function (data) { fillForm(data); refreshList(); })
-      .catch(function (err) { showError(err.message || 'Failed to publish experience.'); });
-  }
-  function init() {
-    if (!window.ManageAuth || !window.ManageAuth.apiFetchWithAuth) return;
-    api = window.ManageAuth.apiFetchWithAuth;
-    $('game-content-form').addEventListener('submit', saveItem);
-    $('game-content-refresh').addEventListener('click', refreshList);
-    $('game-content-new').addEventListener('click', newItem);
-    $('game-content-publish').addEventListener('click', publishSelected);
-    ['game-content-key','game-content-title','game-content-type','game-content-summary','game-content-tags','game-content-style'].forEach(function (id) { var el = $(id); if (el) el.addEventListener('change', syncPayloadDefaults); });
-    newItem(); refreshList();
-  }
-  document.addEventListener('DOMContentLoaded', init);
+
+  formEl.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      const payload = JSON.parse(payloadEl.value || '{}');
+      const body = JSON.stringify({ payload });
+      let data;
+      if (idEl.value) {
+        data = await api('/game/content/experiences/' + idEl.value, { method: 'PATCH', body });
+      } else {
+        data = await api('/game/content/experiences', { method: 'POST', body });
+      }
+      statusEl.textContent = 'Saved draft for ' + data.experience.title;
+      idEl.value = data.experience.id;
+      await refresh();
+    } catch (err) {
+      statusEl.textContent = err.message;
+    }
+  });
+
+  publishBtn.addEventListener('click', async () => {
+    if (!idEl.value) {
+      statusEl.textContent = 'Save the draft first.';
+      return;
+    }
+    try {
+      const data = await api('/game/content/experiences/' + idEl.value + '/publish', { method: 'POST' });
+      statusEl.textContent = 'Published ' + data.experience.title;
+      await refresh();
+    } catch (err) {
+      statusEl.textContent = err.message;
+    }
+  });
+
+  createBtn.addEventListener('click', () => {
+    idEl.value = '';
+    payloadEl.value = JSON.stringify(canonicalDefaultPayload(), null, 2);
+    statusEl.textContent = 'Loaded editor template. Fill roles, rooms, props, actions, and beats before saving.';
+  });
+
+  refreshBtn.addEventListener('click', () => refresh().catch((err) => { statusEl.textContent = err.message; }));
+  refresh().catch((err) => { statusEl.textContent = err.message; });
 })();

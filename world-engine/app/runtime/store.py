@@ -22,6 +22,8 @@ class RunStore(Protocol):
 
     def load_all(self) -> list[RuntimeInstance]: ...
 
+    def delete(self, run_id: str) -> None: ...
+
     def describe(self) -> dict[str, str]: ...
 
 
@@ -50,6 +52,11 @@ class JsonRunStore:
             except Exception:
                 continue
         return instances
+
+    def delete(self, run_id: str) -> None:
+        path = self.path_for(run_id)
+        if path.exists():
+            path.unlink()
 
     def describe(self) -> dict[str, str]:
         return {"backend": self.backend_name, "root": str(self.root)}
@@ -109,6 +116,10 @@ class SqlAlchemyRunStore:
             except Exception:
                 continue
         return instances
+
+    def delete(self, run_id: str) -> None:
+        with self.engine.begin() as conn:
+            conn.execute(delete(self.runs).where(self.runs.c.run_id == run_id))
 
     def describe(self) -> dict[str, str]:
         return {"backend": self.backend_name, "url": self.url}

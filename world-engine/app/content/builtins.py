@@ -30,53 +30,54 @@ def load_builtin_templates() -> dict[str, ExperienceTemplate]:
 def build_god_of_carnage_solo() -> ExperienceTemplate:
     return ExperienceTemplate(
         id="god_of_carnage_solo",
-        title="The Apartment Incident — Solo Study",
+        title="God of Carnage — Single Adventure",
         kind=ExperienceKind.SOLO_STORY,
         join_policy=JoinPolicy.OWNER_ONLY,
         summary=(
-            "A vertical slice for a tense apartment confrontation. One human player enters a"
-            " tightly-scriptable social scene that already uses the multiplayer runtime model."
+            "A authored single-adventure slice for a tense apartment confrontation. One human player"
+            " enters a controlled dramatic scene that already uses the multiplayer runtime model,"
+            " authored beats, props, and operational observability."
         ),
         max_humans=1,
         initial_beat_id="courtesy",
-        tags=["vertical-slice", "social-drama", "world-of-shadows-foundation"],
+        tags=["authored", "single-adventure", "social-drama", "better-tomorrow"],
         roles=[
             RoleTemplate(
                 id="visitor",
                 display_name="Visitor",
-                description="The human viewpoint role entering the apartment to discuss an incident.",
+                description="The human viewpoint role entering the apartment to discuss the violence between two children.",
                 mode=ParticipantMode.HUMAN,
                 initial_room_id="hallway",
                 can_join=True,
             ),
             RoleTemplate(
-                id="host_veronique",
-                display_name="Veronique",
-                description="Sharp, controlled, morally certain — until the scene starts to fracture.",
+                id="veronique",
+                display_name="Véronique",
+                description="Sharp, articulate, morally certain until the room fractures.",
                 mode=ParticipantMode.NPC,
                 initial_room_id="living_room",
-                npc_voice="precise, literate, increasingly caustic",
+                npc_voice="precise, literary, increasingly cutting",
             ),
             RoleTemplate(
-                id="host_michel",
+                id="michel",
                 display_name="Michel",
-                description="Jovial on the surface, defensive underneath.",
+                description="Affable on the surface, defensive underneath.",
                 mode=ParticipantMode.NPC,
                 initial_room_id="living_room",
-                npc_voice="warm, practical, easygoing, then irritated",
+                npc_voice="warm, practical, increasingly irritated",
             ),
             RoleTemplate(
-                id="guest_annette",
+                id="annette",
                 display_name="Annette",
-                description="Trying to maintain civility while feeling trapped.",
+                description="Trying to remain composed while the room tightens around her.",
                 mode=ParticipantMode.NPC,
                 initial_room_id="living_room",
                 npc_voice="polite, brittle, quietly overwhelmed",
             ),
             RoleTemplate(
-                id="guest_alain",
+                id="alain",
                 display_name="Alain",
-                description="Detached, professional, constantly half-elsewhere.",
+                description="Half in the room, half on the phone, professionally detached.",
                 mode=ParticipantMode.NPC,
                 initial_room_id="living_room",
                 npc_voice="cool, dismissive, distracted by work",
@@ -87,30 +88,55 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 id="hallway",
                 name="Apartment Hallway",
                 description=(
-                    "A narrow Parisian hallway with coats on dark hooks, polished wood, and the"
-                    " nervous hush of a meeting that already went wrong before it began."
+                    "A narrow Parisian hallway with dark hooks, polished wood, and the hush of a meeting"
+                    " that was already tense before anyone spoke."
                 ),
                 exits=[ExitTemplate(direction="inside", target_room_id="living_room", label="Enter the living room")],
-                action_ids=["steady_breath", "ring_again"],
+                action_ids=["steady_breath", "ring_again", "review_notes"],
                 artwork_prompt=(
-                    "1980s adventure game hallway, warm apartment light, polished wooden floor,"
-                    " anxious atmosphere, retro pixel-art composition"
+                    "1980s point-and-click hallway, polished wood floor, apartment coats, anxious warm light,"
+                    " cultured domestic tension, pixel art"
                 ),
             ),
             RoomTemplate(
                 id="living_room",
                 name="Living Room",
                 description=(
-                    "A tasteful living room staged for civilized conversation: art books, tulips,"
-                    " expensive furniture, and the unstable tension of four adults trying to sound"
-                    " reasonable."
+                    "A carefully curated living room of books, tulips, glassware, and educated taste — all of it"
+                    " increasingly unable to contain the people arranged around it."
                 ),
-                exits=[ExitTemplate(direction="back", target_room_id="hallway", label="Step back into the hallway")],
-                prop_ids=["tulips", "coffee_table", "phone"],
-                action_ids=["offer_apology", "deflect_blame", "address_group", "sit_down", "pour_rum"],
+                exits=[
+                    ExitTemplate(direction="back", target_room_id="hallway", label="Step back into the hallway"),
+                    ExitTemplate(direction="bathroom", target_room_id="bathroom", label="Withdraw toward the bathroom"),
+                ],
+                prop_ids=["tulips", "coffee_table", "phone", "art_books", "rum_bottle"],
+                action_ids=[
+                    "offer_apology",
+                    "deflect_blame",
+                    "address_group",
+                    "sit_down",
+                    "ask_to_silence_phone",
+                    "pour_rum",
+                    "challenge_alain",
+                    "comfort_annette",
+                ],
                 artwork_prompt=(
-                    "retro pixel-art living room inspired by 1980s graphic adventures, cultured"
-                    " paris apartment, soft lamps, art books, flowers, high social tension"
+                    "retro pixel-art paris living room, books, flowers, tasteful furniture, glassware, social"
+                    " pressure, 1980s adventure composition"
+                ),
+            ),
+            RoomTemplate(
+                id="bathroom",
+                name="Bathroom",
+                description=(
+                    "A smaller, brighter room of tile, mirror, and temporary privacy. It is the only place in the"
+                    " apartment that promises retreat, and even that promise feels fragile."
+                ),
+                exits=[ExitTemplate(direction="living_room", target_room_id="living_room", label="Return to the living room")],
+                prop_ids=["washbasin"],
+                action_ids=["wash_face", "return_composure"],
+                artwork_prompt=(
+                    "1980s adventure bathroom, ceramic sink, mirror, pale tile, private but tense, pixel art"
                 ),
             ),
         ],
@@ -118,23 +144,44 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
             PropTemplate(
                 id="tulips",
                 name="Tulips",
-                description="A bright arrangement that feels increasingly accusatory.",
+                description="A bright arrangement that feels more accusatory the longer the meeting lasts.",
                 initial_state="intact",
                 action_ids=["inspect_tulips", "upset_tulips"],
             ),
             PropTemplate(
                 id="coffee_table",
                 name="Coffee Table",
-                description="Books, glassware, and a carefully curated surface for social performance.",
+                description="Books, glassware, and a curated surface for social performance.",
                 initial_state="orderly",
                 action_ids=["inspect_table"],
             ),
             PropTemplate(
                 id="phone",
                 name="Vibrating Phone",
-                description="A symbol of distance, interruption, and corporate indifference.",
+                description="A small machine carrying the authority of the outside world into the room.",
                 initial_state="buzzing",
                 action_ids=["inspect_phone", "silence_phone"],
+            ),
+            PropTemplate(
+                id="art_books",
+                name="Art Books",
+                description="Large, serious books positioned as evidence of refinement.",
+                initial_state="stacked",
+                action_ids=["inspect_books", "straighten_books"],
+            ),
+            PropTemplate(
+                id="rum_bottle",
+                name="Rum Bottle",
+                description="An instrument of hospitality that can turn into an instrument of escalation.",
+                initial_state="sealed",
+                action_ids=["inspect_rum", "open_rum"],
+            ),
+            PropTemplate(
+                id="washbasin",
+                name="Washbasin",
+                description="Cold water, white ceramic, and a mirror that reflects less self-control than expected.",
+                initial_state="dry",
+                action_ids=["inspect_sink"],
             ),
         ],
         actions=[
@@ -152,11 +199,22 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
             ActionTemplate(
                 id="ring_again",
                 label="Ring the bell again",
-                description="Announce your arrival with slightly more insistence.",
+                description="Announce your arrival with a touch more insistence.",
                 scope="room",
                 effects=[
                     Effect(type=EffectType.ADD_TENSION, value=1),
-                    Effect(type=EffectType.TRANSCRIPT, text="The second ring echoes as if impatience itself had pressed the buzzer."),
+                    Effect(type=EffectType.TRANSCRIPT, text="The second ring sounds less like etiquette and more like pressure."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="review_notes",
+                label="Review your notes",
+                description="Mentally rehearse the facts before stepping into the room.",
+                scope="room",
+                effects=[
+                    Effect(type=EffectType.SET_FLAG, key="prepared_statement"),
+                    Effect(type=EffectType.TRANSCRIPT, text="You silently reorder the facts, hoping sequence might still produce sense."),
                 ],
                 single_use=True,
             ),
@@ -194,13 +252,13 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 available_if=[Condition(type=ConditionType.CURRENT_ROOM_EQUALS, value="living_room")],
                 effects=[
                     Effect(type=EffectType.ADD_TENSION, value=1),
-                    Effect(type=EffectType.TRANSCRIPT, text="You turn from private discomfort toward public declaration."),
+                    Effect(type=EffectType.TRANSCRIPT, text="You stop speaking to individuals and start speaking to the room itself."),
                 ],
             ),
             ActionTemplate(
                 id="sit_down",
                 label="Sit down",
-                description="Accept the domestic choreography and take a seat.",
+                description="Accept the domestic choreography and take your assigned place in it.",
                 scope="room",
                 effects=[
                     Effect(type=EffectType.SET_FLAG, key="seated"),
@@ -209,16 +267,57 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 single_use=True,
             ),
             ActionTemplate(
+                id="ask_to_silence_phone",
+                label="Ask that the phone be silenced",
+                description="Try to force the room to remain inside its own conflict.",
+                scope="room",
+                available_if=[Condition(type=ConditionType.CURRENT_ROOM_EQUALS, value="living_room")],
+                effects=[
+                    Effect(type=EffectType.SET_FLAG, key="phone_challenged"),
+                    Effect(type=EffectType.ADVANCE_BEAT, value="alliances"),
+                    Effect(type=EffectType.TRANSCRIPT, text="You ask for a minimum of respect, and the room immediately begins measuring how much of it remains."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
                 id="pour_rum",
                 label="Pour a stronger drink",
                 description="Test whether alcohol is courtesy, surrender, or escalation.",
                 scope="room",
-                available_if=[Condition(type=ConditionType.BEAT_EQUALS, value="first_fracture")],
+                available_if=[Condition(type=ConditionType.BEAT_EQUALS, value="alliances")],
                 effects=[
                     Effect(type=EffectType.SET_FLAG, key="rum_poured"),
+                    Effect(type=EffectType.SET_PROP_STATE, target_id="rum_bottle", value="open"),
                     Effect(type=EffectType.ADD_TENSION, value=1),
                     Effect(type=EffectType.ADVANCE_BEAT, value="unmasked"),
                     Effect(type=EffectType.TRANSCRIPT, text="Glass touches bottle; the scene decides it no longer wants to behave."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="challenge_alain",
+                label="Challenge Alain directly",
+                description="Break the room's politeness by forcing the distracted father into the conflict.",
+                scope="room",
+                available_if=[Condition(type=ConditionType.BEAT_EQUALS, value="alliances")],
+                effects=[
+                    Effect(type=EffectType.SET_FLAG, key="alain_challenged"),
+                    Effect(type=EffectType.ADD_TENSION, value=2),
+                    Effect(type=EffectType.ADVANCE_BEAT, value="unmasked"),
+                    Effect(type=EffectType.TRANSCRIPT, text="You stop accepting detachment as neutrality and put Alain squarely back into the room."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="comfort_annette",
+                label="Try to comfort Annette",
+                description="Offer a brief human gesture in the middle of the conflict.",
+                scope="room",
+                available_if=[Condition(type=ConditionType.BEAT_EQUALS, value="unmasked")],
+                effects=[
+                    Effect(type=EffectType.SET_FLAG, key="annette_comforted"),
+                    Effect(type=EffectType.ADD_TENSION, value=-1),
+                    Effect(type=EffectType.TRANSCRIPT, text="For one moment the room remembers there are bodies here, not just positions."),
                 ],
                 single_use=True,
             ),
@@ -228,7 +327,7 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 description="Look for meaning in the room's most decorative hostage.",
                 scope="prop",
                 target_id="tulips",
-                effects=[Effect(type=EffectType.TRANSCRIPT, text="The flowers stand too upright, like they were arranged to testify." )],
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="The flowers stand too upright, like they were arranged to testify.")],
             ),
             ActionTemplate(
                 id="upset_tulips",
@@ -251,7 +350,7 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 description="Study the surface everyone keeps orbiting.",
                 scope="prop",
                 target_id="coffee_table",
-                effects=[Effect(type=EffectType.TRANSCRIPT, text="Books, glass, polish, performance — the table is civilization flattened into objects." )],
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="Books, glass, polish, performance — the table is civilization flattened into objects.")],
             ),
             ActionTemplate(
                 id="inspect_phone",
@@ -259,28 +358,110 @@ def build_god_of_carnage_solo() -> ExperienceTemplate:
                 description="Notice how the outside world keeps interrupting the room.",
                 scope="prop",
                 target_id="phone",
-                effects=[Effect(type=EffectType.TRANSCRIPT, text="The phone trembles like a trapped insect with better priorities than any of you." )],
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="The phone trembles like a trapped insect with better priorities than any of you.")],
             ),
             ActionTemplate(
                 id="silence_phone",
-                label="Insist that the phone be silenced",
-                description="Try to force the room to stay inside its own conflict.",
+                label="Insist the phone be silenced",
+                description="Force the room to confront itself without digital escape.",
                 scope="prop",
                 target_id="phone",
                 effects=[
                     Effect(type=EffectType.SET_PROP_STATE, target_id="phone", value="silent"),
                     Effect(type=EffectType.SET_FLAG, key="phone_silenced"),
                     Effect(type=EffectType.ADD_TENSION, value=1),
-                    Effect(type=EffectType.TRANSCRIPT, text="For one sharp second, everyone is required to remain here, together, with no escape hatch."),
+                    Effect(type=EffectType.TRANSCRIPT, text="For one sharp second, everyone is required to remain here together, with no escape hatch."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="inspect_books",
+                label="Inspect the art books",
+                description="Study the room's curated seriousness.",
+                scope="prop",
+                target_id="art_books",
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="The books seem selected to reassure the room that taste can still pass for virtue.")],
+            ),
+            ActionTemplate(
+                id="straighten_books",
+                label="Straighten the books",
+                description="Restore order to at least one surface in the room.",
+                scope="prop",
+                target_id="art_books",
+                effects=[
+                    Effect(type=EffectType.SET_PROP_STATE, target_id="art_books", value="straightened"),
+                    Effect(type=EffectType.TRANSCRIPT, text="You align the books as if straight lines could still save anyone here."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="inspect_rum",
+                label="Inspect the rum bottle",
+                description="Consider the room's liquid contingency plan.",
+                scope="prop",
+                target_id="rum_bottle",
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="The bottle glows with the practical honesty of escalation." )],
+            ),
+            ActionTemplate(
+                id="open_rum",
+                label="Open the rum bottle",
+                description="Prepare the room's next phase before anyone admits it wants one.",
+                scope="prop",
+                target_id="rum_bottle",
+                available_if=[Condition(type=ConditionType.BEAT_EQUALS, value="alliances")],
+                effects=[
+                    Effect(type=EffectType.SET_PROP_STATE, target_id="rum_bottle", value="open"),
+                    Effect(type=EffectType.SET_FLAG, key="rum_opened"),
+                    Effect(type=EffectType.TRANSCRIPT, text="The seal gives way with the sound of one more restraint being abandoned."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="inspect_sink",
+                label="Inspect the washbasin",
+                description="Take in the room's promise of private recovery.",
+                scope="prop",
+                target_id="washbasin",
+                effects=[Effect(type=EffectType.TRANSCRIPT, text="The sink offers cold water, reflection, and no actual absolution." )],
+            ),
+            ActionTemplate(
+                id="wash_face",
+                label="Wash your face",
+                description="Use the bathroom to recover a measure of composure.",
+                scope="room",
+                available_if=[Condition(type=ConditionType.CURRENT_ROOM_EQUALS, value="bathroom")],
+                effects=[
+                    Effect(type=EffectType.SET_FLAG, key="face_washed"),
+                    Effect(type=EffectType.SET_PROP_STATE, target_id="washbasin", value="running"),
+                    Effect(type=EffectType.ADD_TENSION, value=-1),
+                    Effect(type=EffectType.TRANSCRIPT, text="Cold water and ceramic edges offer a thinner kind of mercy than words."),
+                ],
+                single_use=True,
+            ),
+            ActionTemplate(
+                id="return_composure",
+                label="Return to the room with composure",
+                description="Step back into the scene and force it into its last beat.",
+                scope="room",
+                available_if=[
+                    Condition(type=ConditionType.CURRENT_ROOM_EQUALS, value="bathroom"),
+                    Condition(type=ConditionType.FLAG_PRESENT, key="face_washed"),
+                ],
+                effects=[
+                    Effect(type=EffectType.MOVE_ACTOR, value="living_room"),
+                    Effect(type=EffectType.ADVANCE_BEAT, value="aftermath"),
+                    Effect(type=EffectType.TRANSCRIPT, text="You return cleaner, colder, and no more reconciled than before."),
                 ],
                 single_use=True,
             ),
         ],
         beats=[
-            BeatTemplate(id="courtesy", name="Courtesy", description="Everyone is still trying to sound like good people.", summary="Politeness holds the frame together."),
-            BeatTemplate(id="first_fracture", name="First Fracture", description="The room begins to divide and perform self-justification.", summary="Civility is now a technique, not a feeling."),
-            BeatTemplate(id="unmasked", name="Unmasked", description="Everyone drops one layer of self-presentation.", summary="The scene sharpens into accusation and exposure."),
+            BeatTemplate(id="courtesy", name="Courtesy", description="Everyone is still trying to sound like good people.", summary="Politeness is the room's first and weakest line of defense."),
+            BeatTemplate(id="first_fracture", name="First Fracture", description="The room begins to split into tactics and self-justification.", summary="Civility survives only as performance."),
+            BeatTemplate(id="alliances", name="Alliances", description="Subtle pairings and resentments reorganize the room.", summary="The argument becomes positional rather than moral."),
+            BeatTemplate(id="unmasked", name="Unmasked", description="Each person drops one layer of self-presentation.", summary="The room now speaks in sharper truths and sharper cruelties."),
             BeatTemplate(id="collapse", name="Collapse", description="Objects and language both become casualties.", summary="The social ritual fails in public."),
+            BeatTemplate(id="aftermath", name="Aftermath", description="No one has won; everyone has merely continued.", summary="The scene cools without offering resolution."),
         ],
     )
 

@@ -91,6 +91,16 @@ This means the shared secret must match across both services:
 - `GET /api/v1/game/save-slots`
 - `POST /api/v1/game/save-slots`
 - `DELETE /api/v1/game/save-slots/<id>`
+- `GET /api/v1/game/content/published`
+- `GET /api/v1/game/content/experiences` (moderator/admin)
+- `POST /api/v1/game/content/experiences` (moderator/admin)
+- `GET /api/v1/game/content/experiences/<id>` (moderator/admin)
+- `PATCH /api/v1/game/content/experiences/<id>` (moderator/admin)
+- `POST /api/v1/game/content/experiences/<id>/publish` (moderator/admin)
+- `GET /api/v1/game/ops/runs` (moderator/admin)
+- `GET /api/v1/game/ops/runs/<run_id>` (moderator/admin)
+- `GET /api/v1/game/ops/runs/<run_id>/transcript` (moderator/admin)
+- `POST /api/v1/game/ops/runs/<run_id>/terminate` (moderator/admin)
 
 ---
 
@@ -131,3 +141,8 @@ That compose file starts:
 
 - The backend README previously drifted into play-service prototype documentation; this file now reflects the actual Flask backend again.
 - The backend requirements and Dockerfile also align with Flask/Gunicorn again rather than FastAPI/Uvicorn.
+
+
+## Authored content and operations
+
+The backend now owns authored experience definitions and publishing state. Published experiences are exposed through `/api/v1/game/content/published`, which the world-engine may consume as its authored content feed. Moderator/admin tooling can inspect, edit, publish, and operate runs through the `game/content/*` and `game/ops/*` endpoints while the regular launcher flow continues to use `/api/v1/game/bootstrap`, `/api/v1/game/runs`, and `/api/v1/game/tickets`.
