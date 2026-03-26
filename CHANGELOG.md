@@ -1,15 +1,42 @@
 # Changelog
 
-# Version Description
-
-- Version 0.0: Foundation, Web-Api with backend and administration-tool to administrate the system
-- Version 0.1: Integration of a content framework to organize role playing game
-- Version 0.2: Integration of Game Rules and Game System
-- Version 0.3: Integration of dynamic evolving content with rules and drafts
-
 All notable changes to the World of Shadows project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+---
+
+## [0.2.0] - 2026-03-26 (Game Rules, Game System, and Documentation Foundation)
+
+**Focus**: Foundation for game rules and game system integration with cleaned documentation structure.
+
+### Changed (Documentation & Navigation)
+
+#### Documentation Navigation & Structure (W0 - Consolidation Phase)
+- **Fixed 15+ broken links** in `docs/INDEX.md` and `docs/README.md`
+- **Normalized documentation paths**: Fixed capitalization and path inconsistencies
+- **Consolidated API references**: Merged separate BACKEND_API, WORLD_ENGINE_API, ADMIN_TOOL_API into single unified `api/REFERENCE.md`
+- **Removed dead references**: Eliminated references to non-existent analysis documents and historical artifacts
+- **Improved navigation hierarchy**: Added `docs/testing/INDEX.md` reference for test documentation discovery
+- **Prepared W0 MVP contract locations**: Added canonical homes for MVPDefinition, GameModuleContract, AIStoryContract, SessionRuntimeContract in `docs/architecture/README.md`
+
+#### Documentation Organization
+- **Created `docs/audits/` directory** for audit and analysis documents
+- **Created `docs/reports/` directory** for implementation and validation reports
+- **Added W0_CONSOLIDATION_AUDIT.md** (comprehensive analysis of documentation tree state, problems, and consolidation strategy)
+- **Added W0_IMPLEMENTATION_REPORT.md** (detailed report of all changes, broken links fixed, and sprawl prevention)
+
+### Key Files Updated
+- `docs/README.md` - Fixed development setup link capitalization
+- `docs/INDEX.md` - Fixed 15+ broken links, normalized references
+- `docs/architecture/README.md` - Added W0 MVP Contracts section
+
+### Documentation Sprawl Prevention
+- ✅ Zero new documentation files created (except audit/report files)
+- ✅ Consolidated multiple API references into single source of truth
+- ✅ Removed dead links instead of creating placeholder documents
+- ✅ Merged game mechanics into RUNTIME_COMMANDS.md instead of creating separate files
+- ✅ Deferred out-of-scope documentation expansion
 
 ---
 

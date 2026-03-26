@@ -5,7 +5,7 @@ Complete knowledge base for the WorldOfShadows project. Navigate by topic below 
 ## Quick Links
 
 - **New to the project?** Start with [Architecture Overview](./architecture/README.md)
-- **Setting up locally?** See [Local Development Guide](./development/LOCAL_DEVELOPMENT.md)
+- **Setting up locally?** See [Local Development Guide](./development/LocalDevelopment.md)
 - **Running tests?** Check [Testing Guide](./testing/README.md)
 - **Deploying?** Read [Operations & Deployment](./operations/README.md)
 

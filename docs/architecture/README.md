@@ -19,6 +19,22 @@ Data flow, API contracts, session management, and cross-service communication.
 ### 🌍 [Multilingual Support](./MultilingualArchitecture.md)
 i18n implementation, translation systems, language negotiation, and content localization.
 
+## W0 MVP Contracts
+
+The following documents define the formal contracts for the W0 MVP phase:
+
+### 📋 [MVP Definition](./mvp_definition.md)
+Scope, goals, system boundaries, and success criteria for the W0 MVP release.
+
+### 📋 [God of Carnage Module Contract](./god_of_carnage_module_contract.md)
+Formal specification for content modules and the reference *God of Carnage* implementation.
+
+### 📋 [AI Story Contract](./ai_story_contract.md)
+Rules, guardrails, and authority model for AI-generated story content within the engine.
+
+### 📋 [Session Runtime Contract](./session_runtime_contract.md)
+State management, turn mechanics, persistence guarantees, and recovery behavior.
+
 ## Component Relationships
 
 ```

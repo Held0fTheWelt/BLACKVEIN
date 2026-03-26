@@ -29,9 +29,9 @@ Complete index and cross-reference guide for WorldOfShadows documentation.
 
 ### 🔧 DevOps & Operations
 **Start here:** [Operations Guide](./operations/README.md)
-1. **Deployment:** [Deployment Procedures](./operations/DEPLOYMENT.md)
-2. **Monitoring:** [Health Checks](./operations/HEALTH_CHECKS.md)
-3. **Runbook:** [Production Runbook](./runbook.md)
+1. **Runbook:** [Production Runbook](./operations/RUNBOOK.md)
+2. **Alerting:** [Alerting Configuration](./operations/ALERTING-CONFIG.md)
+3. **Analytics:** [Analytics & Monitoring](./operations/ANALYTICS.md)
 4. **Security:** [Security Operations](./security/README.md#for-operations)
 5. **Database:** [Database Management](./database/README.md)
 
@@ -45,7 +45,7 @@ Complete index and cross-reference guide for WorldOfShadows documentation.
 
 ### 🔐 Security Team
 **Start here:** [Security Guide](./security/README.md)
-1. **Audit report:** [Security Audit 2026-03-15](./SECURITY-AUDIT-2026-03-15.md)
+1. **Audit report:** [Security Audit Report](./security/AUDIT_REPORT.md)
 2. **Threat model:** [Threat Model](./security/README.md#-threat-model)
 3. **Best practices:** [Security Best Practices](./security/README.md#-core-security-features)
 4. **Vulnerability handling:** [Vulnerability Management](./security/README.md#-vulnerability-management)
@@ -70,6 +70,7 @@ Complete index and cross-reference guide for WorldOfShadows documentation.
 
 ### Testing & Quality
 - [Testing Guide](./testing/README.md) - Main testing resource
+- [Testing Index](./testing/INDEX.md) - Comprehensive testing documentation hierarchy
 - [Test Matrix](./testing/ADMIN_TOOL_TARGET_TEST_MATRIX.md) - Admin tool tests
 - [Engine Test Matrix](./testing/WORLD_ENGINE_TARGET_TEST_MATRIX.md) - World Engine tests
 - [Test Execution Profiles](./testing/TEST_EXECUTION_PROFILES.md) - How to run tests
@@ -78,43 +79,37 @@ Complete index and cross-reference guide for WorldOfShadows documentation.
 
 ### Database & Data
 - [Database Guide](./database/README.md) - Main database resource
-- [Schema Documentation](./database/SCHEMA.md) - Table structure
-- [Migration Guide](./database/MIGRATIONS.md) - Managing schema changes
-- [Index Optimization](./INDEX-OPTIMIZATION-ANALYSIS.md) - Performance tuning
+- [Development & Local Setup](./development/README.md) - Includes database setup and migrations
+- [Alembic Migrations](./development/README.md#database-migrations) - Schema change management
 - [Backup & Recovery](./database/README.md#backup-strategy) - Data protection
 
 ### API & Integration
 - [API Documentation](./api/README.md) - Main API resource
-- [REST API Reference](./api/BACKEND_API.md) - Backend endpoints (if exists)
-- [World Engine API](./api/WORLD_ENGINE_API.md) - Game runtime API (if exists)
-- [Admin API](./api/ADMIN_TOOL_API.md) - Management endpoints (if exists)
-- [Postman Collections](./POSTMAN_FORUM_ENDPOINTS.md) - API testing
+- [API Reference](./api/REFERENCE.md) - Complete endpoint reference (Backend, World Engine, Admin Tool)
+- [Postman Collections](./api/POSTMAN_COLLECTION.md) - API testing and documentation
 
 ### Features & Functionality
 - [Feature Documentation](./features/README.md) - Main features resource
-- [Game Mechanics](./features/GAME_MECHANICS.md) - Game engine features (if exists)
-- [Forum System](./forum/ModerationWorkflow.md) - Community features
-- [Roles & Permissions](./features/ROLES_AND_PERMISSIONS.md) - Access control (if exists)
-- [Suggested Discussions](./SUGGESTED_DISCUSSIONS_ANALYSIS.md) - Community features
+- [Runtime Commands](./features/RUNTIME_COMMANDS.md) - Game engine commands and mechanics
+- [Forum System](./forum/ModerationWorkflow.md) - Community features and moderation
+- [Forum Features](./features/forum.md) - Forum-specific documentation
 
 ### Security
 - [Security Guide](./security/README.md) - Main security resource
-- [Security Audit Report](./SECURITY-AUDIT-2026-03-15.md) - Latest assessment
+- [Security Audit Report](./security/AUDIT_REPORT.md) - Latest assessment
 - [Threat Model](./security/README.md#-threat-model) - Attack scenarios
 - [Vulnerability Management](./security/README.md#-vulnerability-management) - Incident response
 - [Best Practices](./security/README.md#-core-security-features) - Secure coding
 
 ### Operations & Deployment
 - [Operations Guide](./operations/README.md) - Main operations resource
-- [Deployment Procedures](./operations/DEPLOYMENT.md) - Release process
-- [Health Checks](./operations/HEALTH_CHECKS.md) - Monitoring
-- [Production Runbook](./runbook.md) - Operational tasks
-- [Alerting Configuration](./ALERTING-CONFIG.md) - Incident response
+- [Production Runbook](./operations/RUNBOOK.md) - Operational tasks and procedures
+- [Alerting Configuration](./operations/ALERTING-CONFIG.md) - Monitoring and incident response
+- [Analytics & Monitoring](./operations/ANALYTICS.md) - Performance and health tracking
 
 ### Game & Runtime
-- [World Engine](./runtime-command.md) - Game runtime specification (if exists)
-- [Game Mechanics](./features/GAME_MECHANICS.md) - Gameplay features (if exists)
-- [Game Integration](./features/GAME_INTEGRATION.md) - Custom content (if exists)
+- [Runtime Commands](./features/RUNTIME_COMMANDS.md) - Game runtime commands and mechanics
+- [World Engine Architecture](./architecture/ServerArchitecture.md#world-engine) - Engine design and data flow
 
 ### n8n & Automation
 - [n8n Integration](./n8n/README.md) - Workflow automation
@@ -143,8 +138,8 @@ Complete index and cross-reference guide for WorldOfShadows documentation.
 
 ### For Deployment Questions
 → [Operations Guide](./operations/README.md)
-→ [Deployment Procedures](./operations/DEPLOYMENT.md)
-→ [Production Runbook](./runbook.md)
+→ [Production Runbook](./operations/RUNBOOK.md)
+→ [Alerting Configuration](./operations/ALERTING-CONFIG.md)
 
 ### For Security Questions
 → [Security Guide](./security/README.md)
