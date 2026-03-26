@@ -148,6 +148,79 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Wave 0 Status**: ✅ **COMPLETE AND VALIDATED**
 
+### Documentation Hygiene Pass (W0 Cleanup Phase)
+
+**Completed systematic cleanup of broken links and dead documentation references:**
+
+#### Broken Links Fixed
+- **40 total issues resolved**: 27 removed + 13 retargeted
+- **13 files updated** across docs tree
+
+#### Files Modified
+1. **docs/INDEX.md** — Removed SCHEMA.md, MIGRATIONS.md; Fixed SECURITY-AUDIT path
+2. **docs/api/README.md** — Retargeted API docs to REFERENCE.md; Removed Postman/Troubleshooting
+3. **docs/database/README.md** — Removed SCHEMA.md, MIGRATIONS.md, analysis docs
+4. **docs/development/README.md** — Fixed LOCAL_DEVELOPMENT capitalization; Removed TROUBLESHOOTING
+5. **docs/features/README.md** — Removed GAME_MECHANICS, GAME_INTEGRATION, ROLES_AND_PERMISSIONS
+6. **docs/features/forum.md** — Fixed moderation.md paths (3 occurrences)
+7. **docs/operations/README.md** — Removed DEPLOYMENT, HEALTH_CHECKS; Fixed ALERTING-CONFIG, RUNBOOK paths
+8. **docs/security/README.md** — Fixed SECURITY-AUDIT path to AUDIT_REPORT
+9. **docs/testing/README.md** — Removed WAVE_0_COMPLETION_REPORT; Retargeted to real docs
+10. **docs/testing/INDEX.md** — Removed WAVE_0_COMPLETION_REPORT (6 references)
+11. **docs/testing/MATRIX_QUICK_REFERENCE.md** — Removed WAVE_0_COMPLETION_REPORT (2 references)
+
+#### Dead Links Removed (No Placeholders Created)
+- SCHEMA.md, MIGRATIONS.md (schema in code; migrations via Alembic)
+- GAME_MECHANICS.md, GAME_INTEGRATION.md (consolidated into RUNTIME_COMMANDS.md)
+- SUGGESTED_DISCUSSIONS_ANALYSIS.md (historical analysis, not canonical)
+- INDEX-OPTIMIZATION-ANALYSIS.md (historical analysis)
+- WAVE_0_COMPLETION_REPORT.md (status moved to README.md sections)
+- HEALTH_CHECKS.md (content in ANALYTICS.md and operations/README.md)
+- DEPLOYMENT.md (consolidated into RUNBOOK.md)
+- POSTMAN_FORUM_ENDPOINTS.md (retargeted to POSTMAN_COLLECTION.md)
+
+#### Path Corrections
+- `./LOCAL_DEVELOPMENT.md` → `./LocalDevelopment.md` (capitalization)
+- `../ALERTING-CONFIG.md` → `./ALERTING-CONFIG.md` (relative path)
+- `../runbook.md` → `./RUNBOOK.md` (path and capitalization)
+- `../SECURITY-AUDIT-2026-03-15.md` → `./security/AUDIT_REPORT.md` (location)
+
+#### API Reference Consolidation
+- BACKEND_API.md, WORLD_ENGINE_API.md, ADMIN_TOOL_API.md → `./api/REFERENCE.md`
+
+#### Verification
+- ✅ Zero placeholder files created
+- ✅ No uncontrolled documentation sprawl
+- ✅ All navigation points to real canonical docs
+- ✅ Relative paths corrected
+- ✅ Filenames match actual files
+
+---
+
+### Roadmap Translation
+
+- **Added `docs/ROADMAP_MVP_EN.md`** — Complete English translation of German MVP roadmap (ROADMAP_MVP.md)
+  - All 5 waves documented (W0–W4) with detailed objectives
+  - Hybrid AI architecture and SLM/LLM role definitions
+  - Quality principles, reproducibility requirements, and gates
+  - 1,145 lines, same structure as German original
+
+---
+
+### W0 Deliverables Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| Canonical contracts | 4 | ✅ Complete (1,086 lines) |
+| Schema files | 4 | ✅ Complete (6.6 KB) |
+| Smoke tests | 8 | ✅ All passing (0.17s) |
+| Audit documents | 2 | ✅ Complete |
+| Report documents | 2 | ✅ Complete |
+| Broken links fixed | 40 | ✅ Complete |
+| New placeholder files | 0 | ✅ None created |
+
+**Wave 0 Status**: ✅ **FOUNDATION COMPLETE, DOCUMENTATION HYGIENIC, READY FOR W1**
+
 Next Wave (W1): Implement God of Carnage content module (module.yaml, characters.yaml, relationships.yaml, scenes.yaml, triggers.yaml, endings.yaml) per god_of_carnage_module_contract.md specifications.
 
 ---
