@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "State Delta Schema",
-  "description": "W0 schema for proposed and applied state changes",
+  "description": "Canonical schema for proposed and applied state changes",
   "type": "object",
   "additionalProperties": true,
   "properties": {

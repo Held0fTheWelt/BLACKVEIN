@@ -1,5 +1,5 @@
 """
-W0 Contract Validation — Lightweight smoke tests ensuring contract docs and schemas don't drift.
+Contract Validation — Lightweight smoke tests ensuring contract docs and canonical schemas don't drift.
 """
 
 import json
@@ -36,7 +36,7 @@ class TestW0ContractDocs:
 
 
 class TestW0Schemas:
-    """Validate W0 schema files exist and are well-formed JSON."""
+    """Validate canonical schema files exist and are well-formed JSON."""
 
     def _load_schema(self, schema_name):
         """Load a schema file and return parsed JSON."""

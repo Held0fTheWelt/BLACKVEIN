@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Content Module Schema",
-  "description": "W0 schema for formalized story content modules (e.g., God of Carnage)",
+  "description": "Canonical schema for formalized story content modules (e.g., God of Carnage)",
   "type": "object",
   "required": [
     "module_id",

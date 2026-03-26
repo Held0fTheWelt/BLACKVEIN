@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AI Story Output Schema",
-  "description": "W0 schema for structured AI story model output",
+  "description": "Canonical schema for structured AI story model output",
   "type": "object",
   "required": [
     "scene_interpretation",
