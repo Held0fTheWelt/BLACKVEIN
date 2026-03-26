@@ -100,11 +100,17 @@ def show_test_stats(suites):
                 cwd=str(suite_dir)
             )
             output = result.stdout + result.stderr
-            # Extract test count from output
+            # Extract test count from output - prefer "collected" line
+            collected_line = None
             for line in output.split('\n'):
-                if 'test' in line.lower() and any(c.isdigit() for c in line):
-                    print_info(f"{suite_name}: {line.strip()}")
+                if 'collected' in line.lower() and any(c.isdigit() for c in line):
+                    collected_line = line.strip()
                     break
+                elif 'test' in line.lower() and any(c.isdigit() for c in line) and 'passed' in line.lower():
+                    # fallback to lines showing test results
+                    collected_line = line.strip()
+            if collected_line:
+                print_info(f"{suite_name}: {collected_line}")
         except Exception as e:
             print_info(f"{suite_name}: Could not get test count ({e})")
 
