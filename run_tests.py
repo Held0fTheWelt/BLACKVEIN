@@ -10,6 +10,7 @@ Usage:
     python run_tests.py --suite backend           # Backend only
     python run_tests.py --suite administration    # Administration-tool only
     python run_tests.py --suite engine            # World-engine only
+    python run_tests.py --suite database          # Database only
     python run_tests.py --suite all               # All suites (explicit)
     python run_tests.py --suite backend --quick   # Backend quick tests
     python run_tests.py --help                    # Show this help
@@ -27,6 +28,7 @@ PROJECT_ROOT = Path(__file__).parent.absolute()
 BACKEND_DIR = PROJECT_ROOT / "backend"
 ADMIN_TOOL_DIR = PROJECT_ROOT / "administration-tool"
 WORLD_ENGINE_DIR = PROJECT_ROOT / "world-engine"
+DATABASE_DIR = PROJECT_ROOT / "database"
 REPORTS_DIR = PROJECT_ROOT / "tests" / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -135,6 +137,7 @@ def get_suite_configs(suite_names):
         'backend': BACKEND_DIR,
         'administration': ADMIN_TOOL_DIR,
         'engine': WORLD_ENGINE_DIR,
+        'database': DATABASE_DIR,
     }
 
     if 'all' in suite_names:
@@ -158,7 +161,8 @@ def run_tests_for_suites(suites, args):
         suite_display = {
             'backend': 'Backend Test Suite',
             'administration': 'Administration Tool Test Suite',
-            'engine': 'World Engine Test Suite'
+            'engine': 'World Engine Test Suite',
+            'database': 'Database Test Suite'
         }.get(suite_name, f'{suite_name} Test Suite')
 
         success = run_pytest(suite_name, suite_dir, args, f"Running {suite_display}")
@@ -192,7 +196,7 @@ Examples:
         "--suite",
         nargs="+",
         default=["all"],
-        choices=["backend", "administration", "engine", "all"],
+        choices=["backend", "administration", "engine", "database", "all"],
         help="Test suite(s) to run (default: all)"
     )
 
