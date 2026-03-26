@@ -26,6 +26,12 @@ Die Kernlogik lautet:
 - **Engine** validiert, entscheidet und schreibt kanonische Zustände fort.
 - **UI** macht Story, Zustand, Entscheidungen und Fehler sichtbar.
 
+Der AI-Kern wird dabei **hybrid** gedacht:
+
+- **SLMs** übernehmen enge, schnelle, formale Hilfsaufgaben.
+- **LLMs** übernehmen die eigentliche szenische Deutung und Konfliktfortschreibung.
+- **Die Engine** bleibt in jedem Fall die autoritative Instanz.
+
 ---
 
 ## MVP-Zielbild
@@ -40,6 +46,8 @@ Am Ende von W4 existiert ein System, das:
 6. Zustandsänderungen explizit loggt,
 7. den Verlauf in einer UI sichtbar macht,
 8. Entwicklung, Debugging und Vorführung unterstützt.
+
+Zusätzlich existiert bis dahin eine erste belastbare **hybride AI-Ausführungslogik**, in der kleine Modelle klar abgegrenzte Vor- und Nachverarbeitungsaufgaben übernehmen, ohne die kanonische Kontrolle der Engine oder die dramaturgische Führungsrolle des größeren Story-Modells zu ersetzen.
 
 ---
 
@@ -56,6 +64,9 @@ Der MVP umfasst:
   - State-Deltas
   - Regel- und Validierungsschicht
 - einen AI-Story-Loop mit kontrollierten Outputs
+- eine hybride AI-Ausführung mit:
+  - kleinen spezialisierten Modellen für Vorverarbeitung, Strukturierung, Routing und Vorprüfung
+  - einem größeren Story-Modell für Szenendeutung, Konfliktdynamik und Reaktionsimpulse
 - eine UI für:
   - Session-Start
   - Szenenanzeige
@@ -81,6 +92,8 @@ Diese Punkte gehören ausdrücklich **nicht** zum MVP:
 - komplexe Player-Choice-Ökonomie außerhalb des Kernloops
 - breite Content-Welle über *God of Carnage* hinaus
 - Scope-Erweiterungen, die nicht direkt zur MVP-Funktion nötig sind
+- eine ausufernde Modelllandschaft mit vielen austauschbaren Spezialmodellen ohne klare Rollen
+- der Ersatz des eigentlichen Story-Kerns durch reine SLM-Logik
 
 ---
 
@@ -115,6 +128,36 @@ Die AI ist zuständig für:
 
 Die AI ist **nicht autoritativ**.  
 Sie darf nur **strukturierte Vorschläge** machen.
+
+### Hybride AI-Schicht
+
+Innerhalb der AI-Schicht gelten zwei Klassen von Modellen:
+
+#### SLMs
+
+SLMs übernehmen schmale, schnelle und stark begrenzte Aufgaben, z. B.:
+
+- Kontextverdichtung
+- Trigger-Extraktion
+- Vor-Normalisierung strukturierter Outputs
+- billiges Routing
+- Vorprüfung auf offensichtliche Contract-Verletzungen
+- Debug-/Diagnose-Zusammenfassungen für UI und Logs
+
+SLMs sind **Hilfsmodelle**, nicht Story-Souveräne.
+
+#### LLMs
+
+LLMs übernehmen die eigentliche Story-Fortschreibung, insbesondere:
+
+- Szenendeutung
+- Konfliktbewegung
+- Reaktionsimpulse
+- Ambivalenzbehandlung
+- charaktertreue Fortschreibung
+- dramaturgische Entwicklung innerhalb des Contracts
+
+Das LLM ist der **Hauptgenerator der Story-Vorschläge**, aber ebenfalls nicht autoritativ.
 
 ### UI
 
@@ -157,6 +200,8 @@ Daraus folgen diese Regeln:
 - AI darf keine Fakten außerhalb des Contracts erzeugen.
 - AI darf nur definierte Aktionstypen verwenden.
 - AI darf nur erlaubte Zustandsfelder beeinflussen.
+- SLMs dürfen vorbereiten, normalisieren und vorprüfen, aber keine kanonischen Entscheidungen treffen.
+- LLMs dürfen Story-Vorschläge erzeugen, aber keine Zustände committen.
 - Die Engine validiert jede AI-Ausgabe.
 - Nur die Engine committed kanonische Zustandsänderungen.
 
@@ -203,6 +248,12 @@ ai/
   prompts/
   validators/
   roles/
+  slm/
+    context_packer/
+    trigger_extractor/
+    delta_normalizer/
+    guard_precheck/
+    router/
 
 ui/
   routes/
@@ -217,6 +268,85 @@ tests/
   ui/
   e2e/
 ```
+
+---
+
+## Hybrides AI-Zielbild für den MVP
+
+Die Modellarchitektur des MVP ist bewusst klein und kontrolliert.
+
+### Zielrollen
+
+#### 1. SLM `context_packer`
+
+Input:
+
+- Session-State
+- letzte Turns
+- Event-Log
+- aktive Beziehungsachsen
+
+Output:
+
+- kompakter, priorisierter Story-Kontext für den nächsten Story-Call
+
+#### 2. SLM `trigger_extractor`
+
+Input:
+
+- Operator-/Spieler-Input
+- aktueller Szenenstatus
+- optional Rohentwurf des Story-Modells
+
+Output:
+
+- erkannte Trigger aus der erlaubten Trigger-Menge
+
+#### 3. SLM `delta_normalizer`
+
+Input:
+
+- roher strukturierter Story-Output
+
+Output:
+
+- normalisierte `proposed_state_deltas` im erlaubten Zielformat
+
+#### 4. SLM `guard_precheck`
+
+Input:
+
+- strukturierter AI-Output
+- Contract-Snapshot
+- aktuelle Szenen-/State-Metadaten
+
+Output:
+
+- Verdachtsliste für:
+  - illegale Referenzen
+  - verbotene Felder
+  - riskante Szenensprünge
+  - widersprüchliche oder unvollständige Antworten
+
+#### 5. SLM `router`
+
+Input:
+
+- Task-Kontext
+- Session-Komplexität
+- Antwortqualität des letzten Turns
+- Fehler-/Recovery-Status
+
+Output:
+
+- Entscheidung, ob:
+  - nur Vor-/Nachverarbeitung nötig ist,
+  - ein voller LLM-Story-Call nötig ist,
+  - eine Reparatur-/Fallback-Runde laufen soll
+
+### Architektursatz
+
+> **SLMs führen in World of Shadows nicht den Kanon, sondern bereiten den Kanon-Fluss vor, verdichten ihn, strukturieren ihn und sichern ihn ab.**
 
 ---
 
@@ -237,6 +367,8 @@ Am Ende von W0 ist glasklar:
 - welche AI-Ausgaben zulässig sind
 - wie Session, Turn, Delta und Logging strukturiert sind
 - welche Ziel-Ordnerstruktur gilt
+- welche Rolle SLMs und LLMs jeweils im MVP einnehmen
+- welche AI-Aufgaben billig und klein abgearbeitet werden dürfen und welche zwingend im Story-Kern bleiben
 
 ## Arbeitspakete
 
@@ -248,6 +380,7 @@ Festlegen:
 - 1 spielbarer Lauf
 - 1 UI zur Bedienung und Diagnose
 - AI als dynamischer Kern, aber kontrolliert
+- hybride AI-Architektur mit enger SLM-Unterstützung und klar begrenztem LLM-Story-Kern
 
 ### 2. Systemgrenzen definieren
 
@@ -257,6 +390,8 @@ Abgrenzung zwischen:
 - AI
 - UI
 - Content
+- SLM-Hilfsschicht
+- LLM-Story-Kern
 
 ### 3. Content-Contract definieren
 
@@ -280,6 +415,8 @@ Festlegen:
 - verbotene Änderungen
 - Pflichtfelder
 - Validierungsregeln
+- erlaubte SLM-Rollen
+- Übergabepunkte zwischen SLMs, LLM und Engine
 
 ### 5. Session-Contract definieren
 
@@ -290,8 +427,19 @@ Definieren:
 - Event-Log
 - State-Delta
 - AI-Decision-Log
+- optionale SLM-Decision-/Routing-Metadaten
 
-### 6. Fehler- und Guard-Klassen definieren
+### 6. Modellstrategie und Aufgabenzuordnung definieren
+
+Festlegen:
+
+- welche Aufgaben SLM-geeignet sind
+- welche Aufgaben nur durch das Story-LLM bearbeitet werden dürfen
+- wann ein direkter LLM-Call ausgelöst wird
+- wann Routing/Fallback/Reduced-Context greift
+- wie viele Modellrollen der MVP maximal tragen soll
+
+### 7. Fehler- und Guard-Klassen definieren
 
 Mindestens:
 
@@ -304,8 +452,11 @@ Mindestens:
 - partial AI output
 - empty AI response
 - timeout / backend failure
+- SLM normalization failure
+- SLM routing mismatch
+- precheck warning overflow
 
-### 7. Repo-/Ordnerstruktur festziehen
+### 8. Repo-/Ordnerstruktur festziehen
 
 Keine Vermischung von:
 
@@ -314,6 +465,7 @@ Keine Vermischung von:
 - Runtime
 - UI
 - AI-spezifischer Logik
+- SLM-Hilfsrollen und Story-Kern-Logik
 
 ## Deliverables
 
@@ -324,6 +476,7 @@ Keine Vermischung von:
 - erste Ziel-Ordnerstruktur
 - `schemas/`-Grundgerüst
 - Testskelett für Contracts
+- erste Modellrollendefinition für SLM/LLM-Aufgabenteilung
 
 ## Akzeptanzkriterien
 
@@ -332,6 +485,8 @@ Keine Vermischung von:
 - Ein AI-Output kann formal gegen ein Schema geprüft werden.
 - Das Content-Modul hat eine definierte Zielstruktur.
 - Die Autorität der Engine ist explizit festgeschrieben.
+- Die SLM-Nutzung ist klar begrenzt und architektonisch sauber einsortiert.
+- Es ist klar, welche Aufgaben nicht in SLMs ausgelagert werden dürfen.
 
 ## Gate für W1
 
@@ -342,6 +497,7 @@ W1 beginnt erst, wenn:
 - erste Schemas existieren
 - Zielstruktur festgelegt ist
 - Testskelett vorhanden ist
+- SLM/LLM-Rollen sauber gegeneinander abgegrenzt sind
 
 ---
 
@@ -439,6 +595,15 @@ Prüfen:
 - Enden erreichbar
 - keine Sonderlogik nötig
 
+### 9. SLM-relevante Content-Hinweise definieren
+
+Ergänzen, wo sinnvoll:
+
+- priorisierbare Konfliktachsen
+- trigger-relevante Marker
+- strukturierte Kurzkontexte für Context Packing
+- klar benannte Felder, die für Delta-Normalisierung und Guard-Precheck relevant sind
+
 ## Deliverables
 
 - vollständiges `god_of_carnage`-Modul
@@ -453,6 +618,7 @@ Prüfen:
 - Alle Figuren, Szenen und Trigger sind strukturell konsistent.
 - Mindestens ein vollständiger Story-Lauf ist als erlaubter Graph modelliert.
 - Das Modul kann ohne Sonderlogik von der Engine eingelesen werden.
+- Das Modul stellt klare strukturierte Signale für spätere SLM-Hilfsrollen bereit, ohne SLM-spezifische Sonderlogik in das Content-Format zu zwingen.
 
 ## Gate für W2
 
@@ -462,6 +628,7 @@ W2 beginnt erst, wenn:
 - Referenzen valide sind
 - mindestens ein Lauf formal möglich ist
 - keine hardcodierte Sonderbehandlung nötig ist
+- das Modul genug saubere Struktur bietet, damit spätere Context-/Trigger-/Delta-Hilfsrollen darauf arbeiten können
 
 ---
 
@@ -496,12 +663,14 @@ Den kompletten Kontrollpfad ohne kreative Abhängigkeit schließen.
 - Deltas anwenden
 - Event-Log schreiben
 - nächste Situation ableiten
+- Platzhalter-Hooks für SLM-Vorverarbeitung, Routing und Nachnormalisierung definieren
 
 ### Akzeptanz
 
 - Ein kompletter Turn läuft technisch durch.
 - Die Kontrollkette ist testbar.
 - Fehlerpfade sind sichtbar.
+- Die Pipeline ist bereits so geschnitten, dass SLM-Hilfsrollen später sauber eingebunden werden können.
 
 ---
 
@@ -518,6 +687,7 @@ Ein Modell liefert formal prüfbare Story-Vorschläge.
 - strikt strukturiertes JSON-Output
 - Parsing + Schema-Check
 - keine unkontrollierte Wahrheitssetzung über Freitext
+- erste SLM-gestützte Vor-/Nachverarbeitung dort anbinden, wo sie klar begrenzt und kostensenkend wirkt
 
 ### Pflichtbestandteile eines AI-Outputs
 
@@ -533,6 +703,7 @@ Ein Modell liefert formal prüfbare Story-Vorschläge.
 - Mehrere Turns sind möglich.
 - Outputs bleiben formal validierbar.
 - Fehlerhafte Antworten werden erkannt.
+- Die Pipeline unterscheidet nachvollziehbar zwischen SLM-Vorbereitung, LLM-Story-Output und Engine-Validierung.
 
 ---
 
@@ -551,12 +722,14 @@ Die AI darf keine unzulässigen Änderungen einschmuggeln.
 - keine unzulässigen Zustandsfelder
 - keine illegalen Szenensprünge
 - Endzustände nur unter gültigen Bedingungen
+- Guard-Precheck aus der SLM-Schicht als vorgelagerte Risikomarkierung integrieren, ohne die Engine-Validierung zu ersetzen
 
 ### Akzeptanz
 
 - Fehlerhafte AI-Outputs werden verworfen oder reduziert übernommen.
 - Die Engine bleibt stabil.
 - Verwerfungen werden geloggt.
+- SLM-Vorprüfungen erhöhen Sichtbarkeit und Effizienz, aber umgehen nie die Engine-Guards.
 
 ---
 
@@ -573,12 +746,14 @@ Dynamik ohne Kontextdrift.
 - verdichtete Verlaufszusammenfassung
 - relevante Beziehungsachsen
 - modulare Lore-/Regie-Kontextzufuhr
+- `context_packer` als klar begrenzte SLM-Hilfsrolle aufbauen
 
 ### Akzeptanz
 
 - Längere Sessions bleiben kohärent.
 - Eskalationsmuster bleiben nachvollziehbar.
 - Kontext bleibt kontrollierbar.
+- Der Context Packer reduziert Ballast, ohne wichtige Konfliktsignale zu zerstören.
 
 ---
 
@@ -594,11 +769,19 @@ Bessere Qualität durch saubere innere Aufgabenverteilung.
 - **Director** — Welche Konfliktbewegung passt jetzt?
 - **Responder** — Welche konkrete Reaktion folgt daraus?
 
+### Ergänzende Hilfsrollen
+
+- **Context Packer (SLM)** — Welche Teile des Verlaufs sind für den nächsten Turn wirklich relevant?
+- **Trigger Extractor (SLM)** — Welche zulässigen Trigger sind wahrscheinlich aktiv?
+- **Delta Normalizer (SLM)** — Wie werden Story-Vorschläge sauber in erlaubte Delta-Strukturen überführt?
+- **Router (SLM)** — Reicht eine kleine Runde, ist ein voller Story-Call nötig, oder muss Recovery greifen?
+
 ### Akzeptanz
 
 - Interpretation, Konfliktdynamik und Reaktion sind sauberer getrennt.
 - Diagnose wird klarer.
 - Die Rollenlogik bleibt MVP-kompatibel.
+- SLM-Rollen unterstützen, aber dominieren den Story-Kern nicht.
 
 ---
 
@@ -616,12 +799,14 @@ Ein Lauf darf nicht an einer schlechten AI-Antwort sterben.
 - sichere No-op-/Safe-Turn-Strategie
 - letzter gültiger Zustand bleibt erhalten
 - degradierter, aber laufender Session-Modus
+- SLM-basierte Reparatur-/Normalisierungsversuche definieren, bevor teurere Story-Neuaufrufe ausgelöst werden
 
 ### Akzeptanz
 
 - Ungültige AI-Ausgaben brechen den Lauf nicht.
 - Recovery ist nachvollziehbar.
 - Die Session bleibt debugbar.
+- Kleine Hilfsmodelle können fehlerhafte Antworten kostengünstig reparieren oder klassifizieren, ohne den Story-Kern zu verwässern.
 
 ---
 
@@ -634,6 +819,11 @@ Ein Lauf darf nicht an einer schlechten AI-Antwort sterben.
 - Session-State-Modell
 - Event-/Delta-Logging
 - AI-Loop-Tests
+- erste SLM-Hilfsrollen für:
+  - Kontextverdichtung
+  - Trigger-Extraktion
+  - Delta-Normalisierung
+  - Guard-Precheck oder Routing
 
 ## Gesamtakzeptanz für W2
 
@@ -642,6 +832,7 @@ Ein Lauf darf nicht an einer schlechten AI-Antwort sterben.
 - Ungültige AI-Ausgaben brechen den Lauf nicht.
 - Zustandsänderungen sind nachvollziehbar gespeichert.
 - Die Engine bleibt Herr des Kanons.
+- SLMs senken Kosten und strukturieren Teilaufgaben, ohne den dramaturgischen Kern zu ersetzen.
 
 ## Gate für W3
 
@@ -652,6 +843,7 @@ W3 beginnt erst, wenn:
 - Fehlerfälle kontrolliert abgefangen werden
 - Deltas explizit gespeichert werden
 - Engine-Autorität nicht unterlaufen wird
+- SLM-Hilfsrollen klar begrenzt, testbar und austauschbar bleiben
 
 ---
 
@@ -710,6 +902,8 @@ Eine erste UI erlaubt, *God of Carnage* zu starten, Eingaben zu machen und die d
 - Validierungsentscheidungen
 - übernommene vs. verworfene Änderungen
 - aktive Trigger / Regeln
+- SLM-Zwischenschritte, Routing-Entscheidungen und Normalisierungsergebnisse, soweit für Entwicklung sinnvoll
+- klare Sichtbarkeit, welche Ausgaben vom Story-LLM kamen und welche von Hilfsrollen vorbereitet oder repariert wurden
 
 ### 8. API-Endpunkte
 
@@ -735,6 +929,7 @@ Mindestens:
 - Die AI-Reaktionen sind sichtbar.
 - Die Zustandsänderungen sind nachvollziehbar.
 - Debug-Informationen helfen tatsächlich bei Entwicklung und Test.
+- Die hybride AI-Pipeline bleibt in der UI diagnostisch nachvollziehbar.
 
 ## Gate für W4
 
@@ -744,6 +939,7 @@ W4 beginnt erst, wenn:
 - Story-Verlauf sichtbar ist
 - Debug-Daten brauchbar sind
 - die UI den Kernloop zuverlässig bedienen kann
+- SLM- und LLM-Anteile im Debugging sauber unterscheidbar sind
 
 ---
 
@@ -765,6 +961,7 @@ Aus dem technisch laufenden Prototypen einen belastbaren MVP machen, der nicht n
 - typische Eskalationspfade
 - Fehlerpfade
 - Recovery-Verhalten
+- Hybrid-Pipeline-Verhalten unter Normal-, Degradations- und Retry-Bedingungen
 
 ### 2. Balancing / Feintuning
 
@@ -772,6 +969,7 @@ Aus dem technisch laufenden Prototypen einen belastbaren MVP machen, der nicht n
 - Eskalation nicht chaotisch
 - Koalitionswechsel nachvollziehbar
 - Figuren bleiben charaktertreu
+- richtige Lastverteilung zwischen SLM-Hilfsschicht und Story-LLM
 
 ### 3. AI-Qualitätsverbesserung
 
@@ -779,29 +977,34 @@ Aus dem technisch laufenden Prototypen einen belastbaren MVP machen, der nicht n
 - bessere Kontextselektion
 - sauberere Validierung
 - stabilere Antworten
+- bessere Schwellenwerte dafür, wann kleine Hilfsmodelle ausreichen und wann das Story-LLM zwingend übernehmen muss
 
 ### 4. Session-Persistenz härten
 
 - Speichern / Laden
 - Wiederaufnahme
 - reproduzierbare Diagnostik
+- Persistenz relevanter Hybrid-Metadaten, soweit sie für Debugging und Vergleich sinnvoll sind
 
 ### 5. UI-Nutzbarkeit verbessern
 
 - klarerer Storyfluss
 - bessere Sichtbarkeit von Regie-/AI-Entscheidungen
 - bessere Entwicklerdiagnose
+- sinnvolle Reduktion oder Umschaltbarkeit technischer Hybrid-Details, damit Debug-Transparenz nicht zur UI-Unübersichtlichkeit wird
 
 ### 6. MVP-Abgrenzung prüfen
 
 - kein Scope-Creep
 - nur MVP-notwendige Ergänzungen
+- keine ausufernde Spezialisierung in zu viele Mikro-Modelle
 
 ### 7. Vorführung / Demo-Skript
 
 - definierter Vorführlauf
 - definierte Testläufe
 - definierte Failure-Cases
+- definierte Hybrid-Fallback-Fälle, die die Robustheit des Systems zeigen
 
 ## Deliverables
 
@@ -817,6 +1020,7 @@ Aus dem technisch laufenden Prototypen einen belastbaren MVP machen, der nicht n
 - Der Story-Lauf ist nachvollziehbar und debugbar.
 - Der MVP ist intern präsentierbar.
 - Der MVP ist als Grundlage für weitere Module brauchbar.
+- Die Hybridarchitektur aus SLM-Hilfsschicht und Story-LLM ist stabil genug, um als Muster für weitere Module zu dienen.
 
 ---
 
@@ -836,6 +1040,18 @@ Zur belastbaren Analyse und späteren Weiterentwicklung muss jeder Lauf diagnost
 - optional `seed`
 - Zeitstempel
 
+## Erweiterte Hybrid-Metadaten
+
+Zusätzlich, wo sinnvoll:
+
+- `routing_mode`
+- `context_packer_version`
+- `trigger_extractor_version`
+- `delta_normalizer_version`
+- `guard_precheck_version`
+- `fallback_mode`
+- `recovery_attempt_count`
+
 ## Pflicht-Logs
 
 - Event-Log
@@ -843,6 +1059,7 @@ Zur belastbaren Analyse und späteren Weiterentwicklung muss jeder Lauf diagnost
 - Validation-Log
 - State-Delta-Log
 - Recovery-/Fallback-Log
+- optional SLM-Routing-/Vorprüfungs-/Normalisierungslog, sofern mit vertretbarem Aufwand und ohne Log-Explosion machbar
 
 ---
 
@@ -872,6 +1089,16 @@ Jeder AI-Vorschlag wird geprüft, bevor er den State verändert.
 
 Ein MVP ohne nachvollziehbare Diagnose ist für dieses Projekt unzureichend.
 
+## 6. SLMs als Werkzeuge, nicht als Souveräne
+
+Kleine Modelle dienen der Vorbereitung, Verdichtung, Strukturierung, Vorprüfung und Effizienz.
+Sie ersetzen nicht die Story-Führung und treffen keine kanonischen Entscheidungen.
+
+## 7. Hybridarchitektur klein halten
+
+Der MVP braucht eine sinnvolle Aufgabenteilung, aber keine Modell-Explosion.
+Wenige, klar definierte Hilfsrollen sind besser als viele diffuse Spezialmodelle.
+
 ---
 
 # Die Wellenlogik in einem Satz
@@ -891,6 +1118,7 @@ Dann existieren:
 - ein echtes **God-of-Carnage-Content-Modul**
 - eine **World Engine**, die Story-Zustände mit AI-Unterstützung fortschreibt
 - ein kontrollierter **AI-Story-Loop**
+- eine **hybride AI-Schicht** aus SLM-Hilfsrollen und Story-LLM
 - eine **spielbare UI**
 - sichtbare **Diagnose- und Validierungslogik**
 - reproduzierbare **Session- und Delta-Logs**
@@ -911,3 +1139,7 @@ Dort entscheidet sich, ob das System:
 Darum gilt:
 
 > **W2 wird nicht als ein Block umgesetzt, sondern in klaren Unterwellen mit harten Gates.**
+
+Zusätzlich gilt:
+
+> **Die Hybridarchitektur muss in W2 so geschnitten werden, dass SLMs Kosten, Latenz und Strukturprobleme verringern, ohne die dramaturgische Qualität oder die Autorität der Engine zu beschädigen.**
