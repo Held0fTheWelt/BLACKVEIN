@@ -122,6 +122,7 @@ class TestWebSocketRejoin:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Issue ticket that is already expired (ttl_seconds=-1 means exp is in past)
@@ -157,6 +158,7 @@ class TestWebSocketRejoin:
         host_context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Create valid ticket for host
@@ -212,6 +214,7 @@ class TestWebSocketRejoin:
                 "display_name": "Host",
                 "character_id": "char-1",
             },
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Valid ticket with char-1
@@ -441,6 +444,7 @@ class TestWebSocketRejoin:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
         participant_id = context["participant_id"]
 
@@ -482,11 +486,13 @@ class TestWebSocketRejoin:
         context1 = client.post(
             "/api/internal/join-context",
             json={"run_id": run1_id, "account_id": "1", "display_name": "Host1"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         context2 = client.post(
             "/api/internal/join-context",
             json={"run_id": run2_id, "account_id": "2", "display_name": "Host2"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Create ticket for run1

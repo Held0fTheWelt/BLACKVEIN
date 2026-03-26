@@ -131,17 +131,22 @@ class TestPlayServiceSecretStartup:
         # Clean environment
         monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
         monkeypatch.delenv("PLAY_SERVICE_SHARED_SECRET", raising=False)
+        monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
+        monkeypatch.setenv("FLASK_ENV", "test")
 
-        # Capture warnings on reload
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            import app.config
-            importlib.reload(app.config)
+        # Mock dotenv.load_dotenv to prevent loading .env from parent directory
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            # Capture warnings on reload
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                import app.config
+                importlib.reload(app.config)
 
-            # Should have warning about missing secret
-            warning_messages = [str(warning.message) for warning in w]
-            assert any("PLAY_SERVICE_SECRET" in msg for msg in warning_messages), \
-                f"Expected PLAY_SERVICE_SECRET warning, got: {warning_messages}"
+                # Should have warning about missing secret
+                warning_messages = [str(warning.message) for warning in w]
+                assert any("PLAY_SERVICE_SECRET" in msg for msg in warning_messages), \
+                    f"Expected PLAY_SERVICE_SECRET warning, got: {warning_messages}"
 
     @pytest.mark.unit
     @pytest.mark.config
@@ -160,12 +165,16 @@ class TestPlayServiceSecretStartup:
     def test_secret_from_fallback_env_var(self, monkeypatch):
         """PLAY_SERVICE_SECRET falls back to PLAY_SERVICE_SHARED_SECRET."""
         monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
+        monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
         monkeypatch.setenv("PLAY_SERVICE_SHARED_SECRET", "fallback-secret-value")
+        monkeypatch.setenv("FLASK_ENV", "test")
 
-        import app.config
-        importlib.reload(app.config)
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            import app.config
+            importlib.reload(app.config)
 
-        assert app.config.PLAY_SERVICE_SECRET == "fallback-secret-value"
+            assert app.config.PLAY_SERVICE_SECRET == "fallback-secret-value"
 
     @pytest.mark.unit
     @pytest.mark.config
@@ -173,11 +182,15 @@ class TestPlayServiceSecretStartup:
         """PLAY_SERVICE_SECRET should be None when completely unset."""
         monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
         monkeypatch.delenv("PLAY_SERVICE_SHARED_SECRET", raising=False)
+        monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
+        monkeypatch.setenv("FLASK_ENV", "test")
 
-        import app.config
-        importlib.reload(app.config)
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            import app.config
+            importlib.reload(app.config)
 
-        assert app.config.PLAY_SERVICE_SECRET is None
+            assert app.config.PLAY_SERVICE_SECRET is None
 
     @pytest.mark.unit
     @pytest.mark.config
@@ -266,11 +279,16 @@ class TestPlayServiceInternalApiKeyStartup:
     def test_api_key_optional_when_not_set(self, monkeypatch):
         """PLAY_SERVICE_INTERNAL_API_KEY should be None when not set."""
         monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
+        # Ensure PLAY_SERVICE_SECRET is set so config doesn't fail
+        monkeypatch.setenv("PLAY_SERVICE_SECRET", "test-secret-for-config-test")
+        monkeypatch.setenv("FLASK_ENV", "test")
 
-        import app.config
-        importlib.reload(app.config)
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            import app.config
+            importlib.reload(app.config)
 
-        assert app.config.PLAY_SERVICE_INTERNAL_API_KEY is None
+            assert app.config.PLAY_SERVICE_INTERNAL_API_KEY is None
 
     @pytest.mark.unit
     @pytest.mark.config

@@ -35,28 +35,34 @@ class TestPlayServiceSecretStartupContract:
         """Missing PLAY_SERVICE_SECRET in explicit test mode should issue warning."""
         monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
         monkeypatch.delenv("PLAY_SERVICE_SHARED_SECRET", raising=False)
+        monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
         monkeypatch.setenv("FLASK_ENV", "test")
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            import importlib
-            import app.config
-            importlib.reload(app.config)
-            warning_messages = [str(warning.message) for warning in w]
-            assert any("PLAY_SERVICE_SECRET" in msg for msg in warning_messages), \
-                f"Expected PLAY_SERVICE_SECRET warning, got: {warning_messages}"
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                import importlib
+                import app.config
+                importlib.reload(app.config)
+                warning_messages = [str(warning.message) for warning in w]
+                assert any("PLAY_SERVICE_SECRET" in msg for msg in warning_messages), \
+                    f"Expected PLAY_SERVICE_SECRET warning, got: {warning_messages}"
 
     @pytest.mark.contract
     def test_missing_play_service_secret_fails_in_production_mode(self, monkeypatch):
         """Missing PLAY_SERVICE_SECRET should raise error in production mode."""
         monkeypatch.delenv("PLAY_SERVICE_SECRET", raising=False)
         monkeypatch.delenv("PLAY_SERVICE_SHARED_SECRET", raising=False)
+        monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
         monkeypatch.setenv("FLASK_ENV", "production")
 
-        with pytest.raises(ValueError, match="PLAY_SERVICE_SECRET is required"):
-            import importlib
-            import app.config
-            importlib.reload(app.config)
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            with pytest.raises(ValueError, match="PLAY_SERVICE_SECRET is required"):
+                import importlib
+                import app.config
+                importlib.reload(app.config)
 
     @pytest.mark.contract
     def test_blank_play_service_secret_fails_in_production_mode(self, monkeypatch):
@@ -129,13 +135,18 @@ class TestPlayServiceInternalApiKeyStartupContract:
     def test_internal_api_key_optional(self, monkeypatch):
         """PLAY_SERVICE_INTERNAL_API_KEY is optional but when set should not be blank."""
         monkeypatch.delenv("PLAY_SERVICE_INTERNAL_API_KEY", raising=False)
+        # Ensure PLAY_SERVICE_SECRET is set so config doesn't fail
+        monkeypatch.setenv("PLAY_SERVICE_SECRET", "test-secret-for-config-test")
+        monkeypatch.setenv("FLASK_ENV", "test")
 
-        import importlib
-        import app.config
-        importlib.reload(app.config)
-        from app.config import PLAY_SERVICE_INTERNAL_API_KEY as piak
-        # Should be None when not set
-        assert piak is None
+        from unittest.mock import patch
+        with patch("dotenv.load_dotenv"):
+            import importlib
+            import app.config
+            importlib.reload(app.config)
+            from app.config import PLAY_SERVICE_INTERNAL_API_KEY as piak
+            # Should be None when not set
+            assert piak is None
 
     @pytest.mark.contract
     def test_internal_api_key_blank_becomes_none(self, monkeypatch):

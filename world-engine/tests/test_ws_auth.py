@@ -173,6 +173,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Craft ticket with mismatched account_id
@@ -206,6 +207,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host", "character_id": "char-1"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Craft ticket with mismatched character_id
@@ -240,6 +242,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Craft ticket with wrong role_id
@@ -273,6 +276,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Issue expired ticket (ttl_seconds=0 means it's already expired)
@@ -309,6 +313,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Create valid ticket
@@ -443,6 +448,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
 
         # Create reusable ticket for same participant
@@ -541,6 +547,7 @@ class TestWebSocketAuthValidation:
         context = client.post(
             "/api/internal/join-context",
             json={"run_id": run_id, "account_id": "1", "display_name": "Host"},
+            headers={"X-Play-Service-Key": "internal-api-key-for-ops"},
         ).json()
         participant_id = context["participant_id"]
 
