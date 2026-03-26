@@ -151,10 +151,12 @@ def get_run_details_public(run_id: str, manager: RuntimeManager = Depends(get_ma
     """Get run details for a specific run (publicly accessible)."""
     try:
         instance = manager.get_instance(run_id)
+        template = manager.get_template(instance.template_id)
         # Get any participant to build a snapshot
         participant_id = next(iter(instance.participants.keys()))
         snapshot = manager.build_snapshot(run_id, participant_id)
         return {
+            "template": template.model_dump(mode="json"),
             "run": manager.describe_run(run_id),
             "lobby": snapshot.lobby,
         }

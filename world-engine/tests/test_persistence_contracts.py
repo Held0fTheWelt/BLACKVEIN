@@ -51,7 +51,7 @@ def test_runtime_instance_persists_to_sqlalchemy_store(tmp_path, sqlalchemy_avai
         pytest.skip("sqlalchemy not available")
 
     db_url = "sqlite:///:memory:"
-    manager = RuntimeManager(store_root=tmp_path, store_url=db_url)
+    manager = RuntimeManager(store_root=tmp_path)
     run = manager.create_run("god_of_carnage_solo", account_id="acct:test", display_name="Test Player")
 
     # Manually save to store
@@ -222,7 +222,7 @@ def test_sqlalchemy_store_transaction_rollback(tmp_path, sqlalchemy_available):
         pytest.skip("sqlalchemy not available")
 
     db_url = "sqlite:///:memory:"
-    manager = RuntimeManager(store_root=tmp_path, store_url=db_url)
+    manager = RuntimeManager(store_root=tmp_path)
     run = manager.create_run("god_of_carnage_solo", account_id="acct:test", display_name="Test")
 
     # Save initial state

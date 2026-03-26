@@ -190,7 +190,7 @@ IS_PRODUCTION = FLASK_ENV == "production"
 # PLAY_SERVICE_SECRET configuration
 _pss_env = os.getenv("PLAY_SERVICE_SECRET", "").strip()
 _pss_fallback = os.getenv("PLAY_SERVICE_SHARED_SECRET", "").strip()
-PLAY_SERVICE_SECRET = _pss_env or _pss_fallback or "change-me-for-production"
+PLAY_SERVICE_SECRET = _pss_env or _pss_fallback or None
 
 # Validate secret based on environment
 if IS_PRODUCTION and not _pss_env and not _pss_fallback:

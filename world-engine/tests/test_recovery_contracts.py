@@ -176,7 +176,7 @@ def test_store_reconnection_consistency(tmp_path, sqlalchemy_available):
         db_url = f"sqlite:///{db_path}"
         sql_tmp_path = tmp_path / "sql_store"
         sql_tmp_path.mkdir()
-        manager_sql = RuntimeManager(store_root=sql_tmp_path, store_url=db_url)
+        manager_sql = RuntimeManager(store_root=sql_tmp_path)
         run_sql = manager_sql.create_run("god_of_carnage_solo", account_id="acct:test", display_name="Test")
         manager_sql.store.save(run_sql)
 
@@ -252,7 +252,7 @@ def test_database_constraint_violation_handling(tmp_path, sqlalchemy_available):
         pytest.skip("sqlalchemy not available")
 
     db_url = "sqlite:///:memory:"
-    manager = RuntimeManager(store_root=tmp_path, store_url=db_url)
+    manager = RuntimeManager(store_root=tmp_path)
 
     # Create and save a run
     run = manager.create_run("god_of_carnage_solo", account_id="acct:test", display_name="Test")
@@ -285,7 +285,7 @@ def test_store_describe_accuracy(tmp_path, sqlalchemy_available):
     # Test SQLAlchemy store description
     if sqlalchemy_available:
         db_url = "sqlite:///:memory:"
-        sql_manager = RuntimeManager(store_root=tmp_path, store_url=db_url)
+        sql_manager = RuntimeManager(store_root=tmp_path)
         desc_sql = sql_manager.store.describe()
         assert desc_sql["backend"] == "sqlalchemy"
         assert "url" in desc_sql
