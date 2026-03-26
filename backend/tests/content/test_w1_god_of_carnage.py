@@ -16,10 +16,10 @@ These tests verify the 10 required W1 coverage items:
 
 import pytest
 from pathlib import Path
-from backend.app.content.module_loader import load_module
-from backend.app.content.module_service import ModuleService
-from backend.app.content.module_validator import ModuleCrossReferenceValidator
-from backend.app.content.module_exceptions import (
+from app.content.module_loader import load_module
+from app.content.module_service import ModuleService
+from app.content.module_validator import ModuleCrossReferenceValidator
+from app.content.module_exceptions import (
     ModuleNotFoundError,
     ModuleParseError,
     ModuleStructureError,
@@ -418,7 +418,7 @@ class TestW1LegalStoryPath:
         assert "phase_5" in phases
 
         # Verify transitions connect phases linearly
-        transitions = {t.from_phase: t.to_phase for t in module.phase_transitions.values()}
+        transitions = {t.from_phase: t.to_phase for t in module.phase_transitions}
         assert transitions.get("phase_1") == "phase_2"
         assert transitions.get("phase_2") == "phase_3"
         assert transitions.get("phase_3") == "phase_4"

@@ -59,13 +59,13 @@ class ModuleCrossReferenceValidator:
             List of validation errors found
         """
         errors: list[str] = []
-        character_ids = {char.id for char in module.characters}
+        character_ids = set(module.characters.keys())
 
-        for trigger in module.trigger_definitions:
+        for trigger_id, trigger in module.trigger_definitions.items():
             for char_id in trigger.character_vulnerability.keys():
                 if char_id not in character_ids:
                     errors.append(
-                        f"Trigger '{trigger.id}' references undefined character '{char_id}' "
+                        f"Trigger '{trigger_id}' references undefined character '{char_id}' "
                         f"in character_vulnerability"
                     )
 
@@ -85,10 +85,10 @@ class ModuleCrossReferenceValidator:
             List of validation errors found
         """
         errors: list[str] = []
-        character_ids = {char.id for char in module.characters}
+        character_ids = set(module.characters.keys())
 
-        for axis in module.relationship_axes:
-            for char_pair in axis.relationships.keys():
+        for axis_id, axis in module.relationship_axes.items():
+            for char_pair in axis.relationships:
                 # char_pair format is expected to be "char1_char2" or similar
                 # Validate that both characters in the pair exist
                 # Since we don't know the exact delimiter, check if characters are referenced
@@ -101,7 +101,7 @@ class ModuleCrossReferenceValidator:
                 # If fewer than 2 character references found in pair, it's likely invalid
                 if len(char_references) < 2 and len(character_ids) > 1:
                     errors.append(
-                        f"Relationship axis '{axis.id}' contains pair '{char_pair}' "
+                        f"Relationship axis '{axis_id}' contains pair '{char_pair}' "
                         f"with invalid character references"
                     )
 
@@ -122,19 +122,19 @@ class ModuleCrossReferenceValidator:
             List of validation errors found
         """
         errors: list[str] = []
-        trigger_ids = {trigger.id for trigger in module.trigger_definitions}
+        trigger_ids = set(module.trigger_definitions.keys())
 
         # Check phase active_triggers
-        for phase in module.scene_phases:
+        for phase_id, phase in module.scene_phases.items():
             for trigger_id in phase.active_triggers:
                 if trigger_id not in trigger_ids:
                     errors.append(
-                        f"Phase '{phase.id}' references undefined trigger '{trigger_id}' "
+                        f"Phase '{phase_id}' references undefined trigger '{trigger_id}' "
                         f"in active_triggers"
                     )
 
         # Check transition trigger_conditions
-        for transition in module.phase_transitions:
+        for transition in module.phase_transitions.values():
             for trigger_condition in transition.trigger_conditions:
                 if trigger_condition not in trigger_ids:
                     errors.append(
@@ -143,11 +143,11 @@ class ModuleCrossReferenceValidator:
                     )
 
         # Check ending trigger_conditions
-        for ending in module.ending_conditions:
+        for ending_id, ending in module.ending_conditions.items():
             for trigger_condition in ending.trigger_conditions:
                 if trigger_condition not in trigger_ids:
                     errors.append(
-                        f"Ending '{ending.id}' references undefined trigger '{trigger_condition}' "
+                        f"Ending '{ending_id}' references undefined trigger '{trigger_condition}' "
                         f"in trigger_conditions"
                     )
 
@@ -173,7 +173,7 @@ class ModuleCrossReferenceValidator:
 
         # Check for sequence gaps and valid sequences
         if module.scene_phases:
-            sequences = sorted({phase.sequence for phase in module.scene_phases})
+            sequences = sorted({phase.sequence for phase in module.scene_phases.values()})
             # Check if sequences are consecutive starting from 1
             expected = 1
             for seq in sequences:
@@ -187,7 +187,7 @@ class ModuleCrossReferenceValidator:
                     expected += 1
 
         # Check transition phase references
-        for transition in module.phase_transitions:
+        for transition in module.phase_transitions.values():
             if transition.from_phase not in phase_ids:
                 errors.append(
                     f"Transition references undefined source phase '{transition.from_phase}'"
@@ -207,7 +207,7 @@ class ModuleCrossReferenceValidator:
         """Check if transitions form a valid directed acyclic graph.
 
         Args:
-            transitions: List of PhaseTransition objects
+            transitions: Dict or list of PhaseTransition objects
             phase_ids: Set of valid phase IDs
 
         Returns:
@@ -215,7 +215,8 @@ class ModuleCrossReferenceValidator:
         """
         # Build adjacency list
         graph = {phase_id: [] for phase_id in phase_ids}
-        for transition in transitions:
+        trans_items = transitions.values() if isinstance(transitions, dict) else transitions
+        for transition in trans_items:
             if (
                 transition.from_phase in graph
                 and transition.to_phase in graph
@@ -265,71 +266,71 @@ class ModuleCrossReferenceValidator:
         errors: list[str] = []
 
         # Validate character baseline_attitude is non-empty
-        for character in module.characters:
+        for char_id, character in module.characters.items():
             if not character.baseline_attitude:
                 errors.append(
-                    f"Character '{character.id}' has empty baseline_attitude"
+                    f"Character '{char_id}' has empty baseline_attitude"
                 )
             if not character.role:
                 errors.append(
-                    f"Character '{character.id}' has empty role"
+                    f"Character '{char_id}' has empty role"
                 )
 
         # Validate relationship axis baseline is valid
-        for axis in module.relationship_axes:
+        for axis_id, axis in module.relationship_axes.items():
             if axis.baseline is None:
                 errors.append(
-                    f"Relationship axis '{axis.id}' has invalid baseline value"
+                    f"Relationship axis '{axis_id}' has invalid baseline value"
                 )
             # For numeric baselines, ensure they're positive
             if isinstance(axis.baseline, (int, float)):
                 if axis.baseline < 0:
                     errors.append(
-                        f"Relationship axis '{axis.id}' has negative baseline value: {axis.baseline}"
+                        f"Relationship axis '{axis_id}' has negative baseline value: {axis.baseline}"
                     )
 
         # Validate phase sequence is positive
-        for phase in module.scene_phases:
+        for phase_id, phase in module.scene_phases.items():
             if phase.sequence <= 0:
                 errors.append(
-                    f"Phase '{phase.id}' has invalid sequence: {phase.sequence} (must be > 0)"
+                    f"Phase '{phase_id}' has invalid sequence: {phase.sequence} (must be > 0)"
                 )
             if not phase.name:
                 errors.append(
-                    f"Phase '{phase.id}' has empty name"
+                    f"Phase '{phase_id}' has empty name"
                 )
 
         # Validate trigger definitions have required fields
-        for trigger in module.trigger_definitions:
+        for trigger_id, trigger in module.trigger_definitions.items():
             if not trigger.name:
                 errors.append(
-                    f"Trigger '{trigger.id}' has empty name"
+                    f"Trigger '{trigger_id}' has empty name"
                 )
             if not trigger.description:
                 errors.append(
-                    f"Trigger '{trigger.id}' has empty description"
+                    f"Trigger '{trigger_id}' has empty description"
                 )
 
         # Validate ending conditions have required fields
-        for ending in module.ending_conditions:
+        for ending_id, ending in module.ending_conditions.items():
             if not ending.name:
                 errors.append(
-                    f"Ending '{ending.id}' has empty name"
+                    f"Ending '{ending_id}' has empty name"
                 )
             if not ending.description:
                 errors.append(
-                    f"Ending '{ending.id}' has empty description"
+                    f"Ending '{ending_id}' has empty description"
                 )
 
         # Validate relationship axes have names and descriptions
-        for axis in module.relationship_axes:
+        for axis_id, axis in module.relationship_axes.items():
             if not axis.name:
                 errors.append(
-                    f"Relationship axis '{axis.id}' has empty name"
+                    f"Relationship axis '{axis_id}' has empty name"
                 )
             if not axis.description:
                 errors.append(
-                    f"Relationship axis '{axis.id}' has empty description"
+                    f"Relationship axis '{axis_id}' has empty description"
                 )
 
         return errors

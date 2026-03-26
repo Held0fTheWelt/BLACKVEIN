@@ -194,10 +194,10 @@ class ModuleService:
             )
 
         # Load only module.yaml
-        metadata_path = module_path / "metadata.yaml"
+        metadata_path = module_path / "module.yaml"
         if not metadata_path.exists():
             raise ModuleNotFoundError(
-                message="Module metadata file not found",
+                message="Module file not found (module.yaml)",
                 module_id=module_id,
                 file_path=str(metadata_path),
             )

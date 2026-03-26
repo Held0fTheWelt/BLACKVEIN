@@ -102,6 +102,54 @@ class ModuleFileLoader:
             filename = yaml_file.stem  # filename without .yaml extension
             result[filename] = self.load_file(yaml_file)
 
+        # Unwrap nested dictionaries where YAML files wrap content under a root key.
+        #
+        # Most YAML files are structured as:
+        #   characters.yaml:
+        #     characters:
+        #       veronique: {...}
+        #   relationships.yaml:
+        #     relationship_axes:
+        #       axis_1: {...}
+        #   scenes.yaml:
+        #     scene_phases:
+        #       phase_1: {...}
+        #
+        # The loader initially stores these with the filename as key and the entire
+        # parsed YAML as content:
+        #   raw_data['characters'] = {'characters': {...}}
+        #   raw_data['relationships'] = {'relationship_axes': {...}}
+        #   raw_data['scenes'] = {'scene_phases': {...}}
+        #
+        # We need to unwrap to get just the content under the root key, while
+        # preserving filenames for test assertions and downstream mapping.
+        #
+        # Special cases:
+        # - 'module' is NOT wrapped and should not be unwrapped
+        # - Filenames are preserved, but content is unwrapped
+
+        # Mapping of filename stems to their internal wrapping keys
+        unwrap_mapping = {
+            "characters": "characters",
+            "relationships": "relationship_axes",
+            "scenes": "scene_phases",
+            "triggers": "trigger_types",
+            "endings": "ending_types",
+            "transitions": "phase_transitions",
+            "escalation_axes": "escalation_axes",
+        }
+
+        # Iterate over a copy of items to avoid "dictionary keys changed during iteration" error
+        for filename, content in list(result.items()):
+            if filename != "module" and isinstance(content, dict):
+                # Check if this filename has a known unwrap mapping
+                if filename in unwrap_mapping:
+                    wrapping_key = unwrap_mapping[filename]
+                    # If content has the wrapping key, unwrap it
+                    if wrapping_key in content:
+                        # Extract the content under the wrapping key
+                        result[filename] = content[wrapping_key]
+
         return result
 
 
@@ -120,11 +168,17 @@ class ModuleStructureValidator:
         ContentModule instance. All Pydantic validation errors are collected
         and included in the exception if validation fails.
 
+        Assembly pipeline:
+        1. Load all YAML files into raw_data dict
+        2. Map field names (trigger_types → trigger_definitions, etc.)
+        3. Extract 'module' key and move to 'metadata'
+        4. Validate with Pydantic (which converts dicts to model instances)
+
         Args:
             raw_data: Dictionary mapping file identifiers to parsed YAML content.
-                     Expected keys typically include 'metadata', 'characters',
-                     'relationship_axes', 'trigger_definitions', 'scene_phases',
-                     'phase_transitions', and 'ending_conditions'.
+                     Expected keys typically include 'module', 'characters',
+                     'relationship_axes', 'trigger_types', 'scene_phases',
+                     'phase_transitions', and 'ending_types'.
 
         Returns:
             A validated ContentModule instance.
@@ -132,6 +186,55 @@ class ModuleStructureValidator:
         Raises:
             ModuleStructureError: If validation fails, containing all validation errors.
         """
+        # Step 1: Map filename keys to proper ContentModule field names
+        # After unwrapping in the loader, we have filename stems as keys (triggers, endings,
+        # scenes, transitions, relationships) with their unwrapped content. We need to map
+        # these to the ContentModule field names.
+
+        # Map triggers or trigger_types -> trigger_definitions
+        if "triggers" in raw_data:
+            raw_data["trigger_definitions"] = raw_data.pop("triggers")
+        elif "trigger_types" in raw_data:
+            raw_data["trigger_definitions"] = raw_data.pop("trigger_types")
+
+        # Map endings or ending_types -> ending_conditions
+        if "endings" in raw_data:
+            raw_data["ending_conditions"] = raw_data.pop("endings")
+        elif "ending_types" in raw_data:
+            raw_data["ending_conditions"] = raw_data.pop("ending_types")
+
+        # Map scenes -> scene_phases
+        if "scenes" in raw_data:
+            raw_data["scene_phases"] = raw_data.pop("scenes")
+
+        # Map transitions -> phase_transitions
+        if "transitions" in raw_data:
+            raw_data["phase_transitions"] = raw_data.pop("transitions")
+
+        # Map relationships -> relationship_axes
+        if "relationships" in raw_data:
+            relationships_content = raw_data.pop("relationships")
+            # Handle the case where relationships might be a list (legacy) or dict (current)
+            if isinstance(relationships_content, list):
+                # Convert list to dict if necessary (keyed by relationship id)
+                relationships_dict = {rel.get("id", f"rel_{i}"): rel for i, rel in enumerate(relationships_content)}
+                raw_data["relationship_axes"] = relationships_dict
+            else:
+                # It's already a dict (from unwrapped relationships.yaml)
+                raw_data["relationship_axes"] = relationships_content
+
+        # Ensure escalation_axes is passed through correctly
+        if "escalation_axes" in raw_data and not isinstance(raw_data["escalation_axes"], dict):
+            # If it's not already a dict, wrap it or convert as needed
+            if raw_data["escalation_axes"] is None:
+                raw_data["escalation_axes"] = {}
+
+        # Step 2: Extract 'module' key and move to 'metadata'
+        # The module.yaml file contains module_id, title, version, etc. in the 'module' key
+        # but ContentModule expects these in the 'metadata' field as a ModuleMetadata object
+        if "module" in raw_data:
+            raw_data["metadata"] = raw_data.pop("module")
+
         try:
             return ContentModule(**raw_data)
         except ValidationError as e:

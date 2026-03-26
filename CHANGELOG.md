@@ -6,6 +6,169 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.2.1] - 2026-03-26 (Wave 1: God of Carnage Canonical Module Structure)
+
+**Focus**: Establish God of Carnage as the first formal, machine-readable, testable reference content module for the World of Shadows MVP. Implementation of canonical module structure aligned with contract specifications.
+
+### Wave 1 () Canonical Module Implementation
+
+#### Created: Content Module Directory Structure
+
+**Location**: `content/modules/god_of_carnage/`
+
+Core module files (aligned with contract specifications):
+
+1. **`module.yaml`** (55 lines)
+   - Module metadata: id, title, version 0.1.0, contract_version 0.2.0
+   - Content specification: 12-15 turns, 5 phases, 4 characters, 2 player roles, 2 NPC roles
+   - File registry: All module component files listed
+   - Quality principles: Reference implementation, no special-case engine logic
+
+2. **`characters.yaml`** (98 lines)
+   - 4 character definitions: Véronique (host/idealist), Michel (pragmatist), Annette (cynic), Alain (mediator)
+   - Per-character formal properties: emotional_state, escalation_level, engagement, moral_defense (0-100 scale)
+   - Baseline state initialization
+   - Tension markers and escalation triggers per character
+   - Vulnerability profiles for each character
+
+3. **`relationships.yaml`** (155 lines)
+   - 4 relationship axes: Spousal Internal, Host↔Guest Power, Moral vs Pragmatic, Latent Dominance/Devaluation
+   - 6 pairwise relationships: veronique_michel, annette_alain, veronique_annette, veronique_alain, michel_annette, michel_alain
+   - Baseline stability (50-85) and dominance shift values per relationship
+   - Escalation conditions and stability impact per axis
+   - Stability constraints: min_stable (30), min_civil (50), baseline_broken (0)
+
+4. **`scenes.yaml`** (163 lines)
+   - 5-phase scene structure: Polite Opening, Moral Negotiation, Faction Shifts, Emotional Derailment, Loss of Control/Escalation or Collapse
+   - Per-phase definition: id, name, sequence, description, content_focus, engine_tasks, active_triggers, enforced_constraints, turn_estimate, exit_condition
+   - Module duration: 10-15 turns estimated, 45-60 minutes play time
+   - Trigger activation per phase (0 in phase_1; 2-6 active in later phases)
+
+5. **`transitions.yaml`** (94 lines)
+   - 5 phase transition definitions (phase_1→phase_2, phase_2→phase_3, phase_3→phase_4, phase_4→phase_5)
+   - Trigger conditions, engine checks, and transition actions per transition
+   - Transition timing and mechanics: automatic checks, no phase skipping, no reversion
+   - Safety bounds: forced transition after max turns per phase (prevents softlock)
+   - State preservation and constraint updates on transition
+
+6. **`triggers.yaml`** (280 lines)
+   - 8 trigger type definitions: contradiction, exposure, relativization, apology_or_non_apology, cynicism, flight_into_sideplots, collapse_indicators, retreat_signals
+   - Per-trigger: recognition markers, escalation impact (emotional_state, escalation_level, relationship_stability deltas), active phases, character vulnerability
+   - Trigger recognition strategy and state durability rules
+   - Mandatory output fields for AI story generation
+
+7. **`escalation_axes.yaml`** (242 lines)
+   - 4 escalation dimensions: Individual Emotional, Relationship Instability, Conversation Breakdown, Coalition Dynamics
+   - Per-axis: measurement metrics, escalation drivers, visible signs, phase bounds
+   - Trigger-to-axis mapping: how each trigger type affects each axis
+   - Escalation path validation: forbidden states, minimum valid run structure
+   - Meta-metric formula: weighted escalation level calculation
+
+8. **`endings.yaml`** (218 lines)
+   - 5 ending type definitions: emotional_breakdown, forced_exit, stalemate_resolution, maximum_escalation_breach, maximum_turn_limit
+   - Per-ending: trigger conditions, outcome, closure actions, narrative guidance
+   - Final state recording: required fields, per-character final state, per-relationship final state, trigger summary
+   - Narrative closure guidance per ending type
+
+#### Created: Direction Guidance Files (Optional)
+
+**Location**: `content/modules/god_of_carnage/direction/`
+
+AI story generation guidance (optional but included):
+
+1. **`system_prompt.md`** (120 lines)
+   - Role and scope for AI story engine
+   - Core principles: authority model (AI proposes, engine decides), realism over mechanics, conflict integrity, recognition not prescription
+   - Dialogue constraints per phase with tone guidance
+   - Output format specification (JSON structure)
+   - Guardrails and success criteria
+
+2. **`scene_guidance.yaml`** (290 lines)
+   - Per-phase narrative context, AI guidance, trigger watch list, constraint enforcement, exit signals
+   - Environmental constants: Parisian apartment, dinner table setting, temporal flow, children absent
+   - Character positioning and dialogue norms
+   - Pacing guidance per phase
+   - Detailed context for each of 5 phases
+
+3. **`character_voice.yaml`** (320 lines)
+   - Per-character voice profile: core worldview, speech patterns (vocabulary, syntax, rhythm, idiom), baseline tone, escalation arc
+   - Signature moments and dialogue examples per character
+   - Character interaction patterns across all pairwise relationships
+   - Voice consistency guidelines and pitfalls to avoid
+   - Detailed character vulnerability profiles
+
+### Cleanup: Wave References Removed
+
+- Removed "" and "" identifiers from all content module YAML files
+- Content modules are now generic and reusable; wave tracking kept in CHANGELOG.md and .claude memory only
+- Created `.claude/memory/w0_w1_identification.md` for internal wave phase documentation
+
+###  Deliverables Summary
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| Core module files | 8 | ✅ Complete (1,520 lines) |
+| Direction guidance | 3 | ✅ Complete (730 lines) |
+| Total module content | 11 | ✅ Complete (2,250 lines) |
+| Wave references in content | 0 | ✅ Removed |
+| Memory documentation | 1 | ✅ Created (.claude memory) |
+
+**Wave 1 Status**: ✅ **CANONICAL MODULE STRUCTURE COMPLETE, READY FOR ENGINE INTEGRATION**
+
+Next Phase:  AI loop implementation (story generation, trigger detection, state delta proposal and validation).
+
+---
+
+## [0.2.2] - 2026-03-27 (W1.1 Repair - Structural Consistency)
+
+**Focus**: Resolve internal inconsistencies between module models, loader, schemas, and tests. Ensure canonical module representation is consistent across all layers.
+
+### Fixed
+
+- **Models**: All collection types changed from lists to dictionaries keyed by ID (characters, scene_phases, trigger_definitions, relationship_axes, ending_conditions, phase_transitions)
+- **Models**: Added missing escalation_axes field to ContentModule
+- **Models**: Updated field types to match actual YAML structure:
+  - ModuleMetadata.content: str → dict[str, Any] (structured metadata)
+  - ModuleMetadata.files: dict → list[str] (list of file names)
+  - RelationshipAxis.relationships: dict → list[str] (list of character pair IDs)
+  - RelationshipAxis.baseline: str|float → dict[str, Any] (complex structure)
+  - ScenePhase.content_focus: str → list[str] (list of focus items)
+  - ScenePhase.enforced_constraints: dict → list[str] (list of constraint strings)
+  - EndingCondition.outcome: str → dict[str, Any] (complex structure)
+  - EndingCondition.closure_action: dict → list[str] (list of action strings)
+  - PhaseTransition.transition_action: dict → str|None (simple description)
+- **Loader**: Added field name mappings (trigger_types → trigger_definitions, ending_types → ending_conditions, relationships → relationship_axes, scenes → scene_phases, transitions → phase_transitions)
+- **Loader**: Added module.yaml metadata extraction and mapping to ContentModule.metadata
+- **Loader**: Added YAML dictionary unwrapping logic to handle nested file structures
+- **Service**: Changed metadata file lookup from metadata.yaml to module.yaml
+- **Validator**: Fixed collection iteration to use .items() and .values() for dict-based collections
+- **Validator**: Added defensive dict/list handling in _is_valid_dag() method
+- **Schema**: Changed phase_transitions from array to object type (keyed by transition ID)
+- **Schema**: Corrected metadata structure (content as object, files as array)
+- **Tests**: Fixed phase_transitions iteration patterns to use .items() instead of direct iteration
+- **Tests**: Updated import paths for correct module loading
+
+### Verified
+
+- Module loads successfully without structural errors
+- All models, tests, schemas, and loader describe the same module truth
+- No list vs. dict drift remaining
+- No God-of-Carnage-specific engine hacks introduced
+- Generic loader/validator/service work for any YAML-based content module
+- W2 implementation ready to begin
+
+### Technical Debt Resolved
+
+- ✅ 8 major type mismatches between YAML and models
+- ✅ Metadata file naming confusion (module.yaml vs metadata.yaml)
+- ✅ Collection representation drift (lists vs dicts)
+- ✅ Field name mapping inconsistencies
+- ✅ Schema type errors
+- ✅ Test iteration bugs
+- ✅ Documentation inaccuracies
+
+---
+
 ## [0.2.0] - 2026-03-26 (MVP Foundation & Documentation Cleanup)
 
 **Focus**: Complete Wave 0 foundation: 4 canonical MVP contracts, schema skeletons, validation scaffold, and documentation cleanup to enable  module implementation.
@@ -220,119 +383,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 | New placeholder files | 0 | ✅ None created |
 
 **Wave 0 Status**: ✅ **FOUNDATION COMPLETE, DOCUMENTATION HYGIENIC, READY FOR **
-
----
-
-## [0.2.1] - 2026-03-26 (Wave 1: God of Carnage Canonical Module Structure)
-
-**Focus**: Establish God of Carnage as the first formal, machine-readable, testable reference content module for the World of Shadows MVP. Implementation of canonical module structure aligned with contract specifications.
-
-### Wave 1 () Canonical Module Implementation
-
-#### Created: Content Module Directory Structure
-
-**Location**: `content/modules/god_of_carnage/`
-
-Core module files (aligned with contract specifications):
-
-1. **`module.yaml`** (55 lines)
-   - Module metadata: id, title, version 0.1.0, contract_version 0.2.0
-   - Content specification: 12-15 turns, 5 phases, 4 characters, 2 player roles, 2 NPC roles
-   - File registry: All module component files listed
-   - Quality principles: Reference implementation, no special-case engine logic
-
-2. **`characters.yaml`** (98 lines)
-   - 4 character definitions: Véronique (host/idealist), Michel (pragmatist), Annette (cynic), Alain (mediator)
-   - Per-character formal properties: emotional_state, escalation_level, engagement, moral_defense (0-100 scale)
-   - Baseline state initialization
-   - Tension markers and escalation triggers per character
-   - Vulnerability profiles for each character
-
-3. **`relationships.yaml`** (155 lines)
-   - 4 relationship axes: Spousal Internal, Host↔Guest Power, Moral vs Pragmatic, Latent Dominance/Devaluation
-   - 6 pairwise relationships: veronique_michel, annette_alain, veronique_annette, veronique_alain, michel_annette, michel_alain
-   - Baseline stability (50-85) and dominance shift values per relationship
-   - Escalation conditions and stability impact per axis
-   - Stability constraints: min_stable (30), min_civil (50), baseline_broken (0)
-
-4. **`scenes.yaml`** (163 lines)
-   - 5-phase scene structure: Polite Opening, Moral Negotiation, Faction Shifts, Emotional Derailment, Loss of Control/Escalation or Collapse
-   - Per-phase definition: id, name, sequence, description, content_focus, engine_tasks, active_triggers, enforced_constraints, turn_estimate, exit_condition
-   - Module duration: 10-15 turns estimated, 45-60 minutes play time
-   - Trigger activation per phase (0 in phase_1; 2-6 active in later phases)
-
-5. **`transitions.yaml`** (94 lines)
-   - 5 phase transition definitions (phase_1→phase_2, phase_2→phase_3, phase_3→phase_4, phase_4→phase_5)
-   - Trigger conditions, engine checks, and transition actions per transition
-   - Transition timing and mechanics: automatic checks, no phase skipping, no reversion
-   - Safety bounds: forced transition after max turns per phase (prevents softlock)
-   - State preservation and constraint updates on transition
-
-6. **`triggers.yaml`** (280 lines)
-   - 8 trigger type definitions: contradiction, exposure, relativization, apology_or_non_apology, cynicism, flight_into_sideplots, collapse_indicators, retreat_signals
-   - Per-trigger: recognition markers, escalation impact (emotional_state, escalation_level, relationship_stability deltas), active phases, character vulnerability
-   - Trigger recognition strategy and state durability rules
-   - Mandatory output fields for AI story generation
-
-7. **`escalation_axes.yaml`** (242 lines)
-   - 4 escalation dimensions: Individual Emotional, Relationship Instability, Conversation Breakdown, Coalition Dynamics
-   - Per-axis: measurement metrics, escalation drivers, visible signs, phase bounds
-   - Trigger-to-axis mapping: how each trigger type affects each axis
-   - Escalation path validation: forbidden states, minimum valid run structure
-   - Meta-metric formula: weighted escalation level calculation
-
-8. **`endings.yaml`** (218 lines)
-   - 5 ending type definitions: emotional_breakdown, forced_exit, stalemate_resolution, maximum_escalation_breach, maximum_turn_limit
-   - Per-ending: trigger conditions, outcome, closure actions, narrative guidance
-   - Final state recording: required fields, per-character final state, per-relationship final state, trigger summary
-   - Narrative closure guidance per ending type
-
-#### Created: Direction Guidance Files (Optional)
-
-**Location**: `content/modules/god_of_carnage/direction/`
-
-AI story generation guidance (optional but included):
-
-1. **`system_prompt.md`** (120 lines)
-   - Role and scope for AI story engine
-   - Core principles: authority model (AI proposes, engine decides), realism over mechanics, conflict integrity, recognition not prescription
-   - Dialogue constraints per phase with tone guidance
-   - Output format specification (JSON structure)
-   - Guardrails and success criteria
-
-2. **`scene_guidance.yaml`** (290 lines)
-   - Per-phase narrative context, AI guidance, trigger watch list, constraint enforcement, exit signals
-   - Environmental constants: Parisian apartment, dinner table setting, temporal flow, children absent
-   - Character positioning and dialogue norms
-   - Pacing guidance per phase
-   - Detailed context for each of 5 phases
-
-3. **`character_voice.yaml`** (320 lines)
-   - Per-character voice profile: core worldview, speech patterns (vocabulary, syntax, rhythm, idiom), baseline tone, escalation arc
-   - Signature moments and dialogue examples per character
-   - Character interaction patterns across all pairwise relationships
-   - Voice consistency guidelines and pitfalls to avoid
-   - Detailed character vulnerability profiles
-
-### Cleanup: Wave References Removed
-
-- Removed "" and "" identifiers from all content module YAML files
-- Content modules are now generic and reusable; wave tracking kept in CHANGELOG.md and .claude memory only
-- Created `.claude/memory/w0_w1_identification.md` for internal wave phase documentation
-
-###  Deliverables Summary
-
-| Component | Files | Status |
-|-----------|-------|--------|
-| Core module files | 8 | ✅ Complete (1,520 lines) |
-| Direction guidance | 3 | ✅ Complete (730 lines) |
-| Total module content | 11 | ✅ Complete (2,250 lines) |
-| Wave references in content | 0 | ✅ Removed |
-| Memory documentation | 1 | ✅ Created (.claude memory) |
-
-**Wave 1 Status**: ✅ **CANONICAL MODULE STRUCTURE COMPLETE, READY FOR ENGINE INTEGRATION**
-
-Next Phase:  AI loop implementation (story generation, trigger detection, state delta proposal and validation).
 
 ---
 
