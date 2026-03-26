@@ -20,6 +20,10 @@ if "FLASK_ENV" not in os.environ:
 if "PLAY_SERVICE_SECRET" not in os.environ:
     os.environ["PLAY_SERVICE_SECRET"] = "test-secret-key-for-unit-tests"
 
+# Disable backend content sync in tests to use only builtin templates
+if "BACKEND_CONTENT_SYNC_ENABLED" not in os.environ:
+    os.environ["BACKEND_CONTENT_SYNC_ENABLED"] = "false"
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
