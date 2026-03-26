@@ -1,0 +1,97 @@
+# Character Definitions for God of Carnage
+# Formal properties and baseline state initialization
+
+characters:
+  veronique:
+    id: veronique
+    name: Véronique
+    role: "Host, moral idealist, parental figure"
+    baseline_attitude: "Commitment to civility and defense of children; belief in principled action"
+
+    # Formal properties (0-100 scale)
+    emotional_state: 50          # Starts calm; escalates toward breakdown
+    escalation_level: 0          # Tracks emotional escalation from civility loss
+    engagement: 70               # High investment in outcome
+    moral_defense: 80            # Strong position on right/wrong; vulnerable to exposure
+
+    # Character tension markers
+    tension_markers:
+      - "Protection vs. tolerance"
+      - "Idealism vs. pragmatism"
+      - "Civility vs. honesty"
+
+    # Escalation tracking
+    escalation_triggers:
+      - "Boundary violation (personal insult to children)"
+      - "Hypocrisy exposure (contradiction of stated principles)"
+      - "Spousal misalignment (Michel sides with guests)"
+
+  michel:
+    id: michel
+    name: Michel
+    role: "Véronique's spouse, pragmatist, conflict avoider"
+    baseline_attitude: "Conflict avoidance; business-rational worldview; public image concern"
+
+    emotional_state: 40          # More controlled; slower to escalate
+    escalation_level: 0
+    engagement: 50               # Lower investment; prefers exit
+    moral_defense: 40            # Flexible on principles; focused on practical outcomes
+
+    tension_markers:
+      - "Loyalty vs. self-preservation"
+      - "Public image vs. private truth"
+      - "Spousal alignment vs. individual judgment"
+
+    escalation_triggers:
+      - "Contradiction of his business judgment"
+      - "Pressure to choose sides against spouse"
+      - "Threat to reputation or family"
+
+  annette:
+    id: annette
+    name: Annette
+    role: "Guest, intellectual combatant, cynic"
+    baseline_attitude: "Challenge conventional morality; expose contradictions; moral relativism"
+
+    emotional_state: 60          # Higher baseline arousal; enjoys conflict
+    escalation_level: 0
+    engagement: 85               # High investment in winning argument
+    moral_defense: 30            # Positions all morality as self-interest; cynical
+
+    tension_markers:
+      - "Intellectual dominance vs. emotional control"
+      - "Cynicism vs. sincerity"
+      - "Provocation vs. escalation responsibility"
+
+    escalation_triggers:
+      - "Logical contradiction from Véronique"
+      - "Dismissal of her worldview"
+      - "Attempt to silence her argument"
+
+  alain:
+    id: alain
+    name: Alain
+    role: "Annette's spouse, mediator, conflict manager"
+    baseline_attitude: "Keep conversation manageable; avoid emotional extremes; preserve relationship"
+
+    emotional_state: 45          # Moderate; trying to maintain equilibrium
+    escalation_level: 0
+    engagement: 60               # Moderate; focused on de-escalation
+    moral_defense: 50            # Pragmatic; flexible; seeks compromise
+
+    tension_markers:
+      - "Loyalty to spouse vs. social harmony"
+      - "Exhaustion from mediation"
+      - "Desire to leave vs. obligation to stay"
+
+    escalation_triggers:
+      - "Annette pushed too far beyond recovery"
+      - "Hosts abandon civility entirely"
+      - "Being positioned as weak or ineffectual"
+
+# Character state baseline (all begin at session start)
+state_baseline:
+  emotional_state: 50           # Calm, controlled
+  escalation_level: 0           # No escalation yet
+  engagement: 60                # Invested in conversation
+  moral_defense: 60             # Confident in positions

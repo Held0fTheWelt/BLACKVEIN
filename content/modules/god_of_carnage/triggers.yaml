@@ -1,0 +1,201 @@
+# Trigger Definitions for God of Carnage
+# Formal event types that drive state transitions and escalation
+
+trigger_types:
+  contradiction:
+    id: contradiction
+    name: "Logical Contradiction"
+    description: "Character's stated position contradicts evidence or prior statement; exposed hypocrisy"
+
+    recognition_markers:
+      - "Direct logical inconsistency pointed out"
+      - "Character's moral stance contradicts their actions"
+      - "Earlier claim is directly refuted by new information"
+      - "Stated principle conflicts with real-world behavior"
+
+    escalation_impact:
+      emotional_state_delta: +15
+      escalation_level_delta: +10
+      relationship_stability_delta: -20
+
+    active_in_phases: [phase_2, phase_3, phase_4]
+    character_vulnerability:
+      veronique: "High — moral idealist; logical consistency critical to self-image"
+      michel: "Medium — pragmatist; adapts position but resents being corrected"
+      annette: "Low — cynical; expects contradictions; uses them as weapons"
+      alain: "High — mediator; caught between contradictions"
+
+  exposure:
+    id: exposure
+    name: "Personal Exposure"
+    description: "Private truth, weakness, or hypocrisy is brought into public conversation"
+
+    recognition_markers:
+      - "Accusation of parental failure or inadequacy"
+      - "Implication that stated values are window dressing"
+      - "Private shame or vulnerability mentioned"
+      - "Character forced to defend personal behavior"
+
+    escalation_impact:
+      emotional_state_delta: +20
+      escalation_level_delta: +15
+      relationship_stability_delta: -25
+
+    active_in_phases: [phase_2, phase_3, phase_4]
+    character_vulnerability:
+      veronique: "Critical — protective of children; exposure of parenting failure devastating"
+      michel: "High — status-conscious; public exposure of judgment error significant"
+      annette: "Medium — cynical stance partially shields her; but exposure of maternal indifference possible"
+      alain: "High — caught defending others; exposed weakness undermines mediator role"
+
+  relativization:
+    id: relativization
+    name: "Moral Relativization"
+    description: "Argument that opponent's moral position is arbitrary, culturally relative, or self-serving"
+
+    recognition_markers:
+      - "Claim that opponent's morality is just opinion/preference"
+      - "Historical or cultural counterexample to universal claim"
+      - "Assertion that all positions are equally valid"
+      - "Implication that opponent uses morality to hide self-interest"
+
+    escalation_impact:
+      emotional_state_delta: +12
+      escalation_level_delta: +8
+      relationship_stability_delta: -30
+
+    active_in_phases: [phase_3, phase_4]
+    character_vulnerability:
+      veronique: "Critical — moral idealist; relativization attacks core worldview"
+      michel: "Low — pragmatist; tolerates relativization"
+      annette: "None — cynic; uses this argument herself"
+      alain: "Medium — mediator; relativization undercuts his appeals to shared ground"
+
+  apology_or_non_apology:
+    id: apology_or_non_apology
+    name: "Apology / Non-Apology"
+    description: "Attempted repair (apology, de-escalation) or its failure/refusal"
+
+    recognition_markers:
+      - Genuine apology with admission and commitment to change
+      - Pseudo-apology ("I'm sorry you feel that way")
+      - Refusal to apologize despite escalation
+      - Conditional apology ("I'll apologize if you do")
+
+    escalation_impact:
+      emotional_state_delta: "-10 (apology) OR +5 (non-apology)"
+      escalation_level_delta: "-10 (apology) OR +5 (non-apology)"
+      relationship_stability_delta: "+15 (genuine apology) OR -10 (fake/refused)"
+
+    active_in_phases: [phase_4, phase_5]
+    character_vulnerability:
+      veronique: "Can trigger breakthrough (genuine apology); or deepening resentment (fake apology)"
+      michel: "Medium — conflict-averse; genuine apology likely but may fear weakness"
+      annette: "Low — unlikely to apologize; non-apology expected"
+      alain: "High — exhausted; apology from Annette could unlock relief; non-apology deepens despair"
+
+  cynicism:
+    id: cynicism
+    name: "Overt Cynicism / Contempt"
+    description: "Speaker explicitly dismisses opponent's moral sincerity; attacks motives"
+
+    recognition_markers:
+      - "Accusation that opponent is pretending moral concern"
+      - "Claim that all stated principles are cover for self-interest"
+      - "Sarcasm or laughter at opponent's moral claim"
+      - "Statement that opponent is incapable of genuine care"
+
+    escalation_impact:
+      emotional_state_delta: +18
+      escalation_level_delta: +12
+      relationship_stability_delta: -35
+
+    active_in_phases: [phase_4]
+    character_vulnerability:
+      veronique: "Critical — moral sincerity is identity; contempt is deepest insult"
+      michel: "Medium — prefers to avoid contempt; stung by implications"
+      annette: "None — wields contempt as weapon"
+      alain: "High — mediator role depends on good faith; contempt undermines authority"
+
+  flight_into_sideplots:
+    id: flight_into_sideplots
+    name: "Deflection / Flight into Sideplots"
+    description: "Character abandons core conflict by introducing tangential topic or anecdote"
+
+    recognition_markers:
+      - "Sudden shift to unrelated personal story"
+      - "Introduction of new grievance or complaint"
+      - "Attempt to change subject entirely"
+      - "Switching blame to absent third party"
+
+    escalation_impact:
+      emotional_state_delta: "Variable; typically -5 (if brief) to +5 (if resented)"
+      escalation_level_delta: "-5 (temporary relief) OR +10 (if perceived as evasion)"
+      relationship_stability_delta: "-15 (seen as evasion) OR +5 (brief reprieve)"
+
+    active_in_phases: [phase_4]
+    character_vulnerability:
+      veronique: "May use to escape feeling outnumbered"
+      michel: "High — conflict avoider; deflection is instinct"
+      annette: "Low — stays on attack"
+      alain: "High — exhausted; may flee topic to catch breath"
+
+  collapse_indicators:
+    id: collapse_indicators
+    name: "Emotional Collapse Signal"
+    description: "Character shows visible emotional breakdown: tears, voice breaking, incoherence"
+
+    recognition_markers:
+      - "Character voice becomes shaky or inaudible"
+      - "Tears or visible emotion control loss"
+      - "Incoherent speech or repetition"
+      - "Physical withdrawal or freezing"
+
+    escalation_impact:
+      emotional_state_delta: "+15 to +25 (internal distress)"
+      escalation_level_delta: "No change (escalation already high)"
+      relationship_stability_delta: "Variable: -10 (others uncomfortable) OR +10 (triggers compassion)"
+
+    active_in_phases: [phase_5]
+    character_vulnerability:
+      veronique: "Likely — moralist invested; loss of control devastating"
+      michel: "Medium — controls emotion longer; but status loss triggers collapse"
+      annette: "Low — maintains composure; but possible if genuinely attacked"
+      alain: "High — exhaustion + pressure may cause shutdown"
+
+  retreat_signals:
+    id: retreat_signals
+    name: "Retreat / Exit Intent"
+    description: "Character signals desire to end conversation or leave physically"
+
+    recognition_markers:
+      - "Statement of intent to leave: 'I'm leaving', 'This is over'"
+      - "Movement toward exit or gathering belongings"
+      - "Withdrawal of engagement: 'I'm not discussing this'"
+      - "Threat to end relationship: 'I can't be here'"
+
+    escalation_impact:
+      emotional_state_delta: "-5 to +20 (frustration at being stopped)"
+      escalation_level_delta: "-10 (retreat de-escalates) OR +15 (if prevented/mocked)"
+      relationship_stability_delta: "-30 to -50 (exit intent signals relationship severance)"
+
+    active_in_phases: [phase_5]
+    character_vulnerability:
+      veronique: "Low — moral responsibility keeps her in place"
+      michel: "High — conflict-averse; exit is natural response"
+      annette: "Medium — stays if intellectually engaged; leaves if bored"
+      alain: "Critical — exhaustion; likely to retreat first"
+
+# Trigger recognition strategy
+trigger_recognition:
+  responsibility: "AI story generation must detect and flag all triggers in its dialogue impulses"
+  format: "Array of trigger IDs in proposed_state_deltas output"
+  cascading: "Multiple triggers in single turn possible; each applies independent escalation impact"
+  mandatory_fields: ["trigger_id", "detection_confidence", "character_affected", "phase_context"]
+
+# Trigger state durability
+trigger_state:
+  persistence: "Triggers fire once per recognition; they do not persist across turns"
+  reactivation: "Same trigger can fire multiple times if conditions re-emerge"
+  phase_scope: "Triggers only active in their listed phases (though may appear in dialogue)"
+  accumulation: "No trigger stacking; each application is independent"

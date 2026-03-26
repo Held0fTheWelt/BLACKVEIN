@@ -221,7 +221,111 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Wave 0 Status**: ✅ **FOUNDATION COMPLETE, DOCUMENTATION HYGIENIC, READY FOR W1**
 
-Next Wave (W1): Implement God of Carnage content module (module.yaml, characters.yaml, relationships.yaml, scenes.yaml, triggers.yaml, endings.yaml) per god_of_carnage_module_contract.md specifications.
+---
+
+## [0.2.1] - 2026-03-26 (Wave 1: God of Carnage Canonical Module Structure)
+
+**Focus**: Establish God of Carnage as the first formal, machine-readable, testable reference content module for the World of Shadows MVP. Implementation of canonical module structure aligned with contract specifications.
+
+### Wave 1 (W1) Canonical Module Implementation
+
+#### Created: Content Module Directory Structure
+
+**Location**: `content/modules/god_of_carnage/`
+
+Core module files (aligned with contract specifications):
+
+1. **`module.yaml`** (55 lines)
+   - Module metadata: id, title, version 0.1.0, contract_version 0.2.0
+   - Content specification: 12-15 turns, 5 phases, 4 characters, 2 player roles, 2 NPC roles
+   - File registry: All module component files listed
+   - Quality principles: Reference implementation, no special-case engine logic
+
+2. **`characters.yaml`** (98 lines)
+   - 4 character definitions: Véronique (host/idealist), Michel (pragmatist), Annette (cynic), Alain (mediator)
+   - Per-character formal properties: emotional_state, escalation_level, engagement, moral_defense (0-100 scale)
+   - Baseline state initialization
+   - Tension markers and escalation triggers per character
+   - Vulnerability profiles for each character
+
+3. **`relationships.yaml`** (155 lines)
+   - 4 relationship axes: Spousal Internal, Host↔Guest Power, Moral vs Pragmatic, Latent Dominance/Devaluation
+   - 6 pairwise relationships: veronique_michel, annette_alain, veronique_annette, veronique_alain, michel_annette, michel_alain
+   - Baseline stability (50-85) and dominance shift values per relationship
+   - Escalation conditions and stability impact per axis
+   - Stability constraints: min_stable (30), min_civil (50), baseline_broken (0)
+
+4. **`scenes.yaml`** (163 lines)
+   - 5-phase scene structure: Polite Opening, Moral Negotiation, Faction Shifts, Emotional Derailment, Loss of Control/Escalation or Collapse
+   - Per-phase definition: id, name, sequence, description, content_focus, engine_tasks, active_triggers, enforced_constraints, turn_estimate, exit_condition
+   - Module duration: 10-15 turns estimated, 45-60 minutes play time
+   - Trigger activation per phase (0 in phase_1; 2-6 active in later phases)
+
+5. **`transitions.yaml`** (94 lines)
+   - 5 phase transition definitions (phase_1→phase_2, phase_2→phase_3, phase_3→phase_4, phase_4→phase_5)
+   - Trigger conditions, engine checks, and transition actions per transition
+   - Transition timing and mechanics: automatic checks, no phase skipping, no reversion
+   - Safety bounds: forced transition after max turns per phase (prevents softlock)
+   - State preservation and constraint updates on transition
+
+6. **`triggers.yaml`** (280 lines)
+   - 8 trigger type definitions: contradiction, exposure, relativization, apology_or_non_apology, cynicism, flight_into_sideplots, collapse_indicators, retreat_signals
+   - Per-trigger: recognition markers, escalation impact (emotional_state, escalation_level, relationship_stability deltas), active phases, character vulnerability
+   - Trigger recognition strategy and state durability rules
+   - Mandatory output fields for AI story generation
+
+7. **`endings.yaml`** (218 lines)
+   - 5 ending type definitions: emotional_breakdown, forced_exit, stalemate_resolution, maximum_escalation_breach, maximum_turn_limit
+   - Per-ending: trigger conditions, outcome, closure actions, narrative guidance
+   - Final state recording: required fields, per-character final state, per-relationship final state, trigger summary
+   - Narrative closure guidance per ending type
+
+#### Created: Direction Guidance Files (Optional)
+
+**Location**: `content/modules/god_of_carnage/direction/`
+
+AI story generation guidance (optional but included):
+
+1. **`system_prompt.md`** (120 lines)
+   - Role and scope for AI story engine
+   - Core principles: authority model (AI proposes, engine decides), realism over mechanics, conflict integrity, recognition not prescription
+   - Dialogue constraints per phase with tone guidance
+   - Output format specification (JSON structure)
+   - Guardrails and success criteria
+
+2. **`scene_guidance.yaml`** (290 lines)
+   - Per-phase narrative context, AI guidance, trigger watch list, constraint enforcement, exit signals
+   - Environmental constants: Parisian apartment, dinner table setting, temporal flow, children absent
+   - Character positioning and dialogue norms
+   - Pacing guidance per phase
+   - Detailed context for each of 5 phases
+
+3. **`character_voice.yaml`** (320 lines)
+   - Per-character voice profile: core worldview, speech patterns (vocabulary, syntax, rhythm, idiom), baseline tone, escalation arc
+   - Signature moments and dialogue examples per character
+   - Character interaction patterns across all pairwise relationships
+   - Voice consistency guidelines and pitfalls to avoid
+   - Detailed character vulnerability profiles
+
+### Cleanup: Wave References Removed
+
+- Removed "W0" and "W1" identifiers from all content module YAML files
+- Content modules are now generic and reusable; wave tracking kept in CHANGELOG.md and .claude memory only
+- Created `.claude/memory/w0_w1_identification.md` for internal wave phase documentation
+
+### W1 Deliverables Summary
+
+| Component | Files | Status |
+|-----------|-------|--------|
+| Core module files | 7 | ✅ Complete (1,278 lines) |
+| Direction guidance | 3 | ✅ Complete (730 lines) |
+| Total module content | 10 | ✅ Complete (2,008 lines) |
+| Wave references in content | 0 | ✅ Removed |
+| Memory documentation | 1 | ✅ Created (.claude memory) |
+
+**Wave 1 Status**: ✅ **CANONICAL MODULE STRUCTURE COMPLETE, READY FOR ENGINE INTEGRATION**
+
+Next Phase: W2 AI loop implementation (story generation, trigger detection, state delta proposal and validation).
 
 ---
 

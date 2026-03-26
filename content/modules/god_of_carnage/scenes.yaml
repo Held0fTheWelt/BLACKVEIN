@@ -1,0 +1,161 @@
+# Scene Structure for God of Carnage
+# Five-phase structure: polite opening → moral negotiation → faction shifts → emotional derailment → loss of control
+
+scene_phases:
+  phase_1:
+    id: phase_1
+    name: "Polite Opening"
+    sequence: 1
+    description: "Ritual civility, small talk, framing the social contract"
+
+    content_focus:
+      - "Social pleasantries and ritual greetings"
+      - "Establishment of conversational norms"
+      - "Setting of the dinner table scene"
+      - "Initial topic introduction (seemingly innocuous)"
+
+    engine_tasks:
+      - "Initialize scene state"
+      - "Activate all characters (emotional_state ~50, escalation_level 0)"
+      - "Establish baseline relationship values"
+      - "Set civility as active constraint"
+
+    active_triggers: []           # No triggers in pure civility
+    enforced_constraints:
+      - "civility_required: true"
+      - "max_emotional_state: 60"
+      - "no_personal_attacks: true"
+
+    turn_estimate: "2-3 turns"
+    exit_condition: "First substantive disagreement emerges"
+
+  phase_2:
+    id: phase_2
+    name: "Moral Negotiation"
+    sequence: 2
+    description: "First substantive disagreement on parenting, culpability, ethics"
+
+    content_focus:
+      - "Disagreement on parental responsibility in incident"
+      - "Clash between idealistic and pragmatic worldviews"
+      - "First test of whether relationship can contain disagreement"
+      - "Positions harden; humor becomes edge"
+
+    engine_tasks:
+      - "Track position divergence across relationship axes"
+      - "Monitor axis_1 (spousal alignment)"
+      - "Activate axis_3 (moral vs. pragmatic worldview)"
+      - "Track emotional state increases"
+
+    active_triggers:
+      - contradiction
+      - exposure
+
+    enforced_constraints:
+      - "civility_required: true"
+      - "max_escalation_level: 30"
+
+    turn_estimate: "3-4 turns"
+    exit_condition: "Character takes stronger stance; relationship axis begins to shift"
+
+  phase_3:
+    id: phase_3
+    name: "Faction Shifts"
+    sequence: 3
+    description: "Coalition changes; spouses challenge each other; power dynamics flip"
+
+    content_focus:
+      - "One or more characters change alliance"
+      - "Spouse challenges spouse for first time"
+      - "Guest aligns with host or host with guest"
+      - "Possibility of temporary consensus (against one character)"
+
+    engine_tasks:
+      - "Update relationship state based on position shifts"
+      - "Recalculate power dynamics (axis_2 host/guest)"
+      - "Note which axis shifted and impact on stability"
+      - "Monitor spousal integrity (axis_1)"
+
+    active_triggers:
+      - contradiction
+      - relativization
+      - exposure
+
+    enforced_constraints:
+      - "civility_required: true"
+      - "max_escalation_level: 50"
+
+    turn_estimate: "2-3 turns"
+    exit_condition: "Emotional control visibly weakening; voices rising"
+
+  phase_4:
+    id: phase_4
+    name: "Emotional Derailment"
+    sequence: 4
+    description: "Control lost; voices raised, tears, personal insults, accusations"
+
+    content_focus:
+      - "Direct personal attacks replace abstract disagreement"
+      - "Emotional expressions become overt (anger, tears, contempt)"
+      - "Civility explicitly abandoned by at least one character"
+      - "Positions become weapons; winning becomes goal"
+
+    engine_tasks:
+      - "Character emotional_state escalates significantly"
+      - "Relationship stability drops below civility threshold (50)"
+      - "All triggers now active; any contradiction triggers escalation"
+      - "Monitor recovery possibility (apology, retreat)"
+
+    active_triggers:
+      - contradiction
+      - exposure
+      - relativization
+      - apology_or_non_apology
+      - cynicism
+      - flight_into_sideplots
+
+    enforced_constraints:
+      - "civility_required: false"
+      - "max_escalation_level: 85"
+      - "relationship_stability_min_for_civility: 50"
+
+    turn_estimate: "2-3 turns"
+    exit_condition: "Escalation reaches critical threshold or recovery impulse appears"
+
+  phase_5:
+    id: phase_5
+    name: "Loss of Control / Escalation or Collapse"
+    sequence: 5
+    description: "Either explosive confrontation or emotional breakdown and retreat"
+
+    content_focus:
+      - "Final escalation or sudden emotional collapse"
+      - "Ultimatums, accusations, or desperate retreat"
+      - "One or more characters emotionally overwhelmed"
+      - "Natural or forced endpoint to the scene"
+
+    engine_tasks:
+      - "Evaluate end conditions based on character state"
+      - "Apply ending rule (forced exit or emotional breakdown)"
+      - "Record final state for session closure"
+      - "Determine narrative outcome"
+
+    active_triggers:
+      - apology_or_non_apology
+      - collapse_indicators
+      - retreat_signals
+
+    enforced_constraints:
+      - "max_turns: 2-3 (forced end after this)"
+      - "no_recovery_possible: true (if escalation_level > 90)"
+
+    turn_estimate: "1-2 turns, then forced closure"
+    exit_condition: "Session end (character exit, emotional breakdown, or natural stopping point)"
+
+# Total estimated duration
+module_duration:
+  min_turns: 10
+  typical_turns: 13
+  max_turns: 15
+  phases: 5
+  estimated_play_time: "45-60 minutes"
