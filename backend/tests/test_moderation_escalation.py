@@ -1,4 +1,4 @@
-"""Phase 5D: Moderation Escalation and Queue Management Tests.
+"""Moderation escalation and queue management (reports, assignment, queues).
 
 Comprehensive tests for moderation features:
 1. Escalation queue ordering and filtering

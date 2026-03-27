@@ -1,11 +1,6 @@
-"""Phase 5D: Regression Tests for Phases 2-4 Features.
+"""Regression tests for forum moderation, related threads, bookmarks, tags, likes, and community profiles.
 
-Comprehensive tests to ensure:
-1. Related thread suggestions work correctly
-2. Moderation features (escalation, resolution) work correctly
-3. Community profiles and activity features work correctly
-4. Bookmarks, tags, and likes work correctly
-5. All features integrate correctly together
+Covers moderation queues, reports, related-thread suggestions, and user activity surfaces.
 """
 import pytest
 from app.models import (

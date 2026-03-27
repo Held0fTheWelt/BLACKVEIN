@@ -154,3 +154,57 @@ def test_data_export_rate_limit_per_user(client, app, admin_headers, super_admin
     resp = client.post("/api/v1/data/export", json={"scope": "full"}, headers=super_admin_headers)
     assert resp.status_code == 200, f"Different user should have independent rate limit, got {resp.status_code}"
 
+
+
+
+"""Tests for TestDataAPI."""
+
+class TestDataAPI:
+
+    def test_data_export(self, app, client, admin_headers):
+        resp = client.post("/api/v1/data/export", json={"format": "json"}, headers=admin_headers)
+        assert resp.status_code in (200, 400)
+
+    def test_data_export_forbidden(self, app, client, auth_headers):
+        resp = client.post("/api/v1/data/export", json={}, headers=auth_headers)
+        assert resp.status_code in (403, 401)
+
+
+# ======================= AUTH ROUTES =======================
+
+
+
+"""Tests for TestDataExportImport."""
+
+class TestDataExportImport:
+
+    def test_export_full(self, app, client, admin_headers):
+        resp = client.post(
+            "/api/v1/data/export",
+            json={"scope": "full"},
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_export_table(self, app, client, admin_headers):
+        resp = client.post(
+            "/api/v1/data/export",
+            json={"scope": "table", "table": "users"},
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_export_list_tables(self, app, client, admin_headers):
+        resp = client.get("/api/v1/data/tables", headers=admin_headers)
+        assert resp.status_code in (200, 404)
+
+    def test_import_preflight(self, app, client, admin_headers):
+        resp = client.post(
+            "/api/v1/data/import/preflight",
+            json={"metadata": {"format_version": 1}, "data": {"tables": {}}},
+            headers=admin_headers,
+        )
+        assert resp.status_code in (200, 400)
+
+
+# ======================= SLOGAN API EXTENDED =======================

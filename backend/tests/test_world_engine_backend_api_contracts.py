@@ -1,11 +1,6 @@
-"""WAVE 9: Engine-Backend Integration Contracts
+"""Contract tests for the world engine integrating with the backend API (tickets, schema, runs, formats).
 
-Tests for world-engine ↔ backend service integration.
-Verifies that the game engine correctly interfaces with backend APIs,
-including ticket verification, participant schema matching, run lifecycle,
-and data format compatibility.
-
-Mark: @pytest.mark.contract @pytest.mark.integration
+Uses markers: contract, integration (see classes below).
 """
 
 import pytest

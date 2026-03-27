@@ -446,3 +446,238 @@ class TestUserBanAndUnban:
             # Unban again (should succeed)
             user2, msg2 = unban_user(user_id)
             assert user2.is_banned is False
+
+
+
+"""Tests for TestServiceLevel."""
+
+class TestServiceLevel:
+
+    def test_area_service_validation(self, app):
+        from app.services.area_service import validate_area_name, validate_area_slug
+        with app.app_context():
+            assert validate_area_name("") is not None
+            assert validate_area_name(None) is not None
+            assert validate_area_name("x" * 200) is not None
+            assert validate_area_name("Valid Name") is None
+
+            assert validate_area_slug("") is not None
+            assert validate_area_slug(None) is not None
+            assert validate_area_slug("x" * 100) is not None
+            assert validate_area_slug("INVALID-SLUG") is not None  # uppercase + hyphen
+            assert validate_area_slug("valid_slug") is None
+
+    def test_area_service_get_by_slug(self, app):
+        from app.services.area_service import get_area_by_slug
+        with app.app_context():
+            result = get_area_by_slug(None)
+            assert result is None
+            result = get_area_by_slug("")
+            assert result is None
+
+    def test_slogan_service_parse_dt(self, app):
+        from app.services.slogan_service import _parse_dt
+        assert _parse_dt(None) is None
+        assert _parse_dt("") is None
+        assert _parse_dt("invalid") is None
+        result = _parse_dt("2024-01-01T00:00:00Z")
+        assert result is not None
+        result = _parse_dt(datetime(2024, 1, 1, tzinfo=timezone.utc))
+        assert result is not None
+
+    def test_data_export_service(self, app):
+        from app.services.data_export_service import (
+            export_full,
+            export_table,
+            list_exportable_tables,
+        )
+        with app.app_context():
+            tables = list_exportable_tables()
+            assert isinstance(tables, list)
+            assert len(tables) > 0
+
+            payload = export_full()
+            assert "metadata" in payload
+            assert "data" in payload
+
+            payload = export_table("users")
+            assert "metadata" in payload
+
+    def test_data_export_service_unknown_table(self, app):
+        from app.services.data_export_service import export_table
+        with app.app_context():
+            with pytest.raises(ValueError):
+                export_table("nonexistent_table")
+
+    def test_data_import_preflight(self, app):
+        from app.services.data_import_service import preflight_validate_payload
+        with app.app_context():
+            # Invalid payload
+            result = preflight_validate_payload("not a dict")
+            assert not result.ok
+
+            # Missing metadata
+            result = preflight_validate_payload({"metadata": "bad"})
+            assert not result.ok
+
+            # Missing data tables
+            result = preflight_validate_payload({"metadata": {}, "data": {}})
+            assert not result.ok
+
+            # Unknown table
+            result = preflight_validate_payload({
+                "metadata": {"format_version": 1, "schema_revision": ""},
+                "data": {"tables": {"nonexistent_table": []}},
+            })
+            assert not result.ok
+
+    def test_wiki_service_functions(self, app):
+        from app.services.wiki_service import (
+            get_wiki_page_by_key,
+            get_wiki_markdown_for_display,
+            get_wiki_page_by_slug,
+        )
+        with app.app_context():
+            assert get_wiki_page_by_key(None) is None
+            assert get_wiki_page_by_key("") is None
+            assert get_wiki_markdown_for_display() is None
+            page, trans = get_wiki_page_by_slug(None)
+            assert page is None
+            page, trans = get_wiki_page_by_slug("")
+            assert page is None
+
+    def test_news_service_functions(self, app):
+        from app.services.news_service import (
+            get_news_by_id,
+            get_news_by_slug,
+            get_news_article_by_id,
+        )
+        with app.app_context():
+            assert get_news_by_id(None) is None
+            assert get_news_by_id(99999) is None
+            assert get_news_by_slug(None) is None
+            assert get_news_by_slug("") is None
+            assert get_news_article_by_id(None) is None
+
+    def test_slogan_service_crud(self, app):
+        from app.services.slogan_service import (
+            create_slogan,
+            update_slogan,
+            delete_slogan,
+            get_slogan_by_id,
+            list_slogans,
+            resolve_slogan_for_placement,
+            list_slogans_for_placement,
+        )
+        with app.app_context():
+            # Create
+            s, err = create_slogan("Test", "landing_hero", "landing.hero.primary", "de")
+            assert s is not None
+            assert err is None
+
+            # Get by id
+            assert get_slogan_by_id(s.id) is not None
+            assert get_slogan_by_id(None) is None
+            assert get_slogan_by_id("abc") is None
+
+            # List
+            items = list_slogans(category="landing_hero", active_only=True)
+            assert len(items) >= 1
+
+            # Update
+            s2, err = update_slogan(s.id, text="Updated")
+            assert s2 is not None
+            assert s2.text == "Updated"
+
+            # Resolve
+            result = resolve_slogan_for_placement("landing.hero.primary", "de")
+            assert result is not None
+
+            # List for placement
+            items = list_slogans_for_placement("landing.hero.primary", "de")
+            assert len(items) >= 1
+
+            # Delete
+            ok, err = delete_slogan(s.id)
+            assert ok
+            assert get_slogan_by_id(s.id) is None
+
+    def test_area_service_create_delete(self, app):
+        from app.services.area_service import create_area, delete_area, get_area_by_id, update_area
+        with app.app_context():
+            # Create
+            area, err = create_area("Test Area SVC", slug="test_area_svc", description="desc")
+            assert area is not None
+            assert err is None
+
+            # Get
+            assert get_area_by_id(area.id) is not None
+            assert get_area_by_id(None) is None
+            assert get_area_by_id("abc") is None
+
+            # Update
+            area2, err = update_area(area.id, name="Updated Area SVC")
+            assert area2 is not None
+            assert area2.name == "Updated Area SVC"
+
+            # Update not found
+            _, err = update_area(99999, name="X")
+            assert err == "Area not found"
+
+            # Duplicate name
+            area3, _ = create_area("Dup Test", slug="dup_test")
+            _, err = update_area(area.id, name="Dup Test")
+            assert "already exists" in err
+
+            # Delete
+            ok, err = delete_area(area.id)
+            assert ok
+
+            # Delete not found
+            ok, err = delete_area(99999)
+            assert not ok
+
+            # Cleanup
+            delete_area(area3.id)
+
+    def test_feature_registry(self, app):
+        from app.auth.feature_registry import (
+            FEATURE_IDS,
+            is_valid_feature_id,
+            get_feature_area_ids,
+        )
+        with app.app_context():
+            assert len(FEATURE_IDS) > 0
+            assert is_valid_feature_id("manage.users")
+            assert not is_valid_feature_id("nonexistent.feature")
+            ids = get_feature_area_ids("manage.users")
+            assert isinstance(ids, list)
+
+    def test_permissions_helpers(self, app):
+        from app.auth.permissions import admin_may_edit_target, admin_may_assign_role_level
+        assert admin_may_edit_target(50, 0) is True
+        assert admin_may_edit_target(50, 50) is False
+        assert admin_may_edit_target(0, 50) is False
+
+    def test_web_auth_helpers(self, app):
+        from app.web.auth import is_safe_redirect
+        assert is_safe_redirect("/dashboard") is True
+        assert is_safe_redirect("https://evil.com") is False
+        assert is_safe_redirect("") is False
+        assert is_safe_redirect(None) is False
+        assert is_safe_redirect("javascript:alert(1)") is False
+
+    def test_csv_safe(self, app):
+        from app.utils.csv_safe import csv_safe_cell
+        assert csv_safe_cell(None) == ""
+        assert csv_safe_cell("normal") == "normal"
+        # Test formula injection prevention
+        result = csv_safe_cell("=cmd")
+        assert not result.startswith("=")
+
+    def test_html_sanitizer(self, app):
+        from app.utils.html_sanitizer import sanitize_wiki_html
+        result = sanitize_wiki_html("<p>Hello</p>")
+        assert "<p>" in result
+        result = sanitize_wiki_html("<script>alert(1)</script>")
+        assert "<script>" not in result

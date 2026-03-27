@@ -325,3 +325,98 @@ def test_cors_allow_origin_when_configured():
             assert response.headers.get("Access-Control-Allow-Origin") == "http://test.example"
         finally:
             db.drop_all()
+
+
+
+"""Tests for TestAuthAPI."""
+
+class TestAuthAPI:
+
+    def test_login_success(self, app, client, test_user):
+        user, password = test_user
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": user.username, "password": password},
+        )
+        assert resp.status_code == 200
+        assert "access_token" in resp.get_json()
+
+    def test_login_wrong_password(self, app, client, test_user):
+        user, _ = test_user
+        resp = client.post(
+            "/api/v1/auth/login",
+            json={"username": user.username, "password": "wrongpassword"},
+        )
+        assert resp.status_code == 401
+
+    def test_login_missing_fields(self, app, client):
+        resp = client.post("/api/v1/auth/login", json={"username": ""})
+        assert resp.status_code in (400, 401)
+
+    def test_register_new_user(self, app, client):
+        resp = client.post(
+            "/api/v1/auth/register",
+            json={
+                "username": "newuser123",
+                "password": "StrongPass1",
+                "email": "new@example.com",
+            },
+        )
+        assert resp.status_code in (200, 201, 400)
+
+    def test_web_login_post(self, app, client, test_user):
+        import re
+        user, password = test_user
+        with app.app_context():
+            from app.extensions import db
+            user.email_verified_at = db.func.now()
+            db.session.commit()
+        # Get login page to extract CSRF token
+        login_page = client.get("/login")
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+        csrf_value = match.group(1) if match else ""
+        resp = client.post(
+            "/login",
+            data={"username": user.username, "password": password, "csrf_token": csrf_value},
+            follow_redirects=False,
+        )
+        assert resp.status_code in (200, 302)
+
+    def test_web_register_page(self, app, client):
+        resp = client.get("/register")
+        assert resp.status_code == 200
+
+
+# ======================= PERMISSIONS MODULE =======================
+
+
+
+"""Tests for TestPermissionsModule."""
+
+class TestPermissionsModule:
+
+    def test_permissions_functions(self, app, client, auth_headers, moderator_headers, admin_headers):
+        """Exercise permission checks through API calls that use them."""
+        # Moderator accessing mod-only endpoint
+        resp = client.get("/api/v1/forum/moderation/metrics", headers=moderator_headers)
+        assert resp.status_code == 200
+        # Admin accessing admin-only endpoint
+        resp = client.get("/api/v1/admin/logs", headers=admin_headers)
+        assert resp.status_code == 200
+
+
+
+"""Tests for TestSystemAPI."""
+
+class TestSystemAPI:
+
+    def test_system_health(self, app, client):
+        resp = client.get("/api/v1/system/health")
+        assert resp.status_code in (200, 404)
+
+    def test_system_version(self, app, client):
+        resp = client.get("/api/v1/system/version")
+        assert resp.status_code in (200, 404)
+
+
+# ======================= SITE SETTINGS TESTS =======================

@@ -1,10 +1,6 @@
-"""WAVE 9: Frontend-Backend Integration Contracts
+"""Contract tests for the administration tool proxying and consuming the backend API.
 
-Tests for administration-tool ↔ backend service integration.
-Verifies that the frontend correctly proxies requests, preserves authentication,
-handles errors, and maintains contract compliance with backend API responses.
-
-Mark: @pytest.mark.contract @pytest.mark.integration
+Uses markers: contract, integration (see classes below).
 """
 
 import pytest

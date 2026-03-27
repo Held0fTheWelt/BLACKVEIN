@@ -1,6 +1,18 @@
 """Tests for news API: list, detail, search, sort, pagination, published-only, write access."""
 import pytest
 
+from app.extensions import db
+from app.models import (
+    User,
+    Role,
+    NewsArticle,
+    NewsArticleTranslation,
+    ForumCategory,
+    ForumThread,
+    ForumPost,
+)
+from werkzeug.security import generate_password_hash
+
 
 # --- List JSON ---
 
@@ -437,3 +449,396 @@ def test_news_translation_get_rate_limit_keyed_by_service_key(client, sample_new
         headers=moderator_headers
     )
     assert response.status_code in (200, 404, 400), "Valid JWT should be accepted"
+
+
+
+"""Tests for TestNewsWriteAPI."""
+
+class TestNewsWriteAPI:
+
+    def test_create_news_article(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={
+                "title": "Test Article",
+                "slug": "test-article-write",
+                "content": "Full article content here.",
+                "summary": "Short summary.",
+                "category": "Updates",
+            },
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.get_json()
+        assert data["title"] == "Test Article"
+
+    def test_create_news_missing_fields(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": ""},
+            headers=moderator_headers,
+        )
+        assert resp.status_code in (400, 422)
+
+    def test_update_news_article(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "Updatable", "slug": "updatable-article", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        resp = client.put(
+            f"/api/v1/news/{article_id}",
+            json={"title": "Updated Title", "content": "updated body"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["title"] == "Updated Title"
+
+    def test_update_news_not_found(self, app, client, moderator_headers):
+        resp = client.put(
+            "/api/v1/news/99999",
+            json={"title": "X"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_delete_news_article(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "Deletable", "slug": "deletable-article", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        resp = client.delete(f"/api/v1/news/{article_id}", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_delete_news_not_found(self, app, client, moderator_headers):
+        resp = client.delete("/api/v1/news/99999", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_publish_unpublish(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "Pub Test", "slug": "pub-test-article", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        resp = client.post(f"/api/v1/news/{article_id}/publish", headers=moderator_headers)
+        assert resp.status_code == 200
+        resp = client.post(f"/api/v1/news/{article_id}/unpublish", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_publish_not_found(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news/99999/publish", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_unpublish_not_found(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news/99999/unpublish", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_news_detail_by_id(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "DetailById", "slug": "detail-by-id", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        client.post(f"/api/v1/news/{article_id}/publish", headers=moderator_headers)
+        resp = client.get(f"/api/v1/news/{article_id}")
+        assert resp.status_code == 200
+
+    def test_news_translations_list(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "TransTest", "slug": "trans-test", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        resp = client.get(f"/api/v1/news/{article_id}/translations", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_news_translation_put(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "TransPut", "slug": "trans-put", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        resp = client.put(
+            f"/api/v1/news/{article_id}/translations/en",
+            json={"title": "English Title", "content": "English body", "summary": "Eng sum"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code in (200, 201)
+
+    def test_news_translation_get(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": "TransGet", "slug": "trans-get", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        client.put(
+            f"/api/v1/news/{article_id}/translations/en",
+            json={"title": "En", "content": "En body", "summary": "s"},
+            headers=moderator_headers,
+        )
+        resp = client.get(f"/api/v1/news/{article_id}/translations/en", headers=moderator_headers)
+        assert resp.status_code == 200
+
+
+# ======================= WIKI ADMIN TESTS =======================
+
+
+
+"""Tests for TestNewsTranslationWorkflow."""
+
+class TestNewsTranslationWorkflow:
+
+    def _create_article(self, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": f"NTW-{id(self)}", "slug": f"ntw-{id(self)}", "content": "body"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 201
+        return resp.get_json()["id"]
+
+    def test_translation_submit_review(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        # Create translation first
+        client.put(
+            f"/api/v1/news/{aid}/translations/en",
+            json={"title": "EN", "content": "EN body", "summary": "s"},
+            headers=moderator_headers,
+        )
+        resp = client.post(f"/api/v1/news/{aid}/translations/en/submit-review", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_translation_submit_review_not_found(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news/99999/translations/en/submit-review", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_translation_approve(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        client.put(
+            f"/api/v1/news/{aid}/translations/en",
+            json={"title": "EN", "content": "EN body", "summary": "s"},
+            headers=moderator_headers,
+        )
+        resp = client.post(f"/api/v1/news/{aid}/translations/en/approve", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_translation_approve_not_found(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news/99999/translations/en/approve", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_translation_publish(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        client.put(
+            f"/api/v1/news/{aid}/translations/en",
+            json={"title": "EN", "content": "EN body", "summary": "s"},
+            headers=moderator_headers,
+        )
+        resp = client.post(f"/api/v1/news/{aid}/translations/en/publish", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_translation_publish_not_found(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news/99999/translations/en/publish", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_auto_translate(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/translations/auto-translate",
+            json={},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 202
+
+    def test_auto_translate_not_found(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news/99999/translations/auto-translate",
+            json={},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_translation_get_unsupported_lang(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        resp = client.get(f"/api/v1/news/{aid}/translations/xx", headers=moderator_headers)
+        assert resp.status_code == 400
+
+    def test_translation_put_missing_body(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        resp = client.put(f"/api/v1/news/{aid}/translations/en", headers=moderator_headers)
+        assert resp.status_code == 400
+
+    def test_translation_put_not_found(self, app, client, moderator_headers):
+        resp = client.put(
+            "/api/v1/news/99999/translations/en",
+            json={"title": "X", "content": "Y"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_translations_list_not_found(self, app, client, moderator_headers):
+        resp = client.get("/api/v1/news/99999/translations", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_news_detail_by_slug(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        client.post(f"/api/v1/news/{aid}/publish", headers=moderator_headers)
+        resp = client.get(f"/api/v1/news/{aid}")
+        assert resp.status_code == 200
+
+    def test_news_detail_not_found_slug(self, app, client):
+        resp = client.get("/api/v1/news/nonexistent-slug-abc")
+        assert resp.status_code == 404
+
+    def test_news_list_with_search(self, app, client, moderator_headers):
+        self._create_article(client, moderator_headers)
+        resp = client.get("/api/v1/news?q=NTW")
+        assert resp.status_code == 200
+
+    def test_news_list_with_sort(self, app, client, moderator_headers):
+        self._create_article(client, moderator_headers)
+        resp = client.get("/api/v1/news?sort=title&direction=asc")
+        assert resp.status_code == 200
+
+    def test_news_create_missing_body(self, app, client, moderator_headers):
+        resp = client.post("/api/v1/news", headers=moderator_headers)
+        assert resp.status_code == 400
+
+    def test_news_update_missing_body(self, app, client, moderator_headers):
+        aid = self._create_article(client, moderator_headers)
+        resp = client.put(f"/api/v1/news/{aid}", headers=moderator_headers)
+        assert resp.status_code == 400
+
+
+# ======================= NEWS DISCUSSION THREAD LINKS =======================
+
+
+
+"""Tests for TestNewsDiscussionThreadLinks."""
+
+class TestNewsDiscussionThreadLinks:
+
+    def _setup(self, app, client, moderator_headers):
+        """Create news article + forum thread, return (article_id, thread_id)."""
+        resp = client.post(
+            "/api/v1/news",
+            json={"title": f"NDT-{id(self)}", "slug": f"ndt-{id(self)}", "content": "body"},
+            headers=moderator_headers,
+        )
+        article_id = resp.get_json()["id"]
+        with app.app_context():
+            user = User.query.filter_by(username="moderatoruser").first()
+            cat = ForumCategory(title="News Disc Cat", slug=f"news-disc-cat-{id(self)}", description="test")
+            db.session.add(cat)
+            db.session.flush()
+            thread = ForumThread(
+                title="News Discussion",
+                slug=f"news-disc-thread-{id(self)}",
+                category_id=cat.id,
+                author_id=user.id,
+            )
+            db.session.add(thread)
+            db.session.commit()
+            thread_id = thread.id
+        return article_id, thread_id
+
+    def test_link_discussion_thread(self, app, client, moderator_headers):
+        aid, tid = self._setup(app, client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/discussion-thread",
+            json={"discussion_thread_id": tid},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_link_discussion_thread_not_found(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/news/99999/discussion-thread",
+            json={"discussion_thread_id": 1},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_link_discussion_thread_missing_body(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/discussion-thread",
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_link_discussion_thread_invalid_id(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/discussion-thread",
+            json={"discussion_thread_id": "abc"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_unlink_discussion_thread(self, app, client, moderator_headers):
+        aid, tid = self._setup(app, client, moderator_headers)
+        client.post(
+            f"/api/v1/news/{aid}/discussion-thread",
+            json={"discussion_thread_id": tid},
+            headers=moderator_headers,
+        )
+        resp = client.delete(f"/api/v1/news/{aid}/discussion-thread", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_unlink_discussion_thread_not_found(self, app, client, moderator_headers):
+        resp = client.delete("/api/v1/news/99999/discussion-thread", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_related_threads_get(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.get(f"/api/v1/news/{aid}/related-threads", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_related_threads_add(self, app, client, moderator_headers):
+        aid, tid = self._setup(app, client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/related-threads",
+            json={"thread_id": tid},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_related_threads_add_missing_body(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.post(f"/api/v1/news/{aid}/related-threads", headers=moderator_headers)
+        assert resp.status_code == 400
+
+    def test_related_threads_add_invalid_id(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.post(
+            f"/api/v1/news/{aid}/related-threads",
+            json={"thread_id": "abc"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_related_threads_delete(self, app, client, moderator_headers):
+        aid, tid = self._setup(app, client, moderator_headers)
+        client.post(
+            f"/api/v1/news/{aid}/related-threads",
+            json={"thread_id": tid},
+            headers=moderator_headers,
+        )
+        resp = client.delete(f"/api/v1/news/{aid}/related-threads/{tid}", headers=moderator_headers)
+        assert resp.status_code == 200
+
+    def test_related_threads_delete_not_found(self, app, client, moderator_headers):
+        aid, _ = self._setup(app, client, moderator_headers)
+        resp = client.delete(f"/api/v1/news/{aid}/related-threads/99999", headers=moderator_headers)
+        assert resp.status_code == 404
+
+
+# ======================= AREA API EXTENDED =======================

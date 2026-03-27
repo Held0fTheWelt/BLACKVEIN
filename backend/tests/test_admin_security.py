@@ -279,3 +279,83 @@ class TestSensitiveOperations:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+
+"""Tests for TestAdminLogs."""
+
+class TestAdminLogs:
+
+    def test_admin_logs_list(self, app, client, admin_headers):
+        resp = client.get("/api/v1/admin/logs", headers=admin_headers)
+        assert resp.status_code == 200
+
+    def test_admin_logs_forbidden(self, app, client, auth_headers):
+        resp = client.get("/api/v1/admin/logs", headers=auth_headers)
+        assert resp.status_code == 403
+
+
+# ======================= SYSTEM API TESTS =======================
+
+
+
+"""Tests for TestAdminLogsExtended."""
+
+class TestAdminLogsExtended:
+
+    def test_admin_logs_with_filters(self, app, client, admin_headers):
+        resp = client.get(
+            "/api/v1/admin/logs?page=1&limit=10&q=test&category=auth&status=success",
+            headers=admin_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_admin_logs_pagination(self, app, client, admin_headers):
+        resp = client.get("/api/v1/admin/logs?page=2&limit=5", headers=admin_headers)
+        assert resp.status_code == 200
+
+
+# ======================= SERVICE LEVEL TESTS =======================
+
+
+
+"""Tests for TestSiteSettingsAPI."""
+
+class TestSiteSettingsAPI:
+
+    def test_site_settings_get(self, app, client, admin_headers):
+        resp = client.get("/api/v1/site/settings", headers=admin_headers)
+        assert resp.status_code == 200
+
+    def test_dashboard_settings_get(self, app, client, admin_headers):
+        resp = client.get("/dashboard/api/site-settings", headers=admin_headers)
+        assert resp.status_code in (200, 302)
+
+    def test_dashboard_settings_put(self, app, client, admin_user):
+        import re
+        user, password = admin_user
+        with app.app_context():
+            from app.extensions import db
+            user.email_verified_at = db.func.now()
+            db.session.commit()
+        # Get login page to extract CSRF token
+        login_page = client.get("/login")
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+        csrf_value = match.group(1) if match else ""
+        # Login with session
+        login_resp = client.post(
+            "/login",
+            data={"username": user.username, "password": password, "csrf_token": csrf_value},
+            follow_redirects=True
+        )
+        # Now make the PUT request with session
+        resp = client.put(
+            "/dashboard/api/site-settings",
+            json={"slogan_rotation_enabled": False},
+            content_type="application/json"
+        )
+        # Accept 200, 204, 400 (if not logged in or bad data), or 302 (redirect)
+        assert resp.status_code in (200, 204, 302, 400)
+
+
+# ======================= DATA EXPORT/IMPORT TESTS =======================

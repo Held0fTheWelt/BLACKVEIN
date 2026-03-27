@@ -1,10 +1,6 @@
-"""WAVE 9: End-to-End Workflow Tests
+"""End-to-end user workflows across registration, content, forum, game sessions, and collaboration.
 
-Tests for complete user workflows across all services.
-Verifies realistic scenarios from user registration through content creation,
-forum interaction, game sessions, and real-time collaboration.
-
-Mark: @pytest.mark.contract @pytest.mark.integration @pytest.mark.e2e
+Uses markers: contract, integration, e2e (see classes below).
 """
 
 import pytest

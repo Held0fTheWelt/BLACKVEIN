@@ -220,3 +220,143 @@ def test_slogan_deactivate_then_resolve_returns_null(client, moderator_headers):
     assert r4.status_code == 200
     assert r4.get_json().get("text") is None
     client.delete("/api/v1/slogans/" + str(sid), headers=moderator_headers)
+
+
+
+"""Tests for TestSloganAPI."""
+
+class TestSloganAPI:
+
+    def test_slogan_resolve(self, app, client):
+        resp = client.get("/api/v1/site/slogan?placement=hero")
+        assert resp.status_code == 200
+
+    def test_slogan_resolve_missing_placement(self, app, client):
+        resp = client.get("/api/v1/site/slogan")
+        assert resp.status_code == 400
+
+    def test_slogans_list_public(self, app, client):
+        resp = client.get("/api/v1/site/slogans?placement=hero")
+        assert resp.status_code == 200
+
+    def test_slogan_list_admin(self, app, client, admin_headers):
+        resp = client.get("/api/v1/slogans", headers=admin_headers)
+        assert resp.status_code == 200
+
+    def _create_slogan(self, client, headers):
+        return client.post(
+            "/api/v1/slogans",
+            json={
+                "text": "Test Slogan",
+                "category": "landing_hero",
+                "placement_key": "landing.hero.primary",
+                "language_code": "de",
+            },
+            headers=headers,
+        )
+
+    def test_slogan_create(self, app, client, moderator_headers):
+        resp = self._create_slogan(client, moderator_headers)
+        assert resp.status_code in (200, 201)
+
+    def test_slogan_update(self, app, client, moderator_headers):
+        resp = self._create_slogan(client, moderator_headers)
+        if resp.status_code in (200, 201):
+            slogan_id = resp.get_json().get("id")
+            if slogan_id:
+                resp = client.put(
+                    f"/api/v1/slogans/{slogan_id}",
+                    json={"text": "Updated Slogan"},
+                    headers=moderator_headers,
+                )
+                assert resp.status_code == 200
+
+    def test_slogan_delete(self, app, client, moderator_headers):
+        resp = self._create_slogan(client, moderator_headers)
+        if resp.status_code in (200, 201):
+            slogan_id = resp.get_json().get("id")
+            if slogan_id:
+                resp = client.delete(f"/api/v1/slogans/{slogan_id}", headers=moderator_headers)
+                assert resp.status_code == 200
+
+    def test_slogan_activate_deactivate(self, app, client, moderator_headers):
+        resp = self._create_slogan(client, moderator_headers)
+        if resp.status_code in (200, 201):
+            slogan_id = resp.get_json().get("id")
+            if slogan_id:
+                resp = client.post(f"/api/v1/slogans/{slogan_id}/activate", headers=moderator_headers)
+                assert resp.status_code in (200, 204)
+                resp = client.post(f"/api/v1/slogans/{slogan_id}/deactivate", headers=moderator_headers)
+                assert resp.status_code in (200, 204)
+
+
+# ======================= ROLE API TESTS =======================
+
+
+
+"""Tests for TestSloganAPIExtended."""
+
+class TestSloganAPIExtended:
+
+    def test_slogan_get_by_id(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/slogans",
+            json={
+                "text": "Slogan Get",
+                "category": "landing_hero",
+                "placement_key": "landing.hero.primary",
+                "language_code": "de",
+            },
+            headers=moderator_headers,
+        )
+        if resp.status_code in (200, 201):
+            slogan_id = resp.get_json()["id"]
+            resp = client.get(f"/api/v1/slogans/{slogan_id}", headers=moderator_headers)
+            assert resp.status_code == 200
+
+    def test_slogan_get_not_found(self, app, client, moderator_headers):
+        resp = client.get("/api/v1/slogans/99999", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_slogan_update_not_found(self, app, client, moderator_headers):
+        resp = client.put(
+            "/api/v1/slogans/99999",
+            json={"text": "X"},
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_slogan_delete_not_found(self, app, client, moderator_headers):
+        resp = client.delete("/api/v1/slogans/99999", headers=moderator_headers)
+        assert resp.status_code == 404
+
+    def test_slogan_list_with_filters(self, app, client, moderator_headers):
+        resp = client.get(
+            "/api/v1/slogans?category=landing_hero&placement_key=landing.hero.primary&active_only=true",
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 200
+
+    def test_slogan_create_invalid_category(self, app, client, moderator_headers):
+        resp = client.post(
+            "/api/v1/slogans",
+            json={
+                "text": "Bad Cat",
+                "category": "invalid_cat",
+                "placement_key": "landing.hero.primary",
+                "language_code": "de",
+            },
+            headers=moderator_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_slogans_for_placement_list(self, app, client):
+        resp = client.get("/api/v1/site/slogans?placement=landing.hero.primary&lang=de")
+        assert resp.status_code == 200
+
+    def test_slogan_resolve_with_lang(self, app, client):
+        resp = client.get("/api/v1/site/slogan?placement=landing.hero.primary&lang=de")
+        assert resp.status_code == 200
+
+
+# ======================= ROLE API EXTENDED =======================

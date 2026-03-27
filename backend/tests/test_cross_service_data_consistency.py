@@ -1,10 +1,6 @@
-"""WAVE 9: System Data Consistency Tests
+"""Cross-service data consistency (identity, authentication, timestamps, shared resources).
 
-Tests for cross-system data consistency across frontend, backend, and engine.
-Verifies that user identity, authentication, timestamps, and shared resources
-remain consistent across all services.
-
-Mark: @pytest.mark.contract @pytest.mark.integration
+Uses markers: contract, integration (see classes below).
 """
 
 import pytest
