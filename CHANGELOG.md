@@ -6,6 +6,139 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.1] - 2026-03-27 (W2.1.1: Canonical AI Adapter Contract)
+
+**Focus**: Establish a clean, provider-agnostic adapter boundary between the story runtime and any AI model integration. Define the canonical contract that all AI adapters (Claude, GPT, local models, etc.) must implement.
+
+### Added
+
+- **`backend/app/runtime/ai_adapter.py`**: Canonical AI adapter contract layer
+  - `AdapterRequest`: Input model for canonical runtime context (session, state, events, turn)
+  - `AdapterResponse`: Output model for adapter responses (raw output, structured payload, metadata, error)
+  - `StoryAIAdapter`: Abstract base class defining the adapter contract
+  - `MockStoryAIAdapter`: Deterministic mock implementation for testing (stable, reproducible output)
+- **`backend/tests/runtime/test_ai_adapter.py`**: 21 focused tests for adapter contract
+  - TestAdapterRequest (4 tests) — shape, fields, defaults
+  - TestAdapterResponse (5 tests) — shape, error handling, is_error flag
+  - TestStoryAIAdapterContract (3 tests) — abstract enforcement, subclass requirements
+  - TestMockStoryAIAdapter (5 tests) — deterministic behavior, payload structure
+  - TestAdapterContractCoherence (4 tests) — provider-agnosticism, extensibility
+
+### Design
+
+- **Provider-Agnostic**: Contract is generic; Claude, GPT, local models all implement the same interface
+- **Immutable Boundaries**: Runtime depends on contract, not on specific provider implementations
+- **Extensible Metadata**: backend_metadata field allows provider-specific data without protocol changes
+- **Deterministic Mock**: MockStoryAIAdapter enables reproducible testing without real model calls
+- **Error Surface**: Explicit error field + is_error flag simplifies conditional logic in runtime
+
+### Deferred to W2.1.2+
+
+- Real LLM integration (Claude API, OpenAI, etc.)
+- Prompt construction from runtime context
+- Structured output parsing
+- Connecting adapter to execute_turn()
+
+**Tests**: 21 new (all passing)
+**Total Runtime Tests**: 178 (157 existing + 21 new)
+
+---
+
+## [0.3.0] - 2026-03-27 (W2.0: Canonical Story Runtime Skeleton)
+
+**Focus**: Implement the complete in-memory story runtime foundation. No persistence, no AI, no UI. Pure canonical runtime: session initialization, turn execution, event logging, outcome derivation, and session commitment.
+
+### Added (W2.0 Core Phases)
+
+- **W2.0.1 (Models)**: `backend/app/runtime/w2_models.py`
+  - `SessionState`: Session identity, module ref, current scene, turn counter, canonical state
+  - `TurnState`: Per-turn metadata, snapshots, status, timing
+  - `EventLogEntry`: Immutable audit records with monotonic order_index
+  - `StateDelta`: Atomic world state changes with type, source, validation status
+  - `AIDecisionLog`: Full AI response lifecycle (raw output, parsed, validation, deltas)
+  - Enums: `SessionStatus`, `TurnStatus`, `DeltaType`, `DeltaValidationStatus`, `AIValidationOutcome`
+
+- **W2.0.2 (Session Start)**: `backend/app/runtime/session_start.py`
+  - `start_session()`: Initialize SessionState with module, initial scene, canonical state
+  - `resolve_initial_scene()`: Scene selection by sequence order
+  - `build_initial_canonical_state()`: Character/relationship state initialization
+  - Event logging: `session_started`, `module_loaded`, `initial_scene_resolved`
+
+- **W2.0.3 (Turn Execution)**: `backend/app/runtime/turn_executor.py`
+  - `execute_turn()`: Main turn execution function (validation → deltas → application)
+  - `construct_deltas()`: Build explicit StateDelta objects from proposed changes
+  - `validate_decision()`: Validate input against module rules (triggers, characters, paths, immutables)
+  - `apply_deltas()`: Immutably apply deltas to canonical state
+  - Event logging: `turn_started`, `decision_validated`, `deltas_generated`, `deltas_applied`, `turn_completed`, `turn_failed` (on error)
+  - Scene change events: `scene_changed` (conditional)
+
+- **W2.0.4 (Event Logging)**: `backend/app/runtime/event_log.py`
+  - `RuntimeEventLog`: Monotonic event accumulator helper
+  - Per-operation accumulation (not persistence)
+  - Automatic order_index assignment and session_id/turn_number injection
+
+- **W2.0.5 (Next Situation)**: `backend/app/runtime/next_situation.py`
+  - `derive_next_situation()`: Evaluate ending conditions, scene transitions, default continuation
+  - Trigger-based condition evaluation (AND logic: all conditions must match)
+  - Scene graph-aware transition validation
+  - `NextSituation` result model with status, scene, outcome
+
+### Added (W2.0 Repair Phases)
+
+- **W2.0-R1 (Failure Path Coherence)**
+  - Fixed: Made `validation_outcome` optional in `TurnExecutionResult`
+  - Allows failure paths to construct coherent results without crashing
+
+- **W2.0-R2 (Scene Graph Validation)**
+  - Added: Scene reachability validation in `_validate_scene_transition()`
+  - Checks: current scene exists, target scene exists, valid transition path exists
+
+- **W2.0-R3 (Condition-Aware Transitions)**
+  - Added: Optional `detected_triggers` parameter to `derive_next_situation()`
+  - Condition evaluation: all trigger_conditions must be in detected_triggers (AND logic)
+  - Backward compatible: None triggers means cannot fire conditional outcomes
+
+- **W2.0-R4 (Session Commitment)**
+  - Added: `commit_turn_result()` function for atomic session state updates
+  - Updates: canonical_state, current_scene_id, turn_counter, timestamp
+  - Immutable pattern: returns new session, original unchanged
+
+- **W2.0-R5 (Terminal State & Outcome Logging)**
+  - Added: `log_situation_outcome()` — generates outcome events
+  - Added: `apply_situation_outcome()` — updates session status/scene
+  - Event types: `scene_continued`, `scene_transitioned`, `ending_reached`
+  - Status updates: Sets `status=ENDED` for terminal outcomes
+
+### Test Coverage
+
+- **W2.0.1**: 27 tests (models, enums, defaults)
+- **W2.0.2**: 39 tests (session start, event logging)
+- **W2.0.3**: 48 tests (turn execution, validation, events, deltas)
+- **W2.0.4**: 17 tests (event accumulation, monotonicity)
+- **W2.0.5**: 26 tests (situation derivation, conditions, outcome logging)
+- **Total**: 157 tests (all passing)
+
+### Design
+
+- **Immutable State**: All updates return new objects (original unchanged)
+- **Event-Centric**: Every state change logged as immutable EventLogEntry
+- **Provider-Agnostic**: No hardcoded logic for specific content modules
+- **Synchronous Execution**: Sequential per-turn processing (async deferred to W2.1+)
+- **Module-Driven Validation**: All rules pulled from ContentModule (no engine hacks)
+
+### Deferred to W2.1+
+
+- Persistence/save-load
+- Global event accumulation
+- Session manager/coordinator
+- Real AI integration
+- Async/await support
+
+**Tests**: 157 (all passing)
+**Gate Status**: ✅ APPROVED FOR W2.1 TRANSITION
+
+---
+
 ## [0.2.2] - 2026-03-27 (W1.1 Repair - Structural Consistency)
 
 **Focus**: Resolve internal inconsistencies between module models, loader, schemas, and tests. Ensure canonical module representation is consistent across all layers.
