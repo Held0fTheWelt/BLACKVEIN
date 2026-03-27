@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.2] - 2026-03-27 (W2.1.2: Canonical Structured AI Story Output Contract)
+
+**Focus**: Define the schema-driven contract for AI story decision output. All proposals are structured and validated; AI cannot have freeform authority.
+
+### Added
+
+- **`backend/app/runtime/ai_output.py`**: Canonical structured output models
+  - `ProposedDelta`: AI-proposed state change (pre-validation, lightweight)
+  - `DialogueImpulse`: Character narrative action/dialogue impulse
+  - `ConflictVector`: Dominant narrative tension (axis + intensity)
+  - `StructuredAIStoryOutput`: Main decision output model (required + optional fields)
+- **`backend/tests/runtime/test_ai_output.py`**: 22 focused tests for output contract
+  - TestProposedDelta (4 tests) — required fields, defaults, type acceptance
+  - TestDialogueImpulse (4 tests) — required fields, intensity validation
+  - TestConflictVector (4 tests) — required fields, intensity validation
+  - TestStructuredAIStoryOutput (8 tests) — required/optional fields, full payloads, validation
+  - TestOutputImmutability (2 tests) — field preservation
+
+### Design
+
+- **Schema-Driven**: All output fields are explicit and typed
+- **Constrained Authority**: AI proposes but runtime validates all proposals
+- **Aligned with Runtime**: Maps to existing concepts (StateDelta, DeltaType, etc.)
+- **Validated Fields**: Intensity/confidence constrained to [0.0, 1.0]
+- **Extensible Structure**: Supports later parsing and normalization
+
+### Required Fields
+
+- `scene_interpretation`: AI's reading of current scene
+- `detected_triggers`: Trigger IDs detected (empty list if none)
+- `proposed_state_deltas`: State changes proposed (empty list if none)
+- `rationale`: AI's reasoning
+
+### Optional Fields
+
+- `proposed_scene_id`: Scene to transition to (None = continue)
+- `dialogue_impulses`: Character impulses (empty if none)
+- `conflict_vector`: Narrative tension (None if not applicable)
+- `confidence`: AI confidence 0.0-1.0 (None if not provided)
+
+### Constraints & Safety
+
+- Proposed deltas are validated against module rules before acceptance
+- Detected triggers must be recognized by module
+- Scene IDs are validated against scene_phases and reachability
+- Dialogue impulses are inputs to dialogue system, not commands
+- Conflict vector is interpretive metadata, not authoritative change
+- Confidence threshold can guide guard review level
+
+**Tests**: 22 new (all passing)
+**Total Runtime Tests**: 200 (178 existing + 22 new)
+
+---
+
 ## [0.3.1] - 2026-03-27 (W2.1.1: Canonical AI Adapter Contract)
 
 **Focus**: Establish a clean, provider-agnostic adapter boundary between the story runtime and any AI model integration. Define the canonical contract that all AI adapters (Claude, GPT, local models, etc.) must implement.
