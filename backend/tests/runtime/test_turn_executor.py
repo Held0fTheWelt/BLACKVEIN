@@ -443,6 +443,133 @@ class TestValidateDecision:
         assert len(outcome.errors) > 0
 
 
+class TestSceneReachabilityValidation:
+    """Tests for W2.0-R2: graph-aware scene transition validation."""
+
+    def test_validate_reachable_scene_transition_accepted(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Valid scene movement to reachable scene is accepted."""
+        session = god_of_carnage_module_with_state
+        # God of Carnage has phase_1 -> phase_2 transition
+        decision = MockDecision(
+            proposed_deltas=[],
+            proposed_scene_id="phase_2",  # Reachable from phase_1
+        )
+
+        outcome = validate_decision(decision, session, god_of_carnage_module)
+        # Should not have scene-related errors
+        scene_errors = [e for e in outcome.errors if "not reachable" in e.lower()]
+        assert len(scene_errors) == 0
+
+    def test_validate_unreachable_known_scene_rejected(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Known scene that is unreachable from current scene is rejected."""
+        session = god_of_carnage_module_with_state
+        # God of Carnage has phase_1, phase_2, phase_3 but phase_1 -> phase_3 not directly defined
+        # (would need to go through phase_2 first)
+        decision = MockDecision(
+            proposed_deltas=[],
+            proposed_scene_id="phase_3",  # Exists but not reachable from phase_1
+        )
+
+        outcome = validate_decision(decision, session, god_of_carnage_module)
+        # Should have reachability error
+        scene_errors = [e for e in outcome.errors if "not reachable" in e.lower()]
+        assert len(scene_errors) > 0
+
+    def test_validate_unknown_scene_rejected(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Unknown scene that doesn't exist in module is rejected."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[],
+            proposed_scene_id="nonexistent_scene",  # Doesn't exist in module
+        )
+
+        outcome = validate_decision(decision, session, god_of_carnage_module)
+        # Should have unknown scene error
+        unknown_errors = [e for e in outcome.errors if "Unknown scene" in e]
+        assert len(unknown_errors) > 0
+
+    def test_validate_self_transition_allowed(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Staying in current scene (self-transition) is allowed."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[],
+            proposed_scene_id=session.current_scene_id,  # Stay in phase_1
+        )
+
+        outcome = validate_decision(decision, session, god_of_carnage_module)
+        # Should not have errors for self-transition
+        scene_errors = [e for e in outcome.errors if "scene" in e.lower()]
+        assert len(scene_errors) == 0
+
+    def test_validate_scene_context_matters(self, god_of_carnage_module):
+        """Scene reachability validation depends on current scene context."""
+        # Create a custom module with explicit transition rules
+        from app.content.module_models import (
+            ContentModule,
+            EndingCondition,
+            ModuleMetadata,
+            PhaseTransition,
+            ScenePhase,
+        )
+
+        metadata = ModuleMetadata(
+            module_id="test",
+            title="Test",
+            version="0.1.0",
+            contract_version="1.0.0",
+        )
+
+        scenes = {
+            "scene_a": ScenePhase(id="scene_a", name="A", sequence=1, description="A"),
+            "scene_b": ScenePhase(id="scene_b", name="B", sequence=2, description="B"),
+            "scene_c": ScenePhase(id="scene_c", name="C", sequence=3, description="C"),
+        }
+
+        # Define transitions: a->b, b->c (no a->c)
+        transitions = {
+            "t1": PhaseTransition(from_phase="scene_a", to_phase="scene_b", trigger_conditions=[]),
+            "t2": PhaseTransition(from_phase="scene_b", to_phase="scene_c", trigger_conditions=[]),
+        }
+
+        module = ContentModule(
+            metadata=metadata,
+            characters={},
+            relationship_axes={},
+            trigger_definitions={},
+            scene_phases=scenes,
+            phase_transitions=transitions,
+            ending_conditions={},
+        )
+
+        # Test from scene_a: scene_b reachable, scene_c not reachable
+        session_a = SessionState(
+            module_id="test",
+            module_version="0.1.0",
+            current_scene_id="scene_a",
+            canonical_state={},
+        )
+
+        decision_to_b = MockDecision(proposed_scene_id="scene_b")
+        outcome_b = validate_decision(decision_to_b, session_a, module)
+        assert len([e for e in outcome_b.errors if "not reachable" in e.lower()]) == 0
+
+        decision_to_c = MockDecision(proposed_scene_id="scene_c")
+        outcome_c = validate_decision(decision_to_c, session_a, module)
+        assert len([e for e in outcome_c.errors if "not reachable" in e.lower()]) > 0
+
+        # Test from scene_b: scene_c reachable
+        session_b = SessionState(
+            module_id="test",
+            module_version="0.1.0",
+            current_scene_id="scene_b",
+            canonical_state={},
+        )
+
+        decision_b_to_c = MockDecision(proposed_scene_id="scene_c")
+        outcome_b_to_c = validate_decision(decision_b_to_c, session_b, module)
+        assert len([e for e in outcome_b_to_c.errors if "not reachable" in e.lower()]) == 0
+
+
 class TestExecuteTurn:
     """Tests for complete turn execution pipeline."""
 

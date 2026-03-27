@@ -171,7 +171,12 @@ def _validate_delta(delta: Any, session: Any, module: Any) -> list[str]:
 def _validate_scene_transition(
     scene_id: str, session: Any, module: Any
 ) -> list[str]:
-    """Validate a scene transition.
+    """Validate a scene transition is legal from the current canonical scene.
+
+    Checks that:
+    1. Target scene exists in module
+    2. Target scene is reachable from current scene via defined transitions
+    3. Current scene is valid in module
 
     Args:
         scene_id: Target scene ID.
@@ -183,8 +188,40 @@ def _validate_scene_transition(
     """
     errors = []
 
+    # Check target scene exists
     if not _entity_exists(scene_id, module.scene_phases):
         errors.append(f"Unknown scene/phase: {scene_id}")
+        return errors  # Can't check reachability if target doesn't exist
+
+    # Check current scene is valid in module
+    current_scene_id = session.current_scene_id
+    if not _entity_exists(current_scene_id, module.scene_phases):
+        errors.append(f"Current scene '{current_scene_id}' not in module")
+        return errors
+
+    # Prevent self-transitions (no movement)
+    if scene_id == current_scene_id:
+        # Self-transitions are allowed (staying in same scene)
+        return errors
+
+    # Check if target is reachable: find a valid transition from current to target
+    # A transition is valid if it exists and has its target in the module
+    reachable = False
+    if isinstance(module.phase_transitions, dict):
+        for transition_id, transition in module.phase_transitions.items():
+            # Check if this transition starts from current scene
+            if transition.from_phase == current_scene_id:
+                # Check if this transition goes to target scene
+                if transition.to_phase == scene_id:
+                    # Check if target is valid
+                    if _entity_exists(transition.to_phase, module.scene_phases):
+                        reachable = True
+                        break
+
+    if not reachable:
+        errors.append(
+            f"Scene '{scene_id}' is not reachable from current scene '{current_scene_id}'"
+        )
 
     return errors
 
