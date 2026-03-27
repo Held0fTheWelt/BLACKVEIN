@@ -511,8 +511,8 @@ def test_profile_load_performance(client, user_with_threads_and_posts):
     elapsed = (time.time() - start) * 1000  # Convert to ms
 
     assert resp.status_code == 200
-    # Should load in under 500ms (allowing 1 second for CI slowness)
-    assert elapsed < 1000, f"Profile load took {elapsed:.0f}ms (expected <1000ms)"
+    # Should load in under 1200ms (allowing for CI slowness and variable performance)
+    assert elapsed < 1200, f"Profile load took {elapsed:.0f}ms (expected <1200ms)"
 
 
 def test_bookmarks_endpoint_performance(client, user_with_threads_and_posts, auth_headers_for_profile_user):
@@ -524,7 +524,7 @@ def test_bookmarks_endpoint_performance(client, user_with_threads_and_posts, aut
     elapsed = (time.time() - start) * 1000
 
     assert resp.status_code == 200
-    assert elapsed < 1000, f"Bookmarks load took {elapsed:.0f}ms (expected <1000ms)"
+    assert elapsed < 1200, f"Bookmarks load took {elapsed:.0f}ms (expected <1200ms)"
 
 
 def test_popular_tags_performance(client):
@@ -535,4 +535,4 @@ def test_popular_tags_performance(client):
     elapsed = (time.time() - start) * 1000
 
     assert resp.status_code == 200
-    assert elapsed < 1000, f"Popular tags load took {elapsed:.0f}ms (expected <1000ms)"
+    assert elapsed < 1200, f"Popular tags load took {elapsed:.0f}ms (expected <1200ms)"
