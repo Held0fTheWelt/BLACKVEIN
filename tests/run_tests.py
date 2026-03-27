@@ -1,305 +1,344 @@
 #!/usr/bin/env python3
 """
-World of Shadows — Complete Test Suite Runner (All Suites)
+World of Shadows — multi-component test runner.
 
-Cross-platform test runner for backend, administration-tool, world-engine, and database
-with multiple modes and detailed reporting.
+Runs pytest in each component tree (backend, administration-tool, world-engine, database)
+with a separate working directory per component. Optional scope filters apply only to
+the backend suite (pytest markers).
 
 Usage:
-    python run_tests.py                                # All suites (default)
-    python run_tests.py --suite backend                # Backend only
-    python run_tests.py --suite administration         # Administration-tool only
-    python run_tests.py --suite engine                 # World-engine only
-    python run_tests.py --suite database               # Database only
-    python run_tests.py --suite all                    # All suites (explicit)
-    python run_tests.py --suite backend database       # Multiple suites
-    python run_tests.py --suite backend --quick        # Backend quick tests
-    python run_tests.py --help                         # Show this help
+    python run_tests.py
+    python run_tests.py --suite backend
+    python run_tests.py --suite backend --scope contracts
+    python run_tests.py --suite all --quick
+    python run_tests.py --help
 """
 
-import sys
-import subprocess
-import os
-from pathlib import Path
-import argparse
-from datetime import datetime
+from __future__ import annotations
 
-# Setup
+import argparse
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+
+# Paths
 TESTS_DIR = Path(__file__).parent.absolute()
 PROJECT_ROOT = TESTS_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 ADMIN_TOOL_DIR = PROJECT_ROOT / "administration-tool"
 WORLD_ENGINE_DIR = PROJECT_ROOT / "world-engine"
 DATABASE_DIR = PROJECT_ROOT / "database"
-REPORTS_DIR = PROJECT_ROOT / "tests" / "reports"
+REPORTS_DIR = TESTS_DIR / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# ANSI colors
-class Colors:
-    HEADER = '\033[94m'
-    OKBLUE = '\033[0;34m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+# Human-readable titles for each component (English)
+SUITE_DISPLAY_NAMES: dict[str, str] = {
+    "backend": "Backend (Flask API and services)",
+    "administration": "Administration tool (proxy and UI)",
+    "engine": "World engine (runtime and HTTP/WS)",
+    "database": "Database (migrations and tooling)",
+}
 
-def print_header(text):
-    """Print a formatted header."""
-    line = "━" * 70
+# Optional backend-only filter: CLI value -> pytest -m marker name
+BACKEND_SCOPE_MARKERS: dict[str, str] = {
+    "contracts": "contract",
+    "integration": "integration",
+    "e2e": "e2e",
+    "security": "security",
+}
+
+# Matches backend/pytest.ini coverage gate when running backend tests
+BACKEND_COV_FAIL_UNDER = "85"
+DEFAULT_COV_FAIL_UNDER = "80"
+
+
+class Colors:
+    OKBLUE = "\033[0;34m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+
+
+def print_header(text: str) -> None:
+    line = "=" * 70
     print(f"{Colors.OKBLUE}{line}{Colors.ENDC}")
     print(f"{Colors.OKBLUE}{Colors.BOLD}{text}{Colors.ENDC}")
     print(f"{Colors.OKBLUE}{line}{Colors.ENDC}")
 
-def print_success(text):
-    """Print a success message."""
-    print(f"{Colors.OKGREEN}✓ {text}{Colors.ENDC}")
 
-def print_error(text):
-    """Print an error message."""
-    print(f"{Colors.FAIL}✗ {text}{Colors.ENDC}")
+def print_success(text: str) -> None:
+    print(f"{Colors.OKGREEN}[OK] {text}{Colors.ENDC}")
 
-def print_info(text):
-    """Print an info message."""
-    print(f"{Colors.WARNING}ℹ {text}{Colors.ENDC}")
 
-def check_environment():
-    """Verify test environment is ready."""
-    print_header("Environment Check")
+def print_error(text: str) -> None:
+    print(f"{Colors.FAIL}[FAIL] {text}{Colors.ENDC}")
 
+
+def print_info(text: str) -> None:
+    print(f"{Colors.WARNING}[INFO] {text}{Colors.ENDC}")
+
+
+def check_environment() -> bool:
+    print_header("Environment check")
     try:
         import pytest
+
         print_success(f"pytest: {pytest.__version__}")
     except ImportError:
-        print_error("pytest not installed. Run: pip install -r backend/requirements-dev.txt")
+        print_error("pytest is not installed. Install dev dependencies (e.g. backend/requirements-dev.txt).")
         return False
-
     try:
         import coverage
+
         print_success(f"coverage: {coverage.__version__}")
     except ImportError:
-        print_info("coverage not installed (optional). Run: pip install coverage")
-
+        print_info("coverage not installed (optional).")
     print()
     return True
 
-def show_test_stats(suites):
-    """Display test discovery statistics for selected suites."""
-    print_header("Test Suite Statistics")
 
+def show_test_stats(suites: dict[str, Path]) -> None:
+    print_header("Test collection (collect-only)")
     for suite_name, suite_dir in suites.items():
-        if not (suite_dir / "tests").exists():
-            print_info(f"{suite_name}: No tests directory found")
+        test_root = suite_dir / "tests"
+        if not test_root.is_dir():
+            print_info(f"{suite_name}: no tests directory")
             continue
-
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pytest", "--collect-only", "-q", "tests"],
                 capture_output=True,
                 text=True,
-                timeout=10,
-                cwd=str(suite_dir)
+                timeout=120,
+                cwd=str(suite_dir),
             )
-            output = result.stdout + result.stderr
-            # Extract test count from output - prefer "collected" line
+            out = (result.stdout or "") + (result.stderr or "")
             collected_line = None
-            for line in output.split('\n'):
-                if 'collected' in line.lower() and any(c.isdigit() for c in line):
+            for line in out.split("\n"):
+                if "collected" in line.lower() and any(c.isdigit() for c in line):
                     collected_line = line.strip()
                     break
-                elif 'test' in line.lower() and any(c.isdigit() for c in line) and 'passed' in line.lower():
-                    # fallback to lines showing test results
-                    collected_line = line.strip()
             if collected_line:
                 print_info(f"{suite_name}: {collected_line}")
-        except Exception as e:
-            print_info(f"{suite_name}: Could not get test count ({e})")
-
+            else:
+                print_info(f"{suite_name}: (could not parse collection output)")
+        except Exception as exc:
+            print_info(f"{suite_name}: collect-only failed ({exc})")
     print()
 
-def run_pytest(suite_name, suite_dir, args, description):
-    """Run pytest for a specific suite."""
-    print_header(description)
 
-    if not (suite_dir / "tests").exists():
-        print_error(f"Test directory not found: {suite_dir / 'tests'}")
+def get_suite_configs(suite_names: list[str]) -> dict[str, Path]:
+    all_suites: dict[str, Path] = {
+        "backend": BACKEND_DIR,
+        "administration": ADMIN_TOOL_DIR,
+        "engine": WORLD_ENGINE_DIR,
+        "database": DATABASE_DIR,
+    }
+    if "all" in suite_names:
+        return dict(all_suites)
+    result: dict[str, Path] = {}
+    for name in suite_names:
+        if name in all_suites:
+            result[name] = all_suites[name]
+        else:
+            print_error(f"Unknown suite: {name}")
+    return result if result else dict(all_suites)
+
+
+def _cov_fail_under_for_suite(suite_name: str) -> str:
+    return BACKEND_COV_FAIL_UNDER if suite_name == "backend" else DEFAULT_COV_FAIL_UNDER
+
+
+def build_pytest_argv(
+    *,
+    suite_name: str,
+    quick: bool,
+    coverage_mode: bool,
+    verbose: bool,
+    scope: str,
+) -> list[str]:
+    """Build pytest arguments for one component run (cwd = that component)."""
+    cov_target = "app" if suite_name == "backend" else "."
+    cov_under = _cov_fail_under_for_suite(suite_name)
+
+    if quick:
+        argv = ["-v", "--tb=short", "--no-cov", "-x"]
+        if suite_name == "backend" and scope in BACKEND_SCOPE_MARKERS:
+            argv.extend(["-m", BACKEND_SCOPE_MARKERS[scope]])
+        argv.append("tests")
+        return argv
+
+    if coverage_mode:
+        argv = [
+            "-v",
+            "--tb=short",
+            f"--cov={cov_target}",
+            "--cov-report=term-missing:skip-covered",
+            "--cov-report=html",
+            f"--cov-fail-under={cov_under}",
+        ]
+    elif verbose:
+        argv = [
+            "-vv",
+            "--tb=long",
+            "-s",
+            f"--cov={cov_target}",
+            "--cov-report=term-missing",
+            f"--cov-fail-under={cov_under}",
+        ]
+    else:
+        argv = [
+            "-v",
+            "--tb=short",
+            f"--cov={cov_target}",
+            "--cov-report=term-missing",
+            f"--cov-fail-under={cov_under}",
+        ]
+
+    # Backend-only marker filter (optional)
+    if suite_name == "backend" and scope in BACKEND_SCOPE_MARKERS:
+        marker = BACKEND_SCOPE_MARKERS[scope]
+        argv.extend(["-m", marker])
+
+    argv.append("tests")
+    return argv
+
+
+def run_pytest(
+    suite_name: str,
+    suite_dir: Path,
+    pytest_argv: list[str],
+    run_title: str,
+) -> bool:
+    print_header(run_title)
+    tests_dir = suite_dir / "tests"
+    if not tests_dir.is_dir():
+        print_error(f"Tests directory not found: {tests_dir}")
         return False
 
-    # Add JUnit XML report generation
     junit_report = REPORTS_DIR / f"pytest_{suite_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml"
-
-    # Ensure tests path is correct
-    cmd = [sys.executable, "-m", "pytest"] + args + [f"--junit-xml={junit_report}"]
-
+    cmd = [sys.executable, "-m", "pytest", *pytest_argv, f"--junit-xml={junit_report}"]
     try:
         result = subprocess.run(cmd, cwd=str(suite_dir))
         return result.returncode == 0
-    except Exception as e:
-        print_error(f"Failed to run tests: {e}")
+    except OSError as exc:
+        print_error(f"Failed to run pytest: {exc}")
         return False
 
-def get_suite_configs(suite_names):
-    """Get configuration for selected suites."""
-    all_suites = {
-        'backend': BACKEND_DIR,
-        'administration': ADMIN_TOOL_DIR,
-        'engine': WORLD_ENGINE_DIR,
-        'database': DATABASE_DIR,
-    }
 
-    if 'all' in suite_names:
-        return all_suites
-
-    result = {}
-    for suite in suite_names:
-        if suite in all_suites:
-            result[suite] = all_suites[suite]
-        else:
-            print_error(f"Unknown suite: {suite}")
-
-    return result if result else all_suites
-
-def run_tests_for_suites(suites, args):
-    """Run tests for multiple suites."""
+def run_tests_for_suites(
+    suites: dict[str, Path],
+    *,
+    quick: bool,
+    coverage_mode: bool,
+    verbose: bool,
+    scope: str,
+) -> tuple[bool, dict[str, bool]]:
     all_passed = True
-    results = {}
+    results: dict[str, bool] = {}
 
     for suite_name, suite_dir in suites.items():
-        suite_display = {
-            'backend': 'Backend Test Suite',
-            'administration': 'Administration Tool Test Suite',
-            'engine': 'World Engine Test Suite',
-            'database': 'Database Test Suite'
-        }.get(suite_name, f'{suite_name} Test Suite')
+        display = SUITE_DISPLAY_NAMES.get(suite_name, suite_name)
+        if scope in BACKEND_SCOPE_MARKERS:
+            if suite_name == "backend":
+                marker = BACKEND_SCOPE_MARKERS[scope]
+                title = f"{display} — marker '{marker}'"
+            else:
+                print_info(
+                    f"Scope '{scope}' applies only to backend; running full tests for '{suite_name}'."
+                )
+                title = f"{display} (full)"
+        else:
+            title = f"{display} (full)"
 
-        success = run_pytest(suite_name, suite_dir, args, f"Running {suite_display}")
-        results[suite_name] = success
-        all_passed = all_passed and success
-
-        if not success:
+        argv = build_pytest_argv(
+            suite_name=suite_name,
+            quick=quick,
+            coverage_mode=coverage_mode,
+            verbose=verbose,
+            scope=scope if suite_name == "backend" else "all",
+        )
+        ok = run_pytest(suite_name, suite_dir, argv, f"Running: {title}")
+        results[suite_name] = ok
+        all_passed = all_passed and ok
+        if not ok:
             print_error(f"{suite_name} tests failed")
         else:
-            print_success(f"{suite_name} tests passed!")
+            print_success(f"{suite_name} tests passed")
         print()
 
     return all_passed, results
 
-def main():
+
+def main() -> int:
     parser = argparse.ArgumentParser(
-        description="World of Shadows — Complete Test Suite Runner (All Suites)",
+        description="Run pytest per component (backend, administration-tool, world-engine, database).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python run_tests.py                              # All suites (default)
-  python run_tests.py --suite backend              # Backend only
-  python run_tests.py --suite administration       # Administration-tool only
-  python run_tests.py --suite engine               # World-engine only
-  python run_tests.py --suite database             # Database only
-  python run_tests.py --suite all                  # All suites (explicit)
-  python run_tests.py --suite backend database     # Multiple suites
-  python run_tests.py --suite backend --quick      # Backend quick tests
-        """
+  python run_tests.py
+  python run_tests.py --suite backend
+  python run_tests.py --suite backend --scope contracts
+  python run_tests.py --suite backend database --quick
+  python run_tests.py --suite all --coverage
+        """,
     )
-
     parser.add_argument(
         "--suite",
         nargs="+",
         default=["all"],
         choices=["backend", "administration", "engine", "database", "all"],
-        help="Test suite(s) to run (default: all)"
+        help="Component test tree to run (default: all)",
     )
-
     parser.add_argument(
-        "--quick",
-        action="store_true",
-        help="Run quick tests without coverage"
+        "--scope",
+        default="all",
+        choices=["all", "contracts", "integration", "e2e", "security"],
+        help=(
+            "Backend only: filter tests by pytest marker (contract, integration, e2e, security). "
+            "Other components still run their full suite."
+        ),
     )
-
-    parser.add_argument(
-        "--coverage",
-        action="store_true",
-        help="Run with detailed coverage report"
-    )
-
-    parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="Run with full debug output"
-    )
+    parser.add_argument("--quick", action="store_true", help="No coverage; stop on first failure")
+    parser.add_argument("--coverage", action="store_true", help="Coverage with HTML report")
+    parser.add_argument("--verbose", action="store_true", help="Verbose pytest and long tracebacks")
 
     args = parser.parse_args()
 
-    # Check environment
     if not check_environment():
         return 1
 
-    # Get suite configs
     suites = get_suite_configs(args.suite)
-
     if not suites:
         print_error("No valid suites specified")
         return 1
 
-    # Show stats
     show_test_stats(suites)
 
-    # Prepare pytest arguments
-    if args.quick:
-        pytest_args = [
-            "-v", "--tb=short",
-            "--no-cov",
-            "-x",  # Stop on first failure
-            "tests"
-        ]
-        description_suffix = "Quick Tests (no coverage)"
-    elif args.coverage:
-        pytest_args = [
-            "-v", "--tb=short",
-            "--cov=app" if "backend" in suites else "--cov=.",
-            "--cov-report=term-missing:skip-covered",
-            "--cov-report=html",
-            "--cov-fail-under=80",
-            "tests"
-        ]
-        description_suffix = "Tests with Detailed Coverage"
-    elif args.verbose:
-        pytest_args = [
-            "-vv", "--tb=long",
-            "-s",  # No capture
-            "--cov=app" if "backend" in suites else "--cov=.",
-            "--cov-report=term-missing",
-            "tests"
-        ]
-        description_suffix = "Verbose Tests with Debug Output"
-    else:
-        # Default: full tests with coverage
-        pytest_args = [
-            "-v", "--tb=short",
-            "--cov=app" if "backend" in suites else "--cov=.",
-            "--cov-report=term-missing",
-            "--cov-fail-under=80",
-            "tests"
-        ]
-        description_suffix = "Full Tests with Coverage"
+    all_passed, results = run_tests_for_suites(
+        suites,
+        quick=args.quick,
+        coverage_mode=args.coverage,
+        verbose=args.verbose,
+        scope=args.scope,
+    )
 
-    # Run tests
-    all_passed, results = run_tests_for_suites(suites, pytest_args)
-
-    # Summary
-    print_header("Test Summary")
+    print_header("Summary")
     for suite, passed in results.items():
-        status = "✓ PASSED" if passed else "✗ FAILED"
+        status = "PASSED" if passed else "FAILED"
         symbol = Colors.OKGREEN if passed else Colors.FAIL
         print(f"{symbol}{status}{Colors.ENDC} - {suite}")
 
     print()
     if all_passed:
-        print_success("All test suites passed!")
+        print_success("All selected suites passed.")
         return 0
-    else:
-        print_error("Some test suites failed")
-        return 1
+    print_error("One or more suites failed.")
+    return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

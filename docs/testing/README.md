@@ -1,6 +1,8 @@
 # Testing Documentation
 
-This directory contains comprehensive testing guidance and target matrices for the World of Shadows project.
+This directory contains testing guidance and target matrices for the World of Shadows project.
+
+**Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, `--scope`, Makefile).
 
 ---
 

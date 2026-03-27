@@ -20,9 +20,10 @@ cp .env.example .env
 # Run migrations
 cd backend && flask db upgrade && cd ..
 
-# Start all services
-python run_tests.py --suite all  # Run tests first
-python run.py                     # Start development servers
+# Run tests (from tests/)
+cd tests && python run_tests.py --suite all
+cd ..
+# Start development servers (see runbooks per service)
 ```
 
 **Services:**
@@ -64,14 +65,17 @@ WorldOfShadows/
 
 **All tests:**
 ```bash
+cd tests
 python run_tests.py --suite all
 ```
 
 **Specific suite:**
 ```bash
-python run_tests.py --suite backend   # Backend only
+cd tests
+python run_tests.py --suite backend
 python run_tests.py --suite administration
 python run_tests.py --suite engine
+python run_tests.py --suite database
 ```
 
 **Specific test file:**
@@ -81,7 +85,7 @@ cd administration-tool && pytest tests/test_routes.py -v
 cd world-engine && pytest tests/test_api.py -v
 ```
 
-**See:** [Testing Guide](../testing/README.md)
+**See:** [tests/TESTING.md](../../tests/TESTING.md) (runner), [Testing docs index](../testing/README.md)
 
 ### Database Migrations
 

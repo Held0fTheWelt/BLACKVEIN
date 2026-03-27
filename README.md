@@ -28,7 +28,7 @@ world-engine/             # FastAPI runtime for game experiences
   tests/                  # pytest (API, WebSocket, persistence, security contracts)
   requirements.txt, requirements-dev.txt, Dockerfile, pytest.ini
 
-run_tests.py             # Multi-suite test runner (--suite backend|administration|engine|all)
+tests/run_tests.py       # Multi-component runner: cd tests && python run_tests.py (--suite backend|administration|engine|database|all; optional --scope for backend markers)
 README.md, CHANGELOG.md, docker-compose.yml, docs/, .env.example at repo root.
 ```
 
@@ -128,22 +128,30 @@ flask db upgrade
 
 ### Multi-Suite Test Runner
 
-Run all test suites or specific services from the **repo root**:
+Run tests from the **`tests/`** directory (orchestrator; each component keeps its own `tests/` tree):
 
 ```bash
-# Run all tests
+cd tests
+
+# All four components (backend, administration-tool, world-engine, database)
 python run_tests.py --suite all
 
-# Run specific suite
+# One component
 python run_tests.py --suite backend
 python run_tests.py --suite administration
 python run_tests.py --suite engine
+python run_tests.py --suite database
+
+# Backend only: filter by pytest marker (contract, integration, e2e, security)
+python run_tests.py --suite backend --scope contracts
 
 # Options
-python run_tests.py --suite all --coverage    # Include coverage report
-python run_tests.py --suite all --verbose     # Verbose output
-python run_tests.py --suite all --quick       # Fast mode (skip slow tests)
+python run_tests.py --suite all --coverage
+python run_tests.py --suite all --verbose
+python run_tests.py --suite all --quick
 ```
+
+See `tests/TESTING.md` for details.
 
 ### Individual Service Tests
 
