@@ -533,3 +533,48 @@ async def execute_turn(
             duration_ms=duration_ms,
             events=event_log.flush(),
         )
+
+
+def commit_turn_result(
+    session: SessionState,
+    result: TurnExecutionResult,
+) -> SessionState:
+    """Commit successful turn result into canonical session state.
+
+    After a successful turn execution, the TurnExecutionResult contains
+    updated canonical state and potentially a new scene ID. This function
+    commits those changes back into the SessionState so the session is
+    ready for the next turn.
+
+    Args:
+        session: Current SessionState before turn
+        result: TurnExecutionResult from successful turn execution
+
+    Returns:
+        Updated SessionState with committed progress
+
+    Raises:
+        ValueError: If result execution_status is not "success"
+    """
+    if result.execution_status != "success":
+        raise ValueError(
+            f"Cannot commit non-successful result (status: {result.execution_status})"
+        )
+
+    # Create updated session with committed progress
+    updated_session = session.model_copy(deep=True)
+
+    # Commit canonical state from result
+    updated_session.canonical_state = result.updated_canonical_state
+
+    # Commit scene progression if scene changed
+    if result.updated_scene_id:
+        updated_session.current_scene_id = result.updated_scene_id
+
+    # Increment turn counter
+    updated_session.turn_counter += 1
+
+    # Update modification timestamp
+    updated_session.updated_at = datetime.now(timezone.utc)
+
+    return updated_session

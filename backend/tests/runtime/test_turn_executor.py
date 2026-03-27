@@ -33,6 +33,7 @@ from app.runtime.turn_executor import (
     get_current_value,
     infer_delta_type,
     extract_entity_id,
+    commit_turn_result,
 )
 from app.runtime.validators import validate_decision, ValidationOutcome, ValidationStatus
 
@@ -1180,3 +1181,180 @@ class TestExecuteTurnFailurePath:
             event_types = [e.event_type for e in result.events]
             assert "turn_started" in event_types
             assert "turn_completed" in event_types or "turn_failed" in event_types
+
+
+class TestCommitTurnResult:
+    """Tests for W2.0-R4: committing canonical session progress after turns."""
+
+    def test_commit_successful_turn_increments_counter(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Committing successful turn increments session turn counter."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = god_of_carnage_module_with_state
+        assert session.turn_counter == 0
+
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        result = asyncio.run(
+            execute_turn(session, 1, decision, module=god_of_carnage_module)
+        )
+
+        assert result.execution_status == "success"
+
+        # Commit the result
+        updated_session = commit_turn_result(session, result)
+
+        # Turn counter should be incremented
+        assert updated_session.turn_counter == 1
+        assert session.turn_counter == 0  # Original unchanged (immutable pattern)
+
+    def test_commit_updates_canonical_state(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Committing result updates canonical state in session."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = god_of_carnage_module_with_state
+        original_state = session.canonical_state.copy()
+
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=99,
+                )
+            ]
+        )
+
+        result = asyncio.run(
+            execute_turn(session, 1, decision, module=god_of_carnage_module)
+        )
+
+        assert result.execution_status == "success"
+
+        # Commit the result
+        updated_session = commit_turn_result(session, result)
+
+        # Canonical state should be updated
+        assert updated_session.canonical_state == result.updated_canonical_state
+        # State should differ from original
+        assert updated_session.canonical_state.get("characters", {}).get("veronique", {}).get("emotional_state") == 99
+
+    def test_commit_updates_scene_if_changed(self, god_of_carnage_module):
+        """Committing result updates scene ID if scene changed."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0.0",
+            current_scene_id="phase_1",
+            canonical_state={"characters": {}},
+        )
+
+        # Create decision that would cause scene change (if transition exists)
+        decision = MockDecision(
+            proposed_scene_id="phase_2",
+            proposed_deltas=[],
+        )
+
+        result = asyncio.run(
+            execute_turn(session, 1, decision, module=god_of_carnage_module)
+        )
+
+        if result.execution_status == "success" and result.updated_scene_id != session.current_scene_id:
+            # Commit the result
+            updated_session = commit_turn_result(session, result)
+
+            # Scene should be updated
+            assert updated_session.current_scene_id == result.updated_scene_id
+            assert session.current_scene_id == "phase_1"  # Original unchanged
+
+    def test_commit_updates_timestamp(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Committing result updates session's updated_at timestamp."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = god_of_carnage_module_with_state
+        original_time = session.updated_at
+
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        result = asyncio.run(
+            execute_turn(session, 1, decision, module=god_of_carnage_module)
+        )
+
+        assert result.execution_status == "success"
+
+        # Commit the result
+        updated_session = commit_turn_result(session, result)
+
+        # Timestamp should be updated (later than original)
+        assert updated_session.updated_at >= original_time
+
+    def test_commit_rejects_failed_turn(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Committing a failed turn result raises ValueError."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = god_of_carnage_module_with_state
+
+        # Create a fake failed result
+        failed_result = TurnExecutionResult(
+            turn_number=1,
+            session_id=session.session_id,
+            execution_status="system_error",  # Failed
+            decision=MockDecision(),
+            validation_outcome=None,
+            validation_errors=[],
+            accepted_deltas=[],
+            rejected_deltas=[],
+            updated_canonical_state=session.canonical_state,
+            updated_scene_id=session.current_scene_id,
+        )
+
+        # Should raise ValueError
+        with pytest.raises(ValueError, match="non-successful"):
+            commit_turn_result(session, failed_result)
+
+    def test_commit_preserves_session_immutability(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Original session remains unchanged after commit (immutable pattern)."""
+        from app.runtime.turn_executor import commit_turn_result
+
+        session = god_of_carnage_module_with_state
+        original_counter = session.turn_counter
+        original_state = session.canonical_state.copy()
+        original_scene = session.current_scene_id
+
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        result = asyncio.run(
+            execute_turn(session, 1, decision, module=god_of_carnage_module)
+        )
+
+        assert result.execution_status == "success"
+
+        # Commit the result
+        updated_session = commit_turn_result(session, result)
+
+        # Original session should remain unchanged
+        assert session.turn_counter == original_counter
+        assert session.current_scene_id == original_scene
+        # Check a character value to ensure state wasn't mutated
+        assert session.canonical_state.get("characters", {}).get("veronique", {}).get("emotional_state") == original_state.get("characters", {}).get("veronique", {}).get("emotional_state")
