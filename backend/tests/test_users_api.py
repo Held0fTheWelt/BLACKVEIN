@@ -1,6 +1,10 @@
 """Tests for User CRUD API. Aligned with Postman suite: List (admin), Get (self/other), Update, Delete."""
 import pytest
 
+from app.models import User, Role
+from werkzeug.security import generate_password_hash
+from app.extensions import db
+
 
 def test_users_list_without_token_returns_401(client):
     """GET /api/v1/users without JWT returns 401."""
@@ -359,275 +363,259 @@ def test_super_admin_may_increase_own_role_level(client, app, super_admin_header
 
 
 
-"""Tests for TestUserAPI."""
+def test_user_list_admin(app, client, admin_headers):
+    resp = client.get("/api/v1/users", headers=admin_headers)
+    assert resp.status_code == 200
 
-class TestUserAPI:
+def test_user_by_id_admin(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.get(f"/api/v1/users/{uid}", headers=admin_headers)
+    assert resp.status_code == 200
 
-    def test_user_list_admin(self, app, client, admin_headers):
-        resp = client.get("/api/v1/users", headers=admin_headers)
-        assert resp.status_code == 200
+def test_user_update_by_admin(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}",
+        json={"preferred_language": "en"},
+        headers=admin_headers,
+    )
+    assert resp.status_code in (200, 204)
 
-    def test_user_by_id_admin(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.get(f"/api/v1/users/{uid}", headers=admin_headers)
-        assert resp.status_code == 200
+def test_user_preferences(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/preferences",
+        json={"preferred_language": "de"},
+        headers=admin_headers,
+    )
+    assert resp.status_code in (200, 204, 404)
 
-    def test_user_update_by_admin(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}",
-            json={"preferred_language": "en"},
-            headers=admin_headers,
-        )
-        assert resp.status_code in (200, 204)
+def test_user_change_password_admin(app, client, super_admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/password",
+        json={"new_password": "NewStrongPass1"},
+        headers=super_admin_headers,
+    )
+    assert resp.status_code in (200, 204, 400, 403)
 
-    def test_user_preferences(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/preferences",
-            json={"preferred_language": "de"},
-            headers=admin_headers,
-        )
-        assert resp.status_code in (200, 204, 404)
+def test_user_role_change_admin(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+        role = Role.query.filter_by(name=Role.NAME_USER).first()
+    resp = client.patch(
+        f"/api/v1/users/{uid}/role",
+        json={"role_id": role.id},
+        headers=admin_headers,
+    )
+    assert resp.status_code in (200, 204, 400)
 
-    def test_user_change_password_admin(self, app, client, super_admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/password",
-            json={"new_password": "NewStrongPass1"},
-            headers=super_admin_headers,
-        )
-        assert resp.status_code in (200, 204, 400, 403)
+def test_user_ban_unban(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.post(
+        f"/api/v1/users/{uid}/ban",
+        json={"reason": "Test ban"},
+        headers=admin_headers,
+    )
+    assert resp.status_code in (200, 204)
+    resp = client.post(
+        f"/api/v1/users/{uid}/unban",
+        headers=admin_headers,
+    )
+    assert resp.status_code in (200, 204)
 
-    def test_user_role_change_admin(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-            role = Role.query.filter_by(name=Role.NAME_USER).first()
-        resp = client.patch(
-            f"/api/v1/users/{uid}/role",
-            json={"role_id": role.id},
-            headers=admin_headers,
-        )
-        assert resp.status_code in (200, 204, 400)
-
-    def test_user_ban_unban(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.post(
-            f"/api/v1/users/{uid}/ban",
-            json={"reason": "Test ban"},
-            headers=admin_headers,
-        )
-        assert resp.status_code in (200, 204)
-        resp = client.post(
-            f"/api/v1/users/{uid}/unban",
-            headers=admin_headers,
-        )
-        assert resp.status_code in (200, 204)
-
-    def test_user_not_found(self, app, client, admin_headers):
-        resp = client.get("/api/v1/users/99999", headers=admin_headers)
-        assert resp.status_code == 404
+def test_user_not_found(app, client, admin_headers):
+    resp = client.get("/api/v1/users/99999", headers=admin_headers)
+    assert resp.status_code == 404
 
 
 # ======================= AREA API TESTS =======================
 
 
 
-"""Tests for TestUserAPIExtended."""
+def test_user_self_get(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.get(f"/api/v1/users/{uid}", headers=auth_headers)
+    assert resp.status_code == 200
 
-class TestUserAPIExtended:
+def test_user_self_update(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}",
+        json={"preferred_language": "en"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
 
-    def test_user_self_get(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.get(f"/api/v1/users/{uid}", headers=auth_headers)
-        assert resp.status_code == 200
+def test_user_self_change_password(app, client, auth_headers, test_user):
+    user, password = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/password",
+        json={"current_password": password, "new_password": "NewStrongPass1"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
 
-    def test_user_self_update(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}",
-            json={"preferred_language": "en"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 200
+def test_user_self_change_password_wrong_current(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/password",
+        json={"current_password": "wrongpass", "new_password": "NewStrongPass1"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
 
-    def test_user_self_change_password(self, app, client, auth_headers, test_user):
-        user, password = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/password",
-            json={"current_password": password, "new_password": "NewStrongPass1"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 200
+def test_user_self_change_password_missing_fields(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/password",
+        json={"new_password": "NewStrongPass1"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
 
-    def test_user_self_change_password_wrong_current(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/password",
-            json={"current_password": "wrongpass", "new_password": "NewStrongPass1"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 400
+def test_user_delete_by_admin(app, client, super_admin_headers):
+    # Create a user to delete (delete requires SuperAdmin)
+    with app.app_context():
+        role = Role.query.filter_by(name=Role.NAME_USER).first()
+        u = User(username="deleteuser", password_hash=generate_password_hash("Delpass1"), role_id=role.id)
+        db.session.add(u)
+        db.session.commit()
+        uid = u.id
+    resp = client.delete(f"/api/v1/users/{uid}", headers=super_admin_headers)
+    assert resp.status_code == 200
 
-    def test_user_self_change_password_missing_fields(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/password",
-            json={"new_password": "NewStrongPass1"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 400
+def test_user_delete_not_found(app, client, super_admin_headers):
+    resp = client.delete("/api/v1/users/99999", headers=super_admin_headers)
+    assert resp.status_code == 404
 
-    def test_user_delete_by_admin(self, app, client, super_admin_headers):
-        # Create a user to delete (delete requires SuperAdmin)
-        with app.app_context():
-            role = Role.query.filter_by(name=Role.NAME_USER).first()
-            u = User(username="deleteuser", password_hash=generate_password_hash("Delpass1"), role_id=role.id)
-            db.session.add(u)
-            db.session.commit()
-            uid = u.id
-        resp = client.delete(f"/api/v1/users/{uid}", headers=super_admin_headers)
-        assert resp.status_code == 200
+def test_user_delete_forbidden_for_user(app, client, auth_headers):
+    resp = client.delete("/api/v1/users/99999", headers=auth_headers)
+    assert resp.status_code == 403
 
-    def test_user_delete_not_found(self, app, client, super_admin_headers):
-        resp = client.delete("/api/v1/users/99999", headers=super_admin_headers)
-        assert resp.status_code == 404
+def test_user_update_forbidden_for_other(app, client, auth_headers, admin_user):
+    user, _ = admin_user
+    with app.app_context():
+        uid = User.query.filter_by(username="adminuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}",
+        json={"preferred_language": "en"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 403
 
-    def test_user_delete_forbidden_for_user(self, app, client, auth_headers):
-        resp = client.delete("/api/v1/users/99999", headers=auth_headers)
-        assert resp.status_code == 403
+def test_user_update_password_via_update_rejected(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}",
+        json={"password": "newpass"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
 
-    def test_user_update_forbidden_for_other(self, app, client, auth_headers, admin_user):
-        user, _ = admin_user
-        with app.app_context():
-            uid = User.query.filter_by(username="adminuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}",
-            json={"preferred_language": "en"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 403
+def test_user_assign_role(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.patch(
+        f"/api/v1/users/{uid}/role",
+        json={"role": "user"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
 
-    def test_user_update_password_via_update_rejected(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}",
-            json={"password": "newpass"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 400
+def test_user_assign_role_invalid(app, client, admin_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.patch(
+        f"/api/v1/users/{uid}/role",
+        json={"role": "nonexistent_role"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 400
 
-    def test_user_assign_role(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.patch(
-            f"/api/v1/users/{uid}/role",
-            json={"role": "user"},
-            headers=admin_headers,
-        )
-        assert resp.status_code == 200
+def test_user_preferences_self(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/preferences",
+        json={"preferred_language": "de"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
 
-    def test_user_assign_role_invalid(self, app, client, admin_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.patch(
-            f"/api/v1/users/{uid}/role",
-            json={"role": "nonexistent_role"},
-            headers=admin_headers,
-        )
-        assert resp.status_code == 400
+def test_user_preferences_no_fields(app, client, auth_headers, test_user):
+    user, _ = test_user
+    with app.app_context():
+        uid = User.query.filter_by(username="testuser").first().id
+    resp = client.put(
+        f"/api/v1/users/{uid}/preferences",
+        json={},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
 
-    def test_user_preferences_self(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/preferences",
-            json={"preferred_language": "de"},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 200
-
-    def test_user_preferences_no_fields(self, app, client, auth_headers, test_user):
-        user, _ = test_user
-        with app.app_context():
-            uid = User.query.filter_by(username="testuser").first().id
-        resp = client.put(
-            f"/api/v1/users/{uid}/preferences",
-            json={},
-            headers=auth_headers,
-        )
-        assert resp.status_code == 400
-
-    def test_user_list_search(self, app, client, admin_headers):
-        resp = client.get("/api/v1/users?q=test", headers=admin_headers)
-        assert resp.status_code == 200
+def test_user_list_search(app, client, admin_headers):
+    resp = client.get("/api/v1/users?q=test", headers=admin_headers)
+    assert resp.status_code == 200
 
 
 # ======================= DATA EXPORT/IMPORT =======================
 
 
 
-"""Tests for TestRoleAPI."""
+def test_role_list(app, client, admin_headers):
+    resp = client.get("/api/v1/roles", headers=admin_headers)
+    assert resp.status_code == 200
 
-class TestRoleAPI:
-
-    def test_role_list(self, app, client, admin_headers):
-        resp = client.get("/api/v1/roles", headers=admin_headers)
-        assert resp.status_code == 200
-
-    def test_role_list_forbidden(self, app, client, auth_headers):
-        resp = client.get("/api/v1/roles", headers=auth_headers)
-        assert resp.status_code in (200, 403)
+def test_role_list_forbidden(app, client, auth_headers):
+    resp = client.get("/api/v1/roles", headers=auth_headers)
+    assert resp.status_code in (200, 403)
 
 
 # ======================= ADMIN LOG TESTS =======================
 
 
 
-"""Tests for TestRoleAPIExtended."""
+def test_role_list_admin(app, client, admin_headers):
+    resp = client.get("/api/v1/roles", headers=admin_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "items" in data or isinstance(data, list)
 
-class TestRoleAPIExtended:
-
-    def test_role_list_admin(self, app, client, admin_headers):
-        resp = client.get("/api/v1/roles", headers=admin_headers)
-        assert resp.status_code == 200
-        data = resp.get_json()
-        assert "items" in data or isinstance(data, list)
-
-    def test_role_create_if_supported(self, app, client, admin_headers):
-        resp = client.post(
-            "/api/v1/roles",
-            json={"name": "custom_role", "display_name": "Custom"},
-            headers=admin_headers,
-        )
-        # Might not support creation - just ensure no crash
-        assert resp.status_code in (200, 201, 400, 404, 405)
+def test_role_create_if_supported(app, client, admin_headers):
+    resp = client.post(
+        "/api/v1/roles",
+        json={"name": "custom_role", "display_name": "Custom"},
+        headers=admin_headers,
+    )
+    # Might not support creation - just ensure no crash
+    assert resp.status_code in (200, 201, 400, 404, 405)
 
 
 # ======================= ADMIN LOGS EXTENDED =======================
