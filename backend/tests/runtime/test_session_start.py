@@ -126,7 +126,7 @@ class TestSessionStart:
     def test_session_start_events_present(self, god_of_carnage_module_root):
         """Initial events are present."""
         result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
-        assert len(result.events) >= 2
+        assert len(result.events) >= 3
 
     def test_session_start_event_session_started(self, god_of_carnage_module_root):
         """First event is session_started."""
@@ -137,10 +137,10 @@ class TestSessionStart:
         assert event.order_index == 0
 
     def test_session_start_event_scene_resolved(self, god_of_carnage_module_root):
-        """Second event is scene_resolved with scene_id in payload."""
+        """Third event is initial_scene_resolved with scene_id in payload."""
         result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
-        event = result.events[1]
-        assert event.event_type == "scene_resolved"
+        event = result.events[2]
+        assert event.event_type == "initial_scene_resolved"
         assert "scene_id" in event.payload
         assert event.payload["scene_id"] == "phase_1"
 
@@ -178,6 +178,47 @@ class TestSessionStart:
         assert result.session.current_scene_id in result.session.canonical_state[
             "characters"
         ] or "characters" in result.session.canonical_state
+
+    def test_session_start_event_module_loaded(self, god_of_carnage_module_root):
+        """Second event is module_loaded with metadata."""
+        result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
+        event = result.events[1]
+        assert event.event_type == "module_loaded"
+        assert "module_id" in event.payload
+        assert "character_count" in event.payload
+        assert "scene_phase_count" in event.payload
+        assert event.payload["character_count"] == 4  # god_of_carnage has 4 characters
+        assert event.payload["scene_phase_count"] == 5  # god_of_carnage has 5 phases
+
+    def test_session_start_event_initial_scene_resolved(self, god_of_carnage_module_root):
+        """Third event is initial_scene_resolved with correct details."""
+        result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
+        event = result.events[2]
+        assert event.event_type == "initial_scene_resolved"
+        assert event.payload["scene_id"] == "phase_1"
+        assert "scene_name" in event.payload
+        assert "sequence" in event.payload
+        assert event.payload["sequence"] == 1
+
+    def test_session_start_events_monotonic_order_index(self, god_of_carnage_module_root):
+        """Events have monotonic order_index."""
+        result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
+        assert result.events[0].order_index == 0
+        assert result.events[1].order_index == 1
+        assert result.events[2].order_index == 2
+
+    def test_session_start_all_events_share_session_id(self, god_of_carnage_module_root):
+        """All session-start events have the same session_id."""
+        result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
+        session_id = result.session.session_id
+        for event in result.events:
+            assert event.session_id == session_id
+
+    def test_session_start_session_level_events_have_no_turn_number(self, god_of_carnage_module_root):
+        """All session-start events have turn_number == None."""
+        result = start_session("god_of_carnage", root_path=god_of_carnage_module_root)
+        for event in result.events:
+            assert event.turn_number is None
 
 
 class TestSessionStartErrors:

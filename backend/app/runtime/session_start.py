@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from app.content.module_exceptions import ModuleLoadError, ModuleValidationError
 from app.content.module_loader import load_module
 from app.content.module_models import ContentModule, ScenePhase
+from app.runtime.event_log import RuntimeEventLog
 from app.runtime.w2_models import (
     EventLogEntry,
     SessionState,
@@ -157,29 +158,41 @@ def start_session(
         status=TurnStatus.PENDING,
     )
 
-    # Initial events for audit trail
-    events = [
-        EventLogEntry(
-            event_type="session_started",
-            order_index=0,
-            summary=f"Session started: {module_id} v{module.metadata.version}",
-            session_id=session.session_id,
-            payload={
-                "module_id": module_id,
-                "module_version": module.metadata.version,
-            },
-        ),
-        EventLogEntry(
-            event_type="scene_resolved",
-            order_index=1,
-            summary=f"Initial scene: {initial_scene_id} (sequence {initial_phase.sequence})",
-            session_id=session.session_id,
-            payload={
-                "scene_id": initial_scene_id,
-                "scene_name": initial_phase.name,
-                "sequence": initial_phase.sequence,
-            },
-        ),
-    ]
+    # Event logging
+    event_log = RuntimeEventLog(session_id=session.session_id, turn_number=None)
 
-    return SessionStartResult(session=session, initial_turn=initial_turn, events=events)
+    event_log.log(
+        "session_started",
+        f"Session started: {module_id} v{module.metadata.version}",
+        payload={
+            "module_id": module_id,
+            "module_version": module.metadata.version,
+        },
+    )
+
+    event_log.log(
+        "module_loaded",
+        f"Module loaded: {module_id} ({len(module.characters)} characters, {len(module.scene_phases)} phases)",
+        payload={
+            "module_id": module_id,
+            "module_version": module.metadata.version,
+            "character_count": len(module.characters),
+            "scene_phase_count": len(module.scene_phases),
+        },
+    )
+
+    event_log.log(
+        "initial_scene_resolved",
+        f"Initial scene: {initial_scene_id} (sequence {initial_phase.sequence})",
+        payload={
+            "scene_id": initial_scene_id,
+            "scene_name": initial_phase.name,
+            "sequence": initial_phase.sequence,
+        },
+    )
+
+    return SessionStartResult(
+        session=session,
+        initial_turn=initial_turn,
+        events=event_log.flush(),
+    )

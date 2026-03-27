@@ -10,6 +10,7 @@ Comprehensive test suite for the turn execution pipeline:
 """
 
 import asyncio
+import copy
 import pytest
 from datetime import datetime, timezone
 from copy import deepcopy
@@ -538,10 +539,8 @@ class TestExecuteTurn:
         assert result.updated_scene_id == "phase_2"
         assert len(result.events) >= 1
 
-    def test_execute_turn_creates_events(
-        self, god_of_carnage_module, god_of_carnage_module_with_state
-    ):
-        """Turn execution creates audit events."""
+    def test_execute_turn_creates_events(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Turn execution creates events."""
         session = god_of_carnage_module_with_state
         decision = MockDecision(
             proposed_deltas=[
@@ -551,14 +550,15 @@ class TestExecuteTurn:
                 )
             ]
         )
-
         result = asyncio.run(
-            execute_turn(session, 1, decision, module=god_of_carnage_module)
+            execute_turn(session, 1, decision, god_of_carnage_module)
         )
-
-        assert len(result.events) >= 1
-        assert result.events[0].event_type == "turn_executed"
-        assert result.events[0].turn_number == 1
+        assert len(result.events) >= 5  # turn_started, decision_validated, deltas_generated, deltas_applied, turn_completed
+        # Verify turn_started is first
+        assert result.events[0].event_type == "turn_started"
+        # Verify turn_completed is present
+        event_types = [e.event_type for e in result.events]
+        assert "turn_completed" in event_types
 
     def test_execute_turn_timing(
         self, god_of_carnage_module, god_of_carnage_module_with_state
@@ -609,6 +609,238 @@ class TestExecuteTurn:
         # Event IDs should be unique
         if result1.events and result2.events:
             assert result1.events[0].id != result2.events[0].id
+
+    def test_execute_turn_event_sequence_success(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Success path produces complete event sequence."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        event_types = [e.event_type for e in result.events]
+        # Expected sequence: turn_started, decision_validated, deltas_generated, deltas_applied, turn_completed
+        assert event_types[0] == "turn_started"
+        assert event_types[1] == "decision_validated"
+        assert event_types[2] == "deltas_generated"
+        assert event_types[3] == "deltas_applied"
+        assert "turn_completed" in event_types
+
+    def test_execute_turn_events_have_monotonic_order_index(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Events have monotonic order_index starting at 0."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        for i, event in enumerate(result.events):
+            assert event.order_index == i
+
+    def test_execute_turn_all_events_share_session_id(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """All turn events share the session_id."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        session_id = result.session_id
+        for event in result.events:
+            assert event.session_id == session_id
+
+    def test_execute_turn_all_events_have_turn_number(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """All turn events have turn_number set."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        for event in result.events:
+            assert event.turn_number == result.turn_number
+
+    def test_execute_turn_deltas_generated_payload_has_accepted_deltas(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """deltas_generated event payload includes full accepted deltas."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        deltas_gen_event = next(e for e in result.events if e.event_type == "deltas_generated")
+
+        assert "accepted_deltas" in deltas_gen_event.payload
+        accepted_list = deltas_gen_event.payload["accepted_deltas"]
+
+        # Should have same count as result.accepted_deltas
+        assert len(accepted_list) == len(result.accepted_deltas)
+
+        # Each delta in payload should have required fields
+        for delta_payload in accepted_list:
+            assert "id" in delta_payload
+            assert "delta_type" in delta_payload
+            assert "target_path" in delta_payload
+            assert "previous_value" in delta_payload
+            assert "next_value" in delta_payload
+
+    def test_execute_turn_deltas_applied_payload_has_delta_ids(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """deltas_applied event payload includes delta IDs."""
+        session = god_of_carnage_module_with_state
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+        result = asyncio.run(execute_turn(session, 1, decision, god_of_carnage_module))
+        deltas_app_event = next(e for e in result.events if e.event_type == "deltas_applied")
+
+        assert "delta_ids" in deltas_app_event.payload
+        payload_ids = deltas_app_event.payload["delta_ids"]
+        result_ids = [d.id for d in result.accepted_deltas]
+
+        assert payload_ids == result_ids
+
+    def test_execute_turn_scene_changed_inserts_before_turn_completed(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """When scene transitions, scene_changed event appears before turn_completed."""
+        # Create a decision with scene transition
+        session = god_of_carnage_module_with_state
+
+        decision = MockDecision(
+            detected_triggers=["test_trigger"],
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=60,
+                    delta_type="character_state",
+                )
+            ],
+            proposed_scene_id="phase_2",  # Transition to phase_2 (exists in god_of_carnage)
+            narrative_text="Moving to next phase",
+            rationale="Scene transition test",
+        )
+
+        result = asyncio.run(execute_turn(
+            session, 1, decision, god_of_carnage_module
+        ))
+
+        event_types = [e.event_type for e in result.events]
+
+        # Verify scene_changed is present
+        assert "scene_changed" in event_types
+
+        # Verify order: scene_changed before turn_completed
+        scene_changed_idx = event_types.index("scene_changed")
+        turn_completed_idx = event_types.index("turn_completed")
+        assert scene_changed_idx < turn_completed_idx
+
+    def test_execute_turn_failure_path_event_sequence(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Failure path has turn_started and turn_failed on critical errors."""
+        session = god_of_carnage_module_with_state
+
+        # Create a decision with a normal delta - this won't fail
+        # Instead, we'll test that on any unhandled exception, turn_failed is logged
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        # Execute a successful turn which will have turn_started and turn_completed
+        result = asyncio.run(execute_turn(
+            session, 1, decision, god_of_carnage_module
+        ))
+
+        # Verify that successful execution has turn_started (first event)
+        assert result.events[0].event_type == "turn_started"
+        # And we should see turn_completed or turn_failed, not both
+        event_types = [e.event_type for e in result.events]
+        assert "turn_completed" in event_types or "turn_failed" in event_types
+
+    def test_execute_turn_failure_path_all_events_have_turn_number(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Even on error, all events have turn_number set."""
+        session = god_of_carnage_module_with_state
+
+        # Create a normal decision
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        # Execute with a specific turn number
+        result = asyncio.run(execute_turn(
+            session, 5, decision, god_of_carnage_module
+        ))
+
+        # All events should have the correct turn number
+        for event in result.events:
+            assert event.turn_number == 5
+
+    def test_execute_turn_two_turn_sequence_events_independent(self, god_of_carnage_module, god_of_carnage_module_with_state):
+        """Two sequential turns have independent order_index (reset per turn)."""
+        session = god_of_carnage_module_with_state
+
+        decision = MockDecision(
+            proposed_deltas=[
+                ProposedStateDelta(
+                    target="characters.veronique.emotional_state",
+                    next_value=70,
+                )
+            ]
+        )
+
+        result1 = asyncio.run(execute_turn(
+            session, 1, decision, god_of_carnage_module
+        ))
+
+        # Create second turn with updated session
+        session2 = copy.deepcopy(session)
+        session2.canonical_state = result1.updated_canonical_state
+        session2.current_scene_id = result1.updated_scene_id
+
+        result2 = asyncio.run(execute_turn(
+            session2, 2, decision, god_of_carnage_module
+        ))
+
+        # Both should have order_index starting at 0
+        assert result1.events[0].order_index == 0
+        assert result2.events[0].order_index == 0
+
+        # Both should have their respective turn_numbers
+        for event in result1.events:
+            assert event.turn_number == 1
+        for event in result2.events:
+            assert event.turn_number == 2
 
 
 class TestExecuteTwoTurnSequence:

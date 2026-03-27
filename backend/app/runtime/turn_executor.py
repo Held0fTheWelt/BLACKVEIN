@@ -17,6 +17,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule
+from app.runtime.event_log import RuntimeEventLog
 from app.runtime.validators import ValidationOutcome, validate_decision
 from app.runtime.w2_models import (
     DeltaType,
@@ -370,108 +371,126 @@ async def execute_turn(
     session: SessionState,
     current_turn: int,
     mock_decision: MockDecision,
-    *,
     module: ContentModule,
 ) -> TurnExecutionResult:
-    """Execute a complete story turn with a mock decision.
+    """Execute a story turn with deterministic mock decision.
 
-    Main entry point for turn execution. Implements the core pipeline:
-    1. Validate the decision against session and module
-    2. Construct StateDelta objects
-    3. Apply accepted deltas to canonical state
-    4. Create audit events
-    5. Return comprehensive result
+    Orchestrates: validation → construction → application → finalization.
+    Emits structured events for every phase.
 
     Args:
-        session: Active SessionState to execute against.
-        current_turn: Turn number for this execution.
-        mock_decision: MockDecision object with proposed changes.
-        module: ContentModule being executed.
+        session: Current session state
+        current_turn: Turn number (e.g., 1, 2, 3)
+        mock_decision: Deterministic proposal with triggers and deltas
+        module: Loaded content module for validation
 
     Returns:
-        TurnExecutionResult with full execution details.
-
-    Raises:
-        TurnExecutionException: If turn execution fails critically.
-
-    Example:
-        >>> session = SessionState(
-        ...     session_id="test-123",
-        ...     module_id="god_of_carnage",
-        ...     module_version="0.1.0",
-        ...     current_scene_id="phase_1",
-        ...     canonical_state={"characters": {"veronique": {"emotional_state": 50}}}
-        ... )
-        >>> decision = MockDecision(
-        ...     proposed_deltas=[
-        ...         ProposedStateDelta(
-        ...             target="characters.veronique.emotional_state",
-        ...             next_value=70
-        ...         )
-        ...     ]
-        ... )
-        >>> result = await execute_turn(session, 1, decision, module=module)
-        >>> result.execution_status
-        "success"
-        >>> result.accepted_deltas[0].next_value
-        70
+        TurnExecutionResult with execution status, deltas, state, and events
     """
     started_at = datetime.now(timezone.utc)
-    events = []
+    event_log = RuntimeEventLog(session_id=session.session_id, turn_number=current_turn)
+
+    # Always emit turn_started first — even if execution fails below
+    event_log.log(
+        "turn_started",
+        f"Turn {current_turn} started",
+        payload={
+            "turn_number": current_turn,
+            "scene_id": session.current_scene_id,
+        },
+    )
 
     try:
         # Step 1: Validate decision
         validation_outcome = validate_decision(mock_decision, session, module)
+
+        event_log.log(
+            "decision_validated",
+            f"Decision validated: {validation_outcome.status} "
+            f"({len(validation_outcome.accepted_delta_indices)} accepted, "
+            f"{len(validation_outcome.rejected_delta_indices)} rejected)",
+            payload={
+                "status": validation_outcome.status,
+                "is_valid": validation_outcome.is_valid,
+                "accepted_delta_count": len(validation_outcome.accepted_delta_indices),
+                "rejected_delta_count": len(validation_outcome.rejected_delta_indices),
+                "errors": validation_outcome.errors,
+            },
+        )
 
         # Step 2: Construct deltas
         accepted_deltas, rejected_deltas = construct_deltas(
             mock_decision, session, validation_outcome, current_turn
         )
 
+        # Create delta payload with full accepted delta content
+        accepted_delta_payloads = [
+            {
+                "id": d.id,
+                "delta_type": d.delta_type,
+                "target_path": d.target_path,
+                "target_entity": d.target_entity,
+                "previous_value": d.previous_value,
+                "next_value": d.next_value,
+                "source": d.source,
+            }
+            for d in accepted_deltas
+        ]
+
+        event_log.log(
+            "deltas_generated",
+            f"Deltas generated: {len(accepted_deltas)} accepted, {len(rejected_deltas)} rejected",
+            payload={
+                "accepted_count": len(accepted_deltas),
+                "rejected_count": len(rejected_deltas),
+                "accepted_deltas": accepted_delta_payloads,
+                "rejected_delta_ids": [d.id for d in rejected_deltas],
+            },
+        )
+
         # Step 3: Apply accepted deltas
         updated_state = apply_deltas(session.canonical_state, accepted_deltas)
 
-        # Step 4: Handle scene transition if present
+        event_log.log(
+            "deltas_applied",
+            f"{len(accepted_deltas)} delta(s) applied to canonical state",
+            payload={
+                "applied_count": len(accepted_deltas),
+                "delta_ids": [d.id for d in accepted_deltas],
+            },
+        )
+
+        # Step 4: Handle scene transition
         updated_scene_id = session.current_scene_id
         if mock_decision.proposed_scene_id:
-            # Verify scene exists in module
             if mock_decision.proposed_scene_id in module.scene_phases:
                 updated_scene_id = mock_decision.proposed_scene_id
-                # Create scene changed event
-                scene_event = EventLogEntry(
-                    event_type="scene_changed",
-                    order_index=1,
-                    summary=f"Scene transitioned to {updated_scene_id}",
+                event_log.log(
+                    "scene_changed",
+                    f"Scene transitioned to {updated_scene_id}",
                     payload={
                         "from_scene": session.current_scene_id,
                         "to_scene": updated_scene_id,
                     },
-                    session_id=session.session_id,
-                    turn_number=current_turn,
                 )
-                events.append(scene_event)
 
-        # Step 5: Create turn_executed event
-        turn_event = EventLogEntry(
-            event_type="turn_executed",
-            order_index=0,
-            summary=f"Turn {current_turn} executed with {len(accepted_deltas)} accepted deltas",
+        # Step 5: Finalize
+        completed_at = datetime.now(timezone.utc)
+        duration_ms = (completed_at - started_at).total_seconds() * 1000
+
+        event_log.log(
+            "turn_completed",
+            f"Turn {current_turn} completed: {len(accepted_deltas)} accepted, {len(rejected_deltas)} rejected",
             payload={
                 "turn_number": current_turn,
                 "accepted_delta_count": len(accepted_deltas),
                 "rejected_delta_count": len(rejected_deltas),
                 "detected_triggers": mock_decision.detected_triggers,
+                "duration_ms": duration_ms,
             },
-            session_id=session.session_id,
-            turn_number=current_turn,
         )
-        events.insert(0, turn_event)
 
-        # Step 6: Finalize result
-        completed_at = datetime.now(timezone.utc)
-        duration_ms = (completed_at - started_at).total_seconds() * 1000
-
-        result = TurnExecutionResult(
+        return TurnExecutionResult(
             turn_number=current_turn,
             session_id=session.session_id,
             execution_status="success",
@@ -485,37 +504,26 @@ async def execute_turn(
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,
-            events=events,
+            events=event_log.flush(),
         )
-
-        return result
 
     except Exception as e:
         completed_at = datetime.now(timezone.utc)
         duration_ms = (completed_at - started_at).total_seconds() * 1000
 
-        # Create error event
-        error_event = EventLogEntry(
-            event_type="turn_failed",
-            order_index=0,
-            summary=f"Turn {current_turn} failed: {str(e)}",
+        event_log.log(
+            "turn_failed",
+            f"Turn {current_turn} failed: {str(e)}",
             payload={"error": str(e), "error_type": type(e).__name__},
-            session_id=session.session_id,
-            turn_number=current_turn,
         )
-        events.append(error_event)
 
         return TurnExecutionResult(
             turn_number=current_turn,
             session_id=session.session_id,
-            execution_status="failure",
+            execution_status="system_error",
             decision=mock_decision,
-            validation_outcome=ValidationOutcome(
-                is_valid=False,
-                status="fail",
-                errors=[str(e)],
-            ),
-            validation_errors=[str(e)],
+            validation_outcome=None,
+            validation_errors=[],
             accepted_deltas=[],
             rejected_deltas=[],
             updated_canonical_state=session.canonical_state,
@@ -523,5 +531,5 @@ async def execute_turn(
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,
-            events=events,
+            events=event_log.flush(),
         )
