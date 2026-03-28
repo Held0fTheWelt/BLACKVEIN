@@ -62,7 +62,7 @@ class DirectorDiagnosticSummary(BaseModel):
 
 ### Extended AIDecisionLog
 
-Add three new optional fields to the existing `AIDecisionLog` model in `w2_models.py`:
+Add three new optional fields and guard_outcome to the existing `AIDecisionLog` model in `w2_models.py`:
 
 ```python
 class AIDecisionLog(BaseModel):
@@ -74,14 +74,65 @@ class AIDecisionLog(BaseModel):
         interpreter_output: Diagnostic summary of scene interpretation (None for legacy).
         director_output: Diagnostic summary of conflict steering (None for legacy).
         responder_output: Full responder proposals (None for legacy).
+        guard_outcome: Canonical collective validation result for responder-derived proposals.
     """
 
     # ... existing fields ...
     interpreter_output: InterpreterDiagnosticSummary | None = None
     director_output: DirectorDiagnosticSummary | None = None
     responder_output: ResponderSection | None = None
-    # Note: existing guard_outcome field remains canonical validation result
+    guard_outcome: GuardOutcome  # Canonical validation result (required, from w2_models)
+    # Note: validation_outcome field (existing) maps from guard_outcome
 ```
+
+### ParsedRoleAwareDecision (from W2.4.3)
+
+`ParsedRoleAwareDecision` is produced by W2.4.3 role-structured parsing when the adapter output contains all three role sections (interpreter, director, responder). It is used **solely as the source for role diagnostics in W2.4.4**; it does not affect runtime execution.
+
+```python
+# From app.runtime.ai_decision (W2.4.3 parsing layer)
+class ParsedRoleAwareDecision(BaseModel):
+    """Role-structured parse output from W2.4.3.
+
+    Produced when role-structured parsing detects AIRoleContract format.
+    Used solely for diagnostic population in W2.4.4.
+    Does not feed runtime execution (ParsedAIDecision remains canonical).
+
+    Attributes:
+        interpreter: InterpreterSection from AIRoleContract
+        director: DirectorSection from AIRoleContract
+        responder: ResponderSection from AIRoleContract
+        parsed_decision: Canonical ParsedAIDecision (runtime-facing)
+    """
+
+    interpreter: InterpreterSection
+    director: DirectorSection
+    responder: ResponderSection
+    parsed_decision: ParsedAIDecision  # The canonical runtime decision
+```
+
+### Field Selection Rationale
+
+**InterpreterDiagnosticSummary** preserves:
+- `scene_reading` (str) — Essential for understanding what the interpreter observed in the scene
+- `detected_tensions` (list[str]) — Core diagnostic output showing identified interpersonal/situational conflicts
+
+**Excluded from InterpreterSection**:
+- `trigger_candidates` — Not needed for diagnostics; responder's trigger_assertions are the operative candidates
+- `uncertainty_markers` — Optional field; not runtime-critical for diagnosing interpretation failures
+
+**DirectorDiagnosticSummary** preserves:
+- `conflict_steering` (str) — Narrative rationale for the chosen direction (diagnostic gold)
+- `recommended_direction` (Literal) — The steering decision enum (bounded set, essential for tracing director logic)
+
+**Excluded from DirectorSection**:
+- `escalation_level` (0-10 int) — Numeric intensity; not essential for diagnostics (direction itself is sufficient)
+- `pressure_movement` (str | None) — Optional detail; can be inferred from conflict_steering text
+
+**ResponderSection** is preserved **in full** because:
+- Responder is the only role that produces runtime-relevant proposals
+- All fields (impulses, state_change_candidates, trigger_assertions, scene_transition_candidate) feed validation
+- Full visibility needed for tracing guard decisions and proposal acceptance/rejection
 
 ---
 
@@ -150,15 +201,17 @@ def construct_ai_decision_log(
         responder_output = role_aware_decision.responder  # Full typed ResponderSection
 
     # Derive validation_outcome from guard_outcome (not hardcoded)
+    # Use explicit mapping to catch unexpected values
     validation_outcome_mapping = {
         GuardOutcome.ACCEPTED: AIValidationOutcome.ACCEPTED,
         GuardOutcome.PARTIALLY_ACCEPTED: AIValidationOutcome.PARTIAL,
         GuardOutcome.REJECTED: AIValidationOutcome.REJECTED,
         GuardOutcome.STRUCTURALLY_INVALID: AIValidationOutcome.ERROR,
     }
-    validation_outcome = validation_outcome_mapping.get(
-        guard_outcome, AIValidationOutcome.ERROR
-    )
+    try:
+        validation_outcome = validation_outcome_mapping[guard_outcome]
+    except KeyError:
+        raise ValueError(f"Unknown guard_outcome value: {guard_outcome}") from None
 
     return AIDecisionLog(
         session_id=session_id,
@@ -283,12 +336,122 @@ class TestValidationOutcomeMapping:
     def test_structurally_invalid_maps_to_error(self):
 
 class TestDiagnosticOnlyConstraint:
-    """Test that role fields do not affect runtime."""
+    """Test that role fields do not affect runtime execution or validation."""
 
     def test_role_fields_do_not_affect_delta_validation(self):
+        """Role fields present or absent should not change delta acceptance/rejection."""
+        # Create two logs: one with role diagnostics, one without
+        parsed_decision = create_mock_parsed_decision()
+        role_aware_decision = create_mock_role_aware_decision()
+
+        log_with_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="mock output",
+            role_aware_decision=role_aware_decision,  # Role fields populated
+            guard_outcome=GuardOutcome.ACCEPTED,
+            accepted_deltas=[mock_delta_1, mock_delta_2],
+            rejected_deltas=[mock_delta_3],
+        )
+
+        log_without_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="mock output",
+            role_aware_decision=None,  # Role fields = None
+            guard_outcome=GuardOutcome.ACCEPTED,
+            accepted_deltas=[mock_delta_1, mock_delta_2],
+            rejected_deltas=[mock_delta_3],
+        )
+
+        # Both logs must have identical delta collections
+        assert len(log_with_roles.accepted_deltas) == len(log_without_roles.accepted_deltas)
+        assert len(log_with_roles.rejected_deltas) == len(log_without_roles.rejected_deltas)
+        assert log_with_roles.accepted_deltas == log_without_roles.accepted_deltas
+        assert log_with_roles.rejected_deltas == log_without_roles.rejected_deltas
+
     def test_role_fields_do_not_affect_guard_outcome(self):
+        """Presence/absence of role fields should not change guard_outcome."""
+        parsed_decision = create_mock_parsed_decision()
+        role_aware_decision = create_mock_role_aware_decision()
+
+        log_with_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="output",
+            role_aware_decision=role_aware_decision,
+            guard_outcome=GuardOutcome.PARTIALLY_ACCEPTED,
+        )
+
+        log_without_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="output",
+            role_aware_decision=None,
+            guard_outcome=GuardOutcome.PARTIALLY_ACCEPTED,
+        )
+
+        # guard_outcome must be identical
+        assert log_with_roles.guard_outcome == log_without_roles.guard_outcome
+        # validation_outcome must be identical (derived from guard_outcome)
+        assert log_with_roles.validation_outcome == log_without_roles.validation_outcome
+
     def test_role_fields_do_not_affect_scene_transitions(self):
+        """Role fields should not affect parsed_decision (which contains scene transition info)."""
+        parsed_decision = create_mock_parsed_decision()
+        parsed_decision.proposed_scene_id = "final_scene"
+        role_aware_decision = create_mock_role_aware_decision()
+
+        log_with_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="output",
+            role_aware_decision=role_aware_decision,
+        )
+
+        log_without_roles = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="output",
+            role_aware_decision=None,
+        )
+
+        # parsed_output (canonical decision) should be identical
+        assert log_with_roles.parsed_output == log_without_roles.parsed_output
+        # Both should have same proposed_scene_id
+        parsed_with = log_with_roles.parsed_output  # dict from model_dump()
+        parsed_without = log_without_roles.parsed_output
+        assert parsed_with.get("proposed_scene_id") == parsed_without.get("proposed_scene_id")
+
     def test_guard_outcome_remains_canonical(self):
+        """guard_outcome is the sole canonical validation result, not overridden by role fields."""
+        parsed_decision = create_mock_parsed_decision()
+        role_aware_decision = create_mock_role_aware_decision()
+
+        # Create logs with different guard_outcome values
+        for guard_outcome in [
+            GuardOutcome.ACCEPTED,
+            GuardOutcome.PARTIALLY_ACCEPTED,
+            GuardOutcome.REJECTED,
+            GuardOutcome.STRUCTURALLY_INVALID,
+        ]:
+            log = construct_ai_decision_log(
+                session_id="sess1",
+                turn_number=1,
+                parsed_decision=parsed_decision,
+                raw_output="output",
+                role_aware_decision=role_aware_decision,
+                guard_outcome=guard_outcome,
+            )
+
+            # guard_outcome must be preserved exactly as passed
+            assert log.guard_outcome == guard_outcome
 
 class TestRoleFieldCorrectness:
     """Test role field population accuracy."""
