@@ -24,7 +24,7 @@ from app.runtime.ai_turn_executor import (
     execute_turn_with_ai,
 )
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta
-from app.runtime.w2_models import DeltaType, SessionState
+from app.runtime.w2_models import DeltaType, DeltaValidationStatus, SessionState
 
 
 # ===== Test Adapter: DeterministicAIAdapter =====
@@ -97,6 +97,36 @@ DELTA_PAYLOAD = {
     ],
     "rationale": "Veronique tension increasing",
 }
+
+
+# ===== Unit Tests: Delta Conversion =====
+
+
+def test_convert_proposed_delta_to_state_delta():
+    """Convert runtime delta to StateDelta for decision logging."""
+    from app.runtime.ai_turn_executor import _convert_proposed_delta_to_state_delta
+    from app.runtime.w2_models import StateDelta
+
+    proposed = ProposedStateDelta(
+        target="characters.veronique.emotional_state",
+        next_value=70,
+        previous_value=50,
+        delta_type=DeltaType.CHARACTER_STATE,
+    )
+
+    state_delta = _convert_proposed_delta_to_state_delta(
+        proposed,
+        validation_status=DeltaValidationStatus.ACCEPTED,
+        turn_number=5
+    )
+
+    assert state_delta.target_path == "characters.veronique.emotional_state"
+    assert state_delta.next_value == 70
+    assert state_delta.previous_value == 50
+    assert state_delta.delta_type == DeltaType.CHARACTER_STATE
+    assert state_delta.source == "ai_proposal"
+    assert state_delta.validation_status == DeltaValidationStatus.ACCEPTED
+    assert state_delta.turn_number == 5
 
 
 # ===== Unit Tests: Decision Bridging =====

@@ -25,7 +25,7 @@ from app.runtime.turn_executor import (
     TurnExecutionResult,
     execute_turn,
 )
-from app.runtime.w2_models import DeltaType, SessionState
+from app.runtime.w2_models import DeltaType, DeltaValidationStatus, SessionState, StateDelta
 
 
 def build_adapter_request(
@@ -172,6 +172,39 @@ def _make_parse_failure_result(
         completed_at=completed_at,
         duration_ms=duration_ms,
         events=event_log.flush(),
+    )
+
+
+def _convert_proposed_delta_to_state_delta(
+    proposed_delta: ProposedStateDelta,
+    validation_status: DeltaValidationStatus,
+    turn_number: int,
+) -> StateDelta:
+    """Convert a runtime ProposedStateDelta to a canonical StateDelta for logging.
+
+    Args:
+        proposed_delta: Runtime delta from execute_turn
+        validation_status: Whether this delta was accepted/rejected
+        turn_number: Turn when delta was proposed
+
+    Returns:
+        StateDelta suitable for AIDecisionLog.accepted_deltas or rejected_deltas
+    """
+    # Extract target entity from target path (e.g., "characters.veronique.emotional_state" → "veronique")
+    target_entity = None
+    path_parts = proposed_delta.target.split(".")
+    if len(path_parts) >= 2:
+        target_entity = path_parts[1]  # characters.<entity>...
+
+    return StateDelta(
+        delta_type=proposed_delta.delta_type,
+        target_path=proposed_delta.target,
+        target_entity=target_entity,
+        previous_value=proposed_delta.previous_value,
+        next_value=proposed_delta.next_value,
+        source="ai_proposal",
+        validation_status=validation_status,
+        turn_number=turn_number,
     )
 
 
