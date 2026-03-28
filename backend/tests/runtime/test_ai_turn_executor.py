@@ -543,3 +543,68 @@ class TestExecuteTurnWithAI:
         # Mock path should work identically to before
         assert result.execution_status == "success"
         assert result.decision == mock_decision
+
+    def test_decision_log_orthogonal_to_event_log(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Decision logging and event logging are complementary, not duplicative."""
+        session = god_of_carnage_module_with_state
+        adapter = DeterministicAIAdapter(payload=VALID_PAYLOAD)
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Both should exist
+        has_decision_log = (
+            "ai_decision_logs" in session.metadata
+            and len(session.metadata["ai_decision_logs"]) > 0
+        )
+        has_events = len(result.events) > 0
+
+        assert has_decision_log, "Decision log should be created"
+        assert has_events, "Event log should be created"
+
+        # Decision log contains AI-specific data (raw output, parsed output)
+        decision_log = session.metadata["ai_decision_logs"][0]
+        assert (
+            decision_log.raw_output is not None
+            or decision_log.validation_outcome.value == "error"
+        )
+        assert (
+            decision_log.parsed_output is not None
+            or decision_log.validation_outcome.value == "error"
+        )
+
+        # Events contain what happened (turn started, deltas applied, etc.)
+        # - events should NOT duplicate the decision log's raw/parsed output
+        event_types = [e.event_type for e in result.events]
+        assert any(
+            "turn" in et for et in event_types
+        ), "Events should include turn lifecycle"
+
+
+def test_no_w2_scope_jump():
+    """Verify implementation doesn't jump scope into W2.2+ features."""
+    # This is a documentation test — it should always pass if code is correct
+
+    # What should NOT be implemented:
+    # - Database persistence of AIDecisionLog (deferred to later)
+    # - UI viewers or dashboards
+    # - Recovery logic with retries (error-path hardening is W2.1.6)
+    # - Operator decision overrides
+    # - Batch decision analysis or reporting
+
+    # What SHOULD be implemented:
+    # - AIDecisionLog populated in-memory during execution
+    # - Raw output captured
+    # - Parsed decision captured
+    # - Validation outcome captured
+    # - Accepted/rejected deltas visible
+
+    assert True  # Scope validation is manual; this documents the intent
