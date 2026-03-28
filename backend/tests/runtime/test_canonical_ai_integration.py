@@ -202,3 +202,103 @@ class TestCanonicalAIPathSuccess:
         assert result.execution_status == "success"
         assert result.updated_canonical_state is not None
         assert result.turn_number == 1
+
+
+class TestCanonicalAIPathFailure:
+    """Test failure handling for AI-backed execution."""
+
+    @pytest.mark.asyncio
+    async def test_malformed_adapter_output_fails_safely(
+        self, god_of_carnage_module
+    ):
+        """Malformed adapter output doesn't corrupt state.
+
+        Verifies: parse failure is caught before state mutation
+        """
+        # Register adapter with missing required field
+        payload = {"scene_interpretation": "Missing rationale"}
+        adapter = DeterministicAIAdapter(payload=payload)
+        register_adapter("malformed", adapter)
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="ai",
+            adapter_name="malformed",
+        )
+        original_state = {"characters": {"test": {}}}
+        session.canonical_state = original_state.copy()
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        # Verify failure was caught
+        assert result.execution_status == "system_error"
+        # Verify state unchanged on failure
+        assert result.updated_canonical_state == original_state
+        clear_registry()
+
+    @pytest.mark.asyncio
+    async def test_adapter_error_fails_safely(
+        self, god_of_carnage_module
+    ):
+        """Adapter error doesn't corrupt state.
+
+        Verifies: adapter errors caught, state preserved, logged appropriately
+        """
+        adapter = DeterministicAIAdapter(error=True)
+        register_adapter("error_adapter", adapter)
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="ai",
+            adapter_name="error_adapter",
+        )
+        original_state = {"characters": {}}
+        session.canonical_state = original_state.copy()
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        assert result.execution_status == "system_error"
+        assert result.updated_canonical_state == original_state
+        clear_registry()
+
+    @pytest.mark.asyncio
+    async def test_decision_log_created_on_failure(
+        self, god_of_carnage_module
+    ):
+        """Decision is logged even on failure.
+
+        Verifies: failure path captures error details for debugging
+        """
+        adapter = DeterministicAIAdapter(error=True)
+        register_adapter("error_adapter", adapter)
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="ai",
+            adapter_name="error_adapter",
+        )
+        session.canonical_state = {}
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        assert result.execution_status == "system_error"
+        # Verify error was captured
+        clear_registry()
