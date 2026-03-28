@@ -227,3 +227,220 @@ def test_dispatcher_preserves_execution_result_coherence(
 def test_no_w2_scope_jump_dispatcher():
     """No scope jump into W2.2+ features."""
     assert True  # Scope validation is manual
+
+
+class TestAIIntegrationThroughDispatcher:
+    """Integration tests proving AI path is wired into canonical runtime loop."""
+
+    def test_dispatcher_ai_path_uses_canonical_session_context(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """AI path receives canonical session/module context through dispatcher."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+
+        adapter = DeterministicTestAdapter()
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # Result should use the correct session and turn context
+        assert result.session_id == session.session_id
+        assert result.turn_number == session.turn_counter + 1
+
+    def test_dispatcher_ai_path_commits_through_runtime_validation(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """AI path commits through engine-controlled validation, not bypassing it."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+
+        # Adapter proposes a delta to a valid character
+        class DeltaProposingAdapter(StoryAIAdapter):
+            @property
+            def adapter_name(self):
+                return "delta-proposing"
+
+            def generate(self, request):
+                return AdapterResponse(
+                    raw_output="Proposing state change",
+                    structured_payload={
+                        "scene_interpretation": "Character emotional state rises",
+                        "detected_triggers": [],
+                        "proposed_state_deltas": [
+                            {
+                                "target_path": "characters.veronique.emotional_state",
+                                "next_value": 75,
+                                "rationale": "Character is upset",
+                            }
+                        ],
+                        "rationale": "Emotional escalation",
+                    },
+                )
+
+        adapter = DeltaProposingAdapter()
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # Delta should be processed through validation (not bypass it)
+        assert result.execution_status == "success"
+        # The validator accepts the delta, so it should be in accepted_deltas
+        assert len(result.accepted_deltas) > 0
+
+    def test_dispatcher_ai_path_malformed_output_fails_safely(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Malformed AI output fails safely through canonical path."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+
+        # Adapter returns missing required fields
+        class MalformedAdapter(StoryAIAdapter):
+            @property
+            def adapter_name(self):
+                return "malformed"
+
+            def generate(self, request):
+                return AdapterResponse(
+                    raw_output="incomplete",
+                    structured_payload={
+                        "scene_interpretation": "Test",
+                        # Missing: rationale, detected_triggers, proposed_state_deltas
+                    },
+                )
+
+        adapter = MalformedAdapter()
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # Should fail safely with system_error
+        assert result.execution_status == "system_error"
+        # State should be unchanged (safety guarantee)
+        assert result.updated_canonical_state == session.canonical_state
+
+    def test_dispatcher_both_paths_return_compatible_results(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Both mock and AI paths return compatible TurnExecutionResult."""
+        session = god_of_carnage_module_with_state
+
+        # Mock path result
+        session.execution_mode = "mock"
+        mock_result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # AI path result
+        session.execution_mode = "ai"
+        adapter = DeterministicTestAdapter()
+        ai_result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # Both should have identical structure
+        assert type(mock_result) == type(ai_result)
+        assert mock_result.session_id == ai_result.session_id
+        assert hasattr(mock_result, "updated_canonical_state")
+        assert hasattr(ai_result, "updated_canonical_state")
+        assert hasattr(mock_result, "accepted_deltas")
+        assert hasattr(ai_result, "accepted_deltas")
+
+    def test_dispatcher_ai_path_full_pipeline_execution(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Full pipeline: request -> adapter -> parse -> normalize -> validate -> execute."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+
+        # Create adapter that returns valid structured output
+        adapter = DeterministicTestAdapter()
+
+        # Execute through dispatcher
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # Should complete successfully through all pipeline stages
+        assert result.execution_status == "success"
+        assert result.turn_number == session.turn_counter + 1
+        # Canonical state should be updated (or unchanged if no deltas)
+        assert isinstance(result.updated_canonical_state, dict)
+        # Events should be created
+        assert isinstance(result.events, list)
+
+    def test_dispatcher_preserves_mock_path_availability(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Mock execution path remains fully available through dispatcher."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "mock"
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        assert result.execution_status == "success"
+        # Mock path should produce empty deltas (no decisions made)
+        assert result.accepted_deltas == []
+        assert result.rejected_deltas == []
+
+    def test_dispatcher_ai_execution_reaches_canonical_entry_point(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """AI execution is now callable from canonical entry point, not just tests."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+
+        adapter = DeterministicTestAdapter()
+
+        # This simulates production code calling the canonical dispatcher
+        # Previously, execute_turn_with_ai was only reachable by tests
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,
+            )
+        )
+
+        # AI execution succeeded through the canonical path
+        assert result.execution_status == "success"
