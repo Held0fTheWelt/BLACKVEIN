@@ -876,3 +876,157 @@ class TestAIDecisionLogOutcomes:
         assert len(result.accepted_deltas) == 0
         assert len(result.rejected_deltas) == 0
         assert result.execution_status == "system_error"
+
+
+class TestActionStructureValidation:
+    """Tests for W2.2.1 action structure validation in canonical runtime path."""
+
+    def test_missing_target_path_rejected_in_canonical_path(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that missing target_path in STATE_UPDATE is rejected before state mutation."""
+        session = god_of_carnage_module_with_state
+        # Create payload with STATE_UPDATE but missing target_path
+        adapter = DeterministicAIAdapter(
+            payload={
+                "scene_interpretation": "Scene interpretation",
+                "detected_triggers": [],
+                "proposed_state_deltas": [
+                    {
+                        "target_path": "",  # ❌ Empty target_path
+                        "next_value": 70,
+                        "delta_type": "state_update",
+                        "rationale": "Invalid delta",
+                    }
+                ],
+                "rationale": "Test",
+            }
+        )
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Verify the turn failed due to action structure validation
+        assert result.execution_status == "system_error"
+        assert result.guard_outcome == GuardOutcome.STRUCTURALLY_INVALID
+        assert len(result.accepted_deltas) == 0
+        assert len(result.rejected_deltas) == 0
+
+    def test_missing_next_value_rejected_in_canonical_path(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that missing next_value in STATE_UPDATE is rejected before state mutation."""
+        session = god_of_carnage_module_with_state
+        # Create payload with STATE_UPDATE but missing next_value
+        adapter = DeterministicAIAdapter(
+            payload={
+                "scene_interpretation": "Scene interpretation",
+                "detected_triggers": [],
+                "proposed_state_deltas": [
+                    {
+                        "target_path": "characters.veronique.emotional_state",
+                        "next_value": None,  # ❌ Missing next_value
+                        "delta_type": "state_update",
+                        "rationale": "Invalid delta",
+                    }
+                ],
+                "rationale": "Test",
+            }
+        )
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Verify the turn failed due to action structure validation
+        assert result.execution_status == "system_error"
+        assert result.guard_outcome == GuardOutcome.STRUCTURALLY_INVALID
+        assert len(result.accepted_deltas) == 0
+        assert len(result.rejected_deltas) == 0
+
+    def test_valid_action_structure_passes_to_deeper_validation(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that valid action structures pass through to deeper validation stages."""
+        session = god_of_carnage_module_with_state
+        # Create payload with valid action structure
+        adapter = DeterministicAIAdapter(
+            payload={
+                "scene_interpretation": "Scene is tense",
+                "detected_triggers": [],
+                "proposed_state_deltas": [
+                    {
+                        "target_path": "characters.veronique.emotional_state",
+                        "next_value": 75,
+                        "delta_type": "state_update",
+                        "rationale": "Emotional increase",
+                    }
+                ],
+                "rationale": "Valid decision",
+            }
+        )
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Verify the turn succeeded and delta was accepted
+        # (valid structure passed through to deeper validation and was accepted)
+        assert result.execution_status == "success"
+        assert len(result.accepted_deltas) > 0
+        assert result.guard_outcome == GuardOutcome.ACCEPTED
+
+    def test_action_structure_validation_before_mutation(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that action structure validation happens before any state mutation."""
+        session = god_of_carnage_module_with_state
+
+        # Create payload with invalid action structure
+        adapter = DeterministicAIAdapter(
+            payload={
+                "scene_interpretation": "Scene",
+                "detected_triggers": [],
+                "proposed_state_deltas": [
+                    {
+                        "target_path": "",  # ❌ Invalid: empty target_path
+                        "next_value": 50,
+                        "delta_type": "state_update",
+                        "rationale": "Invalid",
+                    }
+                ],
+                "rationale": "Test",
+            }
+        )
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Verify state was not mutated
+        # - execution failed due to action structure validation
+        # - no deltas were accepted or rejected (validation failed before attempting application)
+        assert result.execution_status == "system_error"
+        assert len(result.accepted_deltas) == 0
+        assert len(result.rejected_deltas) == 0

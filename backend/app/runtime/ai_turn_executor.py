@@ -26,7 +26,7 @@ from app.runtime.turn_executor import (
     TurnExecutionResult,
     execute_turn,
 )
-from app.runtime.validators import validate_action_type
+from app.runtime.validators import validate_action_type, validate_action_structure
 from app.runtime.w2_models import (
     AIDecisionLog,
     AIValidationOutcome,
@@ -440,18 +440,32 @@ async def execute_turn_with_ai(
         return result
 
     # Step 4b: Validate that proposed actions comply with canonical policy
-    # Check each proposed delta's action type before state mutation
+    # Check each proposed delta's action type and structure before state mutation
     policy_validation_errors = []
     for delta in parse_result.decision.proposed_deltas:
         # Infer action type from delta: default to STATE_UPDATE
         # (In future, AI output might explicitly specify action_type)
         delta_type = delta.delta_type or "state_update"
 
-        # Validate the action type is allowed
+        # Step 4b.1: Validate the action type is allowed
         is_valid, error = validate_action_type(delta_type)
         if not is_valid:
             # Invalid action type - fail parse before state mutation
             policy_validation_errors.append(error)
+            continue
+
+        # Step 4b.2: Validate action structure (W2.2.1 canonical enforcement)
+        # Create action_data dict from delta for validate_action_structure
+        action_data = {
+            "target_path": delta.target_path,
+            "next_value": delta.next_value,
+        }
+        is_valid, structure_errors = validate_action_structure(
+            delta_type, action_data, module=module, session=session
+        )
+        if not is_valid:
+            # Invalid action structure - fail before state mutation
+            policy_validation_errors.extend(structure_errors)
 
     if policy_validation_errors:
         # Policy validation failed - create error log and return early
