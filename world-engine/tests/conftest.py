@@ -10,6 +10,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+# Explicitly load pytest-asyncio plugin for async test support
+pytest_plugins = ("pytest_asyncio",)
+
 # CRITICAL: Set FLASK_ENV to test before any imports from app.config
 # This allows lenient validation for PLAY_SERVICE_SECRET in test mode
 if "FLASK_ENV" not in os.environ:
