@@ -35,8 +35,9 @@ async def dispatch_turn(
     Routes turn execution to either mock or AI path based on session.execution_mode.
 
     When execution_mode == "ai":
-    - Requires ai_adapter parameter
-    - Calls execute_turn_with_ai() with the provided adapter
+    - Resolves adapter from session.adapter_name (via adapter registry)
+    - Can be overridden by explicit ai_adapter parameter (for tests)
+    - Calls execute_turn_with_ai() with the resolved adapter
     - AI path: request → adapter → parse → normalize → validate → execute
 
     When execution_mode == "mock":
@@ -49,16 +50,17 @@ async def dispatch_turn(
         current_turn: Current turn number
         module: Loaded content module
         mock_decision_provider: Optional callable that returns MockDecision for mock mode
-        ai_adapter: Required when execution_mode="ai", optional otherwise
+        ai_adapter: Optional adapter for AI mode (overrides session.adapter_name)
         operator_input: Optional operator context
 
     Returns:
         TurnExecutionResult with execution_status, deltas, state, and events
 
     Raises:
-        ValueError: If execution_mode=="ai" but no ai_adapter provided
+        ValueError: If execution_mode=="ai" but adapter cannot be resolved
     """
     # Import here to avoid circular imports
+    from app.runtime.adapter_registry import get_adapter
     from app.runtime.ai_turn_executor import execute_turn_with_ai
     from app.runtime.turn_executor import MockDecision, execute_turn
 
@@ -66,15 +68,22 @@ async def dispatch_turn(
 
     if execution_mode == "ai":
         # AI execution path
-        if not ai_adapter:
+        # Resolve adapter: explicit parameter overrides session configuration
+        resolved_adapter = ai_adapter
+        if not resolved_adapter:
+            # Look up adapter from session.adapter_name
+            resolved_adapter = get_adapter(session.adapter_name)
+
+        if not resolved_adapter:
             raise ValueError(
-                "AI execution mode selected but no ai_adapter provided to dispatch_turn()"
+                f"AI execution mode selected but adapter '{session.adapter_name}' "
+                f"not found in registry. Register it with register_adapter()."
             )
 
         return await execute_turn_with_ai(
             session,
             current_turn,
-            ai_adapter,
+            resolved_adapter,
             module,
             operator_input=operator_input,
         )

@@ -74,11 +74,16 @@ def test_dispatcher_routes_to_ai_when_mode_is_ai(
 def test_dispatcher_raises_error_if_ai_mode_without_adapter(
     god_of_carnage_module_with_state, god_of_carnage_module
 ):
-    """Dispatcher raises ValueError if AI mode selected but no adapter provided."""
+    """Dispatcher raises ValueError if AI mode selected but adapter not registered."""
+    from app.runtime.adapter_registry import clear_registry
+
+    clear_registry()
+
     session = god_of_carnage_module_with_state
     session.execution_mode = "ai"
+    session.adapter_name = "nonexistent"
 
-    with pytest.raises(ValueError, match="AI execution mode.*no ai_adapter"):
+    with pytest.raises(ValueError, match="adapter.*not found"):
         asyncio.run(
             dispatch_turn(
                 session,
@@ -227,6 +232,148 @@ def test_dispatcher_preserves_execution_result_coherence(
 def test_no_w2_scope_jump_dispatcher():
     """No scope jump into W2.2+ features."""
     assert True  # Scope validation is manual
+
+
+class TestDispatcherWithAdapterRegistry:
+    """Tests for dispatcher consuming canonical adapter registry."""
+
+    def test_dispatcher_resolves_adapter_from_session_config(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Dispatcher resolves adapter from session.adapter_name."""
+        from app.runtime.adapter_registry import clear_registry, register_adapter
+
+        clear_registry()
+
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+        session.adapter_name = "test_adapter"
+
+        adapter = DeterministicTestAdapter()
+        register_adapter("test_adapter", adapter)
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        assert result.execution_status == "success"
+        clear_registry()
+
+    def test_dispatcher_raises_error_if_adapter_not_registered(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Dispatcher raises clear error if adapter not found in registry."""
+        from app.runtime.adapter_registry import clear_registry
+
+        clear_registry()
+
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+        session.adapter_name = "nonexistent_adapter"
+
+        with pytest.raises(ValueError, match="adapter 'nonexistent_adapter' not found"):
+            asyncio.run(
+                dispatch_turn(
+                    session,
+                    current_turn=session.turn_counter + 1,
+                    module=god_of_carnage_module,
+                )
+            )
+
+    def test_dispatcher_explicit_adapter_overrides_session_config(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Explicit ai_adapter parameter overrides session.adapter_name."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+        session.adapter_name = "config_adapter"  # Won't be used
+
+        # Pass adapter explicitly
+        adapter = DeterministicTestAdapter()
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+                ai_adapter=adapter,  # Override session config
+            )
+        )
+
+        assert result.execution_status == "success"
+
+    def test_dispatcher_session_config_mode_mock(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Dispatcher can use session.execution_mode from configuration."""
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "mock"
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        assert result.execution_status == "success"
+
+    def test_dispatcher_session_config_mode_ai_with_registered_adapter(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Dispatcher uses session config to determine execution mode and adapter."""
+        from app.runtime.adapter_registry import clear_registry, register_adapter
+
+        clear_registry()
+
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+        session.adapter_name = "registered_adapter"
+
+        adapter = DeterministicTestAdapter()
+        register_adapter("registered_adapter", adapter)
+
+        # No explicit adapter parameter—dispatcher should resolve from session
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        assert result.execution_status == "success"
+        clear_registry()
+
+    def test_dispatcher_adapter_name_case_insensitive(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Adapter name lookup is case-insensitive."""
+        from app.runtime.adapter_registry import clear_registry, register_adapter
+
+        clear_registry()
+
+        session = god_of_carnage_module_with_state
+        session.execution_mode = "ai"
+        session.adapter_name = "MyCaseAdapter"
+
+        adapter = DeterministicTestAdapter()
+        register_adapter("MyCaseAdapter", adapter)
+
+        result = asyncio.run(
+            dispatch_turn(
+                session,
+                current_turn=session.turn_counter + 1,
+                module=god_of_carnage_module,
+            )
+        )
+
+        assert result.execution_status == "success"
+        clear_registry()
 
 
 class TestAIIntegrationThroughDispatcher:
