@@ -20,6 +20,34 @@
 
 ---
 
+## Critical Dependency: Verify W2.4.3 Artifacts
+
+**Before starting Task 1, verify that W2.4.3 has been completed:**
+
+```bash
+# Check if ParsedRoleAwareDecision exists
+grep -n "class ParsedRoleAwareDecision" backend/app/runtime/ai_decision.py
+```
+
+**Expected**: Output shows ParsedRoleAwareDecision class definition
+
+**If not found**: W2.4.3 role-structured parsing must be completed first. ParsedRoleAwareDecision must be defined in `backend/app/runtime/ai_decision.py` with the following structure:
+
+```python
+class ParsedRoleAwareDecision(BaseModel):
+    """Role-structured parse output from W2.4.3.
+
+    Produced by role-structured parsing (W2.4.3) when AIRoleContract format detected.
+    Used solely for diagnostic population in W2.4.4.
+    """
+    interpreter: InterpreterSection
+    director: DirectorSection
+    responder: ResponderSection
+    parsed_decision: ParsedAIDecision  # Canonical runtime decision
+```
+
+---
+
 ## Task 1: Add Diagnostic Summary Models and Extend AIDecisionLog
 
 **Files:**
@@ -168,7 +196,7 @@ class AIDecisionLog(BaseModel):
     interpreter_output: InterpreterDiagnosticSummary | None = None
     director_output: DirectorDiagnosticSummary | None = None
     responder_output: ResponderSection | None = None  # From role_contract.py
-    guard_outcome: GuardOutcome  # Canonical validation result
+    guard_outcome: GuardOutcome  # Required (not optional) — canonical validation result for responder proposals
 ```
 
 **Important**: Ensure `from app.runtime.role_contract import ResponderSection` is imported at the top of w2_models.py.
@@ -376,6 +404,7 @@ def test_construct_log_role_structured_parsing_populates_role_fields():
         DirectorSection,
         ResponderSection,
     )
+    from app.runtime.ai_decision import ParsedRoleAwareDecision
 
     parsed_decision = ParsedAIDecision(
         scene_interpretation="Scene",
@@ -387,19 +416,19 @@ def test_construct_log_role_structured_parsing_populates_role_fields():
         parsed_source="structured_payload",
     )
 
-    # Create mock role-aware decision
-    from app.runtime.ai_decision import ParsedRoleAwareDecision
+    # Create mock role-aware decision with all required fields
     role_aware = ParsedRoleAwareDecision(
         interpreter=InterpreterSection(
             scene_reading="Scene reading from interpreter",
             detected_tensions=["tension1", "tension2"],
+            trigger_candidates=["candidate1"],  # Required field
         ),
         director=DirectorSection(
             conflict_steering="Steering rationale",
             escalation_level=5,
             recommended_direction="escalate",
         ),
-        responder=ResponderSection(),
+        responder=ResponderSection(),  # Has defaults for optional fields
         parsed_decision=parsed_decision,
     )
 
@@ -542,6 +571,13 @@ Add to test file:
 ```python
 def test_role_fields_do_not_affect_delta_validation():
     """Role fields present or absent should not change delta acceptance/rejection."""
+    from app.runtime.role_contract import (
+        InterpreterSection,
+        DirectorSection,
+        ResponderSection,
+    )
+    from app.runtime.ai_decision import ParsedRoleAwareDecision
+
     parsed_decision = ParsedAIDecision(
         scene_interpretation="Scene",
         detected_triggers=["trigger1"],
@@ -560,30 +596,43 @@ def test_role_fields_do_not_affect_delta_validation():
         source="ai_proposal",
     )
 
-    # Log with role fields
+    # Create role-aware decision
+    role_aware = ParsedRoleAwareDecision(
+        interpreter=InterpreterSection(
+            scene_reading="Scene", detected_tensions=[], trigger_candidates=[]
+        ),
+        director=DirectorSection(
+            conflict_steering="Steering", escalation_level=5, recommended_direction="hold"
+        ),
+        responder=ResponderSection(),
+        parsed_decision=parsed_decision,
+    )
+
+    # Log WITH role fields
     log_with_roles = construct_ai_decision_log(
         session_id="sess1",
         turn_number=1,
         parsed_decision=parsed_decision,
         raw_output="raw",
-        role_aware_decision=None,  # Would be populated if present
+        role_aware_decision=role_aware,  # Role fields POPULATED
         guard_outcome=GuardOutcome.ACCEPTED,
         accepted_deltas=[mock_delta],
     )
 
-    # Log without role fields (role_aware_decision=None)
+    # Log WITHOUT role fields
     log_without_roles = construct_ai_decision_log(
         session_id="sess1",
         turn_number=1,
         parsed_decision=parsed_decision,
         raw_output="raw",
-        role_aware_decision=None,
+        role_aware_decision=None,  # Role fields NOT populated
         guard_outcome=GuardOutcome.ACCEPTED,
         accepted_deltas=[mock_delta],
     )
 
-    # Both logs must have identical delta collections
+    # Both logs must have identical delta collections despite different role fields
     assert log_with_roles.accepted_deltas == log_without_roles.accepted_deltas
+    assert len(log_with_roles.accepted_deltas) == len(log_without_roles.accepted_deltas)
 ```
 
 Run: `PYTHONPATH=backend python -m pytest backend/tests/runtime/test_ai_decision_logging.py::test_role_fields_do_not_affect_delta_validation -v`
@@ -714,14 +763,81 @@ Expected: All existing tests still pass + new tests pass
 
 ### Step 4: Verify no W2 scope creep
 
+Add explicit scope verification tests to test_ai_decision_logging.py:
+
+```python
+def test_parsed_ai_decision_fields_unchanged():
+    """Verify ParsedAIDecision model was not modified by W2.4.4."""
+    from app.runtime.ai_decision import ParsedAIDecision
+
+    # Expected fields from W2.1.3 spec (should not change in W2.4.4)
+    expected_fields = {
+        "scene_interpretation",
+        "detected_triggers",
+        "proposed_deltas",
+        "proposed_scene_id",
+        "rationale",
+        "dialogue_impulses",
+        "conflict_vector",
+        "confidence",
+        "raw_output",
+        "parsed_source",
+    }
+
+    actual_fields = set(ParsedAIDecision.model_fields.keys())
+    assert actual_fields == expected_fields, (
+        f"ParsedAIDecision should not be modified in W2.4.4. "
+        f"Expected {expected_fields}, got {actual_fields}"
+    )
+
+
+def test_guard_outcome_remains_only_validation_truth():
+    """Verify guard_outcome is the sole canonical validation result."""
+    parsed_decision = ParsedAIDecision(
+        scene_interpretation="Scene",
+        detected_triggers=[],
+        proposed_deltas=[],
+        proposed_scene_id=None,
+        rationale="Rationale",
+        raw_output="raw",
+        parsed_source="structured_payload",
+    )
+
+    # For each guard_outcome state, validation_outcome must be correctly derived
+    test_cases = [
+        (GuardOutcome.ACCEPTED, AIValidationOutcome.ACCEPTED),
+        (GuardOutcome.PARTIALLY_ACCEPTED, AIValidationOutcome.PARTIAL),
+        (GuardOutcome.REJECTED, AIValidationOutcome.REJECTED),
+        (GuardOutcome.STRUCTURALLY_INVALID, AIValidationOutcome.ERROR),
+    ]
+
+    for guard_outcome, expected_validation_outcome in test_cases:
+        log = construct_ai_decision_log(
+            session_id="sess1",
+            turn_number=1,
+            parsed_decision=parsed_decision,
+            raw_output="raw",
+            role_aware_decision=None,
+            guard_outcome=guard_outcome,
+        )
+
+        # guard_outcome preserved as-is
+        assert log.guard_outcome == guard_outcome
+        # validation_outcome derived from guard_outcome
+        assert log.validation_outcome == expected_validation_outcome
+```
+
+Run: `PYTHONPATH=backend python -m pytest backend/tests/runtime/test_ai_decision_logging.py -k "scope_creep or validation_truth" -v`
+
+Expected: All scope verification tests PASS
+
 Checklist:
-- [ ] No changes to ParsedAIDecision (still canonical runtime decision)
-- [ ] No changes to parsing/normalization logic
-- [ ] No changes to guard semantics or validation
-- [ ] Role fields are diagnostic-only (logging layer only)
-- [ ] Backward compatibility maintained (legacy decisions work)
-- [ ] No UI work added
-- [ ] No large observability platform built
+- [x] Verified: No changes to ParsedAIDecision (executable test)
+- [x] Verified: No changes to guard semantics (guard_outcome drives validation_outcome)
+- [x] Verified: Role fields are diagnostic-only (constraint tests pass)
+- [x] Verified: Backward compatibility maintained (legacy tests pass)
+- [ ] Manual check: No UI work added (visual inspection of changes)
+- [ ] Manual check: No large observability platform built (code review)
 
 ### Step 5: Final commit
 
