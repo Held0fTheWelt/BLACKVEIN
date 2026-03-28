@@ -157,14 +157,14 @@ class MockStoryAIAdapter(StoryAIAdapter):
     def generate(self, request: AdapterRequest) -> AdapterResponse:
         """Generate deterministic mock output from request.
 
-        The output is stable: same request always produces same response.
-        This enables reproducible test behavior.
+        If request.request_role_structured_output is True, returns output in AIRoleContract shape
+        (interpreter, director, responder). Otherwise, returns legacy structure.
 
         Args:
             request: AdapterRequest (fields used to construct deterministic output)
 
         Returns:
-            AdapterResponse with stable mock data
+            AdapterResponse with role-structured or legacy mock data
         """
         raw = (
             f"[mock adapter] turn={request.turn_number} "
@@ -172,19 +172,27 @@ class MockStoryAIAdapter(StoryAIAdapter):
             f"session={request.session_id[:8]}"
         )
 
-        return AdapterResponse(
-            raw_output=raw,
-            structured_payload={
+        # If role-structured output requested, return AIRoleContract shape
+        if request.request_role_structured_output:
+            structured_payload = _create_mock_role_contract()
+        else:
+            # Legacy fallback for backward compatibility
+            structured_payload = {
                 "detected_triggers": [],
                 "proposed_deltas": [],
                 "proposed_scene_id": None,
                 "narrative_text": "[mock narrative - no real AI involved]",
                 "rationale": "[mock rationale]",
-            },
+            }
+
+        return AdapterResponse(
+            raw_output=raw,
+            structured_payload=structured_payload,
             backend_metadata={
                 "adapter": "mock",
                 "deterministic": True,
                 "latency_ms": 0,
+                "role_structured": request.request_role_structured_output,
             },
             error=None,
         )
