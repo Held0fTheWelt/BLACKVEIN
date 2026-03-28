@@ -34,10 +34,10 @@ Expected: Confirm current imports and structure.
 
 ### Step 2: Add AIRoleContract import to ai_adapter.py
 
-In `backend/app/runtime/ai_adapter.py`, after existing imports (around line 22):
+In `backend/app/runtime/ai_adapter.py`, modify the import section:
 
 ```python
-# At top of file, after existing imports
+# At the very top of the file, before all other imports
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -51,6 +51,8 @@ from pydantic import BaseModel, Field
 from app.runtime.role_contract import AIRoleContract
 ```
 
+**Critical:** `from __future__ import annotations` MUST be the first import in the file.
+
 ### Step 3: Create helper function to generate mock role-structured output
 
 In `backend/app/runtime/ai_adapter.py`, add this function before MockStoryAIAdapter class (around line 103):
@@ -59,10 +61,14 @@ In `backend/app/runtime/ai_adapter.py`, add this function before MockStoryAIAdap
 def _create_mock_role_contract() -> dict[str, Any]:
     """Create a mock AIRoleContract shape for deterministic testing.
 
+    Constructs and validates a dict matching AIRoleContract structure.
+
     Returns:
         Dict matching AIRoleContract structure (interpreter, director, responder).
+        Validated against AIRoleContract schema for contract correctness.
     """
-    return {
+    # Construct mock contract dict
+    mock_contract_dict = {
         "interpreter": {
             "scene_reading": "[mock] Scene interpretation - generic analysis of current state",
             "detected_tensions": ["mock_tension_1"],
@@ -83,7 +89,15 @@ def _create_mock_role_contract() -> dict[str, Any]:
             "scene_transition_candidate": None,
         },
     }
+
+    # Validate dict conforms to AIRoleContract schema
+    validated = AIRoleContract(**mock_contract_dict)
+
+    # Return serialized dict (ensures contract compliance)
+    return validated.model_dump()
 ```
+
+**Contract validation:** This helper constructs an actual AIRoleContract instance and returns `model_dump()`. This ensures the mock output conforms to the contract specification.
 
 ### Step 4: Commit
 
@@ -258,6 +272,19 @@ class TestAdapterRequestRoleStructured:
         assert request.request_role_structured_output is True
 ```
 
+### Step 1.5: Understand W2.4.2 Scope Boundary
+
+**W2.4.2 is request/response only:**
+- ✅ AdapterRequest field for signaling role-structured output
+- ✅ MockStoryAIAdapter returns AIRoleContract-shaped structured_payload
+- ✅ Tests verify request signaling and response shape
+- ❌ NO parsing (W2.4.3 work)
+- ❌ NO normalization (W2.4.3 work)
+- ❌ NO runtime integration (W2.4.3 work)
+- ❌ NO guard/validation changes (W2.4.3 work)
+
+This is a signal/response contract update only. The parsing and normalization of role-structured output into the canonical decision path happens in W2.4.3.
+
 ### Step 2: Write test for mock adapter role-structured response
 
 Add to `backend/tests/runtime/test_ai_adapter.py`:
@@ -339,17 +366,47 @@ class TestMockAdapterRoleStructured:
         response = adapter.generate(request)
 
         assert response.backend_metadata["role_structured"] is True
+
+    def test_mock_adapter_role_structured_payload_has_canonical_keys(self):
+        """MockStoryAIAdapter role-structured output has all three canonical top-level keys.
+
+        When request_role_structured_output=True, structured_payload must contain
+        exactly these top-level keys: interpreter, director, responder.
+        This ensures the payload is recognized as role-structured format, not legacy.
+        """
+        adapter = MockStoryAIAdapter()
+        request = AdapterRequest(
+            session_id="sess1",
+            turn_number=1,
+            current_scene_id="phase_1",
+            canonical_state={},
+            recent_events=[],
+            request_role_structured_output=True,
+        )
+
+        response = adapter.generate(request)
+        payload = response.structured_payload
+
+        # Verify all three canonical keys are present
+        assert isinstance(payload, dict)
+        assert "interpreter" in payload
+        assert "director" in payload
+        assert "responder" in payload
+
+        # Verify it's not legacy format (no legacy-specific keys as top level)
+        assert "detected_triggers" not in payload  # Legacy format has this at top level
+        assert "proposed_deltas" not in payload    # Legacy format has this at top level
 ```
 
 ### Step 3: Run new tests
 
 Run: `PYTHONPATH=backend python -m pytest backend/tests/runtime/test_ai_adapter.py::TestAdapterRequestRoleStructured -v`
 
-Expected: All new tests pass.
+Expected: 2 tests pass (defaults_to_false, can_be_set_true).
 
 Run: `PYTHONPATH=backend python -m pytest backend/tests/runtime/test_ai_adapter.py::TestMockAdapterRoleStructured -v`
 
-Expected: All new tests pass.
+Expected: 4 tests pass (returns_role_contract_shape, returns_legacy_format, metadata_reflects_flag, has_canonical_keys).
 
 ### Step 4: Run full adapter test suite
 
@@ -391,11 +448,11 @@ Confirm:
 ### Step 3: Final commit summary
 
 The following changes are complete:
-1. AdapterRequest.request_role_structured_output field added (defaults True)
-2. MockStoryAIAdapter.generate returns AIRoleContract shape
+1. AdapterRequest.request_role_structured_output field added (defaults to False for backward compatibility)
+2. MockStoryAIAdapter.generate returns AIRoleContract shape (validated contract)
 3. Tests verify role-structured request/response
 4. All existing tests still pass
-5. No scope jump to W2.4.3
+5. No scope jump to W2.4.3 (request/response only, no parsing or normalization)
 
 ### Step 4: Run final verification
 
