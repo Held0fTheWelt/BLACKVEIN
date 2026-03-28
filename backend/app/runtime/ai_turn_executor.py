@@ -360,6 +360,25 @@ async def execute_turn_with_ai(
     # Step 2: Generate response
     response: AdapterResponse = adapter.generate(request)
 
+    # Step 2b: If adapter error, create error log and return early
+    if response.error:
+        error_log = _create_error_decision_log(
+            session,
+            current_turn,
+            response.raw_output,
+            [response.error],
+            "adapter_error",
+        )
+        _store_decision_log(session, error_log)
+
+        return _make_parse_failure_result(
+            session,
+            current_turn,
+            [f"Adapter error: {response.error}"],
+            response.raw_output,
+            started_at,
+        )
+
     # Step 3: Parse response
     parse_result: ParseResult = process_adapter_response(response)
 
