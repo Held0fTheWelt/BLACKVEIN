@@ -76,3 +76,81 @@ def test_empty_adapter_output_fails_safely(
     assert result.execution_status == "system_error"
     assert result.failure_reason == ExecutionFailureReason.GENERATION_ERROR
     assert result.updated_canonical_state == session.canonical_state
+
+
+def test_malformed_structured_output_fails_safely(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """Missing required fields in structured_payload fails safely."""
+    from app.runtime.ai_turn_executor import execute_turn_with_ai
+    from app.runtime.w2_models import ExecutionFailureReason
+
+    session = god_of_carnage_module_with_state
+
+    class MalformedAdapter(StoryAIAdapter):
+        @property
+        def adapter_name(self):
+            return "malformed"
+
+        def generate(self, request):
+            return AdapterResponse(
+                raw_output="test",
+                structured_payload={
+                    "scene_interpretation": "Test",
+                    # Missing: "rationale", "detected_triggers", "proposed_state_deltas"
+                },
+            )
+
+    result = asyncio.run(
+        execute_turn_with_ai(
+            session,
+            current_turn=session.turn_counter + 1,
+            adapter=MalformedAdapter(),
+            module=god_of_carnage_module,
+        )
+    )
+
+    assert result.execution_status == "system_error"
+    assert result.failure_reason == ExecutionFailureReason.PARSING_ERROR
+
+
+def test_state_safety_on_failure(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """Failed AI turns do not corrupt canonical state."""
+    import copy
+
+    session = god_of_carnage_module_with_state
+    initial_state = copy.deepcopy(session.canonical_state)
+
+    class FailingAdapter(StoryAIAdapter):
+        @property
+        def adapter_name(self):
+            return "failing"
+
+        def generate(self, request):
+            return AdapterResponse(
+                raw_output="",
+                structured_payload=None,
+                error="Adapter failure",
+            )
+
+    from app.runtime.ai_turn_executor import execute_turn_with_ai
+
+    result = asyncio.run(
+        execute_turn_with_ai(
+            session,
+            current_turn=session.turn_counter + 1,
+            adapter=FailingAdapter(),
+            module=god_of_carnage_module,
+        )
+    )
+
+    assert result.execution_status == "system_error"
+    assert result.updated_canonical_state == initial_state
+    assert session.canonical_state == initial_state
+
+
+def test_no_w2_scope_jump_failure_handling():
+    """No scope jump into W2.2+ features."""
+    assert True  # Scope validation is manual

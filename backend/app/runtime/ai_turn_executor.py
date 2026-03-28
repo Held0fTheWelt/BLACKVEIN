@@ -443,4 +443,14 @@ async def execute_turn_with_ai(
     )
     _store_decision_log(session, decision_log)
 
+    # Step 8: Set failure_reason based on execution outcome
+    if turn_result.execution_status == "success":
+        if len(turn_result.accepted_deltas) == 0 and len(turn_result.rejected_deltas) > 0:
+            # All deltas were rejected - this is a severe validation failure
+            turn_result.failure_reason = ExecutionFailureReason.VALIDATION_ERROR
+        else:
+            turn_result.failure_reason = ExecutionFailureReason.NONE
+    else:
+        turn_result.failure_reason = ExecutionFailureReason.VALIDATION_ERROR
+
     return turn_result
