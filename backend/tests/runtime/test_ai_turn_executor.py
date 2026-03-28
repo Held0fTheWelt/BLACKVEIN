@@ -787,3 +787,92 @@ class TestAIDecisionLogOutcomes:
         # Second part should contain outcome label
         outcome_part = ";".join(guard_notes_parts[1:]).strip()
         assert "partially_accepted" in outcome_part
+
+    def test_error_path_result_has_structurally_invalid_guard_outcome(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that error-path TurnExecutionResult carries guard_outcome=STRUCTURALLY_INVALID."""
+        from app.runtime.ai_turn_executor import _make_parse_failure_result
+        from datetime import datetime, timezone
+
+        session = god_of_carnage_module_with_state
+
+        # Create error-path result via parse failure helper
+        result = _make_parse_failure_result(
+            session=session,
+            turn_number=1,
+            errors=["Failed to parse response"],
+            raw_output="",
+            started_at=datetime.now(timezone.utc),
+        )
+
+        # Verify error-path result has guard_outcome=STRUCTURALLY_INVALID
+        assert result.execution_status == "system_error"
+        assert result.guard_outcome == GuardOutcome.STRUCTURALLY_INVALID
+
+    def test_error_path_aidecisionlog_has_error_validation_outcome(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that error-path AIDecisionLog has validation_outcome=ERROR (consistent with guard_outcome=STRUCTURALLY_INVALID)."""
+        from app.runtime.ai_turn_executor import _create_error_decision_log
+
+        session = god_of_carnage_module_with_state
+
+        # Create error-path decision log
+        log = _create_error_decision_log(
+            session=session,
+            current_turn=1,
+            raw_output="",
+            errors=["Adapter failed to generate response"],
+            error_type="adapter_error",
+        )
+
+        # Verify error-path decision log maps to AIValidationOutcome.ERROR
+        assert log.validation_outcome == AIValidationOutcome.ERROR
+        assert log.guard_notes is not None
+        assert "adapter_error" in log.guard_notes
+
+    def test_error_path_cross_surface_consistency(
+        self, god_of_carnage_module, god_of_carnage_module_with_state
+    ):
+        """Test that error-path semantics are consistent across TurnExecutionResult and AIDecisionLog.
+
+        Verifies that:
+        - TurnExecutionResult.guard_outcome = STRUCTURALLY_INVALID
+        - AIDecisionLog.validation_outcome = ERROR (canonical mapping for STRUCTURALLY_INVALID)
+        - Both surfaces tell the same story about failed turn
+        """
+        from app.runtime.ai_turn_executor import _make_parse_failure_result, _create_error_decision_log
+        from datetime import datetime, timezone
+
+        session = god_of_carnage_module_with_state
+
+        # Create error-path result
+        result = _make_parse_failure_result(
+            session=session,
+            turn_number=1,
+            errors=["Failed to parse response"],
+            raw_output="",
+            started_at=datetime.now(timezone.utc),
+        )
+
+        # Create corresponding error-path decision log
+        log = _create_error_decision_log(
+            session=session,
+            current_turn=1,
+            raw_output="",
+            errors=["Failed to parse response"],
+            error_type="parse_error",
+        )
+
+        # Verify cross-surface consistency:
+        # - Result says STRUCTURALLY_INVALID
+        assert result.guard_outcome == GuardOutcome.STRUCTURALLY_INVALID
+
+        # - Decision log says ERROR (which maps from STRUCTURALLY_INVALID in error path)
+        assert log.validation_outcome == AIValidationOutcome.ERROR
+
+        # - Both agree the turn failed to produce valid deltas
+        assert len(result.accepted_deltas) == 0
+        assert len(result.rejected_deltas) == 0
+        assert result.execution_status == "system_error"

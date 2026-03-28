@@ -595,7 +595,11 @@ async def execute_turn(
         event_log.log(
             "turn_failed",
             f"Turn {current_turn} failed: {str(e)}",
-            payload={"error": str(e), "error_type": type(e).__name__},
+            payload={
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "guard_outcome": GuardOutcome.STRUCTURALLY_INVALID.value,
+            },
         )
 
         return TurnExecutionResult(
