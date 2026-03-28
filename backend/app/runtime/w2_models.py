@@ -191,6 +191,19 @@ class StateDelta(BaseModel):
 # ===== AI Decision Log Models =====
 
 
+class ExecutionFailureReason(str, Enum):
+    """Explicit classification of AI execution failures for diagnostics.
+
+    Allows runtime to distinguish between generation, parsing, validation,
+    and non-committed failures for proper error handling and recovery.
+    """
+
+    NONE = "none"  # No failure
+    GENERATION_ERROR = "generation_error"  # Adapter failed to generate
+    PARSING_ERROR = "parsing_error"  # Could not parse output
+    VALIDATION_ERROR = "validation_error"  # Runtime validation rejected changes
+
+
 class AIValidationOutcome(str, Enum):
     """Outcome of AI decision validation."""
 
