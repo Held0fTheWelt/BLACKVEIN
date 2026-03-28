@@ -236,8 +236,20 @@ def _validate_delta(delta: Any, session: Any, module: Any) -> list[str]:
         entity_id = parts[1] if len(parts) > 1 else None
         if entity_id and not _entity_exists(entity_id, module.relationship_axes):
             errors.append(f"Unknown relationship axis: {entity_id}")
-    elif entity_type not in ["metadata", "scene"]:
+    elif entity_type not in ["metadata", "scene", "scene_state", "conflict_state", "runtime", "system", "logs", "decision", "session", "turn", "cache"]:
         errors.append(f"Unknown entity type in target: {entity_type}")
+
+    # Step 4: Check mutation permission (W2.2.2)
+    # =========================================
+    from app.runtime.mutation_policy import MutationPolicy
+
+    policy_decision = MutationPolicy.evaluate(target)
+    if not policy_decision.allowed:
+        errors.append(
+            f"Mutation blocked: target '{target}' — {policy_decision.reason_message} "
+            f"(reason: {policy_decision.reason_code})"
+        )
+        return errors
 
     # Validate next_value if present
     if hasattr(delta, "next_value") and delta.next_value is not None:

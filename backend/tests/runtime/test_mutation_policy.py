@@ -197,6 +197,52 @@ class TestMutationPolicyEdgeCases:
 
 
 class TestMutationPolicyIntegration:
-    """Integration tests with validators (added after Task 5 integration)."""
-    # These tests are placeholders for Task 5 integration verification
-    pass
+    """Integration tests with validators."""
+
+    def test_validate_delta_rejects_blocked_path(self):
+        """Blocked mutations are rejected in validation pipeline."""
+        from app.runtime.turn_executor import ProposedStateDelta
+        from app.runtime.validators import _validate_delta
+
+        delta = ProposedStateDelta(
+            target="session.id",
+            next_value="new_session"
+        )
+
+        class MockModule:
+            characters = {}
+            relationship_axes = {}
+            scene_phases = {}
+            phase_transitions = {}
+
+        class MockSession:
+            pass
+
+        errors = _validate_delta(delta, MockSession(), MockModule())
+        assert len(errors) > 0
+        # Should have mutation permission error
+        assert any("mutation" in e.lower() or "blocked" in e.lower() for e in errors)
+
+    def test_validate_delta_accepts_allowed_path(self):
+        """Allowed mutations are accepted in validation pipeline."""
+        from app.runtime.turn_executor import ProposedStateDelta
+        from app.runtime.validators import _validate_delta
+
+        delta = ProposedStateDelta(
+            target="characters.veronique.emotional_state",
+            next_value=75
+        )
+
+        class MockModule:
+            characters = {"veronique": {}}
+            relationship_axes = {}
+            scene_phases = {}
+            phase_transitions = {}
+
+        class MockSession:
+            pass
+
+        errors = _validate_delta(delta, MockSession(), MockModule())
+        # May have other validation errors, but not mutation permission error
+        mutation_errors = [e for e in errors if "mutation" in e.lower() or "blocked" in e.lower()]
+        assert len(mutation_errors) == 0
