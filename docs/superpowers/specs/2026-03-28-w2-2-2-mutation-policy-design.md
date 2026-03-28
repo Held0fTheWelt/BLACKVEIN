@@ -20,6 +20,38 @@ W2.2.2 closes this gap by:
 2. Defining which fields are *protected* (deny-by-default)
 3. Enforcing mutation permission in the validation pipeline, before state application
 
+### Canonical State Structure
+
+The `canonical_state` dict contains game-world state. Example shape:
+```python
+canonical_state = {
+    "characters": {
+        "veronique": {
+            "emotional_state": 50,          # AI mutable
+            "stance": 45,                   # AI mutable
+            "tension": 75,                  # AI mutable
+            "_internal_cache": {...},       # Protected (internal)
+        }
+    },
+    "relationships": {
+        "veronique_catherine": {
+            "value": 30,                    # AI mutable
+        }
+    },
+    "scene_state": {
+        "kitchen": {
+            "pressure": 60,                 # AI mutable
+            "conflict": 40,                 # AI mutable
+        }
+    },
+    "conflict_state": {
+        "escalation": 70,                   # AI mutable
+        "intensity": 0.85,                  # AI mutable
+    },
+    "metadata": {...},                      # Protected
+    "runtime": {...},                       # Protected
+}
+
 ---
 
 ## Design
@@ -82,8 +114,9 @@ class MutationPolicy:
     """Defines canonical AI mutation permission rules."""
 
     ALLOWED_DOMAINS = {"characters", "relationships", "scene_state", "conflict_state"}
-    PROTECTED_DOMAINS = {"metadata", "runtime", "system", "logs", "decision", "session", "turn", "cache"}
+    PROTECTED_DOMAINS = {"metadata", "runtime", "system", "logs", "session", "turn"}
 
+    # Patterns matched using fnmatch-style (glob): * = any single path component, ? = single char
     WHITELIST_PATTERNS = [
         "characters.*.emotional_state",
         "characters.*.stance",
@@ -95,35 +128,63 @@ class MutationPolicy:
         "conflict_state.*.intensity",
     ]
 
+    # Patterns that always block mutations (checked first)
     BLOCKED_PATTERNS = [
-        "*.metadata",
-        "*._*",
-        "*.__*",
-        "runtime.*",
-        "system.*",
-        "logs.*",
-        "decision.*",
-        "session.*",
-        "turn.*",
-        "cache.*",
-        "*_internal",
-        "*_derived",
+        "metadata.*",           # All metadata fields
+        "runtime.*",            # All runtime configuration
+        "system.*",             # All system fields
+        "logs.*",               # All event/decision logs
+        "session.*",            # Session identity
+        "turn.*",               # Turn metadata
+        "*._*",                 # Any field starting with underscore (internal)
+        "*.__*",                # Any field starting with double underscore
+        "*.cache",              # Any .cache field
+        "*.cached_*",           # Any .cached_* field
     ]
 
     @staticmethod
     def is_mutation_allowed(target_path: str) -> tuple[bool, str | None]:
-        """Check if a target path is allowed to be mutated by AI.
+        """Check if target_path is allowed to be mutated by AI.
 
-        Returns (allowed, reason) where reason is None if allowed, or error message if blocked.
-        Deny-by-default: only whitelisted patterns are allowed.
+        Algorithm (deny-by-default):
+        1. Check if path matches ANY blocked pattern (fail immediately)
+        2. Check if path matches ANY whitelist pattern (allow)
+        3. Otherwise reject (deny by default)
+
+        Args:
+            target_path: Dot-notation path (e.g., "characters.veronique.emotional_state")
+
+        Returns:
+            (is_allowed, reason_if_blocked)
+            If allowed: (True, None)
+            If blocked: (False, "reason string describing which rule blocked it")
         """
+        # Implementation: use fnmatch to match patterns
+        # Return (True, None) if whitelisted, (False, reason) if blocked or not matched
         ...
 
     @staticmethod
     def get_protection_reason(target_path: str) -> str | None:
-        """Get the protection reason if a path is blocked, else None."""
+        """If path is blocked, return human-readable reason; else None."""
         ...
 ```
+
+### Pattern Matching Semantics
+
+**Pattern Format:** fnmatch-style glob patterns with dot-separated components.
+- `*` = matches any single path component (not recursive)
+- Example: `characters.*.emotional_state` matches `characters.veronique.emotional_state` and `characters.catherine.emotional_state`
+- Each pattern is split by `.` and matched component-by-component
+
+**Hierarchical Blocking:** Blocked patterns block all descendants.
+- `session.*` blocks `session.id`, `session.created_at`, `session.id.value`, etc.
+- `metadata.*` blocks all fields under metadata at any nesting depth
+- Implementation: pattern is matched as-is; if `session.*` matches, it blocks the path and all longer paths with `session` as root
+
+**Algorithm (order matters):**
+1. Check blocked patterns first (fail-fast) — if ANY blocked pattern matches, reject immediately
+2. Check whitelist patterns — if ANY whitelist pattern matches, allow
+3. Otherwise reject (deny by default)
 
 ### Integration into Validation Pipeline
 
@@ -136,9 +197,19 @@ def validate_mutation_permission(target_path: str) -> tuple[bool, str | None]:
 
     Called after path-existence validation, before state mutation.
     Checks against MutationPolicy whitelist/blocked patterns.
+
+    Args:
+        target_path: Dot-notation path (e.g., "characters.veronique.emotional_state")
+
+    Returns:
+        (is_allowed, error_message or None)
     """
     from app.runtime.mutation_policy import MutationPolicy
-    return MutationPolicy.is_mutation_allowed(target_path)
+    is_allowed, reason = MutationPolicy.is_mutation_allowed(target_path)
+    if is_allowed:
+        return True, None
+    else:
+        return False, f"Mutation blocked: '{target_path}' — {reason}"
 ```
 
 Updated validation flow in `_validate_delta()`:
@@ -147,7 +218,7 @@ Updated validation flow in `_validate_delta()`:
 2. Check path format (dot-notation)
 3. Check path exists in canonical_state  ← existing
 4. Check mutation permission           ← NEW: validate_mutation_permission()
-5. If blocked: add to rejected_deltas
+5. If blocked: add to rejected_deltas, record error
 6. If allowed: proceed to state application
 ```
 
@@ -170,20 +241,108 @@ result: rejected_delta with explicit reason
 
 **File:** `backend/tests/runtime/test_mutation_policy.py`
 
-Test classes:
-1. **TestMutationPolicyWhitelist** — verify allowed patterns are accepted
-2. **TestMutationPolicyBlocked** — verify blocked patterns are rejected
-3. **TestProtectedDomains** — verify protected domains cannot be mutated
-4. **TestPermissionVsPathValidity** — verify path can exist but mutation still blocked
-5. **TestIntegration** — mutations flow through full validation pipeline
+#### Test Classes and Examples
 
-Key test cases:
-- ✅ `characters.veronique.emotional_state` — allowed
-- ❌ `session.status` — protected domain
-- ❌ `characters.veronique._internal_flag` — internal field
-- ❌ `canonical_state.metadata.created_at` — protected metadata
-- ✅ Path exists but mutation blocked (valid path ≠ allowed mutation)
-- ✅ Rejected mutations visible in `TurnExecutionResult`
+**1. TestMutationPolicyWhitelist** — verify whitelisted patterns are allowed
+```python
+def test_characters_emotional_state_allowed():
+    """characters.*.emotional_state is in whitelist."""
+    assert MutationPolicy.is_mutation_allowed("characters.veronique.emotional_state") == (True, None)
+
+def test_relationships_value_allowed():
+    """relationships.*.value is in whitelist."""
+    assert MutationPolicy.is_mutation_allowed("relationships.veronique_catherine.value") == (True, None)
+
+def test_conflict_state_escalation_allowed():
+    """conflict_state.*.escalation is in whitelist."""
+    assert MutationPolicy.is_mutation_allowed("conflict_state.kitchen.escalation") == (True, None)
+```
+
+**2. TestMutationPolicyBlocked** — verify blocked patterns are rejected
+```python
+def test_session_domain_blocked():
+    """session.* is in blocked patterns."""
+    allowed, reason = MutationPolicy.is_mutation_allowed("session.id")
+    assert not allowed
+    assert "blocked" in reason.lower()
+
+def test_internal_fields_blocked():
+    """*._* pattern blocks fields starting with underscore."""
+    allowed, reason = MutationPolicy.is_mutation_allowed("characters.veronique._cache")
+    assert not allowed
+
+def test_metadata_domain_blocked():
+    """metadata.* is in blocked patterns."""
+    allowed, reason = MutationPolicy.is_mutation_allowed("metadata.created_at")
+    assert not allowed
+```
+
+**3. TestProtectedDomains** — verify protected domains cannot be mutated
+```python
+def test_runtime_domain_blocked():
+    """runtime.* is protected."""
+    assert not MutationPolicy.is_mutation_allowed("runtime.execution_mode")[0]
+    assert not MutationPolicy.is_mutation_allowed("runtime.adapter_name")[0]
+
+def test_turn_domain_blocked():
+    """turn.* is protected."""
+    assert not MutationPolicy.is_mutation_allowed("turn.number")[0]
+    assert not MutationPolicy.is_mutation_allowed("turn.session_id")[0]
+
+def test_logs_domain_blocked():
+    """logs.* is protected."""
+    assert not MutationPolicy.is_mutation_allowed("logs.events")[0]
+    assert not MutationPolicy.is_mutation_allowed("logs.decision_log")[0]
+```
+
+**4. TestPermissionVsPathValidity** — path can exist but mutation still blocked
+```python
+def test_valid_path_blocked_mutation():
+    """session.id is a valid SessionState field but mutation is blocked.
+
+    This verifies the key principle: path validity ≠ mutation permission.
+    A field can exist in canonical_state (valid path) but AI cannot mutate it.
+    """
+    # session.id is a valid field in canonical_state
+    # but it's in the protected domain
+    allowed, reason = MutationPolicy.is_mutation_allowed("session.id")
+    assert not allowed
+    assert "protected" in reason.lower() or "blocked" in reason.lower()
+```
+
+**5. TestIntegration** — mutations flow through full validation pipeline
+```python
+def test_rejected_mutation_in_result():
+    """Rejected mutations appear in TurnExecutionResult.rejected_deltas.
+
+    End-to-end: delta with blocked path → validation rejects it →
+    result captures rejection with reason.
+    """
+    delta = ProposedStateDelta(
+        target="session.status",
+        next_value="ended"
+    )
+    # Validation calls MutationPolicy and rejects
+    # Delta appears in rejected_deltas with error message
+
+def test_allowed_mutation_in_result():
+    """Allowed mutations appear in TurnExecutionResult.accepted_deltas."""
+    delta = ProposedStateDelta(
+        target="characters.veronique.emotional_state",
+        next_value=75
+    )
+    # Validation calls MutationPolicy and allows
+    # Delta appears in accepted_deltas
+```
+
+#### Test Coverage
+
+- ✅ Whitelist patterns: all 8 patterns tested
+- ✅ Blocked patterns: all 10 patterns tested
+- ✅ Edge cases: hierarchical blocking (`session.*` blocks descendants), internal fields (`_*`), cached fields
+- ✅ Permission ≠ Validity: path exists but blocked example
+- ✅ Integration: rejected mutations visible in result
+- ✅ Error messages: clear and actionable
 
 ---
 
