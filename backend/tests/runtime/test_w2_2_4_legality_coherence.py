@@ -377,3 +377,155 @@ class TestNoIllegalNarrativeForcing:
         outcome = validate_decision(decision, session_s2, gated_module)
         assert not outcome.is_valid
         assert any("reachable" in e.lower() for e in outcome.errors)
+
+
+class TestTurnExecutorLegalityEnforcement:
+    """Verify actual turn execution enforces canonical legality (W2.2.4 runtime repair)."""
+
+    @pytest.fixture
+    def conditional_module(self):
+        """Module with only conditional transition from s2 to s3."""
+        metadata = ModuleMetadata(
+            module_id="conditional",
+            title="Conditional",
+            version="0.1.0",
+            contract_version="1.0.0",
+        )
+
+        scenes = {
+            "s1": ScenePhase(id="s1", name="S1", sequence=1, description=""),
+            "s2": ScenePhase(id="s2", name="S2", sequence=2, description=""),
+            "s3": ScenePhase(id="s3", name="S3", sequence=3, description=""),
+        }
+
+        transitions = {
+            "t_conditional": PhaseTransition(
+                id="t_conditional",
+                from_phase="s2",
+                to_phase="s3",
+                trigger_conditions=["unlock"],
+            ),
+        }
+
+        return ContentModule(
+            metadata=metadata,
+            scene_phases=scenes,
+            phase_transitions=transitions,
+            ending_conditions={},
+            characters={},
+            relationship_axes={},
+            triggers={},
+            assertions={},
+        )
+
+    @pytest.fixture
+    def session_s2(self):
+        """Session at s2."""
+        return SessionState(
+            session_id="test",
+            module_id="conditional",
+            module_version="0.1.0",
+            current_scene_id="s2",
+            status=SessionStatus.ACTIVE,
+            canonical_state={},
+        )
+
+    def test_execute_turn_applies_legal_scene_transition(self, conditional_module, session_s2):
+        """execute_turn applies scene transition when canonical legality check passes."""
+        import asyncio
+        from app.runtime.turn_executor import MockDecision, execute_turn
+
+        # Propose transition s2->s3 with required trigger detected
+        decision = MockDecision(
+            proposed_scene_id="s3",
+            proposed_deltas=[],
+            detected_triggers=["unlock"],  # Provides required trigger evidence
+        )
+
+        result = asyncio.run(
+            execute_turn(session_s2, 1, decision, module=conditional_module)
+        )
+
+        assert result.execution_status == "success"
+        assert result.updated_scene_id == "s3"
+        assert any(e.event_type == "scene_changed" for e in result.events)
+
+    def test_execute_turn_blocks_illegal_scene_transition(self, conditional_module, session_s2):
+        """execute_turn blocks scene transition when canonical legality check fails."""
+        import asyncio
+        from app.runtime.turn_executor import MockDecision, execute_turn
+
+        # Propose transition s2->s3 WITHOUT required trigger
+        decision = MockDecision(
+            proposed_scene_id="s3",
+            proposed_deltas=[],
+            detected_triggers=[],  # Missing required "unlock" trigger
+        )
+
+        result = asyncio.run(
+            execute_turn(session_s2, 1, decision, module=conditional_module)
+        )
+
+        assert result.execution_status == "success"
+        # Scene should NOT change because legality check failed
+        assert result.updated_scene_id == "s2"
+        # Should log scene_transition_blocked event
+        assert any(e.event_type == "scene_transition_blocked" for e in result.events)
+
+    def test_execute_turn_allows_legal_conditional_transition(self, conditional_module, session_s2):
+        """Turn execution uses actual detected_triggers from execution (not validation time)."""
+        import asyncio
+        from app.runtime.turn_executor import MockDecision, execute_turn
+
+        # This transition would be rejected by validator (detected_triggers=None),
+        # but accepted by executor (detected_triggers=["unlock"])
+        decision = MockDecision(
+            proposed_scene_id="s3",
+            proposed_deltas=[],
+            detected_triggers=["unlock"],  # Available at execution time
+        )
+
+        # Validator would reject this
+        from app.runtime.validators import validate_decision
+        validation = validate_decision(decision, session_s2, conditional_module)
+        assert not validation.is_valid  # Validator rejects (no evidence at validation time)
+
+        # But executor should apply it (evidence available at execution time)
+        result = asyncio.run(
+            execute_turn(session_s2, 1, decision, module=conditional_module)
+        )
+        assert result.execution_status == "success"
+        assert result.updated_scene_id == "s3"  # Executor allows it
+
+    def test_ending_legality_checked_in_execution(self, conditional_module, session_s2):
+        """Turn execution checks ending legality and includes it in result."""
+        import asyncio
+        from app.runtime.turn_executor import MockDecision, execute_turn
+        from app.content.module_models import EndingCondition
+
+        # Create module with unconditional ending
+        ending_module = conditional_module
+        ending_module.ending_conditions = {
+            "end_default": EndingCondition(
+                id="end_default",
+                name="Default",
+                description="Default ending",
+                trigger_conditions=[],
+                outcome={"type": "default"},
+            )
+        }
+
+        decision = MockDecision(
+            proposed_scene_id="s3",
+            proposed_deltas=[],
+            detected_triggers=["unlock"],
+        )
+
+        result = asyncio.run(
+            execute_turn(session_s2, 1, decision, module=ending_module)
+        )
+
+        assert result.execution_status == "success"
+        # Unconditional ending should be detected
+        assert result.updated_ending_id == "end_default"
+        assert any(e.event_type == "ending_triggered" for e in result.events)

@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
+from app.runtime.scene_legality import SceneTransitionLegality
 from app.runtime.validators import ValidationOutcome, validate_decision
 from app.runtime.w2_models import (
     DeltaType,
@@ -86,7 +87,8 @@ class TurnExecutionResult(BaseModel):
         accepted_deltas: StateDelta objects that passed validation and were applied.
         rejected_deltas: StateDelta objects that failed validation.
         updated_canonical_state: Full canonical state after applying deltas.
-        updated_scene_id: Scene ID after execution (if changed).
+        updated_scene_id: Scene ID after execution (if changed, via canonical legality check).
+        updated_ending_id: Ending ID if an ending was triggered (via canonical legality check).
         failure_reason: Explicit classification of any failure (generation, parsing, validation, or none).
         started_at: Timestamp when turn execution began.
         completed_at: Timestamp when turn execution completed.
@@ -104,6 +106,7 @@ class TurnExecutionResult(BaseModel):
     rejected_deltas: list[StateDelta] = Field(default_factory=list)
     updated_canonical_state: dict[str, Any] = Field(default_factory=dict)
     updated_scene_id: str | None = None
+    updated_ending_id: str | None = None
     failure_reason: ExecutionFailureReason = ExecutionFailureReason.NONE
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime | None = None
@@ -463,10 +466,20 @@ async def execute_turn(
             },
         )
 
-        # Step 4: Handle scene transition
+        # Step 4: Handle scene transition (W2.2.4 - enforce canonical legality)
         updated_scene_id = session.current_scene_id
+        updated_ending_id = None
+
+        # Check scene transition legality using canonical rules
         if mock_decision.proposed_scene_id:
-            if mock_decision.proposed_scene_id in module.scene_phases:
+            legality_decision = SceneTransitionLegality.check_transition_legal(
+                session.current_scene_id,
+                mock_decision.proposed_scene_id,
+                module,
+                session=session,
+                detected_triggers=mock_decision.detected_triggers  # Use actual triggers from execution
+            )
+            if legality_decision.allowed:
                 updated_scene_id = mock_decision.proposed_scene_id
                 event_log.log(
                     "scene_changed",
@@ -476,6 +489,35 @@ async def execute_turn(
                         "to_scene": updated_scene_id,
                     },
                 )
+            else:
+                # Scene transition was rejected by canonical legality rules
+                # Log this for debugging - decision passed validation but doesn't meet execution criteria
+                event_log.log(
+                    "scene_transition_blocked",
+                    f"Scene transition to {mock_decision.proposed_scene_id} blocked: {legality_decision.reason}",
+                    payload={
+                        "from_scene": session.current_scene_id,
+                        "proposed_scene": mock_decision.proposed_scene_id,
+                        "reason": legality_decision.reason,
+                    },
+                )
+
+        # Step 4.5: Check ending legality (W2.2.4 - ending coherence)
+        # Determine if any ending is legal at current scene with detected triggers
+        ending_id, ending_legality = SceneTransitionLegality.check_ending_legal(
+            module,
+            session=session,
+            detected_triggers=mock_decision.detected_triggers
+        )
+        if ending_id and ending_legality.allowed:
+            updated_ending_id = ending_id
+            event_log.log(
+                "ending_triggered",
+                f"Ending triggered: {ending_id}",
+                payload={
+                    "ending_id": ending_id,
+                },
+            )
 
         # Step 5: Finalize
         completed_at = datetime.now(timezone.utc)
@@ -504,6 +546,7 @@ async def execute_turn(
             rejected_deltas=rejected_deltas,
             updated_canonical_state=updated_state,
             updated_scene_id=updated_scene_id,
+            updated_ending_id=updated_ending_id,
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,

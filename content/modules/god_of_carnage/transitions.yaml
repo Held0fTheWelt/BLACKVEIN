@@ -6,9 +6,7 @@ phase_transitions:
     from_phase: phase_1
     to_phase: phase_2
     trigger_conditions:
-      - "First substantive disagreement on parenting responsibility emerges"
-      - "Character emotional_state exceeds 60"
-      - "Any character breaks civility (civility_required constraint lifted)"
+      - "contradiction"
     engine_checks:
       - "Monitor for contradiction trigger activation"
       - "Track position divergence across relationship axes"
@@ -19,9 +17,7 @@ phase_transitions:
     from_phase: phase_2
     to_phase: phase_3
     trigger_conditions:
-      - "Spousal alignment breaks (axis_1 stability drops below 50)"
-      - "Character changes alliance mid-argument"
-      - "Relationship axis shift detected (axis_1 or axis_2)"
+      - "relativization"
     engine_checks:
       - "Verify at least one axis has shifted"
       - "Check relationship_stability for affected pairings"
@@ -32,10 +28,7 @@ phase_transitions:
     from_phase: phase_3
     to_phase: phase_4
     trigger_conditions:
-      - "Emotional control visibly weakening (voices rising)"
-      - "Relationship stability drops below civility threshold (50)"
-      - "Personal insults or attacks begin"
-      - "Civility explicitly abandoned by at least one character"
+      - "cynicism"
     engine_checks:
       - "Check relationship_stability < 50"
       - "Verify emotional_state escalating rapidly"
@@ -46,9 +39,7 @@ phase_transitions:
     from_phase: phase_4
     to_phase: phase_5
     trigger_conditions:
-      - "Escalation reaches critical threshold (escalation_level > 85)"
-      - "OR: Recovery impulse appears (apology, de-escalation attempt)"
-      - "Character reaches emotional breakdown (emotional_state > 90)"
+      - "collapse_indicators"
     engine_checks:
       - "Check escalation_level >= 85 OR emotional_state >= 90"
       - "Look for collapse_indicators or retreat_signals"

@@ -651,12 +651,13 @@ class TestExecuteTurn:
     def test_execute_turn_scene_transition(
         self, god_of_carnage_module, god_of_carnage_module_with_state
     ):
-        """Execute turn applies valid scene transitions."""
+        """Execute turn applies valid scene transitions via canonical legality (W2.2.4)."""
         session = god_of_carnage_module_with_state
-        # god_of_carnage has phase_2 as a valid scene
+        # god_of_carnage phase_1->phase_2 has conditions; provide triggers that logically match
         decision = MockDecision(
             proposed_deltas=[],
             proposed_scene_id="phase_2",
+            detected_triggers=["contradiction"],  # Provide trigger evidence for transition
         )
 
         result = asyncio.run(
@@ -858,7 +859,7 @@ class TestExecuteTurn:
         session = god_of_carnage_module_with_state
 
         decision = MockDecision(
-            detected_triggers=["test_trigger"],
+            detected_triggers=["contradiction"],  # phase_1->phase_2 requires contradiction trigger (W2.2.4)
             proposed_deltas=[
                 ProposedStateDelta(
                     target="characters.veronique.emotional_state",
@@ -1027,7 +1028,7 @@ class TestExecuteTwoTurnSequence:
 
         # Turn 2: Further escalation and phase transition
         decision2 = MockDecision(
-            detected_triggers=["escalation_critical"],
+            detected_triggers=["contradiction"],  # phase_1->phase_2 requires contradiction trigger (W2.2.4)
             proposed_deltas=[
                 ProposedStateDelta(
                     target="characters.veronique.emotional_state",
