@@ -366,6 +366,43 @@ class TestExecuteTurnWithAI:
         # Delta should be in rejected_deltas, not accepted_deltas
         assert len(result.rejected_deltas) > 0
 
+    def test_malformed_adapter_output_logs_error_decision(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Malformed AI output creates decision log with ERROR outcome."""
+        from app.runtime.w2_models import AIValidationOutcome
+
+        session = god_of_carnage_module_with_state
+        malformed = {
+            "scene_interpretation": "Test",
+            "detected_triggers": [],
+            "proposed_state_deltas": [],
+            # Missing: "rationale"
+        }
+        adapter = DeterministicAIAdapter(payload=malformed)
+
+        result = asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=session.turn_counter + 1,
+                adapter=adapter,
+                module=god_of_carnage_module,
+            )
+        )
+
+        # Verify execution failed
+        assert result.execution_status == "system_error"
+
+        # Verify decision log was created with error state
+        assert "ai_decision_logs" in session.metadata
+        assert len(session.metadata["ai_decision_logs"]) == 1
+
+        decision_log = session.metadata["ai_decision_logs"][0]
+        assert decision_log.validation_outcome == AIValidationOutcome.ERROR
+        assert decision_log.parsed_output is None
+        assert decision_log.guard_notes is not None
+        assert "parse_error" in decision_log.guard_notes
+
     def test_successful_ai_turn_creates_decision_log(
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
