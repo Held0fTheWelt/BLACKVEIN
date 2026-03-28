@@ -302,3 +302,33 @@ class TestCanonicalAIPathFailure:
         assert result.execution_status == "system_error"
         # Verify error was captured
         clear_registry()
+
+
+class TestCanonicalMockPath:
+    """Test mock path execution through canonical dispatcher."""
+
+    @pytest.mark.asyncio
+    async def test_mock_path_through_dispatcher(
+        self, god_of_carnage_module
+    ):
+        """Mock path works through same canonical dispatcher.
+
+        Verifies: dispatcher correctly routes mock mode, mock path unchanged
+        """
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="mock",
+            adapter_name="mock",  # Won't be used in mock mode
+        )
+        session.canonical_state = {"characters": {}}
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        assert result.execution_status == "success"
+        assert result.turn_number == 1
