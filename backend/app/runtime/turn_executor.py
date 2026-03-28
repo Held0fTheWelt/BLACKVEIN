@@ -23,6 +23,7 @@ from app.runtime.w2_models import (
     DeltaType,
     DeltaValidationStatus,
     EventLogEntry,
+    ExecutionFailureReason,
     SessionState,
     StateDelta,
     TurnStatus,
@@ -86,6 +87,7 @@ class TurnExecutionResult(BaseModel):
         rejected_deltas: StateDelta objects that failed validation.
         updated_canonical_state: Full canonical state after applying deltas.
         updated_scene_id: Scene ID after execution (if changed).
+        failure_reason: Explicit classification of any failure (generation, parsing, validation, or none).
         started_at: Timestamp when turn execution began.
         completed_at: Timestamp when turn execution completed.
         duration_ms: Execution time in milliseconds.
@@ -102,6 +104,7 @@ class TurnExecutionResult(BaseModel):
     rejected_deltas: list[StateDelta] = Field(default_factory=list)
     updated_canonical_state: dict[str, Any] = Field(default_factory=dict)
     updated_scene_id: str | None = None
+    failure_reason: ExecutionFailureReason = ExecutionFailureReason.NONE
     started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: datetime | None = None
     duration_ms: float = 0.0

@@ -25,3 +25,19 @@ def test_execution_failure_reason_enum_exists():
     assert hasattr(ExecutionFailureReason, 'PARSING_ERROR')
     assert hasattr(ExecutionFailureReason, 'VALIDATION_ERROR')
     assert hasattr(ExecutionFailureReason, 'NONE')  # For successful executions
+
+
+def test_turn_execution_result_has_failure_reason():
+    """TurnExecutionResult tracks explicit failure reason."""
+    from app.runtime.turn_executor import TurnExecutionResult
+    from app.runtime.w2_models import ExecutionFailureReason
+
+    result = TurnExecutionResult(
+        turn_number=1,
+        session_id="test",
+        execution_status="system_error",
+        decision=MockDecision(),
+        failure_reason=ExecutionFailureReason.GENERATION_ERROR,
+    )
+
+    assert result.failure_reason == ExecutionFailureReason.GENERATION_ERROR
