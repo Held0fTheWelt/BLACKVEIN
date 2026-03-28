@@ -19,6 +19,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from app.runtime.decision_policy import AIActionType
+
 
 # ===== Session Models =====
 
@@ -206,6 +208,34 @@ class ExecutionFailureReason(str, Enum):
     GENERATION_ERROR = "generation_error"  # Adapter failed to generate
     PARSING_ERROR = "parsing_error"  # Could not parse output
     VALIDATION_ERROR = "validation_error"  # Runtime validation rejected changes
+
+
+class AIDecisionAction(BaseModel):
+    """An AI decision action with explicit type and validation context.
+
+    Wraps a decision proposal with an explicit action type from the canonical taxonomy.
+
+    Attributes:
+        action_type: The explicit action type from AIActionType
+        target_path: Target for state/relationship updates (required for STATE_UPDATE, RELATIONSHIP_SHIFT)
+        next_value: Proposed value (required for STATE_UPDATE, RELATIONSHIP_SHIFT)
+        scene_id: Scene ID for transitions (required for SCENE_TRANSITION)
+        trigger_ids: Trigger IDs for assertions (required for TRIGGER_ASSERTION)
+        character_id: Character ID for impulses (required for DIALOGUE_IMPULSE)
+        impulse_text: Impulse text (required for DIALOGUE_IMPULSE)
+        intensity: 0.0-1.0 intensity/confidence
+        rationale: Reasoning for this action
+    """
+
+    action_type: str  # Must be a valid AIActionType value
+    target_path: str | None = None
+    next_value: Any = None
+    scene_id: str | None = None
+    trigger_ids: list[str] | None = None
+    character_id: str | None = None
+    impulse_text: str | None = None
+    intensity: float | None = None
+    rationale: str = ""
 
 
 class AIValidationOutcome(str, Enum):
