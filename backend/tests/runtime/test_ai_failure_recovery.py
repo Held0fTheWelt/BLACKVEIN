@@ -786,3 +786,232 @@ class TestSafeTurnPolicy:
         invariants = SafeTurnPolicy.get_safe_turn_invariants()
         # Invariant: turn counter always increases
         assert "turn_counter_advances" in invariants
+
+
+class TestStateSnapshot:
+    """Verify W2.5.6 StateSnapshot captures and validates state correctly."""
+
+    def test_state_snapshot_captures_essential_state(self):
+        """StateSnapshot captures turn counter and canonical state."""
+        from app.runtime.ai_failure_recovery import StateSnapshot
+
+        snapshot = StateSnapshot(
+            turn_number=3,
+            canonical_state={"characters": {"alice": {"mood": 50}}},
+            snapshot_reason="pre_ai_execution",
+        )
+
+        assert snapshot.turn_number == 3
+        assert snapshot.canonical_state == {"characters": {"alice": {"mood": 50}}}
+        assert snapshot.snapshot_reason == "pre_ai_execution"
+
+    def test_state_snapshot_has_timestamp(self):
+        """StateSnapshot includes timestamp for auditability."""
+        from app.runtime.ai_failure_recovery import StateSnapshot
+        from datetime import datetime, timezone
+
+        before = datetime.now(timezone.utc)
+        snapshot = StateSnapshot(
+            turn_number=1,
+            canonical_state={},
+            snapshot_reason="test",
+        )
+        after = datetime.now(timezone.utc)
+
+        assert before <= snapshot.created_at <= after
+
+    def test_state_snapshot_validates_before_restore(self):
+        """StateSnapshot.is_valid_for_restore() checks snapshot soundness."""
+        from app.runtime.ai_failure_recovery import StateSnapshot
+
+        # Valid snapshot
+        valid = StateSnapshot(
+            turn_number=5,
+            canonical_state={"characters": {}},
+            snapshot_reason="test",
+        )
+        assert valid.is_valid_for_restore() is True
+
+        # Invalid: negative turn
+        invalid_turn = StateSnapshot(
+            turn_number=-1,
+            canonical_state={"characters": {}},
+            snapshot_reason="test",
+        )
+        assert invalid_turn.is_valid_for_restore() is False
+
+        # Invalid: turn zero is valid, but we test non-negative
+        # (Pydantic enforces dict type, so we can't test None)
+
+
+class TestRestorePolicy:
+    """Verify W2.5.6 canonical last-valid-state restore mechanism."""
+
+    def test_restore_policy_identifies_last_valid_state(self):
+        """RestorePolicy.is_last_valid_state() checks pre-execution snapshot."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        # Pre-execution snapshot of retry exhaustion = last valid
+        assert RestorePolicy.is_last_valid_state(
+            failure_class=AIFailureClass.RETRY_EXHAUSTED,
+            is_pre_execution_snapshot=True,
+        ) is True
+
+        # Post-execution snapshot is NOT last valid (may be corrupted)
+        assert RestorePolicy.is_last_valid_state(
+            failure_class=AIFailureClass.RETRY_EXHAUSTED,
+            is_pre_execution_snapshot=False,
+        ) is False
+
+        # Non-restoreable failures don't count as "last valid" scenario
+        assert RestorePolicy.is_last_valid_state(
+            failure_class=AIFailureClass.PARSE_FAILURE,
+            is_pre_execution_snapshot=True,
+        ) is False
+
+    def test_restore_policy_requires_restore_for_exhausted_failures(self):
+        """RestorePolicy.should_require_restore() triggers for RESTORE action."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        # Retry exhausted + RESTORE action = requires restore
+        assert RestorePolicy.should_require_restore(
+            failure_class=AIFailureClass.RETRY_EXHAUSTED,
+            recovery_action=RecoveryAction.RESTORE,
+        ) is True
+
+        # Retry exhausted + SAFE_TURN action = does NOT require restore
+        # (safe-turn is already non-mutating)
+        assert RestorePolicy.should_require_restore(
+            failure_class=AIFailureClass.RETRY_EXHAUSTED,
+            recovery_action=RecoveryAction.SAFE_TURN,
+        ) is False
+
+        # Non-restore failures never require restore
+        assert RestorePolicy.should_require_restore(
+            failure_class=AIFailureClass.PARSE_FAILURE,
+            recovery_action=RecoveryAction.RESTORE,
+        ) is False
+
+    def test_restore_policy_applies_snapshot_to_clean_state(self):
+        """RestorePolicy.apply_restore() replaces corrupted state with snapshot."""
+        from app.runtime.ai_failure_recovery import RestorePolicy, StateSnapshot
+
+        # Original snapshot (clean)
+        snapshot = StateSnapshot(
+            turn_number=2,
+            canonical_state={"characters": {"bob": {"health": 100}}},
+            snapshot_reason="pre_execution",
+        )
+
+        # Corrupted state (bad turn mutation)
+        corrupted = {
+            "characters": {"bob": {"health": -50}, "corrupted": True},
+            "invalid_field": "should be removed",
+        }
+
+        # Restore
+        restored = RestorePolicy.apply_restore(corrupted, snapshot)
+
+        # Should match snapshot exactly (no corruption)
+        assert restored == {"characters": {"bob": {"health": 100}}}
+        assert "corrupted" not in restored
+        assert "invalid_field" not in restored
+
+    def test_restore_policy_deep_copies_snapshot(self):
+        """RestorePolicy.apply_restore() deep copies to prevent shared refs."""
+        from app.runtime.ai_failure_recovery import RestorePolicy, StateSnapshot
+
+        original_state = {"characters": {"alice": {"mood": 50}}}
+        snapshot = StateSnapshot(
+            turn_number=3,
+            canonical_state=original_state,
+            snapshot_reason="test",
+        )
+
+        # Restore
+        restored = RestorePolicy.apply_restore({}, snapshot)
+
+        # Mutate restored
+        restored["characters"]["alice"]["mood"] = 999
+
+        # Snapshot's state should be unchanged
+        assert snapshot.canonical_state["characters"]["alice"]["mood"] == 50
+
+    def test_restore_policy_validates_snapshot_before_restore(self):
+        """RestorePolicy.apply_restore() rejects invalid snapshots."""
+        from app.runtime.ai_failure_recovery import RestorePolicy, StateSnapshot
+
+        invalid_snapshot = StateSnapshot(
+            turn_number=-1,
+            canonical_state={},
+            snapshot_reason="test",
+        )
+
+        with pytest.raises(ValueError, match="not valid for restore"):
+            RestorePolicy.apply_restore({}, invalid_snapshot)
+
+    def test_restore_policy_marks_restore_in_metadata(self):
+        """RestorePolicy.get_restore_metadata() provides audit trail."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        metadata = RestorePolicy.get_restore_metadata(
+            failure_class=AIFailureClass.RETRY_EXHAUSTED,
+            snapshot_turn=5,
+            current_turn=5,
+        )
+
+        # Must mark as restored explicitly
+        assert metadata["restored"] is True
+        assert metadata["reason"] == "last_valid_state_restore"
+        assert metadata["failure_class"] == "retry_exhausted"
+        assert metadata["snapshot_turn"] == 5
+        assert metadata["current_turn"] == 5
+        assert metadata["recovered_to_turn"] == 5
+        assert metadata["turns_discarded"] == 0
+
+    def test_restore_policy_tracks_turns_discarded(self):
+        """RestorePolicy.get_restore_metadata() shows turns rolled back."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        # Snapshot taken at turn 3, restore at turn 7 (4 turns lost)
+        metadata = RestorePolicy.get_restore_metadata(
+            failure_class=AIFailureClass.UNEXPECTED_RUNTIME_ERROR,
+            snapshot_turn=3,
+            current_turn=7,
+        )
+
+        assert metadata["turns_discarded"] == 4
+        assert metadata["recovered_to_turn"] == 3
+
+    def test_restore_policy_semantics_are_defined(self):
+        """RestorePolicy.get_restore_semantics() defines restore rules."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        semantics = RestorePolicy.get_restore_semantics()
+
+        # Must have key semantics
+        assert "snapshot_validity" in semantics
+        assert "determinism" in semantics
+        assert "auditability" in semantics
+        assert "no_silent_mutation" in semantics
+        assert "partial_corruption_prevention" in semantics
+
+        # All should be non-empty strings
+        for key, value in semantics.items():
+            assert isinstance(value, str)
+            assert len(value) > 0
+
+    def test_restore_required_failures_set_is_explicit(self):
+        """RestorePolicy.RESTORE_REQUIRED_FAILURES is explicitly defined."""
+        from app.runtime.ai_failure_recovery import RestorePolicy
+
+        failures = RestorePolicy.RESTORE_REQUIRED_FAILURES
+
+        # Should be a set
+        assert isinstance(failures, set)
+        # Should include both restore-required failures
+        assert AIFailureClass.RETRY_EXHAUSTED in failures
+        assert AIFailureClass.UNEXPECTED_RUNTIME_ERROR in failures
+        # Should NOT include failures handled by other recovery
+        assert AIFailureClass.PARSE_FAILURE not in failures
+        assert AIFailureClass.STRUCTURALLY_INVALID_OUTPUT not in failures

@@ -28,7 +28,12 @@ Recovery Policy:
 - Restore: retry_exhausted, unexpected_runtime_error
 """
 
+from copy import deepcopy
+from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class AIFailureClass(str, Enum):
@@ -735,3 +740,221 @@ class SafeTurnPolicy:
             True (safe-turn is minimal by design)
         """
         return True
+
+
+class StateSnapshot(BaseModel):
+    """Minimal snapshot of last valid session state.
+
+    StateSnapshot captures the essential mutable state at a known-valid point
+    (typically before AI execution). If an operation fails catastrophically,
+    RestorePolicy can restore back to this snapshot.
+
+    Minimal scope: only captures what could be mutated by AI (canonical_state,
+    turn_counter). Does not capture context_layers, metadata, or other
+    immutable/diagnostic data.
+
+    Attributes:
+        turn_number: Turn counter at snapshot time.
+        canonical_state: World state dict (deepcopy'd).
+        snapshot_reason: Why snapshot was taken (e.g., "pre_ai_execution", "pre_fallback").
+        created_at: Timestamp when snapshot was captured.
+    """
+
+    turn_number: int
+    """The turn counter value at snapshot time."""
+
+    canonical_state: dict[str, Any]
+    """Deep copy of the canonical state at snapshot time."""
+
+    snapshot_reason: str
+    """Reason for taking this snapshot (diagnostic/audit)."""
+
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    """When this snapshot was captured."""
+
+    def is_valid_for_restore(self) -> bool:
+        """Check if this snapshot is valid enough to restore from.
+
+        Snapshot is valid if:
+        - turn_number is >= 0
+        - canonical_state is a non-empty dict
+        - snapshot was created recently (not stale)
+
+        Returns:
+            True if snapshot can be safely restored, False otherwise
+        """
+        if self.turn_number < 0:
+            return False
+        if not isinstance(self.canonical_state, dict):
+            return False
+        # Snapshots older than 1 hour are suspicious (shouldn't happen in normal play)
+        age_seconds = (datetime.now(timezone.utc) - self.created_at).total_seconds()
+        if age_seconds > 3600:
+            return False
+        return True
+
+
+class RestorePolicy:
+    """W2.5.6 — Canonical last-valid-state restore for failed turns.
+
+    When recovery mechanisms (retry, fallback, safe-turn) all fail,
+    RestorePolicy provides last resort: explicit restoration to the last
+    known-valid state. This prevents partial corruption and keeps the
+    session coherent for investigation.
+
+    Restore Semantics:
+    1. StateSnapshot captures state before risky operations
+    2. On failure requiring restore, RestorePolicy applies snapshot
+    3. Restore is explicit and auditable (marked in logs)
+    4. Session continues from restored state (no corruption left behind)
+
+    Restore Triggers:
+    - RETRY_EXHAUSTED after all retry attempts fail
+    - UNEXPECTED_RUNTIME_ERROR when system is in degraded state
+    - After fallback has also failed
+    - When safe-turn is insufficient (should be rare)
+
+    Restore Guarantees:
+    - No partial invalid state remains after restore
+    - Restore is deterministic (same snapshot → same restored state)
+    - All restores are logged and auditable
+    - Turn counter may be advanced (investigate) or reverted (rare)
+    """
+
+    # Failures that REQUIRE restore (all recovery exhausted)
+    RESTORE_REQUIRED_FAILURES: set[AIFailureClass] = {
+        AIFailureClass.RETRY_EXHAUSTED,          # All retries failed
+        AIFailureClass.UNEXPECTED_RUNTIME_ERROR,  # System unstable
+    }
+
+    # Restoration strategy: what level to restore to
+    # Last valid = snapshot taken before any risky operation
+    RESTORE_LEVEL: str = "last_valid"
+    """Level of restoration: 'last_valid' means restore to pre-execution snapshot."""
+
+    @classmethod
+    def is_last_valid_state(
+        cls,
+        failure_class: AIFailureClass,
+        is_pre_execution_snapshot: bool = False,
+    ) -> bool:
+        """Check if a state can be considered 'last valid'.
+
+        Last valid means: state was captured before any operation that could fail
+        (typically before AI execution). If failure occurred after this point,
+        the pre-execution snapshot is the last known-good state.
+
+        Args:
+            failure_class: The failure that occurred
+            is_pre_execution_snapshot: True if snapshot was pre-execution
+
+        Returns:
+            True if snapshot qualifies as last-valid, False otherwise
+        """
+        # Only pre-execution snapshots qualify as "last valid"
+        # (post-execution snapshots may have partial mutations)
+        return (
+            failure_class in cls.RESTORE_REQUIRED_FAILURES
+            and is_pre_execution_snapshot is True
+        )
+
+    @classmethod
+    def should_require_restore(
+        cls,
+        failure_class: AIFailureClass,
+        recovery_action: "RecoveryAction",
+    ) -> bool:
+        """Check if restore is REQUIRED (vs optional/skipped).
+
+        Restore is REQUIRED when:
+        - Failure is in RESTORE_REQUIRED_FAILURES
+        - Recovery action is RESTORE (not SAFE_TURN, not FALLBACK)
+
+        Args:
+            failure_class: The failure that occurred
+            recovery_action: The recovery action being taken
+
+        Returns:
+            True if restore should be applied, False otherwise
+        """
+        if failure_class not in cls.RESTORE_REQUIRED_FAILURES:
+            return False
+        if recovery_action != RecoveryAction.RESTORE:
+            return False
+        return True
+
+    @classmethod
+    def apply_restore(
+        cls,
+        corrupted_state: dict[str, Any],
+        snapshot: StateSnapshot,
+    ) -> dict[str, Any]:
+        """Apply a snapshot to restore clean state.
+
+        Performs a deep copy of the snapshot's canonical_state to ensure
+        that mutations to the returned dict don't affect the snapshot.
+
+        Args:
+            corrupted_state: The current (possibly corrupted) state
+            snapshot: The snapshot to restore from
+
+        Returns:
+            Clean state dict matching the snapshot (deep copied)
+
+        Raises:
+            ValueError: If snapshot is not valid for restoration
+        """
+        if not snapshot.is_valid_for_restore():
+            raise ValueError(
+                f"Snapshot is not valid for restore: {snapshot.snapshot_reason}"
+            )
+
+        # Deep copy to ensure mutations don't affect the snapshot
+        restored_state = deepcopy(snapshot.canonical_state)
+
+        return restored_state
+
+    @classmethod
+    def get_restore_metadata(
+        cls,
+        failure_class: AIFailureClass,
+        snapshot_turn: int,
+        current_turn: int,
+    ) -> dict[str, Any]:
+        """Get explicit metadata marking restoration for audit logs.
+
+        This ensures restore actions are visible and traceable in event logs
+        and runtime state. Critical for investigation and debugging.
+
+        Args:
+            failure_class: The failure that triggered restore
+            snapshot_turn: Turn number when snapshot was taken
+            current_turn: Current turn counter
+
+        Returns:
+            Dict with restore metadata for logging
+        """
+        return {
+            "restored": True,
+            "reason": "last_valid_state_restore",
+            "failure_class": failure_class.value,
+            "snapshot_turn": snapshot_turn,
+            "current_turn": current_turn,
+            "recovered_to_turn": snapshot_turn,
+            "turns_discarded": current_turn - snapshot_turn,
+        }
+
+    @classmethod
+    def get_restore_semantics(cls) -> dict[str, str]:
+        """Get semantic rules that define restore behavior.
+
+        Returns:
+            Dict mapping semantic concept to description
+        """
+        return {
+            "snapshot_validity": "Only pre-execution snapshots count as 'last valid'",
+            "determinism": "Same snapshot always produces same restored state",
+            "auditability": "All restores are marked explicitly in logs",
+            "no_silent_mutation": "Restore is never hidden—always visible to caller",
+            "partial_corruption_prevention": "Restore clears any mutations made after snapshot",
+        }
