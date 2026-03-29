@@ -201,3 +201,125 @@ class TestFailureRecoveryContractCompleteness:
             AIFailureClass.UNEXPECTED_RUNTIME_ERROR,
         ]
         assert set(safe_turn) & set(restore) == set()
+
+
+class TestRetryPolicy:
+    """Verify W2.5.2 canonical retry rules are explicit and bounded."""
+
+    def test_retryable_failures_are_defined(self):
+        """RetryPolicy defines exactly which failures are retryable."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        retryable = RetryPolicy.RETRYABLE_FAILURES
+        # Should be exactly the transient adapter failures
+        assert AIFailureClass.ADAPTER_ERROR in retryable
+        assert AIFailureClass.TIMEOUT_OR_EMPTY_RESPONSE in retryable
+        # Should NOT include structural, validation, or systematic failures
+        assert AIFailureClass.PARSE_FAILURE not in retryable
+        assert AIFailureClass.RESPONDER_VALIDATION_FAILURE not in retryable
+        assert AIFailureClass.RETRY_EXHAUSTED not in retryable
+
+    def test_max_retries_is_bounded(self):
+        """RetryPolicy defines a bounded max retry count."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        max_retries = RetryPolicy.MAX_RETRIES
+        # Must be explicitly defined
+        assert isinstance(max_retries, int)
+        # Must be > 0 (at least one retry allowed)
+        assert max_retries > 0
+        # Must be reasonable (not unlimited)
+        assert max_retries <= 10
+
+    def test_is_retryable_failure_for_adapter_error(self):
+        """Adapter errors are retryable."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        assert RetryPolicy.is_retryable_failure(AIFailureClass.ADAPTER_ERROR)
+
+    def test_is_retryable_failure_for_timeout(self):
+        """Timeout/empty response failures are retryable."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        assert RetryPolicy.is_retryable_failure(AIFailureClass.TIMEOUT_OR_EMPTY_RESPONSE)
+
+    def test_is_not_retryable_for_parse_failure(self):
+        """Parse failures are not retryable (structural issue)."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        assert not RetryPolicy.is_retryable_failure(AIFailureClass.PARSE_FAILURE)
+
+    def test_is_not_retryable_for_validation_failure(self):
+        """Validation failures are not retryable (will likely fail again)."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        assert not RetryPolicy.is_retryable_failure(AIFailureClass.RESPONDER_VALIDATION_FAILURE)
+        assert not RetryPolicy.is_retryable_failure(AIFailureClass.GUARD_REJECTION)
+
+    def test_should_retry_when_retryable_and_within_limit(self):
+        """should_retry returns True for retryable failures within limit."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        # First attempt of retryable failure should retry
+        assert RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=1)
+        # Second attempt should retry (if max >= 2)
+        if RetryPolicy.MAX_RETRIES >= 2:
+            assert RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=2)
+
+    def test_should_not_retry_when_not_retryable(self):
+        """should_retry returns False for non-retryable failures."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        assert not RetryPolicy.should_retry(AIFailureClass.PARSE_FAILURE, attempt=1)
+        assert not RetryPolicy.should_retry(AIFailureClass.RESPONDER_VALIDATION_FAILURE, attempt=1)
+
+    def test_should_not_retry_when_exhausted(self):
+        """should_retry returns False when max retries exceeded."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        max_retries = RetryPolicy.MAX_RETRIES
+        # At max attempt, should not retry
+        assert not RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=max_retries)
+        # Beyond max, should not retry
+        assert not RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=max_retries + 1)
+
+    def test_retry_exhaustion_failure_class(self):
+        """Exhausted retries map to RETRY_EXHAUSTED failure class."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        exhaustion_failure = RetryPolicy.get_exhaustion_failure()
+        assert exhaustion_failure == AIFailureClass.RETRY_EXHAUSTED
+
+    def test_retry_exhaustion_requires_restore(self):
+        """RETRY_EXHAUSTED requires RESTORE recovery (investigation)."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        exhaustion_failure = RetryPolicy.get_exhaustion_failure()
+        # Should require RESTORE recovery
+        assert FailureRecoveryPolicy.is_restore_required(exhaustion_failure)
+
+    def test_retry_policy_prevents_infinite_loops(self):
+        """RetryPolicy max retries prevent infinite retry loops."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        max_retries = RetryPolicy.MAX_RETRIES
+        # Simulate exhausting retries
+        for attempt in range(1, max_retries + 2):
+            if attempt <= max_retries:
+                # Early attempts should potentially retry
+                can_retry = RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt)
+                # At least some early attempts should be retryable
+                if attempt < max_retries:
+                    assert can_retry, f"Attempt {attempt} should be retryable"
+            else:
+                # Beyond max, should never retry
+                assert not RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt)
+
+    def test_retry_policy_is_deterministic(self):
+        """Retry decision is always the same for a given failure and attempt."""
+        from app.runtime.ai_failure_recovery import RetryPolicy
+
+        # Check determinism
+        decision1 = RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=1)
+        decision2 = RetryPolicy.should_retry(AIFailureClass.ADAPTER_ERROR, attempt=1)
+        assert decision1 == decision2

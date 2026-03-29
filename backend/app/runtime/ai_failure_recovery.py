@@ -207,3 +207,79 @@ class FailureRecoveryPolicy:
             True if recovery action is RESTORE, False otherwise
         """
         return cls.get_recovery_action(failure_class) == RecoveryAction.RESTORE
+
+
+class RetryPolicy:
+    """W2.5.2 — Canonical retry rules for recoverable failures.
+
+    Retry behavior is explicit and bounded:
+    - Only specific failure classes are retryable
+    - Retry count is bounded to prevent infinite loops
+    - Retry exhaustion is explicit and deterministic
+    """
+
+    # Retryable failure classes (transient/temporary issues)
+    RETRYABLE_FAILURES: set[AIFailureClass] = {
+        AIFailureClass.ADAPTER_ERROR,
+        AIFailureClass.TIMEOUT_OR_EMPTY_RESPONSE,
+    }
+
+    # Max retry attempts (bounded to prevent infinite loops)
+    MAX_RETRIES: int = 3
+
+    @classmethod
+    def is_retryable_failure(cls, failure_class: AIFailureClass) -> bool:
+        """Check if a failure class should trigger retry behavior.
+
+        Retryable failures are transient adapter issues that may succeed
+        on subsequent attempts.
+
+        Args:
+            failure_class: The failure class to check
+
+        Returns:
+            True if the failure should trigger retry, False otherwise
+        """
+        return failure_class in cls.RETRYABLE_FAILURES
+
+    @classmethod
+    def should_retry(cls, failure_class: AIFailureClass, attempt: int) -> bool:
+        """Determine if a turn should be retried.
+
+        Returns True if:
+        1. The failure is retryable AND
+        2. We haven't exceeded MAX_RETRIES yet
+
+        Args:
+            failure_class: The failure that occurred
+            attempt: The current attempt number (1-indexed)
+
+        Returns:
+            True if retry should be attempted, False otherwise
+        """
+        if not cls.is_retryable_failure(failure_class):
+            return False
+        if attempt >= cls.MAX_RETRIES:
+            return False
+        return True
+
+    @classmethod
+    def get_max_retries(cls) -> int:
+        """Get the maximum number of retry attempts.
+
+        Returns:
+            Maximum retry attempt count (bounded)
+        """
+        return cls.MAX_RETRIES
+
+    @classmethod
+    def get_exhaustion_failure(cls) -> AIFailureClass:
+        """Get the failure class assigned when retries are exhausted.
+
+        When a retryable failure exhausts max retries, it's reclassified as
+        RETRY_EXHAUSTED, which triggers RESTORE recovery (investigation needed).
+
+        Returns:
+            The failure class for exhausted retries
+        """
+        return AIFailureClass.RETRY_EXHAUSTED
