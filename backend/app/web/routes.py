@@ -622,3 +622,19 @@ def dashboard_api_logs_export():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment; filename=wos-activity-logs.csv"},
     )
+
+
+# ── W3.2: Session UI ──────────────────────────────────────────────────────────
+
+_AVAILABLE_MODULES = ["god_of_carnage"]
+
+@web_bp.route("/play")
+@require_web_login
+def session_start():
+    uid = session.get("user_id")
+    user = db.session.get(User, int(uid)) if uid else None
+    return render_template(
+        "session_start.html",
+        current_user=user,
+        available_modules=_AVAILABLE_MODULES,
+    )
