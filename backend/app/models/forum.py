@@ -67,7 +67,7 @@ class ForumThread(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    category = db.relationship("ForumCategory", backref="threads")
+    category = db.relationship("ForumCategory", backref=db.backref("threads", cascade="all, delete-orphan"))
     author = db.relationship("User", backref="forum_threads", foreign_keys=[author_id])
 
     def to_dict(self):
@@ -109,7 +109,7 @@ class ForumPost(db.Model):
     edited_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     deleted_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
-    thread = db.relationship("ForumThread", backref="posts", foreign_keys=[thread_id])
+    thread = db.relationship("ForumThread", backref=db.backref("posts", cascade="all, delete-orphan"), foreign_keys=[thread_id])
     author = db.relationship("User", foreign_keys=[author_id])
     parent_post = db.relationship("ForumPost", remote_side=[id], backref="replies", foreign_keys=[parent_post_id])
     editor = db.relationship("User", foreign_keys=[edited_by])
@@ -146,7 +146,7 @@ class ForumPostLike(db.Model):
         db.UniqueConstraint("post_id", "user_id", name="uq_forum_post_like_post_user"),
     )
 
-    post = db.relationship("ForumPost", backref="likes")
+    post = db.relationship("ForumPost", backref=db.backref("likes", cascade="all, delete-orphan"))
 
 
 class ForumReport(db.Model):
@@ -206,7 +206,7 @@ class ForumThreadSubscription(db.Model):
         db.UniqueConstraint("thread_id", "user_id", name="uq_forum_thread_subscription_thread_user"),
     )
 
-    thread = db.relationship("ForumThread", backref="subscriptions")
+    thread = db.relationship("ForumThread", backref=db.backref("subscriptions", cascade="all, delete-orphan"))
 
 
 class ForumThreadBookmark(db.Model):
@@ -231,7 +231,7 @@ class ForumThreadBookmark(db.Model):
         db.UniqueConstraint("thread_id", "user_id", name="uq_forum_thread_bookmark_thread_user"),
     )
 
-    thread = db.relationship("ForumThread", backref="bookmarks")
+    thread = db.relationship("ForumThread", backref=db.backref("bookmarks", cascade="all, delete-orphan"))
 
 
 class ForumTag(db.Model):
@@ -280,8 +280,8 @@ class ModeratorAssignment(db.Model):
     assigned_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
     assigned_by = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    user = db.relationship("User", foreign_keys=[user_id], backref="moderated_categories")
-    category = db.relationship("ForumCategory", backref="moderators")
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("moderated_categories", cascade="all, delete-orphan"))
+    category = db.relationship("ForumCategory", backref=db.backref("moderators", cascade="all, delete-orphan"))
     admin = db.relationship("User", foreign_keys=[assigned_by])
 
     __table_args__ = (

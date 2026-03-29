@@ -22,7 +22,7 @@ class PasswordHistory(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
 
-    user_rel = db.relationship("User", backref=db.backref("password_histories", lazy="dynamic"))
+    user_rel = db.relationship("User", backref=db.backref("password_histories", lazy="dynamic", cascade="all, delete-orphan"))
 
 
 class User(db.Model):

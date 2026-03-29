@@ -13,4 +13,4 @@ class FeatureArea(db.Model):
     feature_id = db.Column(db.String(128), primary_key=True, nullable=False)
     area_id = db.Column(db.Integer, db.ForeignKey("areas.id", ondelete="CASCADE"), primary_key=True, nullable=False)
 
-    area_rel = db.relationship("Area", backref=db.backref("feature_areas", lazy="dynamic"))
+    area_rel = db.relationship("Area", backref=db.backref("feature_areas", lazy="dynamic", cascade="all, delete-orphan"))
