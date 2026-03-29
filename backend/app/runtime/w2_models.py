@@ -227,6 +227,83 @@ class StateDelta(BaseModel):
     turn_number: int | None = None
 
 
+# ===== Proposal Source Models =====
+
+
+class ProposalSource(str, Enum):
+    """Source origin of a proposal entering the execution path.
+
+    Default is MOCK (non-authoritative). Only RESPONDER_DERIVED proposals
+    are authorized to enter the canonical guarded execution path.
+    """
+
+    RESPONDER_DERIVED = "responder_derived"
+    """Proposal came from responder section of parsed AI role contract.
+
+    Only this source is authorized for canonical execution path.
+    """
+
+    MOCK = "mock"
+    """Proposal came from mock_decision_provider (test/debug only).
+
+    Conservative default. Requires explicit override for responder authorization.
+    """
+
+    ENGINE = "engine"
+    """Reserved: Proposal from world engine (not yet integrated)."""
+
+    OPERATOR = "operator"
+    """Reserved: Proposal from human operator (not yet integrated)."""
+
+
+class ProposedStateDelta(BaseModel):
+    """A proposed state change from a mock decision.
+
+    Attributes:
+        target: Dot-path to affected entity (e.g., "characters.veronique.emotional_state").
+        next_value: Value to apply (None if not applicable).
+        previous_value: Current value before change (populated during construction).
+        delta_type: Type of change (character_state, relationship, etc.).
+        source: Source of change attribution (e.g., "ai_proposal").
+    """
+
+    target: str
+    next_value: Any = None
+    previous_value: Any = None
+    delta_type: DeltaType | None = None
+    source: str = ""
+
+
+class MockDecision(BaseModel):
+    """A deterministic mock story decision.
+
+    Represents what the AI would propose: triggered events, state changes,
+    scene progression, and narrative text.
+
+    Attributes:
+        detected_triggers: List of trigger IDs detected in this turn.
+        proposed_deltas: List of ProposedStateDelta objects (state changes).
+        proposed_scene_id: Optional target scene/phase ID for scene transitions.
+        narrative_text: AI-generated narrative text for this turn.
+        rationale: Explanation of the decision (for audit/debugging).
+        proposal_source: Origin of proposals (responder_derived, mock, engine, operator).
+                        Defaults to MOCK (non-authoritative) for safety.
+    """
+
+    detected_triggers: list[str] = Field(default_factory=list)
+    proposed_deltas: list[ProposedStateDelta] = Field(default_factory=list)
+    proposed_scene_id: str | None = None
+    narrative_text: str = ""
+    rationale: str = ""
+
+    proposal_source: ProposalSource = ProposalSource.MOCK
+    """Source of proposals in proposed_deltas.
+
+    Default MOCK requires explicit override to RESPONDER_DERIVED.
+    Only RESPONDER_DERIVED proposals are authorized for canonical execution.
+    """
+
+
 # ===== AI Decision Log Models =====
 
 

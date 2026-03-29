@@ -26,50 +26,17 @@ from app.runtime.w2_models import (
     EventLogEntry,
     ExecutionFailureReason,
     GuardOutcome,
+    MockDecision,
+    ProposedStateDelta,
     SessionState,
     StateDelta,
     TurnStatus,
 )
 
 
-# ===== Model Classes =====
-
-
-class ProposedStateDelta(BaseModel):
-    """A proposed state change from a mock decision.
-
-    Attributes:
-        target: Dot-path to affected entity (e.g., "characters.veronique.emotional_state").
-        next_value: Value to apply (None if not applicable).
-        previous_value: Current value before change (populated during construction).
-        delta_type: Type of change (character_state, relationship, etc.).
-    """
-
-    target: str
-    next_value: Any = None
-    previous_value: Any = None
-    delta_type: DeltaType | None = None
-
-
-class MockDecision(BaseModel):
-    """A deterministic mock story decision.
-
-    Represents what the AI would propose: triggered events, state changes,
-    scene progression, and narrative text.
-
-    Attributes:
-        detected_triggers: List of trigger IDs detected in this turn.
-        proposed_deltas: List of ProposedStateDelta objects (state changes).
-        proposed_scene_id: Optional target scene/phase ID for scene transitions.
-        narrative_text: AI-generated narrative text for this turn.
-        rationale: Explanation of the decision (for audit/debugging).
-    """
-
-    detected_triggers: list[str] = Field(default_factory=list)
-    proposed_deltas: list[ProposedStateDelta] = Field(default_factory=list)
-    proposed_scene_id: str | None = None
-    narrative_text: str = ""
-    rationale: str = ""
+# ===== Imported Model Classes =====
+#
+# ProposedStateDelta, MockDecision imported from w2_models
 
 
 class TurnExecutionResult(BaseModel):
