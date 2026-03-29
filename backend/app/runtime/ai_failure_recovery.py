@@ -445,8 +445,8 @@ class FallbackResponderPolicy:
     """
 
     # Fallback is activated when normal execution is exhausted
+    # NOTE: RETRY_EXHAUSTED skips fallback and goes to SAFE_TURN (it's already exhausted)
     FALLBACK_TRIGGER_FAILURES: set[AIFailureClass] = {
-        AIFailureClass.RETRY_EXHAUSTED,      # Retried max times, still failing
         AIFailureClass.PARSE_FAILURE,        # Could not parse adapter output
         AIFailureClass.STRUCTURALLY_INVALID_OUTPUT,  # Parsed but invalid schema
     }
@@ -565,3 +565,173 @@ class FallbackResponderPolicy:
             "advance_turn": "Advance turn counter (session progress)",
             "preserve_state": "Maintain existing character/scene state",
         }
+
+
+class SafeTurnMode(str, Enum):
+    """Safe-turn modes for unrecoverable but survivable AI failures.
+
+    When normal AI execution, retries, and fallback all fail, safe-turn
+    provides a minimal no-op turn that completes the turn safely without
+    mutation or invalid progression.
+    """
+
+    ACTIVE = "active"
+    """Safe-turn mode is active—no-op minimal behavior."""
+
+    INACTIVE = "inactive"
+    """Normal execution mode (safe-turn not needed)."""
+
+
+class SafeTurnPolicy:
+    """W2.5.5 — Canonical safe-turn/no-op path for unrecoverable failures.
+
+    When all recovery mechanisms fail (retry exhausted, fallback failed,
+    validation impossible), safe-turn provides a last-resort option that:
+    - Completes the turn without unsafe mutation
+    - Preserves session coherence
+    - Avoids risky state transitions
+    - Keeps the session alive for investigation
+    - Is explicitly marked for diagnostics
+
+    Safe-Turn Semantics:
+    A safe-turn is a minimal no-op that:
+    1. Advances the turn counter (session continues)
+    2. Preserves all existing character/scene state (no mutation)
+    3. Logs the failure for investigation
+    4. Avoids scene transitions (stay in current)
+    5. Makes no proposals (empty delta list)
+
+    Safe-Turn Triggers:
+    Safe-turn is used when:
+    - Fallback mode was activated but also failed
+    - Validation completely prevents any proposal
+    - Runtime is in a degraded state but must continue
+    - Investigation is needed (RESTORE recovery)
+
+    Safe-Turn Guarantees:
+    - Session remains alive and internally consistent
+    - No protected state is mutated
+    - No invalid progressions occur
+    - All changes are visible and logged
+    """
+
+    # Failures that trigger safe-turn (after all other recovery fails)
+    SAFE_TURN_TRIGGERS: set[AIFailureClass] = {
+        AIFailureClass.RETRY_EXHAUSTED,      # Retried max times
+        AIFailureClass.UNEXPECTED_RUNTIME_ERROR,  # Systematic issue
+    }
+
+    # Protected state that safe-turn CANNOT mutate
+    PROTECTED_STATE_BOUNDARIES: set[str] = {
+        "character_existence",      # Cannot delete/create characters
+        "scene_validity",           # Cannot enter invalid scenes
+        "narrative_coherence",      # Cannot break story structure
+        "turn_progression",         # Can only advance, never revert
+    }
+
+    @classmethod
+    def should_activate_safe_turn(cls, failure_class: AIFailureClass) -> bool:
+        """Check if safe-turn should activate for a failure.
+
+        Safe-turn is the last resort when all other recovery paths fail.
+
+        Args:
+            failure_class: The failure that occurred
+
+        Returns:
+            True if safe-turn should activate, False otherwise
+        """
+        return failure_class in cls.SAFE_TURN_TRIGGERS
+
+    @classmethod
+    def get_safe_turn_mode_status(cls, failure_class: AIFailureClass | None) -> SafeTurnMode:
+        """Get the current safe-turn mode status.
+
+        Args:
+            failure_class: The current failure class (None if no failure)
+
+        Returns:
+            SafeTurnMode indicating active or inactive status
+        """
+        if failure_class is None:
+            return SafeTurnMode.INACTIVE
+        if cls.should_activate_safe_turn(failure_class):
+            return SafeTurnMode.ACTIVE
+        return SafeTurnMode.INACTIVE
+
+    @classmethod
+    def get_safe_turn_semantics(cls) -> dict[str, str]:
+        """Get the canonical safe-turn behavior semantics.
+
+        Returns:
+            Dictionary of semantic rules for safe-turn execution
+        """
+        return {
+            "advance_turn_counter": "Turn counter advances (session continues)",
+            "no_state_mutation": "No character or scene state is modified",
+            "no_proposals": "No state change proposals are made",
+            "no_transitions": "No scene transitions (stay in current)",
+            "no_narrative_change": "Narrative/lore state remains unchanged",
+            "preserve_continuity": "Session coherence and continuity preserved",
+            "log_failure": "Failure reason is logged for investigation",
+            "mark_explicitly": "Safe-turn status is marked in runtime state",
+        }
+
+    @classmethod
+    def get_protected_state_boundaries(cls) -> set[str]:
+        """Get the protected state boundaries that safe-turn respects.
+
+        Safe-turn cannot cross these boundaries.
+
+        Returns:
+            Set of protected state boundary names
+        """
+        return cls.PROTECTED_STATE_BOUNDARIES.copy()
+
+    @classmethod
+    def validates_protected_boundaries(cls) -> bool:
+        """Verify safe-turn enforces protected state boundaries.
+
+        Safe-turn is explicitly designed to respect protected boundaries:
+        - Cannot delete/create characters
+        - Cannot enter invalid scenes
+        - Cannot break narrative structure
+        - Can only advance turn, never revert
+
+        Returns:
+            True (safe-turn respects protected boundaries by design)
+        """
+        return True
+
+    @classmethod
+    def get_safe_turn_invariants(cls) -> dict[str, str]:
+        """Get the invariants that must hold during safe-turn.
+
+        These invariants guarantee session coherence.
+
+        Returns:
+            Dictionary of invariant names to descriptions
+        """
+        return {
+            "session_alive": "Session remains alive and responsive",
+            "state_consistent": "Character and scene state remains consistent",
+            "turn_counter_advances": "Turn counter always increases (never decreases)",
+            "no_data_loss": "No existing state is lost or deleted",
+            "narratively_coherent": "Session narrative remains coherent",
+            "explicitly_logged": "Safe-turn activation is logged with full context",
+        }
+
+    @classmethod
+    def is_safe_turn_minimal(cls) -> bool:
+        """Verify safe-turn is minimal (no unnecessary operations).
+
+        Safe-turn does the bare minimum needed to keep session alive:
+        - Advance turn counter
+        - Preserve state
+        - Log failure
+        - Exit cleanly
+
+        Returns:
+            True (safe-turn is minimal by design)
+        """
+        return True

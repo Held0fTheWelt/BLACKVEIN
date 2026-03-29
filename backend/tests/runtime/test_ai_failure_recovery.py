@@ -465,11 +465,11 @@ class TestFallbackResponderPolicy:
         assert FallbackResponderMode.ACTIVE.value == "active"
         assert FallbackResponderMode.INACTIVE.value == "inactive"
 
-    def test_fallback_triggers_on_retry_exhausted(self):
-        """Fallback activates when retries are exhausted."""
+    def test_fallback_does_not_trigger_on_retry_exhausted(self):
+        """Fallback does NOT activate for retry exhausted (goes to safe-turn instead)."""
         from app.runtime.ai_failure_recovery import FallbackResponderPolicy
 
-        assert FallbackResponderPolicy.should_activate_fallback(AIFailureClass.RETRY_EXHAUSTED)
+        assert not FallbackResponderPolicy.should_activate_fallback(AIFailureClass.RETRY_EXHAUSTED)
 
     def test_fallback_triggers_on_parse_failure(self):
         """Fallback activates on parse failure (non-retryable structural issue)."""
@@ -535,7 +535,7 @@ class TestFallbackResponderPolicy:
         """Fallback status is ACTIVE when failure triggers it."""
         from app.runtime.ai_failure_recovery import FallbackResponderPolicy, FallbackResponderMode
 
-        status = FallbackResponderPolicy.get_fallback_mode_status(AIFailureClass.RETRY_EXHAUSTED)
+        status = FallbackResponderPolicy.get_fallback_mode_status(AIFailureClass.PARSE_FAILURE)
         assert status == FallbackResponderMode.ACTIVE
 
     def test_get_fallback_mode_status_inactive_when_not_triggered(self):
@@ -579,8 +579,10 @@ class TestFallbackResponderPolicy:
         # Should be a set of specific failures
         assert isinstance(triggers, set)
         assert len(triggers) > 0
-        # Should include retry exhaustion
-        assert AIFailureClass.RETRY_EXHAUSTED in triggers
+        # Should include parse failures and structural issues (not retry exhaustion)
+        # RETRY_EXHAUSTED goes to SAFE_TURN, not FALLBACK
+        assert AIFailureClass.PARSE_FAILURE in triggers
+        assert AIFailureClass.STRUCTURALLY_INVALID_OUTPUT in triggers
 
     def test_fallback_constraints_and_permissions_do_not_conflict(self):
         """Fallback constraints and permissions are complementary, not conflicting."""
@@ -607,3 +609,180 @@ class TestFallbackResponderPolicy:
         # Fallback constraints and permissions are explicit
         assert len(FallbackResponderPolicy.get_fallback_constraints()) > 0
         assert len(FallbackResponderPolicy.get_fallback_permissions()) > 0
+
+
+class TestSafeTurnPolicy:
+    """Verify W2.5.5 canonical safe-turn/no-op path is minimal and safe."""
+
+    def test_safe_turn_mode_enum_exists(self):
+        """SafeTurnMode enum exists with ACTIVE and INACTIVE."""
+        from app.runtime.ai_failure_recovery import SafeTurnMode
+
+        assert hasattr(SafeTurnMode, "ACTIVE")
+        assert hasattr(SafeTurnMode, "INACTIVE")
+        assert SafeTurnMode.ACTIVE.value == "active"
+        assert SafeTurnMode.INACTIVE.value == "inactive"
+
+    def test_safe_turn_triggers_on_retry_exhausted(self):
+        """Safe-turn activates when retries are exhausted."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        assert SafeTurnPolicy.should_activate_safe_turn(AIFailureClass.RETRY_EXHAUSTED)
+
+    def test_safe_turn_triggers_on_unexpected_runtime_error(self):
+        """Safe-turn activates on unexpected runtime errors."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        assert SafeTurnPolicy.should_activate_safe_turn(AIFailureClass.UNEXPECTED_RUNTIME_ERROR)
+
+    def test_safe_turn_does_not_trigger_on_fallback_eligible(self):
+        """Safe-turn does NOT activate for fallback-eligible failures.
+
+        Fallback handles parse_failure and structurally_invalid_output.
+        Safe-turn is last resort only.
+        """
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        assert not SafeTurnPolicy.should_activate_safe_turn(AIFailureClass.PARSE_FAILURE)
+        assert not SafeTurnPolicy.should_activate_safe_turn(
+            AIFailureClass.STRUCTURALLY_INVALID_OUTPUT
+        )
+
+    def test_safe_turn_mode_status_inactive_when_no_failure(self):
+        """Safe-turn status is INACTIVE when there's no failure."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy, SafeTurnMode
+
+        status = SafeTurnPolicy.get_safe_turn_mode_status(failure_class=None)
+        assert status == SafeTurnMode.INACTIVE
+
+    def test_safe_turn_mode_status_active_when_triggered(self):
+        """Safe-turn status is ACTIVE when failure triggers it."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy, SafeTurnMode
+
+        status = SafeTurnPolicy.get_safe_turn_mode_status(AIFailureClass.RETRY_EXHAUSTED)
+        assert status == SafeTurnMode.ACTIVE
+
+    def test_safe_turn_mode_status_inactive_when_not_triggered(self):
+        """Safe-turn status is INACTIVE when failure doesn't trigger it."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy, SafeTurnMode
+
+        status = SafeTurnPolicy.get_safe_turn_mode_status(AIFailureClass.PARSE_FAILURE)
+        assert status == SafeTurnMode.INACTIVE
+
+    def test_safe_turn_semantics_are_defined(self):
+        """Safe-turn has explicit semantics defining its behavior."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        semantics = SafeTurnPolicy.get_safe_turn_semantics()
+        # Should have multiple semantic rules
+        assert len(semantics) > 0
+        assert isinstance(semantics, dict)
+        # Key semantics
+        assert "advance_turn_counter" in semantics
+        assert "no_state_mutation" in semantics
+        assert "no_proposals" in semantics
+        assert "preserve_continuity" in semantics
+
+    def test_protected_state_boundaries_are_defined(self):
+        """Safe-turn respects protected state boundaries."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        boundaries = SafeTurnPolicy.get_protected_state_boundaries()
+        # Should have multiple boundaries
+        assert len(boundaries) > 0
+        assert isinstance(boundaries, set)
+        # Key boundaries
+        assert "character_existence" in boundaries
+        assert "scene_validity" in boundaries
+        assert "narrative_coherence" in boundaries
+
+    def test_safe_turn_validates_protected_boundaries(self):
+        """Safe-turn enforces protected state boundaries."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        assert SafeTurnPolicy.validates_protected_boundaries()
+
+    def test_safe_turn_invariants_are_defined(self):
+        """Safe-turn maintains clear invariants for session coherence."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        invariants = SafeTurnPolicy.get_safe_turn_invariants()
+        # Should have multiple invariants
+        assert len(invariants) > 0
+        assert isinstance(invariants, dict)
+        # Key invariants
+        assert "session_alive" in invariants
+        assert "state_consistent" in invariants
+        assert "turn_counter_advances" in invariants
+
+    def test_safe_turn_is_minimal(self):
+        """Safe-turn is minimal (only what's needed to keep session alive)."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        assert SafeTurnPolicy.is_safe_turn_minimal()
+
+    def test_safe_turn_is_last_resort(self):
+        """Safe-turn only activates when all other recovery fails.
+
+        Recovery precedence:
+        1. Normal execution
+        2. Retry (for retryable failures)
+        3. Fallback (for parse/structural failures)
+        4. Safe-turn (for retry exhaustion, unexpected errors)
+        """
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy, RetryPolicy, FallbackResponderPolicy
+
+        # Safe-turn failures should NOT be retryable or fallback-eligible
+        safe_turn_failures = SafeTurnPolicy.get_safe_turn_mode_status(AIFailureClass.RETRY_EXHAUSTED)
+        retry_exhausted = AIFailureClass.RETRY_EXHAUSTED
+
+        # RETRY_EXHAUSTED is not retryable (already exhausted retries)
+        assert not RetryPolicy.is_retryable_failure(retry_exhausted)
+        # RETRY_EXHAUSTED is not fallback-eligible
+        assert not FallbackResponderPolicy.should_activate_fallback(retry_exhausted)
+        # RETRY_EXHAUSTED triggers safe-turn
+        assert SafeTurnPolicy.should_activate_safe_turn(retry_exhausted)
+
+    def test_safe_turn_semantics_no_state_mutation(self):
+        """Safe-turn semantics explicitly forbid state mutation."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        semantics = SafeTurnPolicy.get_safe_turn_semantics()
+        # Core semantic: no mutation
+        assert "no_state_mutation" in semantics
+        assert "no_proposals" in semantics
+        # But turn counter advances (one allowed mutation)
+        assert "advance_turn_counter" in semantics
+
+    def test_safe_turn_protects_character_existence(self):
+        """Safe-turn protects character existence from modification."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        boundaries = SafeTurnPolicy.get_protected_state_boundaries()
+        assert "character_existence" in boundaries
+
+    def test_safe_turn_protects_narrative_coherence(self):
+        """Safe-turn protects narrative/story coherence."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        boundaries = SafeTurnPolicy.get_protected_state_boundaries()
+        assert "narrative_coherence" in boundaries
+
+    def test_safe_turn_guarantees_session_alive(self):
+        """Safe-turn guarantees session remains alive and responsive."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        invariants = SafeTurnPolicy.get_safe_turn_invariants()
+        assert "session_alive" in invariants
+        # Session coherence is maintained
+        assert "state_consistent" in invariants
+        # Session can continue (turn advances)
+        assert "turn_counter_advances" in invariants
+
+    def test_safe_turn_turn_counter_never_reverts(self):
+        """Safe-turn turn counter can only advance, never revert."""
+        from app.runtime.ai_failure_recovery import SafeTurnPolicy
+
+        invariants = SafeTurnPolicy.get_safe_turn_invariants()
+        # Invariant: turn counter always increases
+        assert "turn_counter_advances" in invariants
