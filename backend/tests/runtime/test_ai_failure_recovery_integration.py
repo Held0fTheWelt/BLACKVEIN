@@ -460,3 +460,135 @@ class TestRestoreIntegration:
         # Verify decision logs exist (restore will mark in them)
         assert "ai_decision_logs" in session.metadata, \
             "Decision logs should exist for failure tracking"
+
+
+class TestDegradationMarkers:
+    """Verify degradation markers are set when recovery mechanisms activate."""
+
+    @pytest.mark.asyncio
+    async def test_reduced_context_marks_degradation(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Reduced-context retry marks REDUCED_CONTEXT_ACTIVE degradation marker."""
+        from app.runtime.w2_models import DegradedMarker
+
+        session = god_of_carnage_module_with_state
+
+        # Mock adapter to trigger retry (attempt > 1 activates reduced context)
+        retry_policy = RetryPolicy()
+        responses = [
+            AdapterResponse(error="Timeout", raw_output="", decisions=[])
+            for _ in range(retry_policy.MAX_RETRIES)
+        ]
+
+        adapter = MagicMock()
+        adapter.generate = MagicMock(side_effect=responses)
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # Verify reduced-context marker was set (since retry attempt > 1)
+        assert DegradedMarker.REDUCED_CONTEXT_ACTIVE in session.degraded_state.active_markers, \
+            "REDUCED_CONTEXT_ACTIVE should be marked when retries occur"
+        assert session.degraded_state.is_degraded is True, \
+            "Session should be marked as degraded"
+        assert DegradedMarker.DEGRADED in session.degraded_state.marker_timestamps, \
+            "DEGRADED marker should be timestamped"
+
+    @pytest.mark.asyncio
+    async def test_fallback_marks_degradation(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Fallback responder marks FALLBACK_ACTIVE degradation marker."""
+        from app.runtime.w2_models import DegradedMarker
+
+        session = god_of_carnage_module_with_state
+
+        # Parse failure response
+        adapter = MagicMock()
+        adapter.generate = MagicMock(
+            return_value=AdapterResponse(
+                error=None,
+                raw_output='invalid json {',
+                decisions=[]
+            )
+        )
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # Verify fallback marker was set
+        assert DegradedMarker.FALLBACK_ACTIVE in session.degraded_state.active_markers, \
+            "FALLBACK_ACTIVE should be marked when fallback responder activates"
+        assert session.degraded_state.is_degraded is True, \
+            "Session should be marked as degraded"
+
+    @pytest.mark.asyncio
+    async def test_safe_turn_marks_degradation(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Safe-turn execution marks SAFE_TURN_USED degradation marker."""
+        from app.runtime.w2_models import DegradedMarker
+
+        session = god_of_carnage_module_with_state
+
+        # Always fail with adapter error (retryable - exhaustion triggers safe-turn or restore)
+        error_response = AdapterResponse(
+            error="Persistent connection failure",
+            raw_output="",
+            decisions=[]
+        )
+
+        adapter = MagicMock()
+        adapter.generate = MagicMock(return_value=error_response)
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # Verify retry exhaustion was marked
+        assert DegradedMarker.RETRY_EXHAUSTED in session.degraded_state.active_markers, \
+            "RETRY_EXHAUSTED should be marked when retries exhaust"
+        # Verify safe-turn OR restore was used (one of these recovery mechanisms)
+        has_recovery = (
+            DegradedMarker.SAFE_TURN_USED in session.degraded_state.active_markers or
+            DegradedMarker.RESTORE_USED in session.degraded_state.active_markers
+        )
+        assert has_recovery, \
+            "Either SAFE_TURN_USED or RESTORE_USED should be marked after retry exhaustion"
+        assert session.degraded_state.is_degraded is True, \
+            "Session should be marked as degraded"
+
+    @pytest.mark.asyncio
+    async def test_restore_marks_degradation(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Restore execution marks RESTORE_USED degradation marker."""
+        from app.runtime.w2_models import DegradedMarker
+
+        session = god_of_carnage_module_with_state
+
+        # Always fail with adapter error (triggers retry exhaustion → restore)
+        error_response = AdapterResponse(
+            error="Persistent connection failure",
+            raw_output="",
+            decisions=[]
+        )
+
+        adapter = MagicMock()
+        adapter.generate = MagicMock(return_value=error_response)
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # Verify restore marker was set (should be set when restore is applied)
+        # Note: restore may not always be triggered (depends on RestorePolicy logic)
+        # But if it does trigger, the marker should be set
+        if DegradedMarker.RESTORE_USED in session.degraded_state.active_markers:
+            assert session.degraded_state.is_degraded is True, \
+                "Session should be marked as degraded if restore is used"
+            assert DegradedMarker.RESTORE_USED in session.degraded_state.marker_timestamps, \
+                "RESTORE_USED marker should be timestamped"

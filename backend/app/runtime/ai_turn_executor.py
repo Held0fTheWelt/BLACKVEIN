@@ -34,6 +34,7 @@ from app.runtime.w2_models import (
     AIValidationOutcome,
     DeltaType,
     DeltaValidationStatus,
+    DegradedMarker,
     ExecutionFailureReason,
     GuardOutcome,
     ProposalSource,
@@ -455,6 +456,18 @@ async def execute_turn_with_ai(
     while current_attempt <= retry_policy.MAX_RETRIES:
         # W2.5 Phase 2: Rebuild request with current attempt for reduced-context mode
         if current_attempt > 1:
+            # W2.5 Phase 6: Mark reduced-context activation in degradation state
+            if DegradedMarker.REDUCED_CONTEXT_ACTIVE not in session.degraded_state.active_markers:
+                session.degraded_state.active_markers.add(DegradedMarker.REDUCED_CONTEXT_ACTIVE)
+                session.degraded_state.marker_timestamps[DegradedMarker.REDUCED_CONTEXT_ACTIVE] = (
+                    datetime.now(timezone.utc)
+                )
+                if not session.degraded_state.is_degraded:
+                    session.degraded_state.is_degraded = True
+                    session.degraded_state.marker_timestamps[DegradedMarker.DEGRADED] = (
+                        datetime.now(timezone.utc)
+                    )
+
             request = build_adapter_request(
                 session,
                 module,
@@ -512,6 +525,19 @@ async def execute_turn_with_ai(
             )
 
             failure_class = AIFailureClass.RETRY_EXHAUSTED
+
+            # W2.5 Phase 6: Mark retry exhaustion in degradation state
+            if DegradedMarker.RETRY_EXHAUSTED not in session.degraded_state.active_markers:
+                session.degraded_state.active_markers.add(DegradedMarker.RETRY_EXHAUSTED)
+                session.degraded_state.marker_timestamps[DegradedMarker.RETRY_EXHAUSTED] = (
+                    datetime.now(timezone.utc)
+                )
+                if not session.degraded_state.is_degraded:
+                    session.degraded_state.is_degraded = True
+                    session.degraded_state.marker_timestamps[DegradedMarker.DEGRADED] = (
+                        datetime.now(timezone.utc)
+                    )
+
             recovery_action = FailureRecoveryPolicy.get_recovery_action(failure_class)
 
             # Check if we need to apply restore
@@ -525,6 +551,13 @@ async def execute_turn_with_ai(
                         session.canonical_state, pre_execution_snapshot
                     )
                     session.canonical_state = restored_state
+
+                    # W2.5 Phase 6: Mark restore usage in degradation state
+                    if DegradedMarker.RESTORE_USED not in session.degraded_state.active_markers:
+                        session.degraded_state.active_markers.add(DegradedMarker.RESTORE_USED)
+                        session.degraded_state.marker_timestamps[DegradedMarker.RESTORE_USED] = (
+                            datetime.now(timezone.utc)
+                        )
 
                     # Mark restore in metadata
                     restore_metadata = RestorePolicy.get_restore_metadata(
@@ -597,6 +630,13 @@ async def execute_turn_with_ai(
                 proposed_deltas=[],
             )
 
+            # W2.5 Phase 6: Mark safe-turn activation in degradation state
+            if DegradedMarker.SAFE_TURN_USED not in session.degraded_state.active_markers:
+                session.degraded_state.active_markers.add(DegradedMarker.SAFE_TURN_USED)
+                session.degraded_state.marker_timestamps[DegradedMarker.SAFE_TURN_USED] = (
+                    datetime.now(timezone.utc)
+                )
+
             # Execute safe-turn through normal path
             turn_result = await execute_turn(
                 session,
@@ -665,6 +705,18 @@ async def execute_turn_with_ai(
             generate_fallback_responder_proposal,
             FallbackResponderPolicy,
         )
+
+        # W2.5 Phase 6: Mark fallback activation in degradation state
+        if DegradedMarker.FALLBACK_ACTIVE not in session.degraded_state.active_markers:
+            session.degraded_state.active_markers.add(DegradedMarker.FALLBACK_ACTIVE)
+            session.degraded_state.marker_timestamps[DegradedMarker.FALLBACK_ACTIVE] = (
+                datetime.now(timezone.utc)
+            )
+            if not session.degraded_state.is_degraded:
+                session.degraded_state.is_degraded = True
+                session.degraded_state.marker_timestamps[DegradedMarker.DEGRADED] = (
+                    datetime.now(timezone.utc)
+                )
 
         # Generate minimal conservative fallback proposal (ParsedAIDecision with empty deltas)
         fallback_parsed_decision = generate_fallback_responder_proposal()
@@ -750,6 +802,18 @@ async def execute_turn_with_ai(
             generate_fallback_responder_proposal,
             FallbackResponderPolicy,
         )
+
+        # W2.5 Phase 6: Mark fallback activation in degradation state
+        if DegradedMarker.FALLBACK_ACTIVE not in session.degraded_state.active_markers:
+            session.degraded_state.active_markers.add(DegradedMarker.FALLBACK_ACTIVE)
+            session.degraded_state.marker_timestamps[DegradedMarker.FALLBACK_ACTIVE] = (
+                datetime.now(timezone.utc)
+            )
+            if not session.degraded_state.is_degraded:
+                session.degraded_state.is_degraded = True
+                session.degraded_state.marker_timestamps[DegradedMarker.DEGRADED] = (
+                    datetime.now(timezone.utc)
+                )
 
         # Generate minimal conservative fallback proposal
         fallback_parsed_decision = generate_fallback_responder_proposal()
