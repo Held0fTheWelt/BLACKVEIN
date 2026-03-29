@@ -193,7 +193,6 @@
     {% endif %}
 
     <!-- History Panel -->
-    {% if history_panel %}
     <section class="panel history-panel">
       <h3>History</h3>
 
@@ -251,12 +250,6 @@
 
       <p class="entry-count">{{ history_panel.entry_count }} total entries</p>
     </section>
-    {% else %}
-    <section class="panel history-panel">
-      <h3>History</h3>
-      <p class="placeholder muted">History panel unavailable.</p>
-    </section>
-    {% endif %}
 
   </div>
 

@@ -692,11 +692,23 @@ def session_view(session_id):
     runtime_session = _resolve_runtime_session(session_id)
     characters = []
     conflict = None
-    history_panel = None
+
+    # Create minimal SessionState if runtime_session not available
     if runtime_session:
-        characters = present_all_characters(runtime_session.current_runtime_state)
-        conflict = present_conflict_panel(runtime_session.current_runtime_state)
-        history_panel = present_history_panel(runtime_session.current_runtime_state)
+        session_state = runtime_session.current_runtime_state
+        characters = present_all_characters(session_state)
+        conflict = present_conflict_panel(session_state)
+    else:
+        # Graceful fallback with empty session state
+        from app.runtime.w2_models import SessionState
+        session_state = SessionState(
+            session_id=session_id,
+            module_id=active.get("module_id", "unknown"),
+            module_version="1.0",
+            current_scene_id="unknown",
+        )
+
+    history_panel = present_history_panel(session_state)
 
     return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict, history_panel=history_panel)
 
