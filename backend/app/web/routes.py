@@ -692,11 +692,13 @@ def session_view(session_id):
     runtime_session = _resolve_runtime_session(session_id)
     characters = []
     conflict = None
+    history_panel = None
     if runtime_session:
         characters = present_all_characters(runtime_session.current_runtime_state)
         conflict = present_conflict_panel(runtime_session.current_runtime_state)
+        history_panel = present_history_panel(runtime_session.current_runtime_state)
 
-    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict)
+    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict, history_panel=history_panel)
 
 
 # ── W3.3: Session Execution & Helpers ─────────────────────────────────────────
