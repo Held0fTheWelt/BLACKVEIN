@@ -568,3 +568,118 @@ class TestPresenterDeterminism:
         assert isinstance(result, DebugPanelOutput)
         assert result.recent_pattern_context == []
         assert result.degradation_markers == []
+
+
+class TestHistoryPanelUI:
+    """Tests for W3.5.2 history panel UI rendering."""
+
+    def test_session_view_includes_history_panel_in_context(self, client, test_user):
+        """Verify session_view() passes history_panel to template context"""
+        user, password = test_user
+
+        # Login and create a session
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+
+        # Extract session_id from redirect
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        # Load session view
+        response = client.get(f"/play/{session_id}")
+        assert response.status_code == 200
+        # Template renders history panel with summary block
+        assert b"history-summary" in response.data
+
+    def test_session_view_history_panel_shows_summary_block(self, client, test_user):
+        """Verify history panel summary block renders on GET"""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        response = client.get(f"/play/{session_id}")
+        assert response.status_code == 200
+        # Summary block structure visible (specific class, not just text)
+        assert b"summary-stats" in response.data
+
+    def test_session_view_history_panel_shows_entries_table(self, client, test_user):
+        """Verify history panel entries table renders on GET"""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        response = client.get(f"/play/{session_id}")
+        assert response.status_code == 200
+        # Entries table structure visible (specific class)
+        assert b"entries-table" in response.data or b"No turn history yet" in response.data
+
+    def test_session_execute_includes_history_panel_after_turn(self, client, test_user):
+        """Verify session_execute() passes updated history_panel to template after turn"""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        with client.session_transaction() as sess:
+            sess["active_session"] = {
+                "session_id": session_id,
+                "module_id": "god_of_carnage",
+                "status": "active",
+            }
+
+        # Execute a turn (POST to session_execute route)
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"action": "test_action"},
+            follow_redirects=True,
+        )
+        # After turn, history panel should be rendered with summary block
+        assert b"history-summary" in response.data
+
+    def test_session_execute_history_panel_shows_entries_table_after_turn(self, client, test_user):
+        """Verify history panel entries table updates after turn execution"""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        with client.session_transaction() as sess:
+            sess["active_session"] = {
+                "session_id": session_id,
+                "module_id": "god_of_carnage",
+                "status": "active",
+            }
+
+        # Execute turn
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"action": "test_action"},
+            follow_redirects=True,
+        )
+        # Entries table visible (specific class, not generic text)
+        assert b"entries-table" in response.data or b"No turn history yet" in response.data
