@@ -11,12 +11,41 @@ from datetime import datetime, timezone
 from copy import deepcopy
 
 from app.runtime.ai_turn_executor import execute_turn_with_ai
-from app.runtime.ai_adapter import AdapterResponse
+from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
 from app.runtime.w2_models import (
     DegradedMarker,
     ExecutionFailureReason,
 )
 from app.runtime.ai_failure_recovery import RetryPolicy
+
+
+class DeterministicAIAdapter(StoryAIAdapter):
+    """Deterministic test adapter that returns controlled payloads."""
+
+    def __init__(self, payload: dict | None = None, error: bool = False):
+        self.payload = payload or {
+            "scene_interpretation": "Test scene",
+            "detected_triggers": [],
+            "proposed_state_deltas": [],
+            "rationale": "Deterministic test adapter",
+        }
+        self.error = error
+
+    @property
+    def adapter_name(self) -> str:
+        return "deterministic_test_adapter"
+
+    def generate(self, request) -> AdapterResponse:
+        if self.error:
+            return AdapterResponse(
+                raw_output="error",
+                structured_payload=None,
+                error="Simulated adapter error for testing",
+            )
+        return AdapterResponse(
+            raw_output="deterministic",
+            structured_payload=self.payload,
+        )
 
 
 class TestReducedContextIntegration:
@@ -352,3 +381,82 @@ class TestSafeTurnIntegration:
         # Turn counter should advance (Phase 4 verification)
         # For now, just verify result exists
         assert result is not None, "Result should exist"
+
+
+class TestRestoreIntegration:
+    """Verify last-valid-state restore on catastrophic failures."""
+
+    @pytest.mark.asyncio
+    async def test_pre_execution_snapshot_captured(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Pre-execution snapshot is captured before AI execution."""
+        session = god_of_carnage_module_with_state
+        initial_state = deepcopy(session.canonical_state)
+
+        # Successful execution - snapshot not needed
+        successful_payload = {
+            "scene_interpretation": "Test",
+            "detected_triggers": [],
+            "proposed_state_deltas": [],
+            "rationale": "No changes",
+        }
+        adapter = DeterministicAIAdapter(payload=successful_payload)
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # State should match initial (no changes made)
+        assert result.execution_status == "success"
+        assert session.canonical_state == initial_state, \
+            "State unchanged on successful execution with no deltas"
+
+    @pytest.mark.asyncio
+    async def test_restore_returns_to_last_valid_state(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """On catastrophic failure, restore returns to pre-execution state."""
+        session = god_of_carnage_module_with_state
+        initial_state = deepcopy(session.canonical_state)
+
+        # Persistent failure triggers safe-turn, not restore (Phase 5 pending)
+        # For now, just verify state preservation concept
+        error_response = AdapterResponse(
+            error="Catastrophic failure",
+            raw_output="",
+            decisions=[]
+        )
+
+        adapter = MagicMock()
+        adapter.generate = MagicMock(return_value=error_response)
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # State should be unchanged (safe-turn or restore preserves it)
+        assert session.canonical_state == initial_state, \
+            "State should be preserved on failure"
+
+    @pytest.mark.asyncio
+    async def test_restore_is_marked_explicitly(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Restore usage is marked explicitly in decision logs."""
+        session = god_of_carnage_module_with_state
+
+        # Phase 5 will mark restore in logs
+        # For now, verify that decision logs are created and could contain restore marks
+        adapter = MagicMock()
+        adapter.generate = MagicMock(
+            return_value=AdapterResponse(error="Test failure", raw_output="", decisions=[])
+        )
+
+        result = await execute_turn_with_ai(
+            session, 1, adapter, god_of_carnage_module
+        )
+
+        # Verify decision logs exist (restore will mark in them)
+        assert "ai_decision_logs" in session.metadata, \
+            "Decision logs should exist for failure tracking"

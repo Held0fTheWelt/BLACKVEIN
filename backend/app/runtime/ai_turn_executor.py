@@ -422,7 +422,19 @@ async def execute_turn_with_ai(
     Returns:
         TurnExecutionResult with execution status, deltas, state, and events
     """
+    from copy import deepcopy
+    from app.runtime.ai_failure_recovery import StateSnapshot
+
     started_at = datetime.now(timezone.utc)
+
+    # W2.5 Phase 5: Capture pre-execution snapshot for restore
+    # This snapshot is taken BEFORE any risky operation (adapter call, execution)
+    # If recovery fails catastrophically, we can restore to this known-good state
+    pre_execution_snapshot = StateSnapshot(
+        turn_number=session.turn_counter,
+        canonical_state=deepcopy(session.canonical_state),
+        snapshot_reason="pre_ai_execution",
+    )
 
     # Step 1: Build adapter request (with attempt tracking for reduced-context retry)
     request = build_adapter_request(
@@ -477,7 +489,7 @@ async def execute_turn_with_ai(
             break
 
     # Step 2b: Handle adapter error or empty output
-    # W2.5 Phase 4: If retries exhausted, activate safe-turn instead of terminal failure
+    # W2.5 Phase 4-5: If retries exhausted, check if restore is needed
     if response.error or (not response.raw_output or not response.raw_output.strip()):
         error_log = _create_error_decision_log(
             session,
@@ -490,11 +502,96 @@ async def execute_turn_with_ai(
 
         # Check if retries are exhausted
         if current_attempt >= retry_policy.MAX_RETRIES:
-            # W2.5 Phase 4: Retry exhausted - activate safe-turn (no-op recovery)
-            from app.runtime.ai_failure_recovery import SafeTurnPolicy
+            # W2.5 Phase 5: Retry exhausted - check if restore is required
+            from app.runtime.ai_failure_recovery import (
+                SafeTurnPolicy,
+                RestorePolicy,
+                AIFailureClass,
+                FailureRecoveryPolicy,
+                RecoveryAction,
+            )
 
-            # Create a safe-turn decision (no-op with empty deltas)
-            # Uses default ProposalSource.MOCK since safe-turn is system-generated
+            failure_class = AIFailureClass.RETRY_EXHAUSTED
+            recovery_action = FailureRecoveryPolicy.get_recovery_action(failure_class)
+
+            # Check if we need to apply restore
+            if (
+                recovery_action == RecoveryAction.RESTORE
+                and RestorePolicy.should_require_restore(failure_class, recovery_action)
+            ):
+                # W2.5 Phase 5: Apply last-valid-state restore
+                try:
+                    restored_state = RestorePolicy.apply_restore(
+                        session.canonical_state, pre_execution_snapshot
+                    )
+                    session.canonical_state = restored_state
+
+                    # Mark restore in metadata
+                    restore_metadata = RestorePolicy.get_restore_metadata(
+                        failure_class, pre_execution_snapshot.turn_number, current_turn
+                    )
+
+                    # Create result with restored state
+                    completed_at = datetime.now(timezone.utc)
+                    duration_ms = (completed_at - started_at).total_seconds() * 1000
+
+                    turn_result = TurnExecutionResult(
+                        turn_number=current_turn,
+                        session_id=session.session_id,
+                        execution_status="success",
+                        decision=MockDecision(),  # Empty decision - restore only
+                        validation_outcome=None,
+                        validation_errors=[],
+                        accepted_deltas=[],
+                        rejected_deltas=[],
+                        updated_canonical_state=restored_state,
+                        updated_scene_id=session.current_scene_id,
+                        started_at=started_at,
+                        completed_at=completed_at,
+                        duration_ms=duration_ms,
+                        events=[],
+                    )
+                    turn_result.failure_reason = ExecutionFailureReason.GENERATION_ERROR
+
+                    # Log restore execution with recovery notes
+                    # Format restore metadata as recovery_notes string
+                    restore_notes = (
+                        f"restore_mode_active: last_valid_state_restore; "
+                        f"failure_class={restore_metadata['failure_class']}; "
+                        f"snapshot_turn={restore_metadata['snapshot_turn']}; "
+                        f"turns_discarded={restore_metadata['turns_discarded']}"
+                    )
+
+                    decision_log = construct_ai_decision_log(
+                        session_id=session.session_id,
+                        turn_number=current_turn,
+                        parsed_decision=ParsedAIDecision(
+                            scene_interpretation="[restore: last valid state recovered]",
+                            detected_triggers=[],
+                            proposed_deltas=[],
+                            proposed_scene_id=None,
+                            rationale="[restore: retry exhaustion triggered state recovery]",
+                            raw_output="",
+                            parsed_source="restore_executor",
+                        ),
+                        raw_output=response.raw_output or "",
+                        role_aware_decision=None,
+                        guard_outcome=GuardOutcome.ACCEPTED,
+                        accepted_deltas=[],
+                        rejected_deltas=[],
+                        guard_notes="restore_mode_active: last_valid_state_restore",
+                    )
+                    # Set recovery_notes with restore metadata
+                    decision_log.recovery_notes = restore_notes
+                    _store_decision_log(session, decision_log)
+
+                    return turn_result
+                except ValueError as e:
+                    # Snapshot validation failed - fall back to safe-turn
+                    pass
+
+            # Fallback: If restore is not applicable or failed, use safe-turn
+            # W2.5 Phase 4: Retry exhausted - activate safe-turn (no-op recovery)
             safe_turn_decision = MockDecision(
                 detected_triggers=[],
                 proposed_deltas=[],
