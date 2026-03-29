@@ -15,7 +15,7 @@ from app.services.user_service import update_user_last_seen
 # W3.3 imports
 from app.runtime.session_store import RuntimeSession, create_session as create_runtime_session, get_session as get_runtime_session, update_session as update_runtime_session
 from app.runtime.turn_dispatcher import dispatch_turn
-from app.runtime import present_all_characters
+from app.runtime import present_all_characters, present_conflict_panel
 
 web_bp = Blueprint("web", __name__)
 
@@ -683,13 +683,15 @@ def session_view(session_id):
         flash("Session not found or expired.", "error")
         return redirect(url_for("web.session_start"))
 
-    # Load runtime session and present characters
+    # Load runtime session and present characters and conflict
     runtime_session = _resolve_runtime_session(session_id)
     characters = []
+    conflict = None
     if runtime_session:
         characters = present_all_characters(runtime_session.current_runtime_state)
+        conflict = present_conflict_panel(runtime_session.current_runtime_state)
 
-    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters)
+    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict)
 
 
 # ── W3.3: Session Execution & Helpers ─────────────────────────────────────────
@@ -815,8 +817,9 @@ async def session_execute(session_id: str):
         # Map result to template fields
         presented_result = _present_turn_result(runtime_session, turn_result)
 
-        # Present characters from updated state
+        # Present characters and conflict from updated state
         characters = present_all_characters(runtime_session.current_runtime_state)
+        conflict = present_conflict_panel(runtime_session.current_runtime_state)
 
         # Render updated scene + result feedback
         return render_template(
@@ -827,6 +830,7 @@ async def session_execute(session_id: str):
             state_summary=presented_result["state_summary"],
             turn_result=presented_result["turn_result"],
             characters=characters,
+            conflict=conflict,
             session_data={
                 "module_id": runtime_session.current_runtime_state.module_id,
                 "current_scene_id": runtime_session.current_runtime_state.current_scene_id,
@@ -862,8 +866,9 @@ async def session_execute(session_id: str):
             "conversation_status": canonical_state.get("conversation_status", ""),
         }
 
-        # Present characters from current state (unchanged by error)
+        # Present characters and conflict from current state (unchanged by error)
         characters = present_all_characters(runtime_session.current_runtime_state)
+        conflict = present_conflict_panel(runtime_session.current_runtime_state)
 
         return render_template(
             "session_shell.html",
@@ -872,6 +877,7 @@ async def session_execute(session_id: str):
             scene=scene_data,
             state_summary=state_summary,
             characters=characters,
+            conflict=conflict,
             session_data={
                 "module_id": runtime_session.current_runtime_state.module_id,
                 "current_scene_id": current_scene_id,
