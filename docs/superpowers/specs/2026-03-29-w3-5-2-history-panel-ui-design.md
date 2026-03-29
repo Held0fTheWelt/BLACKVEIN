@@ -51,9 +51,14 @@ return render_template(
     "session_shell.html",
     session_data=active,
     history_panel=history_panel,
-    # ... other context variables
+    # Optional context variables (for panels that render on both GET and POST)
+    scene=None,  # Not available on initial GET, template handles gracefully
+    state_summary=None,
+    turn_result=None,
 )
 ```
+
+**Note:** `session_view()` is an initial GET load, so scene/state_summary/turn_result are not available (they come from turn execution). The template already has `{% if scene %}` guards for these panels, so passing `None` is safe and keeps both routes using the same template.
 
 **In `session_execute()` function (after turn execution, before rendering response):**
 ```python
