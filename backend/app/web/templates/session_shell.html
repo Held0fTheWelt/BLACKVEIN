@@ -192,10 +192,63 @@
     </section>
     {% endif %}
 
-    <!-- History Panel Placeholder (deferred to W3.4+) -->
+    <!-- History Panel -->
     <section class="panel history-panel">
       <h3>History</h3>
-      <p class="placeholder muted">Turn history — coming in a future update.</p>
+
+      <!-- Summary Block -->
+      <div class="history-summary">
+        <dl class="summary-stats">
+          <dt>Phase</dt><dd>{{ history_panel.history_summary.session_phase }}</dd>
+          <dt>Turns</dt><dd>{{ history_panel.history_summary.first_turn_number }} – {{ history_panel.history_summary.last_turn_number }}</dd>
+          <dt>Scenes</dt><dd>{{ history_panel.history_summary.scene_transition_count }} transitions</dd>
+          <dt>Triggers</dt><dd>{{ history_panel.history_summary.unique_triggers_detected | length }}</dd>
+        </dl>
+      </div>
+
+      <!-- Recent Entries Table -->
+      <div class="history-recent-entries">
+        {% if history_panel.recent_entries %}
+          <table class="entries-table">
+            <thead>
+              <tr>
+                <th>Turn</th>
+                <th>Scene</th>
+                <th>Outcome</th>
+                <th>Events</th>
+                <th>Changed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in history_panel.recent_entries %}
+                <tr class="entry-row outcome-{{ entry.guard_outcome | lower }}">
+                  <td class="turn-number">{{ entry.turn_number }}</td>
+                  <td class="scene-id">{{ entry.scene_id }}</td>
+                  <td class="guard-outcome">{{ entry.guard_outcome }}</td>
+                  <td class="detected-triggers">
+                    {% if entry.detected_triggers %}
+                      {{ entry.detected_triggers | join(', ') }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td class="scene-changed">
+                    {% if entry.scene_changed %}
+                      <span class="indicator-changed">✓</span>
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="muted">No turn history yet.</p>
+        {% endif %}
+      </div>
+
+      <p class="entry-count">{{ history_panel.entry_count }} total entries</p>
     </section>
 
   </div>
