@@ -197,3 +197,184 @@ class TestConflictPanelOutputModel:
         data = output.model_dump(mode="json")
         assert data["current_pressure"] == 40
         assert data["recent_trend"]["signal"] == "stable"
+
+
+from app.runtime.scene_presenter import (
+    present_character_panel,
+)
+from app.runtime.w2_models import (
+    SessionState,
+    SessionContextLayers,
+)
+from app.runtime.relationship_context import (
+    RelationshipAxisContext,
+    SalientRelationshipAxis,
+)
+
+
+class TestPresentCharacterPanel:
+    """Tests for present_character_panel function."""
+
+    def test_present_character_panel_no_relationships(self):
+        """Character with no relationship axes returns unknown trajectory and empty movements."""
+        session_state = SessionState(
+            session_id="test-session",
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="scene-1",
+            canonical_state={"characters": {"veronique": {"name": "Veronique"}}},
+            context_layers=SessionContextLayers(
+                relationship_axis_context=RelationshipAxisContext()
+            ),
+        )
+
+        result = present_character_panel(session_state, "veronique")
+
+        assert result.character_id == "veronique"
+        assert result.character_name == "Veronique"
+        assert result.overall_trajectory == "unknown"
+        assert len(result.top_relationship_movements) == 0
+
+    def test_present_character_panel_single_escalating_axis(self):
+        """Character with 1 escalating axis returns escalating trajectory."""
+        axis = SalientRelationshipAxis(
+            character_a="veronique",
+            character_b="giuseppe",
+            salience_score=0.85,
+            recent_change_direction="escalating",
+            signal_type="tension",
+            involved_in_recent_triggers=["accusation_veronique_giuseppe"],
+            last_involved_turn=5,
+        )
+        session_state = SessionState(
+            session_id="test-session",
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="scene-1",
+            canonical_state={"characters": {"veronique": {"name": "Veronique"}}},
+            context_layers=SessionContextLayers(
+                relationship_axis_context=RelationshipAxisContext(
+                    salient_axes=[axis]
+                )
+            ),
+        )
+
+        result = present_character_panel(session_state, "veronique")
+
+        assert result.character_id == "veronique"
+        assert result.overall_trajectory == "escalating"
+        assert len(result.top_relationship_movements) == 1
+        assert result.top_relationship_movements[0].other_character_id == "giuseppe"
+        assert result.top_relationship_movements[0].recent_change == "escalating"
+
+    def test_present_character_panel_multiple_axes_top_two(self):
+        """Character with 3+ axes returns top 2 by salience_score."""
+        axes = [
+            SalientRelationshipAxis(
+                character_a="veronique",
+                character_b="giuseppe",
+                salience_score=0.9,
+                recent_change_direction="escalating",
+                signal_type="tension",
+                involved_in_recent_triggers=[],
+                last_involved_turn=5,
+            ),
+            SalientRelationshipAxis(
+                character_a="veronique",
+                character_b="barbara",
+                salience_score=0.7,
+                recent_change_direction="stable",
+                signal_type="alliance",
+                involved_in_recent_triggers=[],
+                last_involved_turn=3,
+            ),
+            SalientRelationshipAxis(
+                character_a="veronique",
+                character_b="philip",
+                salience_score=0.5,
+                recent_change_direction="de-escalating",
+                signal_type="stable",
+                involved_in_recent_triggers=[],
+                last_involved_turn=1,
+            ),
+        ]
+        session_state = SessionState(
+            session_id="test-session",
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="scene-1",
+            canonical_state={"characters": {}},
+            context_layers=SessionContextLayers(
+                relationship_axis_context=RelationshipAxisContext(salient_axes=axes)
+            ),
+        )
+
+        result = present_character_panel(session_state, "veronique")
+
+        assert len(result.top_relationship_movements) == 2
+        assert result.top_relationship_movements[0].salience_score == 0.9
+        assert result.top_relationship_movements[1].salience_score == 0.7
+
+    def test_present_character_panel_mixed_trajectory(self):
+        """Character with mixed escalation/stable axes returns 'mixed' trajectory."""
+        axes = [
+            SalientRelationshipAxis(
+                character_a="veronique",
+                character_b="giuseppe",
+                salience_score=0.8,
+                recent_change_direction="escalating",
+                signal_type="tension",
+                involved_in_recent_triggers=[],
+                last_involved_turn=5,
+            ),
+            SalientRelationshipAxis(
+                character_a="veronique",
+                character_b="barbara",
+                salience_score=0.6,
+                recent_change_direction="stable",
+                signal_type="alliance",
+                involved_in_recent_triggers=[],
+                last_involved_turn=3,
+            ),
+        ]
+        session_state = SessionState(
+            session_id="test-session",
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="scene-1",
+            canonical_state={},
+            context_layers=SessionContextLayers(
+                relationship_axis_context=RelationshipAxisContext(salient_axes=axes)
+            ),
+        )
+
+        result = present_character_panel(session_state, "veronique")
+
+        assert result.overall_trajectory == "mixed"
+
+    def test_present_character_panel_character_not_in_canonical_state(self):
+        """Character missing from canonical_state returns character_name=None."""
+        axis = SalientRelationshipAxis(
+            character_a="veronique",
+            character_b="giuseppe",
+            salience_score=0.85,
+            recent_change_direction="escalating",
+            signal_type="tension",
+            involved_in_recent_triggers=[],
+            last_involved_turn=5,
+        )
+        session_state = SessionState(
+            session_id="test-session",
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="scene-1",
+            canonical_state={"characters": {}},
+            context_layers=SessionContextLayers(
+                relationship_axis_context=RelationshipAxisContext(salient_axes=[axis])
+            ),
+        )
+
+        result = present_character_panel(session_state, "veronique")
+
+        assert result.character_name is None
+        assert result.overall_trajectory == "escalating"
