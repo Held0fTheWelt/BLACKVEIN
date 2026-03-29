@@ -638,3 +638,31 @@ def session_start():
         current_user=user,
         available_modules=_AVAILABLE_MODULES,
     )
+
+
+@web_bp.route("/play/start", methods=["POST"])
+@require_web_login
+def session_create():
+    from app.services.session_service import create_session
+    from app.runtime.session_start import SessionStartError
+
+    module_id = request.form.get("module_id", "").strip()
+    if not module_id:
+        flash("Please select a module to start a session.", "error")
+        return redirect(url_for("web.session_start"))
+
+    try:
+        new_session = create_session(module_id)
+    except SessionStartError as e:
+        flash(f"Could not start session: {e.reason}", "error")
+        return redirect(url_for("web.session_start"))
+
+    session["active_session"] = {
+        "session_id": new_session.session_id,
+        "module_id": new_session.module_id,
+        "module_version": new_session.module_version,
+        "current_scene_id": new_session.current_scene_id,
+        "status": new_session.status.value,
+        "turn_counter": new_session.turn_counter,
+    }
+    return redirect(f"/play/{new_session.session_id}")
