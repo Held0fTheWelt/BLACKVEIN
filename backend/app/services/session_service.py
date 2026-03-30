@@ -10,6 +10,7 @@ Provides the canonical service-level interface between API routes and W2 runtime
 
 from app.runtime.session_start import start_session
 from app.runtime.w2_models import SessionState
+from app.content.module_loader import load_module
 
 
 def create_session(module_id: str) -> SessionState:
@@ -19,7 +20,8 @@ def create_session(module_id: str) -> SessionState:
     1. Loads and validates the target module
     2. Determines the initial scene (data-driven)
     3. Constructs initial SessionState with seeded canonical state
-    4. Returns the SessionState
+    4. Registers session in the runtime session store
+    5. Returns the SessionState
 
     Args:
         module_id: Identifier of the module (e.g., "god_of_carnage")
@@ -31,7 +33,14 @@ def create_session(module_id: str) -> SessionState:
         SessionStartError: If module loading fails or module is invalid
     """
     result = start_session(module_id)
-    return result.session
+    session_state = result.session
+
+    # Register session in the runtime session store
+    from app.runtime.session_store import create_session as register_session
+    module = load_module(module_id)
+    register_session(session_state.session_id, session_state, module)
+
+    return session_state
 
 
 def get_session(session_id: str) -> SessionState:
