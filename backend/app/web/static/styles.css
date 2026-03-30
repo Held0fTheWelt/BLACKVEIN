@@ -273,3 +273,125 @@ button:hover { border-color: rgba(118,192,255,.55); }
   color: #999;
   font-style: italic;
 }
+
+/* ── Debug Panel (W3.5.3) ────────────────────────────────────────────────────── */
+
+.debug-panel {
+  /* Inherits .panel styling */
+}
+
+.debug-summary {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.debug-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.debug-stats dt {
+  font-weight: 600;
+  color: #999;
+}
+
+.debug-stats dd {
+  margin: 0;
+}
+
+/* Outcome color indicators */
+.outcome-accepted {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.outcome-partially_accepted {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.outcome-rejected {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.outcome-structurally_invalid {
+  color: #9c27b0;
+  font-weight: 600;
+}
+
+.outcome-unknown {
+  color: #999;
+  font-weight: 600;
+}
+
+/* Collapsible diagnostics */
+.debug-details {
+  margin-top: 1rem;
+  padding: 0;
+}
+
+.debug-details summary {
+  cursor: pointer;
+  padding: 0.75rem;
+  background-color: rgba(118, 192, 255, 0.08);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.debug-details summary:hover {
+  background-color: rgba(118, 192, 255, 0.12);
+}
+
+.debug-diagnostics {
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-left: 2px solid #ddd;
+}
+
+.diagnostic-section {
+  margin-bottom: 1.5rem;
+}
+
+.diagnostic-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.diagnostic-section dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.diagnostic-section dt {
+  font-weight: 600;
+  color: #999;
+}
+
+.diagnostic-section dd {
+  margin: 0;
+  word-break: break-word;
+}
+
+.pattern-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  font-size: 0.85rem;
+}
+
+.pattern-list li {
+  margin-bottom: 0.5rem;
+  color: #333;
+}
