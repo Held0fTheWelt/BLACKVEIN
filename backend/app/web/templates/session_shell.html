@@ -329,6 +329,75 @@
             </ul>
           </div>
           {% endif %}
+
+          <!-- Full LLM Pipeline Diagnostics (W3 closure) -->
+          {% if debug_panel.full_diagnostics %}
+          <div class="diagnostic-section">
+            <h4>Full LLM Pipeline Diagnostics</h4>
+
+            <!-- Raw LLM Output -->
+            {% if debug_panel.full_diagnostics.raw_llm_output %}
+            <div class="diagnostics-subsection">
+              <h5>Raw LLM Output</h5>
+              <pre class="diagnostic-output">{{ debug_panel.full_diagnostics.raw_llm_output }}</pre>
+            </div>
+            {% endif %}
+
+            <!-- Parsed Output -->
+            {% if debug_panel.full_diagnostics.parsed_output %}
+            <div class="diagnostics-subsection">
+              <h5>Parsed Output</h5>
+              <pre class="diagnostic-output">{{ debug_panel.full_diagnostics.parsed_output | truncate(500, True, '...') }}</pre>
+            </div>
+            {% endif %}
+
+            <!-- Role Diagnostics -->
+            {% if debug_panel.full_diagnostics.role_diagnostics %}
+            <div class="diagnostics-subsection">
+              <h5>Role Diagnostics</h5>
+              {% if debug_panel.full_diagnostics.role_diagnostics.interpreter %}
+              <div class="role-section">
+                <h6>Interpreter</h6>
+                <pre class="diagnostic-output">{{ debug_panel.full_diagnostics.role_diagnostics.interpreter | truncate(300, True, '...') }}</pre>
+              </div>
+              {% endif %}
+              {% if debug_panel.full_diagnostics.role_diagnostics.director %}
+              <div class="role-section">
+                <h6>Director</h6>
+                <pre class="diagnostic-output">{{ debug_panel.full_diagnostics.role_diagnostics.director | truncate(300, True, '...') }}</pre>
+              </div>
+              {% endif %}
+              {% if debug_panel.full_diagnostics.role_diagnostics.responder %}
+              <div class="role-section">
+                <h6>Responder</h6>
+                <pre class="diagnostic-output">{{ debug_panel.full_diagnostics.role_diagnostics.responder | truncate(300, True, '...') }}</pre>
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Validation Errors -->
+            {% if debug_panel.full_diagnostics.validation_errors %}
+            <div class="diagnostics-subsection">
+              <h5>Validation Errors (first 5)</h5>
+              <ul class="validation-errors">
+                {% for error in debug_panel.full_diagnostics.validation_errors %}
+                <li><code>{{ error }}</code></li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            <!-- Recovery Action -->
+            {% if debug_panel.full_diagnostics.recovery_action %}
+            <div class="diagnostics-subsection">
+              <h5>Recovery Action</h5>
+              <p><strong>{{ debug_panel.full_diagnostics.recovery_action }}</strong></p>
+            </div>
+            {% endif %}
+
+          </div>
+          {% endif %}
         </div>
       </details>
     </section>
