@@ -63,17 +63,19 @@ async def dispatch_turn(
     from app.runtime.adapter_registry import get_adapter
     from app.runtime.ai_turn_executor import execute_turn_with_ai
     from app.runtime.turn_executor import MockDecision, execute_turn
-    from app.runtime.helper_functions import (
-        compress_context_for_llm,
-        extract_active_triggers,
-    )
 
     execution_mode = session.execution_mode.lower() if session.execution_mode else "mock"
 
-    # W2 Helper-Role Layer: Prepare context for dispatcher
-    session_state = session
-    compressed_context = compress_context_for_llm(session_state)
-    active_triggers = extract_active_triggers(session_state)
+    # W2 Helper-Role Layer: Deferred to W4
+    # The following bounded helpers are implemented in helper_functions.py
+    # but are deferred for actual integration into the dispatcher path:
+    # - compress_context_for_llm: prepare token-efficient context
+    # - extract_active_triggers: match state against decision policy rules
+    # - normalize_proposed_deltas: fix structural issues before guard evaluation
+    # - precheck_guard_routing: recommend guard path based on delta validity
+    # Integration is blocked pending: decision on whether compression affects
+    # AI adapter input format, whether triggers inform actual dispatcher routing,
+    # and whether delta normalization belongs before or after LLM output parsing.
 
     if execution_mode == "ai":
         # AI execution path
