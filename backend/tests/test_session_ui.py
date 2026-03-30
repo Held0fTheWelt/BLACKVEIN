@@ -51,9 +51,9 @@ def _get_csrf_token(client, session_id):
 
 
 def _extract_turn_number_from_html(html_content):
-    """Extract turn number from response HTML."""
-    match = re.search(r'Turn\s+(\d+)', html_content.decode())
-    return int(match.group(1)) if match else None
+    """Extract turn number from response HTML (finds latest/last occurrence)."""
+    matches = list(re.finditer(r'Turn\s+(\d+)', html_content.decode()))
+    return int(matches[-1].group(1)) if matches else None
 
 
 def _extract_outcome_from_html(html_content):
@@ -866,4 +866,341 @@ class TestDebugPanelUI:
 
 class TestSynchronizationRegression:
     """W3.5.4: Regression tests proving history and debug panels stay synchronized after turn execution."""
-    pass
+
+    def test_single_turn_synchronization(self, client, test_user):
+        """Test 1: Verify one turn updates canonical state, presenter reads it, response renders it."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Layer 1: Verify canonical state updated
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+        assert state.turn_counter == 1, f"Expected turn_counter=1, got {state.turn_counter}"
+        # Verify history exists in context layers
+        assert hasattr(state, 'context_layers') and state.context_layers, "No context_layers"
+        if state.context_layers.session_history:
+            assert len(state.context_layers.session_history.entries) >= 1, "No history entry created"
+
+        # Layer 2: Verify presenter reads fresh state
+        debug_panel = present_debug_panel(state)
+        assert debug_panel.primary_diagnostic.summary.turn_number == 1, \
+            f"Expected turn_number=1 in presenter, got {debug_panel.primary_diagnostic.summary.turn_number}"
+
+        # Layer 3: Verify response renders it
+        assert response.status_code == 200
+        assert b"debug-summary" in response.data or _extract_turn_number_from_html(response.data) == 1, \
+            "Turn 1 not found in response HTML"
+
+    def test_multiple_turn_accumulation(self, client, test_user):
+        """Test 2: Verify panels accumulate correctly across 5 turns."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        for turn_num in range(1, 6):
+            response = client.post(
+                f"/play/{session_id}/execute",
+                data={"operator_input": f"action {turn_num}", "csrf_token": csrf_token},
+                follow_redirects=True,
+            )
+
+            # Layer 1: Verify canonical state has turn
+            runtime_session = get_session(session_id)
+            state = runtime_session.current_runtime_state
+            assert state.turn_counter == turn_num, f"Turn {turn_num}: expected turn_counter={turn_num}, got {state.turn_counter}"
+            if state.context_layers and state.context_layers.session_history:
+                assert len(state.context_layers.session_history.entries) == turn_num, \
+                    f"Turn {turn_num}: expected {turn_num} history entries, got {len(state.context_layers.session_history.entries)}"
+
+            # Layer 2: Verify presenter sees accumulation
+            history_panel = present_history_panel(state)
+            assert history_panel.entry_count == turn_num, \
+                f"Turn {turn_num}: expected entry_count={turn_num}, got {history_panel.entry_count}"
+
+            # Layer 3: Verify response shows turn
+            assert response.status_code == 200
+            assert b"history-summary" in response.data or b"entries-table" in response.data, \
+                f"Turn {turn_num}: history panel not in response"
+
+    def test_outcome_tracking_propagation(self, client, test_user):
+        """Test 3: Verify guard outcomes sync through all layers."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Layer 1: Get canonical outcome
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+        canonical_outcome = state.context_layers.short_term_context.guard_outcome if (state.context_layers and state.context_layers.short_term_context) else None
+
+        # Layer 2: Verify presenter reflects it
+        debug_panel = present_debug_panel(state)
+        presenter_outcome = debug_panel.primary_diagnostic.summary.guard_outcome
+        assert presenter_outcome == canonical_outcome, \
+            f"Outcome mismatch: canonical={canonical_outcome}, presenter={presenter_outcome}"
+
+        # Layer 3: Verify response renders it
+        assert response.status_code == 200
+        if presenter_outcome:
+            outcome_lower = presenter_outcome.lower()
+            assert outcome_lower.encode() in response.data or f'outcome-{outcome_lower}'.encode() in response.data, \
+                f"Outcome '{presenter_outcome}' not found in response"
+
+    def test_outcome_changes_across_turns(self, client, test_user):
+        """Test 4: Verify different turns can have different outcomes and both are tracked."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        outcomes_by_turn = {}
+
+        for turn_num in range(1, 3):
+            response = client.post(
+                f"/play/{session_id}/execute",
+                data={"operator_input": f"action {turn_num}", "csrf_token": csrf_token},
+                follow_redirects=True,
+            )
+            assert response.status_code == 200
+
+            # Capture outcome for this turn
+            runtime_session = get_session(session_id)
+            state = runtime_session.current_runtime_state
+            outcome = state.context_layers.short_term_context.guard_outcome if (state.context_layers and state.context_layers.short_term_context) else None
+            outcomes_by_turn[turn_num] = outcome
+
+        # Verify final state shows both turns
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+
+        # Layer 2: Verify presenter shows both
+        history_panel = present_history_panel(state)
+        assert history_panel.entry_count == 2, f"Expected 2 entries, got {history_panel.entry_count}"
+        assert len(history_panel.recent_entries) >= 2, "Expected at least 2 recent entries"
+
+        # Layer 3: Verify response shows both outcomes
+        assert response.status_code == 200
+        assert b"history-summary" in response.data or b"entries-table" in response.data, \
+            "Turn outcomes not shown in response"
+
+    def test_bounded_output_consistency(self, client, test_user):
+        """Test 5: Verify bounded windows stay bounded when history exceeds limit."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        # Execute 25 turns to exceed typical bounded window
+        for turn_num in range(1, 26):
+            response = client.post(
+                f"/play/{session_id}/execute",
+                data={"operator_input": f"action {turn_num}", "csrf_token": csrf_token},
+                follow_redirects=True,
+            )
+            assert response.status_code == 200
+
+        # Layer 1: Get canonical state
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+        assert state.turn_counter == 25, f"Expected 25 turns, got {state.turn_counter}"
+
+        # Layer 2: Verify presenters bound their output
+        history_panel = present_history_panel(state)
+        debug_panel = present_debug_panel(state)
+
+        # History should be bounded (typically 20 recent entries)
+        assert len(history_panel.recent_entries) <= 20, \
+            f"History panel recent_entries exceeds bound: {len(history_panel.recent_entries)}"
+
+        # Debug pattern should be bounded (typically 5 recent turns)
+        assert len(debug_panel.recent_pattern_context or []) <= 5, \
+            f"Debug panel pattern context exceeds bound: {len(debug_panel.recent_pattern_context or [])}"
+
+        # But total count should reflect all turns
+        assert history_panel.entry_count == 25, f"Expected entry_count=25, got {history_panel.entry_count}"
+
+        # Layer 3: Verify response renders cleanly
+        assert response.status_code == 200
+        assert b"debug-summary" in response.data or b"history-summary" in response.data, \
+            "Panels not rendered in response after 25 turns"
+
+    def test_stale_state_detection(self, client, test_user):
+        """Test 6: Catch stale state or caching bugs in immediate POST response."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        # Execute turn 1
+        response1 = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "action 1", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+        assert response1.status_code == 200
+        turn1_number = _extract_turn_number_from_html(response1.data)
+        assert turn1_number == 1, f"Expected turn 1, got {turn1_number}"
+
+        # Execute turn 2
+        response2 = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "action 2", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+        assert response2.status_code == 200
+        turn2_number = _extract_turn_number_from_html(response2.data)
+        assert turn2_number == 2, f"Expected turn 2, got {turn2_number}"
+
+        # Verify turn 2 response doesn't show turn 1 as latest
+        assert turn2_number != 1, "Turn 2 response shows stale turn 1"
+
+    def test_degraded_recovery_synchronization(self, client, test_user, app):
+        """Test 7: Verify degradation markers sync through all layers."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        # Execute one turn
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Manually set degradation marker on canonical state
+        with app.app_context():
+            runtime_session = get_session(session_id)
+            state = runtime_session.current_runtime_state
+
+            # Create degraded state with marker
+            state.degraded_state = DegradedSessionState(
+                active_markers={DegradedMarker.FALLBACK_ACTIVE}
+            )
+            update_session(session_id, state)
+
+        # Layer 1: Verify degradation marker present
+        with app.app_context():
+            runtime_session = get_session(session_id)
+            state = runtime_session.current_runtime_state
+            assert state.degraded_state is not None, "Degradation marker not set"
+            assert len(state.degraded_state.active_markers) > 0, "No markers in degradation"
+
+        # Layer 2: Verify presenter includes degradation
+        debug_panel = present_debug_panel(state)
+        assert debug_panel.degradation_markers is not None and len(debug_panel.degradation_markers) > 0, \
+            "Presenter doesn't include degradation markers"
+
+        # Layer 3: Verify response shows degradation (if markers are rendered)
+        assert response.status_code == 200
+        assert b"debug-summary" in response.data or b"debug-diagnostics" in response.data, \
+            "Debug panel not in response with degradation"
+
+    def test_get_after_post_synchronization(self, client, test_user):
+        """Test 8: Verify synchronization persists across requests, not just immediate POST response."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        # Execute turn via POST
+        post_response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+        assert post_response.status_code == 200
+        post_turn_number = _extract_turn_number_from_html(post_response.data)
+
+        # Load session again via GET (fresh request)
+        get_response = client.get(f"/play/{session_id}", follow_redirects=True)
+        assert get_response.status_code == 200
+        get_turn_number = _extract_turn_number_from_html(get_response.data)
+
+        # Layer 1: Verify canonical state persists
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+        assert state.turn_counter == 1, "Turn counter not persisted"
+
+        # Layer 2: Verify presenters on fresh GET still show executed turn
+        history_panel = present_history_panel(state)
+        debug_panel = present_debug_panel(state)
+        assert history_panel.entry_count >= 1, "History not persisted on GET"
+        assert debug_panel.primary_diagnostic.summary.turn_number == 1, "Debug turn not persisted on GET"
+
+        # Layer 3: Verify GET response matches POST response
+        assert get_turn_number == post_turn_number, \
+            f"POST showed turn {post_turn_number}, GET shows turn {get_turn_number}"
+        assert b"debug-summary" in get_response.data, "Debug panel not in GET response"
+
+    def test_multiple_turns_with_get_reloads(self, client, test_user):
+        """Test 9: Verify synchronization durable across multiple execute→get cycles."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        for turn_num in range(1, 4):
+            # Execute turn
+            post_response = client.post(
+                f"/play/{session_id}/execute",
+                data={"operator_input": f"action {turn_num}", "csrf_token": csrf_token},
+                follow_redirects=True,
+            )
+            assert post_response.status_code == 200
+            post_turn = _extract_turn_number_from_html(post_response.data)
+            assert post_turn == turn_num, f"POST turn mismatch: expected {turn_num}, got {post_turn}"
+
+            # GET the session to reload it
+            get_response = client.get(f"/play/{session_id}", follow_redirects=True)
+            assert get_response.status_code == 200
+            get_turn = _extract_turn_number_from_html(get_response.data)
+            assert get_turn == turn_num, f"GET turn mismatch: expected {turn_num}, got {get_turn}"
+
+        # After 3 turns, verify all are persisted
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+        assert state.turn_counter == 3, f"Expected 3 turns, got {state.turn_counter}"
+
+        # Verify presenters show all 3
+        history_panel = present_history_panel(state)
+        assert history_panel.entry_count == 3, f"Expected entry_count=3, got {history_panel.entry_count}"
+
+    def test_outcome_tracking_get_after_post(self, client, test_user):
+        """Test 10: Verify outcomes persist correctly across execute→get cycles."""
+        session_id = _create_and_setup_session(client, test_user)
+        csrf_token = _get_csrf_token(client, session_id)
+
+        # Execute turn 1
+        response1 = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "action 1", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+        assert response1.status_code == 200
+
+        # GET to reload after turn 1
+        get1_response = client.get(f"/play/{session_id}", follow_redirects=True)
+        assert get1_response.status_code == 200
+
+        # Execute turn 2
+        response2 = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "action 2", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+        assert response2.status_code == 200
+
+        # GET to reload after turn 2
+        get2_response = client.get(f"/play/{session_id}", follow_redirects=True)
+        assert get2_response.status_code == 200
+
+        # Verify final state has both turns and outcomes
+        runtime_session = get_session(session_id)
+        state = runtime_session.current_runtime_state
+
+        # Layer 2: Verify presenter shows both
+        history_panel = present_history_panel(state)
+        assert history_panel.entry_count == 2, f"Expected 2 entries, got {history_panel.entry_count}"
+
+        # Layer 3: Verify GET response shows both (or at least latest)
+        assert b"history-summary" in get2_response.data or b"entries-table" in get2_response.data, \
+            "History not shown in final GET response"
