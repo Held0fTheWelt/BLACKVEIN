@@ -1338,3 +1338,125 @@ class TestW3SmokeAndStability:
         response_text = response.data.decode('utf-8', errors='ignore')
         has_outcome = "accepted" in response_text.lower() or "rejected" in response_text.lower()
         assert has_outcome, "Guard outcome not visible in response"
+
+    def test_smoke_failed_turn_execution_returns_usable_page(self, client, test_user):
+        """Verify error paths don't return 500 or broken renders."""
+        # Create and load session
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        # Get CSRF
+        response = client.get(f"/play/{session_id}")
+        import re
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', response.data.decode('utf-8', errors='ignore'))
+        csrf_token = match.group(1) if match else ""
+
+        # Execute with empty input (likely triggers guard rejection) - follow redirects to get final page
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Verify non-500 response
+        self._assert_response_not_error(response)
+        self._assert_session_shell_renders(response)
+
+        # Verify session still valid
+        from app.runtime.session_store import get_session
+        runtime_session = get_session(session_id)
+        assert runtime_session is not None, "Session lost after error"
+
+    def test_smoke_invalid_session_id_fails_gracefully(self, client, test_user):
+        """Verify invalid session IDs don't crash."""
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+
+        # Try to access invalid session
+        response = client.get("/play/nonexistent-session-xyz-invalid")
+
+        # Should not be 5xx
+        self._assert_response_not_error(response)
+
+        # Should be redirect or error page
+        response_text = response.data.decode('utf-8', errors='ignore')
+        is_redirect = response.status_code in (301, 302, 303, 307, 308)
+        is_error_page = "not found" in response_text.lower() or "error" in response_text.lower() or "session" in response_text.lower()
+
+        assert is_redirect or is_error_page, \
+            f"Invalid session should redirect or show error, got {response.status_code}: {response_text[:200]}"
+
+    def test_smoke_missing_session_linkage_fails_gracefully(self, client, test_user):
+        """Verify missing session linkage doesn't crash."""
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+
+        # Create a session but then try to access without maintaining the linkage
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        # Clear session context
+        with client.session_transaction() as sess:
+            sess.clear()
+
+        # Try to access session without linkage
+        response = client.get(f"/play/{session_id}")
+
+        # Should not be 5xx
+        self._assert_response_not_error(response)
+
+        # Should redirect or show error
+        response_text = response.data.decode('utf-8', errors='ignore')
+        is_redirect = response.status_code in (301, 302, 303, 307, 308)
+        is_error_page = "not found" in response_text.lower() or "error" in response_text.lower() or "login" in response_text.lower()
+
+        assert is_redirect or is_error_page, \
+            f"Missing session linkage should redirect or show error, got {response.status_code}"
+
+    def test_smoke_session_shell_remains_usable_after_error(self, client, test_user):
+        """Verify session shell is usable after encountering error."""
+        from app.runtime.session_store import get_session
+
+        # Create and load session
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        # Get CSRF and execute with error - follow redirects to see final page
+        response = client.get(f"/play/{session_id}")
+        import re
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', response.data.decode('utf-8', errors='ignore'))
+        csrf_token = match.group(1) if match else ""
+
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Verify final page renders shell after redirect
+        self._assert_session_shell_renders(response)
+
+        # Reload session via fresh GET
+        response = client.get(f"/play/{session_id}")
+        self._assert_response_not_error(response)
+        self._assert_session_shell_renders(response)
+
+        # Verify session still valid
+        runtime_session = get_session(session_id)
+        assert runtime_session is not None, "Session corrupted after error recovery"
