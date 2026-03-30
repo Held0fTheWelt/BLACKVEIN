@@ -724,3 +724,49 @@ class TestDebugPanelUI:
         # Summary layer should be visible (guard outcome, triggers, changes, pressure)
         assert b"debug-summary" in response.data
         assert b"guard outcome" in response.data.lower() or b"debug-stats" in response.data
+
+    def test_debug_panel_updates_after_turn_execution(self, client, test_user):
+        """Verify debug_panel updates after POST /play/{session_id}/execute."""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        # Get CSRF token
+        csrf_response = client.get(f"/play/{session_id}")
+        import re
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', csrf_response.data.decode())
+        csrf_token = match.group(1) if match else ""
+
+        # Execute turn
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=True,
+        )
+
+        # Debug panel should be in response
+        assert b"debug-summary" in response.data
+
+    def test_debug_panel_diagnostics_collapsed_by_default(self, client, test_user):
+        """Verify <details> element is used and collapsed by default."""
+        user, password = test_user
+
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        response = client.get(f"/play/{session_id}")
+        assert response.status_code == 200
+        # Check for <details> element and "Show diagnostics" text
+        assert b"<details" in response.data
+        assert b"Show diagnostics" in response.data or b"show diagnostics" in response.data.lower()

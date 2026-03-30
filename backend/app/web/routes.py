@@ -723,8 +723,9 @@ def session_view(session_id):
         )
 
     history_panel = present_history_panel(session_state)
+    debug_panel = present_debug_panel(session_state)
 
-    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict, history_panel=history_panel)
+    return render_template("session_shell.html", current_user=user, session_data=active, characters=characters, conflict=conflict, history_panel=history_panel, debug_panel=debug_panel)
 
 
 # ── W3.3: Session Execution & Helpers ─────────────────────────────────────────
@@ -855,6 +856,7 @@ def session_execute(session_id: str):
         characters = present_all_characters(runtime_session.current_runtime_state)
         conflict = present_conflict_panel(runtime_session.current_runtime_state)
         history_panel = present_history_panel(runtime_session.current_runtime_state)
+        debug_panel = present_debug_panel(runtime_session.current_runtime_state)
 
         # Render updated scene + result feedback
         return render_template(
@@ -867,6 +869,7 @@ def session_execute(session_id: str):
             characters=characters,
             conflict=conflict,
             history_panel=history_panel,
+            debug_panel=debug_panel,
             session_data={
                 "module_id": runtime_session.current_runtime_state.module_id,
                 "current_scene_id": runtime_session.current_runtime_state.current_scene_id,
@@ -906,6 +909,7 @@ def session_execute(session_id: str):
         characters = present_all_characters(runtime_session.current_runtime_state)
         conflict = present_conflict_panel(runtime_session.current_runtime_state)
         history_panel = present_history_panel(runtime_session.current_runtime_state)
+        debug_panel = present_debug_panel(runtime_session.current_runtime_state)
 
         return render_template(
             "session_shell.html",
@@ -916,6 +920,7 @@ def session_execute(session_id: str):
             characters=characters,
             conflict=conflict,
             history_panel=history_panel,
+            debug_panel=debug_panel,
             session_data={
                 "module_id": runtime_session.current_runtime_state.module_id,
                 "current_scene_id": current_scene_id,
