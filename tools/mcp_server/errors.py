@@ -18,7 +18,7 @@ PERMISSION_DENIED = -32003
 
 
 @dataclass
-class JsonRpcError:
+class JsonRpcError(Exception):
     """JSON-RPC 2.0 error envelope."""
     code: int
     message: str

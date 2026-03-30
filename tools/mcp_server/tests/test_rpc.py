@@ -1,4 +1,6 @@
 import json
+from unittest.mock import Mock, patch
+
 import pytest
 from tools.mcp_server.server import McpServer
 
@@ -12,7 +14,7 @@ def test_tools_list_valid_response():
     assert response["id"] == 1
     assert "result" in response
     assert "tools" in response["result"]
-    assert len(response["result"]["tools"]) == 3
+    assert len(response["result"]["tools"]) == 9
 
 
 def test_unknown_tool_returns_error():
@@ -26,12 +28,14 @@ def test_unknown_tool_returns_error():
 
 
 def test_tools_call_success():
-    """tools/call with valid tool returns result."""
-    server = McpServer()
-    request = {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.system.health", "arguments": {}}}
-    response = server.dispatch(request, "trace-3")
-    assert "result" in response
-    assert response["result"]["status"] == "ok"
+    """tools/call with valid tool returns result (mocked backend)."""
+    with patch("tools.mcp_server.backend_client.BackendClient.health") as mock_health:
+        mock_health.return_value = {"status": "ok"}
+        server = McpServer()
+        request = {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.system.health", "arguments": {}}}
+        response = server.dispatch(request, "trace-3")
+        assert "result" in response
+        assert response["result"]["status"] == "healthy"
 
 
 def test_unknown_method_returns_error():
