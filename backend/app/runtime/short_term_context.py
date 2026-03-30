@@ -88,6 +88,24 @@ def build_short_term_context(
         if isinstance(conflict_state, dict):
             conflict_pressure = conflict_state.get("pressure")
 
+    # W3 Closure: Fetch latest AIDecisionLog from canonical storage
+    # The real source is session.metadata["ai_decision_logs"]
+    ai_decision_log_full = None
+    try:
+        if (hasattr(session, 'metadata') and
+            isinstance(session.metadata, dict) and
+            "ai_decision_logs" in session.metadata and
+            session.metadata["ai_decision_logs"]):
+            latest_log = session.metadata["ai_decision_logs"][-1]
+            # Serialize AIDecisionLog to dict if it's a Pydantic model
+            if hasattr(latest_log, 'model_dump'):
+                ai_decision_log_full = latest_log.model_dump(mode='json')
+            else:
+                ai_decision_log_full = latest_log  # Already a dict
+    except Exception:
+        # Gracefully handle any access issues
+        ai_decision_log_full = None
+
     return ShortTermTurnContext(
         turn_number=result.turn_number,
         scene_id=scene_id,
@@ -102,5 +120,5 @@ def build_short_term_context(
         conflict_pressure=conflict_pressure,
         # W3 Diagnostic Persistence
         execution_result_full=result.model_dump(mode='json') if hasattr(result, 'model_dump') else result,
-        ai_decision_log_full=result.ai_log if hasattr(result, 'ai_log') else None,
+        ai_decision_log_full=ai_decision_log_full,
     )

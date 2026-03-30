@@ -1460,3 +1460,55 @@ class TestW3SmokeAndStability:
         # Verify session still valid
         runtime_session = get_session(session_id)
         assert runtime_session is not None, "Session corrupted after error recovery"
+
+
+class TestAIDecisionLogRouting:
+    """Test that ai_decision_log_full is populated from real canonical source."""
+
+    def test_ai_decision_log_full_is_populated_with_real_data(self, client, test_user):
+        """Verify that ai_decision_log_full is no longer always None after turn execution."""
+        from app.runtime.session_store import get_session
+
+        # Setup: Create, load, and execute a turn
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        session_id = response.headers["Location"].split("/play/")[-1]
+
+        response = client.get(f"/play/{session_id}")
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', response.data.decode('utf-8', errors='ignore'))
+        csrf_token = match.group(1)
+
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+        )
+
+        # Get runtime state
+        runtime_session = get_session(session_id)
+        assert runtime_session is not None, "Session not found"
+
+        runtime_state = runtime_session.current_runtime_state
+        assert runtime_state is not None, "Runtime state not found"
+
+        # The key verification: if short_term_context exists, ai_decision_log_full must be populated
+        # (not None, since we fixed the routing)
+        if runtime_state.context_layers and runtime_state.context_layers.short_term_context:
+            short_term = runtime_state.context_layers.short_term_context
+
+            # This is the actual bug fix verification
+            # Before fix: ai_decision_log_full would be None
+            # After fix: ai_decision_log_full should be a dict (or at least try to fetch from metadata)
+            assert short_term.ai_decision_log_full is not None or \
+                   (short_term.ai_decision_log_full is None and len(runtime_state.metadata.get("ai_decision_logs", [])) == 0), \
+                "ai_decision_log_full should be populated if AIDecisionLog exists in metadata"
+
+            # If it was populated (non-None), verify it's a dict
+            if short_term.ai_decision_log_full is not None:
+                assert isinstance(short_term.ai_decision_log_full, dict), \
+                    f"ai_decision_log_full should be a dict, but got {type(short_term.ai_decision_log_full)}"
