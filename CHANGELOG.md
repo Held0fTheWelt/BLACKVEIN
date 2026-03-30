@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.4.0] - 2026-03-30
+## [0.3.6] - 2026-03-30
 
 **Summary**: W4 MVP Hardening complete. Five sequential gates closed: system tests (E2E lifecycle), persistence layer (save/load/resume), UI usability (operator-friendly flow), demo scripts (3 reproducible paths), and MVP boundary lock (scope audit for W5).
 
