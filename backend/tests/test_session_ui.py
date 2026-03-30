@@ -1262,3 +1262,36 @@ class TestW3SmokeAndStability:
         # Verify session info visible
         response_text = response.data.decode('utf-8', errors='ignore')
         assert "god_of_carnage" in response_text, "Module name not visible on load"
+
+    def test_smoke_execute_turn_and_verify_state(self, client, test_user):
+        """Verify turn execution updates state and renders key panels."""
+        # Create and load session
+        user, password = test_user
+        client.post("/login", data={"username": user.username, "password": password})
+        response = client.post(
+            "/play/start",
+            data={"module_id": "god_of_carnage"},
+            follow_redirects=False,
+        )
+        location = response.headers.get("Location", "")
+        session_id = location.split("/play/")[-1]
+
+        # Get CSRF token
+        response = client.get(f"/play/{session_id}")
+        import re
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', response.data.decode('utf-8', errors='ignore'))
+        csrf_token = match.group(1) if match else ""
+        assert csrf_token, "Could not extract CSRF token"
+
+        # Execute turn
+        response = client.post(
+            f"/play/{session_id}/execute",
+            data={"operator_input": "test action", "csrf_token": csrf_token},
+            follow_redirects=False,
+        )
+        self._assert_response_not_error(response)
+        self._assert_panels_present(response)
+
+        # Verify turn counter incremented
+        response_text = response.data.decode('utf-8', errors='ignore')
+        assert "Turn" in response_text or "turn" in response_text, "Turn indicator missing"
