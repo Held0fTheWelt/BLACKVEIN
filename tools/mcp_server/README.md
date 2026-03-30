@@ -1,23 +1,56 @@
-# World of Shadows MCP Server - Phase A1.1 Skeleton
+# World of Shadows MCP Server - Phase A1.2 Read-Only Tool Set
 
 ## Overview
 
-Minimal Model Context Protocol (MCP) server skeleton supporting `tools/list` and `tools/call` via stdio transport.
+Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/developer tooling via stdio transport.
 
 **Features:**
-- Single-process JSON-RPC server (handwritten, no external MCP library)
-- Structured logging with trace IDs and performance metrics
-- Rate limiting (30 calls/min, token bucket)
-- Input validation via Pydantic schemas
-- 3 placeholder read-only tools
-- JSON-RPC 2.0 error envelope compliance
+- 2 P0 backend tools: system health, session creation
+- 3 P1 filesystem tools: list modules, get module metadata, search content
+- 4 blocked tools (NOT_IMPLEMENTED): for future phases
+- HTTP client with 5-second timeout and automatic retry
+- Configuration from environment variables
+- Filesystem utilities with safety limits (10MB files, 100 search hits)
+- 43 comprehensive unit tests (TDD)
+
+## Environment Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `BACKEND_BASE_URL` | `https://yvesthx.pythonanywhere.com` | Backend API endpoint |
+| `BACKEND_BEARER_TOKEN` | (empty) | Optional bearer token for authentication |
+| `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
+
+## Tools Available
+
+### P0: Backend Integration
+
+| Tool | Input | Purpose |
+|------|-------|---------|
+| `wos.system.health` | (none) | Check backend health status |
+| `wos.session.create` | `module_id`, `module_version?` | Create new game session |
+
+### P1: Filesystem Utilities
+
+| Tool | Input | Purpose |
+|------|-------|---------|
+| `wos.goc.list_modules` | (none) | List available modules |
+| `wos.goc.get_module` | `module_id` | Get module metadata and file list |
+| `wos.content.search` | `pattern`, `case_sensitive?` | Search content with regex |
+
+### Blocked (NOT_IMPLEMENTED)
+
+- `wos.session.get` — Deferred to later phase
+- `wos.session.execute_turn` — Deferred to later phase
+- `wos.session.logs` — Deferred to later phase
+- `wos.session.state` — Deferred to later phase
 
 ## Running the Server
 
 ### Prerequisites
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install requests
 ```
 
 ### Start Server
@@ -28,196 +61,98 @@ python -m tools.mcp_server.server
 
 The server reads JSON-RPC requests from stdin and writes responses to stdout.
 
-## Sample I/O
+## Example Calls
 
-### Request: tools/list
+### tools/list
 
-**Input (stdin):**
+**Request:**
 ```json
 {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
 ```
 
-**Output (stdout):**
+**Response:** Shows all 9 tools (2 P0 + 3 P1 + 4 blocked)
+
+### tools/call: System Health
+
+**Request:**
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "tools": [
-      {
-        "name": "read_placeholder_1",
-        "description": "Placeholder tool for reading data",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "query": {"type": "string"}
-          },
-          "required": ["query"]
-        }
-      },
-      {
-        "name": "read_placeholder_2",
-        "description": "Placeholder tool for reading configuration",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "key": {"type": "string"}
-          },
-          "required": ["key"]
-        }
-      },
-      {
-        "name": "read_placeholder_3",
-        "description": "Placeholder tool for reading metadata",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "entity_id": {"type": "string"}
-          },
-          "required": ["entity_id"]
-        }
-      }
-    ]
-  }
-}
+{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "wos.system.health", "arguments": {}}}
 ```
 
-### Request: tools/call (Success)
-
-**Input (stdin):**
+**Response:**
 ```json
-{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "read_placeholder_1", "arguments": {"query": "test"}}}
+{"jsonrpc": "2.0", "id": 2, "result": {"status": "healthy", "backend": {"status": "ok"}}}
 ```
 
-**Output (stdout):**
+### tools/call: Create Session
+
+**Request:**
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "result": {
-    "content": [
-      {
-        "type": "text",
-        "text": "read_placeholder_1: executed with query=test"
-      }
-    ]
-  }
-}
+{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.session.create", "arguments": {"module_id": "god_of_carnage"}}}
 ```
 
-### Request: tools/call (Missing Required Field)
-
-**Input (stdin):**
+**Response:**
 ```json
-{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "read_placeholder_1", "arguments": {}}}
+{"jsonrpc": "2.0", "id": 3, "result": {"session_id": "sess-12345", "module_id": "god_of_carnage"}}
 ```
 
-**Output (stdout):**
+### tools/call: List Modules
+
+**Request:**
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "error": {
-    "code": -32602,
-    "message": "Invalid request",
-    "data": {
-      "detail": "Missing required fields: query"
-    }
-  }
-}
+{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "wos.goc.list_modules", "arguments": {}}}
 ```
 
-### Request: tools/call (Tool Not Found)
-
-**Input (stdin):**
+**Response:**
 ```json
-{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "nonexistent_tool", "arguments": {}}}
+{"jsonrpc": "2.0", "id": 4, "result": {"modules": ["god_of_carnage"]}}
 ```
 
-**Output (stdout):**
+### tools/call: Search Content
+
+**Request:**
 ```json
-{
-  "jsonrpc": "2.0",
-  "id": 4,
-  "error": {
-    "code": -32601,
-    "message": "Method not found",
-    "data": {
-      "detail": "Tool 'nonexistent_tool' not found"
-    }
-  }
-}
+{"jsonrpc": "2.0", "id": 5, "method": "tools/call", "params": {"name": "wos.content.search", "arguments": {"pattern": "god of carnage"}}}
 ```
 
-### Request: Unknown Method
-
-**Input (stdin):**
+**Response:**
 ```json
-{"jsonrpc": "2.0", "id": 5, "method": "unknown/method", "params": {}}
-```
-
-**Output (stdout):**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 5,
-  "error": {
-    "code": -32601,
-    "message": "Method not found",
-    "data": {
-      "detail": "Method 'unknown/method' not found"
-    }
-  }
-}
-```
-
-### Request: Rate Limit Exceeded
-
-**Input (stdin) - 31st request within 60 seconds:**
-```json
-{"jsonrpc": "2.0", "id": 31, "method": "tools/list", "params": {}}
-```
-
-**Output (stdout):**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 31,
-  "error": {
-    "code": -32600,
-    "message": "Invalid request",
-    "data": {
-      "detail": "Rate limit exceeded: 30 calls per minute allowed"
-    }
-  }
-}
+{"jsonrpc": "2.0", "id": 5, "result": {"pattern": "god of carnage", "hits": 2, "results": [...]}}
 ```
 
 ## Architecture
 
 ```
-server.py          → Main JSON-RPC loop, dispatch, handlers
-tools_registry.py  → Tool definitions, list handler
-logging_utils.py   → Structured logging (trace_id, duration)
-rate_limiter.py    → Token bucket rate limiter
-errors.py          → Error codes and JSON-RPC envelope
+config.py              → Environment configuration + repo root detection
+backend_client.py      → HTTP client (5s timeout, auto-retry)
+fs_tools.py            → Filesystem utilities (list, get, search)
+tools_registry.py      → Tool definitions + handlers
+server.py              → JSON-RPC main loop
+logging_utils.py       → Structured logging
+rate_limiter.py        → Token bucket rate limiting
+errors.py              → Error codes + JSON-RPC envelope
 ```
 
 ## Testing
 
 ```bash
-pytest tests/ -v
+pytest tools/mcp_server/tests/ -v
 ```
 
-Expected: 13/13 tests passing
-- 4 registry tests (tools/list structure, retrieval)
-- 3 RPC tests (success, unknown method, initialize)
-- 3 rate limit tests (under limit, over limit, per-token)
-- 3 validation tests (missing required fields)
+**Results:** 43/43 tests passing
+- 8 backend client tests
+- 7 config tests
+- 7 filesystem tests
+- 8 tool handler tests
+- 4 registry tests
+- 5 RPC tests
+- 3 rate limit tests
+- 1 validation test
 
 ## Notes
 
-- All tools are read-only (permission="read")
-- No external tools or write operations
-- Logs include: trace_id, method, status, duration_ms
-- JSON-RPC 2.0 compliant error envelope
+- All tools read-only (permission="read")
+- HTTP timeout: 5 seconds with automatic 1x retry
+- Search limits: 10MB per file, 100 hits per query
+- Configuration from environment variables with defaults
+- Repo root auto-detected by finding content/ folder
