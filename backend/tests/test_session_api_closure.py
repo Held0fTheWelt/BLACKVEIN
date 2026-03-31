@@ -9,17 +9,22 @@ import json
 from app.services.session_service import create_session
 
 
-def test_get_session_returns_501_not_implemented(client, test_user):
-    """GET /api/v1/sessions/<id> deferred to W3.2."""
+def test_get_session_returns_501_not_implemented(client, test_user, monkeypatch):
+    """GET /api/v1/sessions/<id> implemented in A1.3 (requires MCP_SERVICE_TOKEN)."""
+    monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
     session = create_session("god_of_carnage")
     session_id = session.session_id
 
+    # Without token: 401
     response = client.get(f"/api/v1/sessions/{session_id}")
+    assert response.status_code == 401
 
-    assert response.status_code == 501
+    # With token: 200 (endpoint now implemented in A1.3)
+    response = client.get(f"/api/v1/sessions/{session_id}",
+        headers={"Authorization": "Bearer test-token"})
+    assert response.status_code == 200
     data = json.loads(response.data)
-    assert "error" in data
-    assert "W3.2" in data["error"] or "persistence" in data["error"]
+    assert "session_id" in data  # Snapshot structure
 
 
 def test_post_execute_turn_returns_501_not_implemented(client, test_user):
@@ -38,28 +43,40 @@ def test_post_execute_turn_returns_501_not_implemented(client, test_user):
     assert "error" in data
 
 
-def test_get_logs_returns_501_not_implemented(client, test_user):
-    """GET /api/v1/sessions/<id>/logs deferred to W3.2."""
+def test_get_logs_returns_501_not_implemented(client, test_user, monkeypatch):
+    """GET /api/v1/sessions/<id>/logs implemented in A1.3 (requires MCP_SERVICE_TOKEN)."""
+    monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
     session = create_session("god_of_carnage")
     session_id = session.session_id
 
+    # Without token: 401
     response = client.get(f"/api/v1/sessions/{session_id}/logs")
+    assert response.status_code == 401
 
-    assert response.status_code == 501
+    # With token: 200 (endpoint now implemented in A1.3)
+    response = client.get(f"/api/v1/sessions/{session_id}/logs",
+        headers={"Authorization": "Bearer test-token"})
+    assert response.status_code == 200
     data = json.loads(response.data)
-    assert "error" in data
+    assert "events" in data  # Logs structure
 
 
-def test_get_state_returns_501_not_implemented(client, test_user):
-    """GET /api/v1/sessions/<id>/state deferred to W3.2."""
+def test_get_state_returns_501_not_implemented(client, test_user, monkeypatch):
+    """GET /api/v1/sessions/<id>/state implemented in A1.3 (requires MCP_SERVICE_TOKEN)."""
+    monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
     session = create_session("god_of_carnage")
     session_id = session.session_id
 
+    # Without token: 401
     response = client.get(f"/api/v1/sessions/{session_id}/state")
+    assert response.status_code == 401
 
-    assert response.status_code == 501
+    # With token: 200 (endpoint now implemented in A1.3)
+    response = client.get(f"/api/v1/sessions/{session_id}/state",
+        headers={"Authorization": "Bearer test-token"})
+    assert response.status_code == 200
     data = json.loads(response.data)
-    assert "error" in data
+    assert "canonical_state" in data  # State structure
 
 
 def test_create_session_still_works(client, test_user):
