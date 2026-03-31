@@ -58,9 +58,15 @@ def _track_web_activity(response):
         duration_ms = int((time.time() - start_time) * 1000)
         operator_input = request.form.get("operator_input", "")
 
+        # Extract session_id from path: /play/<session_id>/execute
+        path_parts = request.path.split("/")
+        session_id = None
+        if len(path_parts) >= 3 and path_parts[1] == "play" and path_parts[3] == "execute":
+            session_id = path_parts[2]
+
         log_turn_request(
             trace_id=trace_id,
-            session_id=None,  # Extract from path if needed
+            session_id=session_id,
             operator_input=operator_input,
             status_code=response.status_code,
             duration_ms=duration_ms,
