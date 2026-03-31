@@ -130,3 +130,29 @@ def log_turn_execution(
         entry["error_code"] = error_code
 
     logger.info(entry)
+
+
+def log_mcp_tool_call(
+    trace_id: str | None,
+    session_id: str | None,
+    tool_name: str,
+    duration_ms: int,
+    success: bool,
+    error: str | None = None,
+) -> None:
+    """Log MCP tool call (preflight enrichment event)."""
+    logger = get_audit_logger()
+
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "trace_id": trace_id,
+        "event": "mcp.tool_call",
+        "session_id": session_id,
+        "tool_name": tool_name,
+        "duration_ms": duration_ms,
+        "success": success,
+    }
+    if error:
+        entry["error"] = error
+
+    logger.info(entry)
