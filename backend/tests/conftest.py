@@ -45,6 +45,11 @@ def app():
         ensure_roles_seeded()
         ensure_areas_seeded()
         yield application
+        # Clean up after test: drop all tables to isolate test state
+        db.session.remove()
+        db.drop_all()
+        db.session.commit()
+        db.session.remove()
 
 
 @pytest.fixture
