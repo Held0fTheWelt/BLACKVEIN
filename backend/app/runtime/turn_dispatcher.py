@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from app.runtime.turn_executor import TurnExecutionResult
     from app.runtime.w2_models import SessionState
 
+from app.observability.trace import get_trace_id, ensure_trace_id
+from app.observability.audit_log import log_turn_execution
+
 
 async def dispatch_turn(
     session: SessionState,
@@ -66,6 +69,9 @@ async def dispatch_turn(
 
     execution_mode = session.execution_mode.lower() if session.execution_mode else "mock"
 
+    # Ensure trace_id is set for observability (works with/without Flask request context)
+    trace_id = get_trace_id() or ensure_trace_id(None)
+
     # W2 Helper-Role Layer: Deferred to W4
     # The following bounded helpers are implemented in helper_functions.py
     # but are deferred for actual integration into the dispatcher path:
@@ -77,6 +83,7 @@ async def dispatch_turn(
     # AI adapter input format, whether triggers inform actual dispatcher routing,
     # and whether delta normalization belongs before or after LLM output parsing.
 
+    result: TurnExecutionResult
     if execution_mode == "ai":
         # AI execution path
         # Resolve adapter: explicit parameter overrides session configuration
@@ -91,7 +98,7 @@ async def dispatch_turn(
                 f"not found in registry. Register it with register_adapter()."
             )
 
-        return await execute_turn_with_ai(
+        result = await execute_turn_with_ai(
             session,
             current_turn,
             resolved_adapter,
@@ -107,4 +114,16 @@ async def dispatch_turn(
         else:
             decision = MockDecision()
 
-        return await execute_turn(session, current_turn, decision, module)
+        result = await execute_turn(session, current_turn, decision, module)
+
+    # Log turn execution event for observability (A2 runtime boundary)
+    log_turn_execution(
+        trace_id=trace_id,
+        session_id=session.session_id,
+        execution_mode=execution_mode,
+        turn_before=current_turn,
+        turn_after=result.turn_number,
+        outcome=result.execution_status,
+    )
+
+    return result

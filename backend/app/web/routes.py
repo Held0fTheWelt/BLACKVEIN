@@ -1,8 +1,9 @@
 import asyncio
+import time
 from pathlib import Path
 
 import markdown
-from flask import Blueprint, current_app, flash, jsonify, redirect, render_template, request, Response, session, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, Response, session, url_for
 
 from app.extensions import db, limiter
 from app.models import User
@@ -12,6 +13,8 @@ from app.services.mail_service import send_verification_email
 from app.services.game_service import has_complete_play_service_config
 from app.web.auth import is_safe_redirect, require_web_login, require_web_admin
 from app.services.user_service import update_user_last_seen
+from app.observability.trace import ensure_trace_id, get_trace_id
+from app.observability.audit_log import log_turn_request
 
 # W3.3 imports
 from app.runtime.session_store import RuntimeSession, create_session as create_runtime_session, get_session as get_runtime_session, update_session as update_runtime_session
@@ -25,15 +28,44 @@ from app.runtime.debug_presenter import present_debug_panel, DebugPanelOutput
 web_bp = Blueprint("web", __name__)
 
 
+@web_bp.before_request
+def _setup_trace():
+    """Set up trace ID from header or generate new one."""
+    incoming_trace = request.headers.get("X-WoS-Trace-Id")
+    trace_id = ensure_trace_id(incoming_trace)
+    g.trace_id = trace_id
+    g.request_start_time = time.time()
+
+
 @web_bp.after_request
 def _track_web_activity(response):
-    """Update last_seen_at for session-authenticated users (throttled). So dashboard and API calls with session refresh activity."""
+    """Update last_seen_at for session-authenticated users (throttled), add trace header, and log turn requests."""
     try:
         uid = session.get("user_id")
         if uid is not None:
             update_user_last_seen(uid)
     except Exception:
         pass
+
+    # Add trace ID to response header
+    trace_id = g.get("trace_id")
+    if trace_id:
+        response.headers["X-WoS-Trace-Id"] = trace_id
+
+    # Log turn.request for /play/<session_id>/execute endpoint (web boundary)
+    if request.path.endswith("/execute") and "/play/" in request.path:
+        start_time = g.get("request_start_time", time.time())
+        duration_ms = int((time.time() - start_time) * 1000)
+        operator_input = request.form.get("operator_input", "")
+
+        log_turn_request(
+            trace_id=trace_id,
+            session_id=None,  # Extract from path if needed
+            operator_input=operator_input,
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
+
     return response
 
 
