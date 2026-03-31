@@ -51,6 +51,7 @@ def _make_security_user(*, is_admin=True, is_banned=False, role_level=50, userna
     return user
 
 
+@pytest.mark.usefixtures("isolated_app_context")
 def test_check_rate_limit_helpers_and_ip_extraction():
     app = Flask(__name__)
     app.config.update(TESTING=False)
@@ -73,6 +74,7 @@ def test_check_rate_limit_helpers_and_ip_extraction():
         assert admin_security_module._is_ip_whitelisted("10.0.0.2") is False
 
 
+@pytest.mark.usefixtures("isolated_app_context")
 def test_verify_2fa_variants():
     no_attrs = SimpleNamespace()
     assert admin_security_module._verify_2fa(no_attrs) is True

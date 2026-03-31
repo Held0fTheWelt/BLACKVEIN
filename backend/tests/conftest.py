@@ -579,6 +579,18 @@ def ensure_schema_revision(app):
     # Cleanup is handled by the app fixture's session management
 
 
+# Fixture for patch tests that instantiate models without full Flask context
+@pytest.fixture
+def isolated_app_context(app):
+    """Provide isolated app context for unit tests that import models directly.
+
+    Patch tests that create model instances without database need this fixture
+    to ensure proper Flask app context and avoid SQLAlchemy table conflicts.
+    """
+    with app.app_context():
+        yield app
+
+
 # Known foreign/corrupted test modules accidentally carried into backend/.
 # They either target the separate world-engine service or contain incomplete generated text.
 collect_ignore = [

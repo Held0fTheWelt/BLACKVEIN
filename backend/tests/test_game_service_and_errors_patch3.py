@@ -229,6 +229,7 @@ def test_api_error_and_success_helpers(flask_app):
         assert response.get_json() == {}
 
 
+@pytest.mark.usefixtures("isolated_app_context")
 def test_game_experience_template_to_dict_variants():
     template = GameExperienceTemplate(
         id=5,

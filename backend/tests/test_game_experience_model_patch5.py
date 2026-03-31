@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from app.models.game_experience import GameExperienceTemplate
 
 
+@pytest.mark.usefixtures("isolated_app_context")
 def test_game_experience_template_to_dict_includes_expected_defaults():
     template = GameExperienceTemplate(
         id=12,
@@ -40,6 +43,7 @@ def test_game_experience_template_to_dict_includes_expected_defaults():
     assert "published_payload" not in payload
 
 
+@pytest.mark.usefixtures("isolated_app_context")
 def test_game_experience_template_to_dict_obeys_payload_flags():
     template = GameExperienceTemplate(
         key="better_tomorrow",
