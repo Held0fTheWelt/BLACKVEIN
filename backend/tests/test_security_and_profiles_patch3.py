@@ -110,8 +110,8 @@ def test_admin_security_config_and_context_helpers(monkeypatch):
         return jsonify({"ok": True})
 
     with app.test_request_context("/admin/test", method="POST"):
-        response, status = endpoint()
-        assert status == 200
+        response = endpoint()
+        assert response.status_code == 200
         assert response.get_json() == {"ok": True}
         assert isinstance(admin_security_module.get_admin_security_context(), AdminSecurityConfig)
         assert admin_security_module.get_admin_security_user() is user
@@ -123,6 +123,7 @@ def test_admin_security_rejects_unauthorized_conditions(monkeypatch):
     app.config.update(TESTING=False, ADMIN_IP_WHITELIST=["127.0.0.1"])
     monkeypatch.setattr(admin_security_module, "jwt_required", lambda *args, **kwargs: (lambda f: f))
 
+    admin_security_module._rate_limit_cache.clear()
     violations = []
     monkeypatch.setattr(admin_security_module, "_log_admin_action", lambda *args, **kwargs: None)
     monkeypatch.setattr(admin_security_module, "_log_security_violation", lambda *args, **kwargs: violations.append((args, kwargs)))
@@ -163,20 +164,24 @@ def test_admin_security_rejects_unauthorized_conditions(monkeypatch):
         assert response.get_json()["code"] == "IP_NOT_WHITELISTED"
 
     with app.test_request_context("/admin", environ_base={"REMOTE_ADDR": "127.0.0.1"}):
-        monkeypatch.setattr(admin_security_module, "get_current_user", lambda: _make_security_user(role_level=100))
+        user_with_2fa = _make_security_user(role_level=100)
+        user_with_2fa.two_factor_enabled = True
+        user_with_2fa.two_factor_verified_at = None
+        monkeypatch.setattr(admin_security_module, "get_current_user", lambda: user_with_2fa)
         monkeypatch.setattr(admin_security_module, "current_user_is_super_admin", lambda: True)
         response, status = endpoint()
         assert status == 403
         assert response.get_json()["code"] == "2FA_REQUIRED"
 
-    fresh_user = _make_security_user(role_level=100)
+    fresh_user = _make_security_user(role_level=100, username="success_user")
+    fresh_user.id = 999  # Different user ID to avoid rate limit quota consumed by other tests
     fresh_user.two_factor_enabled = True
     fresh_user.two_factor_verified_at = datetime.now(timezone.utc)
     with app.test_request_context("/admin", environ_base={"REMOTE_ADDR": "127.0.0.1"}):
         monkeypatch.setattr(admin_security_module, "get_current_user", lambda: fresh_user)
         monkeypatch.setattr(admin_security_module, "current_user_is_super_admin", lambda: True)
-        response, status = endpoint()
-        assert status == 200
+        response = endpoint()
+        assert response.status_code == 200
 
     with app.test_request_context("/admin", environ_base={"REMOTE_ADDR": "127.0.0.1"}):
         monkeypatch.setattr(admin_security_module, "get_current_user", lambda: fresh_user)
