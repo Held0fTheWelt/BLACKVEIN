@@ -89,7 +89,7 @@ class _Manager:
         instance = self.instances.get(run_id)
         if instance is None:
             raise KeyError(run_id)
-        return _Dumpable({"id": instance.id, "status": "running"})
+        return instance
 
     def find_or_join_run(self, run_id: str, display_name: str, account_id=None, character_id=None, preferred_role_id=None):
         if run_id == "missing":
