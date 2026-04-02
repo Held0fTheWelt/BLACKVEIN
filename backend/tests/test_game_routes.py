@@ -281,3 +281,38 @@ def test_game_ops_proxy_endpoints(client, moderator_headers, monkeypatch):
     terminate_response = client.post('/api/v1/game/ops/runs/run-123/terminate', headers=moderator_headers)
     assert terminate_response.status_code == 200
     assert terminate_response.get_json()['terminated'] is True
+
+
+def test_game_create_run_requires_template_id(client, auth_headers):
+    r = client.post("/api/v1/game/runs", json={}, headers=auth_headers)
+    assert r.status_code == 400
+
+
+def test_game_templates_unknown_kind_gets_title_case_label(client, auth_headers, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.list_play_templates",
+        lambda: [{"id": "x", "title": "T", "kind": "weird_kind"}],
+    )
+    r = client.get("/api/v1/game/templates", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.get_json()["templates"][0]["kind_label"] == "Weird Kind"
+
+
+def test_game_bootstrap_marks_unconfigured_when_ws_url_fails(
+    client, auth_headers, test_user, app, monkeypatch
+):
+    from app.services.game_service import GameServiceConfigError
+
+    app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
+    app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play.example.com"
+    monkeypatch.setattr("app.api.v1.game_routes.has_complete_play_service_config", lambda: True)
+    monkeypatch.setattr("app.api.v1.game_routes.list_play_templates", lambda: [])
+    monkeypatch.setattr("app.api.v1.game_routes.list_play_runs", lambda: [])
+
+    def bad_ws():
+        raise GameServiceConfigError("ws url missing")
+
+    monkeypatch.setattr("app.api.v1.game_routes.get_play_service_websocket_url", bad_ws)
+    r = client.get("/api/v1/game/bootstrap", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.get_json()["play_service"]["configured"] is False

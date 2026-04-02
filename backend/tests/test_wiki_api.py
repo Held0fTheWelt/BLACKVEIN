@@ -121,6 +121,55 @@ def test_wiki_put_without_content_key_returns_400(client, moderator_headers, tmp
     assert "content" in (response.get_json().get("error") or "").lower()
 
 
+def test_wiki_public_slug_not_found_returns_404(client):
+    assert client.get("/api/v1/wiki/does-not-exist-slug-xyz").status_code == 404
+
+
+def test_wiki_suggested_threads_unknown_page_returns_404(client):
+    assert client.get("/api/v1/wiki/999999/suggested-threads").status_code == 404
+
+
+def test_wiki_public_markdown_failure_sets_html_none(client, app, monkeypatch):
+    """Exception during markdown render yields html=None (wiki_page_get)."""
+    from app.api.v1 import wiki_routes
+    from app.models import WikiPage, WikiPageTranslation
+
+    with app.app_context():
+        page = WikiPage(key="md_fail_page", discussion_thread_id=None)
+        db.session.add(page)
+        db.session.flush()
+        tr = WikiPageTranslation(
+            page_id=page.id,
+            language_code="de",
+            title="T",
+            slug="md-fail-page",
+            content_markdown="# x",
+        )
+        db.session.add(tr)
+        db.session.commit()
+        slug = tr.slug
+
+    def boom(*_a, **_kw):
+        raise RuntimeError("markdown boom")
+
+    monkeypatch.setattr(wiki_routes.markdown, "markdown", boom)
+    resp = client.get(f"/api/v1/wiki/{slug}?lang=de")
+    assert resp.status_code == 200
+    assert resp.get_json().get("html") is None
+
+
+def test_wiki_put_content_must_be_string(client, moderator_headers, tmp_path, monkeypatch):
+    wiki_file = tmp_path / "wiki.md"
+    from app.api.v1 import wiki_routes
+
+    monkeypatch.setattr(wiki_routes, "_wiki_path", lambda: wiki_file)
+    resp = client.put(
+        "/api/v1/wiki",
+        json={"content": 123},
+        headers=moderator_headers,
+    )
+    assert resp.status_code == 400
+
 
 """Tests for TestWikiAdminAPI."""
 

@@ -1,4 +1,6 @@
 """Tests for slogan CRUD API and site slogan resolution."""
+from unittest.mock import patch
+
 import pytest
 
 
@@ -157,6 +159,65 @@ def test_slogans_list_moderator_returns_200(client, moderator_headers):
     data = r.get_json()
     assert "items" in data
     assert isinstance(data["items"], list)
+
+
+def test_slogans_list_plain_user_forbidden(client, auth_headers):
+    """GET /api/v1/slogans as normal user returns 403."""
+    r = client.get("/api/v1/slogans", headers=auth_headers)
+    assert r.status_code == 403
+    assert "Forbidden" in (r.get_json() or {}).get("error", "")
+
+
+@patch("app.api.v1.slogan_routes.get_current_user", return_value=None)
+def test_slogans_routes_user_not_found_returns_404(mock_gc, client, moderator_headers):
+    """When get_current_user is None, slogan routes return 404."""
+    r = client.get("/api/v1/slogans", headers=moderator_headers)
+    assert r.status_code == 404
+
+
+def test_slogans_create_missing_json_body(client, moderator_headers):
+    """POST /api/v1/slogans without JSON returns 400."""
+    r = client.post(
+        "/api/v1/slogans",
+        headers={**moderator_headers, "Content-Type": "application/json"},
+        data="",
+    )
+    assert r.status_code == 400
+
+
+def test_slogans_update_missing_json_body(client, moderator_headers):
+    """PUT /api/v1/slogans/<id> without JSON returns 400."""
+    r = client.post(
+        "/api/v1/slogans",
+        headers=moderator_headers,
+        json={
+            "text": "json body put test",
+            "category": "landing_teaser",
+            "placement_key": "landing.teaser.primary",
+            "language_code": "de",
+        },
+    )
+    assert r.status_code == 201
+    sid = r.get_json()["id"]
+    r2 = client.put(
+        f"/api/v1/slogans/{sid}",
+        headers={**moderator_headers, "Content-Type": "application/json"},
+        data="",
+    )
+    assert r2.status_code == 400
+    client.delete(f"/api/v1/slogans/{sid}", headers=moderator_headers)
+
+
+def test_slogans_activate_not_found(client, moderator_headers):
+    """POST activate on missing id returns 404."""
+    r = client.post("/api/v1/slogans/999999/activate", headers=moderator_headers)
+    assert r.status_code == 404
+
+
+def test_slogans_deactivate_not_found(client, moderator_headers):
+    """POST deactivate on missing id returns 404."""
+    r = client.post("/api/v1/slogans/999999/deactivate", headers=moderator_headers)
+    assert r.status_code == 404
 
 
 def test_slogans_create_and_resolve(client, moderator_headers):

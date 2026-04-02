@@ -155,6 +155,41 @@ def test_data_export_rate_limit_per_user(client, app, admin_headers, super_admin
     assert resp.status_code == 200, f"Different user should have independent rate limit, got {resp.status_code}"
 
 
+def test_data_export_invalid_scope_returns_400(client, admin_headers):
+    resp = client.post("/api/v1/data/export", json={"scope": "invalid_scope"}, headers=admin_headers)
+    assert resp.status_code == 400
+
+
+def test_data_export_table_without_table_returns_400(client, admin_headers):
+    resp = client.post("/api/v1/data/export", json={"scope": "table"}, headers=admin_headers)
+    assert resp.status_code == 400
+
+
+def test_data_export_rows_without_keys_returns_400(client, admin_headers):
+    resp = client.post(
+        "/api/v1/data/export",
+        json={"scope": "rows", "table": "users"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_data_decrypt_without_password_returns_400(client, admin_headers):
+    resp = client.post(
+        "/api/v1/data/export/decrypt",
+        json={"encrypted_data": "x", "iv": "y", "salt": "z"},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_data_import_preflight_missing_json_returns_400(client, admin_headers):
+    resp = client.post(
+        "/api/v1/data/import/preflight",
+        data="not-json",
+        headers={**admin_headers, "Content-Type": "application/json"},
+    )
+    assert resp.status_code == 400
 
 
 """Tests for TestDataAPI."""

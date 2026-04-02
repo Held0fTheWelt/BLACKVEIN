@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 from app.extensions import db
 from app.models import GameExperienceTemplate
 
@@ -136,3 +138,66 @@ def test_game_admin_runtime_proxy_routes(client, moderator_headers, monkeypatch)
     terminate = client.post('/api/v1/game-admin/runtime/runs/run-1/terminate', json={'reason': 'Moderation stop'}, headers=moderator_headers)
     assert terminate.status_code == 200
     assert terminate.get_json()['status'] == 'completed'
+
+
+def test_game_admin_list_experiences_query_flags(client, moderator_headers, app):
+    tid = f"cov_{uuid.uuid4().hex[:10]}"
+    with app.app_context():
+        item = GameExperienceTemplate(
+            template_id=tid,
+            slug=f"{tid}-slug",
+            title='Cov List',
+            kind='solo_story',
+            summary='s',
+            tags_json=[],
+            style_profile='retro_pulp',
+            is_published=False,
+            version=1,
+            payload_json={'id': tid, 'title': 'Cov', 'kind': 'solo_story'},
+        )
+        db.session.add(item)
+        db.session.commit()
+
+    r = client.get(
+        f'/api/v1/game-admin/experiences?q=Cov&status=draft&include_payload=true',
+        headers=moderator_headers,
+    )
+    assert r.status_code == 200
+    assert isinstance(r.get_json().get('items'), list)
+
+
+def test_game_admin_create_experience_errors(client, moderator_headers, monkeypatch):
+    assert client.post(
+        '/api/v1/game-admin/experiences',
+        data='x',
+        headers={**moderator_headers, 'Content-Type': 'application/json'},
+    ).status_code == 400
+
+    r2 = client.post(
+        '/api/v1/game-admin/experiences',
+        json={'draft_payload': {}},
+        headers=moderator_headers,
+    )
+    assert r2.status_code == 400
+
+    def raise_exists(**_kwargs):
+        raise ValueError('Template id already exists')
+
+    monkeypatch.setattr('app.api.v1.game_admin_routes.create_experience', raise_exists)
+    r3 = client.post(
+        '/api/v1/game-admin/experiences',
+        json={'draft_payload': {'id': 'x', 'title': 'T', 'kind': 'solo_story'}},
+        headers=moderator_headers,
+    )
+    assert r3.status_code == 409
+
+
+def test_game_admin_runtime_game_service_error(client, moderator_headers, monkeypatch):
+    from app.services.game_service import GameServiceError
+
+    def err():
+        raise GameServiceError('play down', status_code=503)
+
+    monkeypatch.setattr('app.api.v1.game_admin_routes.list_play_runs', err)
+    r = client.get('/api/v1/game-admin/runtime/runs', headers=moderator_headers)
+    assert r.status_code == 503

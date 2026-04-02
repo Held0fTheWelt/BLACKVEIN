@@ -746,3 +746,98 @@ class TestApplySituationOutcome:
         assert updated.status == SessionStatus.ENDED
         assert session.current_scene_id == "phase_1"
         assert session.status == SessionStatus.ACTIVE
+
+
+class TestNextSituationHelpersDirect:
+    """Direct coverage for _check_ending_condition / _check_transition_condition."""
+
+    @pytest.fixture
+    def tiny_module(self):
+        from app.content.module_models import (
+            ContentModule,
+            ModuleMetadata,
+            ScenePhase,
+        )
+
+        meta = ModuleMetadata(
+            module_id="t",
+            title="T",
+            version="1.0.0",
+            contract_version="1",
+        )
+        ph = ScenePhase(
+            id="scene_a",
+            name="A",
+            sequence=1,
+            description="d",
+        )
+        return ContentModule(metadata=meta, scene_phases={"scene_a": ph})
+
+    @pytest.fixture
+    def bare_session(self):
+        return SessionState(
+            module_id="t",
+            module_version="1.0.0",
+            current_scene_id="scene_a",
+            canonical_state={},
+        )
+
+    def test_check_ending_unconditional_and_conditional(self, bare_session):
+        from app.content.module_models import EndingCondition
+        from app.runtime.next_situation import _check_ending_condition
+
+        unconditional = EndingCondition(
+            id="e1",
+            name="n",
+            description="d",
+            outcome={},
+            trigger_conditions=[],
+        )
+        assert _check_ending_condition(unconditional, bare_session, None) is True
+
+        cond = EndingCondition(
+            id="e2",
+            name="n2",
+            description="d",
+            outcome={},
+            trigger_conditions=["a", "b"],
+        )
+        assert _check_ending_condition(cond, bare_session, None) is False
+        assert _check_ending_condition(cond, bare_session, ["a"]) is False
+        assert _check_ending_condition(cond, bare_session, ["a", "b"]) is True
+
+    def test_check_transition_target_missing_and_conditions(self, bare_session, tiny_module):
+        from app.content.module_models import PhaseTransition
+        from app.runtime.next_situation import _check_transition_condition
+
+        bad_target = PhaseTransition(
+            from_phase="scene_a",
+            to_phase="nope",
+            trigger_conditions=[],
+        )
+        assert _check_transition_condition(bad_target, bare_session, tiny_module, None) is False
+
+        ok_unc = PhaseTransition(
+            from_phase="scene_a",
+            to_phase="scene_a",
+            trigger_conditions=[],
+        )
+        assert _check_transition_condition(ok_unc, bare_session, tiny_module, None) is True
+
+        cond = PhaseTransition(
+            from_phase="scene_a",
+            to_phase="scene_a",
+            trigger_conditions=["x"],
+        )
+        assert _check_transition_condition(cond, bare_session, tiny_module, None) is False
+        assert _check_transition_condition(cond, bare_session, tiny_module, ["x"]) is True
+
+    def test_log_situation_outcome_unknown_status_empty(self):
+        from app.runtime.next_situation import log_situation_outcome
+
+        situation = NextSituation(
+            current_scene_id="x",
+            situation_status="unknown_status",
+            derivation_reason="test",
+        )
+        assert log_situation_outcome(situation, "s1", 1) == []

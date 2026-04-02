@@ -117,5 +117,17 @@ class TestMetricsServiceAggregates:
             assert max(metrics["active_users_over_time"]) >= 1
             assert fallback_metrics["selected_range"] == "24h"
 
+    def test_get_metrics_12m_monthly_bucket_labels(self, app, monkeypatch):
+        """12m range uses _range_end_and_buckets branch and %Y-%m labels."""
+        fixed_now = datetime(2026, 6, 15, 12, 0, tzinfo=timezone.utc)
+        monkeypatch.setattr("app.services.metrics_service._utc_now", lambda: fixed_now)
+        with app.app_context():
+            metrics = get_metrics("12m")
+        assert metrics["selected_range"] == "12m"
+        assert metrics["bucket_info"]["bucket_count"] == 12
+        assert len(metrics["bucket_labels"]) == 12
+        # Month-style labels (not HH:MM or YYYY-MM-DD)
+        assert all(len(lbl) == 7 and lbl[4] == "-" for lbl in metrics["bucket_labels"])
+
 
 # ======================= WIKI ADMIN TRANSLATION WORKFLOW =======================

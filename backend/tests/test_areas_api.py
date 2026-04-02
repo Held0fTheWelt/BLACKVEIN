@@ -274,4 +274,54 @@ def test_feature_areas_set(app, client, admin_headers):
     assert resp.status_code == 200
 
 
+def test_areas_list_invalid_pagination_defaults(client, admin_headers):
+    r = client.get("/api/v1/areas?page=0&limit=999", headers=admin_headers)
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["page"] == 1
+    assert body["per_page"] == 100
+
+
+def test_user_areas_get_unknown_user(client, admin_headers):
+    assert client.get("/api/v1/users/999999/areas", headers=admin_headers).status_code == 404
+
+
+def test_user_areas_put_missing_json(client, admin_headers, test_user):
+    user, _ = test_user
+    r = client.put(
+        f"/api/v1/users/{user.id}/areas",
+        data="not-json",
+        headers={**admin_headers, "Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+
+
+def test_user_areas_put_area_ids_not_list(client, admin_headers, test_user):
+    user, _ = test_user
+    r = client.put(
+        f"/api/v1/users/{user.id}/areas",
+        json={"area_ids": "bad"},
+        headers=admin_headers,
+    )
+    assert r.status_code == 400
+
+
+def test_feature_areas_put_missing_json(client, admin_headers):
+    r = client.put(
+        "/api/v1/feature-areas/manage.users",
+        data="",
+        headers={**admin_headers, "Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+
+
+def test_areas_create_missing_json(client, admin_headers):
+    r = client.post(
+        "/api/v1/areas",
+        data="",
+        headers={**admin_headers, "Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+
+
 # ======================= USER API EXTENDED =======================

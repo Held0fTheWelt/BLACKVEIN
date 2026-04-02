@@ -602,6 +602,52 @@ class TestServiceLevel:
             assert ok
             assert get_slogan_by_id(s.id) is None
 
+    def test_slogan_service_error_and_filter_paths(self, app):
+        from app.services.slogan_service import (
+            create_slogan,
+            list_slogans,
+            list_slogans_for_placement,
+            resolve_slogan_for_placement,
+            update_slogan,
+        )
+
+        with app.app_context():
+            s, err = create_slogan("X", "landing_hero", "landing.hero.primary", "de")
+            assert s is not None
+
+            by_lang = list_slogans(language_code="de", active_only=True)
+            assert any(x.id == s.id for x in by_lang)
+
+            _, err = create_slogan("", "landing_hero", "landing.hero.primary", "de")
+            assert err == "Text is required"
+            _, err = create_slogan("t", "bad_cat", "landing.hero.primary", "de")
+            assert "Invalid category" in (err or "")
+            _, err = create_slogan("t", "landing_hero", "bad.placement", "de")
+            assert "Invalid placement_key" in (err or "")
+            _, err = create_slogan("t", "landing_hero", "landing.hero.primary", "xx")
+            assert "Unsupported language" in (err or "")
+
+            _, err = update_slogan(s.id, text="   ")
+            assert "cannot be empty" in (err or "")
+            _, err = update_slogan(s.id, category="nope")
+            assert "Invalid category" in (err or "")
+            _, err = update_slogan(s.id, placement_key="nope")
+            assert "Invalid placement_key" in (err or "")
+            _, err = update_slogan(s.id, language_code="zz")
+            assert "Unsupported language" in (err or "")
+            _, err = update_slogan(s.id, valid_from="not-a-date")
+            assert err is None
+            _, err = update_slogan(999999, text="nope")
+            assert err == "Slogan not found"
+
+            app.config["DEFAULT_LANGUAGE"] = "de"
+            assert resolve_slogan_for_placement("landing.hero.primary", "") is not None
+            assert len(list_slogans_for_placement("landing.hero.primary", "")) >= 1
+
+            from app.services.slogan_service import delete_slogan
+
+            delete_slogan(s.id)
+
     def test_area_service_create_delete(self, app):
         from app.services.area_service import create_area, delete_area, get_area_by_id, update_area
         with app.app_context():

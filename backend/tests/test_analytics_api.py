@@ -353,3 +353,16 @@ class TestAnalyticsPerformance:
         data = response.get_json()
         contributors = data["top_contributors"]
         assert len(contributors) <= 100
+
+
+def test_admin_analytics_summary_service_exception_returns_500(client, admin_headers, monkeypatch):
+    def boom(**_kwargs):
+        raise RuntimeError("analytics failure")
+
+    monkeypatch.setattr(
+        "app.api.v1.analytics_routes.get_analytics_summary",
+        boom,
+    )
+    resp = client.get("/api/v1/admin/analytics/summary", headers=admin_headers)
+    assert resp.status_code == 500
+    assert "error" in (resp.get_json() or {})

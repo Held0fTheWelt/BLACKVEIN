@@ -8,7 +8,7 @@ from app.content.module_validator import (
     ModuleCrossReferenceValidator,
     ValidationResult,
 )
-from app.content.module_models import ContentModule
+from app.content.module_models import ContentModule, ModuleMetadata
 
 
 class TestValidationResult:
@@ -211,3 +211,169 @@ class TestModuleValidatorGodOfCarnage:
         }
         actual_endings = set(god_of_carnage_module.ending_conditions.keys())
         assert expected_endings.issubset(actual_endings)
+
+
+class TestModuleValidatorSyntheticErrors:
+    """Synthetic ContentModule fixtures for validator edge branches."""
+
+    @pytest.fixture
+    def validator(self):
+        return ModuleCrossReferenceValidator()
+
+    @staticmethod
+    def _meta(module_id: str = "synthetic") -> ModuleMetadata:
+        return ModuleMetadata(
+            module_id=module_id,
+            title="Synthetic",
+            version="1.0.0",
+            contract_version="1",
+        )
+
+    def test_trigger_character_vulnerability_unknown_character(self, validator):
+        from app.content.module_models import (
+            CharacterDefinition,
+            ContentModule,
+            TriggerDefinition,
+        )
+
+        mod = ContentModule(
+            metadata=self._meta(),
+            characters={
+                "alice": CharacterDefinition(
+                    id="alice",
+                    name="Alice",
+                    role="r",
+                    baseline_attitude="calm",
+                )
+            },
+            trigger_definitions={
+                "t1": TriggerDefinition(
+                    id="t1",
+                    name="T",
+                    description="D",
+                    character_vulnerability={"ghost": 1},
+                )
+            },
+        )
+        err = validator.validate_character_references(mod)
+        assert any("ghost" in e for e in err)
+
+    def test_relationship_axis_unknown_relationship_id(self, validator):
+        from app.content.module_models import ContentModule, RelationshipAxis
+
+        mod = ContentModule(
+            metadata=self._meta(),
+            relationship_axes={
+                "ax1": RelationshipAxis(
+                    id="ax1",
+                    name="Axis",
+                    description="Desc",
+                    relationships=["no_such_rel"],
+                    baseline={},
+                )
+            },
+        )
+        err = validator.validate_relationship_references(mod)
+        assert any("no_such_rel" in e for e in err)
+
+    def test_phase_active_trigger_unknown(self, validator):
+        from app.content.module_models import ContentModule, ScenePhase
+
+        mod = ContentModule(
+            metadata=self._meta(),
+            scene_phases={
+                "p1": ScenePhase(
+                    id="p1",
+                    name="P1",
+                    sequence=1,
+                    description="d",
+                    active_triggers=["missing_trigger"],
+                )
+            },
+        )
+        err = validator.validate_trigger_references(mod)
+        assert any("missing_trigger" in e for e in err)
+
+    def test_phase_sequence_gap_and_bad_transition_and_cycle(self, validator):
+        from app.content.module_models import ContentModule, PhaseTransition, ScenePhase
+
+        mod = ContentModule(
+            metadata=self._meta(),
+            scene_phases={
+                "p1": ScenePhase(
+                    id="p1", name="A", sequence=1, description="d"
+                ),
+                "p3": ScenePhase(
+                    id="p3", name="C", sequence=3, description="d"
+                ),
+            },
+            phase_transitions={
+                "bad": PhaseTransition(from_phase="ghost", to_phase="p1"),
+                "c1": PhaseTransition(from_phase="p1", to_phase="p3"),
+                "c2": PhaseTransition(from_phase="p3", to_phase="p1"),
+            },
+        )
+        err = validator.validate_phase_sequence(mod)
+        assert any("sequence" in e.lower() for e in err)
+        assert any("ghost" in e for e in err)
+        assert any("cycle" in e.lower() for e in err)
+
+    def test_constraints_empty_fields_and_negative_baseline(self, validator):
+        from app.content.module_models import (
+            CharacterDefinition,
+            ContentModule,
+            EndingCondition,
+            RelationshipAxis,
+            ScenePhase,
+            TriggerDefinition,
+        )
+
+        mod = ContentModule(
+            metadata=self._meta(),
+            characters={
+                "c1": CharacterDefinition.model_construct(
+                    id="c1",
+                    name="N",
+                    role="",
+                    baseline_attitude="",
+                )
+            },
+            relationship_axes={
+                "ax": RelationshipAxis.model_construct(
+                    id="ax",
+                    name="",
+                    description="",
+                    relationships=[],
+                    baseline=-5,
+                )
+            },
+            scene_phases={
+                "p1": ScenePhase.model_construct(
+                    id="p1",
+                    name="",
+                    sequence=1,
+                    description="d",
+                )
+            },
+            trigger_definitions={
+                "tr": TriggerDefinition.model_construct(
+                    id="tr",
+                    name="",
+                    description="",
+                )
+            },
+            ending_conditions={
+                "e1": EndingCondition.model_construct(
+                    id="e1",
+                    name="",
+                    description="",
+                    outcome={},
+                )
+            },
+        )
+        err = validator.validate_constraints(mod)
+        msgs = " ".join(err).lower()
+        assert "baseline_attitude" in msgs or "empty role" in msgs
+        assert "axis" in msgs
+        assert "trigger" in msgs
+        assert "ending" in msgs
