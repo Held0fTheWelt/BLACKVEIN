@@ -236,3 +236,15 @@ class TestValidateActionStructureExtraBranches:
         )
         assert not is_valid
         assert errors
+
+class TestGetActionDescription:
+    def test_unknown_action_type_message(self):
+        from app.runtime.decision_policy import AIDecisionPolicy
+        assert "Unknown" in AIDecisionPolicy.get_action_description("not_a_real_type")
+
+    def test_known_type_uses_doc_or_fallback(self):
+        from app.runtime.decision_policy import AIDecisionPolicy, AIActionType
+        for at in AIActionType:
+            desc = AIDecisionPolicy.get_action_description(at.value)
+            assert desc
+            assert at.value in desc or (at.__doc__ and at.__doc__.strip() in desc)

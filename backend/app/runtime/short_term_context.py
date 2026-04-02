@@ -7,6 +7,7 @@ information suitable for AI request construction and runtime diagnostics.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -67,6 +68,7 @@ class ShortTermTurnContext(BaseModel):
 def build_short_term_context(
     result: TurnExecutionResult,
     prior_scene_id: str | None = None,
+    session_state: Any = None,
 ) -> ShortTermTurnContext:
     """Derive a short-term turn context from a completed turn execution result.
 
@@ -75,6 +77,8 @@ def build_short_term_context(
     Args:
         result: The TurnExecutionResult from the completed turn.
         prior_scene_id: The scene ID before this turn began (used to detect transitions).
+        session_state: Optional SessionState; when set, latest entry from
+            ``metadata["ai_decision_logs"]`` is copied into ``ai_decision_log_full``.
 
     Returns:
         A bounded ShortTermTurnContext for the next AI/runtime step.
@@ -89,17 +93,18 @@ def build_short_term_context(
             conflict_pressure = conflict_state.get("pressure")
 
     # W3 Closure: Fetch latest AIDecisionLog from canonical storage
-    # The real source is session.metadata["ai_decision_logs"]
+    # The real source is session_state.metadata["ai_decision_logs"]
     ai_decision_log_full = None
     try:
-        if (hasattr(session, 'metadata') and
-            isinstance(session.metadata, dict) and
-            "ai_decision_logs" in session.metadata and
-            session.metadata["ai_decision_logs"]):
-            latest_log = session.metadata["ai_decision_logs"][-1]
+        if (session_state is not None and
+            hasattr(session_state, "metadata") and
+            isinstance(session_state.metadata, dict) and
+            "ai_decision_logs" in session_state.metadata and
+            session_state.metadata["ai_decision_logs"]):
+            latest_log = session_state.metadata["ai_decision_logs"][-1]
             # Serialize AIDecisionLog to dict if it's a Pydantic model
-            if hasattr(latest_log, 'model_dump'):
-                ai_decision_log_full = latest_log.model_dump(mode='json')
+            if hasattr(latest_log, "model_dump"):
+                ai_decision_log_full = latest_log.model_dump(mode="json")
             else:
                 ai_decision_log_full = latest_log  # Already a dict
     except Exception:

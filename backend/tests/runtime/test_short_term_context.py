@@ -524,3 +524,69 @@ class TestShortTermContextIntegration:
         context = build_short_term_context(result)
 
         assert context.conflict_pressure == 45
+
+
+class TestBuildShortTermContextSessionState:
+    """W3: session_state.metadata["ai_decision_logs"] -> ai_decision_log_full."""
+
+    def _base_result(self):
+        from datetime import datetime
+        from app.runtime.w2_models import GuardOutcome
+        from app.runtime.turn_executor import TurnExecutionResult
+
+        decision = MockDecision(proposed_deltas=[], narrative_text="", rationale="")
+        return TurnExecutionResult(
+            turn_number=1,
+            session_id="s",
+            execution_status="success",
+            decision=decision,
+            updated_canonical_state={"conflict_state": "not_a_dict"},
+            updated_scene_id="scene_a",
+            guard_outcome=GuardOutcome.ACCEPTED,
+            started_at=datetime.now(),
+            completed_at=datetime.now(),
+            duration_ms=1.0,
+            events=[],
+        )
+
+    def test_conflict_state_non_dict_skips_pressure(self):
+        ctx = build_short_term_context(self._base_result())
+        assert ctx.conflict_pressure is None
+
+    def test_ai_decision_log_from_pydantic_model(self):
+        from pydantic import BaseModel
+        from types import SimpleNamespace
+
+        class LogEntry(BaseModel):
+            kind: str = "decision"
+
+        result = self._base_result()
+        session_state = SimpleNamespace(
+            metadata={"ai_decision_logs": [LogEntry(kind="x")]}
+        )
+        ctx = build_short_term_context(result, session_state=session_state)
+        assert ctx.ai_decision_log_full == {"kind": "x"}
+
+    def test_ai_decision_log_plain_dict(self):
+        from types import SimpleNamespace
+
+        result = self._base_result()
+        session_state = SimpleNamespace(
+            metadata={"ai_decision_logs": [{"raw": True}]}
+        )
+        ctx = build_short_term_context(result, session_state=session_state)
+        assert ctx.ai_decision_log_full == {"raw": True}
+
+    def test_ai_decision_log_exception_falls_back_to_none(self):
+        from types import SimpleNamespace
+
+        class BadLog:
+            def model_dump(self, mode="json"):
+                raise RuntimeError("fail dump")
+
+        result = self._base_result()
+        session_state = SimpleNamespace(
+            metadata={"ai_decision_logs": [BadLog()]}
+        )
+        ctx = build_short_term_context(result, session_state=session_state)
+        assert ctx.ai_decision_log_full is None

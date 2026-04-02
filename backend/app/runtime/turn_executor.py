@@ -259,7 +259,9 @@ def _accumulate_turn_context(
         session.context_layers.session_history = SessionHistory(max_size=100)
 
     # Derive short-term context from result
-    short_term_context = build_short_term_context(result, prior_scene_id=prior_scene_id)
+    short_term_context = build_short_term_context(
+        result, prior_scene_id=prior_scene_id, session_state=session
+    )
     session.context_layers.short_term_context = short_term_context
 
     # Convert to history entry and add to session history
