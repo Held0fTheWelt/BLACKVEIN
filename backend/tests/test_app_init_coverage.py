@@ -34,7 +34,12 @@ def test_error_handler_500_api_returns_json(client, app):
         raise RuntimeError("coverage")
 
     app.add_url_rule("/api/v1/__coverage_500", "cov_500", _raise_500, methods=["GET"])
-    r = client.get("/api/v1/__coverage_500")
+    prev_testing = app.testing
+    app.testing = False
+    try:
+        r = client.get("/api/v1/__coverage_500")
+    finally:
+        app.testing = prev_testing
     assert r.status_code == 500
     assert r.is_json
     assert "error" in r.get_json()
