@@ -8,6 +8,7 @@ from app.auth.admin_security import admin_security
 from app.extensions import limiter, db
 from app.services.activity_log_service import list_activity_logs
 from app.services import log_activity
+from app.services.metrics_service import get_metrics
 from app.utils.csv_safe import csv_safe_cell
 from app.models import User, ForumCategory, ModeratorAssignment
 
@@ -57,6 +58,15 @@ def admin_logs_list():
         "page": page,
         "limit": limit,
     }), 200
+
+
+@api_v1_bp.route("/admin/metrics", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_admin
+def admin_metrics():
+    """User growth and activity metrics for admin dashboards. Query: range=24h|7d|30d|12m (invalid → 24h)."""
+    range_key = (request.args.get("range") or "24h").strip()
+    return jsonify(get_metrics(range_key)), 200
 
 
 @api_v1_bp.route("/admin/logs/export", methods=["GET"])

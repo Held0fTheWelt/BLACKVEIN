@@ -91,80 +91,38 @@ def test_activity_log_created_on_login(client, app, test_user):
         assert len(logs) >= 1
 
 
-def test_dashboard_api_logs_non_admin_redirected(client, test_user):
-    """GET /dashboard/api/logs as non-admin returns 403/redirect (admin only)."""
-    user, password = test_user
-    client.post("/login", data={"username": user.username, "password": password})
-    response = client.get("/dashboard/api/logs", follow_redirects=False)
-    assert response.status_code in (302, 403)
+def test_dashboard_api_logs_non_admin_redirected(client, auth_headers):
+    """Legacy /dashboard/api/logs removed; non-admin JWT on /api/v1/admin/logs returns 403."""
+    response = client.get("/api/v1/admin/logs", headers=auth_headers)
+    assert response.status_code == 403
 
 
-def test_dashboard_api_logs_admin_returns_json(client, admin_user, app):
-    """GET /dashboard/api/logs as admin returns 200 and JSON with items."""
-    import re
-    user, password = admin_user
-    with app.app_context():
-        # Ensure user has email verified to allow web login
-        user.email_verified_at = db.func.now()
-        db.session.commit()
-    # Get login page to extract CSRF token
-    login_page = client.get("/login")
-    assert login_page.status_code == 200
-    # Extract CSRF token from the form using regex
-    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-    csrf_value = match.group(1) if match else ""
-    login_response = client.post(
-        "/login",
-        data={"username": user.username, "password": password, "csrf_token": csrf_value},
-        follow_redirects=True
-    )
-    assert login_response.status_code == 200
-    response = client.get("/dashboard/api/logs")
+def test_dashboard_api_logs_admin_returns_json(client, admin_headers):
+    """GET /api/v1/admin/logs with admin JWT returns 200 and JSON with items."""
+    response = client.get("/api/v1/admin/logs", headers=admin_headers)
     assert response.status_code == 200
     data = response.get_json()
     assert "items" in data
     assert "total" in data
 
 
-def test_dashboard_api_logs_invalid_page_limit_use_defaults_and_cap(client, admin_user, app):
+def test_dashboard_api_logs_invalid_page_limit_use_defaults_and_cap(client, admin_headers):
     """Invalid page/limit query args hit _parse_int except/max branches in routes."""
-    import re
-
-    user, password = admin_user
-    with app.app_context():
-        user.email_verified_at = db.func.now()
-        db.session.commit()
-    login_page = client.get("/login")
-    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-    csrf_value = match.group(1) if match else ""
-    client.post(
-        "/login",
-        data={"username": user.username, "password": password, "csrf_token": csrf_value},
-        follow_redirects=True,
+    response = client.get(
+        "/api/v1/admin/logs?page=abc&limit=9999",
+        headers=admin_headers,
     )
-    response = client.get("/dashboard/api/logs?page=abc&limit=9999")
     assert response.status_code == 200
     data = response.get_json()
     assert data["page"] == 1
     assert data["limit"] == 100
 
 
-def test_dashboard_api_logs_export_invalid_limit_uses_default(client, admin_user, app):
-    import re
-
-    user, password = admin_user
-    with app.app_context():
-        user.email_verified_at = db.func.now()
-        db.session.commit()
-    login_page = client.get("/login")
-    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-    csrf_value = match.group(1) if match else ""
-    client.post(
-        "/login",
-        data={"username": user.username, "password": password, "csrf_token": csrf_value},
-        follow_redirects=True,
+def test_dashboard_api_logs_export_invalid_limit_uses_default(client, admin_headers):
+    response = client.get(
+        "/api/v1/admin/logs/export?limit=not-a-number",
+        headers=admin_headers,
     )
-    response = client.get("/dashboard/api/logs/export?limit=not-a-number")
     assert response.status_code == 200
     assert "text/csv" in (response.content_type or "")
 

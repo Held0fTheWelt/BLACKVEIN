@@ -105,6 +105,8 @@ It starts:
 - administration-tool (`:5001`)
 - play-service (`:8001`)
 
+`frontend` and `administration-tool` use `BACKEND_API_URL=http://backend:8000` so server-side API calls resolve the backend container (not `localhost` inside each app container). Bare-metal local dev uses backend on **5000** and sets `BACKEND_API_URL=http://127.0.0.1:5000` instead.
+
 ## Testing
 
 Run all suites:

@@ -90,6 +90,14 @@ Required env:
 1. Open `http://127.0.0.1:5001/manage`
 2. Verify management functionality still works independently
 
+## Docker Compose (host ports)
+
+Root `docker compose up --build` maps **backend :8000**, **frontend :5002**, **administration-tool :5001**, **play-service :8001** (play-service container listens on 8000 internally). This differs from bare-metal backend **5000**; set `BACKEND_API_URL` in `frontend` / `administration-tool` to `http://backend:8000` for container-to-backend calls.
+
+**Windows / IDE shells:** If `docker` is not found, prepend `C:\Program Files\Docker\Docker\resources\bin` to `PATH`, or invoke that `docker.exe` directly. If image pulls fail with `docker-credential-desktop` missing, use the same `bin` directory on `PATH`, or set `DOCKER_CONFIG` to a directory whose `config.json` is `{"auths":{}}` (UTF-8 **without** BOM) so public pulls do not use `credsStore`.
+
+**Host port 8000:** If `http://127.0.0.1:8000/health` fails on the host while containers are up, another process may already bind `127.0.0.1:8000` (check `netstat`). The backend container is still healthy on the Docker network: e.g. `docker exec worldofshadows-frontend-1 python -c "import urllib.request; print(urllib.request.urlopen('http://backend:8000/health').read())"`.
+
 ## Incident checklist
 
 - If frontend pages fail: check `BACKEND_API_URL` and backend health

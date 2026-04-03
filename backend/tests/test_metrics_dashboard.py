@@ -1,9 +1,8 @@
-"""Tests for real dashboard metrics API (admin session)."""
+"""Tests for real dashboard metrics API (admin JWT)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
@@ -11,19 +10,15 @@ from app.models import Role, User
 from app.services.metrics_service import get_metrics
 
 
-def test_dashboard_metrics_anonymous_redirect(client):
-    """GET /dashboard/api/metrics without session redirects to login."""
-    r = client.get("/dashboard/api/metrics", follow_redirects=False)
-    assert r.status_code in (302, 401)
-    if r.status_code == 302:
-        assert "login" in (r.location or "").lower()
+def test_dashboard_metrics_anonymous_returns_401(client):
+    """GET /api/v1/admin/metrics without JWT returns 401."""
+    r = client.get("/api/v1/admin/metrics", follow_redirects=False)
+    assert r.status_code == 401
 
 
-def test_dashboard_metrics_admin_returns_real_data(client, admin_user):
-    """GET /dashboard/api/metrics as admin returns real user metrics (no fake revenue)."""
-    user, password = admin_user
-    client.post("/login", data={"username": user.username, "password": password}, follow_redirects=True)
-    r = client.get("/dashboard/api/metrics?range=24h")
+def test_dashboard_metrics_admin_returns_real_data(client, admin_headers):
+    """GET /api/v1/admin/metrics as admin returns real user metrics (no fake revenue)."""
+    r = client.get("/api/v1/admin/metrics?range=24h", headers=admin_headers)
     assert r.status_code == 200
     data = r.get_json()
     assert "active_now" in data
@@ -40,33 +35,27 @@ def test_dashboard_metrics_admin_returns_real_data(client, admin_user):
     assert len(data["bucket_labels"]) == len(data["active_users_over_time"])
 
 
-def test_dashboard_metrics_range_7d(client, admin_user):
-    """GET /dashboard/api/metrics?range=7d returns 7 buckets."""
-    user, password = admin_user
-    client.post("/login", data={"username": user.username, "password": password}, follow_redirects=True)
-    r = client.get("/dashboard/api/metrics?range=7d")
+def test_dashboard_metrics_range_7d(client, admin_headers):
+    """GET /api/v1/admin/metrics?range=7d returns 7 buckets."""
+    r = client.get("/api/v1/admin/metrics?range=7d", headers=admin_headers)
     assert r.status_code == 200
     data = r.get_json()
     assert data.get("selected_range") == "7d"
     assert len(data.get("bucket_labels", [])) == 7
 
 
-def test_dashboard_metrics_range_30d(client, admin_user):
-    """GET /dashboard/api/metrics?range=30d returns 30 buckets."""
-    user, password = admin_user
-    client.post("/login", data={"username": user.username, "password": password}, follow_redirects=True)
-    r = client.get("/dashboard/api/metrics?range=30d")
+def test_dashboard_metrics_range_30d(client, admin_headers):
+    """GET /api/v1/admin/metrics?range=30d returns 30 buckets."""
+    r = client.get("/api/v1/admin/metrics?range=30d", headers=admin_headers)
     assert r.status_code == 200
     data = r.get_json()
     assert data.get("selected_range") == "30d"
     assert len(data.get("bucket_labels", [])) == 30
 
 
-def test_dashboard_metrics_invalid_range_defaults_to_24h(client, admin_user):
-    """Unknown range query maps to 24h in dashboard_api_metrics (routes)."""
-    user, password = admin_user
-    client.post("/login", data={"username": user.username, "password": password}, follow_redirects=True)
-    r = client.get("/dashboard/api/metrics?range=__invalid__")
+def test_dashboard_metrics_invalid_range_defaults_to_24h(client, admin_headers):
+    """Unknown range query maps to 24h in get_metrics."""
+    r = client.get("/api/v1/admin/metrics?range=__invalid__", headers=admin_headers)
     assert r.status_code == 200
     assert r.get_json().get("selected_range") == "24h"
 
@@ -137,6 +126,3 @@ class TestMetricsServiceAggregates:
         assert len(metrics["bucket_labels"]) == 12
         # Month-style labels (not HH:MM or YYYY-MM-DD)
         assert all(len(lbl) == 7 and lbl[4] == "-" for lbl in metrics["bucket_labels"])
-
-
-# ======================= WIKI ADMIN TRANSLATION WORKFLOW =======================

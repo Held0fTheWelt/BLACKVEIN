@@ -328,82 +328,41 @@ class TestSiteSettingsAPI:
         assert resp.status_code == 200
 
     def test_dashboard_settings_get(self, app, client, admin_headers):
-        resp = client.get("/dashboard/api/site-settings", headers=admin_headers)
-        assert resp.status_code in (200, 302)
+        """Legacy dashboard path removed; admin reads same resource via public GET + JWT."""
+        resp = client.get("/api/v1/site/settings", headers=admin_headers)
+        assert resp.status_code == 200
 
-    def test_dashboard_settings_put(self, app, client, admin_user):
-        import re
-        user, password = admin_user
-        with app.app_context():
-            from app.extensions import db
-            user.email_verified_at = db.func.now()
-            db.session.commit()
-        # Get login page to extract CSRF token
-        login_page = client.get("/login")
-        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-        csrf_value = match.group(1) if match else ""
-        # Login with session
-        login_resp = client.post(
-            "/login",
-            data={"username": user.username, "password": password, "csrf_token": csrf_value},
-            follow_redirects=True
-        )
-        # Now make the PUT request with session
+    def test_dashboard_settings_put(self, app, client, admin_headers):
         resp = client.put(
-            "/dashboard/api/site-settings",
+            "/api/v1/site/settings",
+            headers=admin_headers,
             json={"slogan_rotation_enabled": False},
-            content_type="application/json"
+            content_type="application/json",
         )
-        # Accept 200, 204, 400 (if not logged in or bad data), or 302 (redirect)
-        assert resp.status_code in (200, 204, 302, 400)
+        assert resp.status_code == 200
 
-    def test_dashboard_site_settings_put_invalid_body_returns_400(self, app, client, admin_user):
-        import re
-        from app.extensions import db
-
-        user, password = admin_user
-        with app.app_context():
-            user.email_verified_at = db.func.now()
-            db.session.commit()
-        login_page = client.get("/login")
-        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-        csrf_value = match.group(1) if match else ""
-        client.post(
-            "/login",
-            data={"username": user.username, "password": password, "csrf_token": csrf_value},
-            follow_redirects=True,
-        )
+    def test_dashboard_site_settings_put_invalid_body_returns_400(self, app, client, admin_headers):
         resp = client.put(
-            "/dashboard/api/site-settings",
+            "/api/v1/site/settings",
+            headers=admin_headers,
             data="not-json",
             content_type="text/plain",
         )
         assert resp.status_code == 400
         assert resp.get_json().get("error")
 
-    def test_dashboard_site_settings_put_inserts_rows_and_clamps_interval(self, app, client, admin_user):
-        import re
+    def test_dashboard_site_settings_put_inserts_rows_and_clamps_interval(self, app, client, admin_headers):
         from app.extensions import db
         from app.models import SiteSetting
 
-        user, password = admin_user
         with app.app_context():
-            user.email_verified_at = db.func.now()
-            db.session.commit()
             SiteSetting.query.filter(
                 SiteSetting.key.in_(["slogan_rotation_interval_seconds", "slogan_rotation_enabled"])
             ).delete(synchronize_session=False)
             db.session.commit()
-        login_page = client.get("/login")
-        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-        csrf_value = match.group(1) if match else ""
-        client.post(
-            "/login",
-            data={"username": user.username, "password": password, "csrf_token": csrf_value},
-            follow_redirects=True,
-        )
         resp = client.put(
-            "/dashboard/api/site-settings",
+            "/api/v1/site/settings",
+            headers=admin_headers,
             json={
                 "slogan_rotation_interval_seconds": "not-an-int",
                 "slogan_rotation_enabled": False,
@@ -415,7 +374,8 @@ class TestSiteSettingsAPI:
         assert body["slogan_rotation_interval_seconds"] == 60
         assert body["slogan_rotation_enabled"] is False
         resp2 = client.put(
-            "/dashboard/api/site-settings",
+            "/api/v1/site/settings",
+            headers=admin_headers,
             json={"slogan_rotation_interval_seconds": 3},
             content_type="application/json",
         )

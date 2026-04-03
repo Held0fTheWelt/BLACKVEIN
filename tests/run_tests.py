@@ -52,6 +52,7 @@ BACKEND_SCOPE_MARKERS: dict[str, str] = {
 
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
+FRONTEND_COV_FAIL_UNDER = "92"
 DEFAULT_COV_FAIL_UNDER = "80"
 
 
@@ -152,7 +153,11 @@ def get_suite_configs(suite_names: list[str]) -> dict[str, Path]:
 
 
 def _cov_fail_under_for_suite(suite_name: str) -> str:
-    return BACKEND_COV_FAIL_UNDER if suite_name == "backend" else DEFAULT_COV_FAIL_UNDER
+    if suite_name == "backend":
+        return BACKEND_COV_FAIL_UNDER
+    if suite_name == "frontend":
+        return FRONTEND_COV_FAIL_UNDER
+    return DEFAULT_COV_FAIL_UNDER
 
 
 def build_pytest_argv(
@@ -164,7 +169,7 @@ def build_pytest_argv(
     scope: str,
 ) -> list[str]:
     """Build pytest arguments for one component run (cwd = that component)."""
-    cov_target = "app" if suite_name == "backend" else "."
+    cov_target = "app" if suite_name in ("backend", "frontend") else "."
     cov_under = _cov_fail_under_for_suite(suite_name)
 
     if quick:

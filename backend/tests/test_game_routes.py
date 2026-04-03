@@ -5,24 +5,18 @@ from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
 from app.services.game_service import PlayJoinContext
 
 
-
-def _login_session(client, username: str, password: str):
-    return client.post(
-        "/login",
-        data={"username": username, "password": password},
-        follow_redirects=False,
-    )
-
-
-
-def test_game_menu_logged_in_renders_launcher(client, test_user):
-    user, password = test_user
-    _login_session(client, user.username, password)
+def test_game_menu_compat_returns_410_without_frontend_url(client, app):
+    app.config["FRONTEND_URL"] = None
     response = client.get("/game-menu")
-    assert response.status_code == 200
-    assert b"Game Menu" in response.data
-    assert b"game_menu.js" in response.data
-    assert b"Character Workshop" in response.data
+    assert response.status_code == 410
+    assert response.get_json()["error"] == "Legacy UI route disabled."
+
+
+def test_game_menu_compat_redirects_when_frontend_url_set(client, app):
+    app.config["FRONTEND_URL"] = "https://frontend.example.com"
+    response = client.get("/game-menu", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"] == "https://frontend.example.com/game-menu"
 
 
 
@@ -76,16 +70,13 @@ def test_game_bootstrap_returns_templates_runs_characters_and_save_slots(client,
 
 
 
-def test_game_templates_proxy_uses_logged_in_session(client, test_user, monkeypatch):
-    user, password = test_user
-    _login_session(client, user.username, password)
-
+def test_game_templates_proxy_uses_jwt(client, auth_headers, monkeypatch):
     monkeypatch.setattr(
         "app.api.v1.game_routes.list_play_templates",
         lambda: [{"id": "god_of_carnage_solo", "title": "God of Carnage", "kind": "solo_story"}],
     )
 
-    response = client.get("/api/v1/game/templates")
+    response = client.get("/api/v1/game/templates", headers=auth_headers)
     assert response.status_code == 200
     data = response.get_json()
     assert data["templates"][0]["id"] == "god_of_carnage_solo"
@@ -206,18 +197,6 @@ def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(clie
     data = response.get_json()
     assert data["play_service"]["configured"] is False
     assert data["play_service"]["public_url"] == "https://play.example.com"
-
-
-def test_game_menu_marks_play_service_unconfigured_without_complete_bridge(client, test_user, app):
-    user, password = test_user
-    _login_session(client, user.username, password)
-    app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
-    app.config["PLAY_SERVICE_INTERNAL_URL"] = None
-    app.config["PLAY_SERVICE_SHARED_SECRET"] = None
-
-    response = client.get("/game-menu")
-    assert response.status_code == 200
-    assert b"PLAY_SERVICE_SHARED_SECRET" in response.data
 
 
 def test_game_content_endpoints_seed_and_publish(client, moderator_headers):

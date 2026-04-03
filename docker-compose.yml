@@ -32,7 +32,8 @@ services:
     ports:
       - "5002:5002"
     environment:
-      - BACKEND_API_URL=http://localhost:8000
+      # Server-side requests from the container must use the compose service name, not localhost.
+      - BACKEND_API_URL=http://backend:8000
       - FRONTEND_PORT=5002
       - FRONTEND_SECRET_KEY=local-dev-frontend-secret
       - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
@@ -44,7 +45,7 @@ services:
     ports:
       - "5001:5001"
     environment:
-      - BACKEND_API_URL=http://localhost:8000
+      - BACKEND_API_URL=http://backend:8000
       - PORT=5001
 
   play-service:

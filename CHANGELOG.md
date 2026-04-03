@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.7] - 2026-04-03
+
+**Summary**: Player-Frontend-Tests mit hartem Coverage-Gate (92 %), Admin-Metriken und erweiterte Site-Settings-API, dazu Compose/Runbook/Env-Doku und angepasste Backend-Tests.
+
+### Added
+
+- **`frontend/tests/`**: Zusätzliche Suites (`test_api_client.py`, `test_app_factory.py`, `test_config.py`, `test_routes_extended.py`) für API-Client, App-Factory, Konfig-Helfer und die öffentlichen Routen inkl. Proxy- und Fehlerpfade.
+- **`tests/run_tests.py`**: Frontend misst Coverage nur noch gegen das Paket `app` (analog Backend); **`FRONTEND_COV_FAIL_UNDER = 92`** statt des generischen 80 %-Gates.
+- **`backend/app/api/v1/admin_routes.py`**: **`GET /api/v1/admin/metrics`** mit Abfrageparameter `range` (`24h`, `7d`, `30d`, `12m`; ungültig → `24h`).
+- **`backend/app/api/v1/site_routes.py`**: Admin-**`PUT /api/v1/site/settings`** (JSON) für Slogan-Rotation (Intervall mit Min/Max/Clamp, Enable-Flag); öffentliches **`GET`** unverändert in der Rolle.
+
+### Changed
+
+- **`docker-compose.yml`**, **`administration-tool/Dockerfile`**, **`docs/operations/RUNBOOK.md`**, **`README.md`**, **`backend/.env.example`**: Lokaler Betrieb, Ports/URLs und Umgebungsvariablen an den aktuellen Stand angeglichen.
+- **Backend-Tests** (u. a. Admin-Logs/Security, Game-Routes, Metrics-Dashboard, HTTPS, Open-Redirect, E-Mail-Normalisierung): Erwartungen und Setups an die neuen bzw. geänderten Endpunkte und Verhaltensweisen angepasst.
+
+### Other
+
+- **`.gitignore`**: Ergänzungen für lokale Artefakte.
+- **`world-engine/app/var/runs/public-better_tomorrow_district_alpha.json`**: Aktualisierte Run-Daten/Fassung des öffentlichen Beispiel-Runs.
+
+---
+
 ## [0.3.6] - 2026-03-30
 
 **Summary**: W4 MVP Hardening complete. Five sequential gates closed: system tests (E2E lifecycle), persistence layer (save/load/resume), UI usability (operator-friendly flow), demo scripts (3 reproducible paths), and MVP boundary lock (scope audit for W5).

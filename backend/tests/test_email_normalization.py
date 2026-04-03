@@ -203,27 +203,23 @@ class TestForgotPasswordNormalization:
             assert resp.status_code == 200
 
 
-class TestWebRegistrationNormalization:
-    """Test web registration with email normalization."""
+class TestApiRegistrationNormalization:
+    """Registration via public API with email normalization."""
 
-    def test_web_register_mixed_case_email(self, app, client):
-        """Web registration should normalize mixed case email."""
+    def test_api_register_mixed_case_email(self, app, client):
+        """POST /api/v1/auth/register should normalize mixed case email."""
         with app.app_context():
-            # Register via web form
             resp = client.post(
-                "/register",
-                data={
-                    "username": "testuser",
+                "/api/v1/auth/register",
+                json={
+                    "username": "normuser",
                     "password": "Password123!@#",
-                    "password_confirm": "Password123!@#",
                     "email": "User@EXAMPLE.COM",
                 },
-                follow_redirects=True,
+                content_type="application/json",
             )
-            # Should succeed
-            assert resp.status_code == 200
+            assert resp.status_code == 201
 
-            # Verify email is stored in lowercase
             user = get_user_by_email("user@example.com")
             assert user is not None
             assert user.email == "user@example.com"

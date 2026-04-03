@@ -39,19 +39,33 @@
       "seat_owner_display_name": null,
       "seat_owner": null,
       "joined_at": "2026-03-26T16:10:10.727145Z"
+    },
+    "589e77b4ef7b40e09b59110760368568": {
+      "id": "589e77b4ef7b40e09b59110760368568",
+      "display_name": "e2e_smoke",
+      "role_id": "citizen",
+      "mode": "human",
+      "current_room_id": "plaza",
+      "connected": false,
+      "account_id": "2",
+      "character_id": null,
+      "seat_owner_account_id": "2",
+      "seat_owner_display_name": "e2e_smoke",
+      "seat_owner": "2",
+      "joined_at": "2026-04-03T14:47:48.460294Z"
     }
   },
   "lobby_seats": {
     "citizen": {
       "role_id": "citizen",
       "role_display_name": "Citizen",
-      "reserved_for_account_id": null,
-      "reserved_for_display_name": null,
-      "participant_id": null,
-      "occupant_display_name": null,
+      "reserved_for_account_id": "2",
+      "reserved_for_display_name": "e2e_smoke",
+      "participant_id": "589e77b4ef7b40e09b59110760368568",
+      "occupant_display_name": "e2e_smoke",
       "connected": false,
       "ready": false,
-      "joined_at": null
+      "joined_at": "2026-04-03T14:47:48.460294Z"
     }
   },
   "props": {
@@ -91,6 +105,9 @@
   "persistent": true,
   "metadata": {
     "store_backend": "json",
-    "min_humans_to_start": 1
+    "min_humans_to_start": 1,
+    "seat_assignments": {
+      "citizen": "589e77b4ef7b40e09b59110760368568"
+    }
   }
 }
