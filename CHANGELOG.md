@@ -6,26 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.3.7] - 2026-04-03
+## [0.3.8] - 2026-04-03
 
-**Summary**: Player-Frontend-Tests mit hartem Coverage-Gate (92 %), Admin-Metriken und erweiterte Site-Settings-API, dazu Compose/Runbook/Env-Doku und angepasste Backend-Tests.
+**Summary**: Hardening and operations after the split: broad automated tests for the player frontend (strict coverage gate), admin observability, configurable site slogan rotation via API, and backend test alignment.
 
 ### Added
 
-- **`frontend/tests/`**: Zusätzliche Suites (`test_api_client.py`, `test_app_factory.py`, `test_config.py`, `test_routes_extended.py`) für API-Client, App-Factory, Konfig-Helfer und die öffentlichen Routen inkl. Proxy- und Fehlerpfade.
-- **`tests/run_tests.py`**: Frontend misst Coverage nur noch gegen das Paket `app` (analog Backend); **`FRONTEND_COV_FAIL_UNDER = 92`** statt des generischen 80 %-Gates.
-- **`backend/app/api/v1/admin_routes.py`**: **`GET /api/v1/admin/metrics`** mit Abfrageparameter `range` (`24h`, `7d`, `30d`, `12m`; ungültig → `24h`).
-- **`backend/app/api/v1/site_routes.py`**: Admin-**`PUT /api/v1/site/settings`** (JSON) für Slogan-Rotation (Intervall mit Min/Max/Clamp, Enable-Flag); öffentliches **`GET`** unverändert in der Rolle.
+- **`frontend/tests/`**: Suites `test_api_client.py`, `test_app_factory.py`, `test_config.py`, and `test_routes_extended.py` covering the API client, app factory, config helpers, public routes, same-origin API proxy, and blueprint error paths.
+- **`tests/run_tests.py`**: Frontend coverage targets the `app` package only (same pattern as backend); **`FRONTEND_COV_FAIL_UNDER = 92`** for the frontend suite instead of the generic 80% gate.
+- **`backend/app/api/v1/admin_routes.py`**: **`GET /api/v1/admin/metrics`** with query `range` (`24h`, `7d`, `30d`, `12m`; invalid → `24h`).
+- **`backend/app/api/v1/site_routes.py`**: Admin **`PUT /api/v1/site/settings`** (JSON) for slogan rotation interval (clamped) and enable flag; public **`GET /api/v1/site/settings`** unchanged in purpose.
 
 ### Changed
 
-- **`docker-compose.yml`**, **`administration-tool/Dockerfile`**, **`docs/operations/RUNBOOK.md`**, **`README.md`**, **`backend/.env.example`**: Lokaler Betrieb, Ports/URLs und Umgebungsvariablen an den aktuellen Stand angeglichen.
-- **Backend-Tests** (u. a. Admin-Logs/Security, Game-Routes, Metrics-Dashboard, HTTPS, Open-Redirect, E-Mail-Normalisierung): Erwartungen und Setups an die neuen bzw. geänderten Endpunkte und Verhaltensweisen angepasst.
+- **`administration-tool/Dockerfile`**, **`docs/operations/RUNBOOK.md`**, **`README.md`**, **`backend/.env.example`**, **`docker-compose.yml`**: Brought in line with multi-service ports, URLs, and env vars used in practice.
+- **Backend tests** (admin logs/security, game routes, metrics dashboard, HTTPS, open redirect, email normalization): expectations and fixtures updated for new or changed endpoints and behavior.
 
 ### Other
 
-- **`.gitignore`**: Ergänzungen für lokale Artefakte.
-- **`world-engine/app/var/runs/public-better_tomorrow_district_alpha.json`**: Aktualisierte Run-Daten/Fassung des öffentlichen Beispiel-Runs.
+- **`.gitignore`**: Additional rules for local artifacts.
+- **`world-engine/app/var/runs/public-better_tomorrow_district_alpha.json`**: Updated public sample run payload.
+
+---
+
+## [0.3.7] - 2026-04-03
+
+**Summary**: Dedicated **player/public frontend** service split from the backend API app. The backend no longer serves canonical player HTML; it redirects to **`FRONTEND_URL`** when set (otherwise JSON **410** for legacy paths). Architecture and local-dev docs describe the multi-service layout (`frontend/`, `backend/`, `administration-tool/`, `world-engine/`).
+
+### Added
+
+- **`frontend/`** Flask service: `app/` package (`create_app`, `routes.py`, `api_client.py`, `auth.py`, `config.py`), `run.py`, player/public **templates** and **static** assets (including play shell JS), `Dockerfile`, `requirements.txt` / `requirements-dev.txt`, `pytest.ini`, and initial **`frontend/tests/`** (`conftest.py`, `test_routes.py`).
+- **`docs/architecture/FrontendBackendRestructure.md`**: Implementation note for the split (target layout, compatibility, references).
+- **`frontend/README.md`**: Service-local overview.
+
+### Changed
+
+- **`backend/app/web/routes.py`**: Replaced large HTML surface with **compatibility redirects** to the frontend base URL (`FRONTEND_URL`); **`/health`** remains for infra checks; logout still clears server session then redirects.
+- **`docker-compose.yml`**, root **`README.md`**, **`.env.example`**, **`docs/architecture/README.md`**, **`docs/architecture/ServerArchitecture.md`**, **`docs/development/LocalDevelopment.md`**, **`docs/operations/RUNBOOK.md`**, **`tests/run_tests.py`**: Updated for the split (services, env vars, how to run each tree).
+- **`backend/tests/test_api.py`**, **`test_csrf_protection.py`**, **`test_session_ui.py`**, **`test_web.py`**: Reworked for redirect/legacy behaviour and smaller scope vs. monolithic web UI tests.
+
+### Removed
+
+- **From `backend/`**: Player/public **templates** and most **static** assets that now live under **`frontend/`** (e.g. former `game_menu.js`, `session_shell.html`, landing/dashboard scripts, large `style.css` tree)—see commit history for the full file list.
 
 ---
 
