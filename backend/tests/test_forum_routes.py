@@ -1040,6 +1040,7 @@ def test_activity_log_after_lock(app, client, moderator_headers):
 
 def test_parse_int_variants():
     assert _parse_int(None, 7) == 7
+    assert _parse_int("", 7) == 7
     assert _parse_int("3", 1, min_val=1, max_val=10) == 3
     assert _parse_int("0", 5, min_val=1) == 5
     assert _parse_int("99", 1, min_val=1, max_val=10) == 10
@@ -1071,6 +1072,12 @@ def test_validate_title_and_category_title():
     assert ok4 is False
     ok5, _ = _validate_category_title_length("Category title ok")
     assert ok5 is True
+
+    ok6, err6 = _validate_category_title_length(123)
+    assert ok6 is False and "string" in (err6 or "").lower()
+    long_cat = "x" * 201
+    ok7, err7 = _validate_category_title_length(long_cat)
+    assert ok7 is False and "200" in (err7 or "")
 
 
 def test_enrich_report_dict_thread_and_post(app, test_user):
@@ -1245,3 +1252,346 @@ def test_forum_search_short_query_returns_400(client):
 def test_forum_search_invalid_status_returns_400(client):
     r = client.get("/api/v1/forum/search?q=hello&status=not_a_status")
     assert r.status_code == 400
+
+
+# --- forum_routes coverage plan (target ~90% line coverage; not every duplicate JWT guard branch) ---
+
+
+def test_require_user_returns_401_without_user(app, monkeypatch):
+    from app.api.v1 import forum_routes as fr
+
+    monkeypatch.setattr(fr, "get_current_user", lambda: None)
+    with app.test_request_context():
+        user, resp = fr._require_user()
+    assert user is None
+    assert resp[1] == 401
+
+
+def test_require_user_returns_403_when_banned(app, monkeypatch):
+    from app.api.v1 import forum_routes as fr
+
+    banned = User()
+    banned.is_banned = True
+    monkeypatch.setattr(fr, "get_current_user", lambda: banned)
+    with app.test_request_context():
+        user, resp = fr._require_user()
+    assert user is None
+    assert resp[1] == 403
+
+
+def test_forum_thread_create_without_jwt_returns_401(client):
+    r = client.post(
+        "/api/v1/forum/categories/any-slug/threads",
+        json={"title": "valid title here", "content": "valid content here ok"},
+    )
+    assert r.status_code == 401
+
+
+def test_forum_thread_create_banned_user_returns_403(app, client, test_user, auth_headers):
+    """JWT was issued before ban; login after ban would be 403 — thread create must still return 403."""
+    with app.app_context():
+        u, _pwd = test_user
+        user = db.session.get(User, u.id)
+        cat = ForumCategory(slug="ban-thread-cat", title="Ban Thread Cat", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        user.is_banned = True
+        db.session.commit()
+    r = client.post(
+        "/api/v1/forum/categories/ban-thread-cat/threads",
+        headers=auth_headers,
+        json={"title": "hello thread title", "content": "enough content here for thread"},
+    )
+    assert r.status_code == 403
+
+
+def test_forum_report_create_invalid_body_and_errors(app, client, auth_headers, test_user):
+    r0 = client.post(
+        "/api/v1/forum/reports",
+        headers={**auth_headers, "Content-Type": "application/json"},
+        data="not-json",
+    )
+    assert r0.status_code == 400
+
+    r1 = client.post(
+        "/api/v1/forum/reports",
+        headers=auth_headers,
+        json={"target_type": "nope", "target_id": 1, "reason": "spam here"},
+    )
+    assert r1.status_code == 400
+
+    r2 = client.post(
+        "/api/v1/forum/reports",
+        headers=auth_headers,
+        json={"target_type": "thread", "target_id": "x", "reason": "spam here"},
+    )
+    assert r2.status_code == 400
+
+    with app.app_context():
+        u, _ = test_user
+        cat = ForumCategory(slug="rep-cov-cat", title="Rep Cov", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        th = ForumThread(
+            category_id=cat.id,
+            slug="rep-cov-th",
+            title="Thread for report",
+            status="open",
+            author_id=u.id,
+        )
+        db.session.add(th)
+        db.session.commit()
+        tid = th.id
+
+    r3 = client.post(
+        "/api/v1/forum/reports",
+        headers=auth_headers,
+        json={"target_type": "thread", "target_id": tid, "reason": "   "},
+    )
+    assert r3.status_code == 400
+
+
+def test_forum_report_get_not_found_returns_404(client, moderator_headers):
+    r = client.get("/api/v1/forum/reports/999999999", headers=moderator_headers)
+    assert r.status_code == 404
+
+
+def test_forum_report_update_invalid_priority_and_valueerror(app, client, moderator_headers, test_user):
+    with app.app_context():
+        u, _ = test_user
+        cat = ForumCategory(slug="put-rep-cat", title="Put Rep", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        th = ForumThread(
+            category_id=cat.id,
+            slug="put-rep-th",
+            title="Thread",
+            status="open",
+            author_id=u.id,
+        )
+        db.session.add(th)
+        db.session.flush()
+        rep = ForumReport(
+            target_type="thread",
+            target_id=th.id,
+            reported_by=u.id,
+            reason="issue",
+            status="open",
+        )
+        db.session.add(rep)
+        db.session.commit()
+        rid = rep.id
+
+    r_bad_pri = client.put(
+        f"/api/v1/forum/reports/{rid}",
+        headers=moderator_headers,
+        json={"status": "reviewed", "priority": "mega"},
+    )
+    assert r_bad_pri.status_code == 400
+
+    r_val = client.put(
+        f"/api/v1/forum/reports/{rid}",
+        headers=moderator_headers,
+        json={"status": "not_a_valid_status"},
+    )
+    assert r_val.status_code == 400
+
+
+def test_forum_reports_bulk_status_validation_errors(client, moderator_headers):
+    r_json = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers={**moderator_headers, "Content-Type": "application/json"},
+        data="not json",
+    )
+    assert r_json.status_code == 400
+
+    r_empty = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers=moderator_headers,
+        json={"report_ids": [], "status": "reviewed"},
+    )
+    assert r_empty.status_code == 400
+
+    r_not_list = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers=moderator_headers,
+        json={"report_ids": 1, "status": "reviewed"},
+    )
+    assert r_not_list.status_code == 400
+
+    r_bad_id = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers=moderator_headers,
+        json={"report_ids": ["x"], "status": "reviewed"},
+    )
+    assert r_bad_id.status_code == 400
+
+    r_bad_status = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers=moderator_headers,
+        json={"report_ids": [1], "status": "open"},
+    )
+    assert r_bad_status.status_code == 400
+
+    r_bad_pri = client.post(
+        "/api/v1/forum/reports/bulk-status",
+        headers=moderator_headers,
+        json={"report_ids": [1], "status": "reviewed", "priority": "invalid"},
+    )
+    assert r_bad_pri.status_code == 400
+
+
+def test_forum_moderation_bulk_threads_missing_lock_archive(client, moderator_headers):
+    r = client.post(
+        "/api/v1/forum/moderation/bulk-threads/status",
+        headers=moderator_headers,
+        json={"thread_ids": [1]},
+    )
+    assert r.status_code == 400
+
+
+def test_forum_moderation_bulk_threads_empty_and_bad_ids(client, moderator_headers):
+    r0 = client.post(
+        "/api/v1/forum/moderation/bulk-threads/status",
+        headers=moderator_headers,
+        json={"thread_ids": [], "lock": True},
+    )
+    assert r0.status_code == 400
+
+    r1 = client.post(
+        "/api/v1/forum/moderation/bulk-threads/status",
+        headers=moderator_headers,
+        json={"thread_ids": "1", "lock": True},
+    )
+    assert r1.status_code == 400
+
+    r2 = client.post(
+        "/api/v1/forum/moderation/bulk-threads/status",
+        headers=moderator_headers,
+        json={"thread_ids": ["n"], "lock": True},
+    )
+    assert r2.status_code == 400
+
+
+def test_forum_moderation_bulk_threads_skips_without_category_assignment(
+    app, client, moderator_headers, test_user
+):
+    with app.app_context():
+        u, _ = test_user
+        cat = ForumCategory(slug="no-assign-cat", title="No Assign", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        th = ForumThread(
+            category_id=cat.id,
+            slug="no-assign-th",
+            title="No assign thread",
+            status="open",
+            author_id=u.id,
+        )
+        db.session.add(th)
+        db.session.commit()
+        tid = th.id
+
+    r = client.post(
+        "/api/v1/forum/moderation/bulk-threads/status",
+        headers=moderator_headers,
+        json={"thread_ids": [tid], "lock": True},
+    )
+    assert r.status_code == 200
+    assert r.get_json()["updated_ids"] == []
+
+
+def test_forum_moderation_bulk_posts_hide_validation(client, moderator_headers):
+    r_json = client.post(
+        "/api/v1/forum/moderation/bulk-posts/hide",
+        headers={**moderator_headers, "Content-Type": "application/json"},
+        data="not json",
+    )
+    assert r_json.status_code == 400
+
+    r_empty = client.post(
+        "/api/v1/forum/moderation/bulk-posts/hide",
+        headers=moderator_headers,
+        json={"post_ids": [], "hidden": True},
+    )
+    assert r_empty.status_code == 400
+
+    r_no_hidden = client.post(
+        "/api/v1/forum/moderation/bulk-posts/hide",
+        headers=moderator_headers,
+        json={"post_ids": [1]},
+    )
+    assert r_no_hidden.status_code == 400
+
+    r_bad = client.post(
+        "/api/v1/forum/moderation/bulk-posts/hide",
+        headers=moderator_headers,
+        json={"post_ids": ["z"], "hidden": True},
+    )
+    assert r_bad.status_code == 400
+
+
+def test_forum_moderation_bulk_posts_skips_without_assignment(app, client, moderator_headers, test_user):
+    with app.app_context():
+        u, _ = test_user
+        cat = ForumCategory(slug="post-no-asg", title="PNA", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        th = ForumThread(
+            category_id=cat.id,
+            slug="post-no-asg-th",
+            title="Thread",
+            status="open",
+            author_id=u.id,
+        )
+        db.session.add(th)
+        db.session.flush()
+        po = ForumPost(thread_id=th.id, author_id=u.id, content="Post body text here ok", status="visible")
+        db.session.add(po)
+        db.session.commit()
+        pid = po.id
+
+    r = client.post(
+        "/api/v1/forum/moderation/bulk-posts/hide",
+        headers=moderator_headers,
+        json={"post_ids": [pid], "hidden": True},
+    )
+    assert r.status_code == 200
+    assert r.get_json()["updated_ids"] == []
+
+
+def test_forum_moderation_log_forbidden_for_plain_user(client, auth_headers):
+    r = client.get("/api/v1/forum/moderation/log", headers=auth_headers)
+    assert r.status_code == 403
+
+
+def test_forum_post_like_idempotent_branch_when_like_post_returns_error(
+    app, client, auth_headers, test_user, monkeypatch
+):
+    """Route treats truthy err from like_post as duplicate (service normally returns err=None)."""
+    from app.api.v1 import forum_routes as fr
+
+    with app.app_context():
+        u, _ = test_user
+        cat = ForumCategory(slug="like-dup-cat", title="Like Dup", is_active=True, is_private=False)
+        db.session.add(cat)
+        db.session.flush()
+        th = ForumThread(
+            category_id=cat.id,
+            slug="like-dup-th",
+            title="Like dup thread",
+            status="open",
+            author_id=u.id,
+        )
+        db.session.add(th)
+        db.session.flush()
+        po = ForumPost(thread_id=th.id, author_id=u.id, content="Post for like dup", status="visible")
+        db.session.add(po)
+        db.session.commit()
+        pid = po.id
+
+    monkeypatch.setattr(fr, "like_post", lambda _u, _p: (None, "duplicate"))
+
+    r = client.post(f"/api/v1/forum/posts/{pid}/like", headers=auth_headers)
+    assert r.status_code == 200
+    assert r.get_json().get("message") == "Already liked"

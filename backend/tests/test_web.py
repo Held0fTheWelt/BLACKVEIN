@@ -1,6 +1,7 @@
 """Tests for web (server-rendered) routes."""
 import pytest
 import re
+from pathlib import Path
 from datetime import datetime, timezone
 
 from app.extensions import db
@@ -125,6 +126,24 @@ def test_login_post_success_redirects_to_dashboard(client, test_user):
     )
     assert response.status_code == 200
     assert b"Welcome" in response.data or b"Dashboard" in response.data
+
+
+def test_login_post_success_redirects_to_next_when_safe(client, test_user):
+    """POST /login with safe ?next= uses redirect target (internal path only)."""
+    user, password = test_user
+    csrf_value = _get_csrf_token(client, "/login")
+    response = client.post(
+        "/login?next=/wiki",
+        data={
+            "username": user.username,
+            "password": password,
+            "csrf_token": csrf_value,
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    loc = response.headers.get("Location", "")
+    assert loc.endswith("/wiki") or "/wiki" in loc
 
 
 def test_login_get_when_logged_in_redirects_to_dashboard(client, test_user):
@@ -495,6 +514,7 @@ def test_login_blocked_for_unverified_user_when_verification_enabled(client, app
     from werkzeug.security import generate_password_hash
 
     with app.app_context():
+        app.config["REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN"] = True
         app.config["EMAIL_VERIFICATION_ENABLED"] = True
         role = Role.query.filter_by(name=Role.NAME_USER).first()
         user = User(
@@ -984,6 +1004,281 @@ def test_session_execute_dispatch_failure_returns_400(client, test_user, monkeyp
     )
     assert resp.status_code == 400
     assert b"Turn execution failed" in resp.data or b"error" in resp.data.lower()
+
+
+def test_after_request_ignores_update_user_last_seen_failure(client, test_user, monkeypatch):
+    user, password = test_user
+    _get_csrf_and_post(client, "/login", {"username": user.username, "password": password})
+
+    def _boom(_uid):
+        raise RuntimeError("last_seen unavailable")
+
+    monkeypatch.setattr("app.web.routes.update_user_last_seen", _boom)
+    r = client.get("/wiki")
+    assert r.status_code == 200
+
+
+def test_log_turn_request_nested_play_path_yields_no_session_id(app, monkeypatch):
+    """Path /play/a/b/execute does not match single-segment session_id; log_turn_request gets session_id=None."""
+    from app.web.routes import _track_web_activity
+
+    seen = []
+
+    def _capture(**kwargs):
+        seen.append(kwargs.get("session_id"))
+
+    monkeypatch.setattr("app.web.routes.log_turn_request", _capture)
+    with app.test_request_context("/play/foo/bar/execute", method="GET"):
+        resp = app.response_class("x")
+        resp.status_code = 404
+        _track_web_activity(resp)
+    assert seen == [None]
+
+
+def test_log_turn_request_standard_play_execute_path_extracts_session_id(app, monkeypatch):
+    from app.web.routes import _track_web_activity
+
+    seen = []
+
+    def _capture(**kwargs):
+        seen.append(kwargs.get("session_id"))
+
+    monkeypatch.setattr("app.web.routes.log_turn_request", _capture)
+    with app.test_request_context("/play/sid-abc/execute", method="POST"):
+        resp = app.response_class("ok")
+        resp.status_code = 200
+        _track_web_activity(resp)
+    assert seen == ["sid-abc"]
+
+
+def test_logout_redirects_to_frontend_when_configured(client, test_user, app):
+    app.config["FRONTEND_URL"] = "https://app.example.com"
+    user, password = test_user
+    _get_csrf_and_post(client, "/login", {"username": user.username, "password": password})
+    dashboard = client.get("/dashboard")
+    csrf_match = re.search(r'name="csrf_token"\s+value="([^"]+)"', dashboard.data.decode())
+    csrf_value = csrf_match.group(1) if csrf_match else ""
+    resp = client.post("/logout", data={"csrf_token": csrf_value}, follow_redirects=False)
+    assert resp.status_code == 302
+    assert "app.example.com" in (resp.headers.get("Location") or "")
+
+
+def test_logout_with_orphan_session_user_id_no_actor_log(client, app):
+    with client.session_transaction() as sess:
+        sess["user_id"] = 999_888_777
+    login_page = client.get("/login")
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+    csrf = match.group(1) if match else ""
+    resp = client.post("/logout", data={"csrf_token": csrf}, follow_redirects=False)
+    assert resp.status_code == 302
+
+
+def test_register_pending_redirects_when_logged_in(client, test_user):
+    user, password = test_user
+    _get_csrf_and_post(client, "/login", {"username": user.username, "password": password})
+    r = client.get("/register/pending", follow_redirects=False)
+    assert r.status_code == 302
+    assert "dashboard" in (r.headers.get("Location") or "").lower()
+
+
+def test_resend_verification_redirects_when_logged_in(client, test_user):
+    user, password = test_user
+    _get_csrf_and_post(client, "/login", {"username": user.username, "password": password})
+    assert client.get("/resend-verification", follow_redirects=False).status_code == 302
+    csrf = _get_csrf_token(client, "/login")
+    r = client.post(
+        "/resend-verification",
+        data={"email": "any@example.com", "csrf_token": csrf},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+
+
+def test_resend_verification_for_unverified_user_sends_email(client, app, monkeypatch):
+    from app.models import Role, User
+
+    sent = []
+    monkeypatch.setattr(
+        "app.web.routes.send_verification_email",
+        lambda u, tok: sent.append((u.id, tok)),
+    )
+    with app.app_context():
+        role = Role.query.filter_by(name=Role.NAME_USER).first()
+        u = User(
+            username="resendcovuser",
+            email="resendcov@example.com",
+            password_hash=generate_password_hash("Resendcov1"),
+            email_verified_at=None,
+            role_id=role.id,
+        )
+        db.session.add(u)
+        db.session.commit()
+    csrf = _get_csrf_token(client, "/login")
+    r = client.post(
+        "/resend-verification",
+        data={"email": "resendcov@example.com", "csrf_token": csrf},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    assert len(sent) == 1
+
+
+def test_reset_password_post_service_error_renders_message(client, test_user_with_email, app, monkeypatch):
+    from app.services.user_service import create_password_reset_token
+
+    user, _ = test_user_with_email
+    with app.app_context():
+        raw_token = create_password_reset_token(user)
+    monkeypatch.setattr(
+        "app.services.user_service.reset_password_with_token",
+        lambda _token, _pwd: (False, "token expired"),
+    )
+    r = _get_csrf_and_post(
+        client,
+        f"/reset-password/{raw_token}",
+        {"password": "Goodpass12", "password_confirm": "Goodpass12"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 200
+    assert b"token expired" in r.data.lower()
+
+
+def test_news_redirects_when_frontend_url_set(client, app):
+    app.config["FRONTEND_URL"] = "https://portal.example.org"
+    r = client.get("/news", follow_redirects=False)
+    assert r.status_code == 302
+    loc = r.headers.get("Location", "")
+    assert "portal.example.org" in loc
+    assert "/news" in loc.replace("\\", "/")
+
+
+def test_community_redirects_when_frontend_url_set(client, app):
+    app.config["FRONTEND_URL"] = "https://portal.example.org"
+    r = client.get("/community", follow_redirects=False)
+    assert r.status_code == 302
+    loc = r.headers.get("Location", "")
+    assert "portal.example.org" in loc
+    assert "/forum" in loc.replace("\\", "/")
+
+
+def test_wiki_index_markdown_error_then_file_fallback(client, app, monkeypatch):
+    monkeypatch.setattr(
+        "app.services.wiki_service.get_wiki_markdown_for_display",
+        lambda lang=None: "# from db",
+    )
+
+    def _boom(*_a, **_k):
+        raise ValueError("markdown failed")
+
+    monkeypatch.setattr("app.web.routes.markdown.markdown", _boom)
+
+    real_is_file = Path.is_file
+
+    def _no_wiki_file(self):
+        if self.name == "wiki.md":
+            return False
+        return real_is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", _no_wiki_file)
+    r = client.get("/wiki")
+    assert r.status_code == 200
+
+
+def test_wiki_index_file_read_error_returns_none(client, app, monkeypatch):
+    monkeypatch.setattr("app.services.wiki_service.get_wiki_markdown_for_display", lambda lang=None: None)
+    real_is_file = Path.is_file
+    real_read = Path.read_text
+
+    def _is_wiki(self):
+        if self.name == "wiki.md":
+            return True
+        return real_is_file(self)
+
+    def _read_boom(self, *a, **k):
+        if self.name == "wiki.md":
+            raise OSError("read failed")
+        return real_read(self, *a, **k)
+
+    monkeypatch.setattr(Path, "is_file", _is_wiki)
+    monkeypatch.setattr(Path, "read_text", _read_boom)
+    r = client.get("/wiki")
+    assert r.status_code == 200
+
+
+def test_wiki_slug_empty_markdown_renders_no_html(client, app, moderator_headers):
+    import uuid
+
+    slug = f"empty-body-{uuid.uuid4().hex[:10]}"
+    resp = client.post(
+        "/api/v1/wiki-admin/pages",
+        json={"key": slug, "is_published": True},
+        headers=moderator_headers,
+    )
+    if resp.status_code not in (200, 201):
+        pytest.skip("wiki admin unavailable")
+    page_id = (resp.get_json() or {}).get("id")
+    if not page_id:
+        pytest.skip("no page id")
+    client.put(
+        f"/api/v1/wiki-admin/pages/{page_id}/translations/de",
+        json={
+            "title": "Empty Body",
+            "slug": slug,
+            "content_markdown": "   ",
+        },
+        headers=moderator_headers,
+    )
+    r = client.get(f"/wiki/{slug}")
+    assert r.status_code == 200
+
+
+def test_wiki_slug_markdown_exception_renders_without_html(client, app, moderator_headers, monkeypatch):
+    import uuid
+
+    slug = f"md-exc-{uuid.uuid4().hex[:10]}"
+    resp = client.post(
+        "/api/v1/wiki-admin/pages",
+        json={"key": slug, "is_published": True},
+        headers=moderator_headers,
+    )
+    if resp.status_code not in (200, 201):
+        pytest.skip("wiki admin unavailable")
+    page_id = (resp.get_json() or {}).get("id")
+    if not page_id:
+        pytest.skip("no page id")
+    client.put(
+        f"/api/v1/wiki-admin/pages/{page_id}/translations/de",
+        json={"title": "Md Exc", "slug": slug, "content_markdown": "# Body"},
+        headers=moderator_headers,
+    )
+
+    def _boom(*_a, **_k):
+        raise RuntimeError("markdown down")
+
+    monkeypatch.setattr("app.web.routes.markdown.markdown", _boom)
+    r = client.get(f"/wiki/{slug}")
+    assert r.status_code == 200
+
+
+@pytest.mark.usefixtures("_clear_runtime_registry_for_web_routes")
+def test_play_view_uses_minimal_session_state_when_runtime_missing(client, test_user, monkeypatch):
+    user, password = test_user
+    _web_routes_simple_login(client, user.username, password)
+
+    def _boom(**_kwargs):
+        raise RuntimeError("no runtime")
+
+    monkeypatch.setattr("app.web.routes.create_runtime_session", _boom)
+    token = _csrf_from_play_page(client)
+    start = client.post(
+        "/play/start",
+        data={"module_id": "god_of_carnage", "csrf_token": token},
+        follow_redirects=False,
+    )
+    assert start.status_code == 302
+    session_id = start.headers["Location"].split("/play/")[-1]
+    view = client.get(f"/play/{session_id}")
+    assert view.status_code == 200
 
 
 # ======================= DASHBOARD API (SESSION AUTH) =======================

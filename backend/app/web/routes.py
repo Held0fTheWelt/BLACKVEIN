@@ -783,6 +783,24 @@ def _resolve_runtime_session(session_id: str) -> RuntimeSession | None:
     return get_runtime_session(session_id)
 
 
+def _scene_display_from_module(module, current_scene_id: str) -> dict:
+    """Template scene title/description: legacy ``module.scenes`` first, then ``scene_phases`` (ContentModule)."""
+    # Preserve original precedence: explicit .scenes wins when present.
+    if hasattr(module, "scenes") and current_scene_id in module.scenes:
+        scene = module.scenes[current_scene_id]
+        return {
+            "title": getattr(scene, "title", current_scene_id),
+            "description": getattr(scene, "description", ""),
+        }
+    phases = getattr(module, "scene_phases", None)
+    if phases and current_scene_id in phases:
+        phase = phases[current_scene_id]
+        title = getattr(phase, "name", None) or getattr(phase, "title", None) or current_scene_id
+        desc = getattr(phase, "description", "") or ""
+        return {"title": title, "description": desc}
+    return {"title": current_scene_id, "description": ""}
+
+
 def _present_turn_result(runtime_session: RuntimeSession, turn_result) -> dict:
     """Map TurnExecutionResult and RuntimeSession to template-facing fields.
 
@@ -801,19 +819,7 @@ def _present_turn_result(runtime_session: RuntimeSession, turn_result) -> dict:
     current_scene_id = runtime_session.current_runtime_state.current_scene_id
     next_scene_id = turn_result.updated_scene_id if turn_result.updated_scene_id else current_scene_id
 
-    # Get scene from module (defensive coding: check if scenes exist)
-    scene_data = {}
-    if hasattr(module, 'scenes') and current_scene_id in module.scenes:
-        scene = module.scenes[current_scene_id]
-        scene_data = {
-            "title": getattr(scene, 'title', current_scene_id),
-            "description": getattr(scene, 'description', ''),
-        }
-    else:
-        scene_data = {
-            "title": current_scene_id,
-            "description": "",
-        }
+    scene_data = _scene_display_from_module(module, current_scene_id)
 
     # Extract state summary from canonical state
     canonical_state = runtime_session.current_runtime_state.canonical_state
@@ -925,18 +931,7 @@ def session_execute(session_id: str):
         current_scene_id = runtime_session.current_runtime_state.current_scene_id
         canonical_state = runtime_session.current_runtime_state.canonical_state
 
-        scene_data = {}
-        if hasattr(module, 'scenes') and current_scene_id in module.scenes:
-            scene = module.scenes[current_scene_id]
-            scene_data = {
-                "title": getattr(scene, 'title', current_scene_id),
-                "description": getattr(scene, 'description', ''),
-            }
-        else:
-            scene_data = {
-                "title": current_scene_id,
-                "description": "",
-            }
+        scene_data = _scene_display_from_module(module, current_scene_id)
 
         state_summary = {
             "situation": canonical_state.get("situation", ""),

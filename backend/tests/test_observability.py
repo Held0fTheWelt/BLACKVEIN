@@ -6,7 +6,6 @@ import json
 import logging
 import pytest
 import re
-from unittest.mock import patch
 from flask import g
 
 from app.observability.trace import (
@@ -17,11 +16,13 @@ from app.observability.trace import (
     reset_trace_id,
 )
 from app.observability.audit_log import (
+    JSONFormatter,
     get_audit_logger,
     safe_hash,
     log_api_endpoint,
     log_turn_request,
     log_turn_execution,
+    log_mcp_tool_call,
 )
 
 
@@ -111,6 +112,21 @@ class TestAuditLogger:
         hash2 = safe_hash("input2")
         assert hash1 != hash2
 
+    def test_json_formatter_fallback_for_non_dict_message(self):
+        """JSONFormatter wraps non-dict record.msg as {"message": ...}."""
+        formatter = JSONFormatter()
+        record = logging.LogRecord(
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="plain string message",
+            args=(),
+            exc_info=None,
+        )
+        parsed = json.loads(formatter.format(record))
+        assert parsed == {"message": "plain string message"}
+
     def test_log_api_endpoint_produces_valid_json(self):
         """log_api_endpoint produces valid JSON output."""
         # This test just verifies the function executes without error
@@ -126,6 +142,19 @@ class TestAuditLogger:
         )
         # If we get here without exception, the function works
 
+    def test_log_api_endpoint_includes_error_code_when_set(self):
+        """log_api_endpoint adds error_code to entry when provided."""
+        log_api_endpoint(
+            trace_id="trace-123",
+            session_id="sess-abc",
+            endpoint="/api/v1/test",
+            method="POST",
+            status_code=500,
+            duration_ms=10,
+            outcome="error",
+            error_code="E_TEST",
+        )
+
     def test_log_turn_request_produces_valid_json(self):
         """log_turn_request produces valid JSON output with hashed input."""
         log_turn_request(
@@ -136,6 +165,17 @@ class TestAuditLogger:
             duration_ms=120,
         )
         # Verify the function executes - actual JSON format verified via stderr
+
+    def test_log_turn_request_includes_error_code_when_set(self):
+        """log_turn_request adds error_code to entry when provided."""
+        log_turn_request(
+            trace_id="trace-456",
+            session_id="sess-xyz",
+            operator_input="input",
+            status_code=500,
+            duration_ms=50,
+            error_code="E_TURN",
+        )
 
     def test_log_turn_execution_produces_valid_json(self):
         """log_turn_execution produces valid JSON output."""
@@ -148,6 +188,39 @@ class TestAuditLogger:
             outcome="success",
         )
         # Verify the function executes - actual JSON format verified via stderr
+
+    def test_log_turn_execution_includes_error_code_when_set(self):
+        """log_turn_execution adds error_code to entry when provided."""
+        log_turn_execution(
+            trace_id="trace-789",
+            session_id="sess-def",
+            execution_mode="mock",
+            turn_before=1,
+            turn_after=1,
+            outcome="error",
+            error_code="E_EXEC",
+        )
+
+    def test_log_mcp_tool_call_produces_valid_json(self):
+        """log_mcp_tool_call runs without error when success=True."""
+        log_mcp_tool_call(
+            trace_id="t1",
+            session_id="s1",
+            tool_name="test_tool",
+            duration_ms=5,
+            success=True,
+        )
+
+    def test_log_mcp_tool_call_includes_error_when_set(self):
+        """log_mcp_tool_call adds error field when provided."""
+        log_mcp_tool_call(
+            trace_id="t1",
+            session_id="s1",
+            tool_name="test_tool",
+            duration_ms=5,
+            success=False,
+            error="connection refused",
+        )
 
 
 class TestFlaskMiddleware:

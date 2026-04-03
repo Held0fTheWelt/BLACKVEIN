@@ -126,6 +126,49 @@ def test_dashboard_api_logs_admin_returns_json(client, admin_user, app):
     assert "total" in data
 
 
+def test_dashboard_api_logs_invalid_page_limit_use_defaults_and_cap(client, admin_user, app):
+    """Invalid page/limit query args hit _parse_int except/max branches in routes."""
+    import re
+
+    user, password = admin_user
+    with app.app_context():
+        user.email_verified_at = db.func.now()
+        db.session.commit()
+    login_page = client.get("/login")
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+    csrf_value = match.group(1) if match else ""
+    client.post(
+        "/login",
+        data={"username": user.username, "password": password, "csrf_token": csrf_value},
+        follow_redirects=True,
+    )
+    response = client.get("/dashboard/api/logs?page=abc&limit=9999")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["page"] == 1
+    assert data["limit"] == 100
+
+
+def test_dashboard_api_logs_export_invalid_limit_uses_default(client, admin_user, app):
+    import re
+
+    user, password = admin_user
+    with app.app_context():
+        user.email_verified_at = db.func.now()
+        db.session.commit()
+    login_page = client.get("/login")
+    match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+    csrf_value = match.group(1) if match else ""
+    client.post(
+        "/login",
+        data={"username": user.username, "password": password, "csrf_token": csrf_value},
+        follow_redirects=True,
+    )
+    response = client.get("/dashboard/api/logs/export?limit=not-a-number")
+    assert response.status_code == 200
+    assert "text/csv" in (response.content_type or "")
+
+
 def test_csv_export_admin_returns_csv(client, admin_headers):
     """GET /api/v1/admin/logs/export as admin returns CSV."""
     response = client.get("/api/v1/admin/logs/export", headers=admin_headers)

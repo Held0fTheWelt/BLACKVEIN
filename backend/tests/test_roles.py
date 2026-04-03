@@ -1,5 +1,4 @@
 """Tests for Role CRUD API. Admin-only endpoints."""
-import pytest
 
 from app.models import Role
 
@@ -30,6 +29,47 @@ def test_roles_list_unauthenticated_returns_401(client):
     """Unauthenticated request returns 401."""
     r = client.get("/api/v1/roles")
     assert r.status_code == 401
+
+
+def test_roles_list_page_below_min_defaults_to_one(client, admin_headers):
+    """page < min_val falls back to default (1)."""
+    r = client.get("/api/v1/roles?page=0&limit=10", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.get_json()["page"] == 1
+
+
+def test_roles_list_limit_above_max_capped_to_100(client, admin_headers):
+    """limit > max_val is capped at 100."""
+    r = client.get("/api/v1/roles?page=1&limit=200", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.get_json()["per_page"] == 100
+
+
+def test_roles_list_invalid_page_and_limit_strings_use_defaults(client, admin_headers):
+    """Non-numeric page/limit query values use defaults (1 and 50)."""
+    r = client.get("/api/v1/roles?page=abc&limit=xyz", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["page"] == 1
+    assert data["per_page"] == 50
+
+
+def test_roles_list_page_zero_and_high_limit_in_one_request(client, admin_headers):
+    """Combined invalid page and over-max limit in one GET."""
+    r = client.get("/api/v1/roles?page=0&limit=999", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["page"] == 1
+    assert data["per_page"] == 100
+
+
+def test_roles_list_without_page_limit_query_uses_defaults(client, admin_headers):
+    """Omitted page/limit runs _parse_int(None, default)."""
+    r = client.get("/api/v1/roles", headers=admin_headers)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["page"] == 1
+    assert data["per_page"] == 50
 
 
 def test_roles_get_as_admin(client, app, admin_headers):
@@ -120,6 +160,37 @@ def test_roles_create_as_non_admin_returns_403(client, auth_headers):
     assert r.status_code == 403
 
 
+def test_roles_create_invalid_json_returns_400(client, admin_headers):
+    """POST with invalid JSON body returns 400."""
+    r = client.post(
+        "/api/v1/roles",
+        data="not json",
+        content_type="application/json",
+        headers=admin_headers,
+    )
+    assert r.status_code == 400
+    assert "Invalid or missing JSON" in r.get_json().get("error", "")
+
+
+def test_roles_create_empty_description_normalized_to_null(client, app, admin_headers):
+    """description key with empty or whitespace becomes None (omitted in JSON)."""
+    for idx, desc in enumerate(["", "   "]):
+        name = f"role_empty_desc_{idx}"
+        r = client.post(
+            "/api/v1/roles",
+            json={"name": name, "description": desc},
+            headers=admin_headers,
+            content_type="application/json",
+        )
+        assert r.status_code == 201, f"body description={desc!r}"
+        data = r.get_json()
+        assert "description" not in data
+        with app.app_context():
+            role = Role.query.filter_by(name=name).first()
+            assert role is not None
+            assert role.description is None
+
+
 def test_roles_update_as_admin(client, app, admin_headers):
     """Update role name returns 200."""
     with app.app_context():
@@ -154,6 +225,128 @@ def test_roles_update_as_non_admin_returns_403(client, app, auth_headers):
         content_type="application/json",
     )
     assert r.status_code == 403
+
+
+def test_roles_update_invalid_json_returns_400(client, app, admin_headers):
+    """PUT with invalid JSON returns 400."""
+    with app.app_context():
+        from app.extensions import db
+        role = Role.query.filter_by(name="role_put_json").first()
+        if not role:
+            role = Role(name="role_put_json")
+            db.session.add(role)
+            db.session.commit()
+            db.session.refresh(role)
+        rid = role.id
+    r = client.put(
+        f"/api/v1/roles/{rid}",
+        data="not json",
+        content_type="application/json",
+        headers=admin_headers,
+    )
+    assert r.status_code == 400
+    assert "Invalid or missing JSON" in r.get_json().get("error", "")
+
+
+def test_roles_update_description_only(client, app, admin_headers):
+    """PUT with only description does not require name; empty description clears."""
+    with app.app_context():
+        from app.extensions import db
+        role = Role.query.filter_by(name="role_desc_only").first()
+        if not role:
+            role = Role(name="role_desc_only", description="old")
+            db.session.add(role)
+            db.session.commit()
+            db.session.refresh(role)
+        rid = role.id
+    r = client.put(
+        f"/api/v1/roles/{rid}",
+        json={"description": "only_desc"},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body.get("description") == "only_desc"
+    assert body.get("name") == "role_desc_only"
+
+    r2 = client.put(
+        f"/api/v1/roles/{rid}",
+        json={"description": ""},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r2.status_code == 200
+    assert "description" not in r2.get_json()
+
+    r3 = client.put(
+        f"/api/v1/roles/{rid}",
+        json={"description": None},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r3.status_code == 200
+    assert "description" not in r3.get_json()
+
+
+def test_roles_update_404(client, admin_headers):
+    """PUT non-existent role returns 404."""
+    r = client.put(
+        "/api/v1/roles/99999",
+        json={"name": "any_valid_name"},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r.status_code == 404
+    assert r.get_json().get("error") == "Role not found"
+
+
+def test_roles_update_duplicate_name_returns_409(client, app, admin_headers):
+    """PUT renaming to another role's name returns 409."""
+    with app.app_context():
+        from app.extensions import db
+        a = Role.query.filter_by(name="role_dup_a").first()
+        if not a:
+            a = Role(name="role_dup_a")
+            db.session.add(a)
+        b = Role.query.filter_by(name="role_dup_b").first()
+        if not b:
+            b = Role(name="role_dup_b")
+            db.session.add(b)
+        db.session.commit()
+        db.session.refresh(a)
+        db.session.refresh(b)
+        rid_a = a.id
+        name_b = b.name
+    r = client.put(
+        f"/api/v1/roles/{rid_a}",
+        json={"name": name_b},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r.status_code == 409
+    assert r.get_json().get("error") == "Role name already exists"
+
+
+def test_roles_update_invalid_name_returns_400(client, app, admin_headers):
+    """PUT with invalid name format returns 400 (non-404/409 branch)."""
+    with app.app_context():
+        from app.extensions import db
+        role = Role.query.filter_by(name="role_bad_name_tgt").first()
+        if not role:
+            role = Role(name="role_bad_name_tgt")
+            db.session.add(role)
+            db.session.commit()
+            db.session.refresh(role)
+        rid = role.id
+    r = client.put(
+        f"/api/v1/roles/{rid}",
+        json={"name": "bad-dash"},
+        headers=admin_headers,
+        content_type="application/json",
+    )
+    assert r.status_code == 400
+    assert r.get_json().get("error")
 
 
 def test_roles_delete_as_admin(client, app, admin_headers):

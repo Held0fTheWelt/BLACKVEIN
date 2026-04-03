@@ -357,5 +357,70 @@ class TestSiteSettingsAPI:
         # Accept 200, 204, 400 (if not logged in or bad data), or 302 (redirect)
         assert resp.status_code in (200, 204, 302, 400)
 
+    def test_dashboard_site_settings_put_invalid_body_returns_400(self, app, client, admin_user):
+        import re
+        from app.extensions import db
+
+        user, password = admin_user
+        with app.app_context():
+            user.email_verified_at = db.func.now()
+            db.session.commit()
+        login_page = client.get("/login")
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+        csrf_value = match.group(1) if match else ""
+        client.post(
+            "/login",
+            data={"username": user.username, "password": password, "csrf_token": csrf_value},
+            follow_redirects=True,
+        )
+        resp = client.put(
+            "/dashboard/api/site-settings",
+            data="not-json",
+            content_type="text/plain",
+        )
+        assert resp.status_code == 400
+        assert resp.get_json().get("error")
+
+    def test_dashboard_site_settings_put_inserts_rows_and_clamps_interval(self, app, client, admin_user):
+        import re
+        from app.extensions import db
+        from app.models import SiteSetting
+
+        user, password = admin_user
+        with app.app_context():
+            user.email_verified_at = db.func.now()
+            db.session.commit()
+            SiteSetting.query.filter(
+                SiteSetting.key.in_(["slogan_rotation_interval_seconds", "slogan_rotation_enabled"])
+            ).delete(synchronize_session=False)
+            db.session.commit()
+        login_page = client.get("/login")
+        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
+        csrf_value = match.group(1) if match else ""
+        client.post(
+            "/login",
+            data={"username": user.username, "password": password, "csrf_token": csrf_value},
+            follow_redirects=True,
+        )
+        resp = client.put(
+            "/dashboard/api/site-settings",
+            json={
+                "slogan_rotation_interval_seconds": "not-an-int",
+                "slogan_rotation_enabled": False,
+            },
+            content_type="application/json",
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["slogan_rotation_interval_seconds"] == 60
+        assert body["slogan_rotation_enabled"] is False
+        resp2 = client.put(
+            "/dashboard/api/site-settings",
+            json={"slogan_rotation_interval_seconds": 3},
+            content_type="application/json",
+        )
+        assert resp2.status_code == 200
+        assert resp2.get_json()["slogan_rotation_interval_seconds"] == 5
+
 
 # ======================= DATA EXPORT/IMPORT TESTS =======================

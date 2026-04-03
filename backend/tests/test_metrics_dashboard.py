@@ -62,6 +62,15 @@ def test_dashboard_metrics_range_30d(client, admin_user):
     assert len(data.get("bucket_labels", [])) == 30
 
 
+def test_dashboard_metrics_invalid_range_defaults_to_24h(client, admin_user):
+    """Unknown range query maps to 24h in dashboard_api_metrics (routes)."""
+    user, password = admin_user
+    client.post("/login", data={"username": user.username, "password": password}, follow_redirects=True)
+    r = client.get("/dashboard/api/metrics?range=__invalid__")
+    assert r.status_code == 200
+    assert r.get_json().get("selected_range") == "24h"
+
+
 class TestMetricsServiceAggregates:
     def test_get_metrics_aggregates_real_user_counts(self, app, monkeypatch):
         fixed_now = datetime(2026, 3, 28, 12, 0, tzinfo=timezone.utc)

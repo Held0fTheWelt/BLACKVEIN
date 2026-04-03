@@ -91,9 +91,15 @@ def roles_update(role_id):
     name = data.get("name")
     if name is not None:
         name = (name or "").strip() or None
+    # If key is present, always patch description; pass "" so service clears to NULL (None alone = skip).
     description = data.get("description")
-    if description is not None:
-        description = (description or "").strip() or None
+    if "description" in data:
+        raw = data["description"]
+        if raw is None:
+            description = ""
+        else:
+            stripped = (raw or "").strip() or None
+            description = "" if stripped is None else stripped
     default_role_level = data.get("default_role_level")
     role, err = update_role_service(role_id, name=name, description=description, default_role_level=default_role_level)
     if err:

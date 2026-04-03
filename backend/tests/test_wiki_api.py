@@ -129,6 +129,22 @@ def test_wiki_suggested_threads_unknown_page_returns_404(client):
     assert client.get("/api/v1/wiki/999999/suggested-threads").status_code == 404
 
 
+def test_wiki_suggested_threads_existing_page_returns_200(client, app):
+    """GET /api/v1/wiki/<page_id>/suggested-threads returns items and total when page exists."""
+    with app.app_context():
+        page = WikiPage(key="sug-api-page", is_published=True, discussion_thread_id=None)
+        db.session.add(page)
+        db.session.commit()
+        page_id = page.id
+
+    resp = client.get(f"/api/v1/wiki/{page_id}/suggested-threads")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "items" in data
+    assert isinstance(data["items"], list)
+    assert data.get("total") == len(data["items"])
+
+
 def test_wiki_public_markdown_failure_sets_html_none(client, app, monkeypatch):
     """Exception during markdown render yields html=None (wiki_page_get)."""
     from app.api.v1 import wiki_routes
@@ -169,6 +185,68 @@ def test_wiki_put_content_must_be_string(client, moderator_headers, tmp_path, mo
         headers=moderator_headers,
     )
     assert resp.status_code == 400
+
+
+def test_wiki_get_read_oserror_returns_500(client, moderator_headers, tmp_path, monkeypatch):
+    """OSError when reading wiki file returns 500 (wiki_get)."""
+    from app.api.v1 import wiki_routes
+
+    class UnreadablePath:
+        def is_file(self):
+            return True
+
+        def read_text(self, encoding="utf-8"):
+            raise OSError("simulated read failure")
+
+    monkeypatch.setattr(wiki_routes, "_wiki_path", UnreadablePath)
+
+    resp = client.get("/api/v1/wiki", headers=moderator_headers)
+    assert resp.status_code == 500
+    assert "read" in (resp.get_json().get("error") or "").lower()
+
+
+def test_wiki_get_markdown_failure_sets_html_none(client, moderator_headers, tmp_path, monkeypatch):
+    """Exception during markdown in legacy wiki_get leaves html None."""
+    from app.api.v1 import wiki_routes
+
+    wiki_file = tmp_path / "wiki.md"
+    wiki_file.write_text("# Body", encoding="utf-8")
+    monkeypatch.setattr(wiki_routes, "_wiki_path", lambda: wiki_file)
+
+    def boom(*_a, **_kw):
+        raise RuntimeError("markdown boom")
+
+    monkeypatch.setattr(wiki_routes.markdown, "markdown", boom)
+
+    resp = client.get("/api/v1/wiki", headers=moderator_headers)
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data.get("content") == "# Body"
+    assert data.get("html") is None
+
+
+def test_wiki_put_write_oserror_returns_500(client, moderator_headers, tmp_path, monkeypatch):
+    """OSError when writing wiki file returns 500 (wiki_put)."""
+    from app.api.v1 import wiki_routes
+
+    wiki_file = tmp_path / "wiki.md"
+
+    class UnwritablePath:
+        parent = wiki_file.parent
+
+        def write_text(self, content, encoding="utf-8"):
+            raise OSError("simulated write failure")
+
+    monkeypatch.setattr(wiki_routes, "_wiki_path", UnwritablePath)
+
+    resp = client.put(
+        "/api/v1/wiki",
+        json={"content": "# new"},
+        content_type="application/json",
+        headers=moderator_headers,
+    )
+    assert resp.status_code == 500
+    assert "write" in (resp.get_json().get("error") or "").lower()
 
 
 """Tests for TestWikiAdminAPI."""
