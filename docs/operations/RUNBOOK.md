@@ -101,6 +101,50 @@ Root `docker compose up --build` maps **backend :8000**, **frontend :5002**, **a
 
 **Host port 8000:** If `http://127.0.0.1:8000/health` fails on the host while containers are up, another process may already bind `127.0.0.1:8000` (check `netstat`). The backend container is still healthy on the Docker network: e.g. `docker exec worldofshadows-frontend-1 python -c "import urllib.request; print(urllib.request.urlopen('http://backend:8000/health').read())"`.
 
+### Backend container: seed users (Docker Exec)
+
+Do **not** run `seed-dev-user` as a shell command; it is not on `PATH`. Use the Flask CLI with application **`run:app`** (module `run.py`, object `app`). Wrong values such as `app.run` cause import errors and missing commands.
+
+**Always** either set `FLASK_APP=run:app` or pass `--app run:app`. Working directory must be **`backend/`** on the host or **`/app`** in the container (where `run.py` lives).
+
+`seed-dev-user` and `seed-admin-user` require **`DEV_SECRETS_OK=1`** (local dev only).
+
+```bash
+# Inside backend container (Exec tab) — explicit --app avoids wrong FLASK_APP
+cd /app
+python -m flask --app run:app ensure-superadmin --username admin
+```
+
+```bash
+# Seed (new user only), inside container
+cd /app
+DEV_SECRETS_OK=1 python -m flask --app run:app seed-dev-user --username admin --password Admin123 --superadmin
+```
+
+From the **host** (project root):
+
+```bash
+docker compose exec backend python -m flask --app run:app ensure-superadmin --username admin
+```
+
+```bash
+docker compose exec -e DEV_SECRETS_OK=1 backend python -m flask --app run:app seed-dev-user --username admin --password Admin123 --superadmin
+```
+
+Alternative: `DEV_SECRETS_OK=1 python -m flask --app run:app seed-admin-user --username admin --password Admin123` (creates admin with role_level 100).
+
+**User already exists:** Do not re-run seed; use **`ensure-superadmin`** (see first container example above). Password is unchanged.
+
+**Windows PowerShell** (bare metal, from `backend\`):
+
+```powershell
+cd C:\path\to\WorldOfShadows\backend
+$env:FLASK_APP = "run:app"
+flask ensure-superadmin --username admin
+```
+
+To only raise `role_level` (user is already admin): `flask set-user-role-level --username admin --role-level 100`.
+
 ## Incident checklist
 
 - If frontend pages fail: check `BACKEND_API_URL` and backend health

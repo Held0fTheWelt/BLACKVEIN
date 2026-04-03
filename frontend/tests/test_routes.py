@@ -16,7 +16,8 @@ class FakeResponse:
 def test_home_page(client):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"canonical player/public frontend service" in response.data
+    assert b"BETTER TOMORROW" in response.data
+    assert b"matrix-layer" in response.data
 
 
 def test_login_success_sets_session(client, monkeypatch):

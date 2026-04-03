@@ -10,8 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 **Summary**: Backend **technical information surface** at `/backend/*` (multi-page HTML for operators/developers). Direct visits to backend **`/`** redirect to **`/backend`** instead of the player frontend; legacy player paths still redirect to **`FRONTEND_URL`** or return **410** when unset.
 
+### Fixed
+
+- **Feature access (`allowed_features`)**: Users with **no** rows in `user_areas` were incorrectly denied area-scoped features when `feature_areas` had entries; this hid administration-tool (and API) nav for typical seeded admins. **No user area assignment** now skips the feature_areas filter (per `AREA_ACCESS_CONTROL.md`). **`seed-admin-user`** / **`seed-dev-user --superadmin`** also attach the **`all`** area for clarity.
+
 ### Added
 
+- **`flask ensure-superadmin --username …`** (`backend/run.py`, logic in **`backend/app/cli_ops.py`**): Promotes an existing account to admin, `role_level` 100, and area **`all`** (password unchanged; no `DEV_SECRETS_OK`).
 - **`backend/app/info/`**: Blueprint with templates and static CSS (`/backend`, `/backend/api`, `/backend/engine`, `/backend/ai`, `/backend/auth`, `/backend/ops`).
 - **`ADMINISTRATION_TOOL_URL`**: Optional config for links on the backend info home page.
 - **`backend/tests/test_backend_info_routes.py`**: Coverage for info pages, root redirect, blueprint registration, API collision check, and legacy redirect boundaries.

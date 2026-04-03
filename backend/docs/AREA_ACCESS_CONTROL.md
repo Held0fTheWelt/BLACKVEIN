@@ -13,7 +13,7 @@ Access to admin/dashboard and management features is controlled by **Role**, **R
 - **Areas** are stored in the `areas` table (id, name, slug, description, is_system, created_at, updated_at).
 - **Default areas** (seeded by migration 019 and `ensure_areas_seeded()`): `all`, `community`, `website content`, `rules and system`, `ai integration`, `game`, `wiki`.
 - **`all`** is the special wildcard: users assigned to "all" can access every area-scoped feature. Slug: `all`, `is_system=True`.
-- **User–area relation:** Many-to-many via `user_areas` (user_id, area_id). A user can have zero, one, or many areas. No areas = no area-based restriction (role/level still apply; empty feature mapping = global).
+- **User–area relation:** Many-to-many via `user_areas` (user_id, area_id). A user can have zero, one, or many areas. **No user area rows** = feature_areas are **not** applied for that user (full feature access allowed by role only). To restrict someone to a subset, assign them specific areas (not `all`). Empty **feature** mapping (`feature_areas` has no rows for that feature) = that feature is global for all allowed roles.
 
 ## Feature / view assignment
 

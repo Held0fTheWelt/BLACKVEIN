@@ -67,6 +67,15 @@ DEFAULT_AREAS = (
 )
 
 
+def assign_user_area_all(user) -> None:
+    """Attach the system wildcard area ``all`` to a user if it exists. Idempotent."""
+    area = Area.query.filter_by(slug=Area.SLUG_ALL).first()
+    if not area:
+        return
+    if area not in (user.areas or []):
+        user.areas.append(area)
+
+
 def ensure_areas_seeded():
     """Insert default areas if they do not exist. Safe to call on init or in tests. Does not overwrite existing."""
     for slug, name, description, is_system in DEFAULT_AREAS:

@@ -34,6 +34,12 @@ def _current_user() -> dict[str, Any] | None:
     return session.get("current_user")
 
 
+def _user_is_admin(user: dict[str, Any] | None) -> bool:
+    if not user:
+        return False
+    return user.get("role") == "admin"
+
+
 def _fetch_me() -> dict[str, Any]:
     response = request_backend("GET", "/api/v1/auth/me")
     payload = require_success(response, "Could not fetch user profile.")
@@ -202,7 +208,11 @@ def dashboard():
             return redirect(url_for("frontend.login"))
         flash(str(exc), "error")
         user = _current_user()
-    return render_template("dashboard.html", current_user=user)
+    return render_template(
+        "dashboard.html",
+        current_user=user,
+        is_admin=_user_is_admin(user),
+    )
 
 
 @frontend_bp.route("/news")

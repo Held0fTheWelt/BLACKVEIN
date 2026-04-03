@@ -107,7 +107,9 @@ def user_can_access_feature(user: User, feature_id: str) -> bool:
     """
     True if user may access the feature: role, not banned, and area check.
     - Role: user must have one of FEATURE_REQUIRED_ROLES[feature_id] (empty = any).
-    - Area: if feature has no area assignments, allow; else user must have 'all' or one of the feature's areas.
+    - Area: if feature has no area assignments, allow.
+      If the feature is area-scoped: users with **no** area assignments are not restricted
+      (see AREA_ACCESS_CONTROL.md). Otherwise user must have 'all' or overlap with the feature's areas.
     """
     if not user:
         return False
@@ -121,6 +123,9 @@ def user_can_access_feature(user: User, feature_id: str) -> bool:
     feature_areas = get_feature_area_ids(feature_id)
     if not feature_areas:
         return True  # no area restriction = global
+    # No rows in user_areas → do not apply feature_areas filter (legacy / full access until areas are assigned).
+    if not list(user.areas or []):
+        return True
     if _user_has_area_all(user):
         return True
     user_aids = _user_area_ids(user)

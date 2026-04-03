@@ -72,7 +72,7 @@ def seed_dev_user(username, password, generate, superadmin):
             return
 
     from app.models.role import ensure_roles_seeded
-    from app.models.area import ensure_areas_seeded
+    from app.models.area import assign_user_area_all, ensure_areas_seeded
 
     with app.app_context():
         db.create_all()
@@ -101,6 +101,8 @@ def seed_dev_user(username, password, generate, superadmin):
             role_level=role_level,
         )
         db.session.add(u)
+        if superadmin:
+            assign_user_area_all(u)
         db.session.commit()
         print(f"Created dev user: {u_name}" + (" (SuperAdmin, role_level 100)" if superadmin else " (moderator, role_level 0)"))
         if generate:
@@ -143,7 +145,7 @@ def seed_admin_user(username, password, generate):
             return
 
     from app.models.role import ensure_roles_seeded
-    from app.models.area import ensure_areas_seeded
+    from app.models.area import assign_user_area_all, ensure_areas_seeded
 
     with app.app_context():
         db.create_all()
@@ -163,6 +165,7 @@ def seed_admin_user(username, password, generate):
             role_level=100,
         )
         db.session.add(u)
+        assign_user_area_all(u)
         db.session.commit()
         print(f"Created admin user: {u_name} (SuperAdmin, role_level 100)")
         if generate:
@@ -189,6 +192,23 @@ def set_user_role_level(username, role_level):
         user.role_level = role_level
         db.session.commit()
         print(f"Updated {user.username}: role_level {old} -> {role_level}")
+
+
+@app.cli.command("ensure-superadmin")
+@click.option("--username", required=True, help="Existing user to promote (case-insensitive match)")
+def ensure_superadmin(username):
+    """Promote an existing user to SuperAdmin: admin role, role_level 100, attach area 'all'.
+
+    Use when seed commands skip with 'user already exists'. Does not change password.
+    No DEV_SECRETS_OK required (intended for container/ops recovery).
+    """
+    from app.cli_ops import ensure_superadmin_for_username
+
+    with app.app_context():
+        try:
+            print(ensure_superadmin_for_username(username))
+        except ValueError as e:
+            print(str(e))
 
 
 @app.cli.command("seed-news")

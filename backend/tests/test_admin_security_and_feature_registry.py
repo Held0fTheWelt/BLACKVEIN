@@ -247,6 +247,16 @@ def test_feature_registry_area_and_role_logic(app):
         set_feature_areas(FEATURE_MANAGE_GAME_OPERATIONS, [area_game.id])
         assert user_can_access_feature(admin, FEATURE_MANAGE_GAME_OPERATIONS) is True
         assert user_can_access_feature(moderator, FEATURE_MANAGE_GAME_OPERATIONS) is True
+
+        # Admin with no user_areas: must still see area-scoped features (no assignment = no area filter).
+        admin_no_areas = User(
+            username="feature-admin-no-areas",
+            password_hash=generate_password_hash("pw"),
+            role_id=admin_role.id,
+        )
+        db.session.add(admin_no_areas)
+        db.session.commit()
+        assert user_can_access_feature(admin_no_areas, FEATURE_MANAGE_GAME_OPERATIONS) is True
         assert user_can_access_feature(regular, FEATURE_MANAGE_GAME_OPERATIONS) is False
         assert user_can_access_feature(banned, FEATURE_MANAGE_GAME_OPERATIONS) is False
         assert user_can_access_feature(None, FEATURE_MANAGE_GAME_OPERATIONS) is False
