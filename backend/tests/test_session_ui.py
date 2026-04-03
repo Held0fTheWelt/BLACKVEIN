@@ -1208,7 +1208,7 @@ class TestSynchronizationRegression:
 
 # ── W3.6 Smoke Tests ──────────────────────────────────────────────────────────
 
-class TestW3SmokeAndStability:
+class TestSmokeAndStability:
     """Smoke tests for critical W3 playable UI paths and graceful failure handling."""
 
     @staticmethod
