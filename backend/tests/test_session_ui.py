@@ -499,6 +499,43 @@ class TestDebugPresenter:
         # Verify recent_pattern_context is bounded
         assert len(result.recent_pattern_context) <= 5
 
+    def test_debug_presenter_includes_tool_transcript_when_available(self):
+        """Debug presenter surfaces tool transcript and summary from diagnostics log."""
+        from datetime import datetime, timezone
+        from app.runtime.w2_models import SessionState
+        from app.runtime.short_term_context import ShortTermTurnContext
+        from app.runtime.debug_presenter import present_debug_panel
+
+        session_state = SessionState(
+            session_id="tool-ui-test",
+            module_id="test_module",
+            module_version="1.0",
+            current_scene_id="scene_1",
+        )
+        session_state.context_layers.short_term_context = ShortTermTurnContext(
+            turn_number=1,
+            scene_id="scene_1",
+            detected_triggers=[],
+            accepted_delta_targets=[],
+            rejected_delta_targets=[],
+            guard_outcome="accepted",
+            scene_changed=False,
+            ending_reached=False,
+            created_at=datetime.now(timezone.utc),
+            execution_result_full={"validation_errors": []},
+            ai_decision_log_full={
+                "raw_output": "x",
+                "parsed_output": {"scene_interpretation": "x"},
+                "tool_loop_summary": {"enabled": True, "total_calls": 1, "stop_reason": "finalized", "limit_hit": False, "finalized_after_tool_use": True},
+                "tool_call_transcript": [{"tool_name": "wos.read.current_scene", "status": "success", "attempts": 1, "duration_ms": 1}],
+            },
+        )
+
+        result = present_debug_panel(session_state)
+        assert result.full_diagnostics is not None
+        assert result.full_diagnostics["tool_loop_summary"] is not None
+        assert len(result.full_diagnostics["tool_call_transcript"]) == 1
+
 
 class TestPresenterIntegration:
     """Integration tests verifying presenters derive from canonical sources."""
@@ -1501,6 +1538,14 @@ class TestDebugPanelDiagnosticsRendering:
                b"Validation Errors" in response.data or \
                b"Recovery Action" in response.data, \
             "No diagnostic sections found in debug panel"
+
+    def test_template_declares_tool_call_transcript_section(self):
+        """Template contains Tool Call Transcript diagnostics section."""
+        from pathlib import Path
+
+        template_path = Path(__file__).resolve().parents[1] / "app" / "web" / "templates" / "session_shell.html"
+        content = template_path.read_text(encoding="utf-8")
+        assert "Tool Call Transcript" in content
 
 
 class TestAIDecisionLogRouting:

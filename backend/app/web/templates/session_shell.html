@@ -400,6 +400,55 @@
             </div>
             {% endif %}
 
+            <!-- Tool Call Transcript -->
+            {% if debug_panel.full_diagnostics.tool_loop_summary or debug_panel.full_diagnostics.tool_call_transcript %}
+            <div class="diagnostics-subsection">
+              <h5>Tool Call Transcript</h5>
+
+              {% if debug_panel.full_diagnostics.tool_loop_summary %}
+              <dl>
+                <dt>Enabled</dt>
+                <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.enabled }}</dd>
+                <dt>Total Calls</dt>
+                <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.total_calls }}</dd>
+                <dt>Stop Reason</dt>
+                <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.stop_reason }}</dd>
+                <dt>Limit Hit</dt>
+                <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.limit_hit }}</dd>
+                <dt>Finalized After Tool Use</dt>
+                <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.finalized_after_tool_use }}</dd>
+              </dl>
+              {% endif %}
+
+              {% if debug_panel.full_diagnostics.tool_influence %}
+              <p>
+                <strong>Influence:</strong>
+                {{ debug_panel.full_diagnostics.tool_influence | truncate(180, True, '...') }}
+              </p>
+              {% endif %}
+
+              {% if debug_panel.full_diagnostics.tool_call_transcript %}
+              <ol>
+                {% for call in debug_panel.full_diagnostics.tool_call_transcript %}
+                <li>
+                  <strong>{{ call.tool_name }}</strong>
+                  [{{ call.status }}]
+                  attempts={{ call.attempts }},
+                  duration={{ call.duration_ms }}ms
+                  {% if call.influenced_final_output %}<em>(influenced final output)</em>{% endif %}
+                  {% if call.result_summary %}
+                    <div><code>{{ call.result_summary | truncate(180, True, '...') }}</code></div>
+                  {% endif %}
+                  {% if call.error_summary %}
+                    <div><code>{{ call.error_summary | truncate(180, True, '...') }}</code></div>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ol>
+              {% endif %}
+            </div>
+            {% endif %}
+
           </div>
           {% endif %}
         </div>

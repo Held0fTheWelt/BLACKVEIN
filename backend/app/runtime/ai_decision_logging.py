@@ -33,6 +33,9 @@ def construct_ai_decision_log(
     rejected_deltas: Optional[list[StateDelta]] = None,
     guard_notes: Optional[str] = None,
     recovery_notes: Optional[str] = None,
+    tool_loop_summary: Optional[dict] = None,
+    tool_call_transcript: Optional[list[dict]] = None,
+    tool_influence: Optional[dict] = None,
 ) -> AIDecisionLog:
     """Construct a fully-populated AIDecisionLog with role diagnostics if available.
 
@@ -98,4 +101,7 @@ def construct_ai_decision_log(
         rejected_deltas=rejected_deltas or [],
         guard_notes=guard_notes,
         recovery_notes=recovery_notes,
+        tool_loop_summary=tool_loop_summary,
+        tool_call_transcript=tool_call_transcript,
+        tool_influence=tool_influence,
     )

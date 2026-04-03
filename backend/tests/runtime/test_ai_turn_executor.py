@@ -1196,3 +1196,27 @@ def test_restore_apply_raises_valueerror_then_safe_turn(
     assert result.execution_status == "success"
     assert result.updated_canonical_state == initial
     assert result.failure_reason == ExecutionFailureReason.GENERATION_ERROR
+
+
+def test_tool_loop_summary_absent_when_disabled(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """Disabled tool loop should not add transcript fields to decision log."""
+    session = god_of_carnage_module_with_state
+    session.execution_mode = "ai"
+    session.metadata["tool_loop"] = {"enabled": False}
+
+    adapter = DeterministicAIAdapter(payload=VALID_PAYLOAD)
+    result = asyncio.run(
+        execute_turn_with_ai(
+            session,
+            current_turn=session.turn_counter + 1,
+            adapter=adapter,
+            module=god_of_carnage_module,
+        )
+    )
+
+    assert result.execution_status == "success"
+    decision_log = session.metadata["ai_decision_logs"][-1]
+    assert decision_log.tool_loop_summary is None
+    assert decision_log.tool_call_transcript is None

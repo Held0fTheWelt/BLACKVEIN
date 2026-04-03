@@ -441,3 +441,32 @@ def test_guard_outcome_and_validation_outcome_semantics():
         assert log.guard_outcome == guard_outcome
         # validation_outcome derived from guard_outcome
         assert log.validation_outcome == expected_validation_outcome
+
+
+def test_construct_log_accepts_optional_tool_loop_fields():
+    """construct_ai_decision_log stores optional tool-loop diagnostics."""
+    parsed_decision = ParsedAIDecision(
+        scene_interpretation="Scene",
+        detected_triggers=[],
+        proposed_deltas=[],
+        proposed_scene_id=None,
+        rationale="Rationale",
+        raw_output="raw",
+        parsed_source="structured_payload",
+    )
+
+    log = construct_ai_decision_log(
+        session_id="sess1",
+        turn_number=1,
+        parsed_decision=parsed_decision,
+        raw_output="raw",
+        role_aware_decision=None,
+        guard_outcome=GuardOutcome.ACCEPTED,
+        tool_loop_summary={"enabled": True, "total_calls": 1},
+        tool_call_transcript=[{"tool_name": "wos.read.current_scene", "status": "success"}],
+        tool_influence={"influencing_tool_sequence": 1},
+    )
+
+    assert log.tool_loop_summary == {"enabled": True, "total_calls": 1}
+    assert isinstance(log.tool_call_transcript, list)
+    assert log.tool_influence == {"influencing_tool_sequence": 1}

@@ -565,3 +565,8 @@ class AIDecisionLog(BaseModel):
 
     guard_outcome: GuardOutcome
     """Canonical validation result for responder proposals (guard decision)."""
+
+    # B2 Tool Loop diagnostics (optional, backward-compatible)
+    tool_loop_summary: dict[str, Any] | None = None
+    tool_call_transcript: list[dict[str, Any]] | None = None
+    tool_influence: dict[str, Any] | None = None

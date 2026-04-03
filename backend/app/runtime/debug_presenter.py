@@ -214,7 +214,12 @@ def present_debug_panel(session_state: SessionState) -> DebugPanelOutput:
                 "responder": ai_log.get("responder_output") if isinstance(ai_log, dict) else None
             } if ai_log else None,
             "validation_errors": execution_result.get("validation_errors", [])[:5] if isinstance(execution_result, dict) else [],
-            "recovery_action": None
+            "recovery_action": None,
+            "tool_loop_summary": ai_log.get("tool_loop_summary") if isinstance(ai_log, dict) else None,
+            "tool_call_transcript": (
+                ai_log.get("tool_call_transcript", [])[:10] if isinstance(ai_log, dict) else []
+            ),
+            "tool_influence": ai_log.get("tool_influence") if isinstance(ai_log, dict) else None,
         }
 
         # Infer recovery action from degradation markers

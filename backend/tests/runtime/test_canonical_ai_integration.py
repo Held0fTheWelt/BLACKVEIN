@@ -49,6 +49,38 @@ class DeterministicAIAdapter(StoryAIAdapter):
         )
 
 
+class ToolLoopIntegrationAdapter(StoryAIAdapter):
+    """Integration adapter that performs one tool request before finalizing."""
+
+    def __init__(self):
+        self._calls = 0
+
+    @property
+    def adapter_name(self) -> str:
+        return "tool_loop_integration_adapter"
+
+    def generate(self, request) -> AdapterResponse:
+        self._calls += 1
+        if self._calls == 1:
+            return AdapterResponse(
+                raw_output="tool-request",
+                structured_payload={
+                    "type": "tool_request",
+                    "tool_name": "wos.read.current_scene",
+                    "arguments": {},
+                },
+            )
+        return AdapterResponse(
+            raw_output="deterministic-final",
+            structured_payload={
+                "scene_interpretation": "Tool-assisted finalization",
+                "detected_triggers": [],
+                "proposed_state_deltas": [],
+                "rationale": "Finalize after host tool result",
+            },
+        )
+
+
 @pytest.fixture
 def deterministic_adapter():
     """Provide deterministic AI adapter for testing."""
@@ -202,6 +234,41 @@ class TestCanonicalAIPathSuccess:
         assert result.execution_status == "success"
         assert result.updated_canonical_state is not None
         assert result.turn_number == 1
+
+    @pytest.mark.asyncio
+    async def test_dispatch_turn_can_complete_via_tool_loop_then_final_output(
+        self, god_of_carnage_module
+    ):
+        """AI mode completes via bounded tool loop and preserves canonical flow."""
+        adapter = ToolLoopIntegrationAdapter()
+        register_adapter("tool_loop_integration_adapter", adapter)
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="ai",
+            adapter_name="tool_loop_integration_adapter",
+        )
+        session.metadata["tool_loop"] = {
+            "enabled": True,
+            "allowed_tools": ["wos.read.current_scene"],
+            "max_tool_calls_per_turn": 3,
+        }
+        original_state = {"characters": {"veronique": {"emotional_state": 50}}}
+        session.canonical_state = original_state.copy()
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        assert result.execution_status == "success"
+        assert result.guard_outcome is not None
+        assert result.updated_canonical_state == original_state
+        assert session.metadata["ai_decision_logs"][-1].tool_loop_summary is not None
+        clear_registry()
 
 
 class TestCanonicalAIPathFailure:

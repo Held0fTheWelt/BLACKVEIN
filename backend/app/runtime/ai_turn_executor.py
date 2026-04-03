@@ -21,6 +21,14 @@ from app.runtime.ai_decision import ParseResult, ParsedAIDecision, process_adapt
 from app.runtime.ai_decision_logging import construct_ai_decision_log
 from app.runtime.decision_policy import AIDecisionPolicy
 from app.runtime.event_log import RuntimeEventLog
+from app.runtime.tool_loop import (
+    HostToolContext,
+    ToolCallStatus,
+    ToolLoopPolicy,
+    ToolLoopStopReason,
+    detect_tool_request_payload,
+    execute_tool_request,
+)
 from app.runtime.turn_executor import (
     MockDecision,
     ProposedStateDelta,
@@ -437,14 +445,36 @@ async def execute_turn_with_ai(
         snapshot_reason="pre_ai_execution",
     )
 
+    # B2: Initialize optional bounded tool-loop policy and transcript
+    tool_loop_policy = ToolLoopPolicy.from_session_metadata(session.metadata)
+    tool_loop_enabled = session.execution_mode == "ai" and tool_loop_policy.enabled
+    tool_call_transcript: list[dict[str, Any]] = []
+    tool_results: list[dict[str, Any]] = []
+    tool_loop_stop_reason = ToolLoopStopReason.FINALIZED
+    tool_limit_hit = False
+    finalized_after_tool_use = False
+    last_successful_tool_sequence: int | None = None
+    tool_call_count = 0
+
+    def _build_request(attempt: int) -> AdapterRequest:
+        request = build_adapter_request(
+            session,
+            module,
+            operator_input=operator_input,
+            recent_events=recent_events,
+            attempt=attempt,
+        )
+        if tool_loop_enabled:
+            request.metadata["tool_loop"] = {
+                "enabled": True,
+                "sequence_index": tool_call_count + 1,
+                "max_tool_calls_per_turn": tool_loop_policy.max_tool_calls_per_turn,
+                "tool_results": tool_results[-tool_loop_policy.max_tool_calls_per_turn :],
+            }
+        return request
+
     # Step 1: Build adapter request (with attempt tracking for reduced-context retry)
-    request = build_adapter_request(
-        session,
-        module,
-        operator_input=operator_input,
-        recent_events=recent_events,
-        attempt=1,  # Will be updated in retry loop below
-    )
+    request = _build_request(attempt=1)
 
     # B1: MCP Preflight Enrichment (optional, feature-flagged)
     if session.metadata.get("mcp_enrichment_enabled", False):
@@ -479,13 +509,7 @@ async def execute_turn_with_ai(
                         datetime.now(timezone.utc)
                     )
 
-            request = build_adapter_request(
-                session,
-                module,
-                operator_input=operator_input,
-                recent_events=recent_events,
-                attempt=current_attempt,
-            )
+            request = _build_request(attempt=current_attempt)
 
         response = adapter.generate(request)
 
@@ -624,6 +648,13 @@ async def execute_turn_with_ai(
                         accepted_deltas=[],
                         rejected_deltas=[],
                         guard_notes="restore_mode_active: last_valid_state_restore",
+                        tool_loop_summary=tool_loop_summary,
+                        tool_call_transcript=tool_call_transcript or None,
+                        tool_influence=(
+                            {"influencing_tool_sequence": last_successful_tool_sequence}
+                            if last_successful_tool_sequence
+                            else None
+                        ),
                     )
                     # Set recovery_notes with restore metadata
                     decision_log.recovery_notes = restore_notes
@@ -679,6 +710,13 @@ async def execute_turn_with_ai(
                 accepted_deltas=turn_result.accepted_deltas,
                 rejected_deltas=turn_result.rejected_deltas,
                 guard_notes="safe_turn_mode_active: retry_exhausted_recovery",
+                tool_loop_summary=tool_loop_summary,
+                tool_call_transcript=tool_call_transcript or None,
+                tool_influence=(
+                    {"influencing_tool_sequence": last_successful_tool_sequence}
+                    if last_successful_tool_sequence
+                    else None
+                ),
             )
             _store_decision_log(session, decision_log)
 
@@ -695,6 +733,121 @@ async def execute_turn_with_ai(
             )
             result.failure_reason = ExecutionFailureReason.GENERATION_ERROR
             return result
+
+    # B2: Optional bounded MCP-style tool request loop.
+    if tool_loop_enabled and response and not response.error and response.raw_output.strip():
+        tool_context = HostToolContext(
+            session=session,
+            module=module,
+            recent_events=recent_events or [],
+        )
+        while True:
+            tool_request = detect_tool_request_payload(
+                response.structured_payload,
+                sequence_index=tool_call_count + 1,
+            )
+            if tool_request is None:
+                tool_loop_stop_reason = ToolLoopStopReason.FINALIZED
+                finalized_after_tool_use = tool_call_count > 0
+                break
+
+            if tool_call_count >= tool_loop_policy.max_tool_calls_per_turn:
+                tool_loop_stop_reason = ToolLoopStopReason.TOOL_CALL_LIMIT_REACHED
+                tool_limit_hit = True
+                break
+
+            transcript_entry, tool_result = execute_tool_request(
+                tool_request,
+                policy=tool_loop_policy,
+                context=tool_context,
+            )
+            tool_call_transcript.append(transcript_entry.model_dump())
+            tool_results.append(tool_result)
+            tool_call_count += 1
+
+            if transcript_entry.status == ToolCallStatus.SUCCESS:
+                last_successful_tool_sequence = transcript_entry.sequence_index
+            elif transcript_entry.status == ToolCallStatus.TIMEOUT:
+                tool_loop_stop_reason = ToolLoopStopReason.TOOL_TIMEOUT_EXHAUSTED
+                break
+            elif transcript_entry.status == ToolCallStatus.ERROR:
+                tool_loop_stop_reason = ToolLoopStopReason.TOOL_ERROR_EXHAUSTED
+                break
+
+            if tool_call_count >= tool_loop_policy.max_tool_calls_per_turn:
+                tool_loop_stop_reason = ToolLoopStopReason.TOOL_CALL_LIMIT_REACHED
+                tool_limit_hit = True
+                break
+
+            # Continue model loop with tool result context
+            request = _build_request(attempt=1)
+            response = adapter.generate(request)
+            if response.error or (not response.raw_output or not response.raw_output.strip()):
+                break
+
+        # Mark the last successful tool as influencing finalization when a final output was reached.
+        if tool_loop_stop_reason == ToolLoopStopReason.FINALIZED and last_successful_tool_sequence:
+            for entry in tool_call_transcript:
+                if entry.get("sequence_index") == last_successful_tool_sequence:
+                    entry["influenced_final_output"] = True
+                    break
+
+    tool_loop_summary: dict[str, Any] | None = None
+    if tool_loop_enabled:
+        tool_loop_summary = {
+            "enabled": True,
+            "total_calls": tool_call_count,
+            "stop_reason": tool_loop_stop_reason,
+            "limit_hit": tool_limit_hit,
+            "finalized_after_tool_use": finalized_after_tool_use,
+        }
+
+    # Deterministic stop when loop did not finalize to a final story payload.
+    if (
+        tool_loop_enabled
+        and tool_loop_stop_reason != ToolLoopStopReason.FINALIZED
+        and tool_call_count > 0
+    ):
+        safe_turn_decision = MockDecision(
+            detected_triggers=[],
+            proposed_deltas=[],
+        )
+        turn_result = await execute_turn(
+            session,
+            current_turn,
+            safe_turn_decision,
+            module,
+            enforce_responder_only=False,
+        )
+        turn_result.failure_reason = ExecutionFailureReason.GENERATION_ERROR
+        decision_log = construct_ai_decision_log(
+            session_id=session.session_id,
+            turn_number=current_turn,
+            parsed_decision=ParsedAIDecision(
+                scene_interpretation="[tool-loop stop: deterministic no-op recovery]",
+                detected_triggers=[],
+                proposed_deltas=[],
+                proposed_scene_id=None,
+                rationale=f"[tool-loop stop reason: {tool_loop_stop_reason}]",
+                raw_output=response.raw_output if response else "",
+                parsed_source="tool_loop_executor",
+            ),
+            raw_output=response.raw_output if response else "",
+            role_aware_decision=None,
+            guard_outcome=turn_result.guard_outcome,
+            accepted_deltas=turn_result.accepted_deltas,
+            rejected_deltas=turn_result.rejected_deltas,
+            guard_notes=f"tool_loop_stop_reason: {tool_loop_stop_reason}",
+            tool_loop_summary=tool_loop_summary,
+            tool_call_transcript=tool_call_transcript or None,
+            tool_influence=(
+                {"influencing_tool_sequence": last_successful_tool_sequence}
+                if last_successful_tool_sequence
+                else None
+            ),
+        )
+        _store_decision_log(session, decision_log)
+        return turn_result
 
     # Step 3: Parse response
     parse_result: ParseResult = process_adapter_response(response)
@@ -763,6 +916,13 @@ async def execute_turn_with_ai(
             accepted_deltas=turn_result.accepted_deltas,
             rejected_deltas=turn_result.rejected_deltas,
             guard_notes="fallback_mode_active: parse_failure_recovery",
+            tool_loop_summary=tool_loop_summary,
+            tool_call_transcript=tool_call_transcript or None,
+            tool_influence=(
+                {"influencing_tool_sequence": last_successful_tool_sequence}
+                if last_successful_tool_sequence
+                else None
+            ),
         )
         _store_decision_log(session, decision_log)
 
@@ -855,6 +1015,13 @@ async def execute_turn_with_ai(
             accepted_deltas=turn_result.accepted_deltas,
             rejected_deltas=turn_result.rejected_deltas,
             guard_notes="fallback_mode_active: structure_validation_failure",
+            tool_loop_summary=tool_loop_summary,
+            tool_call_transcript=tool_call_transcript or None,
+            tool_influence=(
+                {"influencing_tool_sequence": last_successful_tool_sequence}
+                if last_successful_tool_sequence
+                else None
+            ),
         )
         _store_decision_log(session, decision_log)
 
@@ -904,6 +1071,13 @@ async def execute_turn_with_ai(
         accepted_deltas=turn_result.accepted_deltas,
         rejected_deltas=turn_result.rejected_deltas,
         guard_notes=guard_notes,
+        tool_loop_summary=tool_loop_summary,
+        tool_call_transcript=tool_call_transcript or None,
+        tool_influence=(
+            {"influencing_tool_sequence": last_successful_tool_sequence}
+            if last_successful_tool_sequence
+            else None
+        ),
     )
     _store_decision_log(session, decision_log)
 
