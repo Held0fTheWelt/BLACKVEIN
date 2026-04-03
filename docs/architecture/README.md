@@ -1,115 +1,36 @@
-# Architecture Documentation
+# Architecture Overview
 
-System design and technical architecture for WorldOfShadows.
+World of Shadows uses a multi-service architecture with explicit ownership boundaries.
 
-## Core Architecture
+## Services
 
-### 🏗️ [Server Architecture](./ServerArchitecture.md)
-High-level backend infrastructure, service decomposition, and deployment topology.
+- `frontend/` - player/public presentation
+- `administration-tool/` - admin/management presentation (separate by design)
+- `backend/` - API/business/auth/policy integration service
+- `world-engine/` - authoritative runtime and websocket execution
 
-### 🌐 [Backend API Design](./BackendApi.md)
-RESTful API structure, authentication, data models, and service patterns.
+## Interaction model
 
-### 🎨 [Frontend Architecture](./FrontendArchitecture.md)
-Client-side structure, component organization, state management, and user interface patterns.
-
-### 🔄 [Frontend-Backend Integration](./FrontendBackendRestructure.md)
-Data flow, API contracts, session management, and cross-service communication.
-
-### 🌍 [Multilingual Support](./MultilingualArchitecture.md)
-i18n implementation, translation systems, language negotiation, and content localization.
-
-## W0 MVP Contracts
-
-The following documents define the formal contracts for the W0 MVP phase:
-
-### 📋 [MVP Definition](./mvp_definition.md)
-Scope, goals, system boundaries, and success criteria for the W0 MVP release.
-
-### 📋 [God of Carnage Module Contract](./god_of_carnage_module_contract.md)
-Formal specification for content modules and the reference *God of Carnage* implementation.
-
-### 📋 [AI Story Contract](./ai_story_contract.md)
-Rules, guardrails, and authority model for AI-generated story content within the engine.
-
-### 📋 [Session Runtime Contract](./session_runtime_contract.md)
-State management, turn mechanics, persistence guarantees, and recovery behavior.
-
-## Component Relationships
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Administration)                 │
-│                   (Flask + Jinja2 Templates)                 │
-└────────────────────────┬────────────────────────────────────┘
-                         │ HTTP REST API
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Backend API                             │
-│              (Flask + SQLAlchemy + Alembic)                  │
-├─────────────────────────────────────────────────────────────┤
-│ - User Management & Authentication                           │
-│ - Forum & Community Features                                 │
-│ - News & Wiki Management                                     │
-│ - Data Persistence (SQLite)                                  │
-└────────────┬──────────────────────────┬──────────────────────┘
-             │                          │
-    WebSocket │                         │ Internal API
-             ▼                          ▼
-    ┌──────────────────┐       ┌──────────────────┐
-    │  World Engine    │       │  Administration  │
-    │   (FastAPI)      │       │     Tool         │
-    │                  │       │                  │
-    │ - Game Runtime   │       │ - Content Mgmt   │
-    │ - Player Seats   │       │ - User Admin     │
-    │ - Narrative Flow │       │ - Moderation     │
-    └──────────────────┘       └──────────────────┘
+```mermaid
+flowchart LR
+  Browser --> FrontendService
+  Browser --> AdminTool
+  FrontendService --> BackendApi
+  FrontendService --> PlayService
+  BackendApi --> PlayService
+  BackendApi --> Database
 ```
 
-## Data Flow
+## Key decisions
 
-### Authentication & Session
-- User logs in via `/api/v1/auth/login`
-- Backend generates JWT access token + refresh token
-- Tokens stored in database (`refresh_tokens` table)
-- Administration tool forwards requests with Bearer token
+1. Backend does not host canonical player/public HTML pages.
+2. Legacy `backend/app/web/*` exists only for compatibility redirects and infrastructure fallback.
+3. Administration UI is intentionally isolated in `administration-tool/`.
+4. Runtime execution authority remains in `world-engine`.
 
-### Game Session (World Engine)
-- Player joins run via WebSocket ticket authentication
-- Ticket contains player identity (account_id, display_name, character_id)
-- World Engine maintains runtime state in memory
-- Actions broadcast to all players in run via WebSocket
+## Related docs
 
-## Database
-
-- **Primary:** SQLite (`backend/instance/wos.db`)
-- **Migrations:** Alembic-managed schema evolution
-- **Current version:** Migration 039 (refresh tokens table)
-- **See:** [Database Documentation](../database/README.md)
-
-## Key Design Decisions
-
-1. **Microservice approach:** Backend, Frontend, and World Engine as separate services
-2. **Stateless frontend:** Administration tool is session-based proxy to Backend
-3. **Real-time gaming:** World Engine uses WebSocket for low-latency game updates
-4. **OAuth-ready:** Refresh token pattern enables token rotation and revocation
-5. **Multilingual:** Locale detection via Accept-Language and session storage
-
-## Security Architecture
-
-- JWT-based authentication (short-lived access tokens)
-- Refresh token rotation and revocation
-- Session cookies with secure flags (HTTPS in production)
-- CORS allowlisting for cross-origin requests
-- Input validation at service boundaries
-- **See:** [Security Documentation](../security/README.md)
-
-## Related Documentation
-
-- [Development Guide](../development/README.md) - How to work with this architecture
-- [Testing Guide](../testing/README.md) - Testing strategy across services
-- [API Documentation](../api/README.md) - Endpoint specifications
-
----
-
-**Need clarification?** Ask in [Architecture Discussion](https://github.com/your-org/worldofshadows/discussions)
+- `docs/architecture/ServerArchitecture.md`
+- `docs/architecture/FrontendBackendRestructure.md`
+- `docs/development/LocalDevelopment.md`
+- `docs/operations/RUNBOOK.md`

@@ -1,8 +1,8 @@
-# World of Shadows – Backend + Frontend split
-# Backend: API, auth, dashboard, DB (Flask + Gunicorn). Frontend: public site, news (Flask).
-# From repo root: docker compose up --build
-# Then: Backend http://localhost:8000, Frontend http://localhost:5001
-# Browser uses BACKEND_API_URL (frontend env) to call the API; set so the browser can reach backend (e.g. http://localhost:8000).
+# World of Shadows - Three-service local stack
+# - backend: API/business/auth service
+# - frontend: player/public web frontend
+# - administration-tool: separate admin/management frontend
+# - play-service: authoritative runtime service (world-engine)
 
 services:
   backend:
@@ -16,9 +16,28 @@ services:
       - ./backend/instance:/app/instance
     environment:
       - FLASK_APP=run:app
-      - CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001
+      - CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001,http://localhost:5002,http://127.0.0.1:5002
+      - FRONTEND_URL=http://localhost:5002
+      - PLAY_SERVICE_INTERNAL_URL=http://play-service:8000
+      - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
+      - PLAY_SERVICE_SHARED_SECRET=local-dev-shared-secret
+      - PLAY_SERVICE_INTERNAL_API_KEY=local-dev-internal-key
+    depends_on:
+      - play-service
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      - BACKEND_API_URL=http://localhost:8000
+      - FRONTEND_PORT=5002
+      - FRONTEND_SECRET_KEY=local-dev-frontend-secret
+      - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
+
+  administration-tool:
     build:
       context: ./administration-tool
       dockerfile: Dockerfile
@@ -27,4 +46,15 @@ services:
     environment:
       - BACKEND_API_URL=http://localhost:8000
       - PORT=5001
-    # Frontend has no DB; it calls backend from the browser, so BACKEND_API_URL must be the URL the browser uses (localhost:8000 when using compose ports).
+
+  play-service:
+    build:
+      context: ./world-engine
+      dockerfile: Dockerfile
+    environment:
+      - APP_TITLE=World of Shadows Play Service
+      - PLAY_SERVICE_SECRET=local-dev-shared-secret
+      - PLAY_SERVICE_INTERNAL_API_KEY=local-dev-internal-key
+      - RUN_STORE_BACKEND=json
+    ports:
+      - "8001:8000"

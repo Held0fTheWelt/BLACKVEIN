@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Community{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Community</h1>
+  {% if categories %}
+    <ul>
+      {% for item in categories %}
+        <li>
+          <strong>{{ item.get("title") }}</strong>
+          {% if item.get("description") %}<p>{{ item.get("description") }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No community categories available.</p>
+  {% endif %}
+</section>
+{% endblock %}

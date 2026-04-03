@@ -4,7 +4,7 @@ import threading
 import time
 from urllib.parse import urlparse
 from datetime import datetime, timezone, timedelta
-from flask import jsonify, render_template, request
+from flask import jsonify, request
 from flask_wtf.csrf import CSRFProtect
 
 from app.config import Config
@@ -86,7 +86,7 @@ def _schedule_token_blacklist_cleanup(app):
 def create_app(config_object=None):
     from flask import Flask, redirect, url_for
     _root = os.path.dirname(os.path.abspath(__file__))
-    app = Flask(__name__, template_folder=os.path.join(_root, "web", "templates"), static_folder=os.path.join(_root, "static"))
+    app = Flask(__name__)
     app.config.from_object(config_object or Config)
     # Handle SECRET_KEY: auto-generate in dev if missing or placeholder
     secret_key = app.config.get("SECRET_KEY", "")
@@ -200,7 +200,7 @@ def create_app(config_object=None):
     def not_found(_e):
         if _wants_json():
             return jsonify({"error": "Not found"}), 404
-        return render_template("404.html"), 404
+        return "Not found", 404
 
     @app.errorhandler(429)
     def ratelimit_handler(_request):
@@ -210,7 +210,7 @@ def create_app(config_object=None):
     def server_error(_e):
         if _wants_json():
             return jsonify({"error": "Internal server error"}), 500
-        return render_template("500.html"), 500
+        return "Internal server error", 500
 
     @app.after_request
     def add_security_headers(response):

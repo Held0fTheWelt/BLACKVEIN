@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Dashboard</h1>
+  {% if current_user %}
+    <p>Username: <strong>{{ current_user.get("username") }}</strong></p>
+    <p>User ID: <strong>{{ current_user.get("id") }}</strong></p>
+    <p>Role: <strong>{{ current_user.get("role_name") or current_user.get("role") or "user" }}</strong></p>
+  {% else %}
+    <p>User profile is currently unavailable.</p>
+  {% endif %}
+</section>
+{% endblock %}

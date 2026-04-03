@@ -99,6 +99,7 @@ class Config:
     # Require email verification before login (default: True in production, False in dev/testing)
     REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN = env_bool("REQUIRE_EMAIL_VERIFICATION_FOR_LOGIN", True)
 
+    # Compatibility redirect target for legacy /web routes.
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "").strip() or None
 
     # Supported languages: whitelisted codes only (ISO 639-1)

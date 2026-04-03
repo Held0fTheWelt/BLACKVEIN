@@ -2,7 +2,7 @@
 """
 World of Shadows — multi-component test runner.
 
-Runs pytest in each component tree (backend, administration-tool, world-engine, database)
+Runs pytest in each component tree (backend, frontend, administration-tool, world-engine, database)
 with a separate working directory per component. Optional scope filters apply only to
 the backend suite (pytest markers).
 
@@ -26,6 +26,7 @@ from pathlib import Path
 TESTS_DIR = Path(__file__).parent.absolute()
 PROJECT_ROOT = TESTS_DIR.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
 ADMIN_TOOL_DIR = PROJECT_ROOT / "administration-tool"
 WORLD_ENGINE_DIR = PROJECT_ROOT / "world-engine"
 DATABASE_DIR = PROJECT_ROOT / "database"
@@ -35,6 +36,7 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 # Human-readable titles for each component (English)
 SUITE_DISPLAY_NAMES: dict[str, str] = {
     "backend": "Backend (Flask API and services)",
+    "frontend": "Frontend (player/public UI)",
     "administration": "Administration tool (proxy and UI)",
     "engine": "World engine (runtime and HTTP/WS)",
     "database": "Database (migrations and tooling)",
@@ -133,6 +135,7 @@ def show_test_stats(suites: dict[str, Path]) -> None:
 def get_suite_configs(suite_names: list[str]) -> dict[str, Path]:
     all_suites: dict[str, Path] = {
         "backend": BACKEND_DIR,
+        "frontend": FRONTEND_DIR,
         "administration": ADMIN_TOOL_DIR,
         "engine": WORLD_ENGINE_DIR,
         "database": DATABASE_DIR,
@@ -275,12 +278,13 @@ def run_tests_for_suites(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run pytest per component (backend, administration-tool, world-engine, database).",
+        description="Run pytest per component (backend, frontend, administration-tool, world-engine, database).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python run_tests.py
   python run_tests.py --suite backend
+  python run_tests.py --suite frontend
   python run_tests.py --suite backend --scope contracts
   python run_tests.py --suite backend database --quick
   python run_tests.py --suite all --coverage
@@ -290,7 +294,7 @@ Examples:
         "--suite",
         nargs="+",
         default=["all"],
-        choices=["backend", "administration", "engine", "database", "all"],
+        choices=["backend", "frontend", "administration", "engine", "database", "all"],
         help="Component test tree to run (default: all)",
     )
     parser.add_argument(

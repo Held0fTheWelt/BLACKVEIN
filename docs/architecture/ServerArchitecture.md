@@ -1,79 +1,40 @@
-Flask server foundation: server-rendered web pages with session auth, and a versioned REST API with JWT auth. No game logic or domain features yet; ready for extension.
+# Server Architecture
 
-## Scope
+## Boundary summary
 
-- **Web:** Home, login, logout, dashboard (protected). Session-based auth; CSRF protection on forms.
-- **API:** REST under `/api/v1`: health, auth (register, login, me), and a protected test route. JWT only; no session cookies for API.
-- **Database:** SQLite by default; User model only. Tables created via `flask init-db`; no default users created.
+### Backend (`backend/`)
+- Owns REST APIs (`/api/v1/*`)
+- Owns authN/authZ, user/account/forum/news/wiki business logic
+- Owns persistence and policy enforcement
+- Owns play bootstrap and ticket issuance APIs
+- Does not own canonical player/public HTML rendering
 
-## Project structure
+### Frontend (`frontend/`)
+- Owns player/public browser routes:
+  - `/`
+  - `/login`, `/register`, `/logout`
+  - `/dashboard`, `/news`, `/wiki`, `/community`, `/game-menu`
+  - `/play`, `/play/<session_id>`, `/play/<session_id>/execute`
+- Integrates with backend APIs and play-service websocket bootstrap
 
-Backend (run and test from `backend/`):
+### Administration tool (`administration-tool/`)
+- Owns admin/management UI routes and workflows
+- Calls backend APIs
+- Stays separate from `frontend/`
 
-```
-backend/
-  app/              # create_app, config, extensions, models, services, web, api, static
-  migrations/       # Flask-Migrate
-  tests/
-  run.py            # entrypoint, init-db, seed-dev-user
-```
+### Play service (`world-engine/`)
+- Owns authoritative runtime state and turn execution
+- Owns websocket live-state behavior
 
-Frontend: `administration-tool/frontend_app.py`, `templates/`, `static/` (public site; placeholder). Root: README, CHANGELOG, docker-compose, docs, .env.example.
+## Compatibility layer
 
-## Setup
+`backend/app/web/routes.py` is a compatibility redirect layer:
+- keeps legacy paths available temporarily
+- returns `302` redirects to `FRONTEND_URL`
+- does not render canonical player/public HTML
 
-1. **Prerequisites:** Python 3.10+, pip.
-2. **Install:** `pip install -r requirements.txt`
-3. **Environment:** Copy `.env.example` to `.env` and set at least:
-   - `SECRET_KEY` and `JWT_SECRET_KEY` (required; no default secrets in production).
-   - For local dev only: `DEV_SECRETS_OK=1` to allow dev fallback secrets and `flask seed-dev-user`.
-4. **Database:** From `backend/`: `flask init-db` (creates tables only). Optionally `flask seed-dev-user` when `DEV_SECRETS_OK=1`.
-5. **Run:** From `backend/`: `python run.py` or `flask run` (set `FLASK_APP=run:app`). Default port 5000; debug when `FLASK_DEBUG=1`.
+## Operational implications
 
-## Environment configuration
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| SECRET_KEY | Yes (or DEV_SECRETS_OK) | Session and CSRF secret |
-| JWT_SECRET_KEY | Yes (or SECRET_KEY) | JWT signing key |
-| DATABASE_URI | No | Default: SQLite in `instance/wos.db` |
-| CORS_ORIGINS | No | Comma-separated origins for API; empty = same-origin only |
-| FLASK_DEBUG | No | 1/true/yes = debug mode |
-| PORT | No | Default 5000 |
-| PREFER_HTTPS | No | 1/true/yes = secure session cookies |
-| DEV_SECRETS_OK | No | 1/true/yes = dev fallback secrets, allows seed-dev-user |
-
-## Web usage
-
-- **Home:** `/` — public.
-- **Login:** `/login` — form (username, password). Redirects to dashboard if already logged in.
-- **Dashboard:** `/dashboard` — requires login; redirects to `/login` if not.
-- **Logout:** POST to `/logout` only (form in header). No GET logout.
-
-## API usage
-
-- **Health:** `GET /api/v1/health` — no auth.
-- **Register:** `POST /api/v1/auth/register` — JSON `{"username","password"}`.
-- **Login:** `POST /api/v1/auth/login` — JSON `{"username","password"}` → `access_token`, `user`.
-- **Me:** `GET /api/v1/auth/me` — header `Authorization: Bearer <token>`.
-- **Protected example:** `GET /api/v1/test/protected` — same Bearer token.
-
-Example:
-
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin"}'
-```
-
-## Known limitations
-
-- Single User model; no roles or permissions.
-- SQLite default; switch via `DATABASE_URI` for production.
-- CORS must be set explicitly via `CORS_ORIGINS` for a separate frontend.
-- No automated migrations; schema changes require manual or custom migration.
-
-## Documentation
-
-- **Runbook:** `docs/runbook.md` — local development workflow and example flows.
-- **Security:** `docs/security.md` — auth model, CSRF, CORS, cookies, and dev-only behavior.
+- Run frontend, backend, and play-service as separate services
+- Include both frontend origins (`frontend`, `administration-tool`) in backend `CORS_ORIGINS`
+- Keep shared play-service secret aligned across backend and world-engine

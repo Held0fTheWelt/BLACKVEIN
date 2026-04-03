@@ -447,26 +447,16 @@ class TestAuthAPI:
         assert resp.status_code in (200, 201, 400)
 
     def test_web_login_post(self, app, client, test_user):
-        import re
-        user, password = test_user
-        with app.app_context():
-            from app.extensions import db
-            user.email_verified_at = db.func.now()
-            db.session.commit()
-        # Get login page to extract CSRF token
-        login_page = client.get("/login")
-        match = re.search(r'name="csrf_token"\s+value="([^"]+)"', login_page.data.decode())
-        csrf_value = match.group(1) if match else ""
-        resp = client.post(
-            "/login",
-            data={"username": user.username, "password": password, "csrf_token": csrf_value},
-            follow_redirects=False,
-        )
-        assert resp.status_code in (200, 302)
+        app.config["FRONTEND_URL"] = "https://frontend.example.com"
+        resp = client.get("/login", follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "https://frontend.example.com/login"
 
     def test_web_register_page(self, app, client):
-        resp = client.get("/register")
-        assert resp.status_code == 200
+        app.config["FRONTEND_URL"] = "https://frontend.example.com"
+        resp = client.get("/register", follow_redirects=False)
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "https://frontend.example.com/register"
 
 
 # ======================= PERMISSIONS MODULE =======================

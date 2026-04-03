@@ -1,0 +1,90 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #111;
+  color: #eee;
+}
+
+.container {
+  width: min(960px, 92vw);
+  margin: 0 auto;
+}
+
+.site-header {
+  background: #1d1d1d;
+  border-bottom: 1px solid #333;
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.nav a,
+.nav button {
+  color: #b8d0ff;
+  background: none;
+  border: 0;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.panel {
+  background: #181818;
+  border: 1px solid #333;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.narrow {
+  max-width: 480px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+input,
+select,
+textarea,
+button {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #222;
+  color: #eee;
+}
+
+button {
+  width: auto;
+}
+
+.flash-list {
+  list-style: none;
+  padding: 0;
+}
+
+.flash {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+.flash.success {
+  background: #1e4e2d;
+}
+
+.flash.error {
+  background: #572121;
+}
+
+.flash.info {
+  background: #203d5b;
+}
