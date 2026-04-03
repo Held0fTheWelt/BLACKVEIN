@@ -15,7 +15,7 @@ import pytest
 import asyncio
 from app.services.session_service import create_session
 from app.runtime.turn_dispatcher import dispatch_turn
-from app.runtime.w2_models import SessionStatus
+from app.runtime.runtime_models import SessionStatus
 from app.runtime.session_store import get_session as get_stored_session, RuntimeSession
 
 

@@ -17,7 +17,7 @@ from app.content.module_models import (
 from app.runtime.next_situation import derive_next_situation
 from app.runtime.scene_legality import SceneTransitionLegality, SceneLegalityDecision
 from app.runtime.validators import validate_decision
-from app.runtime.w2_models import SessionState, SessionStatus
+from app.runtime.runtime_models import SessionState, SessionStatus
 
 
 class TestSceneTransitionLegalityCoherence:

@@ -6,7 +6,7 @@ session/turn context injection. No persistence, no side effects, no threading.
 
 from __future__ import annotations
 
-from app.runtime.w2_models import EventLogEntry
+from app.runtime.runtime_models import EventLogEntry
 
 
 class RuntimeEventLog:

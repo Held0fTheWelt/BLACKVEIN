@@ -9,7 +9,7 @@ from app.content.module_models import (
     ScenePhase,
 )
 from app.runtime.next_situation import NextSituation, derive_next_situation
-from app.runtime.w2_models import SessionState, SessionStatus
+from app.runtime.runtime_models import SessionState, SessionStatus
 
 
 class TestDeriveNextSituation:
@@ -645,7 +645,7 @@ class TestApplySituationOutcome:
     def test_apply_ending_sets_terminal_status(self):
         """Ending outcome updates session status to ENDED."""
         from app.runtime.next_situation import apply_situation_outcome
-        from app.runtime.w2_models import SessionStatus
+        from app.runtime.runtime_models import SessionStatus
 
         session = SessionState(
             module_id="test",

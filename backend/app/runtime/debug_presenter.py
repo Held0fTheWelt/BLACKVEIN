@@ -35,7 +35,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.runtime.w2_models import SessionState, DegradedMarker
+from app.runtime.runtime_models import SessionState, DegradedMarker
 
 
 class DebugSummarySection(BaseModel):
@@ -221,6 +221,16 @@ def present_debug_panel(session_state: SessionState) -> DebugPanelOutput:
             ),
             "tool_influence": ai_log.get("tool_influence") if isinstance(ai_log, dict) else None,
             "preview_diagnostics": ai_log.get("preview_diagnostics") if isinstance(ai_log, dict) else None,
+            "supervisor_plan": ai_log.get("supervisor_plan") if isinstance(ai_log, dict) else None,
+            "subagent_invocations": (
+                ai_log.get("subagent_invocations", [])[:8] if isinstance(ai_log, dict) else []
+            ),
+            "subagent_results": (
+                ai_log.get("subagent_results", [])[:8] if isinstance(ai_log, dict) else []
+            ),
+            "merge_finalization": (
+                ai_log.get("merge_finalization") if isinstance(ai_log, dict) else None
+            ),
         }
 
         # Infer recovery action from degradation markers

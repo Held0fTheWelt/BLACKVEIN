@@ -5,7 +5,7 @@ enabling save/load/resume workflows.
 """
 
 from typing import Any, Dict
-from app.runtime.w2_models import SessionState, SessionStatus
+from app.runtime.runtime_models import SessionState, SessionStatus
 
 
 def serialize_session(session: SessionState) -> Dict[str, Any]:

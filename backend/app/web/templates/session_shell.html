@@ -417,6 +417,20 @@
                 <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.limit_hit }}</dd>
                 <dt>Finalized After Tool Use</dt>
                 <dd>{{ debug_panel.full_diagnostics.tool_loop_summary.finalized_after_tool_use }}</dd>
+                {% if debug_panel.full_diagnostics.tool_loop_summary.execution_controls %}
+                <dt>Agent Orchestration Requested / Active</dt>
+                <dd>
+                  {{ debug_panel.full_diagnostics.tool_loop_summary.execution_controls.agent_orchestration_requested }}
+                  /
+                  {{ debug_panel.full_diagnostics.tool_loop_summary.execution_controls.agent_orchestration_active }}
+                </dd>
+                <dt>Tool Loop Requested / Active</dt>
+                <dd>
+                  {{ debug_panel.full_diagnostics.tool_loop_summary.execution_controls.tool_loop_requested }}
+                  /
+                  {{ debug_panel.full_diagnostics.tool_loop_summary.execution_controls.tool_loop_active }}
+                </dd>
+                {% endif %}
               </dl>
               {% endif %}
 
@@ -445,6 +459,81 @@
                 </li>
                 {% endfor %}
               </ol>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            {% if debug_panel.full_diagnostics.supervisor_plan %}
+            <div class="diagnostics-subsection">
+              <h5>Supervisor Plan</h5>
+              <dl>
+                <dt>Selected Agents</dt>
+                <dd>{{ debug_panel.full_diagnostics.supervisor_plan.selected_agents | join(', ') }}</dd>
+                <dt>Execution Order</dt>
+                <dd>{{ debug_panel.full_diagnostics.supervisor_plan.execution_order | join(' -> ') }}</dd>
+                <dt>Finalize Strategy</dt>
+                <dd>{{ debug_panel.full_diagnostics.supervisor_plan.finalize_strategy }}</dd>
+                <dt>Merge Strategy</dt>
+                <dd>{{ debug_panel.full_diagnostics.supervisor_plan.merge_strategy }}</dd>
+              </dl>
+              {% if debug_panel.full_diagnostics.supervisor_plan.selection_reason %}
+              <p><code>{{ debug_panel.full_diagnostics.supervisor_plan.selection_reason | truncate(220, True, '...') }}</code></p>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            {% if debug_panel.full_diagnostics.subagent_invocations %}
+            <div class="diagnostics-subsection">
+              <h5>Subagent Execution</h5>
+              <ol>
+                {% for item in debug_panel.full_diagnostics.subagent_invocations %}
+                <li>
+                  <strong>{{ item.agent_id }}</strong>
+                  [{{ item.execution_status }}]
+                  seq={{ item.invocation_sequence }},
+                  duration={{ item.duration_ms }}ms
+                  {% if item.error_summary %}
+                    <div><code>{{ item.error_summary | truncate(180, True, '...') }}</code></div>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ol>
+            </div>
+            {% endif %}
+
+            {% if debug_panel.full_diagnostics.subagent_results %}
+            <div class="diagnostics-subsection">
+              <h5>Subagent Result Summaries</h5>
+              <ul>
+                {% for item in debug_panel.full_diagnostics.subagent_results %}
+                <li><strong>{{ item.agent_id }}</strong>: <code>{{ item.bounded_summary | truncate(180, True, '...') }}</code></li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if debug_panel.full_diagnostics.merge_finalization %}
+            <div class="diagnostics-subsection">
+              <h5>Merge / Finalization</h5>
+              <dl>
+                <dt>Used Outputs</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.used_agent_outputs | join(', ') }}</dd>
+                <dt>Ignored Outputs</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.ignored_agent_outputs | join(', ') }}</dd>
+                <dt>Final Output Source</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.final_output_source }}</dd>
+                <dt>Finalizer Agent</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.finalizer_agent_id }}</dd>
+                <dt>Finalizer Status</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.finalizer_status }}</dd>
+                <dt>Fallback Used</dt>
+                <dd>{{ debug_panel.full_diagnostics.merge_finalization.fallback_used }}</dd>
+              </dl>
+              {% if debug_panel.full_diagnostics.merge_finalization.fallback_reason %}
+              <p><code>{{ debug_panel.full_diagnostics.merge_finalization.fallback_reason | truncate(220, True, '...') }}</code></p>
+              {% endif %}
+              {% if debug_panel.full_diagnostics.merge_finalization.selection_reason %}
+              <p><code>{{ debug_panel.full_diagnostics.merge_finalization.selection_reason | truncate(220, True, '...') }}</code></p>
               {% endif %}
             </div>
             {% endif %}

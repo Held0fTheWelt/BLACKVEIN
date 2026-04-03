@@ -16,7 +16,7 @@ from app.content.module_exceptions import ModuleLoadError, ModuleValidationError
 from app.content.module_loader import load_module
 from app.content.module_models import ContentModule, ScenePhase
 from app.runtime.event_log import RuntimeEventLog
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     EventLogEntry,
     SessionState,
     SessionStatus,

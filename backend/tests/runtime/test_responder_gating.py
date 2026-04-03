@@ -1,7 +1,7 @@
 """Tests for W2.4.5 responder-only proposal gating."""
 
 import pytest
-from app.runtime.w2_models import MockDecision, ProposalSource, ProposedStateDelta, GuardOutcome
+from app.runtime.runtime_models import MockDecision, ProposalSource, ProposedStateDelta, GuardOutcome
 from app.runtime.turn_executor import execute_turn
 
 

@@ -19,7 +19,7 @@ from app.runtime.turn_executor import MockDecision
 
 def test_execution_failure_reason_enum_exists():
     """ExecutionFailureReason enum available for explicit error classification."""
-    from app.runtime.w2_models import ExecutionFailureReason
+    from app.runtime.runtime_models import ExecutionFailureReason
 
     # Should have these failure reasons
     assert hasattr(ExecutionFailureReason, 'GENERATION_ERROR')
@@ -31,7 +31,7 @@ def test_execution_failure_reason_enum_exists():
 def test_turn_execution_result_has_failure_reason():
     """TurnExecutionResult tracks explicit failure reason."""
     from app.runtime.turn_executor import TurnExecutionResult
-    from app.runtime.w2_models import ExecutionFailureReason
+    from app.runtime.runtime_models import ExecutionFailureReason
 
     result = TurnExecutionResult(
         turn_number=1,
@@ -49,7 +49,7 @@ def test_empty_adapter_output_fails_safely(
 ):
     """Empty AI output is detected and handled safely."""
     from app.runtime.ai_turn_executor import execute_turn_with_ai
-    from app.runtime.w2_models import ExecutionFailureReason
+    from app.runtime.runtime_models import ExecutionFailureReason
 
     session = god_of_carnage_module_with_state
 
@@ -85,7 +85,7 @@ def test_malformed_structured_output_fails_safely(
 ):
     """Missing required fields in structured_payload fails safely."""
     from app.runtime.ai_turn_executor import execute_turn_with_ai
-    from app.runtime.w2_models import ExecutionFailureReason
+    from app.runtime.runtime_models import ExecutionFailureReason
 
     session = god_of_carnage_module_with_state
 

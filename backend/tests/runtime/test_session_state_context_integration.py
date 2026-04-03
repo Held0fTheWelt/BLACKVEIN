@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.runtime.w2_models import SessionContextLayers, SessionState, SessionStatus
+from app.runtime.runtime_models import SessionContextLayers, SessionState, SessionStatus
 
 
 class TestSessionContextLayersModel:

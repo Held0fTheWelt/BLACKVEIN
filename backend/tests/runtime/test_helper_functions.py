@@ -6,7 +6,7 @@ from app.runtime.helper_functions import (
     normalize_proposed_deltas,
     precheck_guard_routing
 )
-from app.runtime.w2_models import SessionState, SessionContextLayers
+from app.runtime.runtime_models import SessionState, SessionContextLayers
 
 
 def test_compress_context_for_llm_reduces_character_list():

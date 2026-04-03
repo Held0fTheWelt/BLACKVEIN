@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from app.runtime.w2_models import SessionState
+    from app.runtime.runtime_models import SessionState
 
 
 class RelationshipMovement(BaseModel):

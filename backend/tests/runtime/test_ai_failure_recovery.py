@@ -989,7 +989,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_marker_enum_has_all_markers(self):
         """DegradedMarker enum has all canonical markers."""
-        from app.runtime.w2_models import DegradedMarker
+        from app.runtime.runtime_models import DegradedMarker
 
         assert hasattr(DegradedMarker, "DEGRADED")
         assert hasattr(DegradedMarker, "RETRY_EXHAUSTED")
@@ -1005,7 +1005,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_starts_healthy(self):
         """DegradedSessionState starts with no markers."""
-        from app.runtime.w2_models import DegradedSessionState
+        from app.runtime.runtime_models import DegradedSessionState
 
         state = DegradedSessionState()
         assert state.is_degraded is False
@@ -1014,7 +1014,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_tracks_markers(self):
         """DegradedSessionState tracks which markers are active."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         state.set_marker(DegradedMarker.FALLBACK_ACTIVE)
@@ -1025,7 +1025,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_accumulates_markers(self):
         """DegradedSessionState accumulates markers (doesn't clear them)."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         state.set_marker(DegradedMarker.RETRY_EXHAUSTED)
@@ -1038,7 +1038,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_marks_overall_degraded(self):
         """DegradedSessionState.is_degraded is True when any marker is set."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         assert state.is_degraded is False
@@ -1048,7 +1048,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_tracks_timestamps(self):
         """DegradedSessionState tracks when markers were set."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
         from datetime import datetime, timezone
 
         state = DegradedSessionState()
@@ -1062,7 +1062,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_prevents_duplicate_markers(self):
         """Setting the same marker twice doesn't duplicate it."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         state.set_marker(DegradedMarker.RESTORE_USED)
@@ -1078,7 +1078,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_has_marker_check(self):
         """DegradedSessionState.has_marker() checks marker status."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         assert state.has_marker(DegradedMarker.SAFE_TURN_USED) is False
@@ -1089,7 +1089,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_recovery_history(self):
         """DegradedSessionState.get_recovery_history() returns chronological markers."""
-        from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+        from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
         state = DegradedSessionState()
         state.set_marker(DegradedMarker.RETRY_EXHAUSTED)
@@ -1110,7 +1110,7 @@ class TestDegradedSessionPolicy:
 
     def test_degraded_session_state_in_session_state(self):
         """SessionState includes DegradedSessionState."""
-        from app.runtime.w2_models import SessionState, DegradedMarker
+        from app.runtime.runtime_models import SessionState, DegradedMarker
 
         session = SessionState(
             module_id="test_module",

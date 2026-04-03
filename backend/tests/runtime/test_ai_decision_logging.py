@@ -9,7 +9,7 @@ from app.runtime.role_contract import (
     ResponderSection,
 )
 from app.runtime.role_structured_decision import ParsedRoleAwareDecision
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     AIDecisionLog,
     AIValidationOutcome,
     DirectorDiagnosticSummary,

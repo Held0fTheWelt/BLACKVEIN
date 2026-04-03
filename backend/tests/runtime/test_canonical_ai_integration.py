@@ -14,7 +14,7 @@ import pytest
 from app.runtime.adapter_registry import clear_registry, register_adapter
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
 from app.runtime.turn_dispatcher import dispatch_turn
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 
 class DeterministicAIAdapter(StoryAIAdapter):
@@ -123,6 +123,52 @@ class PreviewCorrectionIntegrationAdapter(StoryAIAdapter):
                     }
                 ],
                 "rationale": "Use preview feedback",
+            },
+        )
+
+
+class MultiAgentIntegrationAdapter(StoryAIAdapter):
+    """Integration adapter for C1 supervisor orchestration."""
+
+    def __init__(self):
+        self.calls: list[str] = []
+
+    @property
+    def adapter_name(self) -> str:
+        return "multi_agent_integration_adapter"
+
+    def generate(self, request) -> AdapterResponse:
+        agent_id = (request.metadata.get("agent_invocation") or {}).get("agent_id", "unknown")
+        self.calls.append(agent_id)
+
+        if agent_id == "delta_planner":
+            return AdapterResponse(
+                raw_output="delta-planner",
+                structured_payload={
+                    "scene_interpretation": "delta planner interpretation",
+                    "detected_triggers": [],
+                    "proposed_state_deltas": [
+                        {
+                            "target_path": "characters.veronique.emotional_state",
+                            "next_value": 64,
+                            "delta_type": "state_update",
+                        }
+                    ],
+                    "rationale": "planner rationale",
+                },
+            )
+        if agent_id == "finalizer":
+            merged = dict(request.metadata.get("supervisor_merge_payload") or {})
+            merged["rationale"] = "integration finalizer output"
+            return AdapterResponse(raw_output="finalizer", structured_payload=merged)
+
+        return AdapterResponse(
+            raw_output=f"{agent_id}",
+            structured_payload={
+                "scene_interpretation": f"{agent_id} interpretation",
+                "detected_triggers": [],
+                "proposed_state_deltas": [],
+                "rationale": f"{agent_id} rationale",
             },
         )
 
@@ -349,6 +395,46 @@ class TestCanonicalAIPathSuccess:
         assert log.preview_diagnostics is not None
         assert log.preview_diagnostics["revised_after_preview"] is True
         assert log.preview_diagnostics["improved_acceptance_vs_last_preview"] is True
+        clear_registry()
+
+    @pytest.mark.asyncio
+    async def test_dispatch_turn_supports_real_multi_agent_orchestration(
+        self, god_of_carnage_module
+    ):
+        """Orchestration executes separate subagents and records diagnostics."""
+        adapter = MultiAgentIntegrationAdapter()
+        register_adapter("multi_agent_integration_adapter", adapter)
+
+        session = SessionState(
+            module_id="god_of_carnage",
+            module_version="1.0",
+            current_scene_id="kitchen",
+            execution_mode="ai",
+            adapter_name="multi_agent_integration_adapter",
+        )
+        session.canonical_state = {
+            "characters": {"veronique": {"emotional_state": 50}}
+        }
+        session.metadata["agent_orchestration"] = {"enabled": True}
+        session.metadata["tool_loop"] = {"enabled": False}
+
+        result = await dispatch_turn(
+            session,
+            current_turn=1,
+            module=god_of_carnage_module,
+        )
+
+        assert result.execution_status == "success"
+        assert len([call for call in adapter.calls if call != "finalizer"]) >= 2
+        assert "finalizer" in adapter.calls
+        ai_log = session.metadata["ai_decision_logs"][-1]
+        assert ai_log.supervisor_plan is not None
+        assert ai_log.subagent_invocations is not None
+        assert ai_log.merge_finalization is not None
+        assert ai_log.tool_loop_summary is not None
+        controls = ai_log.tool_loop_summary.get("execution_controls") or {}
+        assert controls.get("agent_orchestration_active") is True
+        assert controls.get("tool_loop_active") is False
         clear_registry()
 
 

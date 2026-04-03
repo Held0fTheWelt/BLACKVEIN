@@ -29,7 +29,7 @@ from app.runtime.turn_executor import (
 )
 from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.session_history import SessionHistory
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     AIDecisionAction,
     AIActionType,
     AIValidationOutcome,

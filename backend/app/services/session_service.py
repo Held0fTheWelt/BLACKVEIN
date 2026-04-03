@@ -9,7 +9,7 @@ Provides the canonical service-level interface between API routes and W2 runtime
 """
 
 from app.runtime.session_start import start_session
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 from app.content.module_loader import load_module
 
 

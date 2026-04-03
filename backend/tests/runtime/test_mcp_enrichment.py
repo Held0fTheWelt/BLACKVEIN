@@ -11,7 +11,7 @@ from app.mcp_client.enrichment import build_mcp_enrichment
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
 from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.turn_dispatcher import dispatch_turn
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 
 # ===== Test Adapter: CapturingAdapter =====

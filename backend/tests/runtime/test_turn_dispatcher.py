@@ -102,6 +102,46 @@ class PreviewLoopDispatcherAdapter(StoryAIAdapter):
         )
 
 
+class OrchestrationDispatcherAdapter(StoryAIAdapter):
+    """Adapter that emits deterministic outputs per subagent invocation."""
+
+    def __init__(self):
+        self.calls: list[str] = []
+
+    @property
+    def adapter_name(self) -> str:
+        return "orchestration-dispatcher-adapter"
+
+    def generate(self, request):
+        agent_id = (request.metadata.get("agent_invocation") or {}).get("agent_id", "unknown")
+        self.calls.append(agent_id)
+
+        if agent_id == "delta_planner":
+            return AdapterResponse(
+                raw_output="[delta planner]",
+                structured_payload={
+                    "scene_interpretation": "delta planner",
+                    "detected_triggers": [],
+                    "proposed_state_deltas": [],
+                    "rationale": "planner output",
+                },
+            )
+        if agent_id == "finalizer":
+            merged = dict(request.metadata.get("supervisor_merge_payload") or {})
+            merged["rationale"] = "dispatcher finalizer"
+            return AdapterResponse(raw_output="[finalizer]", structured_payload=merged)
+
+        return AdapterResponse(
+            raw_output=f"[{agent_id}]",
+            structured_payload={
+                "scene_interpretation": f"{agent_id} output",
+                "detected_triggers": [],
+                "proposed_state_deltas": [],
+                "rationale": f"{agent_id} rationale",
+            },
+        )
+
+
 def test_dispatcher_routes_to_mock_when_mode_is_mock(
     god_of_carnage_module_with_state, god_of_carnage_module
 ):
@@ -194,6 +234,37 @@ def test_dispatcher_ai_mode_supports_preview_write_feedback(
 
     assert result.execution_status == "success"
     assert session.metadata["ai_decision_logs"][-1].preview_diagnostics is not None
+
+
+def test_dispatcher_ai_mode_supports_agent_orchestration(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """Dispatcher AI path supports C1 supervisor orchestration when enabled."""
+    session = god_of_carnage_module_with_state
+    session.execution_mode = "ai"
+    session.metadata["agent_orchestration"] = {"enabled": True}
+    session.metadata["tool_loop"] = {"enabled": False}
+
+    adapter = OrchestrationDispatcherAdapter()
+    result = asyncio.run(
+        dispatch_turn(
+            session,
+            current_turn=session.turn_counter + 1,
+            module=god_of_carnage_module,
+            ai_adapter=adapter,
+        )
+    )
+
+    assert result.execution_status == "success"
+    assert len([call for call in adapter.calls if call != "finalizer"]) >= 2
+    assert "finalizer" in adapter.calls
+    decision_log = session.metadata["ai_decision_logs"][-1]
+    assert decision_log.supervisor_plan is not None
+    assert decision_log.subagent_invocations is not None
+    assert decision_log.tool_loop_summary is not None
+    controls = decision_log.tool_loop_summary.get("execution_controls") or {}
+    assert controls.get("agent_orchestration_active") is True
+    assert controls.get("tool_loop_active") is False
 
 
 def test_dispatcher_raises_error_if_ai_mode_without_adapter(

@@ -17,7 +17,7 @@ from flask import session as flask_session
 from app.runtime.session_store import get_session, clear_registry, update_session
 from app.runtime.history_presenter import present_history_panel
 from app.runtime.debug_presenter import present_debug_panel
-from app.runtime.w2_models import DegradedSessionState, DegradedMarker
+from app.runtime.runtime_models import DegradedSessionState, DegradedMarker
 
 
 # ── W3.5.4 Fixtures and Helpers ──────────────────────────────────────────────
@@ -415,7 +415,7 @@ class TestHistoryPresenter:
 
     def test_history_presenter_returns_valid_pydantic_model(self):
         """present_history_panel returns HistoryPanelOutput with valid structure."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.history_presenter import present_history_panel, HistoryPanelOutput
 
         # Create minimal valid SessionState
@@ -438,7 +438,7 @@ class TestHistoryPresenter:
 
     def test_history_presenter_recent_entries_limited_to_20(self):
         """present_history_panel limits recent_entries to last 20 entries."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.history_presenter import present_history_panel
 
         # Create session state
@@ -460,7 +460,7 @@ class TestDebugPresenter:
 
     def test_debug_presenter_returns_valid_pydantic_model(self):
         """present_debug_panel returns DebugPanelOutput with valid structure."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.debug_presenter import present_debug_panel, DebugPanelOutput
 
         # Create minimal valid SessionState
@@ -483,7 +483,7 @@ class TestDebugPresenter:
 
     def test_debug_presenter_recent_pattern_bounded_to_5(self):
         """present_debug_panel limits recent_pattern_context to last 3-5 turns."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.debug_presenter import present_debug_panel
 
         # Create session state
@@ -502,7 +502,7 @@ class TestDebugPresenter:
     def test_debug_presenter_includes_tool_transcript_when_available(self):
         """Debug presenter surfaces tool transcript and summary from diagnostics log."""
         from datetime import datetime, timezone
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.short_term_context import ShortTermTurnContext
         from app.runtime.debug_presenter import present_debug_panel
 
@@ -549,7 +549,7 @@ class TestPresenterIntegration:
 
     def test_history_presenter_derives_from_progression_summary(self):
         """Verify HistoryPanelOutput.history_summary is populated from ProgressionSummary."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.progression_summary import ProgressionSummary
         from app.runtime.history_presenter import present_history_panel
 
@@ -587,7 +587,7 @@ class TestPresenterIntegration:
     def test_debug_presenter_derives_from_short_term_context(self):
         """Verify DebugPanelOutput.primary_diagnostic is populated from ShortTermTurnContext."""
         from datetime import datetime, timezone
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.short_term_context import ShortTermTurnContext
         from app.runtime.debug_presenter import present_debug_panel
 
@@ -629,7 +629,7 @@ class TestPresenterDeterminism:
 
     def test_history_presenter_deterministic(self):
         """Calling presenter twice with same input produces identical output."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.history_presenter import present_history_panel
 
         session_state = SessionState(
@@ -647,7 +647,7 @@ class TestPresenterDeterminism:
 
     def test_debug_presenter_handles_missing_data_gracefully(self):
         """Presenter returns valid output with None/empty fields when data missing."""
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         from app.runtime.debug_presenter import present_debug_panel, DebugPanelOutput
 
         # Create session with NO short_term_context or history
@@ -1553,7 +1553,14 @@ class TestDebugPanelDiagnosticsRendering:
         template_path = Path(__file__).resolve().parents[1] / "app" / "web" / "templates" / "session_shell.html"
         content = template_path.read_text(encoding="utf-8")
         assert "Tool Call Transcript" in content
+        assert "Agent Orchestration Requested / Active" in content
+        assert "Tool Loop Requested / Active" in content
         assert "Preview Writes" in content
+        assert "Supervisor Plan" in content
+        assert "Subagent Execution" in content
+        assert "Merge / Finalization" in content
+        assert "Finalizer Status" in content
+        assert "Fallback Used" in content
 
 
 class TestAIDecisionLogRouting:

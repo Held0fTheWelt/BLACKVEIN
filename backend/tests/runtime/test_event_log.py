@@ -2,7 +2,7 @@
 
 import pytest
 from app.runtime.event_log import RuntimeEventLog
-from app.runtime.w2_models import EventLogEntry
+from app.runtime.runtime_models import EventLogEntry
 
 
 class TestRuntimeEventLogConstruction:

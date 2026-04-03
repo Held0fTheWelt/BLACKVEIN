@@ -8,7 +8,7 @@ from copy import deepcopy
 from app.runtime.preview_delta import preview_delta_dry_run
 from app.runtime.preview_models import PreviewDeltaRequest
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta, execute_turn
-from app.runtime.w2_models import DeltaType
+from app.runtime.runtime_models import DeltaType
 
 
 def _legacy_preview_with_full_deepcopy(

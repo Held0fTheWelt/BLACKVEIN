@@ -11,7 +11,7 @@ from app.runtime.scene_presenter import (
     ConflictTrendSignal,
     RelationshipMovement,
 )
-from app.runtime.w2_models import SessionState, SessionContextLayers
+from app.runtime.runtime_models import SessionState, SessionContextLayers
 from app.runtime.short_term_context import ShortTermTurnContext
 from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext, SalientRelationshipAxis
@@ -206,7 +206,7 @@ class TestConflictPanelOutputModel:
 from app.runtime.scene_presenter import (
     present_character_panel,
 )
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     SessionState,
     SessionContextLayers,
 )

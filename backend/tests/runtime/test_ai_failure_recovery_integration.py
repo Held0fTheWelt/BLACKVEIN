@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.ai_adapter import AdapterResponse, StoryAIAdapter
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     DegradedMarker,
     ExecutionFailureReason,
 )
@@ -470,7 +470,7 @@ class TestDegradationMarkers:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Reduced-context retry marks REDUCED_CONTEXT_ACTIVE degradation marker."""
-        from app.runtime.w2_models import DegradedMarker
+        from app.runtime.runtime_models import DegradedMarker
 
         session = god_of_carnage_module_with_state
 
@@ -501,7 +501,7 @@ class TestDegradationMarkers:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Fallback responder marks FALLBACK_ACTIVE degradation marker."""
-        from app.runtime.w2_models import DegradedMarker
+        from app.runtime.runtime_models import DegradedMarker
 
         session = god_of_carnage_module_with_state
 
@@ -530,7 +530,7 @@ class TestDegradationMarkers:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Safe-turn execution marks SAFE_TURN_USED degradation marker."""
-        from app.runtime.w2_models import DegradedMarker
+        from app.runtime.runtime_models import DegradedMarker
 
         session = god_of_carnage_module_with_state
 
@@ -566,7 +566,7 @@ class TestDegradationMarkers:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Restore execution marks RESTORE_USED degradation marker."""
-        from app.runtime.w2_models import DegradedMarker
+        from app.runtime.runtime_models import DegradedMarker
 
         session = god_of_carnage_module_with_state
 

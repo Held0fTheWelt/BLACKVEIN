@@ -6,7 +6,7 @@ from app.content.module_models import ContentModule, EndingCondition, ModuleMeta
 from app.runtime.reference_policy import ReferencePolicyDecision, ReferencePolicy
 from app.runtime.validators import _validate_delta, validate_decision
 from app.runtime.turn_executor import ProposedStateDelta
-from app.runtime.w2_models import SessionState, SessionStatus
+from app.runtime.runtime_models import SessionState, SessionStatus
 
 
 def test_reference_policy_decision_allowed():

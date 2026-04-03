@@ -16,7 +16,7 @@ import pytest
 from app.runtime.session_history import HistoryEntry, SessionHistory
 from app.runtime.short_term_context import ShortTermTurnContext, build_short_term_context
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta, execute_turn
-from app.runtime.w2_models import GuardOutcome
+from app.runtime.runtime_models import GuardOutcome
 
 
 class TestHistoryEntry:

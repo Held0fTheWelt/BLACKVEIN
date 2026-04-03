@@ -21,6 +21,7 @@ from app.runtime.ai_decision import ParseResult, ParsedAIDecision, process_adapt
 from app.runtime.ai_decision_logging import construct_ai_decision_log
 from app.runtime.decision_policy import AIDecisionPolicy
 from app.runtime.event_log import RuntimeEventLog
+from app.runtime.supervisor_orchestrator import SupervisorOrchestrator
 from app.runtime.tool_loop import (
     HostToolContext,
     ToolCallStatus,
@@ -37,7 +38,7 @@ from app.runtime.turn_executor import (
 )
 from app.runtime.role_structured_decision import ParsedRoleAwareDecision
 from app.runtime.validators import validate_action_type, validate_action_structure
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     AIDecisionLog,
     AIValidationOutcome,
     DeltaType,
@@ -435,6 +436,12 @@ async def execute_turn_with_ai(
     from app.runtime.ai_failure_recovery import StateSnapshot
 
     started_at = datetime.now(timezone.utc)
+    orchestration_config = session.metadata.get("agent_orchestration")
+    orchestration_enabled = False
+    if isinstance(orchestration_config, dict):
+        orchestration_enabled = bool(orchestration_config.get("enabled", False))
+    elif isinstance(orchestration_config, bool):
+        orchestration_enabled = orchestration_config
 
     # W2.5 Phase 5: Capture pre-execution snapshot for restore
     # This snapshot is taken BEFORE any risky operation (adapter call, execution)
@@ -447,7 +454,17 @@ async def execute_turn_with_ai(
 
     # B2: Initialize optional bounded tool-loop policy and transcript
     tool_loop_policy = ToolLoopPolicy.from_session_metadata(session.metadata)
-    tool_loop_enabled = session.execution_mode == "ai" and tool_loop_policy.enabled
+    tool_loop_enabled = (
+        session.execution_mode == "ai"
+        and tool_loop_policy.enabled
+        and not orchestration_enabled
+    )
+    execution_controls = {
+        "agent_orchestration_requested": orchestration_enabled,
+        "agent_orchestration_active": orchestration_enabled,
+        "tool_loop_requested": tool_loop_policy.enabled,
+        "tool_loop_active": tool_loop_enabled,
+    }
     tool_call_transcript: list[dict[str, Any]] = []
     tool_results: list[dict[str, Any]] = []
     tool_loop_stop_reason = ToolLoopStopReason.FINALIZED
@@ -458,6 +475,11 @@ async def execute_turn_with_ai(
     tool_loop_summary: dict[str, Any] | None = None
     preview_records: list[dict[str, Any]] = []
     preview_diagnostics: dict[str, Any] | None = None
+    supervisor_plan = None
+    subagent_invocations = None
+    subagent_results = None
+    merge_finalization = None
+    supervisor_tool_transcript: list[dict[str, Any]] = []
 
     def _build_request(attempt: int) -> AdapterRequest:
         request = build_adapter_request(
@@ -537,7 +559,38 @@ async def execute_turn_with_ai(
         assert response is not None
         return response, current_attempt
 
-    response, current_attempt = _generate_with_runtime_policy(starting_attempt=1)
+    if orchestration_enabled:
+        base_request = _build_request(attempt=1)
+        _enrich_request_with_mcp(base_request)
+        orchestrator = SupervisorOrchestrator()
+        orchestrated = orchestrator.orchestrate(
+            base_request=base_request,
+            adapter=adapter,
+            session=session,
+            module=module,
+            current_turn=current_turn,
+            recent_events=recent_events or [],
+            tool_registry=None,
+        )
+        response = orchestrated.final_response
+        current_attempt = 1
+        supervisor_plan = orchestrated.plan
+        subagent_invocations = orchestrated.invocations
+        subagent_results = orchestrated.results
+        merge_finalization = orchestrated.merge_finalization
+        supervisor_tool_transcript = orchestrated.agent_tool_transcript
+        if supervisor_tool_transcript:
+            tool_call_transcript.extend(supervisor_tool_transcript)
+        tool_loop_summary = {
+            "enabled": False,
+            "total_calls": 0,
+            "stop_reason": "orchestration_enabled",
+            "limit_hit": False,
+            "finalized_after_tool_use": False,
+            "execution_controls": execution_controls,
+        }
+    else:
+        response, current_attempt = _generate_with_runtime_policy(starting_attempt=1)
 
     # Step 2b: Handle adapter error or empty output
     # W2.5 Phase 4-5: If retries exhausted, check if restore is needed
@@ -659,6 +712,10 @@ async def execute_turn_with_ai(
                             else None
                         ),
                         preview_diagnostics=preview_diagnostics,
+                        supervisor_plan=supervisor_plan,
+                        subagent_invocations=subagent_invocations,
+                        subagent_results=subagent_results,
+                        merge_finalization=merge_finalization,
                     )
                     # Set recovery_notes with restore metadata
                     decision_log.recovery_notes = restore_notes
@@ -722,6 +779,10 @@ async def execute_turn_with_ai(
                     else None
                 ),
                 preview_diagnostics=preview_diagnostics,
+                supervisor_plan=supervisor_plan,
+                subagent_invocations=subagent_invocations,
+                subagent_results=subagent_results,
+                merge_finalization=merge_finalization,
             )
             _store_decision_log(session, decision_log)
 
@@ -817,6 +878,7 @@ async def execute_turn_with_ai(
             "stop_reason": tool_loop_stop_reason,
             "limit_hit": tool_limit_hit,
             "finalized_after_tool_use": finalized_after_tool_use,
+            "execution_controls": execution_controls,
         }
 
     # Deterministic stop when loop did not finalize to a final story payload.
@@ -877,6 +939,10 @@ async def execute_turn_with_ai(
                 else None
             ),
             preview_diagnostics=preview_diagnostics,
+            supervisor_plan=supervisor_plan,
+            subagent_invocations=subagent_invocations,
+            subagent_results=subagent_results,
+            merge_finalization=merge_finalization,
         )
         _store_decision_log(session, decision_log)
         return turn_result
@@ -976,6 +1042,10 @@ async def execute_turn_with_ai(
                 else None
             ),
             preview_diagnostics=preview_diagnostics,
+            supervisor_plan=supervisor_plan,
+            subagent_invocations=subagent_invocations,
+            subagent_results=subagent_results,
+            merge_finalization=merge_finalization,
         )
         _store_decision_log(session, decision_log)
 
@@ -1076,6 +1146,10 @@ async def execute_turn_with_ai(
                 else None
             ),
             preview_diagnostics=preview_diagnostics,
+            supervisor_plan=supervisor_plan,
+            subagent_invocations=subagent_invocations,
+            subagent_results=subagent_results,
+            merge_finalization=merge_finalization,
         )
         _store_decision_log(session, decision_log)
 
@@ -1138,6 +1212,10 @@ async def execute_turn_with_ai(
             else None
         ),
         preview_diagnostics=preview_diagnostics,
+        supervisor_plan=supervisor_plan,
+        subagent_invocations=subagent_invocations,
+        subagent_results=subagent_results,
+        merge_finalization=merge_finalization,
     )
     _store_decision_log(session, decision_log)
 

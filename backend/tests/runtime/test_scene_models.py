@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     AIDecisionLog,
     AIValidationOutcome,
     DeltaType,

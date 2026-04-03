@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule
 from app.runtime.scene_legality import SceneTransitionLegality
-from app.runtime.w2_models import EventLogEntry, SessionState, SessionStatus
+from app.runtime.runtime_models import EventLogEntry, SessionState, SessionStatus
 
 
 class NextSituation(BaseModel):

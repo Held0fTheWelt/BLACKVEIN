@@ -11,7 +11,7 @@ Tests verify:
 import pytest
 from datetime import datetime, timezone
 from app.runtime.session_store import RuntimeSession, create_session, get_session, update_session, delete_session, clear_registry
-from app.runtime.w2_models import SessionState, SessionStatus
+from app.runtime.runtime_models import SessionState, SessionStatus
 
 
 class TestRuntimeSessionModel:

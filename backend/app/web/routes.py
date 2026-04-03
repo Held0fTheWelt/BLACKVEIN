@@ -752,7 +752,7 @@ def session_view(session_id):
         conflict = present_conflict_panel(session_state)
     else:
         # Graceful fallback with empty session state
-        from app.runtime.w2_models import SessionState
+        from app.runtime.runtime_models import SessionState
         session_state = SessionState(
             session_id=session_id,
             module_id=active.get("module_id", "unknown"),

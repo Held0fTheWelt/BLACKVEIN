@@ -20,7 +20,7 @@ from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
 from app.runtime.scene_legality import SceneTransitionLegality
 from app.runtime.validators import ValidationOutcome, validate_decision
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     DeltaType,
     DeltaValidationStatus,
     EventLogEntry,
@@ -37,7 +37,7 @@ from app.runtime.w2_models import (
 
 # ===== Imported Model Classes =====
 #
-# ProposedStateDelta, MockDecision imported from w2_models
+# ProposedStateDelta, MockDecision imported from runtime_models
 
 
 class TurnExecutionResult(BaseModel):

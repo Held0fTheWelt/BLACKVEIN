@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.content.module_models import ContentModule
-    from app.runtime.w2_models import SessionState
+    from app.runtime.runtime_models import SessionState
 
 
 # Module-level in-memory registry

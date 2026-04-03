@@ -23,7 +23,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 
 class HistorySummary(BaseModel):

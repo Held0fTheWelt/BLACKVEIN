@@ -9,13 +9,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from app.runtime.ai_decision import ParsedAIDecision
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
+    AgentInvocationRecord,
+    AgentResultRecord,
     AIDecisionLog,
     AIValidationOutcome,
     DirectorDiagnosticSummary,
     GuardOutcome,
     InterpreterDiagnosticSummary,
+    MergeFinalizationRecord,
     StateDelta,
+    SupervisorPlan,
 )
 
 if TYPE_CHECKING:
@@ -37,6 +41,10 @@ def construct_ai_decision_log(
     tool_call_transcript: Optional[list[dict]] = None,
     tool_influence: Optional[dict] = None,
     preview_diagnostics: Optional[dict] = None,
+    supervisor_plan: Optional[SupervisorPlan] = None,
+    subagent_invocations: Optional[list[AgentInvocationRecord]] = None,
+    subagent_results: Optional[list[AgentResultRecord]] = None,
+    merge_finalization: Optional[MergeFinalizationRecord] = None,
 ) -> AIDecisionLog:
     """Construct a fully-populated AIDecisionLog with role diagnostics if available.
 
@@ -106,4 +114,8 @@ def construct_ai_decision_log(
         tool_call_transcript=tool_call_transcript,
         tool_influence=tool_influence,
         preview_diagnostics=preview_diagnostics,
+        supervisor_plan=supervisor_plan,
+        subagent_invocations=subagent_invocations,
+        subagent_results=subagent_results,
+        merge_finalization=merge_finalization,
     )

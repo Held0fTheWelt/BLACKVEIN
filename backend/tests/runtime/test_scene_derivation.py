@@ -12,7 +12,7 @@ from app.runtime.lore_direction_context import LoreDirectionContext
 from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta, execute_turn
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 
 class TestProgressionSummaryDerivation:

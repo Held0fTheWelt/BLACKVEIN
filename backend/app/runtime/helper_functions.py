@@ -8,7 +8,7 @@ These bounded helpers assist the turn dispatcher with:
 """
 
 from typing import Any, Dict, List, Optional
-from app.runtime.w2_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 # Import decision policy if available; fallback to empty dict if not
 try:

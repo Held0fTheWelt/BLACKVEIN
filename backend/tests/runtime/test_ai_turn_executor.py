@@ -26,7 +26,7 @@ from app.runtime.ai_turn_executor import (
     execute_turn_with_ai,
 )
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta
-from app.runtime.w2_models import (
+from app.runtime.runtime_models import (
     AIValidationOutcome,
     DeltaType,
     DeltaValidationStatus,
@@ -115,7 +115,7 @@ DELTA_PAYLOAD = {
 def test_convert_proposed_delta_to_state_delta():
     """Convert runtime delta to StateDelta for decision logging."""
     from app.runtime.ai_turn_executor import _convert_proposed_delta_to_state_delta
-    from app.runtime.w2_models import StateDelta
+    from app.runtime.runtime_models import StateDelta
 
     proposed = ProposedStateDelta(
         target="characters.veronique.emotional_state",
@@ -391,7 +391,7 @@ class TestExecuteTurnWithAI:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Adapter error creates decision log with ERROR outcome."""
-        from app.runtime.w2_models import AIValidationOutcome
+        from app.runtime.runtime_models import AIValidationOutcome
 
         session = god_of_carnage_module_with_state
         adapter = DeterministicAIAdapter(error="Connection timeout")
@@ -426,7 +426,7 @@ class TestExecuteTurnWithAI:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Malformed AI output creates decision log with ERROR outcome."""
-        from app.runtime.w2_models import AIValidationOutcome
+        from app.runtime.runtime_models import AIValidationOutcome
 
         session = god_of_carnage_module_with_state
         malformed = {
@@ -468,7 +468,7 @@ class TestExecuteTurnWithAI:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Successful AI turn execution creates AIDecisionLog entry."""
-        from app.runtime.w2_models import AIValidationOutcome
+        from app.runtime.runtime_models import AIValidationOutcome
 
         session = god_of_carnage_module_with_state
         adapter = DeterministicAIAdapter(payload=DELTA_PAYLOAD)
@@ -498,7 +498,7 @@ class TestExecuteTurnWithAI:
         self, god_of_carnage_module_with_state, god_of_carnage_module
     ):
         """Partial validation (some accepted, some rejected) logged correctly."""
-        from app.runtime.w2_models import AIValidationOutcome
+        from app.runtime.runtime_models import AIValidationOutcome
 
         session = god_of_carnage_module_with_state
 
@@ -1292,3 +1292,147 @@ def test_preview_diagnostics_recorded_when_preview_tool_is_used(
     decision_log = session.metadata["ai_decision_logs"][-1]
     assert decision_log.preview_diagnostics is not None
     assert decision_log.preview_diagnostics["preview_count"] >= 1
+
+
+def test_agent_orchestration_executes_real_separate_subagents_and_logs_trace(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """C1 reality check: at least two non-finalizer calls plus one finalizer call."""
+    session = god_of_carnage_module_with_state
+    session.execution_mode = "ai"
+    session.metadata["agent_orchestration"] = {"enabled": True}
+    session.metadata["tool_loop"] = {"enabled": False}
+
+    class MultiAgentRecordingAdapter(StoryAIAdapter):
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        @property
+        def adapter_name(self) -> str:
+            return "multi-agent-recording"
+
+        def generate(self, request: AdapterRequest) -> AdapterResponse:
+            invocation = request.metadata.get("agent_invocation") or {}
+            agent_id = invocation.get("agent_id", "unknown")
+            self.calls.append(agent_id)
+
+            if agent_id == "scene_reader":
+                return AdapterResponse(
+                    raw_output="scene reader",
+                    structured_payload={
+                        "scene_interpretation": "scene",
+                        "detected_triggers": [],
+                        "proposed_state_deltas": [],
+                        "rationale": "scene context",
+                    },
+                )
+            if agent_id == "trigger_analyst":
+                return AdapterResponse(
+                    raw_output="trigger analyst",
+                    structured_payload={
+                        "scene_interpretation": "triggers",
+                        "detected_triggers": ["trigger_a"],
+                        "proposed_state_deltas": [],
+                        "rationale": "trigger context",
+                    },
+                )
+            if agent_id == "delta_planner":
+                return AdapterResponse(
+                    raw_output="delta planner",
+                    structured_payload={
+                        "scene_interpretation": "delta plan",
+                        "detected_triggers": ["trigger_a"],
+                        "proposed_state_deltas": [
+                            {
+                                "target_path": "characters.veronique.emotional_state",
+                                "next_value": 65,
+                                "delta_type": "state_update",
+                                "rationale": "test update",
+                            }
+                        ],
+                        "rationale": "delta planned",
+                    },
+                )
+            if agent_id == "dialogue_planner":
+                return AdapterResponse(
+                    raw_output="dialogue planner",
+                    structured_payload={
+                        "scene_interpretation": "dialogue",
+                        "detected_triggers": [],
+                        "proposed_state_deltas": [],
+                        "rationale": "dialogue helper",
+                    },
+                )
+            if agent_id == "finalizer":
+                payload = dict(request.metadata.get("supervisor_merge_payload") or {})
+                payload["rationale"] = "finalized from multiple subagents"
+                return AdapterResponse(
+                    raw_output="finalizer",
+                    structured_payload=payload,
+                )
+            return AdapterResponse(raw_output="unexpected", structured_payload={})
+
+    adapter = MultiAgentRecordingAdapter()
+    result = asyncio.run(
+        execute_turn_with_ai(
+            session,
+            current_turn=session.turn_counter + 1,
+            adapter=adapter,
+            module=god_of_carnage_module,
+        )
+    )
+
+    assert result.execution_status == "success"
+    assert len(adapter.calls) >= 3
+    non_finalizer_calls = [name for name in adapter.calls if name != "finalizer"]
+    assert len(non_finalizer_calls) >= 2
+    assert "finalizer" in adapter.calls
+
+    decision_log = session.metadata["ai_decision_logs"][-1]
+    assert decision_log.supervisor_plan is not None
+    assert decision_log.subagent_invocations is not None
+    assert decision_log.subagent_results is not None
+    assert decision_log.merge_finalization is not None
+    assert len(decision_log.subagent_invocations) >= 3
+    invocation_ids = [item.agent_id for item in decision_log.subagent_invocations]
+    assert "finalizer" in invocation_ids
+    assert sum(1 for item in invocation_ids if item != "finalizer") >= 2
+    assert decision_log.tool_loop_summary is not None
+    controls = decision_log.tool_loop_summary.get("execution_controls") or {}
+    assert controls.get("agent_orchestration_active") is True
+    assert controls.get("tool_loop_active") is False
+    assert controls.get("tool_loop_requested") is False
+    assert decision_log.merge_finalization.fallback_used is False
+    assert decision_log.merge_finalization.finalizer_status == "success"
+
+
+def test_agent_orchestration_has_priority_over_requested_tool_loop(
+    god_of_carnage_module_with_state, god_of_carnage_module
+):
+    """When both are requested, orchestration is active and top-level tool loop stays inactive."""
+    session = god_of_carnage_module_with_state
+    session.execution_mode = "ai"
+    session.metadata["agent_orchestration"] = {"enabled": True}
+    session.metadata["tool_loop"] = {
+        "enabled": True,
+        "allowed_tools": ["wos.read.current_scene"],
+        "max_tool_calls_per_turn": 3,
+    }
+
+    adapter = DeterministicAIAdapter(payload=VALID_PAYLOAD)
+    result = asyncio.run(
+        execute_turn_with_ai(
+            session,
+            current_turn=session.turn_counter + 1,
+            adapter=adapter,
+            module=god_of_carnage_module,
+        )
+    )
+
+    assert result.execution_status == "success"
+    decision_log = session.metadata["ai_decision_logs"][-1]
+    assert decision_log.tool_loop_summary is not None
+    controls = decision_log.tool_loop_summary.get("execution_controls") or {}
+    assert controls.get("agent_orchestration_active") is True
+    assert controls.get("tool_loop_requested") is True
+    assert controls.get("tool_loop_active") is False

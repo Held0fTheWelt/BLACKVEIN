@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from app.content.module_models import ContentModule
     from app.runtime.ai_adapter import StoryAIAdapter
     from app.runtime.turn_executor import TurnExecutionResult
-    from app.runtime.w2_models import SessionState
+    from app.runtime.runtime_models import SessionState
 
 from app.observability.trace import get_trace_id, ensure_trace_id
 from app.observability.audit_log import log_turn_execution

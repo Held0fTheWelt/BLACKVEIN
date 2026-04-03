@@ -10,7 +10,7 @@ from app.runtime.session_start import (
     _resolve_initial_scene,
     _build_initial_canonical_state,
 )
-from app.runtime.w2_models import SessionStatus, TurnStatus
+from app.runtime.runtime_models import SessionStatus, TurnStatus
 
 
 class TestResolveInitialScene:
