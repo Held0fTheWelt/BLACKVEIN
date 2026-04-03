@@ -4,7 +4,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -252,13 +251,11 @@ def test_validate_service_url_accepts_rejects_and_warns():
 
     assert _validate_service_url(None) is None
     assert _validate_service_url("") is None
-    assert _validate_service_url("  ") is None
+    assert _validate_service_url("  ") is None  # whitespace-only after strip => None, no warning
     assert _validate_service_url("http://internal:8080") == "http://internal:8080"
     assert _validate_service_url(" https://x.test/path ") == "https://x.test/path"
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    with pytest.warns(UserWarning, match=r"Invalid service URL .*ftp://bad"):
         assert _validate_service_url("ftp://bad") is None
-        assert any("Invalid service URL" in str(x.message) for x in w)
 
 
 def _run_fresh_config(extra_env: dict[str, str], assertion_src: str) -> None:

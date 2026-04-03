@@ -36,6 +36,8 @@ def _validate_service_url(url: str | None) -> str | None:
     if not url:
         return None
     url = url.strip()
+    if not url:
+        return None
     if url.startswith(("http://", "https://")):
         return url
     # If set but invalid, log warning and reject
