@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -385,3 +385,148 @@ def test_list_article_translations_and_delete_news(app, test_user):
 def test_get_suggested_threads_missing_article(app):
     with app.app_context():
         assert ns.get_suggested_threads_for_article(999_999) == []
+
+
+def test_article_to_public_dict_without_translation():
+    assert ns._article_to_public_dict(
+        NewsArticle(author_id=1, status="draft", default_language="de"),
+        None,
+    ) is None
+
+
+def test_get_news_by_id_and_article_helpers(app):
+    with app.app_context():
+        assert ns.get_news_by_id(None) is None  # type: ignore[arg-type]
+        assert ns.get_news_by_id(999_999_999) is None
+        assert ns.get_news_article_by_id(None) is None  # type: ignore[arg-type]
+
+
+def test_get_news_by_slug_bad_input_and_unpublished(app, test_user):
+    with app.app_context():
+        user, _ = test_user
+        now = datetime.now(timezone.utc)
+        assert ns.get_news_by_slug(None) is None  # type: ignore[arg-type]
+        assert ns.get_news_by_slug(123) is None  # type: ignore[arg-type]
+
+        article = NewsArticle(
+            author_id=user.id,
+            status="draft",
+            default_language="de",
+            created_at=now,
+            updated_at=now,
+        )
+        db.session.add(article)
+        db.session.flush()
+        t = NewsArticleTranslation(
+            article_id=article.id,
+            language_code="de",
+            title="Draft only",
+            slug="draft-only-slug",
+            content="x",
+            translation_status="approved",
+            source_language="de",
+            translated_at=now,
+        )
+        db.session.add(t)
+        db.session.commit()
+        assert ns.get_news_by_slug("draft-only-slug") is None
+
+
+def test_effective_language_fallback_to_app_default(app, test_user):
+    with app.app_context():
+        user, _ = test_user
+        article = NewsArticle(
+            author_id=user.id,
+            status="draft",
+            default_language="xx-invalid",
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.session.add(article)
+        db.session.commit()
+        assert ns._effective_language(article, "also-bad") == get_default_language()
+
+
+def test_list_news_category_search_and_future_publish(app, test_user, sample_news):
+    _pub1, _pub2, _draft = sample_news
+    with app.app_context():
+        items, total = ns.list_news(published_only=True, category="Updates", lang="de")
+        assert total >= 2
+        assert all(x.get("category") == "Updates" for x in items)
+
+        items_s, _ = ns.list_news(published_only=False, search="searchable", lang="de")
+        assert any(
+            "searchable" in (x.get("title") or "").lower()
+            or "searchable" in (x.get("content") or "").lower()
+            for x in items_s
+        )
+
+        user, _ = test_user
+        now = datetime.now(timezone.utc)
+        future_article = NewsArticle(
+            author_id=user.id,
+            status="published",
+            default_language="de",
+            created_at=now,
+            updated_at=now,
+            published_at=now + timedelta(days=7),
+        )
+        db.session.add(future_article)
+        db.session.flush()
+        ft = NewsArticleTranslation(
+            article_id=future_article.id,
+            language_code="de",
+            title="Future",
+            slug="future-scheduled",
+            content="body",
+            translation_status=TRANSLATION_STATUS_PUBLISHED,
+            source_language="de",
+            translated_at=now,
+        )
+        db.session.add(ft)
+        db.session.commit()
+
+        pub_only, tot = ns.list_news(published_only=True, lang="de")
+        ids = {x["id"] for x in pub_only}
+        assert future_article.id not in ids
+
+
+def test_publish_and_unpublish_news_service(app, test_user):
+    with app.app_context():
+        user, _ = test_user
+        now = datetime.now(timezone.utc)
+        article = NewsArticle(
+            author_id=user.id,
+            status="draft",
+            default_language="de",
+            created_at=now,
+            updated_at=now,
+        )
+        db.session.add(article)
+        db.session.flush()
+        t = NewsArticleTranslation(
+            article_id=article.id,
+            language_code="de",
+            title="Pub cycle",
+            slug="pub-cycle-slug",
+            content="c",
+            translation_status="approved",
+            source_language="de",
+            translated_at=now,
+        )
+        db.session.add(t)
+        db.session.commit()
+
+        a1, err = ns.publish_news(article.id)
+        assert err is None and a1.status == "published"
+
+        a2, err2 = ns.unpublish_news(article.id)
+        assert err2 is None and a2.status == "draft"
+
+
+def test_list_news_sort_published_order_asc(app, sample_news):
+    with app.app_context():
+        items, _ = ns.list_news(published_only=True, sort="created_at", order="asc", lang="de")
+        assert len(items) >= 2
+        times = [x["created_at"] for x in items if x.get("created_at")]
+        assert times == sorted(times)
