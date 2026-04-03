@@ -61,7 +61,7 @@
 ### Test Execution
 
 ```bash
-PYTHONPATH=backend python -m pytest backend/tests/content/test_w1_god_of_carnage.py -v
+PYTHONPATH=backend python -m pytest backend/tests/content/test_god_of_carnage.py -v
 ```
 
 **Expected Results**: All tests pass (assumes God of Carnage module exists at `content/modules/god_of_carnage/`)
