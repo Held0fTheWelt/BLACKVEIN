@@ -2,6 +2,7 @@
 venv
 source
 .idea
+.cursor/
 .report
 .claude
 WorldOfShadows.code-workspace
