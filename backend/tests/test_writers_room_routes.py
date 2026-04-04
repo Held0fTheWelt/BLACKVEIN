@@ -4,9 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from story_runtime_core import RoutingPolicy
 from story_runtime_core.adapters import build_default_model_adapters
-from story_runtime_core.model_registry import build_default_registry
+from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 from ai_stack import (
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
@@ -78,7 +77,7 @@ def _build_controlled_workflow(
     lc_bridge = build_langchain_retriever_bridge(retriever)
     return _WritersRoomWorkflow(
         capability_registry=registry,
-        routing=RoutingPolicy(build_default_registry()),
+        model_route_specs=build_writers_room_model_route_specs(),
         adapters=build_default_model_adapters(),
         seed_graph=build_seed_writers_room_graph(),
         langchain_retriever=lc_bridge,

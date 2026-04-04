@@ -49,6 +49,7 @@ def construct_ai_decision_log(
     orchestration_failover: Optional[list[dict]] = None,
     orchestration_cache: Optional[dict] = None,
     tool_audit: Optional[list[dict]] = None,
+    model_routing_trace: Optional[dict] = None,
 ) -> AIDecisionLog:
     """Construct a fully-populated AIDecisionLog with role diagnostics if available.
 
@@ -126,4 +127,5 @@ def construct_ai_decision_log(
         orchestration_failover=orchestration_failover,
         orchestration_cache=orchestration_cache,
         tool_audit=tool_audit,
+        model_routing_trace=model_routing_trace,
     )

@@ -6,13 +6,18 @@ This document defines the formal contract between the AI story systems and the W
 
 ---
 
-## Model routing (Task 2A)
+## Model routing (Tasks 2A / 2B)
 
 The **executable** routing contracts and policy live in `backend/app/runtime/model_routing_contracts.py` and `backend/app/runtime/model_routing.py`, backed by model specs in `adapter_registry`. They implement cross-model LLM/SLM selection by task kind and phase.
 
-The SLM helper roles described later in this document are **conceptual** narrative roles for the story stack. They are not interchangeable with the **internal** interpreter/director/responder contract in `role_contract.py`, nor with the Task 2A routing layer. See [LLM / SLM role stratification (Task 2A)](./llm_slm_role_stratification.md).
+The SLM helper roles described later in this document are **conceptual** narrative roles for the story stack. They are not interchangeable with the **internal** interpreter/director/responder contract in `role_contract.py`, nor with the Task 2A/2B **cross-model** routing layer. See [LLM / SLM role stratification](./llm_slm_role_stratification.md).
 
-Task 2A does **not** integrate routing into the live turn dispatcher; that is deferred to later tasks.
+**Task 2B integration (current):**
+
+- **Runtime**: The canonical AI turn path routes **once** per turn (`route_model` before a single adapter execution). When no spec-backed adapter is eligible, execution falls back to the adapter already supplied by the caller; guards and commit semantics are unchanged. `AIDecisionLog` carries a compact `model_routing_trace` for minimal inspectability (not full stack observability).
+- **Writers Room**: Uses the same Task 2A contracts via `route_model` with explicit **preflight** and **synthesis** routing stages where wired; model choice no longer goes through `story_runtime_core.RoutingPolicy`. Response/report fields expose routing evidence (`task_2a_routing`, digest flags) without claiming a full editorial pipeline beyond what the code performs.
+
+**Deferred (Task 2C):** end-to-end observability closure, improvement-flow routing, and any broader integration beyond the seams above.
 
 ---
 

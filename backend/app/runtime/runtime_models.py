@@ -680,6 +680,9 @@ class AIDecisionLog(BaseModel):
     orchestration_cache: dict[str, Any] | None = None
     tool_audit: list[dict[str, Any]] | None = None
 
+    # Task 2B: cross-model routing evidence (Task 2A route_model); not full observability closure
+    model_routing_trace: dict[str, Any] | None = None
+
 
 __all__ = [
     "AIDecisionAction",

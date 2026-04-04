@@ -9,9 +9,16 @@ from typing import Any
 from uuid import uuid4
 
 from langchain_core.documents import Document
-from story_runtime_core import RoutingPolicy
 from story_runtime_core.adapters import build_default_model_adapters
-from story_runtime_core.model_registry import build_default_registry
+from app.runtime.model_routing import route_model
+from app.runtime.model_routing_contracts import (
+    AdapterModelSpec,
+    LatencyBudget,
+    RoutingRequest,
+    TaskKind,
+    WorkflowPhase,
+)
+from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 from ai_stack import (
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
@@ -26,7 +33,7 @@ from ai_stack import (
 @dataclass
 class _WritersRoomWorkflow:
     capability_registry: Any
-    routing: RoutingPolicy
+    model_route_specs: list[AdapterModelSpec]
     adapters: dict[str, Any]
     seed_graph: Any
     langchain_retriever: Any
@@ -131,10 +138,9 @@ def _get_workflow() -> _WritersRoomWorkflow:
         assembler=assembler,
         repo_root=repo_root,
     )
-    registry = build_default_registry()
     _WORKFLOW = _WritersRoomWorkflow(
         capability_registry=capability_registry,
-        routing=RoutingPolicy(registry),
+        model_route_specs=build_writers_room_model_route_specs(),
         adapters=build_default_model_adapters(),
         seed_graph=build_seed_writers_room_graph(),
         langchain_retriever=build_langchain_retriever_bridge(retriever),
@@ -183,8 +189,61 @@ def _execute_writers_room_workflow_package(
     retrieval_text = str(context_payload.get("context_text") or "")
     ctx_fingerprint = _context_fingerprint(retrieval_text)
 
-    routing_decision = workflow.routing.choose(task_type="narrative_generation")
-    selected_provider = routing_decision.selected_provider or "mock"
+    specs = workflow.model_route_specs
+    preflight_req = RoutingRequest(
+        workflow_phase=WorkflowPhase.preflight,
+        task_kind=TaskKind.cheap_preflight,
+        requires_structured_output=False,
+        latency_budget=LatencyBudget.strict,
+    )
+    pre_decision = route_model(preflight_req, specs=specs)
+    preflight_trace: dict[str, Any] = {
+        "stage": "preflight",
+        "workflow_phase": WorkflowPhase.preflight.value,
+        "task_kind": TaskKind.cheap_preflight.value,
+        "decision": pre_decision.model_dump(mode="json"),
+    }
+    pre_adapter = (
+        workflow.adapters.get(pre_decision.selected_adapter_name)
+        if pre_decision.selected_adapter_name
+        else None
+    )
+    if pre_adapter and pre_decision.selected_adapter_name:
+        pre_prompt = (
+            f"Writers-Room retrieval preflight for module={module_id}. "
+            f"In one or two sentences, is retrieved context likely sufficient for a canon review? "
+            f"(yes/no + brief reason). evidence_tier={evidence_tag}.\n"
+            f"Context excerpt:\n{(retrieval_text or '')[:1800]}"
+        )
+        try:
+            pre_call = pre_adapter.generate(
+                pre_prompt, timeout_seconds=5.0, retrieval_context=retrieval_text or None
+            )
+            preflight_trace["bounded_model_call"] = True
+            preflight_trace["adapter_key"] = pre_decision.selected_adapter_name
+            preflight_trace["call_success"] = pre_call.success
+            preflight_trace["content_excerpt"] = (pre_call.content or "").strip()[:500]
+        except Exception as exc:  # noqa: BLE001 — bounded diagnostic; workflow continues
+            preflight_trace["bounded_model_call"] = True
+            preflight_trace["adapter_key"] = pre_decision.selected_adapter_name
+            preflight_trace["call_error"] = str(exc)
+    else:
+        preflight_trace["bounded_model_call"] = False
+        preflight_trace["skip_reason"] = "no_eligible_adapter_or_missing_provider_adapter"
+
+    synthesis_req = RoutingRequest(
+        workflow_phase=WorkflowPhase.generation,
+        task_kind=TaskKind.narrative_formulation,
+        requires_structured_output=True,
+    )
+    syn_decision = route_model(synthesis_req, specs=specs)
+    synthesis_trace: dict[str, Any] = {
+        "stage": "synthesis",
+        "workflow_phase": WorkflowPhase.generation.value,
+        "task_kind": TaskKind.narrative_formulation.value,
+        "decision": syn_decision.model_dump(mode="json"),
+    }
+    selected_provider = syn_decision.selected_adapter_name or "mock"
     adapter = workflow.adapters.get(selected_provider)
     generation: dict[str, Any] = {
         "provider": selected_provider,
@@ -194,6 +253,7 @@ def _execute_writers_room_workflow_package(
         "adapter_invocation_mode": None,
         "raw_fallback_reason": None,
         "metadata": {},
+        "task_2a_routing": {"preflight": preflight_trace, "synthesis": synthesis_trace},
     }
     if adapter:
         wr_result = invoke_writers_room_adapter_with_langchain(
@@ -354,6 +414,8 @@ def _execute_writers_room_workflow_package(
             "top_source_paths": evidence_paths[:5],
             "context_fingerprint_sha256_16": ctx_fingerprint,
             "langchain_preview_source": langchain_preview_source,
+            "writers_room_preflight_called": bool(preflight_trace.get("bounded_model_call")),
+            "writers_room_preflight_excerpt": (preflight_trace.get("content_excerpt") or "")[:400],
         },
         "langchain_preview_paths": langchain_preview_paths,
         "governance_readiness": {
@@ -495,7 +557,7 @@ def _execute_writers_room_workflow_package(
             "retrieval": "wos.context_pack.build",
             "orchestration": "langgraph_seed_writers_room_graph",
             "capabilities": ["wos.context_pack.build", "wos.review_bundle.build"],
-            "model_routing": "story_runtime_core.RoutingPolicy",
+            "model_routing": "app.runtime.model_routing.route_model + writers_room_model_route_specs",
             "langchain_integration": {
                 "enabled": True,
                 "runtime_turn_bridge": "invoke_runtime_adapter_with_langchain",
