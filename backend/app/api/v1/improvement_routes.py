@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,10 @@ from wos_ai_stack import (
     build_runtime_retriever,
     create_default_capability_registry,
 )
+
+
+def _utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _transcript_tool_evidence_for_improvement(
@@ -121,12 +126,45 @@ def run_improvement_experiment():
     test_inputs = data.get("test_inputs")
     if test_inputs is not None and not isinstance(test_inputs, list):
         return jsonify({"error": "test_inputs must be a list when provided"}), 400
+
+    workflow_stages: list[dict[str, Any]] = [
+        {
+            "id": "variant_resolution",
+            "completed_at": _utc_iso(),
+            "artifact_key": "variant_id",
+            "resource_id": variant_id,
+        }
+    ]
     experiment = run_sandbox_experiment(
         variant_id=variant_id,
         actor_id=actor_id,
         test_inputs=[str(item) for item in test_inputs] if isinstance(test_inputs, list) else None,
     )
+    workflow_stages.append(
+        {
+            "id": "baseline_context",
+            "completed_at": _utc_iso(),
+            "artifact_key": "baseline_id",
+            "resource_id": experiment.get("baseline_id"),
+        }
+    )
+    workflow_stages.append(
+        {
+            "id": "sandbox_execution",
+            "completed_at": _utc_iso(),
+            "artifact_key": "experiment",
+            "resource_id": experiment.get("experiment_id"),
+        }
+    )
     package = build_recommendation_package(experiment_id=experiment["experiment_id"], actor_id=actor_id)
+    workflow_stages.append(
+        {
+            "id": "evaluation_and_recommendation_draft",
+            "completed_at": _utc_iso(),
+            "artifact_key": "recommendation_package",
+            "resource_id": package.get("package_id"),
+        }
+    )
 
     repo_root = Path(__file__).resolve().parents[4]
     retriever, assembler, _ = build_runtime_retriever(repo_root)
@@ -150,6 +188,13 @@ def run_improvement_experiment():
                 "max_chunks": 5,
             },
         )
+        workflow_stages.append(
+            {
+                "id": "retrieval_improvement_context",
+                "completed_at": _utc_iso(),
+                "artifact_key": "wos.context_pack.build",
+            }
+        )
         retrieval_inner = context_payload.get("retrieval")
         retrieval_trace = build_retrieval_trace(retrieval_inner if isinstance(retrieval_inner, dict) else {})
         evidence_tag = retrieval_trace["evidence_tier"]
@@ -160,6 +205,19 @@ def run_improvement_experiment():
             actor_id=actor_id,
             trace_id=trace_id,
         )
+        workflow_stages.append(
+            {
+                "id": "transcript_tool_evidence",
+                "completed_at": _utc_iso(),
+                "artifact_key": "wos.transcript.read",
+                "resource_id": transcript_meta.get("run_id"),
+            }
+        )
+        evidence_sources = [
+            source.get("source_path", "")
+            for source in context_payload.get("retrieval", {}).get("sources", [])
+            if isinstance(source, dict)
+        ]
         package_response = dict(package)
         base_summary = str(package_response["recommendation_summary"])
         if transcript_meta.get("repetition_turn_count", 0) >= 2:
@@ -167,16 +225,21 @@ def run_improvement_experiment():
         else:
             package_response["recommendation_summary"] = base_summary + transcript_suffix
         package_response["transcript_evidence"] = transcript_meta
-        ImprovementStore.default().write_json(
-            "recommendations",
-            str(package_response["package_id"]),
-            package_response,
-        )
-        evidence_sources = [
-            source.get("source_path", "")
-            for source in context_payload.get("retrieval", {}).get("sources", [])
-            if isinstance(source, dict)
-        ]
+
+        evaluation_block = package_response.get("evaluation") if isinstance(package_response.get("evaluation"), dict) else {}
+        evidence_bundle = dict(package_response.get("evidence_bundle") or {})
+        evidence_bundle["retrieval_source_paths"] = list(evidence_sources)
+        evidence_bundle["transcript_evidence"] = {
+            "run_id": transcript_meta.get("run_id"),
+            "turn_count": transcript_meta.get("turn_count"),
+            "repetition_turn_count": transcript_meta.get("repetition_turn_count"),
+            "content_length": transcript_meta.get("content_length"),
+        }
+        evidence_bundle["metrics_snapshot"] = evaluation_block.get("metrics")
+        evidence_bundle["baseline_metrics_snapshot"] = evaluation_block.get("baseline_metrics")
+        evidence_bundle["comparison_snapshot"] = evaluation_block.get("comparison")
+        package_response["evidence_bundle"] = evidence_bundle
+
         review_bundle = capability_registry.invoke(
             name="wos.review_bundle.build",
             mode="improvement",
@@ -191,6 +254,25 @@ def run_improvement_experiment():
                 "recommendations": [package_response["recommendation_summary"]],
                 "evidence_sources": evidence_sources,
             },
+        )
+        workflow_stages.append(
+            {
+                "id": "governance_review_bundle",
+                "completed_at": _utc_iso(),
+                "artifact_key": "wos.review_bundle.build",
+                "resource_id": (review_bundle.get("bundle_id") if isinstance(review_bundle, dict) else None),
+            }
+        )
+        evidence_bundle_final = dict(package_response["evidence_bundle"])
+        if isinstance(review_bundle, dict):
+            evidence_bundle_final["governance_review_bundle_id"] = review_bundle.get("bundle_id")
+            evidence_bundle_final["governance_review_bundle_status"] = review_bundle.get("status")
+        package_response["evidence_bundle"] = evidence_bundle_final
+        package_response["workflow_stages"] = workflow_stages
+        ImprovementStore.default().write_json(
+            "recommendations",
+            str(package_response["package_id"]),
+            package_response,
         )
     except (CapabilityAccessDeniedError, CapabilityInvocationError) as exc:
         return (
@@ -216,6 +298,7 @@ def run_improvement_experiment():
             "trace_id": trace_id,
             "experiment": experiment,
             "recommendation_package": package_response,
+            "workflow_stages": workflow_stages,
             "retrieval": context_payload.get("retrieval", {}),
             "retrieval_trace": retrieval_trace,
             "transcript_evidence": transcript_meta,

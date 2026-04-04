@@ -79,6 +79,18 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     assert recommendation["lineage"]["baseline_id"] == "god_of_carnage"
     assert recommendation["mutation_plan"]
     assert recommendation["evidence_bundle"]["comparison"] == comparison
+    assert "retrieval_source_paths" in recommendation["evidence_bundle"]
+    assert isinstance(recommendation["evidence_bundle"]["retrieval_source_paths"], list)
+    assert "transcript_evidence" in recommendation["evidence_bundle"]
+    assert recommendation["evidence_bundle"]["transcript_evidence"].get("run_id")
+    assert "metrics_snapshot" in recommendation["evidence_bundle"]
+    assert "baseline_metrics_snapshot" in recommendation["evidence_bundle"]
+    assert "comparison_snapshot" in recommendation["evidence_bundle"]
+    assert "governance_review_bundle_id" in recommendation["evidence_bundle"]
+    ws = payload["workflow_stages"]
+    assert ws
+    assert payload["workflow_stages"] == recommendation["workflow_stages"]
+    assert any(s["id"] == "governance_review_bundle" for s in ws)
     assert retrieval["profile"] == "improvement_eval"
     assert review_bundle["status"] == "recommendation_only"
     assert any(entry["capability_name"] == "wos.context_pack.build" for entry in capability_audit)
@@ -102,6 +114,102 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     ctx_audit = next(entry for entry in capability_audit if entry["capability_name"] == "wos.context_pack.build")
     assert ctx_audit.get("result_summary") is not None
     assert ctx_audit["result_summary"]["kind"] == "context_pack"
+
+
+def test_improvement_retrieval_paths_materially_affect_review_bundle_and_stored_evidence(
+    client, auth_headers, monkeypatch,
+):
+    """Different context_pack sources must change review_bundle evidence and evidence_bundle retrieval paths."""
+
+    class PathsRegistry:
+        def __init__(self, paths: list[str]) -> None:
+            self._paths = paths
+
+        def invoke(self, *, name, mode, actor, payload, trace_id=None):
+            if name == "wos.context_pack.build":
+                return {
+                    "retrieval": {
+                        "domain": "improvement",
+                        "profile": "improvement_eval",
+                        "status": "ok",
+                        "hit_count": len(self._paths),
+                        "sources": [{"source_path": p, "content_class": "canon"} for p in self._paths],
+                        "ranking_notes": [],
+                        "index_version": INDEX_VERSION,
+                        "corpus_fingerprint": "d2_mat",
+                        "storage_path": "",
+                        "retrieval_route": "test_paths_registry",
+                        "embedding_model_id": "",
+                        "top_hit_score": "0.88",
+                    },
+                    "context_text": "\n".join(self._paths),
+                }
+            if name == "wos.transcript.read":
+                return {
+                    "run_id": payload.get("run_id", ""),
+                    "content": '{"transcript":[{"turn_number":1,"repetition_flag":false}]}',
+                }
+            if name == "wos.review_bundle.build":
+                return {
+                    "bundle_id": f"bundle_{self._paths[0].replace('/', '_')}",
+                    "module_id": payload["module_id"],
+                    "summary": payload.get("summary", ""),
+                    "recommendations": payload.get("recommendations", []),
+                    "evidence_sources": payload.get("evidence_sources", []),
+                    "status": "recommendation_only",
+                }
+            raise AssertionError(name)
+
+        def recent_audit(self, limit=20):
+            return [
+                {"capability_name": "wos.context_pack.build", "outcome": "allowed"},
+                {"capability_name": "wos.review_bundle.build", "outcome": "allowed"},
+            ]
+
+    monkeypatch.setattr(
+        "app.api.v1.improvement_routes.create_default_capability_registry",
+        lambda **kwargs: PathsRegistry(["modules/d2_alpha_ctx.md"]),
+    )
+    v1 = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "god_of_carnage", "candidate_summary": "D2 retrieval alpha path."},
+    )
+    vid1 = v1.get_json()["variant_id"]
+    r1 = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={"variant_id": vid1, "test_inputs": ["one", "two"]},
+    )
+    assert r1.status_code == 200
+    p1 = r1.get_json()
+    assert p1["review_bundle"]["evidence_sources"] == ["modules/d2_alpha_ctx.md"]
+    assert p1["recommendation_package"]["evidence_bundle"]["retrieval_source_paths"] == [
+        "modules/d2_alpha_ctx.md"
+    ]
+
+    monkeypatch.setattr(
+        "app.api.v1.improvement_routes.create_default_capability_registry",
+        lambda **kwargs: PathsRegistry(["modules/d2_beta_ctx.md"]),
+    )
+    v2 = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "god_of_carnage", "candidate_summary": "D2 retrieval beta path."},
+    )
+    vid2 = v2.get_json()["variant_id"]
+    r2 = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={"variant_id": vid2, "test_inputs": ["one", "two"]},
+    )
+    assert r2.status_code == 200
+    p2 = r2.get_json()
+    assert p2["review_bundle"]["evidence_sources"] == ["modules/d2_beta_ctx.md"]
+    assert p2["recommendation_package"]["evidence_bundle"]["retrieval_source_paths"] == [
+        "modules/d2_beta_ctx.md"
+    ]
+    assert p1["review_bundle"]["evidence_sources"] != p2["review_bundle"]["evidence_sources"]
 
 
 def test_improvement_experiment_reflects_empty_retrieval_in_trace_and_review_summary(

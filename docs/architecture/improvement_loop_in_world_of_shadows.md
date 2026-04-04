@@ -11,6 +11,10 @@ Status: D2 repaired mutation/evaluation baseline.
 5. Build recommendation package for governance review.
 6. Expose packages through backend governance API.
 
+`POST /api/v1/improvement/experiments/run` returns **`workflow_stages`**: ordered steps with UTC timestamps (`variant_resolution`, `baseline_context`, `sandbox_execution`, `evaluation_and_recommendation_draft`, `retrieval_improvement_context`, `transcript_tool_evidence`, `governance_review_bundle`). The same list is persisted on the stored **`recommendation_package`**.
+
+**`evidence_bundle`** on the recommendation package explicitly attaches **`retrieval_source_paths`** (from `wos.context_pack.build`), **`transcript_evidence`** (run id, turn counts from `wos.transcript.read`), metric snapshots, and **`governance_review_bundle_id`** / **`governance_review_bundle_status`** after `wos.review_bundle.build`. Recommendation JSON is written **after** this enrichment so governance consumers see a single coherent artifact.
+
 ## Mutation flow
 
 1. Create candidate variant from baseline with explicit lineage.
