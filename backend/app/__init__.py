@@ -1,11 +1,17 @@
 import logging
 import os
+import sys
 import threading
 import time
 from urllib.parse import urlparse
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from flask import jsonify, request
 from flask_wtf.csrf import CSRFProtect
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
 
 from app.config import Config
 from app.extensions import init_app as init_extensions, limiter

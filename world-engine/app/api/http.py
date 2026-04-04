@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.config import PLAY_SERVICE_INTERNAL_API_KEY
 from app.runtime.manager import RuntimeManager
+from app.story_runtime import StoryRuntimeManager
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -36,6 +37,10 @@ class JoinContextRequest(TicketRequest):
 
 def get_manager(request: Request) -> RuntimeManager:
     return request.app.state.manager
+
+
+def get_story_manager(request: Request) -> StoryRuntimeManager:
+    return request.app.state.story_manager
 
 
 
@@ -206,6 +211,15 @@ class TerminateRunRequest(BaseModel):
     reason: str = ""
 
 
+class CreateStorySessionRequest(BaseModel):
+    module_id: str
+    runtime_projection: dict[str, Any]
+
+
+class ExecuteStoryTurnRequest(BaseModel):
+    player_input: str = Field(min_length=1)
+
+
 @router.post("/internal/runs/{run_id}/terminate", dependencies=[Depends(_require_internal_api_key)])
 def terminate_run_internal(run_id: str, payload: TerminateRunRequest, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
     try:
@@ -244,3 +258,44 @@ def get_transcript(run_id: str, manager: RuntimeManager = Depends(get_manager)) 
         "run_id": run_id,
         "entries": [entry.model_dump(mode="json") for entry in instance.transcript],
     }
+
+
+@router.post("/story/sessions", dependencies=[Depends(_require_internal_api_key)])
+def create_story_session(payload: CreateStorySessionRequest, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
+    session = manager.create_session(module_id=payload.module_id, runtime_projection=payload.runtime_projection)
+    return {
+        "session_id": session.session_id,
+        "module_id": session.module_id,
+        "turn_counter": session.turn_counter,
+        "current_scene_id": session.current_scene_id,
+        "warnings": ["world_engine_authoritative_story_runtime"],
+    }
+
+
+@router.post("/story/sessions/{session_id}/turns", dependencies=[Depends(_require_internal_api_key)])
+def execute_story_turn(
+    session_id: str,
+    payload: ExecuteStoryTurnRequest,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        turn = manager.execute_turn(session_id=session_id, player_input=payload.player_input)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "turn": turn}
+
+
+@router.get("/story/sessions/{session_id}/state", dependencies=[Depends(_require_internal_api_key)])
+def get_story_state(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
+    try:
+        return manager.get_state(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+
+
+@router.get("/story/sessions/{session_id}/diagnostics", dependencies=[Depends(_require_internal_api_key)])
+def get_story_diagnostics(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
+    try:
+        return manager.get_diagnostics(session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc

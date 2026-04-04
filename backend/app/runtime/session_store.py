@@ -51,6 +51,9 @@ def create_session(session_id: str, initial_state: SessionState, module: Content
     Returns:
         RuntimeSession registered in the in-memory store
     """
+    if session_id in _runtime_sessions:
+        raise ValueError(f"Session '{session_id}' is already registered")
+
     runtime_session = RuntimeSession(
         session_id=session_id,
         current_runtime_state=initial_state,

@@ -268,3 +268,41 @@ def terminate_run(
         internal=True,
     )
     return _parse_terminate_v1(payload, requested_run_id=run_id)
+
+
+def create_story_session(*, module_id: str, runtime_projection: dict) -> dict:
+    payload = _request(
+        "POST",
+        "/api/story/sessions",
+        json_payload={"module_id": module_id, "runtime_projection": runtime_projection},
+        internal=True,
+    )
+    if not isinstance(payload, dict) or "session_id" not in payload:
+        raise GameServiceError("Play service returned an unexpected story-session payload.")
+    return payload
+
+
+def execute_story_turn(*, session_id: str, player_input: str) -> dict:
+    payload = _request(
+        "POST",
+        f"/api/story/sessions/{session_id}/turns",
+        json_payload={"player_input": player_input},
+        internal=True,
+    )
+    if not isinstance(payload, dict) or "turn" not in payload:
+        raise GameServiceError("Play service returned an unexpected story-turn payload.")
+    return payload
+
+
+def get_story_state(session_id: str) -> dict:
+    payload = _request("GET", f"/api/story/sessions/{session_id}/state", internal=True)
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected story-state payload.")
+    return payload
+
+
+def get_story_diagnostics(session_id: str) -> dict:
+    payload = _request("GET", f"/api/story/sessions/{session_id}/diagnostics", internal=True)
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected story-diagnostics payload.")
+    return payload

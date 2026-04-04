@@ -12,6 +12,7 @@
 
 - **In-process** `RuntimeManager` / `RuntimeEngine` / `JsonRunStore` are a **deprecated transitional mirror** for unit tests and local experiments only. They are **not** mounted on the production Flask app.
 - **W2-style** `SessionState` flows (`session_start`, `session_store`, `turn_dispatcher`, `turn_executor`, AI path) are **deprecated transitional** simulation, tests, tooling, and operator/MCP endpoints—not a second live runtime.
+- Shared extraction direction is now active through `story_runtime_core/` for reusable input interpretation and model routing contracts.
 
 ## Classification (exactly three classes)
 

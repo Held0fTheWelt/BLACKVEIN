@@ -7,6 +7,8 @@ import re
 from sqlalchemy import or_, select
 
 from app.content.builtins import build_god_of_carnage_solo
+from app.content.compiler import compile_module
+from app.content.module_exceptions import ModuleLoadError
 from app.content.models import ExperienceTemplate
 from app.extensions import db
 from app.models import GameExperienceTemplate
@@ -61,6 +63,8 @@ def _canonicalize_payload(payload: dict) -> ExperienceUpsertPayload:
         raise GameContentValidationError(f"invalid experience payload: {exc}") from exc
 
     canonical = template.model_dump(mode="json")
+    if isinstance(payload.get("canonical_compilation"), dict):
+        canonical["canonical_compilation"] = payload["canonical_compilation"]
     slug = payload.get("slug") or template.id
     return ExperienceUpsertPayload(
         template_id=template.id,
@@ -79,12 +83,44 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _resolve_canonical_module_id(template_id: str) -> str | None:
+    if not template_id:
+        return None
+    if template_id == "god_of_carnage_solo":
+        return "god_of_carnage"
+    return template_id
+
+
+def _attach_canonical_compilation(payload: dict) -> dict:
+    template_id = str(payload.get("id") or "").strip()
+    module_id = _resolve_canonical_module_id(template_id)
+    if not module_id:
+        return payload
+
+    try:
+        compiled = compile_module(module_id)
+    except ModuleLoadError:
+        return payload
+    except Exception as exc:  # pragma: no cover - fail loudly for unknown compiler errors
+        raise GameContentValidationError(f"failed to compile canonical module '{module_id}': {exc}") from exc
+
+    result = dict(payload)
+    result["canonical_compilation"] = {
+        "canonical_model": compiled.canonical_model,
+        "module_id": module_id,
+        "runtime_projection": compiled.runtime_projection.model_dump(mode="json"),
+        "retrieval_corpus_seed": compiled.retrieval_corpus_seed.model_dump(mode="json"),
+        "review_export_seed": compiled.review_export_seed.model_dump(mode="json"),
+    }
+    return result
+
+
 
 def ensure_default_game_content_seeded() -> None:
     existing = db.session.execute(select(GameExperienceTemplate.id).limit(1)).scalar_one_or_none()
     if existing is not None:
         return
-    payload = build_god_of_carnage_solo().model_dump(mode="json")
+    payload = _attach_canonical_compilation(build_god_of_carnage_solo().model_dump(mode="json"))
     normalized = _canonicalize_payload(payload)
     entity = GameExperienceTemplate(
         template_id=normalized.template_id,
@@ -155,7 +191,7 @@ def _ensure_unique(normalized: ExperienceUpsertPayload, *, ignore_id: int | None
 
 
 def create_experience(*, payload: dict, actor_user_id: int | None = None, source: str = "authored") -> dict:
-    normalized = _canonicalize_payload(payload)
+    normalized = _canonicalize_payload(_attach_canonical_compilation(payload))
     _ensure_unique(normalized)
     entity = GameExperienceTemplate(
         template_id=normalized.template_id,
@@ -182,7 +218,7 @@ def update_experience(experience_id: int, *, payload: dict, actor_user_id: int |
     entity = db.session.get(GameExperienceTemplate, experience_id)
     if entity is None:
         raise GameContentNotFoundError("Experience not found.")
-    normalized = _canonicalize_payload(payload)
+    normalized = _canonicalize_payload(_attach_canonical_compilation(payload))
     _ensure_unique(normalized, ignore_id=experience_id)
     entity.template_id = normalized.template_id
     entity.slug = normalized.slug
@@ -204,6 +240,7 @@ def publish_experience(experience_id: int, *, actor_user_id: int | None = None) 
     entity = db.session.get(GameExperienceTemplate, experience_id)
     if entity is None:
         raise GameContentNotFoundError("Experience not found.")
+    entity.payload_json = _attach_canonical_compilation(dict(entity.payload_json or {}))
     entity.is_published = True
     entity.published_at = _now()
     entity.updated_by_user_id = actor_user_id

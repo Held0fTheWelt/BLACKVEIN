@@ -30,6 +30,9 @@ if "BACKEND_CONTENT_SYNC_ENABLED" not in os.environ:
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 SQLALCHEMY_AVAILABLE = importlib.util.find_spec("sqlalchemy") is not None
 
@@ -78,6 +81,7 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
     # Import modules
     tickets_module = importlib.import_module("app.auth.tickets")
     runtime_manager_module = importlib.import_module("app.runtime.manager")
+    story_runtime_module = importlib.import_module("app.story_runtime")
 
     # Check if app.config has been mocked/patched by a test
     # If the current PLAY_SERVICE_INTERNAL_API_KEY value doesn't match the environment,
@@ -107,6 +111,7 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
         store_backend=store_backend,
         store_url=store_url,
     )
+    app.state.story_manager = story_runtime_module.StoryRuntimeManager()
     app.state.ticket_manager = tickets_module.TicketManager("test-secret")
     app.include_router(http_module.router)
     app.include_router(ws_module.router)

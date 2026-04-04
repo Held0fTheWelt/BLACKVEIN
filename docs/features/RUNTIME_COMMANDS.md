@@ -1,3 +1,16 @@
+# Historical Note: `/runtime` Command (Non-Canonical)
+
+This document is preserved for historical reference only.
+
+It describes an external command workflow that is not part of the canonical
+World of Shadows runtime architecture. The canonical runtime and AI stack
+decision lives in:
+
+- `docs/architecture/ai_stack_in_world_of_shadows.md`
+- `docs/architecture/runtime_authority_decision.md`
+
+---
+
 # `/runtime` Command - Execution Mode Switcher
 
 Switch ClaudeClockwork execution modes on-demand from Claude Code CLI.

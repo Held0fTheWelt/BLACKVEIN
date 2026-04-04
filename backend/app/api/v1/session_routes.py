@@ -6,7 +6,7 @@ an equivalent live runtime (see ``docs/architecture/backend_runtime_classificati
 
 - POST /api/v1/sessions — create in-process session (includes explicit JSON warnings)
 - GET … — snapshots/diagnostics (volatile; token may be required)
-- POST …/turns — 501 until W3.2
+- POST …/turns — proxies execution to World-Engine story runtime host
 """
 
 from flask import request, jsonify, g
@@ -24,7 +24,21 @@ from app.services.session_service import (
 )
 from app.runtime.session_start import SessionStartError
 from app.runtime.session_store import get_session as get_runtime_session
+from app.content.compiler import compile_module
+from app.services.game_service import (
+    create_story_session,
+    execute_story_turn as execute_story_turn_in_engine,
+    get_story_diagnostics,
+    get_story_state,
+)
 from app.observability.trace import get_trace_id
+from app.runtime.input_interpreter import interpret_player_input
+
+SESSION_START_ERROR_STATUS = {
+    "module_not_found": 404,
+    "module_invalid": 422,
+    "no_start_scene": 422,
+}
 
 
 @api_v1_bp.route("/sessions", methods=["POST"])
@@ -60,7 +74,11 @@ def create_new_session():
         404: Module not found
         422: Module validation failed
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid JSON body"}), 400
+    if not isinstance(data, dict):
+        return jsonify({"error": "JSON body must be an object"}), 400
     module_id = data.get("module_id")
 
     if not module_id:
@@ -76,11 +94,7 @@ def create_new_session():
         ]
         return jsonify(body), 201
     except SessionStartError as exc:
-        if exc.reason == "module_not_found":
-            return jsonify({"error": str(exc)}), 404
-        if exc.reason in {"module_invalid", "no_start_scene"}:
-            return jsonify({"error": str(exc)}), 422
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": str(exc)}), SESSION_START_ERROR_STATUS.get(exc.reason, 422)
     except Exception as e:
         # Keep explicit fallback for unexpected failures.
         return jsonify({"error": str(e)}), 500
@@ -184,13 +198,52 @@ def get_session_diagnostics(session_id):
 
 @api_v1_bp.route("/sessions/<session_id>/turns", methods=["POST"])
 def execute_session_turn(session_id):
-    """Execute a turn in an active session.
+    """Execute a turn in World-Engine-hosted story runtime."""
+    runtime_session = get_runtime_session(session_id)
+    if not runtime_session:
+        return jsonify({"error": "Session not found"}), 404
 
-    W3.2 deferred: Turn execution and persistence are deferred to W3.2.
-    """
-    return jsonify({
-        "error": "Turn execution deferred to W3.2 (persistence layer not yet implemented)"
-    }), 501
+    data = request.get_json(silent=True)
+    if data is None or not isinstance(data, dict):
+        return jsonify({"error": "Invalid JSON body"}), 400
+
+    player_input = (data.get("player_input") or data.get("operator_input") or data.get("input") or "").strip()
+    if not player_input:
+        return jsonify({"error": "player_input is required"}), 400
+    local_interpretation = interpret_player_input(player_input)
+
+    state = runtime_session.current_runtime_state
+    metadata = state.metadata if isinstance(state.metadata, dict) else {}
+    engine_story_session_id = metadata.get("world_engine_story_session_id")
+
+    if not engine_story_session_id:
+        compiled = compile_module(state.module_id)
+        created = create_story_session(
+            module_id=state.module_id,
+            runtime_projection=compiled.runtime_projection.model_dump(mode="json"),
+        )
+        engine_story_session_id = created["session_id"]
+        metadata["world_engine_story_session_id"] = engine_story_session_id
+        state.metadata = metadata
+
+    turn = execute_story_turn_in_engine(session_id=engine_story_session_id, player_input=player_input)
+    diagnostics = get_story_diagnostics(engine_story_session_id)
+    current_state = get_story_state(engine_story_session_id)
+
+    return jsonify(
+        {
+            "session_id": session_id,
+            "world_engine_story_session_id": engine_story_session_id,
+            "turn": turn.get("turn"),
+            "state": current_state,
+            "diagnostics": diagnostics,
+            "backend_interpretation_preview": local_interpretation.model_dump(mode="json"),
+            "warnings": [
+                "backend_proxying_to_world_engine_story_runtime",
+                "backend_local_authoritative_turn_execution_deprecated",
+            ],
+        }
+    ), 200
 
 
 @api_v1_bp.route("/sessions/<session_id>/logs", methods=["GET"])

@@ -32,5 +32,9 @@ flowchart LR
 
 - `docs/architecture/ServerArchitecture.md`
 - `docs/architecture/FrontendBackendRestructure.md`
+- `docs/architecture/ai_stack_in_world_of_shadows.md`
+- `docs/architecture/runtime_authority_decision.md`
+- `docs/architecture/canonical_authored_content_model.md`
+- `docs/architecture/player_input_interpretation_contract.md`
 - `docs/development/LocalDevelopment.md`
 - `docs/operations/RUNBOOK.md`

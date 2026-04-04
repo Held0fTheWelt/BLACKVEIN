@@ -81,6 +81,7 @@ class TestGameContentService:
             rows = GameExperienceTemplate.query.all()
             assert len(rows) == 1
             assert rows[0].template_id == "god_of_carnage_solo"
+            assert "canonical_compilation" in (rows[0].payload_json or {})
 
     def test_create_update_publish_and_list_experience(self, app, authored_payload):
         with app.app_context():
@@ -103,6 +104,7 @@ class TestGameContentService:
             assert published["is_published"] is True
             assert any(row["template_id"] == authored_payload["id"] for row in listed)
             assert any(row["id"] == authored_payload["id"] for row in published_payloads)
+            assert "canonical_compilation" not in created["payload"]  # no matching module id
 
     def test_create_experience_rejects_duplicate_template_id_or_slug(self, app, authored_payload):
         with app.app_context():

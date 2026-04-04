@@ -43,6 +43,7 @@ class SessionStartResult(BaseModel):
     """
 
     session: SessionState
+    module: ContentModule
     initial_turn: TurnState
     events: list[EventLogEntry] = Field(default_factory=list)
 
@@ -192,6 +193,7 @@ def start_session(
 
     return SessionStartResult(
         session=session,
+        module=module,
         initial_turn=initial_turn,
         events=event_log.flush(),
     )

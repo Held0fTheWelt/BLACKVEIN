@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -12,6 +17,7 @@ from app.api.ws import router as ws_router
 from app.auth.tickets import TicketManager
 from app.config import APP_TITLE, APP_VERSION, RUN_STORE_DIR
 from app.runtime.manager import RuntimeManager
+from app.story_runtime import StoryRuntimeManager
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
 
@@ -19,6 +25,7 @@ WEB_ROOT = Path(__file__).resolve().parent / "web"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.manager = RuntimeManager(store_root=RUN_STORE_DIR)
+    app.state.story_manager = StoryRuntimeManager()
     app.state.ticket_manager = TicketManager()
     yield
 

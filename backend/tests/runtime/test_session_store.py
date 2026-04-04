@@ -180,3 +180,20 @@ class TestSessionStoreRegistry:
 
         assert sess_a.current_runtime_state.current_scene_id == "scene_a"
         assert sess_b.current_runtime_state.current_scene_id == "scene_b"
+
+    def test_duplicate_session_registration_raises_value_error(self):
+        """Registering the same session_id twice raises a hard error."""
+        class MockModule:
+            module_id = "god_of_carnage"
+
+        session_state = SessionState(
+            session_id="sess_dup",
+            module_id="god_of_carnage",
+            module_version="1.0.0",
+            current_scene_id="start",
+            status=SessionStatus.ACTIVE,
+        )
+
+        create_session("sess_dup", session_state, MockModule())
+        with pytest.raises(ValueError, match="already registered"):
+            create_session("sess_dup", session_state, MockModule())

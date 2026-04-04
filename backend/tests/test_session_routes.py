@@ -107,6 +107,25 @@ class TestCreateSessionEndpoint:
         assert "error" in data
         assert "module_invalid" in data["error"]
 
+    def test_create_session_no_start_scene_returns_422(self, client, monkeypatch):
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.create_session",
+            lambda module_id: (_ for _ in ()).throw(
+                SessionStartError("no_start_scene", module_id, "missing initial scene")
+            ),
+        )
+        response = client.post("/api/v1/sessions", json={"module_id": "broken_module"})
+        assert response.status_code == 422
+
+    def test_create_session_invalid_json_returns_400(self, client):
+        response = client.post(
+            "/api/v1/sessions",
+            data="{bad-json",
+            content_type="application/json",
+        )
+        assert response.status_code == 400
+        assert "error" in response.get_json()
+
 
 class TestGetSessionEndpoint:
     """Tests for GET /api/v1/sessions/<session_id> (A1.3 snapshot endpoint)."""
@@ -186,17 +205,57 @@ class TestGetSessionEndpoint:
 class TestExecuteTurnEndpoint:
     """Tests for POST /api/v1/sessions/<session_id>/turns."""
 
-    def test_execute_turn_returns_501_not_implemented(self, client):
-        """POST /sessions/<id>/turns returns 501 (W3.2 deferred)."""
+    def test_execute_turn_requires_existing_session(self, client):
         response = client.post(
             "/api/v1/sessions/some-session-id/turns",
-            json={"decision": {}},
+            json={"player_input": "look around"},
+        )
+        assert response.status_code == 404
+
+    def test_execute_turn_proxies_to_world_engine(self, client, monkeypatch):
+        create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
+        session_id = create_resp.get_json()["session_id"]
+
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.create_story_session",
+            lambda **_: {"session_id": "we_story_1"},
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.compile_module",
+            lambda *_args, **_kwargs: type(
+                "Compiled",
+                (),
+                {
+                    "runtime_projection": type(
+                        "Projection",
+                        (),
+                        {"model_dump": staticmethod(lambda **_: {"start_scene_id": "scene_1"})},
+                    )()
+                },
+            )(),
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.execute_story_turn_in_engine",
+            lambda **_: {"turn": {"turn_number": 1, "raw_input": "hello"}},
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.get_story_state",
+            lambda *_: {"turn_counter": 1, "current_scene_id": "scene_1"},
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.get_story_diagnostics",
+            lambda *_: {"diagnostics": [{"interpreted_input": {"kind": "speech"}}]},
         )
 
-        assert response.status_code == 501
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/turns",
+            json={"player_input": "hello"},
+        )
+
+        assert response.status_code == 200
         data = response.get_json()
-        assert "error" in data
-        assert "W3.2" in data["error"] or "persistence" in data["error"]
+        assert data["world_engine_story_session_id"] == "we_story_1"
+        assert data["turn"]["turn_number"] == 1
 
 
 class TestGetLogsEndpoint:
@@ -380,11 +439,11 @@ class TestSessionEndpointStatusCodes:
         )
         assert response.status_code == 201
 
-    def test_turns_returns_501(self, client, monkeypatch):
-        """POST /sessions/<id>/turns returns 501 Not Implemented (out of scope)."""
+    def test_turns_returns_404_when_session_missing(self, client, monkeypatch):
+        """POST /sessions/<id>/turns returns 404 for missing session."""
         monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
         response = client.post(
             "/api/v1/sessions/any-id/turns",
-            json={"decision": {}},
+            json={"player_input": "look around"},
         )
-        assert response.status_code == 501
+        assert response.status_code == 404

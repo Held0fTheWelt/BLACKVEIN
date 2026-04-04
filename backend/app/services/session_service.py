@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from app.runtime.session_start import start_session
 from app.runtime.runtime_models import SessionState
-from app.content.module_loader import load_module
 
 
 def create_session(module_id: str) -> SessionState:
@@ -37,8 +36,7 @@ def create_session(module_id: str) -> SessionState:
 
     from app.runtime.session_store import create_session as register_session
 
-    module = load_module(module_id)
-    register_session(session_state.session_id, session_state, module)
+    register_session(session_state.session_id, session_state, result.module)
 
     return session_state
 
