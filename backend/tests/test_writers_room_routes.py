@@ -24,5 +24,8 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     assert "retrieval" in data
     assert "review_bundle" in data
     assert "capability_audit" in data
+    assert "langchain_retriever_preview" in data
+    assert data["langchain_retriever_preview"]["document_count"] >= 0
     assert "stack_components" in data
     assert "wos.context_pack.build" in data["stack_components"]["capabilities"]
+    assert data["stack_components"]["langchain_integration"]["enabled"] is True

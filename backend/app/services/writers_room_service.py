@@ -10,6 +10,8 @@ from story_runtime_core.model_registry import build_default_registry
 from wos_ai_stack import (
     build_runtime_retriever,
     build_seed_writers_room_graph,
+    build_capability_tool_bridge,
+    build_langchain_retriever_bridge,
     create_default_capability_registry,
 )
 
@@ -20,6 +22,8 @@ class _WritersRoomWorkflow:
     routing: RoutingPolicy
     adapters: dict[str, Any]
     seed_graph: Any
+    langchain_retriever: Any
+    review_bundle_tool: Any
 
 
 _WORKFLOW: _WritersRoomWorkflow | None = None
@@ -42,6 +46,13 @@ def _get_workflow() -> _WritersRoomWorkflow:
         routing=RoutingPolicy(registry),
         adapters=build_default_model_adapters(),
         seed_graph=build_seed_writers_room_graph(),
+        langchain_retriever=build_langchain_retriever_bridge(retriever),
+        review_bundle_tool=build_capability_tool_bridge(
+            capability_registry=capability_registry,
+            capability_name="wos.review_bundle.build",
+            mode="writers_room",
+            actor="writers_room:tool_bridge",
+        ),
     )
     return _WORKFLOW
 
@@ -106,16 +117,18 @@ def run_writers_room_review(
     if generation["content"]:
         recommendations.append(generation["content"][:220])
 
-    review_bundle = workflow.capability_registry.invoke(
-        name="wos.review_bundle.build",
-        mode="writers_room",
-        actor=f"writers_room:{actor_id}",
-        payload={
+    review_bundle = workflow.review_bundle_tool.invoke(
+        {
             "module_id": module_id,
             "summary": f"Writers-Room review for {module_id} with focus '{focus}'.",
             "recommendations": recommendations,
             "evidence_sources": [source.get("source_path", "") for source in sources],
-        },
+        }
+    )
+    langchain_documents = workflow.langchain_retriever.get_runtime_documents(
+        query=f"{module_id} {focus}",
+        module_id=module_id,
+        max_chunks=3,
     )
 
     return {
@@ -138,10 +151,20 @@ def run_writers_room_review(
             }
         ],
         "capability_audit": workflow.capability_registry.recent_audit(limit=20),
+        "langchain_retriever_preview": {
+            "document_count": len(langchain_documents),
+            "sources": [doc.metadata.get("source_path") for doc in langchain_documents],
+        },
         "stack_components": {
             "retrieval": "wos.context_pack.build",
             "orchestration": "langgraph_seed_writers_room_graph",
             "capabilities": ["wos.context_pack.build", "wos.review_bundle.build"],
             "model_routing": "story_runtime_core.RoutingPolicy",
+            "langchain_integration": {
+                "enabled": True,
+                "runtime_bridge": "invoke_runtime_adapter_with_langchain",
+                "retriever_bridge": "build_langchain_retriever_bridge",
+                "tool_bridge": "build_capability_tool_bridge",
+            },
         },
     }

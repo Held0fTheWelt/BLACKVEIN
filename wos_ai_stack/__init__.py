@@ -29,6 +29,14 @@ from .capabilities import (
     capability_catalog,
     create_default_capability_registry,
 )
+from .langchain_integration import (
+    LangChainRetrieverBridge,
+    RuntimeInvocationResult,
+    RuntimeTurnStructuredOutput,
+    build_capability_tool_bridge,
+    build_langchain_retriever_bridge,
+    invoke_runtime_adapter_with_langchain,
+)
 
 __all__ = [
     "AI_STACK_MILESTONE",
@@ -58,4 +66,10 @@ __all__ = [
     "CapabilityValidationError",
     "capability_catalog",
     "create_default_capability_registry",
+    "LangChainRetrieverBridge",
+    "RuntimeInvocationResult",
+    "RuntimeTurnStructuredOutput",
+    "build_capability_tool_bridge",
+    "build_langchain_retriever_bridge",
+    "invoke_runtime_adapter_with_langchain",
 ]

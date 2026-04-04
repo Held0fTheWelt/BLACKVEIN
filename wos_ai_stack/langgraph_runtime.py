@@ -10,6 +10,7 @@ from langgraph.graph import END, StateGraph
 from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
 from wos_ai_stack.capabilities import CapabilityRegistry
+from wos_ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
 from wos_ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
 from wos_ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 
@@ -200,14 +201,24 @@ class RuntimeTurnGraphExecutor:
         outcome = "ok"
         if adapter:
             generation["attempted"] = True
-            call = adapter.generate(
-                state.get("model_prompt", state["player_input"]),
-                timeout_seconds=float(state.get("selected_timeout", 10.0)),
+            runtime_result = invoke_runtime_adapter_with_langchain(
+                adapter=adapter,
+                player_input=state["player_input"],
+                interpreted_input=state.get("interpreted_input", {}) if isinstance(state.get("interpreted_input"), dict) else {},
                 retrieval_context=state.get("context_text"),
+                timeout_seconds=float(state.get("selected_timeout", 10.0)),
             )
+            call = runtime_result.call
             generation["success"] = call.success
             generation["error"] = call.metadata.get("error") if not call.success else None
-            generation["metadata"] = call.metadata
+            generation["metadata"] = {
+                **call.metadata,
+                "langchain_prompt_used": True,
+                "langchain_parser_error": runtime_result.parser_error,
+                "structured_output": runtime_result.parsed_output.model_dump(mode="json")
+                if runtime_result.parsed_output
+                else None,
+            }
             if not call.success:
                 outcome = "error"
         else:

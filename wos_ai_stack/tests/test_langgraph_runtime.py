@@ -73,6 +73,7 @@ def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> No
     assert "route_model" in result["graph_diagnostics"]["nodes_executed"]
     assert "generation" in result
     assert isinstance(result["generation"]["success"], bool)
+    assert result["generation"]["metadata"]["langchain_prompt_used"] is True
 
 
 def test_seed_graphs_for_writers_room_and_improvement_are_operational() -> None:
