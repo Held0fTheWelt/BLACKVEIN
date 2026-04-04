@@ -27,6 +27,42 @@ class WritersRoomStructuredOutput(BaseModel):
     recommendations: list[str] = Field(default_factory=list)
 
 
+_RUNTIME_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are the World of Shadows runtime turn model. "
+            "Return strictly valid JSON matching the requested schema.",
+        ),
+        (
+            "human",
+            "Player input:\n{player_input}\n\n"
+            "Interpreted input:\n{interpreted_input}\n\n"
+            "Runtime retrieval context:\n{retrieval_context}\n\n"
+            "Format instructions:\n{format_instructions}",
+        ),
+    ]
+)
+_WRITERS_ROOM_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are the World of Shadows writers-room review assistant. "
+            "Return strictly valid JSON matching the requested schema.",
+        ),
+        (
+            "human",
+            "Module: {module_id}\n"
+            "Review focus: {focus}\n\n"
+            "Retrieved context for evidence:\n{retrieval_context}\n\n"
+            "Format instructions:\n{format_instructions}",
+        ),
+    ]
+)
+_RUNTIME_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=RuntimeTurnStructuredOutput)
+_WRITERS_ROOM_OUTPUT_PARSER = PydanticOutputParser(pydantic_object=WritersRoomStructuredOutput)
+
+
 @dataclass
 class RuntimeInvocationResult:
     call: ModelCallResult
@@ -43,24 +79,8 @@ def invoke_runtime_adapter_with_langchain(
     retrieval_context: str | None,
     timeout_seconds: float,
 ) -> RuntimeInvocationResult:
-    parser = PydanticOutputParser(pydantic_object=RuntimeTurnStructuredOutput)
-    prompt_template = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "You are the World of Shadows runtime turn model. "
-                "Return strictly valid JSON matching the requested schema.",
-            ),
-            (
-                "human",
-                "Player input:\n{player_input}\n\n"
-                "Interpreted input:\n{interpreted_input}\n\n"
-                "Runtime retrieval context:\n{retrieval_context}\n\n"
-                "Format instructions:\n{format_instructions}",
-            ),
-        ]
-    )
-    rendered_messages = prompt_template.format_messages(
+    parser = _RUNTIME_OUTPUT_PARSER
+    rendered_messages = _RUNTIME_PROMPT_TEMPLATE.format_messages(
         player_input=player_input,
         interpreted_input=interpreted_input,
         retrieval_context=retrieval_context or "(none)",
@@ -97,24 +117,8 @@ def invoke_writers_room_adapter_with_langchain(
     retrieval_context: str | None,
     timeout_seconds: float,
 ) -> WritersRoomInvocationResult:
-    parser = PydanticOutputParser(pydantic_object=WritersRoomStructuredOutput)
-    prompt_template = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                "You are the World of Shadows writers-room review assistant. "
-                "Return strictly valid JSON matching the requested schema.",
-            ),
-            (
-                "human",
-                "Module: {module_id}\n"
-                "Review focus: {focus}\n\n"
-                "Retrieved context for evidence:\n{retrieval_context}\n\n"
-                "Format instructions:\n{format_instructions}",
-            ),
-        ]
-    )
-    rendered_messages = prompt_template.format_messages(
+    parser = _WRITERS_ROOM_OUTPUT_PARSER
+    rendered_messages = _WRITERS_ROOM_PROMPT_TEMPLATE.format_messages(
         module_id=module_id,
         focus=focus,
         retrieval_context=retrieval_context or "(none)",

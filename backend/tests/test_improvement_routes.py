@@ -4,6 +4,7 @@ import pytest
 from wos_ai_stack import CapabilityInvocationError
 from wos_ai_stack.rag import INDEX_VERSION
 
+from app.api.v1 import improvement_routes as improvement_routes_module
 from app.services.improvement_service import (
     ImprovementStore,
     _simulate_sandbox_turn,
@@ -16,6 +17,14 @@ from app.services.improvement_service import (
     finalize_recommendation_rationale_with_retrieval_digest,
     run_sandbox_experiment,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_improvement_rag_singleton():
+    """Process-lifetime RAG cache must not leak mocked registries across tests."""
+    improvement_routes_module._improvement_rag_stack = None
+    yield
+    improvement_routes_module._improvement_rag_stack = None
 
 
 def test_variant_creation_with_parent_lineage(client, auth_headers):
@@ -95,6 +104,9 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     retrieval = payload["retrieval"]
     review_bundle = payload["review_bundle"]
     capability_audit = payload["capability_audit"]
+    och = payload.get("operational_cost_hints") or {}
+    assert och.get("disclaimer") == "coarse_operational_signals_not_financial_estimates"
+    assert "retrieval_route" in och
 
     assert experiment["sandbox"] is True
     assert experiment["variant_id"] == variant_id
@@ -240,6 +252,7 @@ def test_improvement_retrieval_paths_materially_affect_review_bundle_and_stored_
         "modules/d2_alpha_ctx.md"
     ]
 
+    improvement_routes_module._improvement_rag_stack = None
     monkeypatch.setattr(
         "app.api.v1.improvement_routes.create_default_capability_registry",
         lambda **kwargs: PathsRegistry(["modules/d2_beta_ctx.md"]),
@@ -484,6 +497,44 @@ def test_governance_accessibility_lists_recommendation_packages(client, auth_hea
     data = response.get_json()
     assert "packages" in data
     assert isinstance(data["packages"], list)
+
+
+def test_improvement_experiment_reuses_cached_rag_stack(client, auth_headers, monkeypatch):
+    """Two experiment POSTs must call build_runtime_retriever only once (process singleton)."""
+    calls = {"n": 0}
+    real_build = improvement_routes_module.build_runtime_retriever
+
+    def counting_build(repo_root):
+        calls["n"] += 1
+        return real_build(repo_root)
+
+    monkeypatch.setattr(improvement_routes_module, "build_runtime_retriever", counting_build)
+
+    v1 = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "god_of_carnage", "candidate_summary": "Cache test run A."},
+    )
+    v2 = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "god_of_carnage", "candidate_summary": "Cache test run B."},
+    )
+    vid1 = v1.get_json()["variant_id"]
+    vid2 = v2.get_json()["variant_id"]
+    r1 = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={"variant_id": vid1, "test_inputs": ["a", "b"]},
+    )
+    r2 = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={"variant_id": vid2, "test_inputs": ["c", "d"]},
+    )
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert calls["n"] == 1
 
 
 def test_improvement_route_surfaces_capability_failures_honestly(client, auth_headers, monkeypatch):

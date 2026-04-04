@@ -846,6 +846,7 @@ class ContextPackAssembler:
                 {
                     "chunk_id": hit.chunk_id,
                     "source_path": hit.source_path,
+                    "snippet": hit.snippet,
                     "content_class": hit.content_class,
                     "selection_reason": hit.selection_reason,
                     "source_version": hit.source_version,

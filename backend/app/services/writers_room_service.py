@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from langchain_core.documents import Document
 from story_runtime_core import RoutingPolicy
 from story_runtime_core.adapters import build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
@@ -58,6 +59,42 @@ def _workflow_stage_ids(manifest_stages: list[dict[str, Any]]) -> list[str]:
 def _context_fingerprint(context_text: str, *, max_bytes: int = 2048) -> str:
     sample = context_text.encode("utf-8", errors="replace")[:max_bytes]
     return hashlib.sha256(sample).hexdigest()[:16]
+
+
+def _langchain_preview_documents_from_context_pack(
+    retrieval_inner: dict[str, Any],
+    *,
+    max_chunks: int = 3,
+) -> tuple[list[Document], str]:
+    """Build LangChain documents from the primary ``wos.context_pack.build`` payload (no second retrieve)."""
+    sources = retrieval_inner.get("sources") if isinstance(retrieval_inner, dict) else None
+    if not isinstance(sources, list):
+        return [], "primary_context_pack_empty"
+    docs: list[Document] = []
+    for row in sources[:max_chunks]:
+        if not isinstance(row, dict):
+            continue
+        path = str(row.get("source_path") or "")
+        snippet = str(row.get("snippet") or "")
+        if not path and not snippet:
+            continue
+        docs.append(
+            Document(
+                page_content=snippet or "(no snippet)",
+                metadata={
+                    "chunk_id": row.get("chunk_id", ""),
+                    "source_path": path,
+                    "source_version": row.get("source_version", ""),
+                    "domain": str(retrieval_inner.get("domain") or ""),
+                    "content_class": row.get("content_class", ""),
+                    "score": row.get("score", ""),
+                    "index_version": retrieval_inner.get("index_version", ""),
+                    "corpus_fingerprint": retrieval_inner.get("corpus_fingerprint", ""),
+                },
+            )
+        )
+    label = "primary_context_pack" if docs else "primary_context_pack_no_hits"
+    return docs, label
 
 
 @dataclass
@@ -281,9 +318,8 @@ def _execute_writers_room_workflow_package(
     _append_workflow_stage(manifest_stages, stage_id="governance_envelope", artifact_key="review_bundle")
     bundle_id = review_bundle.get("bundle_id") if isinstance(review_bundle, dict) else None
 
-    langchain_documents = workflow.langchain_retriever.get_writers_room_documents(
-        query=f"{module_id} {focus} canon consistency dramaturgy structure",
-        module_id=module_id,
+    langchain_documents, langchain_preview_source = _langchain_preview_documents_from_context_pack(
+        retrieval_inner if isinstance(retrieval_inner, dict) else {},
         max_chunks=3,
     )
     langchain_preview_paths = [
@@ -317,6 +353,7 @@ def _execute_writers_room_workflow_package(
             "evidence_strength": retrieval_trace.get("evidence_strength", evidence_tag),
             "top_source_paths": evidence_paths[:5],
             "context_fingerprint_sha256_16": ctx_fingerprint,
+            "langchain_preview_source": langchain_preview_source,
         },
         "langchain_preview_paths": langchain_preview_paths,
         "governance_readiness": {
@@ -464,7 +501,7 @@ def _execute_writers_room_workflow_package(
                 "runtime_turn_bridge": "invoke_runtime_adapter_with_langchain",
                 "writers_room_generation_bridge": "invoke_writers_room_adapter_with_langchain",
                 "retriever_bridge": "build_langchain_retriever_bridge",
-                "writers_room_document_preview": "LangChainRetrieverBridge.get_writers_room_documents",
+                "writers_room_document_preview": "primary_context_pack_sources_to_langchain_documents",
                 "tool_bridge": "build_capability_tool_bridge",
             },
         },

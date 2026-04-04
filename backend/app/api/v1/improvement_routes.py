@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,34 @@ from wos_ai_stack import (
     build_runtime_retriever,
     create_default_capability_registry,
 )
+from wos_ai_stack.operational_profile import build_operational_cost_hints_from_retrieval
+
+_improvement_rag_lock = threading.Lock()
+# Process-lifetime cache: (repo_root, retriever, assembler, capability_registry)
+_improvement_rag_stack: tuple[Path, Any, Any, Any] | None = None
+
+
+def _get_improvement_rag_stack(repo_root: Path) -> tuple[Any, Any, Any]:
+    """Return shared retriever, assembler, and capability registry for improvement workflows.
+
+    Caching avoids rebuilding the on-disk corpus handle and capability registry on every
+    experiment POST. Cache is keyed by ``repo_root`` and lasts for the process lifetime;
+    if corpus files change on disk, restart the process to pick up a fresh index.
+    """
+    global _improvement_rag_stack
+    with _improvement_rag_lock:
+        if _improvement_rag_stack is not None:
+            cached_root, retriever, assembler, registry = _improvement_rag_stack
+            if cached_root == repo_root:
+                return retriever, assembler, registry
+        retriever, assembler, _corpus = build_runtime_retriever(repo_root)
+        capability_registry = create_default_capability_registry(
+            retriever=retriever,
+            assembler=assembler,
+            repo_root=repo_root,
+        )
+        _improvement_rag_stack = (repo_root, retriever, assembler, capability_registry)
+        return retriever, assembler, capability_registry
 
 
 def _utc_iso() -> str:
@@ -171,12 +200,7 @@ def run_improvement_experiment():
     )
 
     repo_root = Path(__file__).resolve().parents[4]
-    retriever, assembler, _ = build_runtime_retriever(repo_root)
-    capability_registry = create_default_capability_registry(
-        retriever=retriever,
-        assembler=assembler,
-        repo_root=repo_root,
-    )
+    _retriever, _assembler, capability_registry = _get_improvement_rag_stack(repo_root)
     try:
         context_payload = capability_registry.invoke(
             name="wos.context_pack.build",
@@ -347,6 +371,9 @@ def run_improvement_experiment():
             "transcript_evidence": transcript_meta,
             "review_bundle": review_bundle,
             "capability_audit": capability_registry.recent_audit(limit=20),
+            "operational_cost_hints": build_operational_cost_hints_from_retrieval(
+                context_payload.get("retrieval") if isinstance(context_payload.get("retrieval"), dict) else {}
+            ),
         }
     ), 200
 

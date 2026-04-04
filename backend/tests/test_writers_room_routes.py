@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
@@ -14,7 +13,9 @@ from wos_ai_stack import (
     build_runtime_retriever,
     build_seed_writers_room_graph,
 )
+from wos_ai_stack.rag import ContextRetriever
 
+from app.services import writers_room_service as writers_room_service_module
 from app.services.writers_room_service import _WritersRoomWorkflow
 
 
@@ -29,7 +30,10 @@ def _context_pack_for_paths(paths: list[str], *, context_tag: str = "") -> dict:
             "profile": "writers_review",
             "status": "ok",
             "hit_count": len(paths),
-            "sources": [{"source_path": p, "content_class": "canon"} for p in paths],
+            "sources": [
+                {"source_path": p, "content_class": "canon", "snippet": f"excerpt:{p}"}
+                for p in paths
+            ],
             "ranking_notes": [],
             "index_version": "test",
             "corpus_fingerprint": "",
@@ -46,8 +50,6 @@ def _build_controlled_workflow(
     repo_root: Path,
     context_pack_body: dict,
     review_bundle_body: dict,
-    *,
-    langchain_preview_paths: list[str] | None = None,
 ) -> _WritersRoomWorkflow:
     class ControlledRegistry:
         def __init__(self) -> None:
@@ -73,17 +75,7 @@ def _build_controlled_workflow(
         mode="writers_room",
         actor="writers_room:test_controlled",
     )
-    if langchain_preview_paths is not None:
-        class _ControlledLangChainPreview:
-            def get_writers_room_documents(self, query: str, module_id: str, max_chunks: int):
-                return [
-                    SimpleNamespace(metadata={"source_path": path})
-                    for path in langchain_preview_paths
-                ]
-
-        lc_bridge = _ControlledLangChainPreview()
-    else:
-        lc_bridge = build_langchain_retriever_bridge(retriever)
+    lc_bridge = build_langchain_retriever_bridge(retriever)
     return _WritersRoomWorkflow(
         capability_registry=registry,
         routing=RoutingPolicy(build_default_registry()),
@@ -100,6 +92,26 @@ def test_writers_room_review_requires_jwt(client):
         json={"module_id": "god_of_carnage", "focus": "canon consistency"},
     )
     assert response.status_code == 401
+
+
+def test_writers_room_unified_review_calls_context_retriever_once(client, auth_headers, monkeypatch):
+    """Writers-Room workflow must not issue a second retrieve for LangChain preview."""
+    calls = {"n": 0}
+    orig = ContextRetriever.retrieve
+
+    def counting(self, request):
+        calls["n"] += 1
+        return orig(self, request)
+
+    monkeypatch.setattr(ContextRetriever, "retrieve", counting)
+    monkeypatch.setattr(writers_room_service_module, "_WORKFLOW", None)
+    response = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"module_id": "god_of_carnage", "focus": "single retrieve probe"},
+    )
+    assert response.status_code == 200
+    assert calls["n"] == 1
 
 
 def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
@@ -134,6 +146,7 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     rd = data["proposal_package"]["retrieval_digest"]
     assert "hit_count" in rd and "evidence_tier" in rd
     assert "context_fingerprint_sha256_16" in rd
+    assert rd.get("langchain_preview_source") in {"primary_context_pack", "primary_context_pack_no_hits"}
     assert "review_summary" in data
     assert data["review_summary"]["issue_count"] >= 0
     assert data["review_summary"]["bundle_id"] == (data.get("review_bundle") or {}).get("bundle_id")
@@ -216,9 +229,7 @@ def test_proposal_package_langchain_preview_paths_materialized(client, auth_head
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
-        lambda: _build_controlled_workflow(
-            repo, ctx, rb, langchain_preview_paths=["corp/langchain_preview_doc.md"]
-        ),
+        lambda: _build_controlled_workflow(repo, ctx, rb),
     )
     r = client.post(
         "/api/v1/writers-room/reviews",
@@ -227,7 +238,8 @@ def test_proposal_package_langchain_preview_paths_materialized(client, auth_head
     )
     assert r.status_code == 200
     body = r.get_json()
-    assert body["proposal_package"]["langchain_preview_paths"] == ["corp/langchain_preview_doc.md"]
+    assert body["proposal_package"]["langchain_preview_paths"] == ["corp/d1_with_preview.md"]
+    assert body["proposal_package"]["retrieval_digest"]["langchain_preview_source"] == "primary_context_pack"
     gr = body["proposal_package"]["governance_readiness"]
     assert gr["langchain_preview_path_count"] == 1
 
@@ -249,9 +261,7 @@ def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
-        lambda: _build_controlled_workflow(
-            repo, alpha, rb, langchain_preview_paths=["preview/a.md"]
-        ),
+        lambda: _build_controlled_workflow(repo, alpha, rb),
     )
     c1 = client.post(
         "/api/v1/writers-room/reviews",
@@ -274,9 +284,7 @@ def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
-        lambda: _build_controlled_workflow(
-            repo, beta, rb, langchain_preview_paths=["preview/b.md"]
-        ),
+        lambda: _build_controlled_workflow(repo, beta, rb),
     )
     sub = client.post(
         f"/api/v1/writers-room/reviews/{review_id}/revision-submit",
@@ -290,7 +298,7 @@ def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client
     prior = final["revision_cycles"][0]["prior_snapshot"]
     assert prior["proposal_package"]["evidence_sources"][0] == "corp/rev_alpha.md"
     assert final["proposal_package"]["evidence_sources"][0] == "corp/rev_beta.md"
-    assert final["proposal_package"]["langchain_preview_paths"] == ["preview/b.md"]
+    assert final["proposal_package"]["langchain_preview_paths"] == ["corp/rev_beta.md"]
     assert final["focus"] == "revision cycle B"
 
 

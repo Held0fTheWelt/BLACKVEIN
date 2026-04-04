@@ -7,6 +7,7 @@ from wos_ai_stack import ContextRetriever, RagIngestionPipeline
 from wos_ai_stack.langchain_integration import (
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
+    bridges,
     invoke_runtime_adapter_with_langchain,
     invoke_writers_room_adapter_with_langchain,
 )
@@ -55,6 +56,29 @@ class RecordingCapabilityRegistry:
     def invoke(self, *, name: str, mode: str, actor: str, payload: dict) -> dict:
         self.calls.append({"name": name, "mode": mode, "actor": actor, "payload": payload})
         return {"ok": True, "payload": payload}
+
+
+def test_langchain_prompt_templates_are_module_singletons() -> None:
+    rt = bridges._RUNTIME_PROMPT_TEMPLATE
+    wr = bridges._WRITERS_ROOM_PROMPT_TEMPLATE
+    adapter = JsonAdapter()
+    invoke_runtime_adapter_with_langchain(
+        adapter=adapter,
+        player_input="x",
+        interpreted_input={"kind": "speech"},
+        retrieval_context="ctx",
+        timeout_seconds=5.0,
+    )
+    assert bridges._RUNTIME_PROMPT_TEMPLATE is rt
+    wadapter = WritersRoomJsonAdapter()
+    invoke_writers_room_adapter_with_langchain(
+        adapter=wadapter,
+        module_id="m",
+        focus="f",
+        retrieval_context="c",
+        timeout_seconds=5.0,
+    )
+    assert bridges._WRITERS_ROOM_PROMPT_TEMPLATE is wr
 
 
 def test_langchain_runtime_invocation_parses_structured_output() -> None:

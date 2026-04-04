@@ -148,6 +148,12 @@ def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> No
     assert result["generation"]["metadata"]["adapter_invocation_mode"] == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
     assert repro.get("adapter_invocation_mode") == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
     assert repro.get("graph_path_summary") == "primary_invoke_langchain_only"
+    hints = result["graph_diagnostics"].get("operational_cost_hints") or {}
+    assert hints.get("disclaimer") == "coarse_operational_signals_not_financial_estimates"
+    assert hints.get("graph_execution_health") == EXECUTION_HEALTH_HEALTHY
+    assert hints.get("prompt_length_bucket") in {"small", "medium", "large"}
+    assert hints.get("adapter_invocation_mode") == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
+    assert hints.get("model_fallback_used") is False
 
 
 def test_runtime_turn_graph_fallback_uses_raw_adapter_and_marks_invocation_mode(tmp_path: Path) -> None:
@@ -168,6 +174,10 @@ def test_runtime_turn_graph_fallback_uses_raw_adapter_and_marks_invocation_mode(
     repro = result["graph_diagnostics"].get("repro_metadata") or {}
     assert repro.get("adapter_invocation_mode") == ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK
     assert repro.get("graph_path_summary") == "used_fallback_model_node_raw_adapter"
+    hints = result["graph_diagnostics"].get("operational_cost_hints") or {}
+    assert hints.get("fallback_path_taken") is True
+    assert hints.get("model_fallback_used") is True
+    assert hints.get("graph_execution_health") == EXECUTION_HEALTH_MODEL_FALLBACK
 
 
 def test_runtime_turn_graph_missing_mock_fallback_is_explicit_degraded(tmp_path: Path) -> None:

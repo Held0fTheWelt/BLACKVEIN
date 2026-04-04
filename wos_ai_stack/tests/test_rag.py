@@ -165,6 +165,8 @@ def test_context_pack_exposes_attribution_and_selection_notes(tmp_path: Path) ->
     assert "score" in pack.sources[0]
     assert "selection_reason" in pack.sources[0]
     assert "source_version" in pack.sources[0]
+    assert "snippet" in pack.sources[0]
+    assert pack.sources[0]["snippet"]
     assert pack.ranking_notes
     assert pack.index_version == INDEX_VERSION
     assert pack.corpus_fingerprint == corpus.corpus_fingerprint

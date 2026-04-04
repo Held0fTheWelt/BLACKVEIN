@@ -18,6 +18,7 @@ from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
 from wos_ai_stack.capabilities import CapabilityRegistry
 from wos_ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
 from wos_ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
+from wos_ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 from wos_ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
@@ -376,6 +377,13 @@ class RuntimeTurnGraphExecutor:
         repro_metadata["adapter_invocation_mode"] = adapter_mode
         repro_metadata["graph_path_summary"] = graph_path_summary
 
+        cost_hints = build_operational_cost_hints_for_runtime_graph(
+            retrieval=retrieval if isinstance(retrieval, dict) else {},
+            generation=generation if isinstance(generation, dict) else {},
+            graph_execution_health=execution_health,
+            model_prompt=state.get("model_prompt") if isinstance(state.get("model_prompt"), str) else None,
+            fallback_path_taken=fallback_taken,
+        )
         update["graph_diagnostics"] = {
             "graph_name": self.graph_name,
             "graph_version": self.graph_version,
@@ -386,6 +394,7 @@ class RuntimeTurnGraphExecutor:
             "errors": graph_errors,
             "capability_audit": state.get("capability_audit", []),
             "repro_metadata": repro_metadata,
+            "operational_cost_hints": cost_hints,
         }
         return update
 
