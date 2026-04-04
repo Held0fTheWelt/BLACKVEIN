@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from flask import g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -11,6 +13,12 @@ from app.services.improvement_service import (
     create_variant,
     list_recommendation_packages,
     run_sandbox_experiment,
+)
+from wos_ai_stack import (
+    CapabilityAccessDeniedError,
+    CapabilityInvocationError,
+    build_runtime_retriever,
+    create_default_capability_registry,
 )
 
 
@@ -64,6 +72,57 @@ def run_improvement_experiment():
         test_inputs=[str(item) for item in test_inputs] if isinstance(test_inputs, list) else None,
     )
     package = build_recommendation_package(experiment_id=experiment["experiment_id"], actor_id=actor_id)
+
+    repo_root = Path(__file__).resolve().parents[3]
+    retriever, assembler, _ = build_runtime_retriever(repo_root)
+    capability_registry = create_default_capability_registry(
+        retriever=retriever,
+        assembler=assembler,
+        repo_root=repo_root,
+    )
+    try:
+        context_payload = capability_registry.invoke(
+            name="wos.context_pack.build",
+            mode="improvement",
+            actor=f"improvement:{actor_id}",
+            trace_id=trace_id,
+            payload={
+                "domain": "improvement",
+                "profile": "improvement_eval",
+                "query": f"{experiment['baseline_id']} {package['candidate']['candidate_summary']} "
+                "variant evaluation recommendation",
+                "module_id": experiment["baseline_id"],
+                "max_chunks": 5,
+            },
+        )
+        review_bundle = capability_registry.invoke(
+            name="wos.review_bundle.build",
+            mode="improvement",
+            actor=f"improvement:{actor_id}",
+            trace_id=trace_id,
+            payload={
+                "module_id": experiment["baseline_id"],
+                "summary": f"Improvement recommendation for variant {experiment['variant_id']}.",
+                "recommendations": [package["recommendation_summary"]],
+                "evidence_sources": [
+                    source.get("source_path", "")
+                    for source in context_payload.get("retrieval", {}).get("sources", [])
+                    if isinstance(source, dict)
+                ],
+            },
+        )
+    except (CapabilityAccessDeniedError, CapabilityInvocationError) as exc:
+        return (
+            jsonify(
+                {
+                    "error": "capability_workflow_failed",
+                    "detail": str(exc),
+                    "trace_id": trace_id,
+                    "capability_audit": capability_registry.recent_audit(limit=20),
+                }
+            ),
+            502,
+        )
     log_workflow_audit(
         trace_id,
         workflow="improvement_experiment_run",
@@ -76,6 +135,9 @@ def run_improvement_experiment():
             "trace_id": trace_id,
             "experiment": experiment,
             "recommendation_package": package,
+            "retrieval": context_payload.get("retrieval", {}),
+            "review_bundle": review_bundle,
+            "capability_audit": capability_registry.recent_audit(limit=20),
         }
     ), 200
 

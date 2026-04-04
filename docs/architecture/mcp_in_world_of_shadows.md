@@ -1,6 +1,6 @@
 # MCP Capability Layer in World of Shadows
 
-Status: Canonical Milestone 8 architecture and implementation baseline.
+Status: C2 repaired operational workflow baseline.
 
 ## Objective
 
@@ -56,20 +56,32 @@ Audit rows are surfaced in runtime graph diagnostics and governance endpoint res
 
 ## Runtime and workflow integration
 
-`RuntimeTurnGraphExecutor` now uses `wos.context_pack.build` capability for context retrieval assembly in the authoritative support path.
+Active workflow usage now includes:
 
-This means at least one real production path uses guarded capability access instead of bypassing internal helper calls.
+- Runtime authoritative turn path:
+  - `RuntimeTurnGraphExecutor` invokes `wos.context_pack.build` in `runtime` mode.
+- Writers-Room production review path:
+  - `writers_room_service.run_writers_room_review` invokes `wos.context_pack.build` in `writers_room` mode.
+  - `writers_room_service.run_writers_room_review` invokes `wos.review_bundle.build` in `writers_room` mode.
+- Improvement experiment/recommendation path:
+  - `POST /api/v1/improvement/experiments/run` invokes `wos.context_pack.build` in `improvement` mode.
+  - `POST /api/v1/improvement/experiments/run` invokes `wos.review_bundle.build` in `improvement` mode.
+  - capability failure is explicit (`502 capability_workflow_failed`) with capability audit rows returned.
+
+This is materially beyond capability registration-only behavior.
 
 ## Governance visibility
 
 Backend exposes `GET /api/v1/sessions/<session_id>/capability-audit` for governance-side inspection of capability invocations recorded in world-engine diagnostics.
 
+Improvement responses now also return `capability_audit` rows in-band for direct governance review of tool invocations in that workflow.
+
 ## MCP server alignment
 
 `tools/mcp_server/tools_registry.py` now includes `wos.capabilities.catalog` to expose the guarded capability catalog through the MCP tool surface.
 
-## Deferred beyond M8
+## Current intentionally out of scope
 
-- signed audit persistence beyond in-memory retention,
-- richer policy engines (role-based actor claims and environment scopes),
-- write/action capabilities for live mutation paths (still deferred by authority model).
+- signed/immutable long-term audit storage,
+- external policy engines with environment-level claim delegation,
+- broad write-action expansion outside recommendation-oriented governed workflows.
