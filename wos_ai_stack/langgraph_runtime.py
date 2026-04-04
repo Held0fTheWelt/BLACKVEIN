@@ -167,6 +167,9 @@ class RuntimeTurnGraphExecutor:
             )
             retrieval_result = self.retriever.retrieve(request)
             pack = self.assembler.assemble(retrieval_result)
+            top_score = ""
+            if pack.sources:
+                top_score = str(pack.sources[0].get("score", ""))
             retrieval = {
                 "domain": pack.domain,
                 "profile": pack.profile,
@@ -177,6 +180,9 @@ class RuntimeTurnGraphExecutor:
                 "index_version": pack.index_version,
                 "corpus_fingerprint": pack.corpus_fingerprint,
                 "storage_path": pack.storage_path,
+                "retrieval_route": pack.retrieval_route,
+                "embedding_model_id": pack.embedding_model_id,
+                "top_hit_score": top_score,
             }
             context_text = pack.compact_context
         prompt = state["player_input"] if not context_text else f"{state['player_input']}\n\n{context_text}"

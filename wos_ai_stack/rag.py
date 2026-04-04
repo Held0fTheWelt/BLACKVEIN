@@ -1,19 +1,23 @@
 """Project-scoped retrieval for World of Shadows (RAG layer C).
 
-This is intentionally lightweight local retrieval: hand-tuned token normalization
-(``SEMANTIC_CANON`` / ``SEMANTIC_EXPANSIONS``), sparse TF-IDF-style term weighting,
-and cosine similarity over chunk term vectors. It is not embedding-based and does
-not provide a distributed vector index.
+Hybrid retrieval (C1-next): when a local embedding index is present, queries are
+scored with a weighted mix of dense cosine similarity (``fastembed`` / ONNX) and
+the existing sparse semantic-term cosine. Canonical boosts, profile boosts, and
+source attribution are unchanged. Without embeddings (missing dependency, env
+disable, load failure, or query encode failure), the retriever uses the sparse
+path only and records ``retrieval_route=sparse_fallback`` in ranking notes.
 
-Persistence is a JSON snapshot under ``.wos/rag/runtime_corpus.json`` (see
-``PersistentRagStore``): suitable for dev/single-host workflows; large corpora or
-strict durability requirements would need a different backend.
+Persistence: JSON corpus under ``.wos/rag/runtime_corpus.json`` (``PersistentRagStore``)
+plus optional ``runtime_embeddings.npz`` + ``runtime_embeddings.meta.json`` for
+reproducible local dense indices. This remains a single-host dev-oriented design,
+not a distributed vector database.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+import json
 import os
 import tempfile
 try:
@@ -25,10 +29,19 @@ except ImportError:
         def __str__(self) -> str:
             return self.value
 import hashlib
-import json
 import math
 from pathlib import Path
 import re
+
+import numpy as np
+
+from wos_ai_stack.semantic_embedding import (
+    EMBEDDING_INDEX_VERSION,
+    EMBEDDING_MODEL_ID,
+    embeddings_disabled_by_env,
+    encode_query,
+    encode_texts,
+)
 
 
 class RetrievalDomain(StrEnum):
@@ -80,7 +93,11 @@ DOMAIN_CONTENT_ACCESS: dict[RetrievalDomain, set[ContentClass]] = {
 }
 
 
-INDEX_VERSION = "c1_semantic_v2"
+INDEX_VERSION = "c1_next_hybrid_v1"
+
+# Hybrid base score: dense + sparse cosine (both in ~[0, 1] for typical text matches).
+HYBRID_DENSE_WEIGHT = 0.62
+HYBRID_SPARSE_WEIGHT = 0.38
 
 
 class RetrievalDomainError(ValueError):
@@ -198,6 +215,7 @@ class RetrievalRequest:
     module_id: str | None = None
     scene_id: str | None = None
     max_chunks: int = 4
+    use_sparse_only: bool = False
 
 
 @dataclass(slots=True)
@@ -222,6 +240,8 @@ class RetrievalResult:
     index_version: str = ""
     corpus_fingerprint: str = ""
     storage_path: str = ""
+    retrieval_route: str = ""
+    embedding_model_id: str = ""
 
 
 @dataclass(slots=True)
@@ -237,6 +257,8 @@ class ContextPack:
     index_version: str = ""
     corpus_fingerprint: str = ""
     storage_path: str = ""
+    retrieval_route: str = ""
+    embedding_model_id: str = ""
 
 PROFILE_VERSIONS = {
     "runtime_turn_support": "runtime_profile_v2",
@@ -528,13 +550,147 @@ class RagIngestionPipeline:
         return chunks
 
 
+@dataclass(slots=True)
+class CorpusEmbeddingIndex:
+    """Dense vectors aligned with ``corpus.chunks`` row order (L2-normalized float32)."""
+
+    vectors: np.ndarray
+    model_id: str
+
+
+def _embedding_meta_path(corpus_json: Path) -> Path:
+    return corpus_json.parent / "runtime_embeddings.meta.json"
+
+
+def _embedding_npz_path(corpus_json: Path) -> Path:
+    return corpus_json.parent / "runtime_embeddings.npz"
+
+
+def _load_corpus_embedding_index(corpus: InMemoryRetrievalCorpus, corpus_json: Path) -> CorpusEmbeddingIndex | None:
+    meta_path = _embedding_meta_path(corpus_json)
+    npz_path = _embedding_npz_path(corpus_json)
+    if not meta_path.is_file() or not npz_path.is_file():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(meta, dict):
+        return None
+    if str(meta.get("corpus_fingerprint", "")) != corpus.corpus_fingerprint:
+        return None
+    if str(meta.get("corpus_index_version", "")) != INDEX_VERSION:
+        return None
+    if str(meta.get("embedding_index_version", "")) != EMBEDDING_INDEX_VERSION:
+        return None
+    model_id = str(meta.get("embedding_model_id", ""))
+    if model_id != EMBEDDING_MODEL_ID:
+        return None
+    n = int(meta.get("num_chunks", -1))
+    if n != len(corpus.chunks):
+        return None
+    try:
+        data = np.load(npz_path)
+        vectors = data["vectors"]
+    except Exception:
+        return None
+    if not isinstance(vectors, np.ndarray) or vectors.shape[0] != n:
+        return None
+    return CorpusEmbeddingIndex(vectors=vectors.astype(np.float32, copy=False), model_id=model_id)
+
+
+def _save_corpus_embedding_index(
+    corpus: InMemoryRetrievalCorpus,
+    vectors: np.ndarray,
+    corpus_json: Path,
+) -> None:
+    meta_path = _embedding_meta_path(corpus_json)
+    npz_path = _embedding_npz_path(corpus_json)
+    corpus_json.parent.mkdir(parents=True, exist_ok=True)
+    meta = {
+        "corpus_fingerprint": corpus.corpus_fingerprint,
+        "corpus_index_version": INDEX_VERSION,
+        "embedding_index_version": EMBEDDING_INDEX_VERSION,
+        "embedding_model_id": EMBEDDING_MODEL_ID,
+        "num_chunks": len(corpus.chunks),
+    }
+    tmp_meta: str | None = None
+    tmp_npz: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            delete=False,
+            dir=corpus_json.parent,
+            prefix=".emb_meta_",
+            suffix=".json",
+        ) as tmp:
+            tmp.write(json.dumps(meta, ensure_ascii=True, indent=2))
+            tmp_meta = tmp.name
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            dir=corpus_json.parent,
+            prefix=".emb_vec_",
+            suffix=".npz",
+        ) as tmp:
+            tmp_npz = tmp.name
+        np.savez_compressed(tmp_npz, vectors=vectors.astype(np.float32))
+        if tmp_meta:
+            os.replace(tmp_meta, meta_path)
+        if tmp_npz:
+            os.replace(tmp_npz, npz_path)
+    except Exception:
+        if tmp_meta:
+            try:
+                Path(tmp_meta).unlink(missing_ok=True)
+            except OSError:
+                pass
+        if tmp_npz:
+            try:
+                Path(tmp_npz).unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
+
+
+def _ensure_corpus_embedding_index(corpus: InMemoryRetrievalCorpus, corpus_json: Path) -> CorpusEmbeddingIndex | None:
+    if embeddings_disabled_by_env():
+        return None
+    cached = _load_corpus_embedding_index(corpus, corpus_json)
+    if cached is not None:
+        return cached
+    if not corpus.chunks:
+        return None
+    texts = [chunk.text for chunk in corpus.chunks]
+    vectors = encode_texts(texts)
+    if vectors is None:
+        return None
+    if vectors.shape[0] != len(corpus.chunks):
+        return None
+    _save_corpus_embedding_index(corpus, vectors, corpus_json)
+    return CorpusEmbeddingIndex(vectors=vectors, model_id=EMBEDDING_MODEL_ID)
+
+
 class ContextRetriever:
-    def __init__(self, corpus: InMemoryRetrievalCorpus) -> None:
+    def __init__(
+        self,
+        corpus: InMemoryRetrievalCorpus,
+        *,
+        embedding_index: CorpusEmbeddingIndex | None = None,
+        embedding_model_id: str = "",
+    ) -> None:
         self.corpus = corpus
+        self._embedding_index = embedding_index
+        self._embedding_model_id = embedding_model_id or (embedding_index.model_id if embedding_index else "")
 
     def _corpus_trace(self) -> tuple[str, str, str]:
         corpus = self.corpus
         return corpus.index_version, corpus.corpus_fingerprint, corpus.storage_path or ""
+
+    def _embedding_ready(self) -> bool:
+        if self._embedding_index is None:
+            return False
+        return self._embedding_index.vectors.shape[0] == len(self.corpus.chunks)
 
     def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
         if request.domain not in DOMAIN_CONTENT_ACCESS:
@@ -550,7 +706,21 @@ class ContextRetriever:
                 index_version=trace[0],
                 corpus_fingerprint=trace[1],
                 storage_path=trace[2],
+                retrieval_route="",
+                embedding_model_id="",
             )
+
+        use_hybrid = self._embedding_ready() and not request.use_sparse_only and not embeddings_disabled_by_env()
+        query_vec: np.ndarray | None = None
+        query_encode_failed = False
+        if use_hybrid:
+            query_vec = encode_query(request.query)
+            if query_vec is None:
+                use_hybrid = False
+                query_encode_failed = True
+
+        retrieval_route = "hybrid" if use_hybrid else "sparse_fallback"
+        embedding_mid = self._embedding_model_id if use_hybrid else ""
 
         allowed_classes = DOMAIN_CONTENT_ACCESS[request.domain]
         query_terms = _build_semantic_terms(request.query)
@@ -562,13 +732,30 @@ class ContextRetriever:
             PROFILE_CANONICAL_WEIGHT[DOMAIN_DEFAULT_PROFILE[request.domain]],
         )
         ranked: list[tuple[float, CorpusChunk, str]] = []
-        for chunk in self.corpus.chunks:
+        prefix_notes: list[str] = [f"retrieval_route={retrieval_route}"]
+        if use_hybrid and embedding_mid:
+            prefix_notes.append(f"embedding_model_id={embedding_mid}")
+        if query_encode_failed:
+            prefix_notes.append("embedding_query_encode_failed")
+
+        for chunk_index, chunk in enumerate(self.corpus.chunks):
             if chunk.content_class not in allowed_classes:
                 continue
             semantic_score = _cosine_similarity(query_terms, query_norm, chunk)
-            score = semantic_score * 4.0
+            dense_sim = 0.0
+            if use_hybrid and query_vec is not None:
+                dense_sim = float(np.dot(query_vec, self._embedding_index.vectors[chunk_index]))
+                dense_sim = max(0.0, min(1.0, dense_sim))
+                hybrid_core = HYBRID_DENSE_WEIGHT * dense_sim + HYBRID_SPARSE_WEIGHT * semantic_score
+            else:
+                hybrid_core = semantic_score
+            score = hybrid_core * 4.0
             reasons: list[str] = []
-            if semantic_score > 0:
+            if use_hybrid and query_vec is not None:
+                reasons.append(
+                    f"hybrid_core={hybrid_core:.3f}; dense_cos={dense_sim:.3f}; sparse_cos={semantic_score:.3f}"
+                )
+            elif semantic_score > 0:
                 reasons.append(f"semantic_similarity={semantic_score:.3f}")
             profile_boost = profile_boosts.get(chunk.content_class, 0.0)
             if profile_boost:
@@ -604,17 +791,20 @@ class ContextRetriever:
             for score, chunk, reason in selected
         ]
         if not hits:
+            notes = prefix_notes + ["no_ranked_hits_for_query"]
             return RetrievalResult(
                 request=request,
                 status=RetrievalStatus.FALLBACK,
                 hits=[],
-                ranking_notes=["no_ranked_hits_for_query"],
+                ranking_notes=notes,
                 error="no_ranked_hits",
                 index_version=trace[0],
                 corpus_fingerprint=trace[1],
                 storage_path=trace[2],
+                retrieval_route=retrieval_route,
+                embedding_model_id=embedding_mid,
             )
-        ranking_notes = [f"{hit.source_path} score={hit.score:.2f} ({hit.selection_reason})" for hit in hits]
+        ranking_notes = prefix_notes + [f"{hit.source_path} score={hit.score:.2f} ({hit.selection_reason})" for hit in hits]
         return RetrievalResult(
             request=request,
             status=RetrievalStatus.OK,
@@ -624,6 +814,8 @@ class ContextRetriever:
             index_version=trace[0],
             corpus_fingerprint=trace[1],
             storage_path=trace[2],
+            retrieval_route=retrieval_route,
+            embedding_model_id=embedding_mid,
         )
 
 
@@ -643,6 +835,8 @@ class ContextPackAssembler:
                 index_version=trace[0],
                 corpus_fingerprint=trace[1],
                 storage_path=trace[2],
+                retrieval_route=result.retrieval_route,
+                embedding_model_id=result.embedding_model_id,
             )
         lines = ["Retrieved context (ranked):"]
         sources: list[dict[str, str]] = []
@@ -670,6 +864,8 @@ class ContextPackAssembler:
             index_version=trace[0],
             corpus_fingerprint=trace[1],
             storage_path=trace[2],
+            retrieval_route=result.retrieval_route,
+            embedding_model_id=result.embedding_model_id,
         )
 
 
@@ -686,7 +882,9 @@ def build_runtime_retriever(repo_root: Path) -> tuple[ContextRetriever, ContextP
         corpus = pipeline.build_corpus(repo_root, source_fingerprint=fingerprint)
         corpus.storage_path = str(persistence_path)
         store.save(corpus)
-    return ContextRetriever(corpus), ContextPackAssembler(), corpus
+    emb_index = _ensure_corpus_embedding_index(corpus, persistence_path)
+    model_id = emb_index.model_id if emb_index is not None else ""
+    return ContextRetriever(corpus, embedding_index=emb_index, embedding_model_id=model_id), ContextPackAssembler(), corpus
 
 
 @dataclass(slots=True)

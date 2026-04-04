@@ -37,6 +37,12 @@ def _summarize_invocation_result(capability_name: str, result: dict[str, Any]) -
         iv = retrieval.get("index_version")
         if isinstance(iv, str) and iv:
             summary["index_version"] = iv
+        route = retrieval.get("retrieval_route")
+        if isinstance(route, str) and route:
+            summary["retrieval_route"] = route
+        top_hit = retrieval.get("top_hit_score")
+        if isinstance(top_hit, str) and top_hit:
+            summary["top_hit_score"] = top_hit
         return summary
     if capability_name == "wos.review_bundle.build":
         evidence = result.get("evidence_sources", [])
@@ -241,6 +247,9 @@ def create_default_capability_registry(
         )
         retrieval_result = retriever.retrieve(request)
         context_pack = assembler.assemble(retrieval_result)
+        top_score = ""
+        if context_pack.sources:
+            top_score = str(context_pack.sources[0].get("score", ""))
         return {
             "retrieval": {
                 "domain": context_pack.domain,
@@ -252,6 +261,9 @@ def create_default_capability_registry(
                 "index_version": context_pack.index_version,
                 "corpus_fingerprint": context_pack.corpus_fingerprint,
                 "storage_path": context_pack.storage_path,
+                "retrieval_route": context_pack.retrieval_route,
+                "embedding_model_id": context_pack.embedding_model_id,
+                "top_hit_score": top_score,
             },
             "context_text": context_pack.compact_context,
         }

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+import pytest
 
 from wos_ai_stack.rag import (
     ContentClass,
@@ -14,11 +17,28 @@ from wos_ai_stack.rag import (
     RetrievalStatus,
     build_runtime_retriever,
 )
+from wos_ai_stack.semantic_embedding import encode_texts
 
 
 def _write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def _embedding_backend_ready() -> bool:
+    prev = os.environ.get("WOS_RAG_DISABLE_EMBEDDINGS")
+    try:
+        os.environ.pop("WOS_RAG_DISABLE_EMBEDDINGS", None)
+        return encode_texts(["ping"], batch_size=1) is not None
+    finally:
+        if prev is not None:
+            os.environ["WOS_RAG_DISABLE_EMBEDDINGS"] = prev
+
+
+requires_embeddings = pytest.mark.skipif(
+    not _embedding_backend_ready(),
+    reason="fastembed/numpy embedding backend unavailable (install deps or offline model cache)",
+)
 
 
 def test_ingestion_builds_corpus_from_repo_owned_sources(tmp_path: Path) -> None:
@@ -333,3 +353,118 @@ def test_persistent_rag_store_roundtrip_preserves_chunks(tmp_path: Path) -> None
     assert loaded.index_version == INDEX_VERSION
     assert len(loaded.chunks) == len(corpus.chunks)
     assert loaded.chunks[0].chunk_id == corpus.chunks[0].chunk_id
+
+
+@requires_embeddings
+def test_hybrid_ranking_beats_sparse_only_on_paraphrase_with_low_lexical_overlap(tmp_path: Path) -> None:
+    """Dense similarity should connect paraphrases where sparse token overlap is weak."""
+    _write(
+        tmp_path / "content" / "wildlife.md",
+        "A nocturnal marsupial navigated the eucalyptus canopy seeking nectar beneath the southern stars.",
+    )
+    _write(
+        tmp_path / "content" / "finance.md",
+        "The stock market rallied sharply after inflation data surprised analysts on Wall Street.",
+    )
+    retriever, _, _corpus = build_runtime_retriever(tmp_path)
+    query = "koala moving through gum trees at night looking for food"
+    hybrid_req = RetrievalRequest(
+        domain=RetrievalDomain.RUNTIME,
+        profile="runtime_turn_support",
+        query=query,
+        module_id="wildlife",
+        max_chunks=2,
+    )
+    sparse_req = RetrievalRequest(
+        domain=RetrievalDomain.RUNTIME,
+        profile="runtime_turn_support",
+        query=query,
+        module_id="wildlife",
+        max_chunks=2,
+        use_sparse_only=True,
+    )
+    hybrid_res = retriever.retrieve(hybrid_req)
+    sparse_res = retriever.retrieve(sparse_req)
+    assert hybrid_res.retrieval_route == "hybrid"
+    assert hybrid_res.hits, "hybrid path should return hits"
+    assert hybrid_res.hits[0].source_path.replace("\\", "/").endswith("wildlife.md")
+    assert sparse_res.retrieval_route == "sparse_fallback"
+    assert sparse_res.hits
+    sparse_top = sparse_res.hits[0].source_path.replace("\\", "/")
+    hybrid_top = hybrid_res.hits[0].source_path.replace("\\", "/")
+    assert hybrid_top != sparse_top or "wildlife" in sparse_top
+
+
+@requires_embeddings
+def test_embedding_index_survives_reload_via_build_runtime_retriever(tmp_path: Path) -> None:
+    _write(tmp_path / "content" / "doc.md", "Persistent hybrid index reload check for retrieval.")
+    retriever_a, _, corpus_a = build_runtime_retriever(tmp_path)
+    npz_path = Path(corpus_a.storage_path).parent / "runtime_embeddings.npz"
+    meta_path = Path(corpus_a.storage_path).parent / "runtime_embeddings.meta.json"
+    assert npz_path.is_file()
+    assert meta_path.is_file()
+    assert retriever_a.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="reload check",
+            max_chunks=1,
+        )
+    ).retrieval_route == "hybrid"
+    retriever_b, _, corpus_b = build_runtime_retriever(tmp_path)
+    assert retriever_b.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="reload check",
+            max_chunks=1,
+        )
+    ).retrieval_route == "hybrid"
+    assert corpus_b.corpus_fingerprint == corpus_a.corpus_fingerprint
+
+
+def test_sparse_fallback_explicit_when_embeddings_disabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WOS_RAG_DISABLE_EMBEDDINGS", "1")
+    _write(tmp_path / "content" / "alpha.md", "Dinner dispute between families escalates into chaos.")
+    retriever, _, _ = build_runtime_retriever(tmp_path)
+    result = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="family argument at dinner",
+            max_chunks=1,
+        )
+    )
+    assert result.retrieval_route == "sparse_fallback"
+    assert result.embedding_model_id == ""
+    assert any("retrieval_route=sparse_fallback" in note for note in result.ranking_notes)
+
+
+@requires_embeddings
+def test_hybrid_used_for_runtime_and_improvement_profiles(tmp_path: Path) -> None:
+    _write(tmp_path / "content" / "mod.md", "Sandbox variant evaluation metrics and trigger coverage notes.")
+    _write(
+        tmp_path / "docs" / "reports" / "eval_acceptance.md",
+        "Acceptance evaluation metrics for sandbox variant comparison.",
+    )
+    retriever, _, _ = build_runtime_retriever(tmp_path)
+    r_runtime = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="evaluation metrics",
+            max_chunks=2,
+        )
+    )
+    r_imp = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.IMPROVEMENT,
+            profile="improvement_eval",
+            query="sandbox variant evaluation",
+            max_chunks=2,
+        )
+    )
+    assert r_runtime.retrieval_route == "hybrid"
+    assert r_imp.retrieval_route == "hybrid"
+    assert "retrieval_route=hybrid" in r_runtime.ranking_notes[0]
+    assert "retrieval_route=hybrid" in r_imp.ranking_notes[0]

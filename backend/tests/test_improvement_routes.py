@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from wos_ai_stack import CapabilityInvocationError
+from wos_ai_stack.rag import INDEX_VERSION
 
 from app.services.improvement_service import (
     _simulate_sandbox_turn,
@@ -112,9 +113,12 @@ def test_improvement_experiment_reflects_empty_retrieval_in_trace_and_review_sum
                         "hit_count": 0,
                         "sources": [],
                         "ranking_notes": [],
-                        "index_version": "c1_semantic_v2",
+                        "index_version": INDEX_VERSION,
                         "corpus_fingerprint": "",
                         "storage_path": "",
+                        "retrieval_route": "sparse_fallback",
+                        "embedding_model_id": "",
+                        "top_hit_score": "",
                     },
                     "context_text": "",
                 }
