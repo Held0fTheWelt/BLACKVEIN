@@ -84,3 +84,97 @@ def test_story_runtime_graph_uses_fallback_branch_on_model_failure(tmp_path):
     assert turn["graph"]["fallback_path_taken"] is True
     assert "fallback_model" in turn["graph"]["nodes_executed"]
     assert turn["model_route"]["generation"]["fallback_used"] is True
+
+
+def test_story_runtime_commits_legal_scene_progression(tmp_path):
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("Story progression test corpus.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    adapter = CaptureAdapter()
+    manager = StoryRuntimeManager(
+        adapters={"mock": adapter, "openai": adapter, "ollama": adapter},
+        retriever=ContextRetriever(corpus),
+        context_assembler=ContextPackAssembler(),
+    )
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
+            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
+        },
+    )
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
+    state = manager.get_state(session.session_id)
+    diagnostics = manager.get_diagnostics(session.session_id)
+
+    assert turn["progression_commit"]["allowed"] is True
+    assert turn["progression_commit"]["committed_scene_id"] == "scene_2"
+    assert state["current_scene_id"] == "scene_2"
+    assert diagnostics["diagnostics"][-1]["progression_commit"]["committed_scene_id"] == "scene_2"
+
+
+def test_story_runtime_rejects_illegal_scene_progression(tmp_path):
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("Illegal progression test corpus.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    adapter = CaptureAdapter()
+    manager = StoryRuntimeManager(
+        adapters={"mock": adapter, "openai": adapter, "ollama": adapter},
+        retriever=ContextRetriever(corpus),
+        context_assembler=ContextPackAssembler(),
+    )
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
+            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
+        },
+    )
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_3")
+    state = manager.get_state(session.session_id)
+
+    assert turn["progression_commit"]["allowed"] is False
+    assert turn["progression_commit"]["reason"] == "illegal_transition_not_allowed"
+    assert state["current_scene_id"] == "scene_1"
+
+
+def test_story_runtime_builds_multi_turn_committed_progression(tmp_path):
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("Multi-turn progression test corpus.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    adapter = CaptureAdapter()
+    manager = StoryRuntimeManager(
+        adapters={"mock": adapter, "openai": adapter, "ollama": adapter},
+        retriever=ContextRetriever(corpus),
+        context_assembler=ContextPackAssembler(),
+    )
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
+            "transition_hints": [
+                {"from": "scene_1", "to": "scene_2"},
+                {"from": "scene_2", "to": "scene_3"},
+            ],
+        },
+    )
+
+    first_turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
+    second_turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_3")
+    state = manager.get_state(session.session_id)
+    diagnostics = manager.get_diagnostics(session.session_id)
+
+    assert first_turn["progression_commit"]["allowed"] is True
+    assert second_turn["progression_commit"]["allowed"] is True
+    assert state["turn_counter"] == 2
+    assert state["history_count"] == 2
+    assert state["current_scene_id"] == "scene_3"
+    assert diagnostics["diagnostics"][-1]["progression_commit"]["committed_scene_id"] == "scene_3"
