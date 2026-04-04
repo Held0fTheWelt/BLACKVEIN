@@ -4,11 +4,42 @@ from wos_ai_stack import CapabilityInvocationError
 from wos_ai_stack.rag import INDEX_VERSION
 
 from app.services.improvement_service import (
-    _simulate_sandbox_turn,
-    run_sandbox_experiment,
-    create_variant,
     ImprovementStore,
+    _simulate_sandbox_turn,
+    build_comparison_package,
+    build_recommendation_rationale,
+    create_variant,
+    evaluate_experiment,
+    finalize_recommendation_rationale_with_retrieval_digest,
+    run_sandbox_experiment,
 )
+
+
+def test_variant_creation_with_parent_lineage(client, auth_headers):
+    parent = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={
+            "baseline_id": "god_of_carnage",
+            "candidate_summary": "Parent candidate.",
+        },
+    )
+    assert parent.status_code == 201
+    parent_id = parent.get_json()["variant_id"]
+    child = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={
+            "baseline_id": "god_of_carnage",
+            "candidate_summary": "Child iteration.",
+            "metadata": {"parent_variant_id": parent_id, "lineage_depth": 3},
+        },
+    )
+    assert child.status_code == 201
+    body = child.get_json()
+    assert body["lineage"]["parent_variant_id"] == parent_id
+    assert body["lineage"]["lineage_depth"] == 3
+    assert "mutation_metadata" in body
 
 
 def test_variant_creation_and_lineage(client, auth_headers):
@@ -78,6 +109,21 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     assert "quality_heuristic_delta" in comparison
     assert recommendation["lineage"]["baseline_id"] == "god_of_carnage"
     assert recommendation["mutation_plan"]
+    cp = recommendation["comparison_package"]
+    assert cp["experiment_id"] == experiment["experiment_id"]
+    assert len(cp["dimensions"]) == 4
+    assert {d["metric"] for d in cp["dimensions"]} >= {
+        "guard_reject_rate",
+        "repetition_signal",
+        "structure_flow_health",
+        "transcript_quality_heuristic",
+    }
+    assert "semantic_delta" in cp
+    rat = recommendation["recommendation_rationale"]
+    assert rat["recommendation_summary"] == recommendation["recommendation_summary"]
+    driver_cats = {d["category"] for d in rat["drivers"] if isinstance(d, dict)}
+    assert "retrieval_context_digest" in driver_cats
+    assert recommendation["evidence_strength_map"]["comparison_deltas"] == "primary"
     assert recommendation["evidence_bundle"]["comparison"] == comparison
     assert "retrieval_source_paths" in recommendation["evidence_bundle"]
     assert isinstance(recommendation["evidence_bundle"]["retrieval_source_paths"], list)
@@ -210,6 +256,10 @@ def test_improvement_retrieval_paths_materially_affect_review_bundle_and_stored_
         "modules/d2_beta_ctx.md"
     ]
     assert p1["review_bundle"]["evidence_sources"] != p2["review_bundle"]["evidence_sources"]
+    fp1 = p1["recommendation_package"]["evidence_bundle"]["retrieval_context_fingerprint_sha256_16"]
+    fp2 = p2["recommendation_package"]["evidence_bundle"]["retrieval_context_fingerprint_sha256_16"]
+    assert fp1 != fp2
+    assert p1["recommendation_package"]["recommendation_rationale"]["retrieval_context_fingerprint_sha256_16"] == fp1
 
 
 def test_improvement_experiment_reflects_empty_retrieval_in_trace_and_review_summary(
@@ -402,6 +452,47 @@ def test_sandbox_turn_action_input_is_classified_correctly():
     )
     assert result["guard_rejected"] is False
     assert result["triggered_tags"] == ["action"]
+
+
+def test_evaluate_experiment_builds_comparison_package_and_rationale(tmp_path):
+    """Service-level: comparison_package and rationale reflect stored experiment metrics."""
+    store = ImprovementStore(root=tmp_path)
+    variant = create_variant(
+        baseline_id="baseline_x",
+        candidate_summary="Rationale wiring.",
+        actor_id="actor",
+        store=store,
+    )
+    experiment = run_sandbox_experiment(
+        variant_id=variant["variant_id"],
+        actor_id="actor",
+        test_inputs=["I speak calmly.", "I repeat again and again.", "I argue and fight."],
+        store=store,
+    )
+    ev = evaluate_experiment(experiment_id=experiment["experiment_id"], store=store)
+    cp = build_comparison_package(ev)
+    assert cp["dimensions"][0]["delta"] == ev["comparison"]["guard_reject_rate_delta"]
+    rationale = build_recommendation_rationale(
+        evaluation=ev,
+        recommendation_summary="promote_for_human_review",
+        retrieval_hit_count=2,
+        retrieval_source_paths=["docs/a.md", "docs/b.md"],
+        transcript_meta={"repetition_turn_count": 0},
+    )
+    assert any(d.get("category") == "retrieval_context" for d in rationale["drivers"])
+    finalized = finalize_recommendation_rationale_with_retrieval_digest(
+        rationale,
+        context_text="module context alpha",
+        retrieval_source_paths=["docs/a.md", "docs/b.md"],
+        hit_count=2,
+    )
+    alt = finalize_recommendation_rationale_with_retrieval_digest(
+        rationale,
+        context_text="module context beta",
+        retrieval_source_paths=["docs/a.md", "docs/b.md"],
+        hit_count=2,
+    )
+    assert finalized["retrieval_context_fingerprint_sha256_16"] != alt["retrieval_context_fingerprint_sha256_16"]
 
 
 def test_sandbox_experiment_evaluation_uses_interpretation_signals(tmp_path):

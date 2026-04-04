@@ -13,8 +13,11 @@ from app.observability.audit_log import log_workflow_audit
 from app.observability.trace import get_trace_id
 from app.services.improvement_service import (
     ImprovementStore,
+    build_evidence_strength_map,
     build_recommendation_package,
+    build_recommendation_rationale,
     create_variant,
+    finalize_recommendation_rationale_with_retrieval_digest,
     list_recommendation_packages,
     run_sandbox_experiment,
 )
@@ -267,6 +270,45 @@ def run_improvement_experiment():
         if isinstance(review_bundle, dict):
             evidence_bundle_final["governance_review_bundle_id"] = review_bundle.get("bundle_id")
             evidence_bundle_final["governance_review_bundle_status"] = review_bundle.get("status")
+
+        hit_count = len(evidence_sources)
+        if isinstance(retrieval_inner, dict) and retrieval_inner.get("hit_count") is not None:
+            try:
+                hit_count = int(retrieval_inner["hit_count"])
+            except (TypeError, ValueError):
+                hit_count = len(evidence_sources)
+
+        rationale_fresh = build_recommendation_rationale(
+            evaluation=package_response["evaluation"],
+            recommendation_summary=package_response["recommendation_summary"],
+            retrieval_hit_count=hit_count,
+            retrieval_source_paths=evidence_sources,
+            transcript_meta=transcript_meta,
+        )
+        rationale_final = finalize_recommendation_rationale_with_retrieval_digest(
+            rationale_fresh,
+            context_text=str(context_payload.get("context_text") or ""),
+            retrieval_source_paths=evidence_sources,
+            hit_count=hit_count,
+        )
+        package_response["recommendation_rationale"] = rationale_final
+        package_response["evidence_strength_map"] = build_evidence_strength_map(
+            evaluation=package_response["evaluation"],
+            retrieval_hit_count=hit_count,
+            transcript_tool_ok=bool(
+                transcript_meta.get("turn_count") is not None and not transcript_meta.get("tool_error")
+            ),
+            governance_bundle_attached=isinstance(review_bundle, dict) and bool(review_bundle.get("bundle_id")),
+        )
+        evidence_bundle_final["retrieval_context_fingerprint_sha256_16"] = rationale_final.get(
+            "retrieval_context_fingerprint_sha256_16"
+        )
+        evidence_bundle_final["recommendation_driver_categories"] = [
+            d.get("category")
+            for d in (rationale_final.get("drivers") or [])
+            if isinstance(d, dict) and d.get("category")
+        ]
+
         package_response["evidence_bundle"] = evidence_bundle_final
         package_response["workflow_stages"] = workflow_stages
         ImprovementStore.default().write_json(

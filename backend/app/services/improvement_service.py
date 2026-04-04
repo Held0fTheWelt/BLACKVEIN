@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -79,6 +81,29 @@ def create_variant(
                 "intent": "lower unsafe response acceptance",
             },
         ]
+    parent_variant_id = metadata_payload.get("parent_variant_id")
+    parent_variant_id = str(parent_variant_id).strip() if parent_variant_id else ""
+    lineage_depth = 1
+    if parent_variant_id:
+        try:
+            lineage_depth = max(2, int(metadata_payload.get("lineage_depth", 2)))
+        except (TypeError, ValueError):
+            lineage_depth = 2
+    lineage: dict[str, Any] = {
+        "baseline_id": baseline_id,
+        "derived_from": baseline_id,
+        "lineage_depth": lineage_depth,
+    }
+    if parent_variant_id:
+        lineage["parent_variant_id"] = parent_variant_id
+    mutation_metadata = metadata_payload.get("mutation_metadata")
+    if isinstance(mutation_metadata, dict) and mutation_metadata:
+        variant_mutation_meta = mutation_metadata
+    else:
+        variant_mutation_meta = {
+            "source": metadata_payload.get("source"),
+            "intent_tags": metadata_payload.get("intent_tags") or [],
+        }
     variant = {
         "variant_id": variant_id,
         "baseline_id": baseline_id,
@@ -88,11 +113,8 @@ def create_variant(
         "created_at": _utc_now(),
         "review_status": "pending_review",
         "mutation_plan": mutation_plan,
-        "lineage": {
-            "baseline_id": baseline_id,
-            "derived_from": baseline_id,
-            "lineage_depth": 1,
-        },
+        "mutation_metadata": {k: v for k, v in variant_mutation_meta.items() if v is not None},
+        "lineage": lineage,
     }
     storage.write_json("variants", variant_id, variant)
     return variant
@@ -275,6 +297,203 @@ def evaluate_experiment(
     return evaluation
 
 
+def build_comparison_package(evaluation: dict[str, Any]) -> dict[str, Any]:
+    """Structured baseline vs candidate comparison for governance review."""
+    metrics = evaluation.get("metrics") or {}
+    baseline_metrics = evaluation.get("baseline_metrics") or {}
+    comparison = evaluation.get("comparison") or {}
+    dimensions: list[dict[str, Any]] = [
+        {
+            "metric": "guard_reject_rate",
+            "candidate_value": metrics.get("guard_reject_rate"),
+            "baseline_value": baseline_metrics.get("guard_reject_rate"),
+            "delta": comparison.get("guard_reject_rate_delta"),
+        },
+        {
+            "metric": "repetition_signal",
+            "candidate_value": metrics.get("repetition_signal"),
+            "baseline_value": baseline_metrics.get("repetition_signal"),
+            "delta": comparison.get("repetition_signal_delta"),
+        },
+        {
+            "metric": "structure_flow_health",
+            "candidate_value": metrics.get("structure_flow_health"),
+            "baseline_value": baseline_metrics.get("structure_flow_health"),
+            "delta": comparison.get("structure_flow_health_delta"),
+        },
+        {
+            "metric": "transcript_quality_heuristic",
+            "candidate_value": metrics.get("transcript_quality_heuristic"),
+            "baseline_value": baseline_metrics.get("transcript_quality_heuristic"),
+            "delta": comparison.get("quality_heuristic_delta"),
+        },
+    ]
+    semantic_speech_c = float(metrics.get("semantic_speech_rate") or 0.0)
+    semantic_speech_b = float(baseline_metrics.get("semantic_speech_rate") or 0.0)
+    semantic_action_c = float(metrics.get("semantic_action_rate") or 0.0)
+    semantic_action_b = float(baseline_metrics.get("semantic_action_rate") or 0.0)
+    return {
+        "experiment_id": evaluation.get("experiment_id"),
+        "variant_id": evaluation.get("variant_id"),
+        "baseline_id": evaluation.get("baseline_id"),
+        "generated_at": evaluation.get("generated_at"),
+        "dimensions": dimensions,
+        "semantic_delta": {
+            "semantic_speech_rate_delta": round(semantic_speech_c - semantic_speech_b, 4),
+            "semantic_action_rate_delta": round(semantic_action_c - semantic_action_b, 4),
+        },
+        "notable_failures": evaluation.get("notable_failures", []),
+    }
+
+
+def build_evidence_strength_map(
+    *,
+    evaluation: dict[str, Any],
+    retrieval_hit_count: int = 0,
+    transcript_tool_ok: bool = False,
+    governance_bundle_attached: bool = False,
+) -> dict[str, Any]:
+    """Declarative map: which evidence classes back the recommendation (not numeric confidence)."""
+    _ = evaluation  # reserved for future per-metric weighting
+    return {
+        "sandbox_candidate_metrics": "primary",
+        "baseline_control_transcript": "primary",
+        "comparison_deltas": "primary",
+        "retrieval_context": "moderate" if retrieval_hit_count > 0 else "none",
+        "transcript_tool_readback": "moderate" if transcript_tool_ok else "low",
+        "governance_review_bundle": "moderate" if governance_bundle_attached else "pending_until_route",
+    }
+
+
+def build_recommendation_rationale(
+    *,
+    evaluation: dict[str, Any],
+    recommendation_summary: str,
+    retrieval_hit_count: int = 0,
+    retrieval_source_paths: list[str] | None = None,
+    transcript_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Explicit drivers tying the summary to metrics, deltas, and optional runtime evidence."""
+    metrics = evaluation["metrics"]
+    comp = evaluation["comparison"]
+    drivers: list[dict[str, Any]] = []
+
+    if metrics["guard_reject_rate"] > 0.4:
+        drivers.append(
+            {
+                "category": "sandbox_metrics",
+                "metric": "guard_reject_rate",
+                "observed": metrics["guard_reject_rate"],
+                "threshold": 0.4,
+                "relation": "greater_than",
+                "recommendation_effect": "favors_revise_before_review",
+            }
+        )
+    if metrics["repetition_signal"] > 0.5:
+        drivers.append(
+            {
+                "category": "sandbox_metrics",
+                "metric": "repetition_signal",
+                "observed": metrics["repetition_signal"],
+                "threshold": 0.5,
+                "relation": "greater_than",
+                "recommendation_effect": "favors_revise_before_review",
+            }
+        )
+    if comp["structure_flow_health_delta"] < 0:
+        drivers.append(
+            {
+                "category": "comparison_delta",
+                "metric": "structure_flow_health_delta",
+                "observed": comp["structure_flow_health_delta"],
+                "threshold": 0.0,
+                "relation": "less_than",
+                "recommendation_effect": "favors_revise_before_review",
+            }
+        )
+    if comp["quality_heuristic_delta"] < 0:
+        drivers.append(
+            {
+                "category": "comparison_delta",
+                "metric": "quality_heuristic_delta",
+                "observed": comp["quality_heuristic_delta"],
+                "threshold": 0.0,
+                "relation": "less_than",
+                "recommendation_effect": "favors_revise_before_review",
+            }
+        )
+
+    tm = transcript_meta if isinstance(transcript_meta, dict) else {}
+    rep_ct = tm.get("repetition_turn_count")
+    if isinstance(rep_ct, int) and rep_ct >= 2:
+        drivers.append(
+            {
+                "category": "transcript_tool_evidence",
+                "metric": "repetition_turn_count",
+                "observed": rep_ct,
+                "threshold": 2,
+                "relation": "greater_equal",
+                "recommendation_effect": "aligns_with_revise_suffix_from_transcript_tool",
+            }
+        )
+
+    paths = [p for p in (retrieval_source_paths or []) if p]
+    if retrieval_hit_count > 0 and paths:
+        drivers.append(
+            {
+                "category": "retrieval_context",
+                "hit_count": retrieval_hit_count,
+                "top_paths": paths[:5],
+                "recommendation_effect": "grounds_human_review_in_retrieved_sources",
+            }
+        )
+
+    if not drivers:
+        drivers.append(
+            {
+                "category": "baseline_pass",
+                "detail": "No threshold violations on core sandbox metrics or negative comparison deltas.",
+                "recommendation_effect": "allows_promote_for_human_review",
+            }
+        )
+
+    return {
+        "recommendation_summary": recommendation_summary,
+        "drivers": drivers,
+        "confidence_notes": (
+            "Rationale is assembled from explicit metrics, comparison deltas, transcript tool signals, "
+            "and retrieval paths. It does not auto-promote to production."
+        ),
+    }
+
+
+def finalize_recommendation_rationale_with_retrieval_digest(
+    rationale: dict[str, Any],
+    *,
+    context_text: str,
+    retrieval_source_paths: list[str],
+    hit_count: int,
+) -> dict[str, Any]:
+    """Copy rationale and append a digest driver so retrieval shape is fingerprint-bound (testable)."""
+    out = copy.deepcopy(rationale)
+    paths_sorted = sorted(p for p in retrieval_source_paths if p)
+    raw = "\n".join(paths_sorted) + "||" + (context_text or "")[:4096]
+    fp = hashlib.sha256(raw.encode("utf-8", errors="replace")).hexdigest()[:16]
+    drivers = list(out.get("drivers") or [])
+    drivers.append(
+        {
+            "category": "retrieval_context_digest",
+            "hit_count": hit_count,
+            "context_fingerprint_sha256_16": fp,
+            "path_signature": paths_sorted[:8],
+            "recommendation_effect": "binds_review_package_to_retrieval_shape",
+        }
+    )
+    out["drivers"] = drivers
+    out["retrieval_context_fingerprint_sha256_16"] = fp
+    return out
+
+
 def build_recommendation_package(
     *,
     experiment_id: str,
@@ -292,6 +511,20 @@ def build_recommendation_package(
         recommendation = "revise_before_review"
     if comparison["structure_flow_health_delta"] < 0 or comparison["quality_heuristic_delta"] < 0:
         recommendation = "revise_before_review"
+    comparison_package = build_comparison_package(evaluation)
+    recommendation_rationale = build_recommendation_rationale(
+        evaluation=evaluation,
+        recommendation_summary=recommendation,
+        retrieval_hit_count=0,
+        retrieval_source_paths=[],
+        transcript_meta=None,
+    )
+    evidence_strength_map = build_evidence_strength_map(
+        evaluation=evaluation,
+        retrieval_hit_count=0,
+        transcript_tool_ok=False,
+        governance_bundle_attached=False,
+    )
     package_id = f"recommendation_{uuid4().hex}"
     package = {
         "package_id": package_id,
@@ -302,7 +535,11 @@ def build_recommendation_package(
         "experiment": {"experiment_id": experiment_id, "sandbox": True},
         "lineage": variant.get("lineage", {}),
         "mutation_plan": variant.get("mutation_plan", []),
+        "mutation_metadata": variant.get("mutation_metadata") or {},
         "evaluation": evaluation,
+        "comparison_package": comparison_package,
+        "recommendation_rationale": recommendation_rationale,
+        "evidence_strength_map": evidence_strength_map,
         "evidence_bundle": {
             "experiment_id": experiment_id,
             "variant_id": variant["variant_id"],
