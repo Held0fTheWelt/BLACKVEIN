@@ -110,3 +110,81 @@ def test_improvement_experiment_response_includes_trace(client, auth_headers):
     assert "trace_id" in payload
     assert "experiment" in payload
     assert "recommendation_package" in payload
+
+
+def test_session_evidence_includes_repaired_layer_signals(client, moderator_headers, monkeypatch):
+    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
+    session_id = create_resp.get_json()["session_id"]
+
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service.get_story_state",
+        lambda *_a, **_k: {"session_id": "we-y", "turn_counter": 1},
+    )
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        lambda *_a, **_k: {
+            "diagnostics": [
+                {
+                    "graph": {
+                        "errors": [],
+                        "fallback_path_taken": False,
+                        "capability_audit": [{"capability_name": "wos.context_pack.build"}],
+                        "repro_metadata": {
+                            "trace_id": "trace-x",
+                            "graph_name": "wos_runtime_turn_graph",
+                            "runtime_turn_graph_version": "v-test",
+                            "selected_model": "mock-small",
+                            "selected_provider": "mock",
+                            "model_success": True,
+                            "model_fallback_used": False,
+                            "retrieval_domain": "runtime",
+                            "retrieval_profile": "runtime_turn_support",
+                            "retrieval_status": "ok",
+                            "retrieval_hit_count": 2,
+                            "module_id": "god_of_carnage",
+                            "session_id": "we-y",
+                            "ai_stack_semantic_version": "test-semantic",
+                            "routing_policy_version": "registry_default_v1",
+                            "host_versions": {"world_engine_app_version": "test"},
+                        },
+                    }
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service._latest_writers_room_review",
+        lambda: {"review_id": "review_1", "review_state": {"status": "accepted"}, "issues": [1], "patch_candidates": [1], "variant_candidates": [1]},
+    )
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service._latest_improvement_package",
+        lambda: {"package_id": "pkg_1", "review_status": "pending_governance_review", "recommendation_summary": "promote", "evaluation": {"comparison": {"quality_heuristic_delta": 0.1}}, "evidence_bundle": {"comparison": {"quality_heuristic_delta": 0.1}}},
+    )
+
+    from app.runtime.session_store import get_session as get_runtime_session
+
+    runtime_session = get_runtime_session(session_id)
+    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-y"
+
+    response = client.get(
+        f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
+        headers=moderator_headers,
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "repaired_layer_signals" in payload
+    assert payload["repaired_layer_signals"]["runtime"]["retrieval"]["profile"] == "runtime_turn_support"
+    assert payload["repaired_layer_signals"]["tools"]["capability_audit_count"] == 1
+    assert payload["repaired_layer_signals"]["writers_room"]["review_status"] == "accepted"
+    assert payload["repaired_layer_signals"]["improvement"]["package_id"] == "pkg_1"
+
+
+def test_release_readiness_reports_partial_honestly(client, moderator_headers, monkeypatch):
+    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_writers_room_review", lambda: None)
+    monkeypatch.setattr("app.services.ai_stack_evidence_service._latest_improvement_package", lambda: None)
+
+    response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["overall_status"] == "partial"
+    assert any(area["status"] == "partial" for area in payload["areas"])

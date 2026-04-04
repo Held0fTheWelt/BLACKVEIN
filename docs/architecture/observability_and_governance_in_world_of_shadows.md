@@ -89,6 +89,7 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 | `POST /api/v1/sessions/<id>/turns` | Returns `trace_id`, World-Engine turn payload, diagnostics; `502` with `failure_class: world_engine_unreachable` when bridge fails. |
 | `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` | Moderator/admin (game operations feature): aggregated backend + World-Engine evidence bundle. |
 | `GET /api/v1/admin/ai-stack/improvement-packages` | Same audience: improvement recommendation packages listing. |
+| `GET /api/v1/admin/ai-stack/release-readiness` | Same audience: honest readiness summary (`ready`/`partial`) across repaired runtime, writers-room, and improvement paths. |
 | Administration-tool **`/manage/ai-stack/governance`** | UI shell calling the above APIs via the existing proxy (JWT in browser). |
 | Activity log | `ai_stack` / `session_evidence_view` entries when evidence API is used. |
 
@@ -105,6 +106,11 @@ See `docs/reports/AI_STACK_RELEASE_READINESS_CHECKLIST.md` for executable checks
 - Governance APIs return real underlying diagnostics, not placeholders.
 - Failure modes (bridge down, graph error lists, model failure) are visible in API payloads or audit streams.
 - Repro metadata identifies graph version, stack semantic version, routing/retrieval profile, and host version hints.
+
+Readiness reporting must remain honest:
+
+- Missing repaired-path evidence yields `partial`, not silent success.
+- Known partiality (for example local JSON storage, unsigned audit retention) is explicitly listed in readiness payloads.
 
 ## Version constants
 

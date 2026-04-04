@@ -24,6 +24,8 @@ Use this checklist before calling the unified AI stack **production-grade**. Ite
 
 - [ ] `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` returns real bundle or explicit `backend_session_not_found`.
 - [ ] When World-Engine is down, bundle includes `bridge_errors` with `world_engine_unreachable`.
+- [ ] Session evidence includes repaired-layer signals for runtime, tool usage, and available writers-room/improvement artifacts.
+- [ ] `GET /api/v1/admin/ai-stack/release-readiness` reports `partial` whenever repaired-path evidence is missing.
 - [ ] Administration-tool **AI Stack** page loads and can call the APIs when JWT + feature access are present.
 
 ## 5. Secrets and privacy compliance
