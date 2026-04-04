@@ -6,6 +6,7 @@ import pytest
 
 from wos_ai_stack import (
     CapabilityAccessDeniedError,
+    CapabilityInvocationError,
     CapabilityValidationError,
     ContextPackAssembler,
     ContextRetriever,
@@ -58,6 +59,39 @@ def test_capability_validation_failure_is_typed_and_audited(tmp_path: Path) -> N
             payload={"query": "missing profile"},
         )
     audit = registry.recent_audit(limit=1)[0]
+    assert audit["outcome"] == "error"
+
+
+def test_transcript_read_capability_is_registered_and_invocable(tmp_path: Path) -> None:
+    """Proves wos.transcript.read is registered and invocable even though it is not yet
+    integrated into active workflows (aspirational capability documented in capabilities.py).
+
+    Invoking with a missing run file must raise CapabilityInvocationError — an honest behavior
+    that confirms the handler executes and surfaces the run_not_found error path.
+    """
+    registry = _build_registry(tmp_path)
+
+    # Verify the capability is listed with correct modes
+    capabilities = registry.list_capabilities()
+    transcript_cap = next((cap for cap in capabilities if cap["name"] == "wos.transcript.read"), None)
+    assert transcript_cap is not None
+    assert "improvement" in transcript_cap["allowed_modes"]
+    assert "runtime" in transcript_cap["allowed_modes"]
+    assert "admin" in transcript_cap["allowed_modes"]
+
+    # Invoke with a mode it allows; the run file does not exist so it raises CapabilityInvocationError
+    with pytest.raises(CapabilityInvocationError) as exc_info:
+        registry.invoke(
+            name="wos.transcript.read",
+            mode="improvement",
+            actor="improvement:test",
+            payload={"run_id": "nonexistent_run_00000"},
+        )
+    assert "run_not_found" in str(exc_info.value)
+
+    # Confirm the invocation was audited
+    audit = registry.recent_audit(limit=1)[0]
+    assert audit["capability_name"] == "wos.transcript.read"
     assert audit["outcome"] == "error"
 
 

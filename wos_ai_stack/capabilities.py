@@ -237,6 +237,9 @@ def create_default_capability_registry(
             handler=context_pack_handler,
         )
     )
+    # wos.transcript.read: registered for future improvement loop usage.
+    # Not currently invoked in active workflows (aspirational capability).
+    # Allowed modes: runtime, improvement, admin.
     registry.register(
         CapabilityDefinition(
             name="wos.transcript.read",
