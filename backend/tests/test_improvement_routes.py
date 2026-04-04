@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from wos_ai_stack import CapabilityInvocationError
 
+from app.services.improvement_service import (
+    _simulate_sandbox_turn,
+    run_sandbox_experiment,
+    create_variant,
+    ImprovementStore,
+)
+
 
 def test_variant_creation_and_lineage(client, auth_headers):
     response = client.post(
@@ -120,3 +127,77 @@ def test_improvement_route_surfaces_capability_failures_honestly(client, auth_he
     payload = response.get_json()
     assert payload["error"] == "capability_workflow_failed"
     assert "capability_audit" in payload
+
+
+# ---------------------------------------------------------------------------
+# D2 REFOCUS — semantic interpretation in sandbox turns
+# ---------------------------------------------------------------------------
+
+_DUMMY_VARIANT = {"variant_id": "test_variant_001", "mutation_plan": []}
+
+
+def test_sandbox_turn_uses_semantic_interpretation():
+    """Speech input must produce interpreted_kind == 'speech', not keyword-based detection."""
+    result = _simulate_sandbox_turn(
+        variant=_DUMMY_VARIANT,
+        player_input='"I ask you to explain your reasoning calmly."',
+        turn_number=1,
+    )
+    assert result["interpreted_kind"] == "speech", (
+        f"Expected 'speech', got {result['interpreted_kind']!r}"
+    )
+    # guard_rejected must NOT fire merely because of dangerous keywords absent here
+    assert result["guard_rejected"] is False
+    assert "interpretation_confidence" in result
+    assert result["interpretation_confidence"] > 0.0
+
+
+def test_sandbox_turn_action_input_is_classified_correctly():
+    """Action verb input must produce interpreted_kind == 'action'."""
+    result = _simulate_sandbox_turn(
+        variant=_DUMMY_VARIANT,
+        player_input="I take the lantern and move to the eastern corridor.",
+        turn_number=2,
+    )
+    assert result["interpreted_kind"] == "action", (
+        f"Expected 'action', got {result['interpreted_kind']!r}"
+    )
+    assert result["guard_rejected"] is False
+    assert result["triggered_tags"] == ["action"]
+
+
+def test_sandbox_experiment_evaluation_uses_interpretation_signals(tmp_path):
+    """Full experiment run must surface semantically meaningful signals in evaluation metrics."""
+    store = ImprovementStore(root=tmp_path)
+    variant = create_variant(
+        baseline_id="baseline_test",
+        candidate_summary="Test semantic signal wiring.",
+        actor_id="test_actor",
+        store=store,
+    )
+    experiment = run_sandbox_experiment(
+        variant_id=variant["variant_id"],
+        actor_id="test_actor",
+        test_inputs=[
+            '"Tell me what happened here."',     # speech
+            "I look around the room carefully.",  # action
+            "I ask and then inspect the door.",   # mixed
+        ],
+        store=store,
+    )
+    # Each turn in the transcript should carry interpreted_kind
+    for turn in experiment["transcript"]:
+        assert "interpreted_kind" in turn, f"Turn {turn['turn_number']} missing interpreted_kind"
+        assert turn["interpreted_kind"] in (
+            "speech", "action", "mixed", "reaction",
+            "intent_only", "explicit_command", "meta", "ambiguous",
+        )
+    # The first turn (speech) must not be guard-rejected
+    speech_turn = experiment["transcript"][0]
+    assert speech_turn["guard_rejected"] is False
+    # Semantic rates must be present in evaluated metrics
+    from app.services.improvement_service import _evaluate_transcript
+    metrics = _evaluate_transcript(experiment["transcript"])
+    assert "semantic_speech_rate" in metrics
+    assert "semantic_action_rate" in metrics
+    assert "semantic_command_rate" in metrics

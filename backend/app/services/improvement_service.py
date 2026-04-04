@@ -7,6 +7,14 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.runtime.input_interpreter import interpret_player_input
+
+
+# Commands that suggest meta/reset intent rather than story escalation.
+_META_COMMAND_NAMES = frozenset(
+    {"reset", "restart", "quit", "exit", "help", "pause", "ooc", "meta"}
+)
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -91,14 +99,47 @@ def create_variant(
 
 
 def _simulate_sandbox_turn(*, variant: dict[str, Any], player_input: str, turn_number: int) -> dict[str, Any]:
+    """Simulate a single sandbox turn using semantic input interpretation.
+
+    Guard rejection is now determined by semantic classification rather than
+    hardcoded keyword matching.  An ``explicit_command`` whose command_name is
+    in the meta/reset set is flagged as a guard-rejection signal; all other
+    kinds are treated according to their escalation potential.
+    """
+    interp = interpret_player_input(player_input)
+    kind_value = interp.kind.value  # str, e.g. "speech", "action", ...
+
+    # Determine guard_rejected from semantic signal.
+    # explicit_command with a meta/reset command name → guard-relevant signal.
+    if interp.kind.value == "explicit_command":
+        guard_rejected = interp.command_name in _META_COMMAND_NAMES
+    else:
+        # For all other kinds, no semantic guard rejection is indicated.
+        # (Keyword-based rejection is intentionally removed.)
+        guard_rejected = False
+
     lowered = player_input.lower()
-    guard_rejected = any(token in lowered for token in ("kill", "hate", "destroy"))
     repetition = "repeat" in lowered or lowered.count("again") > 1
+
+    # Tag based on interpreted kind rather than raw keyword scan.
+    if kind_value in ("action", "mixed"):
+        triggered_tags = ["conflict"] if any(w in lowered for w in ("argue", "fight", "attack")) else ["action"]
+    elif kind_value == "speech":
+        triggered_tags = ["dialogue"]
+    elif kind_value == "explicit_command":
+        triggered_tags = ["command"]
+    elif kind_value in ("ambiguous", "intent_only"):
+        triggered_tags = ["uncertain"]
+    else:
+        triggered_tags = ["narrative"]
+
     return {
         "turn_number": turn_number,
         "player_input": player_input,
+        "interpreted_kind": kind_value,
+        "interpretation_confidence": interp.confidence,
         "guard_rejected": guard_rejected,
-        "triggered_tags": ["conflict"] if "argue" in lowered or "fight" in lowered else ["dialogue"],
+        "triggered_tags": triggered_tags,
         "repetition_flag": repetition,
         "scene_marker": "scene_1" if turn_number <= 2 else "scene_2",
         "quality_hint": max(0.0, min(1.0, len(player_input) / 80.0)),
@@ -107,12 +148,27 @@ def _simulate_sandbox_turn(*, variant: dict[str, Any], player_input: str, turn_n
 
 
 def _evaluate_transcript(transcript: list[dict[str, Any]]) -> dict[str, float]:
+    """Evaluate a sandbox transcript and return per-metric scores.
+
+    ``guard_reject_rate`` is now based on the semantic ``guard_rejected`` flag
+    produced by ``_simulate_sandbox_turn`` (which uses ``interpret_player_input``
+    rather than hardcoded keyword matching).  The metric value is therefore a
+    genuine semantic signal, not a vocabulary accident.
+    """
     total = max(1, len(transcript))
     guard_rejects = sum(1 for turn in transcript if turn.get("guard_rejected"))
     repeated = sum(1 for turn in transcript if turn.get("repetition_flag"))
     covered_scene_markers = len({turn.get("scene_marker") for turn in transcript if turn.get("scene_marker")})
     unique_trigger_tags = len({tag for turn in transcript for tag in turn.get("triggered_tags", [])})
     quality_avg = sum(float(turn.get("quality_hint", 0.0)) for turn in transcript) / total
+
+    # Collect semantic kind distribution for informational purposes.
+    kind_counts: dict[str, int] = {}
+    for turn in transcript:
+        k = turn.get("interpreted_kind")
+        if k:
+            kind_counts[k] = kind_counts.get(k, 0) + 1
+
     return {
         "guard_reject_rate": round(guard_rejects / total, 4),
         "trigger_coverage": float(unique_trigger_tags),
@@ -120,6 +176,10 @@ def _evaluate_transcript(transcript: list[dict[str, Any]]) -> dict[str, float]:
         "structure_flow_health": round(max(0.0, 1.0 - (repeated / total)), 4),
         "transcript_quality_heuristic": round(quality_avg, 4),
         "scene_marker_coverage": float(covered_scene_markers),
+        # Semantic breakdown: proportion of turns classified as each kind.
+        "semantic_action_rate": round(kind_counts.get("action", 0) / total, 4),
+        "semantic_speech_rate": round(kind_counts.get("speech", 0) / total, 4),
+        "semantic_command_rate": round(kind_counts.get("explicit_command", 0) / total, 4),
     }
 
 
