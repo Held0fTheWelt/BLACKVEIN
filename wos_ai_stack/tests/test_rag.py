@@ -186,6 +186,36 @@ def test_ingestion_metadata_changes_when_source_content_changes(tmp_path: Path) 
     assert before_versions != after_versions
 
 
+def test_semantic_expansion_boosts_recall_for_paraphrased_query(tmp_path: Path) -> None:
+    """Proves that semantic canonicalization lifts paraphrased queries to canonical terms.
+
+    Content uses the canonical term 'conflict'. Query uses 'argue', which maps to 'conflict'
+    via SEMANTIC_CANON. Retrieval must return at least one result, demonstrating that
+    _build_semantic_terms expands the paraphrase rather than doing pure lexical matching.
+    """
+    _write(
+        tmp_path / "content" / "god_of_carnage.md",
+        "The scene depicts a profound conflict between the two families over parenting values.",
+    )
+    _write(tmp_path / "content" / "sports.md", "The championship match ended in a stunning victory.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+
+    result = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="argue about values",  # 'argue' -> canonical 'conflict' via SEMANTIC_CANON
+            module_id="god_of_carnage",
+            max_chunks=1,
+        )
+    )
+
+    assert result.status == RetrievalStatus.OK
+    assert result.hits, "semantic expansion should surface the conflict-bearing document"
+    assert "god_of_carnage" in result.hits[0].source_path
+
+
 def test_retrieval_gracefully_handles_sparse_or_absent_corpus(tmp_path: Path) -> None:
     corpus = RagIngestionPipeline().build_corpus(tmp_path)
     result = ContextRetriever(corpus).retrieve(
