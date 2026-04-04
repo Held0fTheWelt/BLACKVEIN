@@ -338,6 +338,7 @@ def run_writers_room_review(
             }
         ],
     }
+    capability_audit_rows = workflow.capability_registry.recent_audit(limit=20)
     report = {
         "canonical_flow": "writers_room_unified_stack_workflow",
         "trace_id": trace_id,
@@ -375,7 +376,18 @@ def run_writers_room_review(
                 "message": "Legacy direct chat is deprecated and no longer canonical.",
             }
         ],
-        "capability_audit": workflow.capability_registry.recent_audit(limit=20),
+        "capability_audit": capability_audit_rows,
+        "governance_truth": {
+            "retrieval_evidence_tier": evidence_tag,
+            "model_generation_path": generation.get("adapter_invocation_mode"),
+            "capabilities_invoked": [
+                row.get("capability_name")
+                for row in capability_audit_rows
+                if isinstance(row, dict) and isinstance(row.get("capability_name"), str)
+            ],
+            "langgraph_orchestration_depth": "seed_graph_stub",
+            "outputs_are_recommendations_only": True,
+        },
         "langchain_retriever_preview": {
             "document_count": len(langchain_documents),
             "sources": [doc.metadata.get("source_path") for doc in langchain_documents],

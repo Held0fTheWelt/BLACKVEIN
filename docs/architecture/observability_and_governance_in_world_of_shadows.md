@@ -89,7 +89,7 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 | `POST /api/v1/sessions/<id>/turns` | Returns `trace_id`, World-Engine turn payload, diagnostics; `502` with `failure_class: world_engine_unreachable` when bridge fails. |
 | `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` | Moderator/admin (game operations feature): aggregated backend + World-Engine evidence bundle. |
 | `GET /api/v1/admin/ai-stack/improvement-packages` | Same audience: improvement recommendation packages listing. |
-| `GET /api/v1/admin/ai-stack/release-readiness` | Same audience: honest readiness summary (`ready`/`partial`) across repaired runtime, writers-room, and improvement paths. |
+| `GET /api/v1/admin/ai-stack/release-readiness` | Same audience: honest readiness summary (`ready`/`partial`) per area; story-runtime cross-layer remains `partial` in this aggregate (use session-evidence after real turns); Writers-Room LangGraph depth is explicitly `partial` (seed stub). |
 | Administration-tool **`/manage/ai-stack/governance`** | UI shell calling the above APIs via the existing proxy (JWT in browser). |
 | Activity log | `ai_stack` / `session_evidence_view` entries when evidence API is used. |
 
@@ -111,6 +111,19 @@ Readiness reporting must remain honest:
 
 - Missing repaired-path evidence yields `partial`, not silent success.
 - Known partiality (for example local JSON storage, unsigned audit retention) is explicitly listed in readiness payloads.
+
+### Session evidence bundle (`build_session_evidence_bundle`)
+
+Moderator/admin session evidence includes **`execution_truth`**:
+
+- **`committed_narrative_surface`**: World-Engine `committed_state` and `committed_history_tail` (no graph envelope)—authoritative committed progression summary.
+- **`last_turn_graph_mode`**: `execution_health`, `fallback_path_taken`, `graph_path_summary`, `adapter_invocation_mode` from the last diagnostic turn’s `graph`.
+- **`retrieval_influence`**: normalized tier/strength via `build_retrieval_trace` from the last turn’s `retrieval` payload.
+- **`tool_influence`**: trimmed `capability_audit` entries and **`material_influence`** when material capabilities (`wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build`) appear with non-error outcomes.
+
+**`degraded_path_signals`** lists active degradation markers (for example `fallback_path_taken`, `execution_health:model_fallback`); avoid treating empty diagnostic history as “healthy.”
+
+Persisted Writers-Room reviews add **`governance_truth`** (retrieval tier, generation path, invoked capabilities, seed-graph depth note) for review exports.
 
 ## Version constants
 

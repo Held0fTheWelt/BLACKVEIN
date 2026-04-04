@@ -28,6 +28,20 @@ def test_story_turn_echoes_trace_header(client, internal_api_key):
     assert repro.get("trace_id") == custom
     assert repro.get("module_id") == "god_of_carnage"
 
+    diag = client.get(
+        f"/api/story/sessions/{session_id}/diagnostics",
+        headers={"X-Play-Service-Key": internal_api_key, "X-WoS-Trace-Id": custom},
+    )
+    assert diag.status_code == 200
+    body = diag.json()
+    tail = body.get("committed_history_tail") or []
+    assert tail, "committed_history_tail should list committed turns without graph envelope"
+    assert tail[-1].get("trace_id") == custom
+    full = body.get("diagnostics") or []
+    assert full[-1].get("trace_id") == custom
+    assert "graph" in full[-1]
+    assert "graph" not in tail[-1]
+
 
 def test_trace_middleware_generates_id_when_missing(client):
     """Test app from conftest includes install_trace_middleware."""

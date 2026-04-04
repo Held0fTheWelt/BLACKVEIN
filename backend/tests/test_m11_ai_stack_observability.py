@@ -17,7 +17,34 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     )
     monkeypatch.setattr(
         "app.services.ai_stack_evidence_service.get_story_diagnostics",
-        lambda *_a, **_k: {"diagnostics": [{"graph": {"repro_metadata": {"module_id": "god_of_carnage"}}}]},
+        lambda *_a, **_k: {
+            "diagnostics": [
+                {
+                    "retrieval": {"hit_count": 1, "status": "ok", "domain": "runtime", "profile": "turn"},
+                    "graph": {
+                        "execution_health": "healthy",
+                        "fallback_path_taken": False,
+                        "errors": [],
+                        "capability_audit": [{"capability_name": "wos.context_pack.build", "outcome": "allowed"}],
+                        "repro_metadata": {
+                            "module_id": "god_of_carnage",
+                            "graph_path_summary": "primary_invoke_langchain_only",
+                            "adapter_invocation_mode": "langchain_structured_primary",
+                        },
+                    },
+                }
+            ],
+            "committed_history_tail": [
+                {
+                    "turn_number": 1,
+                    "trace_id": "t-committed",
+                    "progression_commit": {"allowed": False, "reason": "no_scene_proposal"},
+                    "committed_state_after": {"current_scene_id": "s1", "turn_counter": 1},
+                }
+            ],
+            "committed_state": {"current_scene_id": "s1", "turn_counter": 1},
+            "warnings": ["diagnostics_are_orchestration_envelopes_committed_truth_is_session_fields_and_history"],
+        },
     )
 
     from app.runtime.session_store import get_session as get_runtime_session
@@ -37,6 +64,10 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     assert data["world_engine_state"]["session_id"] == "we-x"
     assert data.get("last_turn_repro_metadata", {}).get("module_id") == "god_of_carnage"
     assert "trace_id" in data
+    et = data.get("execution_truth") or {}
+    assert et.get("last_turn_graph_mode", {}).get("execution_health") == "healthy"
+    assert et.get("committed_narrative_surface", {}).get("last_committed_turn_summary", {}).get("trace_id") == "t-committed"
+    assert et.get("retrieval_influence", {}).get("hit_count") == 1
 
 
 def test_admin_session_evidence_404_for_unknown_session(client, moderator_headers):
@@ -125,14 +156,25 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
         lambda *_a, **_k: {
             "diagnostics": [
                 {
+                    "retrieval": {
+                        "hit_count": 2,
+                        "status": "ok",
+                        "domain": "runtime",
+                        "profile": "runtime_turn_support",
+                    },
                     "graph": {
+                        "execution_health": "healthy",
                         "errors": [],
                         "fallback_path_taken": False,
-                        "capability_audit": [{"capability_name": "wos.context_pack.build"}],
+                        "capability_audit": [
+                            {"capability_name": "wos.context_pack.build", "outcome": "allowed"}
+                        ],
                         "repro_metadata": {
                             "trace_id": "trace-x",
                             "graph_name": "wos_runtime_turn_graph",
                             "runtime_turn_graph_version": "v-test",
+                            "graph_path_summary": "primary_invoke_langchain_only",
+                            "adapter_invocation_mode": "langchain_structured_primary",
                             "selected_model": "mock-small",
                             "selected_provider": "mock",
                             "model_success": True,
@@ -147,18 +189,40 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
                             "routing_policy_version": "registry_default_v1",
                             "host_versions": {"world_engine_app_version": "test"},
                         },
-                    }
+                    },
                 }
             ]
         },
     )
     monkeypatch.setattr(
         "app.services.ai_stack_evidence_service._latest_writers_room_review",
-        lambda: {"review_id": "review_1", "review_state": {"status": "accepted"}, "issues": [1], "patch_candidates": [1], "variant_candidates": [1]},
+        lambda: {
+            "review_id": "review_1",
+            "review_state": {"status": "accepted"},
+            "issues": [1],
+            "patch_candidates": [1],
+            "variant_candidates": [1],
+            "retrieval_trace": {"evidence_tier": "moderate", "evidence_strength": "moderate"},
+            "model_generation": {"adapter_invocation_mode": "langchain_structured_primary"},
+            "review_summary": {"bundle_id": "b1", "bundle_status": "recommendation_only"},
+            "capability_audit": [{"capability_name": "wos.review_bundle.build", "outcome": "allowed"}],
+        },
     )
     monkeypatch.setattr(
         "app.services.ai_stack_evidence_service._latest_improvement_package",
-        lambda: {"package_id": "pkg_1", "review_status": "pending_governance_review", "recommendation_summary": "promote", "evaluation": {"comparison": {"quality_heuristic_delta": 0.1}}, "evidence_bundle": {"comparison": {"quality_heuristic_delta": 0.1}}},
+        lambda: {
+            "package_id": "pkg_1",
+            "review_status": "pending_governance_review",
+            "recommendation_summary": "promote",
+            "evaluation": {"comparison": {"quality_heuristic_delta": 0.1}},
+            "evidence_bundle": {
+                "comparison": {"quality_heuristic_delta": 0.1},
+                "retrieval_source_paths": ["modules/a.md"],
+                "transcript_evidence": {"run_id": "run-1"},
+                "governance_review_bundle_id": "rb-1",
+            },
+            "workflow_stages": [{"id": "governance_review_bundle"}],
+        },
     )
 
     from app.runtime.session_store import get_session as get_runtime_session
@@ -174,9 +238,65 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
     payload = response.get_json()
     assert "repaired_layer_signals" in payload
     assert payload["repaired_layer_signals"]["runtime"]["retrieval"]["profile"] == "runtime_turn_support"
+    assert payload["repaired_layer_signals"]["runtime"]["execution_health"] == "healthy"
     assert payload["repaired_layer_signals"]["tools"]["capability_audit_count"] == 1
+    assert payload["repaired_layer_signals"]["tools"]["material_influence"] is True
     assert payload["repaired_layer_signals"]["writers_room"]["review_status"] == "accepted"
+    assert payload["repaired_layer_signals"]["writers_room"]["evidence_tier"] == "moderate"
+    assert payload["repaired_layer_signals"]["writers_room"]["review_bundle_id"] == "b1"
     assert payload["repaired_layer_signals"]["improvement"]["package_id"] == "pkg_1"
+    inf = payload["repaired_layer_signals"]["improvement"]["evidence_influence"]
+    assert inf["retrieval_source_path_count"] == 1
+    assert inf["has_transcript_evidence"] is True
+    assert inf["has_governance_review_bundle"] is True
+    assert "governance_review_bundle" in inf["workflow_stage_ids"]
+    et = payload.get("execution_truth") or {}
+    assert et.get("last_turn_graph_mode", {}).get("graph_path_summary") == "primary_invoke_langchain_only"
+    assert et.get("tool_influence", {}).get("material_influence") is True
+    assert et.get("retrieval_influence", {}).get("evidence_tier") == "moderate"
+
+
+def test_session_evidence_surfaces_degraded_execution_health(client, moderator_headers, monkeypatch):
+    """Degraded graph paths must appear in execution_truth and degraded_path_signals."""
+    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
+    session_id = create_resp.get_json()["session_id"]
+
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service.get_story_state",
+        lambda *_a, **_k: {"session_id": "we-z", "turn_counter": 1},
+    )
+    monkeypatch.setattr(
+        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        lambda *_a, **_k: {
+            "diagnostics": [
+                {
+                    "graph": {
+                        "execution_health": "model_fallback",
+                        "fallback_path_taken": True,
+                        "errors": [],
+                        "capability_audit": [],
+                        "repro_metadata": {
+                            "graph_path_summary": "used_fallback_model_node_raw_adapter",
+                            "adapter_invocation_mode": "raw_adapter_graph_managed_fallback",
+                        },
+                    }
+                }
+            ]
+        },
+    )
+    from app.runtime.session_store import get_session as get_runtime_session
+
+    runtime_session = get_runtime_session(session_id)
+    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we-z"
+
+    response = client.get(
+        f"/api/v1/admin/ai-stack/session-evidence/{session_id}",
+        headers=moderator_headers,
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "fallback_path_taken" in (payload.get("degraded_path_signals") or [])
+    assert (payload.get("execution_truth") or {}).get("last_turn_graph_mode", {}).get("execution_health") == "model_fallback"
 
 
 def test_release_readiness_reports_partial_honestly(client, moderator_headers, monkeypatch):
@@ -212,11 +332,10 @@ def test_release_readiness_sparse_env_does_not_claim_ready(client, moderator_hea
     # The areas dict must exist and at least one area must report partial
     assert "areas" in payload, "Response must include an 'areas' breakdown"
     areas_by_name = {area["area"]: area["status"] for area in payload["areas"]}
-    assert "writers_room_hil" in areas_by_name, "writers_room_hil area must be present"
-    assert "improvement_evidence" in areas_by_name, "improvement_evidence area must be present"
-    assert areas_by_name["writers_room_hil"] == "partial", (
-        "writers_room_hil must be partial when no review artifacts are found"
-    )
-    assert areas_by_name["improvement_evidence"] == "partial", (
-        "improvement_evidence must be partial when no improvement packages are found"
-    )
+    assert areas_by_name.get("story_runtime_cross_layer") == "partial"
+    assert areas_by_name.get("writers_room_review_artifacts") == "partial"
+    assert areas_by_name.get("writers_room_retrieval_evidence_surface") == "partial"
+    assert areas_by_name.get("improvement_governance_evidence") == "partial"
+    assert areas_by_name.get("writers_room_langgraph_orchestration_depth") == "partial"
+    assert areas_by_name.get("runtime_turn_graph_contract") == "ready"
+    assert "subsystem_maturity" in payload

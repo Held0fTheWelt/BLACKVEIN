@@ -140,6 +140,10 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
         data["stack_components"]["langchain_integration"].get("writers_room_generation_bridge")
         == "invoke_writers_room_adapter_with_langchain"
     )
+    gt = data.get("governance_truth") or {}
+    assert gt.get("langgraph_orchestration_depth") == "seed_graph_stub"
+    assert gt.get("retrieval_evidence_tier") == data["retrieval_trace"]["evidence_tier"]
+    assert "wos.context_pack.build" in (gt.get("capabilities_invoked") or [])
 
 
 def test_writers_room_patch_candidates_have_preview_summary_and_confidence(client, auth_headers):
