@@ -22,6 +22,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 # W2.4.2: Import role contract (W2.4.1)
+from app.runtime.input_interpreter import InputInterpretationEnvelope
 from app.runtime.role_contract import AIRoleContract
 from app.runtime.runtime_models import TokenUsageRecord
 
@@ -36,6 +37,7 @@ class AdapterRequest(BaseModel):
         canonical_state: Complete world state snapshot (dict)
         recent_events: List of recent events as plain dicts (not Pydantic objects)
         operator_input: Optional operator instruction or context
+        input_interpretation: Deterministic pre-AI diagnostic envelope (Task 1A); not authoritative state.
         request_role_structured_output: If True, request output as AIRoleContract shape (W2.4.2+).
                                         Defaults to False for backward compatibility.
                                         W2.4.3 will update default to True when normalization is ready.
@@ -48,6 +50,7 @@ class AdapterRequest(BaseModel):
     canonical_state: dict[str, Any]
     recent_events: list[dict[str, Any]] = Field(default_factory=list)
     operator_input: str | None = None
+    input_interpretation: InputInterpretationEnvelope | None = None
     request_role_structured_output: bool = Field(default=False)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

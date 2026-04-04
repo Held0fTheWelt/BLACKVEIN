@@ -26,6 +26,7 @@ from app.runtime.ai_turn_executor import (
     _make_parse_failure_result,
     execute_turn_with_ai,
 )
+from app.runtime.input_interpreter import InputPrimaryMode
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta
 from app.runtime.runtime_models import (
     AIValidationOutcome,
@@ -258,6 +259,47 @@ class TestDecisionFromParsed:
         assert len(mock_decision.proposed_deltas) == 1
         # "state_update" is not a valid DeltaType value, so it will be None after coercion
         assert mock_decision.proposed_deltas[0].delta_type is None
+
+
+class TestBuildAdapterRequestInterpretation:
+    """Task 1A: adapter request carries deterministic input_interpretation."""
+
+    def test_build_adapter_request_attaches_envelope_and_preserves_raw_operator_input(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        session = god_of_carnage_module_with_state
+        text = "I say, 'That is enough.'"
+        req = build_adapter_request(
+            session,
+            god_of_carnage_module,
+            operator_input=text,
+        )
+        assert req.operator_input == text
+        assert req.input_interpretation is not None
+        assert req.input_interpretation.raw_text == text
+        assert req.input_interpretation.primary_mode == InputPrimaryMode.DIALOGUE
+
+    def test_execute_turn_with_ai_logs_interpretation_once(
+        self, god_of_carnage_module_with_state, god_of_carnage_module
+    ):
+        """Diagnostic log in session.metadata; not authoritative state."""
+        session = god_of_carnage_module_with_state
+        session.metadata.pop("operator_input_interpretation_log", None)
+        adapter = DeterministicAIAdapter(payload=VALID_PAYLOAD)
+        turn = session.turn_counter + 1
+        asyncio.run(
+            execute_turn_with_ai(
+                session,
+                current_turn=turn,
+                adapter=adapter,
+                module=god_of_carnage_module,
+                operator_input="I sigh.",
+            )
+        )
+        log = session.metadata.get("operator_input_interpretation_log") or []
+        assert len(log) == 1
+        assert log[0]["turn_number"] == turn
+        assert log[0]["envelope"]["primary_mode"] == InputPrimaryMode.REACTION.value
 
 
 # ===== Integration Tests: Execute Turn with AI =====

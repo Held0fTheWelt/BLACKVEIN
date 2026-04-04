@@ -21,6 +21,7 @@ from app.runtime.ai_adapter import (
     generate_with_timeout,
     normalize_token_usage,
 )
+from app.runtime.input_interpreter import InputPrimaryMode, interpret_operator_input
 
 
 class TestAdapterRequest:
@@ -53,6 +54,7 @@ class TestAdapterRequest:
         )
 
         assert request.operator_input is None
+        assert request.input_interpretation is None
         assert request.metadata == {}
 
     def test_adapter_request_with_operator_input(self):
@@ -80,6 +82,21 @@ class TestAdapterRequest:
         )
 
         assert request.metadata == {"context": "important", "tag": "test"}
+
+    def test_adapter_request_accepts_input_interpretation(self):
+        """First-class diagnostic envelope on AdapterRequest (Task 1A)."""
+        interp = interpret_operator_input("I nod.")
+        request = AdapterRequest(
+            session_id="sess1",
+            turn_number=1,
+            current_scene_id="phase_1",
+            canonical_state={},
+            recent_events=[],
+            operator_input="I nod.",
+            input_interpretation=interp,
+        )
+        assert request.input_interpretation is interp
+        assert request.input_interpretation.primary_mode == InputPrimaryMode.REACTION
 
 
 class TestAdapterResponse:

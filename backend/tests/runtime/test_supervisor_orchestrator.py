@@ -860,3 +860,34 @@ def test_orchestrator_contains_slow_adapter_calls_with_timeout(
         inv.error_summary and "adapter_generate_timeout" in inv.error_summary
         for inv in outcome.invocations
     )
+
+
+def test_build_agent_request_preserves_input_interpretation(god_of_carnage_module_with_state):
+    """Task 1A: cloned subagent AdapterRequest keeps base input_interpretation."""
+    from app.runtime.input_interpreter import interpret_operator_input
+
+    session = god_of_carnage_module_with_state
+    interp = interpret_operator_input("I say 'hello'")
+    base = AdapterRequest(
+        session_id=session.session_id,
+        turn_number=1,
+        current_scene_id=session.current_scene_id,
+        canonical_state=session.canonical_state,
+        recent_events=[],
+        operator_input="I say 'hello'",
+        input_interpretation=interp,
+        request_role_structured_output=True,
+        metadata={},
+    )
+    orchestrator = SupervisorOrchestrator()
+    registry = build_default_agent_registry()
+    agent = registry.require_enabled("scene_reader")
+    built = orchestrator._build_agent_request(
+        base_request=base,
+        agent=agent,
+        sequence_index=1,
+        tool_results=[],
+    )
+    assert built.input_interpretation is not None
+    assert built.input_interpretation.primary_mode == interp.primary_mode
+    assert built.input_interpretation.model_dump() == interp.model_dump()

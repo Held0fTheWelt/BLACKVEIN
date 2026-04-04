@@ -1002,6 +1002,7 @@ class SupervisorOrchestrator:
             canonical_state=base_request.canonical_state,
             recent_events=list(base_request.recent_events),
             operator_input=base_request.operator_input,
+            input_interpretation=base_request.input_interpretation,
             request_role_structured_output=base_request.request_role_structured_output,
             metadata=metadata,
         )

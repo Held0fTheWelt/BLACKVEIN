@@ -22,6 +22,7 @@ from app.runtime.ai_adapter import (
     StoryAIAdapter,
     generate_with_timeout,
 )
+from app.runtime.input_interpreter import interpret_operator_input
 from app.runtime.ai_decision import ParseResult, ParsedAIDecision, process_adapter_response
 from app.runtime.ai_decision_logging import construct_ai_decision_log
 from app.runtime.decision_policy import AIDecisionPolicy
@@ -133,6 +134,8 @@ def build_adapter_request(
     Returns:
         AdapterRequest ready for adapter.generate()
     """
+    op_raw = operator_input if operator_input is not None else ""
+    input_interpretation = interpret_operator_input(op_raw)
     return AdapterRequest(
         session_id=session.session_id,
         turn_number=session.turn_counter,
@@ -140,6 +143,7 @@ def build_adapter_request(
         canonical_state=session.canonical_state,
         recent_events=recent_events or [],
         operator_input=operator_input or None,
+        input_interpretation=input_interpretation,
         request_role_structured_output=True,  # W2.4.2: Request role-structured format (interpreter/director/responder)
         metadata={
             "module_id": module.metadata.module_id,
@@ -495,7 +499,10 @@ async def execute_turn_with_ai(
     except (TypeError, ValueError):
         adapter_generate_timeout_ms = 30000
 
+    interpretation_logged_for_turn = False
+
     def _build_request(attempt: int) -> AdapterRequest:
+        nonlocal interpretation_logged_for_turn
         request = build_adapter_request(
             session,
             module,
@@ -503,6 +510,17 @@ async def execute_turn_with_ai(
             recent_events=recent_events,
             attempt=attempt,
         )
+        if not interpretation_logged_for_turn and request.input_interpretation is not None:
+            interpretation_logged_for_turn = True
+            log_key = "operator_input_interpretation_log"
+            if log_key not in session.metadata:
+                session.metadata[log_key] = []
+            session.metadata[log_key].append(
+                {
+                    "turn_number": current_turn,
+                    "envelope": request.input_interpretation.model_dump(mode="json"),
+                }
+            )
         if tool_loop_enabled:
             request.metadata["tool_loop"] = {
                 "enabled": True,
