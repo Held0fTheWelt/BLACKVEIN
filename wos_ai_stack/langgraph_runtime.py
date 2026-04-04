@@ -299,13 +299,23 @@ class RuntimeTurnGraphExecutor:
             "session_id": state.get("session_id"),
             "host_versions": host_versions,
         }
+        graph_errors = list(state.get("graph_errors", []))
+        execution_health = "healthy"
+        if graph_errors:
+            execution_health = "graph_error"
+        elif fallback_taken:
+            execution_health = "model_fallback"
+        elif generation.get("success") is False:
+            execution_health = "degraded_generation"
+
         update["graph_diagnostics"] = {
             "graph_name": self.graph_name,
             "graph_version": self.graph_version,
             "nodes_executed": update["nodes_executed"],
             "node_outcomes": update["node_outcomes"],
             "fallback_path_taken": fallback_taken,
-            "errors": state.get("graph_errors", []),
+            "execution_health": execution_health,
+            "errors": graph_errors,
             "capability_audit": state.get("capability_audit", []),
             "repro_metadata": repro_metadata,
         }

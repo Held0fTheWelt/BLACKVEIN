@@ -82,6 +82,7 @@ def test_story_runtime_graph_uses_fallback_branch_on_model_failure(tmp_path):
     turn = manager.execute_turn(session_id=session.session_id, player_input="I escalate the argument")
 
     assert turn["graph"]["fallback_path_taken"] is True
+    assert turn["graph"].get("execution_health") == "model_fallback"
     assert "fallback_model" in turn["graph"]["nodes_executed"]
     assert turn["model_route"]["generation"]["fallback_used"] is True
 

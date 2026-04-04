@@ -73,6 +73,7 @@ def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> No
     assert repro.get("retrieval_profile") == "runtime_turn_support"
     assert "interpret_input" in result["graph_diagnostics"]["nodes_executed"]
     assert "route_model" in result["graph_diagnostics"]["nodes_executed"]
+    assert result["graph_diagnostics"].get("execution_health") == "healthy"
     assert "generation" in result
     assert isinstance(result["generation"]["success"], bool)
     assert result["generation"]["metadata"]["langchain_prompt_used"] is True
