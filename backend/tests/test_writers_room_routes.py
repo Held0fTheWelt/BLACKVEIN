@@ -19,8 +19,15 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     data = response.get_json()
     assert data["canonical_flow"] == "writers_room_unified_stack_workflow"
     assert data.get("trace_id")
+    assert data.get("review_id")
     assert data["module_id"] == "god_of_carnage"
-    assert data["outputs_are_recommendations_only"] is True
+    assert data["outputs_are_recommendations_only"] is False
+    assert data["review_state"]["status"] == "pending_human_review"
+    assert "proposal_package" in data
+    assert "comment_bundle" in data
+    assert "patch_candidates" in data
+    assert "variant_candidates" in data
+    assert "workflow_stages" in data
     assert "retrieval" in data
     assert "review_bundle" in data
     assert "capability_audit" in data
@@ -29,3 +36,28 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     assert "stack_components" in data
     assert "wos.context_pack.build" in data["stack_components"]["capabilities"]
     assert data["stack_components"]["langchain_integration"]["enabled"] is True
+
+
+def test_writers_room_review_state_transition_and_fetch(client, auth_headers):
+    create_resp = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"module_id": "god_of_carnage", "focus": "state transition"},
+    )
+    assert create_resp.status_code == 200
+    review_id = create_resp.get_json()["review_id"]
+
+    get_resp = client.get(f"/api/v1/writers-room/reviews/{review_id}", headers=auth_headers)
+    assert get_resp.status_code == 200
+    assert get_resp.get_json()["review_id"] == review_id
+
+    decision_resp = client.post(
+        f"/api/v1/writers-room/reviews/{review_id}/decision",
+        headers=auth_headers,
+        json={"decision": "accept", "note": "Looks good for publication review."},
+    )
+    assert decision_resp.status_code == 200
+    decision_data = decision_resp.get_json()
+    assert decision_data["review_state"]["status"] == "accepted"
+    assert decision_data["human_decision"]["decision"] == "accept"
+    assert decision_data["review_state"]["history"][-1]["status"] == "accepted"

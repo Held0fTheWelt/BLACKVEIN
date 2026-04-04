@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from story_runtime_core import RoutingPolicy
 from story_runtime_core.adapters import build_default_model_adapters
@@ -27,6 +30,33 @@ class _WritersRoomWorkflow:
 
 
 _WORKFLOW: _WritersRoomWorkflow | None = None
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+@dataclass
+class WritersRoomStore:
+    root: Path
+
+    @classmethod
+    def default(cls) -> "WritersRoomStore":
+        root = Path(__file__).resolve().parents[2] / "var" / "writers_room"
+        return cls(root=root)
+
+    def ensure_dirs(self) -> None:
+        (self.root / "reviews").mkdir(parents=True, exist_ok=True)
+
+    def write_review(self, review_id: str, payload: dict[str, Any]) -> Path:
+        self.ensure_dirs()
+        path = self.root / "reviews" / f"{review_id}.json"
+        path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        return path
+
+    def read_review(self, review_id: str) -> dict[str, Any]:
+        path = self.root / "reviews" / f"{review_id}.json"
+        return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _get_workflow() -> _WritersRoomWorkflow:
@@ -60,6 +90,7 @@ def _get_workflow() -> _WritersRoomWorkflow:
 def run_writers_room_review(
     *, module_id: str, focus: str, actor_id: str, trace_id: str | None = None
 ) -> dict[str, Any]:
+    storage = WritersRoomStore.default()
     workflow = _get_workflow()
     seed = workflow.seed_graph.invoke({"module_id": module_id})
     context_payload = workflow.capability_registry.invoke(
@@ -130,19 +161,79 @@ def run_writers_room_review(
         module_id=module_id,
         max_chunks=3,
     )
-
-    return {
+    review_id = f"review_{uuid4().hex}"
+    proposal_package = {
+        "proposal_id": f"proposal_{uuid4().hex}",
+        "module_id": module_id,
+        "focus": focus,
+        "generated_at": _utc_now(),
+        "issues": issues,
+        "recommendations": recommendations,
+        "evidence_sources": [source.get("source_path", "") for source in sources],
+    }
+    comment_bundle = {
+        "bundle_id": f"comments_{uuid4().hex}",
+        "comments": [
+            {
+                "comment_id": f"comment_{idx}",
+                "severity": issue["severity"],
+                "text": issue["description"],
+                "evidence_source": issue["evidence_source"],
+            }
+            for idx, issue in enumerate(issues, start=1)
+        ],
+    }
+    patch_candidates = [
+        {
+            "candidate_id": f"patch_{index}",
+            "target": source.get("source_path", ""),
+            "change_hint": "Adjust wording to maintain canon consistency.",
+        }
+        for index, source in enumerate(sources[:2], start=1)
+    ]
+    variant_candidates = [
+        {
+            "variant_id": f"variant_{index}",
+            "summary": recommendation,
+        }
+        for index, recommendation in enumerate(recommendations[:3], start=1)
+    ]
+    review_state = {
+        "status": "pending_human_review",
+        "updated_at": _utc_now(),
+        "updated_by": actor_id,
+        "history": [
+            {
+                "status": "pending_human_review",
+                "changed_at": _utc_now(),
+                "changed_by": actor_id,
+                "note": "Initial workflow package created.",
+            }
+        ],
+    }
+    report = {
         "canonical_flow": "writers_room_unified_stack_workflow",
         "trace_id": trace_id,
+        "review_id": review_id,
         "module_id": module_id,
         "focus": focus,
         "workflow_seed": seed,
+        "workflow_stages": [
+            "analysis_completed",
+            "proposal_packaged",
+            "human_review_pending",
+        ],
         "retrieval": context_payload["retrieval"],
         "issues": issues,
         "recommendations": recommendations,
         "model_generation": generation,
         "review_bundle": review_bundle,
-        "outputs_are_recommendations_only": True,
+        "proposal_package": proposal_package,
+        "comment_bundle": comment_bundle,
+        "patch_candidates": patch_candidates,
+        "variant_candidates": variant_candidates,
+        "review_state": review_state,
+        "outputs_are_recommendations_only": False,
         "legacy_paths": [
             {
                 "path": "writers-room legacy oracle route",
@@ -168,3 +259,53 @@ def run_writers_room_review(
             },
         },
     }
+    storage.write_review(review_id, report)
+    return report
+
+
+def get_writers_room_review(*, review_id: str) -> dict[str, Any]:
+    storage = WritersRoomStore.default()
+    return storage.read_review(review_id)
+
+
+def apply_writers_room_decision(
+    *,
+    review_id: str,
+    actor_id: str,
+    decision: str,
+    note: str | None = None,
+) -> dict[str, Any]:
+    storage = WritersRoomStore.default()
+    review = storage.read_review(review_id)
+    state = review.get("review_state", {})
+    current_status = str(state.get("status", "pending_human_review"))
+    normalized = decision.strip().lower()
+    if normalized not in {"accept", "reject"}:
+        raise ValueError("decision_must_be_accept_or_reject")
+    if current_status in {"accepted", "rejected"}:
+        raise ValueError("review_already_finalized")
+    next_status = "accepted" if normalized == "accept" else "rejected"
+    history = state.get("history", [])
+    if not isinstance(history, list):
+        history = []
+    history.append(
+        {
+            "status": next_status,
+            "changed_at": _utc_now(),
+            "changed_by": actor_id,
+            "note": note or "",
+        }
+    )
+    state["status"] = next_status
+    state["updated_at"] = _utc_now()
+    state["updated_by"] = actor_id
+    state["history"] = history
+    review["review_state"] = state
+    review["human_decision"] = {
+        "decision": normalized,
+        "decided_by": actor_id,
+        "decided_at": _utc_now(),
+        "note": note or "",
+    }
+    storage.write_review(review_id, review)
+    return review
