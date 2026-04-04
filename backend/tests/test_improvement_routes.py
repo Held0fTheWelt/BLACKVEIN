@@ -82,6 +82,86 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     assert review_bundle["status"] == "recommendation_only"
     assert any(entry["capability_name"] == "wos.context_pack.build" for entry in capability_audit)
     assert any(entry["capability_name"] == "wos.review_bundle.build" for entry in capability_audit)
+    assert "retrieval_trace" in payload
+    trace = payload["retrieval_trace"]
+    assert trace["evidence_strength"] in {"strong", "none"}
+    assert trace["profile"] == "improvement_eval"
+    if trace["evidence_strength"] == "strong":
+        assert trace["hit_count"] > 0
+        assert review_bundle["summary"].startswith("[evidence:strong]")
+    else:
+        assert review_bundle["summary"].startswith("[evidence:none]")
+    ctx_audit = next(entry for entry in capability_audit if entry["capability_name"] == "wos.context_pack.build")
+    assert ctx_audit.get("result_summary") is not None
+    assert ctx_audit["result_summary"]["kind"] == "context_pack"
+
+
+def test_improvement_experiment_reflects_empty_retrieval_in_trace_and_review_summary(
+    client, auth_headers, monkeypatch
+):
+    """When context_pack returns no hits, the HTTP response and review bundle must show evidence:none."""
+
+    class EmptyRetrievalRegistry:
+        def invoke(self, *, name, mode, actor, payload, trace_id=None):
+            if name == "wos.context_pack.build":
+                return {
+                    "retrieval": {
+                        "domain": "improvement",
+                        "profile": "improvement_eval",
+                        "status": "ok",
+                        "hit_count": 0,
+                        "sources": [],
+                        "ranking_notes": [],
+                        "index_version": "c1_semantic_v2",
+                        "corpus_fingerprint": "",
+                        "storage_path": "",
+                    },
+                    "context_text": "",
+                }
+            if name == "wos.review_bundle.build":
+                return {
+                    "bundle_id": "synthetic_bundle",
+                    "module_id": payload["module_id"],
+                    "summary": payload.get("summary", ""),
+                    "recommendations": payload.get("recommendations", []),
+                    "evidence_sources": payload.get("evidence_sources", []),
+                    "status": "recommendation_only",
+                }
+            raise AssertionError(f"unexpected capability {name}")
+
+        def recent_audit(self, *, limit=20):
+            return [
+                {
+                    "capability_name": "wos.context_pack.build",
+                    "outcome": "allowed",
+                    "result_summary": {"kind": "context_pack", "hit_count": 0},
+                }
+            ]
+
+    monkeypatch.setattr(
+        "app.api.v1.improvement_routes.create_default_capability_registry",
+        lambda **kwargs: EmptyRetrievalRegistry(),
+    )
+
+    variant_resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={
+            "baseline_id": "god_of_carnage",
+            "candidate_summary": "Empty retrieval evidence wiring test.",
+        },
+    )
+    variant_id = variant_resp.get_json()["variant_id"]
+    experiment_resp = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={"variant_id": variant_id},
+    )
+    assert experiment_resp.status_code == 200
+    body = experiment_resp.get_json()
+    assert body["retrieval_trace"]["evidence_strength"] == "none"
+    assert body["retrieval_trace"]["hit_count"] == 0
+    assert body["review_bundle"]["summary"].startswith("[evidence:none]")
 
 
 def test_governance_accessibility_lists_recommendation_packages(client, auth_headers):

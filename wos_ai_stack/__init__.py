@@ -27,6 +27,7 @@ from .capabilities import (
     CapabilityKind,
     CapabilityRegistry,
     CapabilityValidationError,
+    build_retrieval_trace,
     capability_catalog,
     create_default_capability_registry,
 )
@@ -66,6 +67,7 @@ __all__ = [
     "CapabilityKind",
     "CapabilityRegistry",
     "CapabilityValidationError",
+    "build_retrieval_trace",
     "capability_catalog",
     "create_default_capability_registry",
     "LangChainRetrieverBridge",

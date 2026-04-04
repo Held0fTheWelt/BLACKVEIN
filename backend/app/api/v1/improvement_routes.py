@@ -17,6 +17,7 @@ from app.services.improvement_service import (
 from wos_ai_stack import (
     CapabilityAccessDeniedError,
     CapabilityInvocationError,
+    build_retrieval_trace,
     build_runtime_retriever,
     create_default_capability_registry,
 )
@@ -95,6 +96,14 @@ def run_improvement_experiment():
                 "max_chunks": 5,
             },
         )
+        retrieval_inner = context_payload.get("retrieval")
+        retrieval_trace = build_retrieval_trace(retrieval_inner if isinstance(retrieval_inner, dict) else {})
+        evidence_tag = retrieval_trace["evidence_strength"]
+        evidence_sources = [
+            source.get("source_path", "")
+            for source in context_payload.get("retrieval", {}).get("sources", [])
+            if isinstance(source, dict)
+        ]
         review_bundle = capability_registry.invoke(
             name="wos.review_bundle.build",
             mode="improvement",
@@ -102,13 +111,12 @@ def run_improvement_experiment():
             trace_id=trace_id,
             payload={
                 "module_id": experiment["baseline_id"],
-                "summary": f"Improvement recommendation for variant {experiment['variant_id']}.",
+                "summary": (
+                    f"[evidence:{evidence_tag}] Improvement recommendation for variant "
+                    f"{experiment['variant_id']}."
+                ),
                 "recommendations": [package["recommendation_summary"]],
-                "evidence_sources": [
-                    source.get("source_path", "")
-                    for source in context_payload.get("retrieval", {}).get("sources", [])
-                    if isinstance(source, dict)
-                ],
+                "evidence_sources": evidence_sources,
             },
         )
     except (CapabilityAccessDeniedError, CapabilityInvocationError) as exc:
@@ -136,6 +144,7 @@ def run_improvement_experiment():
             "experiment": experiment,
             "recommendation_package": package,
             "retrieval": context_payload.get("retrieval", {}),
+            "retrieval_trace": retrieval_trace,
             "review_bundle": review_bundle,
             "capability_audit": capability_registry.recent_audit(limit=20),
         }

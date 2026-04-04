@@ -11,10 +11,11 @@ from story_runtime_core import RoutingPolicy
 from story_runtime_core.adapters import build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from wos_ai_stack import (
-    build_runtime_retriever,
-    build_seed_writers_room_graph,
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
+    build_retrieval_trace,
+    build_runtime_retriever,
+    build_seed_writers_room_graph,
     create_default_capability_registry,
 )
 
@@ -105,6 +106,9 @@ def run_writers_room_review(
             "max_chunks": 6,
         },
     )
+    retrieval_inner = context_payload.get("retrieval")
+    retrieval_trace = build_retrieval_trace(retrieval_inner if isinstance(retrieval_inner, dict) else {})
+    evidence_tag = retrieval_trace["evidence_strength"]
     routing_decision = workflow.routing.choose(task_type="narrative_generation")
     selected_provider = routing_decision.selected_provider or "mock"
     adapter = workflow.adapters.get(selected_provider)
@@ -151,7 +155,9 @@ def run_writers_room_review(
     review_bundle = workflow.review_bundle_tool.invoke(
         {
             "module_id": module_id,
-            "summary": f"Writers-Room review for {module_id} with focus '{focus}'.",
+            "summary": (
+                f"[evidence:{evidence_tag}] Writers-Room review for {module_id} with focus '{focus}'."
+            ),
             "recommendations": recommendations,
             "evidence_sources": [source.get("source_path", "") for source in sources],
         }
@@ -233,6 +239,7 @@ def run_writers_room_review(
             "human_review_pending",
         ],
         "retrieval": context_payload["retrieval"],
+        "retrieval_trace": retrieval_trace,
         "issues": issues,
         "recommendations": recommendations,
         "model_generation": generation,

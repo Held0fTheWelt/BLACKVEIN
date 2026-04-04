@@ -11,8 +11,15 @@ from wos_ai_stack import (
     ContextPackAssembler,
     ContextRetriever,
     RagIngestionPipeline,
+    build_retrieval_trace,
     create_default_capability_registry,
 )
+
+
+def test_build_retrieval_trace_evidence_strength_follows_hit_count() -> None:
+    assert build_retrieval_trace({"hit_count": 2, "status": "ok"})["evidence_strength"] == "strong"
+    assert build_retrieval_trace({"hit_count": 0, "status": "ok"})["evidence_strength"] == "none"
+    assert build_retrieval_trace(None)["evidence_strength"] == "none"
 
 
 def _build_registry(tmp_path: Path):
@@ -47,6 +54,7 @@ def test_capability_denied_access_is_typed_and_audited(tmp_path: Path) -> None:
     audit = registry.recent_audit(limit=1)[0]
     assert audit["outcome"] == "denied"
     assert audit["capability_name"] == "wos.review_bundle.build"
+    assert audit.get("result_summary") is None
 
 
 def test_capability_validation_failure_is_typed_and_audited(tmp_path: Path) -> None:
@@ -60,6 +68,7 @@ def test_capability_validation_failure_is_typed_and_audited(tmp_path: Path) -> N
         )
     audit = registry.recent_audit(limit=1)[0]
     assert audit["outcome"] == "error"
+    assert audit.get("result_summary") is None
 
 
 def test_transcript_read_capability_is_registered_and_invocable(tmp_path: Path) -> None:
@@ -113,4 +122,31 @@ def test_runtime_context_pack_capability_returns_retrieval_payload(tmp_path: Pat
     assert "retrieval" in result
     assert result["retrieval"]["profile"] == "runtime_turn_support"
     assert "context_text" in result
-    assert registry.recent_audit(limit=1)[0]["outcome"] == "allowed"
+    audit = registry.recent_audit(limit=1)[0]
+    assert audit["outcome"] == "allowed"
+    assert audit.get("result_summary") is not None
+    assert audit["result_summary"]["kind"] == "context_pack"
+    assert audit["result_summary"]["hit_count"] >= 0
+    assert audit["result_summary"]["domain"] == "runtime"
+    assert audit["result_summary"]["profile"] == "runtime_turn_support"
+
+
+def test_review_bundle_audit_includes_evidence_source_count(tmp_path: Path) -> None:
+    registry = _build_registry(tmp_path)
+    registry.invoke(
+        name="wos.review_bundle.build",
+        mode="improvement",
+        actor="improvement:test",
+        payload={
+            "module_id": "god_of_carnage",
+            "summary": "[evidence:strong] test",
+            "recommendations": ["r1"],
+            "evidence_sources": ["content/a.md", "content/b.md"],
+        },
+    )
+    audit = registry.recent_audit(limit=1)[0]
+    assert audit["outcome"] == "allowed"
+    summary = audit.get("result_summary")
+    assert summary is not None
+    assert summary["kind"] == "review_bundle"
+    assert summary["evidence_source_count"] == 2

@@ -17,6 +17,62 @@ from uuid import uuid4
 from wos_ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
 
 
+def _summarize_invocation_result(capability_name: str, result: dict[str, Any]) -> dict[str, Any] | None:
+    """Small, workflow-safe audit hints (no full payloads)."""
+    if capability_name == "wos.context_pack.build":
+        retrieval = result.get("retrieval")
+        if not isinstance(retrieval, dict):
+            return {"kind": "context_pack", "hit_count": 0, "note": "missing_retrieval_dict"}
+        hit_count = int(retrieval.get("hit_count") or 0)
+        summary: dict[str, Any] = {
+            "kind": "context_pack",
+            "hit_count": hit_count,
+            "status": retrieval.get("status"),
+            "domain": retrieval.get("domain"),
+            "profile": retrieval.get("profile"),
+        }
+        fp = retrieval.get("corpus_fingerprint")
+        if isinstance(fp, str) and fp:
+            summary["corpus_fingerprint_prefix"] = fp[:24]
+        iv = retrieval.get("index_version")
+        if isinstance(iv, str) and iv:
+            summary["index_version"] = iv
+        return summary
+    if capability_name == "wos.review_bundle.build":
+        evidence = result.get("evidence_sources", [])
+        n_evidence = len(evidence) if isinstance(evidence, list) else 0
+        return {
+            "kind": "review_bundle",
+            "bundle_id": result.get("bundle_id"),
+            "status": result.get("status"),
+            "evidence_source_count": n_evidence,
+        }
+    if capability_name == "wos.transcript.read":
+        content = result.get("content", "")
+        return {
+            "kind": "transcript_read",
+            "run_id": result.get("run_id"),
+            "content_length": len(str(content)),
+        }
+    return None
+
+
+def build_retrieval_trace(retrieval: Any) -> dict[str, Any]:
+    """Normalize capability ``retrieval`` dict into workflow-facing trace fields."""
+    if not isinstance(retrieval, dict):
+        retrieval = {}
+    hit_count = int(retrieval.get("hit_count") or 0)
+    return {
+        "evidence_strength": "strong" if hit_count > 0 else "none",
+        "hit_count": hit_count,
+        "status": retrieval.get("status"),
+        "domain": retrieval.get("domain"),
+        "profile": retrieval.get("profile"),
+        "index_version": retrieval.get("index_version"),
+        "corpus_fingerprint": retrieval.get("corpus_fingerprint"),
+    }
+
+
 class CapabilityKind(StrEnum):
     RETRIEVAL = "retrieval"
     ACTION = "action"
@@ -105,6 +161,7 @@ class CapabilityRegistry:
                 outcome="allowed",
                 trace_id=audit_id,
                 error=None,
+                result_summary=_summarize_invocation_result(name, result),
             )
             return result
         except CapabilityAccessDeniedError as exc:
@@ -115,6 +172,7 @@ class CapabilityRegistry:
                 outcome="denied",
                 trace_id=audit_id,
                 error=str(exc),
+                result_summary=None,
             )
             raise
         except Exception as exc:
@@ -125,6 +183,7 @@ class CapabilityRegistry:
                 outcome="error",
                 trace_id=audit_id,
                 error=str(exc),
+                result_summary=None,
             )
             if isinstance(exc, (CapabilityValidationError, CapabilityInvocationError)):
                 raise
@@ -145,18 +204,19 @@ class CapabilityRegistry:
         outcome: str,
         trace_id: str,
         error: str | None,
+        result_summary: dict[str, Any] | None = None,
     ) -> None:
-        self._audit_log.append(
-            {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "capability_name": capability_name,
-                "mode": mode,
-                "actor": actor,
-                "outcome": outcome,
-                "trace_id": trace_id,
-                "error": error,
-            }
-        )
+        entry: dict[str, Any] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "capability_name": capability_name,
+            "mode": mode,
+            "actor": actor,
+            "outcome": outcome,
+            "trace_id": trace_id,
+            "error": error,
+            "result_summary": result_summary,
+        }
+        self._audit_log.append(entry)
         if len(self._audit_log) > 2000:
             self._audit_log[:] = self._audit_log[-2000:]
 
