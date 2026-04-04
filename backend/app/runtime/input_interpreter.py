@@ -10,9 +10,15 @@ still use the shared core contract (e.g. API routes, improvement sandbox).
 from __future__ import annotations
 
 import re
-from enum import StrEnum
-
+from enum import Enum
 from pydantic import BaseModel, Field
+
+try:
+    from enum import StrEnum
+except ImportError:
+    # Python 3.10 compatibility
+    class StrEnum(str, Enum):
+        pass
 
 # Precautionary compatibility for existing backend import sites.
 from story_runtime_core import interpret_player_input
