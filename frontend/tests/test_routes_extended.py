@@ -372,6 +372,8 @@ def test_play_shell_ticket_ok_and_error(client, monkeypatch):
         sess["play_shell_run_modules"] = {"s1": "god_of_carnage"}
     r = client.get("/play/s1")
     assert r.status_code == 200
+    assert b"Natural language is the primary input path" in r.data
+    assert b"name=\"player_input\"" in r.data
     with client.session_transaction() as sess:
         assert sess.get("play_shell_backend_sessions", {}).get("s1") == "backend-session-1"
 

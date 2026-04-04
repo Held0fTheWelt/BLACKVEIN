@@ -342,7 +342,7 @@ def play_shell(session_id: str):
 def play_execute(session_id: str):
     player_input = (request.form.get("player_input") or "").strip()
     if not player_input:
-        flash("Please enter an action.", "error")
+        flash("Please describe your turn in natural language (or use an explicit command).", "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     backend_sessions = session.get("play_shell_backend_sessions", {})
     backend_session_id = backend_sessions.get(session_id) if isinstance(backend_sessions, dict) else None

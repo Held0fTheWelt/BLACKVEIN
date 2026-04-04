@@ -106,6 +106,7 @@
       <article class="panel command-panel">
         <h2>Natural input (primary)</h2>
         <p class="subtitle">Describe your turn in plain language. Explicit slash commands are still available as a special case.</p>
+        <p class="subtitle runtime-note">This page uses the WebSocket live-run simulator (commands map to committed room actions). The main product play shell executes authoritative story turns over HTTP through the backend World-Engine story API.</p>
         <div class="command-grid">
           <textarea id="naturalInput" placeholder="I step closer and quietly say: stop lying."></textarea>
           <button id="naturalSubmitButton">Submit turn</button>

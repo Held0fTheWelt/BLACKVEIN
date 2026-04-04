@@ -1,87 +1,88 @@
-# A1 Repair Gate Report — Free Natural Input Primary Runtime Path
+# A1 Repair Gate Report — Free Natural Input as Dominant Story-Play Path
 
 Date: 2026-04-04
 
+Verification run: 2026-04-04 (repair block re-audit)
+
 ## 1. Scope completed
 
-- Replaced frontend queue-only play execute behavior with real runtime turn dispatch.
-- Wired frontend play shell to create and cache backend runtime session bindings per run.
-- Preserved explicit command handling while keeping free natural input as the default UX path.
-- Added execution-focused tests for frontend route wiring and World-Engine input behavior (speech/action/mixed/command/ambiguous).
-- Updated input interpretation contract and added an A1 runtime path architecture note.
+- Confirmed the main product play shell (`/play/<run_id>`) presents natural language as the default and dispatches real story turns to the backend, which proxies to World-Engine `StoryRuntimeManager`.
+- Confirmed World-Engine prototype Web UI accepts `player_input` as the primary WebSocket message shape; explicit `action` payloads remain a supported special case.
+- Documented the architectural split between HTTP authoritative story turns and WebSocket live-run simulation so user-facing copy stays truthful.
+- Tightened play-shell validation feedback to describe the natural-language-first contract.
+- Extended frontend route test to assert the play template exposes natural input as the primary path (not only backend dispatch mocks).
 
 ## 2. Files changed
 
 - `frontend/app/routes.py`
-- `frontend/templates/session_shell.html`
+- `frontend/templates/session_shell.html` (unchanged this pass; already NL-primary)
 - `frontend/tests/test_routes_extended.py`
-- `world-engine/tests/test_story_runtime_api.py`
-- `backend/tests/test_session_api_closure.py`
-- `backend/tests/test_session_routes.py`
-- `docs/architecture/player_input_interpretation_contract.md`
-- `docs/architecture/a1_free_input_primary_runtime_path.md`
+- `world-engine/app/web/templates/index.html`
+- `world-engine/app/web/static/styles.css`
 - `docs/reports/ai_stack_gates/A1_REPAIR_GATE_REPORT.md`
 
-## 3. What is truly wired
+## 3. Player-facing paths where natural input is primary
 
-- Frontend `/play/<run_id>/execute` now calls backend `POST /api/v1/sessions/<backend_session_id>/turns` with `player_input`.
-- Backend turn route executes shared interpreter preview and proxies to World-Engine authoritative story runtime.
-- World-Engine turn execution classifies and executes natural and command input through runtime graph execution.
-- Frontend shell copy now reflects true runtime behavior instead of queue-only semantics.
+| Surface | Role | Execution |
+|--------|------|-----------|
+| Frontend play shell `/play/<run_id>` | Primary intended narrative play UX | `POST /api/v1/sessions/<id>/turns` with `player_input` → World-Engine `POST /api/story/sessions/<id>/turns` → `StoryRuntimeManager.execute_turn` |
+| World-Engine web prototype | Developer/live-run demo | WebSocket `player_input` / `input` → `RuntimeManager._normalize_player_message` → `RuntimeEngine.apply_command` (committed room transcript / state) |
 
-## 4. What remains incomplete
+## 4. Command-first or secondary paths that remain
 
-- Run metadata normalization between play-service run identity and backend module identity is still indirect; frontend currently binds backend session creation using selected template id.
-- No additional websocket turn-submit path was introduced in this milestone; HTTP runtime turn path is the canonical executable path.
+- **World-Engine prototype — Say / Emote / Inspect controls:** Intentionally secondary quick actions for the live-run simulator; natural textarea remains first in layout and copy.
+- **Explicit slash or bang commands:** Still supported anywhere the shared interpreter maps them; treated as a special case of the same normalization layer (WebSocket) or story turn string (HTTP path).
 
-## 5. Tests added/updated
+## 5. Why remaining paths exist
 
-- Updated: `frontend/tests/test_routes_extended.py`
-  - `test_play_create_success` (stores run-to-module mapping)
-  - `test_play_shell_ticket_ok_and_error` (creates backend session binding)
-  - `test_play_execute_empty_and_runtime_dispatch` (verifies real turn dispatch)
-  - `test_play_execute_rejects_missing_backend_session_binding`
-- Added: `world-engine/tests/test_story_runtime_api.py::test_story_turns_cover_primary_free_input_paths`
-- Updated legacy contract test: `backend/tests/test_session_api_closure.py::test_post_execute_turn_proxies_to_world_engine`
-- Updated monkeypatch signatures for trace-aware bridge calls:
-  - `backend/tests/test_session_routes.py`
-  - `backend/tests/test_session_api_closure.py`
+- Quick **action** buttons and **slash** forms are retained for testing, accessibility, and parity with legacy run-control flows without making them the default assumption.
+- The **WebSocket run runtime** is not replaced by the story graph; it is a distinct, older execution host for room-scale simulation. The report and UI note clarify that the **authoritative narrative graph** path is the HTTP story API used by the frontend play shell.
 
-## 6. Exact test commands run
+## 6. Tests added/updated
+
+- Updated: `frontend/tests/test_routes_extended.py::test_play_shell_ticket_ok_and_error` — asserts NL-primary copy and `player_input` field in rendered HTML.
+- Existing coverage retained:
+  - `test_play_execute_empty_and_runtime_dispatch` — proves `player_input` is posted to backend turns API.
+  - `world-engine/tests/test_websocket.py` — natural speech, ambiguous natural input, explicit command special case.
+  - `world-engine/tests/test_story_runtime_api.py::test_story_turns_cover_primary_free_input_paths` — HTTP story turns for speech / action / mixed / ambiguous / explicit command.
+  - `story_runtime_core/tests/test_input_interpreter.py` — interpreter contract.
+  - Backend: `test_execute_turn_proxies_to_world_engine` and related session route tests.
+
+## 7. Exact test commands run
 
 ```powershell
 cd frontend
-python -m pytest tests/test_routes_extended.py -k "play_shell_ticket_ok_and_error or play_execute_empty_and_runtime_dispatch or play_execute_rejects_missing_backend_session_binding"
-python -m pytest tests/test_routes_extended.py
+python -m pytest tests/test_routes_extended.py -k "play_" -v
 ```
 
 ```powershell
 cd world-engine
-python -m pytest tests/test_story_runtime_api.py -k "lifecycle or primary_free_input_paths"
-```
-
-```powershell
-cd backend
-python -m pytest tests/test_session_routes.py tests/test_session_api_closure.py -k "execute_turn or turns"
+python -m pytest tests/test_websocket.py tests/test_story_runtime_api.py -v --tb=short
 ```
 
 ```powershell
 cd ..
 $env:PYTHONPATH='.'
-python -m pytest story_runtime_core/tests/test_input_interpreter.py
+python -m pytest story_runtime_core/tests/test_input_interpreter.py -v --tb=short
 ```
 
-## 7. Pass / Partial / Fail
+```powershell
+cd backend
+python -m pytest tests/test_session_routes.py tests/test_session_api_closure.py -k "turns or execute_turn" -v --tb=short
+```
 
-Pass
+## 8. Verdict: Pass / Partial / Fail
 
-## 8. Reason for the verdict
+**Pass**
 
-- The intended playable frontend path now executes free natural input as a real runtime turn (no queue-only fallback in the repaired path).
-- Interpreter outputs are used in executed turn payloads and runtime diagnostics.
-- Tests cover execution behavior across natural speech, natural action, mixed input, explicit command input, ambiguous input continuation, and UI-facing route dispatch into runtime execution.
+## 9. Reason for verdict
 
-## 9. Risks introduced or remaining
+- At least one intended main path (frontend play shell) defaults to natural language and reaches real story-turn execution on World-Engine.
+- Interpreter output is part of executed turn payloads; WebSocket natural input produces committed transcript events, not log-only behavior.
+- Explicit commands remain supported but are not the dominant UX assumption.
+- Tests prove route-level dispatch and story/WebSocket execution behavior, and the play shell HTML test proves the primary path is user-visible.
 
-- If template ids diverge from backend module ids in future content pipelines, frontend run-to-backend binding may fail to create backend runtime sessions for some runs.
-- Session bindings are currently stored in frontend session state; loss of browser session requires re-establishing bindings by re-entering play flow.
+## 10. Remaining risk
+
+- Frontend session state holds run→backend session bindings; losing session requires re-entering the play flow.
+- Run/template id alignment for backend session creation can drift if content pipelines change module identifiers.
