@@ -91,6 +91,34 @@ def test_seed_graphs_for_writers_room_and_improvement_are_operational() -> None:
     assert improvement_result["status"] == "ready"
 
 
+def test_seed_writers_room_graph_is_minimal_stub() -> None:
+    """Documents truthful stub status: writers-room seed graph has no real workflow stage outputs."""
+    writers_graph = build_seed_writers_room_graph()
+    result = writers_graph.invoke({"module_id": "god_of_carnage"})
+
+    assert result["workflow"] == "writers_room_review_seed"
+    assert result["status"] == "ready"
+    # Confirm absence of real multi-stage workflow outputs — this is a single-node stub
+    assert "retrieval" not in result, "stub should not produce retrieval stage output"
+    assert "generation" not in result, "stub should not produce generation stage output"
+    assert "review" not in result, "stub should not produce review stage output"
+    assert "revision" not in result, "stub should not produce revision stage output"
+
+
+def test_seed_improvement_graph_is_minimal_stub() -> None:
+    """Documents truthful stub status: improvement seed graph has no real workflow stage outputs."""
+    improvement_graph = build_seed_improvement_graph()
+    result = improvement_graph.invoke({"baseline_id": "base_1"})
+
+    assert result["workflow"] == "improvement_eval_seed"
+    assert result["status"] == "ready"
+    # Confirm absence of real multi-stage workflow outputs — this is a single-node stub
+    assert "retrieval" not in result, "stub should not produce retrieval stage output"
+    assert "generation" not in result, "stub should not produce generation stage output"
+    assert "evaluation" not in result, "stub should not produce evaluation stage output"
+    assert "recommendation" not in result, "stub should not produce recommendation stage output"
+
+
 def test_langgraph_missing_dependency_raises_honest_runtime_error(monkeypatch) -> None:
     monkeypatch.setattr(langgraph_runtime, "LANGGRAPH_IMPORT_ERROR", ModuleNotFoundError("langgraph"), raising=False)
     with pytest.raises(RuntimeError, match="LangGraph runtime dependency is unavailable"):
