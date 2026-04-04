@@ -3,22 +3,71 @@
 {% block content %}
 <div class="manage-login-wrap">
     <div class="card manage-login-card">
-        <h1 class="manage-login-title">Ask the Almighty Oracle</h1>
-        <p class="subtitle">Pose your question and receive wisdom (or chaos).</p>
+        <h1 class="manage-login-title">Writers-Room Unified Review Workflow</h1>
+        <p class="subtitle">Canonical path: shared retrieval, orchestration, guarded capabilities, and recommendation bundle output.</p>
 
         <form method="post" action="{{ url_for('index') }}" class="manage-login-form">
             <div class="form-group">
-                <label for="question">Question</label>
-                <input class="form-input" type="text" name="question" id="question" placeholder="What is the answer to life, the universe, and everything?" required>
+                <label for="module_id">Module ID</label>
+                <input class="form-input" type="text" name="module_id" id="module_id" value="god_of_carnage" required>
             </div>
-            <button type="submit" class="btn btn-primary">Ask</button>
+            <div class="form-group">
+                <label for="focus">Review Focus</label>
+                <input class="form-input" type="text" name="focus" id="focus" value="canon consistency and dramaturgy" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Run Unified Review</button>
         </form>
 
-        {% if answer is not none %}
+        <p class="subtitle">
+            Legacy direct chat remains transitional only:
+            <a href="{{ url_for('legacy_oracle') }}">open legacy oracle</a>.
+        </p>
+
+        {% if report is not none %}
         <div class="oracle-answer">
-            <h2>The Oracle speaks</h2>
-            <p>{{ answer }}</p>
+            <h2>Review Outcome</h2>
+            <p><strong>Canonical Flow:</strong> {{ report.canonical_flow }}</p>
+            <p><strong>Module:</strong> {{ report.module_id }}</p>
+            <p><strong>Focus:</strong> {{ report.focus }}</p>
+            <p><strong>Recommendations only:</strong> {{ report.outputs_are_recommendations_only }}</p>
+            <h3>Issues</h3>
+            <ul>
+                {% for issue in report.issues %}
+                <li>{{ issue.description }} (source: {{ issue.evidence_source }})</li>
+                {% endfor %}
+            </ul>
+            <h3>Recommendations</h3>
+            <ul>
+                {% for item in report.recommendations %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+            <h3>Evidence Sources</h3>
+            <ul>
+                {% for source in report.retrieval.sources %}
+                <li>{{ source.source_path }} ({{ source.content_class }})</li>
+                {% endfor %}
+            </ul>
+            <p><strong>Review Bundle:</strong> {{ report.review_bundle.bundle_id }}</p>
         </div>
+        {% endif %}
+
+        {% if legacy_mode %}
+        <hr>
+        <h2>Legacy Oracle (Transitional)</h2>
+        <form method="post" action="{{ url_for('legacy_oracle') }}" class="manage-login-form">
+            <div class="form-group">
+                <label for="question">Question</label>
+                <input class="form-input" type="text" name="question" id="question" placeholder="Ask legacy oracle..." required>
+            </div>
+            <button type="submit" class="btn btn-primary">Ask Legacy Oracle</button>
+        </form>
+        {% if legacy_answer is not none %}
+        <div class="oracle-answer">
+            <h3>Legacy Answer</h3>
+            <p>{{ legacy_answer }}</p>
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 </div>

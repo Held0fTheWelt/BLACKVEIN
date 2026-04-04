@@ -71,17 +71,60 @@ else:  # pragma: no cover
 get_oracle_answer = _chatgpt_service.get_oracle_answer
 
 
+def _request_writers_room_review(*, token: str, module_id: str, focus: str) -> dict:
+    payload = json.dumps({"module_id": module_id, "focus": focus}).encode("utf-8")
+    req = urllib.request.Request(
+        f"{BACKEND_BASE_URL}/api/v1/writers-room/reviews",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
+    if not session.get("access_token"):
+        flash("Please sign in to use the unified Writers-Room workflow.", "error")
+        return redirect(url_for("login"))
+
+    report = None
+    if request.method == "POST":
+        module_id = request.form.get("module_id", "god_of_carnage").strip() or "god_of_carnage"
+        focus = request.form.get("focus", "canon consistency and dramaturgy").strip() or "canon consistency and dramaturgy"
+        try:
+            report = _request_writers_room_review(
+                token=session["access_token"],
+                module_id=module_id,
+                focus=focus,
+            )
+        except urllib.error.HTTPError as exc:
+            msg = "Writers-Room workflow request failed."
+            try:
+                error_payload = json.loads(exc.read().decode("utf-8"))
+                msg = error_payload.get("error") or msg
+            except Exception:
+                pass
+            flash(msg, "error")
+        except Exception:
+            flash("Writers-Room workflow failed (backend unreachable).", "error")
+    return render_template("index.html", report=report)
+
+
+@app.route("/legacy-oracle", methods=["GET", "POST"])
+def legacy_oracle():
     answer = None
     if request.method == "POST":
         question = request.form.get("question", "").strip()
-        print(f"[Oracle] User question: {question!r}")
         if question:
             answer = get_oracle_answer(question)
         else:
             answer = "You didn't ask anything. Try again!"
-    return render_template("index.html", answer=answer)
+    return render_template("index.html", report=None, legacy_answer=answer, legacy_mode=True)
 
 
 @app.route("/login", methods=["GET", "POST"])
