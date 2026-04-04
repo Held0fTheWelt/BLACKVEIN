@@ -106,6 +106,24 @@ def test_runtime_turn_graph_propagates_trace_and_host_versions(tmp_path: Path) -
     assert repro.get("host_versions", {}).get("world_engine_app_version") == "test-9.9.9"
 
 
+def test_runtime_turn_graph_appends_interpretation_summary_to_model_prompt(tmp_path: Path) -> None:
+    graph = _build_graph(tmp_path)
+    result = graph.run(
+        session_id="session_1",
+        module_id="god_of_carnage",
+        current_scene_id="scene_1",
+        player_input="open door wow",
+    )
+    prompt = result.get("model_prompt") or ""
+    assert "Runtime interpretation (structured):" in prompt
+    assert "- kind: mixed" in prompt
+    assert "- ambiguity: conflicting_action_reaction" in prompt
+    assert "- runtime_delivery_hint:" in prompt
+    interp = result.get("interpreted_input") or {}
+    assert interp.get("kind") == "mixed"
+    assert interp.get("ambiguity") == "conflicting_action_reaction"
+
+
 def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> None:
     graph = _build_graph(tmp_path)
     result = graph.run(

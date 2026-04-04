@@ -6,10 +6,9 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
-import re
 
 from fastapi import WebSocket
-from story_runtime_core import interpret_player_input
+from story_runtime_core import interpret_player_input, natural_input_to_room_command
 
 from app.config import BACKEND_CONTENT_FEED_URL, BACKEND_CONTENT_SYNC_ENABLED, BACKEND_CONTENT_SYNC_INTERVAL_SECONDS, BACKEND_CONTENT_TIMEOUT_SECONDS, RUN_STORE_BACKEND, RUN_STORE_URL
 from app.content.backend_loader import BackendContentLoadError, load_published_templates
@@ -480,18 +479,6 @@ class RuntimeManager:
             return {"action": "start_run"}
         return None
 
-    @staticmethod
-    def _extract_spoken_text(raw_text: str) -> str:
-        quoted = re.findall(r'"([^"]+)"', raw_text)
-        if quoted:
-            return quoted[0].strip()
-        match = re.search(r"\b(?:say|says|said)\b\s*[:,-]?\s*(.+)$", raw_text, flags=re.IGNORECASE)
-        if match:
-            spoken = match.group(1).strip()
-            if spoken:
-                return spoken
-        return raw_text.strip()
-
     def _normalize_player_message(self, payload: dict[str, Any]) -> dict[str, Any] | None:
         action = payload.get("action")
         if isinstance(action, str) and action.strip():
@@ -511,10 +498,7 @@ class RuntimeManager:
             return explicit
 
         interpretation = interpret_player_input(text)
-        kind = interpretation.kind.value
-        if kind in {"speech", "mixed"}:
-            return {"action": "say", "text": self._extract_spoken_text(text)}
-        return {"action": "emote", "text": text}
+        return natural_input_to_room_command(interpretation, text)
 
     async def process_command(self, run_id: str, participant_id: str, command: dict[str, Any]) -> None:
         normalized = self._normalize_player_message(command)

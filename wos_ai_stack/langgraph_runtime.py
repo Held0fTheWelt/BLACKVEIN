@@ -195,7 +195,20 @@ class RuntimeTurnGraphExecutor:
                 "top_hit_score": top_score,
             }
             context_text = pack.compact_context
-        prompt = state["player_input"] if not context_text else f"{state['player_input']}\n\n{context_text}"
+        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        interpretation_block = (
+            "Runtime interpretation (structured):\n"
+            f"- kind: {interp.get('kind')}\n"
+            f"- confidence: {interp.get('confidence')}\n"
+            f"- ambiguity: {interp.get('ambiguity')}\n"
+            f"- intent: {interp.get('intent')}\n"
+            f"- selected_handling_path: {interp.get('selected_handling_path')}\n"
+            f"- runtime_delivery_hint: {interp.get('runtime_delivery_hint')}\n"
+        )
+        base = state["player_input"]
+        if context_text:
+            base = f"{base}\n\n{context_text}"
+        prompt = f"{base}\n\n{interpretation_block}"
         update = _track(state, node_name="retrieve_context")
         update["retrieval"] = retrieval
         update["context_text"] = context_text

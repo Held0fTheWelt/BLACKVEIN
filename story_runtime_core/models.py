@@ -17,6 +17,14 @@ class InterpretedInputKind(str, Enum):
     AMBIGUOUS = "ambiguous"
 
 
+class RuntimeDeliveryHint(str, Enum):
+    """How live-run / thin hosts should map NL to say vs emote (conservative under low confidence)."""
+
+    SAY = "say"
+    EMOTE = "emote"
+    NARRATIVE_BODY = "narrative_body"
+
+
 class PlayerInputInterpretation(BaseModel):
     raw_text: str
     kind: InterpretedInputKind
@@ -28,3 +36,4 @@ class PlayerInputInterpretation(BaseModel):
     command_name: str | None = None
     command_args: list[str] = Field(default_factory=list)
     selected_handling_path: str = "nl_runtime"
+    runtime_delivery_hint: RuntimeDeliveryHint | None = None

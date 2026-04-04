@@ -82,7 +82,8 @@ def test_story_turns_cover_primary_free_input_paths(client, internal_api_key):
         ("I look at her and wait for a reaction.", "action"),
         ("I open the door and quietly say stop lying.", "mixed"),
         ("/inspect room", "explicit_command"),
-        ("I do not answer. I just stare at him.", "ambiguous"),
+        ("I do not answer. I just stare at him.", "intent_only"),
+        ("open door wow", "mixed"),
     ]
     for raw_input, expected_kind in samples:
         response = client.post(
