@@ -1,6 +1,6 @@
 # Improvement Loop in World of Shadows
 
-Status: Canonical Milestone 10 architecture and implementation baseline.
+Status: D2 repaired mutation/evaluation baseline.
 
 ## Canonical loop
 
@@ -11,6 +11,15 @@ Status: Canonical Milestone 10 architecture and implementation baseline.
 5. Build recommendation package for governance review.
 6. Expose packages through backend governance API.
 
+## Mutation flow
+
+1. Create candidate variant from baseline with explicit lineage.
+2. Attach concrete mutation plan (`mutation_plan`) to candidate.
+3. Execute candidate in sandbox over controlled inputs.
+4. Execute baseline transcript in parallel for direct comparison.
+
+Candidate variants now include mutation intent rather than summary-only placeholders.
+
 ## Variant and experiment model
 
 Implemented JSON-backed models:
@@ -20,6 +29,7 @@ Implemented JSON-backed models:
   - `baseline_id`
   - `candidate_summary`
   - `metadata`
+  - `mutation_plan`
   - `lineage`
   - `review_status`
 - Experiment:
@@ -27,10 +37,13 @@ Implemented JSON-backed models:
   - `variant_id`
   - `baseline_id`
   - sandbox transcript
+  - baseline transcript
   - execution metadata
 - Recommendation package:
   - baseline and candidate references
   - evaluation payload
+  - comparison deltas
+  - evidence bundle references
   - recommendation summary
   - governance review state
 
@@ -39,6 +52,17 @@ Implemented JSON-backed models:
 Sandbox experiments run through controlled simulation (`execution_mode=sandbox`) and are explicitly marked non-authoritative (`publish_state=isolated_non_authoritative`).
 
 No direct live publish mutation occurs in this path.
+
+## Evaluation flow
+
+Evaluation now computes:
+
+- candidate metrics,
+- baseline metrics,
+- comparison deltas between candidate and baseline,
+- notable failures.
+
+Recommendation outcome is determined by guard/repetition thresholds plus negative comparison deltas on quality/flow.
 
 ## Evaluation dimensions implemented
 
@@ -49,6 +73,21 @@ No direct live publish mutation occurs in this path.
 - `transcript_quality_heuristic`
 - `scene_marker_coverage`
 - notable failure flags
+- baseline metric mirror set
+- comparison deltas:
+  - `guard_reject_rate_delta`
+  - `repetition_signal_delta`
+  - `structure_flow_health_delta`
+  - `quality_heuristic_delta`
+
+## Evidence model
+
+Recommendation packages carry explicit evidence:
+
+- variant lineage and mutation plan,
+- experiment and baseline identifiers,
+- evaluation comparison payload,
+- artifact references to persisted experiment/variant records.
 
 ## Recommendation and review package
 
@@ -58,6 +97,7 @@ Packages include:
 - candidate reference,
 - experiment reference,
 - evaluation evidence and metrics,
+- comparison evidence bundle,
 - recommendation summary (`promote_for_human_review` or `revise_before_review`),
 - governance review status (`pending_governance_review`).
 

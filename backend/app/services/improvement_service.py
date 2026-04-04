@@ -56,17 +56,34 @@ def create_variant(
 ) -> dict[str, Any]:
     storage = store or ImprovementStore.default()
     variant_id = f"variant_{uuid4().hex}"
+    metadata_payload = metadata or {}
+    mutation_plan = metadata_payload.get("mutation_plan")
+    if not isinstance(mutation_plan, list) or not mutation_plan:
+        mutation_plan = [
+            {
+                "operation": "adjust_conflict_pacing",
+                "target": "scene_transition",
+                "intent": "reduce repetitive escalation loops",
+            },
+            {
+                "operation": "strengthen_guard_behavior",
+                "target": "safety_filter",
+                "intent": "lower unsafe response acceptance",
+            },
+        ]
     variant = {
         "variant_id": variant_id,
         "baseline_id": baseline_id,
         "candidate_summary": candidate_summary,
-        "metadata": metadata or {},
+        "metadata": metadata_payload,
         "created_by": actor_id,
         "created_at": _utc_now(),
         "review_status": "pending_review",
+        "mutation_plan": mutation_plan,
         "lineage": {
             "baseline_id": baseline_id,
             "derived_from": baseline_id,
+            "lineage_depth": 1,
         },
     }
     storage.write_json("variants", variant_id, variant)
@@ -89,6 +106,23 @@ def _simulate_sandbox_turn(*, variant: dict[str, Any], player_input: str, turn_n
     }
 
 
+def _evaluate_transcript(transcript: list[dict[str, Any]]) -> dict[str, float]:
+    total = max(1, len(transcript))
+    guard_rejects = sum(1 for turn in transcript if turn.get("guard_rejected"))
+    repeated = sum(1 for turn in transcript if turn.get("repetition_flag"))
+    covered_scene_markers = len({turn.get("scene_marker") for turn in transcript if turn.get("scene_marker")})
+    unique_trigger_tags = len({tag for turn in transcript for tag in turn.get("triggered_tags", [])})
+    quality_avg = sum(float(turn.get("quality_hint", 0.0)) for turn in transcript) / total
+    return {
+        "guard_reject_rate": round(guard_rejects / total, 4),
+        "trigger_coverage": float(unique_trigger_tags),
+        "repetition_signal": round(repeated / total, 4),
+        "structure_flow_health": round(max(0.0, 1.0 - (repeated / total)), 4),
+        "transcript_quality_heuristic": round(quality_avg, 4),
+        "scene_marker_coverage": float(covered_scene_markers),
+    }
+
+
 def run_sandbox_experiment(
     *,
     variant_id: str,
@@ -107,6 +141,14 @@ def run_sandbox_experiment(
         _simulate_sandbox_turn(variant=variant, player_input=player_input, turn_number=index)
         for index, player_input in enumerate(inputs, start=1)
     ]
+    baseline_variant = {
+        "variant_id": f"baseline::{variant['baseline_id']}",
+        "mutation_plan": [],
+    }
+    baseline_transcript = [
+        _simulate_sandbox_turn(variant=baseline_variant, player_input=player_input, turn_number=index)
+        for index, player_input in enumerate(inputs, start=1)
+    ]
     experiment_id = f"experiment_{uuid4().hex}"
     experiment = {
         "experiment_id": experiment_id,
@@ -116,9 +158,12 @@ def run_sandbox_experiment(
         "created_at": _utc_now(),
         "sandbox": True,
         "transcript": transcript,
+        "baseline_transcript": baseline_transcript,
+        "lineage": variant.get("lineage", {}),
         "metadata": {
             "execution_mode": "sandbox",
             "publish_state": "isolated_non_authoritative",
+            "mutation_plan": variant.get("mutation_plan", []),
         },
     }
     storage.write_json("experiments", experiment_id, experiment)
@@ -133,30 +178,38 @@ def evaluate_experiment(
     storage = store or ImprovementStore.default()
     experiment = storage.read_json("experiments", experiment_id)
     transcript = experiment.get("transcript", [])
-    total = max(1, len(transcript))
-    guard_rejects = sum(1 for turn in transcript if turn.get("guard_rejected"))
-    repeated = sum(1 for turn in transcript if turn.get("repetition_flag"))
-    covered_scene_markers = len({turn.get("scene_marker") for turn in transcript if turn.get("scene_marker")})
-    unique_trigger_tags = len(
-        {tag for turn in transcript for tag in turn.get("triggered_tags", [])}
-    )
-    quality_avg = sum(float(turn.get("quality_hint", 0.0)) for turn in transcript) / total
+    baseline_transcript = experiment.get("baseline_transcript", [])
+    metrics = _evaluate_transcript(transcript if isinstance(transcript, list) else [])
+    baseline_metrics = _evaluate_transcript(baseline_transcript if isinstance(baseline_transcript, list) else [])
+    comparison = {
+        "guard_reject_rate_delta": round(
+            metrics["guard_reject_rate"] - baseline_metrics["guard_reject_rate"],
+            4,
+        ),
+        "repetition_signal_delta": round(
+            metrics["repetition_signal"] - baseline_metrics["repetition_signal"],
+            4,
+        ),
+        "structure_flow_health_delta": round(
+            metrics["structure_flow_health"] - baseline_metrics["structure_flow_health"],
+            4,
+        ),
+        "quality_heuristic_delta": round(
+            metrics["transcript_quality_heuristic"] - baseline_metrics["transcript_quality_heuristic"],
+            4,
+        ),
+    }
     evaluation = {
         "experiment_id": experiment_id,
         "variant_id": experiment["variant_id"],
         "baseline_id": experiment["baseline_id"],
         "generated_at": _utc_now(),
-        "metrics": {
-            "guard_reject_rate": round(guard_rejects / total, 4),
-            "trigger_coverage": unique_trigger_tags,
-            "repetition_signal": round(repeated / total, 4),
-            "structure_flow_health": round(max(0.0, 1.0 - (repeated / total)), 4),
-            "transcript_quality_heuristic": round(quality_avg, 4),
-            "scene_marker_coverage": covered_scene_markers,
-        },
+        "metrics": metrics,
+        "baseline_metrics": baseline_metrics,
+        "comparison": comparison,
         "notable_failures": [
-            "guard_rejections_detected" if guard_rejects else "none",
-            "repetition_detected" if repeated else "none",
+            "guard_rejections_detected" if metrics["guard_reject_rate"] > 0 else "none",
+            "repetition_detected" if metrics["repetition_signal"] > 0 else "none",
         ],
     }
     return evaluation
@@ -173,8 +226,11 @@ def build_recommendation_package(
     variant = storage.read_json("variants", experiment["variant_id"])
     evaluation = evaluate_experiment(experiment_id=experiment_id, store=storage)
     metrics = evaluation["metrics"]
+    comparison = evaluation["comparison"]
     recommendation = "promote_for_human_review"
     if metrics["guard_reject_rate"] > 0.4 or metrics["repetition_signal"] > 0.5:
+        recommendation = "revise_before_review"
+    if comparison["structure_flow_health_delta"] < 0 or comparison["quality_heuristic_delta"] < 0:
         recommendation = "revise_before_review"
     package_id = f"recommendation_{uuid4().hex}"
     package = {
@@ -184,7 +240,19 @@ def build_recommendation_package(
         "baseline": {"baseline_id": variant["baseline_id"]},
         "candidate": {"variant_id": variant["variant_id"], "candidate_summary": variant["candidate_summary"]},
         "experiment": {"experiment_id": experiment_id, "sandbox": True},
+        "lineage": variant.get("lineage", {}),
+        "mutation_plan": variant.get("mutation_plan", []),
         "evaluation": evaluation,
+        "evidence_bundle": {
+            "experiment_id": experiment_id,
+            "variant_id": variant["variant_id"],
+            "baseline_id": variant["baseline_id"],
+            "comparison": comparison,
+            "artifact_refs": [
+                f"experiments/{experiment_id}.json",
+                f"variants/{variant['variant_id']}.json",
+            ],
+        },
         "recommendation_summary": recommendation,
         "review_status": "pending_governance_review",
         "next_action": "admin_review_required",

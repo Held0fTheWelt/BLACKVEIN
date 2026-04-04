@@ -17,7 +17,10 @@ def test_variant_creation_and_lineage(client, auth_headers):
     data = response.get_json()
     assert data["baseline_id"] == "god_of_carnage"
     assert data["lineage"]["derived_from"] == "god_of_carnage"
+    assert data["lineage"]["lineage_depth"] == 1
     assert data["review_status"] == "pending_review"
+    assert isinstance(data["mutation_plan"], list)
+    assert data["mutation_plan"]
 
 
 def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_headers):
@@ -56,11 +59,18 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
     assert recommendation["candidate"]["variant_id"] == variant_id
     assert recommendation["review_status"] == "pending_governance_review"
     metrics = recommendation["evaluation"]["metrics"]
+    baseline_metrics = recommendation["evaluation"]["baseline_metrics"]
+    comparison = recommendation["evaluation"]["comparison"]
     assert "guard_reject_rate" in metrics
     assert "trigger_coverage" in metrics
     assert "repetition_signal" in metrics
     assert "structure_flow_health" in metrics
     assert "transcript_quality_heuristic" in metrics
+    assert "guard_reject_rate" in baseline_metrics
+    assert "quality_heuristic_delta" in comparison
+    assert recommendation["lineage"]["baseline_id"] == "god_of_carnage"
+    assert recommendation["mutation_plan"]
+    assert recommendation["evidence_bundle"]["comparison"] == comparison
     assert retrieval["profile"] == "improvement_eval"
     assert review_bundle["status"] == "recommendation_only"
     assert any(entry["capability_name"] == "wos.context_pack.build" for entry in capability_audit)
