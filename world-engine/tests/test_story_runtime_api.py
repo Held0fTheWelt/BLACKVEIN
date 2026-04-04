@@ -26,6 +26,11 @@ def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key)
     turn_payload = turn_response.json()["turn"]
     assert turn_payload["interpreted_input"]["kind"] == "mixed"
     assert turn_payload["model_route"]["selected_model"]
+    assert "retrieval" in turn_payload
+    assert turn_payload["retrieval"]["domain"] == "runtime"
+    assert turn_payload["retrieval"]["profile"] == "runtime_turn_support"
+    assert "status" in turn_payload["retrieval"]
+    assert "sources" in turn_payload["retrieval"]
 
     command_response = client.post(
         f"/api/story/sessions/{session_id}/turns",
@@ -50,3 +55,4 @@ def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key)
     diagnostics = diagnostics_response.json()["diagnostics"]
     assert diagnostics
     assert "raw_input" in diagnostics[-1]
+    assert "retrieval" in diagnostics[-1]
