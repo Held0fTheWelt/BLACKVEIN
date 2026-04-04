@@ -20,6 +20,13 @@ class RuntimeTurnStructuredOutput(BaseModel):
     intent_summary: str | None = None
 
 
+class WritersRoomStructuredOutput(BaseModel):
+    """Writers-room review generation output parsed through LangChain parser primitives."""
+
+    review_notes: str = Field(default="")
+    recommendations: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class RuntimeInvocationResult:
     call: ModelCallResult
@@ -75,6 +82,60 @@ def invoke_runtime_adapter_with_langchain(
 
 
 @dataclass
+class WritersRoomInvocationResult:
+    call: ModelCallResult
+    prompt_text: str
+    parsed_output: WritersRoomStructuredOutput | None
+    parser_error: str | None
+
+
+def invoke_writers_room_adapter_with_langchain(
+    *,
+    adapter: BaseModelAdapter,
+    module_id: str,
+    focus: str,
+    retrieval_context: str | None,
+    timeout_seconds: float,
+) -> WritersRoomInvocationResult:
+    parser = PydanticOutputParser(pydantic_object=WritersRoomStructuredOutput)
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are the World of Shadows writers-room review assistant. "
+                "Return strictly valid JSON matching the requested schema.",
+            ),
+            (
+                "human",
+                "Module: {module_id}\n"
+                "Review focus: {focus}\n\n"
+                "Retrieved context for evidence:\n{retrieval_context}\n\n"
+                "Format instructions:\n{format_instructions}",
+            ),
+        ]
+    )
+    rendered_messages = prompt_template.format_messages(
+        module_id=module_id,
+        focus=focus,
+        retrieval_context=retrieval_context or "(none)",
+        format_instructions=parser.get_format_instructions(),
+    )
+    prompt_text = "\n\n".join(f"{message.type.upper()}: {message.content}" for message in rendered_messages)
+    call = adapter.generate(
+        prompt_text,
+        timeout_seconds=timeout_seconds,
+        retrieval_context=retrieval_context,
+    )
+    if not call.success:
+        return WritersRoomInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=None)
+    try:
+        parsed = parser.parse(call.content)
+        return WritersRoomInvocationResult(call=call, prompt_text=prompt_text, parsed_output=parsed, parser_error=None)
+    except Exception as exc:  # pragma: no cover - parser error path exercised in tests
+        return WritersRoomInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=str(exc))
+
+
+@dataclass
 class LangChainRetrieverBridge:
     retriever: Any
 
@@ -92,6 +153,40 @@ class LangChainRetrieverBridge:
             query=query,
             module_id=module_id,
             scene_id=scene_id,
+            max_chunks=max_chunks,
+        )
+        result = self.retriever.retrieve(request)
+        return [
+            Document(
+                page_content=hit.snippet,
+                metadata={
+                    "chunk_id": hit.chunk_id,
+                    "source_path": hit.source_path,
+                    "source_version": hit.source_version,
+                    "domain": request.domain.value,
+                    "content_class": hit.content_class,
+                    "score": hit.score,
+                    "index_version": result.index_version,
+                    "corpus_fingerprint": result.corpus_fingerprint,
+                },
+            )
+            for hit in result.hits
+        ]
+
+    def get_writers_room_documents(
+        self,
+        *,
+        query: str,
+        module_id: str,
+        max_chunks: int = 6,
+    ) -> list[Document]:
+        """LangChain Document preview for writers-room domain (aligns with wos.context_pack.build writers_review)."""
+        request = RetrievalRequest(
+            domain=RetrievalDomain.WRITERS_ROOM,
+            profile="writers_review",
+            query=query,
+            module_id=module_id,
+            scene_id=None,
             max_chunks=max_chunks,
         )
         result = self.retriever.retrieve(request)

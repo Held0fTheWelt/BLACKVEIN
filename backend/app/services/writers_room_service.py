@@ -17,6 +17,7 @@ from wos_ai_stack import (
     build_runtime_retriever,
     build_seed_writers_room_graph,
     create_default_capability_registry,
+    invoke_writers_room_adapter_with_langchain,
 )
 
 
@@ -112,26 +113,80 @@ def run_writers_room_review(
     routing_decision = workflow.routing.choose(task_type="narrative_generation")
     selected_provider = routing_decision.selected_provider or "mock"
     adapter = workflow.adapters.get(selected_provider)
-    prompt = (
-        f"Writers-Room review for module={module_id}.\n"
-        f"Focus: {focus}\n"
-        f"Use evidence from retrieved context and produce concise recommendations.\n\n"
-        f"{context_payload['context_text']}"
-    )
-    generation = {"provider": selected_provider, "success": False, "content": "", "error": None}
+    retrieval_text = str(context_payload.get("context_text") or "")
+    generation: dict[str, Any] = {
+        "provider": selected_provider,
+        "success": False,
+        "content": "",
+        "error": None,
+        "adapter_invocation_mode": None,
+        "raw_fallback_reason": None,
+        "metadata": {},
+    }
     if adapter:
-        call = adapter.generate(prompt, timeout_seconds=12.0, retrieval_context=context_payload["context_text"])
-        generation["success"] = call.success
-        generation["content"] = call.content
-        generation["error"] = call.metadata.get("error") if not call.success else None
+        wr_result = invoke_writers_room_adapter_with_langchain(
+            adapter=adapter,
+            module_id=module_id,
+            focus=focus,
+            retrieval_context=retrieval_text or None,
+            timeout_seconds=12.0,
+        )
+        generation["success"] = wr_result.call.success
+        generation["error"] = wr_result.call.metadata.get("error") if not wr_result.call.success else None
+        generation["adapter_invocation_mode"] = "langchain_structured_primary"
+        if wr_result.parsed_output is not None:
+            notes = (wr_result.parsed_output.review_notes or "").strip()
+            generation["content"] = notes or wr_result.call.content
+            generation["metadata"] = {
+                "langchain_prompt_used": True,
+                "langchain_parser_error": None,
+                "structured_output": wr_result.parsed_output.model_dump(mode="json"),
+            }
+        elif wr_result.call.success:
+            generation["content"] = wr_result.call.content
+            generation["metadata"] = {
+                "langchain_prompt_used": True,
+                "langchain_parser_error": wr_result.parser_error,
+                "structured_output": None,
+            }
+        else:
+            generation["content"] = ""
+            generation["metadata"] = {
+                "langchain_prompt_used": True,
+                "langchain_parser_error": wr_result.parser_error,
+                "structured_output": None,
+            }
+    else:
+        generation["error"] = f"adapter_not_registered:{selected_provider}"
+        generation["raw_fallback_reason"] = "primary_adapter_missing"
+
     if not generation["success"]:
         fallback = workflow.adapters.get("mock")
+        fallback_prompt = (
+            f"Writers-Room review for module={module_id}.\n"
+            f"Focus: {focus}\n"
+            f"Use evidence from retrieved context and produce concise recommendations.\n\n"
+            f"{retrieval_text}"
+        )
         if fallback:
-            call = fallback.generate(prompt, timeout_seconds=5.0, retrieval_context=context_payload["context_text"])
+            call = fallback.generate(fallback_prompt, timeout_seconds=5.0, retrieval_context=retrieval_text or None)
             generation["provider"] = "mock"
             generation["success"] = call.success
             generation["content"] = call.content
             generation["error"] = call.metadata.get("error") if not call.success else None
+            generation["adapter_invocation_mode"] = "raw_adapter_fallback"
+            generation["raw_fallback_reason"] = (
+                generation.get("raw_fallback_reason") or "primary_failed_or_unavailable"
+            )
+            generation["metadata"] = {
+                "langchain_prompt_used": False,
+                "langchain_parser_error": None,
+                "structured_output": None,
+                "bypass_note": (
+                    "Mock/raw fallback skips LangChain structured parse because default mock output is not JSON; "
+                    "graph-runtime primary path uses the same pattern."
+                ),
+            }
 
     sources = context_payload["retrieval"].get("sources", [])
     issues = [
@@ -149,6 +204,12 @@ def run_writers_room_review(
         "Prioritize contradictory characterization notes for human review.",
         "Preserve recommendation-only status until admin approval.",
     ]
+    meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else None
+    if structured:
+        for item in structured.get("recommendations") or []:
+            if item:
+                recommendations.append(str(item))
     if generation["content"]:
         recommendations.append(generation["content"][:220])
 
@@ -162,8 +223,8 @@ def run_writers_room_review(
             "evidence_sources": [source.get("source_path", "") for source in sources],
         }
     )
-    langchain_documents = workflow.langchain_retriever.get_runtime_documents(
-        query=f"{module_id} {focus}",
+    langchain_documents = workflow.langchain_retriever.get_writers_room_documents(
+        query=f"{module_id} {focus} canon consistency dramaturgy structure",
         module_id=module_id,
         max_chunks=3,
     )
@@ -269,8 +330,10 @@ def run_writers_room_review(
             "model_routing": "story_runtime_core.RoutingPolicy",
             "langchain_integration": {
                 "enabled": True,
-                "runtime_bridge": "invoke_runtime_adapter_with_langchain",
+                "runtime_turn_bridge": "invoke_runtime_adapter_with_langchain",
+                "writers_room_generation_bridge": "invoke_writers_room_adapter_with_langchain",
                 "retriever_bridge": "build_langchain_retriever_bridge",
+                "writers_room_document_preview": "LangChainRetrieverBridge.get_writers_room_documents",
                 "tool_bridge": "build_capability_tool_bridge",
             },
         },

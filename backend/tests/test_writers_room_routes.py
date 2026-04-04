@@ -39,6 +39,18 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
     assert "stack_components" in data
     assert "wos.context_pack.build" in data["stack_components"]["capabilities"]
     assert data["stack_components"]["langchain_integration"]["enabled"] is True
+    mg = data.get("model_generation") or {}
+    assert mg.get("adapter_invocation_mode") in {"langchain_structured_primary", "raw_adapter_fallback"}
+    meta = mg.get("metadata") or {}
+    if mg.get("adapter_invocation_mode") == "langchain_structured_primary":
+        assert meta.get("langchain_prompt_used") is True
+    if mg.get("adapter_invocation_mode") == "raw_adapter_fallback":
+        assert meta.get("langchain_prompt_used") is False
+        assert meta.get("bypass_note")
+    assert (
+        data["stack_components"]["langchain_integration"].get("writers_room_generation_bridge")
+        == "invoke_writers_room_adapter_with_langchain"
+    )
 
 
 def test_writers_room_patch_candidates_have_preview_summary_and_confidence(client, auth_headers):

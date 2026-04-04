@@ -8,6 +8,7 @@ from wos_ai_stack.langchain_integration import (
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
     invoke_runtime_adapter_with_langchain,
+    invoke_writers_room_adapter_with_langchain,
 )
 
 
@@ -19,6 +20,31 @@ class JsonAdapter(BaseModelAdapter):
             content='{"narrative_response":"ok","proposed_scene_id":"scene_2","intent_summary":"advance"}',
             success=True,
             metadata={"adapter": self.adapter_name, "prompt_length": len(prompt)},
+        )
+
+
+class WritersRoomJsonAdapter(BaseModelAdapter):
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+        return ModelCallResult(
+            content=(
+                '{"review_notes":"Canon alignment looks sound.","recommendations":'
+                '["Tighten beat three","Check door continuity"]}'
+            ),
+            success=True,
+            metadata={"adapter": self.adapter_name, "prompt_length": len(prompt)},
+        )
+
+
+class NonJsonSuccessAdapter(BaseModelAdapter):
+    adapter_name = "mock"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+        return ModelCallResult(
+            content="plain text, not json",
+            success=True,
+            metadata={"adapter": self.adapter_name},
         )
 
 
@@ -46,6 +72,37 @@ def test_langchain_runtime_invocation_parses_structured_output() -> None:
     assert result.parser_error is None
 
 
+def test_langchain_writers_room_invocation_parses_structured_output() -> None:
+    adapter = WritersRoomJsonAdapter()
+    result = invoke_writers_room_adapter_with_langchain(
+        adapter=adapter,
+        module_id="god_of_carnage",
+        focus="canon",
+        retrieval_context="scene notes",
+        timeout_seconds=5.0,
+    )
+    assert result.call.success is True
+    assert result.parsed_output is not None
+    assert "Canon" in result.parsed_output.review_notes
+    assert "Tighten beat three" in result.parsed_output.recommendations
+    assert result.parser_error is None
+
+
+def test_langchain_writers_room_invocation_keeps_raw_content_on_parser_error() -> None:
+    adapter = NonJsonSuccessAdapter()
+    result = invoke_writers_room_adapter_with_langchain(
+        adapter=adapter,
+        module_id="m1",
+        focus="structure",
+        retrieval_context=None,
+        timeout_seconds=5.0,
+    )
+    assert result.call.success is True
+    assert result.parsed_output is None
+    assert result.parser_error
+    assert result.call.content == "plain text, not json"
+
+
 def test_langchain_retriever_bridge_returns_documents(tmp_path: Path) -> None:
     content_file = tmp_path / "content" / "god_of_carnage.md"
     content_file.parent.mkdir(parents=True, exist_ok=True)
@@ -58,6 +115,21 @@ def test_langchain_retriever_bridge_returns_documents(tmp_path: Path) -> None:
     assert docs[0].metadata.get("chunk_id")
     assert docs[0].metadata.get("source_version")
     assert docs[0].metadata.get("index_version")
+
+
+def test_langchain_retriever_bridge_writers_room_domain(tmp_path: Path) -> None:
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("Writers room canon review corpus line.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    bridge = build_langchain_retriever_bridge(ContextRetriever(corpus))
+    docs = bridge.get_writers_room_documents(
+        query="canon review",
+        module_id="god_of_carnage",
+        max_chunks=2,
+    )
+    assert docs
+    assert docs[0].metadata.get("domain") == "writers_room"
 
 
 def test_langchain_tool_bridge_invokes_capability_registry() -> None:

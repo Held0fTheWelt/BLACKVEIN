@@ -1,6 +1,6 @@
 # LangChain Integration in World of Shadows
 
-Status: active and wired in runtime-adjacent and writers-room paths (B1 repair).
+Status: active and wired in runtime-adjacent and writers-room paths (B1 repair, B1-next hardening).
 
 ## Where LangChain is used now
 
@@ -17,19 +17,18 @@ Status: active and wired in runtime-adjacent and writers-room paths (B1 repair).
 
 - File: `backend/app/services/writers_room_service.py`
 - Integrations:
-  - Retriever bridge (`build_langchain_retriever_bridge`) for LangChain-style `Document` output
-  - Capability tool bridge (`build_capability_tool_bridge`) for invoking capability registry through a LangChain `StructuredTool`
-- Purpose:
-  - reduce direct ad-hoc wiring for retrieval/tool access
-  - keep governance capability invocation while adding standardized LangChain bridges
+  - **Primary model generation:** `invoke_writers_room_adapter_with_langchain` (Chat prompt + `WritersRoomStructuredOutput` parse); `model_generation.metadata` mirrors runtime graph (`langchain_prompt_used`, `structured_output`, `langchain_parser_error`).
+  - **Document preview:** `LangChainRetrieverBridge.get_writers_room_documents` uses domain `writers_room` / profile `writers_review` (aligned with `wos.context_pack.build`), not the runtime-turn retriever profile.
+  - Capability tool bridge (`build_capability_tool_bridge`) for review bundle invocation.
+- **Bounded bypass:** If the primary adapter fails (or is missing) and recovery uses the default **mock** adapter, generation uses **raw** `adapter.generate` with explicit `adapter_invocation_mode: raw_adapter_fallback` and a `bypass_note` — mock output is not JSON, so structured LangChain parse is skipped on that path (same honesty pattern as LangGraph `fallback_model`).
 
 ## Integration layer surface
 
 - Package: `wos_ai_stack/langchain_integration/`
 - Key primitives:
-  - `invoke_runtime_adapter_with_langchain`
-  - `RuntimeTurnStructuredOutput`
-  - `build_langchain_retriever_bridge`
+  - `invoke_runtime_adapter_with_langchain` / `RuntimeTurnStructuredOutput`
+  - `invoke_writers_room_adapter_with_langchain` / `WritersRoomStructuredOutput`
+  - `build_langchain_retriever_bridge` (`get_runtime_documents`, `get_writers_room_documents`)
   - `build_capability_tool_bridge`
 
 ## What is intentionally not migrated yet

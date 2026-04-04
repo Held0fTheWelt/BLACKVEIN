@@ -35,9 +35,12 @@ from .langchain_integration import (
     LangChainRetrieverBridge,
     RuntimeInvocationResult,
     RuntimeTurnStructuredOutput,
+    WritersRoomInvocationResult,
+    WritersRoomStructuredOutput,
     build_capability_tool_bridge,
     build_langchain_retriever_bridge,
     invoke_runtime_adapter_with_langchain,
+    invoke_writers_room_adapter_with_langchain,
 )
 
 __all__ = [
@@ -73,7 +76,10 @@ __all__ = [
     "LangChainRetrieverBridge",
     "RuntimeInvocationResult",
     "RuntimeTurnStructuredOutput",
+    "WritersRoomInvocationResult",
+    "WritersRoomStructuredOutput",
     "build_capability_tool_bridge",
     "build_langchain_retriever_bridge",
     "invoke_runtime_adapter_with_langchain",
+    "invoke_writers_room_adapter_with_langchain",
 ]
