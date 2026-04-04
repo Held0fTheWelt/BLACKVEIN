@@ -33,6 +33,7 @@ from app.runtime.runtime_models import (
     AIDecisionAction,
     AIActionType,
     AIValidationOutcome,
+    NarrativeCommitRecord,
     DeltaType,
     DeltaValidationStatus,
     GuardOutcome,
@@ -621,6 +622,7 @@ def test_commit_turn_result_rejects_non_success():
 
 def test_commit_turn_result_success_updates_session(god_of_carnage_module_with_state):
     session = god_of_carnage_module_with_state
+    prior = session.current_scene_id
     good = TurnExecutionResult(
         turn_number=1,
         session_id=session.session_id,
@@ -628,6 +630,15 @@ def test_commit_turn_result_success_updates_session(god_of_carnage_module_with_s
         decision=MockDecision(proposed_deltas=[], narrative_text="", rationale=""),
         updated_canonical_state={"k": 1},
         updated_scene_id="new_scene",
+        narrative_commit=NarrativeCommitRecord(
+            turn_number=1,
+            prior_scene_id=prior,
+            committed_scene_id="new_scene",
+            situation_status="transitioned",
+            guard_outcome=GuardOutcome.ACCEPTED.value,
+            authoritative_reason="test fixture",
+            canonical_consequences=["scene_transition:%s->new_scene" % prior],
+        ),
         started_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
         duration_ms=1.0,
@@ -650,6 +661,15 @@ def test_commit_turn_result_success_without_scene_change(god_of_carnage_module_w
         decision=MockDecision(proposed_deltas=[], narrative_text="", rationale=""),
         updated_canonical_state={"only": "state"},
         updated_scene_id=None,
+        narrative_commit=NarrativeCommitRecord(
+            turn_number=1,
+            prior_scene_id=scene_before,
+            committed_scene_id=scene_before,
+            situation_status="continue",
+            guard_outcome=GuardOutcome.ACCEPTED.value,
+            authoritative_reason="test fixture",
+            canonical_consequences=[f"scene_continue:{scene_before}"],
+        ),
         started_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
         duration_ms=1.0,

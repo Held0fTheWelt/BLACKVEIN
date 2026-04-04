@@ -18,6 +18,10 @@ from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
 from app.runtime.scene_legality import SceneTransitionLegality
 from app.runtime.validators import ValidationOutcome, validate_decision
+from app.runtime.narrative_commit import (
+    narrative_commit_for_source_gate_rejection,
+    resolve_narrative_commit,
+)
 from app.runtime.runtime_models import (
     DeltaType,
     DeltaValidationStatus,
@@ -25,9 +29,11 @@ from app.runtime.runtime_models import (
     ExecutionFailureReason,
     GuardOutcome,
     MockDecision,
+    NarrativeCommitRecord,
     ProposalSource,
     ProposedStateDelta,
     SessionState,
+    SessionStatus,
     StateDelta,
     TurnStatus,
 )
@@ -62,6 +68,8 @@ class TurnExecutionResult(BaseModel):
         completed_at: Timestamp when turn execution completed.
         duration_ms: Execution time in milliseconds.
         events: Audit events created during execution.
+        narrative_commit: Bounded authoritative narrative outcome for this turn (in-process
+            runtime); None on system_error.
     """
 
     turn_number: int
@@ -81,6 +89,7 @@ class TurnExecutionResult(BaseModel):
     completed_at: datetime | None = None
     duration_ms: float = 0.0
     events: list[EventLogEntry] = Field(default_factory=list)
+    narrative_commit: NarrativeCommitRecord | None = None
 
 
 # ===== Exception Classes =====
@@ -320,6 +329,20 @@ def _derive_runtime_context(
     session.context_layers.lore_direction_context = lore
 
 
+def _finalize_success_turn(
+    session: SessionState,
+    module: ContentModule,
+    result: TurnExecutionResult,
+    prior_scene_id: str | None,
+) -> None:
+    """Run shared post-turn accumulation for successful execution paths (including gate reject)."""
+    _accumulate_turn_context(session, result, prior_scene_id=prior_scene_id)
+    _derive_runtime_context(session, module)
+
+
+NARRATIVE_COMMIT_LOG_MAX_ENTRIES = 100
+
+
 # ===== Core Functions =====
 
 
@@ -545,23 +568,49 @@ async def execute_turn(
                 )
                 rejected_deltas.append(delta)
 
-            return TurnExecutionResult(
+            narrative_commit = narrative_commit_for_source_gate_rejection(
+                turn_number=current_turn,
+                prior_scene_id=prior_scene_id or session.current_scene_id,
+                decision=mock_decision,
+                guard_outcome=GuardOutcome.REJECTED,
+                rejected_deltas=rejected_deltas,
+            )
+
+            event_log.log(
+                "turn_completed",
+                f"Turn {current_turn} completed: source gate rejected proposals",
+                payload={
+                    "turn_number": current_turn,
+                    "accepted_delta_count": 0,
+                    "rejected_delta_count": len(rejected_deltas),
+                    "guard_outcome": GuardOutcome.REJECTED.value,
+                    "detected_triggers": mock_decision.detected_triggers,
+                    "duration_ms": duration_ms,
+                },
+            )
+
+            gate_result = TurnExecutionResult(
                 turn_number=current_turn,
                 session_id=session.session_id,
-                execution_status="success",  # Gate rejection is clean: no exception
+                execution_status="success",
                 decision=mock_decision,
                 validation_outcome=None,
                 validation_errors=[gate_rejection_error],
                 accepted_deltas=[],
-                rejected_deltas=rejected_deltas,  # All deltas rejected by gate
+                rejected_deltas=rejected_deltas,
                 updated_canonical_state=session.canonical_state,
-                guard_outcome=GuardOutcome.REJECTED,  # Clean rejection by gate
+                updated_scene_id=prior_scene_id,
+                updated_ending_id=None,
+                guard_outcome=GuardOutcome.REJECTED,
                 failure_reason=ExecutionFailureReason.NONE,
+                narrative_commit=narrative_commit,
                 started_at=started_at,
                 completed_at=completed_at,
                 duration_ms=duration_ms,
                 events=event_log.flush(),
             )
+            _finalize_success_turn(session, module, gate_result, prior_scene_id=prior_scene_id)
+            return gate_result
         # Step 1: Validate decision
         validation_outcome = validate_decision(mock_decision, session, module)
 
@@ -621,64 +670,65 @@ async def execute_turn(
             },
         )
 
-        # Step 4: Handle scene transition (W2.2.4 - enforce canonical legality)
-        updated_scene_id = session.current_scene_id
-        updated_ending_id = None
-
-        # Check scene transition legality using canonical rules
-        if mock_decision.proposed_scene_id:
-            legality_decision = SceneTransitionLegality.check_transition_legal(
-                session.current_scene_id,
-                mock_decision.proposed_scene_id,
-                module,
-                session=session,
-                detected_triggers=mock_decision.detected_triggers  # Use actual triggers from execution
-            )
-            if legality_decision.allowed:
-                updated_scene_id = mock_decision.proposed_scene_id
-                event_log.log(
-                    "scene_changed",
-                    f"Scene transitioned to {updated_scene_id}",
-                    payload={
-                        "from_scene": session.current_scene_id,
-                        "to_scene": updated_scene_id,
-                    },
-                )
-            else:
-                # Scene transition was rejected by canonical legality rules
-                # Log this for debugging - decision passed validation but doesn't meet execution criteria
-                event_log.log(
-                    "scene_transition_blocked",
-                    f"Scene transition to {mock_decision.proposed_scene_id} blocked: {legality_decision.reason}",
-                    payload={
-                        "from_scene": session.current_scene_id,
-                        "proposed_scene": mock_decision.proposed_scene_id,
-                        "reason": legality_decision.reason,
-                    },
-                )
-
-        # Step 4.5: Check ending legality (W2.2.4 - ending coherence)
-        # Determine if any ending is legal at current scene with detected triggers
-        ending_id, ending_legality = SceneTransitionLegality.check_ending_legal(
-            module,
-            session=session,
-            detected_triggers=mock_decision.detected_triggers
+        # Step 4–5: Narrative commit (post-delta): ending before explicit proposed transition
+        guard_outcome_value = _compute_guard_outcome(accepted_deltas, rejected_deltas, "success")
+        narrative_commit = resolve_narrative_commit(
+            turn_number=current_turn,
+            prior_scene_id=prior_scene_id or session.current_scene_id,
+            post_delta_canonical_state=updated_state,
+            session_template=session,
+            decision=mock_decision,
+            module=module,
+            guard_outcome=guard_outcome_value,
+            accepted_deltas=accepted_deltas,
+            rejected_deltas=rejected_deltas,
         )
-        if ending_id and ending_legality.allowed:
-            updated_ending_id = ending_id
+        updated_scene_id = narrative_commit.committed_scene_id
+        updated_ending_id = narrative_commit.committed_ending_id
+
+        if narrative_commit.situation_status == "ending_reached" and updated_ending_id:
             event_log.log(
                 "ending_triggered",
-                f"Ending triggered: {ending_id}",
+                f"Ending triggered: {updated_ending_id}",
+                payload={"ending_id": updated_ending_id},
+            )
+        elif narrative_commit.situation_status == "transitioned":
+            event_log.log(
+                "scene_changed",
+                f"Scene transitioned to {updated_scene_id}",
                 payload={
-                    "ending_id": ending_id,
+                    "from_scene": prior_scene_id,
+                    "to_scene": updated_scene_id,
                 },
             )
+        elif mock_decision.proposed_scene_id:
+            post_delta_session = session.model_copy(deep=True)
+            post_delta_session.canonical_state = deepcopy(updated_state)
+            post_delta_session.current_scene_id = prior_scene_id or session.current_scene_id
+            td = SceneTransitionLegality.check_transition_legal(
+                prior_scene_id or session.current_scene_id,
+                mock_decision.proposed_scene_id,
+                module,
+                session=post_delta_session,
+                detected_triggers=mock_decision.detected_triggers,
+            )
+            if not td.allowed:
+                event_log.log(
+                    "scene_transition_blocked",
+                    (
+                        f"Scene transition to {mock_decision.proposed_scene_id} "
+                        f"blocked: {td.reason}"
+                    ),
+                    payload={
+                        "from_scene": prior_scene_id,
+                        "proposed_scene": mock_decision.proposed_scene_id,
+                        "reason": td.reason,
+                    },
+                )
 
-        # Step 5: Finalize
+        # Step 6: Finalize
         completed_at = datetime.now(timezone.utc)
         duration_ms = (completed_at - started_at).total_seconds() * 1000
-
-        guard_outcome_value = _compute_guard_outcome(accepted_deltas, rejected_deltas, "success")
 
         event_log.log(
             "turn_completed",
@@ -706,16 +756,14 @@ async def execute_turn(
             updated_scene_id=updated_scene_id,
             updated_ending_id=updated_ending_id,
             guard_outcome=guard_outcome_value,
+            narrative_commit=narrative_commit,
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,
             events=event_log.flush(),
         )
 
-        # W2.3-R2: Accumulate short-term context and session history
-        _accumulate_turn_context(session, result, prior_scene_id=prior_scene_id)
-        # W2.3-R3: Derive downstream context layers from updated history
-        _derive_runtime_context(session, module)
+        _finalize_success_turn(session, module, result, prior_scene_id=prior_scene_id)
 
         return result
 
@@ -745,6 +793,7 @@ async def execute_turn(
             updated_canonical_state=session.canonical_state,
             updated_scene_id=session.current_scene_id,
             guard_outcome=GuardOutcome.STRUCTURALLY_INVALID,
+            narrative_commit=None,
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,
@@ -791,8 +840,11 @@ def commit_turn_result(
     # Commit canonical state from result
     updated_session.canonical_state = result.updated_canonical_state
 
-    # Commit scene progression if scene changed
-    if result.updated_scene_id:
+    if result.narrative_commit is not None:
+        updated_session.current_scene_id = result.narrative_commit.committed_scene_id
+        if result.narrative_commit.is_terminal:
+            updated_session.status = SessionStatus.ENDED
+    elif result.updated_scene_id:
         updated_session.current_scene_id = result.updated_scene_id
 
     # Increment turn counter
@@ -800,5 +852,13 @@ def commit_turn_result(
 
     # Update modification timestamp
     updated_session.updated_at = datetime.now(timezone.utc)
+
+    if result.narrative_commit is not None:
+        log_key = "narrative_commit_log"
+        if log_key not in updated_session.metadata:
+            updated_session.metadata[log_key] = []
+        log_list: list = updated_session.metadata[log_key]
+        log_list.append(result.narrative_commit.model_dump(mode="json"))
+        updated_session.metadata[log_key] = log_list[-NARRATIVE_COMMIT_LOG_MAX_ENTRIES:]
 
     return updated_session

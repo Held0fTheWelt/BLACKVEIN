@@ -418,6 +418,31 @@ class MockDecision(BaseModel):
     """
 
 
+class NarrativeCommitRecord(BaseModel):
+    """Bounded authoritative summary of what the in-process runtime committed for one turn.
+
+    This is the canonical post-execution narrative outcome for the backend ``SessionState``
+    loop (simulation, tests, in-process AI path). It is not a claim of live production
+    authority over World Engine execution.
+
+    Separates committed narrative truth from diagnostics (raw AI output, parse traces,
+    input interpretation envelopes, rejected proposals).
+    """
+
+    turn_number: int
+    prior_scene_id: str | None
+    committed_scene_id: str
+    situation_status: Literal["continue", "transitioned", "ending_reached"]
+    committed_ending_id: str | None = None
+    accepted_delta_targets: list[str] = Field(default_factory=list)
+    rejected_delta_targets: list[str] = Field(default_factory=list)
+    committed_trigger_ids: list[str] = Field(default_factory=list)
+    guard_outcome: str
+    authoritative_reason: str
+    canonical_consequences: list[str] = Field(default_factory=list)
+    is_terminal: bool = False
+
+
 # ===== AI Decision Log Models =====
 
 
@@ -673,6 +698,7 @@ __all__ = [
     "InterpreterDiagnosticSummary",
     "MergeFinalizationRecord",
     "MockDecision",
+    "NarrativeCommitRecord",
     "ProposalSource",
     "ProposedStateDelta",
     "SessionContextLayers",
