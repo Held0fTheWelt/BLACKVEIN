@@ -769,3 +769,82 @@ def test_sandbox_experiment_evaluation_uses_interpretation_signals(tmp_path):
     assert "semantic_speech_rate" in metrics
     assert "semantic_action_rate" in metrics
     assert "semantic_command_rate" in metrics
+
+
+# Extension tests for error-path coverage
+
+def test_create_variant_missing_baseline_id_returns_400(client, auth_headers):
+    """POST /api/v1/improvement/variants without baseline_id returns 400."""
+    resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"candidate_summary": "No baseline provided"},
+    )
+    assert resp.status_code == 400
+    assert "baseline_id" in resp.get_json().get("error", "").lower()
+
+
+def test_create_variant_missing_candidate_summary_returns_400(client, auth_headers):
+    """POST /api/v1/improvement/variants without candidate_summary returns 400."""
+    resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "baseline_001"},
+    )
+    assert resp.status_code == 400
+    assert "candidate_summary" in resp.get_json().get("error", "").lower()
+
+
+def test_create_variant_non_dict_body_returns_400(client, auth_headers):
+    """POST /api/v1/improvement/variants with non-dict body returns 400."""
+    resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json=["not", "a", "dict"],
+    )
+    assert resp.status_code == 400
+
+
+def test_run_experiment_non_list_test_inputs_returns_400(client, auth_headers):
+    """POST /api/v1/improvement/experiments with non-list test_inputs returns error."""
+    variant_resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={
+            "baseline_id": "baseline_001",
+            "candidate_summary": "Test variant",
+        },
+    )
+    assert variant_resp.status_code == 201
+    variant_id = variant_resp.get_json()["variant_id"]
+
+    resp = client.post(
+        "/api/v1/improvement/experiments",
+        headers=auth_headers,
+        json={
+            "variant_id": variant_id,
+            "test_inputs": "not_a_list",  # Should be a list
+        },
+    )
+    # Should return an error status (either 400 or 500 depending on validation)
+    assert resp.status_code >= 400
+
+
+def test_recommendation_decision_returns_404_when_package_not_found(
+    client, auth_headers, monkeypatch
+):
+    """POST /api/v1/improvement/recommendations/{id}/decision returns 404 when package not found."""
+    from unittest.mock import MagicMock
+
+    mock_store = MagicMock(spec=ImprovementStore)
+    mock_store.read_json.side_effect = FileNotFoundError("package not found")
+    monkeypatch.setattr(
+        improvement_routes_module, "ImprovementStore",
+        lambda *args, **kwargs: mock_store
+    )
+    resp = client.post(
+        "/api/v1/improvement/recommendations/nonexistent_package/decision",
+        headers=auth_headers,
+        json={"decision": "accept"},
+    )
+    assert resp.status_code == 404

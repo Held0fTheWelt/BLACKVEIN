@@ -519,3 +519,27 @@ def test_writers_room_cannot_finalize_twice(client, auth_headers):
     )
     assert second.status_code == 400
     assert "finalized" in second.get_json().get("error", "")
+
+
+# Extension tests for error-path coverage
+
+def test_post_review_missing_module_id_validation(client, auth_headers):
+    """POST /api/v1/writers-room/reviews without required fields returns error."""
+    resp = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"focus": "no module_id provided"},
+    )
+    # Should return an error (400 or 422 depending on validation)
+    assert resp.status_code >= 400
+
+
+def test_post_review_missing_module_id_returns_400(client, auth_headers):
+    """POST /api/v1/writers-room/reviews without module_id returns 400."""
+    resp = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"focus": "no module_id provided"},
+    )
+    assert resp.status_code == 400
+    assert "module_id" in resp.get_json().get("error", "").lower()
