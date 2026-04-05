@@ -34,6 +34,10 @@ Task 4 **does not** change routing policy, `StoryAIAdapter`, or guard/commit/rej
 
 **What tests now prove (high level):** staged Runtime success, SLM-only, degraded skip/parse-forced synthesis, orchestration-preempted audit shape (schema version and preempted timeline entry), legacy single-pass, tool-loop continuation after a staged synthesis tool request, real `create_app` bootstrap-on path, empty-registry / missing-adapter honesty, synthesis stage with `no_eligible_spec_selection` while execution still falls back to the passed adapter, Improvement `_run_routed_bounded_call` skip when provider adapters are absent, shared `operator_audit` / `routing_evidence` key contracts across Runtime, Writers-Room, and Improvement, and bounded drift checks on `audit_schema_version` and stable evidence keys.
 
+### Area 2 — Convergence closure (G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08)
+
+Canonical Task 2A paths expose a single importable **authority map** (`area2_routing_authority`), deterministic **operational state** and **no-eligible discipline** (`area2_operational_state`), and additive **`operator_audit.area2_operator_truth`** (`area2_operator_truth`). Gates and outcomes: [`area2_convergence_gates.md`](./area2_convergence_gates.md), [`area2_evolution_closure_report.md`](./area2_evolution_closure_report.md). **Routing policy and authoritative Runtime semantics are unchanged.**
+
 **Still not claimed:** God-of-Carnage lifecycle E2E does not assert full staged audit fields by default execution mode; no distributed immutable audit; no new telemetry products.
 
 ---

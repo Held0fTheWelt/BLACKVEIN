@@ -19,6 +19,12 @@ from app.runtime.model_routing_contracts import (
     WorkflowPhase,
 )
 from app.runtime.model_routing_evidence import attach_stage_routing_evidence
+from app.runtime.area2_operator_truth import (
+    bounded_traces_from_task_2a_routing,
+    enrich_operator_audit_with_area2_truth,
+    resolve_routing_bootstrap_enabled,
+)
+from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_WRITERS_ROOM
 from app.runtime.operator_audit import build_bounded_surface_operator_audit
 from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 from ai_stack import (
@@ -543,6 +549,16 @@ def _execute_writers_room_workflow_package(
             "raw_fallback_reason": generation.get("raw_fallback_reason"),
             "executed_provider": generation.get("provider"),
         },
+    )
+    _wr_specs = workflow.model_route_specs
+    enrich_operator_audit_with_area2_truth(
+        operator_audit_wr,
+        surface="writers_room",
+        authority_source=AUTHORITY_SOURCE_WRITERS_ROOM,
+        bootstrap_enabled=resolve_routing_bootstrap_enabled(),
+        registry_model_spec_count=len(_wr_specs),
+        specs_for_coverage=list(_wr_specs),
+        bounded_traces=bounded_traces_from_task_2a_routing(t2a_routing),
     )
     return {
         "canonical_flow": "writers_room_unified_stack_workflow",

@@ -15,6 +15,12 @@ from app.runtime.model_routing_contracts import (
     WorkflowPhase,
 )
 from app.runtime.model_routing_evidence import attach_stage_routing_evidence
+from app.runtime.area2_operator_truth import (
+    bounded_traces_from_task_2a_routing,
+    enrich_operator_audit_with_area2_truth,
+    resolve_routing_bootstrap_enabled,
+)
+from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_IMPROVEMENT
 from app.runtime.operator_audit import build_bounded_surface_operator_audit
 from app.services.writers_room_model_routing import build_writers_room_model_route_specs
 
@@ -157,4 +163,13 @@ def enrich_improvement_package_with_task2a_routing(
             "preflight_excerpt_nonempty": bool(pre_excerpt.strip()),
             "synthesis_excerpt_nonempty": bool(syn_excerpt.strip()),
         },
+    )
+    enrich_operator_audit_with_area2_truth(
+        package_response["operator_audit"],
+        surface="improvement",
+        authority_source=AUTHORITY_SOURCE_IMPROVEMENT,
+        bootstrap_enabled=resolve_routing_bootstrap_enabled(),
+        registry_model_spec_count=len(sp),
+        specs_for_coverage=list(sp),
+        bounded_traces=bounded_traces_from_task_2a_routing(package_response["task_2a_routing"]),
     )

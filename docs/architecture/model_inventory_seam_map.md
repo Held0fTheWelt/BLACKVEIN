@@ -2,6 +2,8 @@
 
 This document freezes the routing/registry seam map used for Task 2. It is the working truth unless code review finds a hard contradiction.
 
+**Area 2 authority classification (machine-readable):** each component is classified exactly once in [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py) (`AREA2_AUTHORITY_REGISTRY`). Canonical Runtime / Writers-Room / Improvement Task 2A paths do **not** treat `ai_stack` LangGraph `RoutingPolicy` as authoritative; that stack is **compatibility-only** relative to `route_model`.
+
 ## Registry stores ([`adapter_registry.py`](../../backend/app/runtime/adapter_registry.py))
 
 - **Legacy map**: adapter name → `StoryAIAdapter` (`register_adapter`, `get_adapter`).

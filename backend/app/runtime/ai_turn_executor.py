@@ -59,7 +59,12 @@ from app.runtime.runtime_models import (
     StateDelta,
 )
 
-from app.runtime.adapter_registry import get_adapter
+from app.runtime.adapter_registry import get_adapter, iter_model_specs
+from app.runtime.area2_operator_truth import (
+    enrich_operator_audit_with_area2_truth,
+    resolve_routing_bootstrap_enabled,
+)
+from app.runtime.area2_routing_authority import AUTHORITY_SOURCE_RUNTIME
 from app.runtime.operator_audit import build_runtime_operator_audit
 from app.runtime.model_routing import route_model
 from app.runtime.model_routing_contracts import (
@@ -772,6 +777,19 @@ async def execute_turn_with_ai(
         operator_audit_for_log = build_runtime_operator_audit(
             runtime_stage_traces=runtime_stage_traces_for_log,
             runtime_orchestration_summary=runtime_orchestration_summary_for_log,
+            model_routing_trace=model_routing_trace,
+        )
+
+    if isinstance(operator_audit_for_log, dict):
+        _specs_rt = list(iter_model_specs())
+        enrich_operator_audit_with_area2_truth(
+            operator_audit_for_log,
+            surface="runtime",
+            authority_source=AUTHORITY_SOURCE_RUNTIME,
+            bootstrap_enabled=resolve_routing_bootstrap_enabled(),
+            registry_model_spec_count=len(_specs_rt),
+            specs_for_coverage=_specs_rt,
+            runtime_stage_traces=runtime_stage_traces_for_log,
             model_routing_trace=model_routing_trace,
         )
 

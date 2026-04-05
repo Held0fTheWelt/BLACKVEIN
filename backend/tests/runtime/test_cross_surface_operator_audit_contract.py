@@ -10,6 +10,7 @@ from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.operator_audit import AUDIT_SCHEMA_VERSION
 from app.runtime.runtime_models import SessionState
 
+from .test_area2_convergence_gates import assert_area2_truth_shape
 from .test_runtime_staged_orchestration import (  # noqa: PLC2701
     StagedRecordingAdapter,
     _llm_spec,
@@ -71,6 +72,10 @@ def _assert_operator_audit_shell(audit: dict, *, expected_surface: str) -> None:
     for entry in timeline:
         missing = AUDIT_TIMELINE_ENTRY_KEYS - set(entry.keys())
         assert not missing, f"audit_timeline entry missing keys: {missing}"
+    # G-CONV-05: additive compact Area 2 operator truth
+    truth = audit.get("area2_operator_truth")
+    assert isinstance(truth, dict), "operator_audit must include area2_operator_truth"
+    assert_area2_truth_shape(truth)
 
 
 def _assert_routing_evidence_contract(ev: dict) -> None:
@@ -186,3 +191,75 @@ def test_improvement_operator_audit_and_deterministic_base_separation(client, au
     mai = recommendation.get("model_assisted_interpretation") or {}
     assert mai.get("disclaimer")
     assert "Advisory" in mai["disclaimer"] or "advisory" in mai["disclaimer"].lower()
+
+
+def test_g_conv_08_cross_surface_area2_truth_coherence(client, auth_headers):
+    """G-CONV-08: same area2_operator_truth key set across Runtime, WR, Improvement."""
+    wr = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"module_id": "god_of_carnage", "focus": "canon consistency"},
+    )
+    assert wr.status_code == 200
+    wr_truth = (wr.get_json().get("operator_audit") or {}).get("area2_operator_truth") or {}
+    assert_area2_truth_shape(wr_truth)
+
+    variant_resp = client.post(
+        "/api/v1/improvement/variants",
+        headers=auth_headers,
+        json={"baseline_id": "god_of_carnage", "candidate_summary": "G-CONV-08 coherence variant."},
+    )
+    assert variant_resp.status_code == 201
+    variant_id = variant_resp.get_json()["variant_id"]
+    exp = client.post(
+        "/api/v1/improvement/experiments/run",
+        headers=auth_headers,
+        json={
+            "variant_id": variant_id,
+            "test_inputs": ["one", "two", "three"],
+        },
+    )
+    assert exp.status_code == 200
+    imp_truth = (exp.get_json().get("recommendation_package") or {}).get("operator_audit") or {}
+    imp_truth = imp_truth.get("area2_operator_truth") or {}
+    assert_area2_truth_shape(imp_truth)
+
+    assert set(wr_truth.keys()) == set(imp_truth.keys()), "WR vs Improvement area2_operator_truth keys must match"
+
+
+@pytest.mark.asyncio
+async def test_g_conv_08_runtime_truth_keys_match_bounded_http_surface(
+    client,
+    auth_headers,
+    minimal_module: ContentModule,
+):
+    """Runtime (in-process) and Writers-Room HTTP share the same area2_operator_truth key set."""
+    clear_registry()
+    slm_ad = StagedRecordingAdapter("gconv8_slm", slm_sufficient=True)
+    llm_ad = StagedRecordingAdapter("gconv8_llm", slm_sufficient=True)
+    register_adapter_model(_slm_spec("gconv8_slm"), slm_ad)
+    register_adapter_model(_llm_spec("gconv8_llm"), llm_ad)
+    session = SessionState(
+        session_id="gconv8-runtime",
+        execution_mode="ai",
+        adapter_name="gconv8_slm",
+        module_id="m1",
+        module_version="1",
+        current_scene_id="scene1",
+    )
+    session.canonical_state = {}
+    await execute_turn_with_ai(session, 1, slm_ad, minimal_module)
+    log = (session.metadata.get("ai_decision_logs") or [])[-1]
+    rt_truth = (log.operator_audit or {}).get("area2_operator_truth") or {}
+    assert_area2_truth_shape(rt_truth)
+    clear_registry()
+
+    wr = client.post(
+        "/api/v1/writers-room/reviews",
+        headers=auth_headers,
+        json={"module_id": "god_of_carnage", "focus": "G-CONV-08 runtime vs bounded keys"},
+    )
+    assert wr.status_code == 200
+    wr_truth = (wr.get_json().get("operator_audit") or {}).get("area2_operator_truth") or {}
+    assert_area2_truth_shape(wr_truth)
+    assert set(rt_truth.keys()) == set(wr_truth.keys()), "Runtime vs Writers-Room area2_operator_truth keys must match"

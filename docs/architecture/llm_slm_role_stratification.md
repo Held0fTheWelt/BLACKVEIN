@@ -168,6 +168,18 @@ Task 4 tightens **proof** and **drift resistance** without changing Task 2E rout
 
 **E2E truths actually established in tests (honest scope):** multi-stage Runtime paths including degraded `final_path` values, preempted supervisor path `operator_audit`, tool-loop ordering after staged synthesis emits a tool request, registry bootstrap via real `create_app`, Improvement bounded-call skip when adapters are missing, and cross-surface operator-audit / routing-evidence key alignment where surfaces share shapes. **Not** a claim of full production E2E audit on every session smoke test.
 
+### Area 2 — Operational routing/registry convergence (G-CONV)
+
+**Authority (frozen, importable):** [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py) — `AREA2_AUTHORITY_REGISTRY` classifies each seam as exactly one of `authoritative`, `translation_layer`, `compatibility_layer`, or `non_authoritative_support`. Task 2A **policy** remains solely `route_model`; `ai_stack` LangGraph uses `story_runtime_core.RoutingPolicy` for a **parallel compatibility** graph path and is **not** authoritative for canonical Runtime / Writers-Room / Improvement HTTP paths.
+
+**Operational state:** [`backend/app/runtime/area2_operational_state.py`](../../backend/app/runtime/area2_operational_state.py) — `Area2OperationalState` (`healthy`, `intentionally_degraded`, `misconfigured`, `test_isolated`) describes bootstrap/process health. **`NoEligibleDiscipline`** (same module) classifies no-eligible and adjacent skip outcomes separately from that enum (true no-eligible vs empty registry vs test isolation vs bounded executor mismatch).
+
+**Operator truth (additive):** [`backend/app/runtime/area2_operator_truth.py`](../../backend/app/runtime/area2_operator_truth.py) attaches `area2_operator_truth` to `operator_audit` on Runtime, Writers-Room, and Improvement — authority source, bootstrap flag when known, spec counts used for routing on that surface, coverage snapshot, selected vs executed summary, primary concern, operational state, and no-eligible discipline rollup. **No new telemetry**; values are derived from existing traces and explicit counts.
+
+**Convergence gates:** [`area2_convergence_gates.md`](./area2_convergence_gates.md) — **G-CONV-01**, **G-CONV-02**, **G-CONV-03**, **G-CONV-04**, **G-CONV-05**, **G-CONV-06**, **G-CONV-07**, **G-CONV-08** (single authority, healthy bootstrap, state classification, no-eligible discipline, operator truth, legacy compatibility, documentation truth, cross-surface coherence). **Closure:** [`area2_evolution_closure_report.md`](./area2_evolution_closure_report.md).
+
+**Unchanged:** `route_model` precedence and semantics, `StoryAIAdapter`, guard/commit/reject authority, and authoritative Runtime mutation rules.
+
 ## Honest limits
 
 - **Tier and alignment scores** are deterministic heuristics until production telemetry informs tuning.
