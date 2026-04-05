@@ -24,3 +24,7 @@ Explicit closure gates for routing/registry **operational truth** across Runtime
 ## Operational state (code)
 
 - [`backend/app/runtime/area2_operational_state.py`](../../backend/app/runtime/area2_operational_state.py) — `Area2OperationalState`, `NoEligibleDiscipline`
+
+## Task 2 registry/routing convergence (cross-reference)
+
+Named closure suite **G-T2-01**, **G-T2-02**, **G-T2-03**, **G-T2-04**, **G-T2-05**, **G-T2-06**, **G-T2-07**, **G-T2-08** — [`area2_task2_closure_gates.md`](./area2_task2_closure_gates.md), [`area2_registry_routing_convergence_closure_report.md`](./area2_registry_routing_convergence_closure_report.md), tests `backend/tests/runtime/test_area2_task2_closure_gates.py`. Authority map: [`area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py).

@@ -42,6 +42,10 @@ Canonical Task 2A paths expose a single importable **authority map** (`area2_rou
 
 Final gates enforce **reproducible bootstrap** (named profiles), **healthy canonical paths** under `testing_bootstrap_on`, **authority convergence** in registry + summary text, **no-eligible non-normalization**, **operator legibility**, **cross-surface coherence**, **legacy compatibility**, and **documentation truth**. Table: [`area2_final_closure_gates.md`](./area2_final_closure_gates.md). PASS/FAIL and test commands: [`area2_final_operational_closure_report.md`](./area2_final_operational_closure_report.md). **Routing policy and authoritative Runtime semantics remain unchanged.**
 
+### Area 2 — Task 2 registry/routing convergence (G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08)
+
+Named closure over **registry/routing operational truth** for canonical Runtime, Writers-Room, and Improvement paths. Gate table: [`area2_task2_closure_gates.md`](./area2_task2_closure_gates.md). Closure report: [`area2_registry_routing_convergence_closure_report.md`](./area2_registry_routing_convergence_closure_report.md). Tests: `backend/tests/runtime/test_area2_task2_closure_gates.py`. Authority registry: [`area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py). **Routing policy and authoritative Runtime semantics remain unchanged.**
+
 **Still not claimed:** God-of-Carnage lifecycle E2E does not assert full staged audit fields by default execution mode; no distributed immutable audit; no new telemetry products.
 
 ---

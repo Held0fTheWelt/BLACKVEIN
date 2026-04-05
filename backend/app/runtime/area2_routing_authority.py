@@ -1,9 +1,16 @@
 """Area 2 — explicit routing/registry authority classification (convergence closure).
 
-Canonical Task 2A execution paths (Flask Runtime, Writers-Room, Improvement bounded
-enrichment) must not depend on a second undocumented authority. This module is the
-single importable truth for which components are authoritative vs translation vs
-compatibility vs support-only.
+**Task 2 binding (minimal):** Each canonical execution surface (Runtime, Writers-Room,
+Improvement bounded enrichment) has exactly **one primary operational authority** for
+Task 2A routing—*who applies routing policy* and *where specs come from* on that path.
+Translation, compatibility, and non-authoritative support layers may coexist **only**
+when they are **explicit, bounded, and non-competing** with that primary line (no hidden
+second routing policy for the same canonical HTTP/in-process path).
+
+``AREA2_AUTHORITY_REGISTRY`` below is the single importable map of those layers.
+``AUTHORITY_SOURCE_RUNTIME`` / ``AUTHORITY_SOURCE_WRITERS_ROOM`` /
+``AUTHORITY_SOURCE_IMPROVEMENT`` name the spec source strings used in operator truth
+for each surface.
 """
 
 from __future__ import annotations
