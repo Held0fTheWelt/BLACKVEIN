@@ -79,12 +79,30 @@ Legacy enum values `structured_output_required` and `escalation_applied` remain 
 
 `build_routing_evidence` adds `routing_overview`: `{ title, summary, severity }` from a **fixed table** keyed by the emitted `route_reason_code` (and `no_eligible_spec_selection`). It is a human-readable index over policy output — not a second model or narrative generator. Optional `routing_diagnostics` echoes a small allowlist of `decision_factors` keys when present.
 
+This field is **unchanged** for backward compatibility. It keeps the Task 2E long-form `summary` sentence per reason code.
+
+### Task 2F — compact operator diagnostics (readability only)
+
+Task 2F adds **additive** keys on the same `routing_evidence` object. It does **not** change `route_model`, guard/commit/reject semantics, or Runtime orchestration (still route once, execute one adapter per canonical turn).
+
+- **`diagnostics_overview`**: `{ title, summary, severity, operator_hint, short_explanation }`.
+  - **`summary`** uses a **small fixed vocabulary** (e.g. `Primary route`, `Escalated route`, `Fallback route`, `No eligible spec`, `Execution deviation`, `Degraded route`) so operators can scan outcomes quickly.
+  - When **`execution_deviation`** is present, the compact layer **prioritizes** `Execution deviation` so policy-vs-execution mismatch is obvious; `short_explanation` appends adapter names and any real `note` only.
+  - **`operator_hint`** is chosen from a **fixed allowlist** using deterministic priority rules over existing evidence (e.g. registration gaps, structured-output gap, passed-adapter fallback). It is not free-form advice.
+  - **`short_explanation`** reuses the honest long-form text from `routing_overview["summary"]` and may append a bounded clause when execution deviated.
+- **`diagnostics_flags`**: compact booleans mirroring evidence already on the payload (`escalation_applied`, `degradation_applied`, `no_eligible_spec_selection`, `policy_execution_aligned`, `fallback_to_passed_adapter`, `bounded_model_call`, `has_execution_deviation`).
+- **`diagnostics_causes`**: ordered `{ code, detail }` entries built only from allowlisted `decision_factors`, `skip_reason`, `no_eligible_spec` / `failure`, and `execution_deviation`. It does **not** infer causes the policy did not record.
+
+**Compact vs deep evidence**: The **deep** truth remains `route_reason_code`, `decision_factors` (full, on `RoutingDecision` / trace `decision`), `fallback_chain`, `routing_diagnostics`, alignment/deviation fields, and bounded-call metadata. The Task 2F layer is a **deterministic index** over that truth — clearer for operators, not smarter than routing.
+
+**Honesty limits**: Diagnostics cannot claim telemetry, counterfactuals, or registration state that is not reflected in the evidence dict. They do not replace reading `decision` or specs when debugging.
+
 ### `routing_evidence` (shared shape)
 
 Built by `build_routing_evidence` in `backend/app/runtime/model_routing_evidence.py`:
 
 - **Requested route**: `requested_workflow_phase`, `requested_task_kind` (from `RoutingRequest`).
-- **Selected route**: `selected_adapter_name`, `selected_provider`, `selected_model`, plus `route_reason_code`, `routing_overview`, `fallback_chain`, `escalation_applied`, `degradation_applied`, optional `routing_diagnostics`.
+- **Selected route**: `selected_adapter_name`, `selected_provider`, `selected_model`, plus `route_reason_code`, `routing_overview`, **Task 2F** `diagnostics_overview` / `diagnostics_flags` / `diagnostics_causes`, `fallback_chain`, `escalation_applied`, `degradation_applied`, optional `routing_diagnostics`.
 - **Executed adapter**: `executed_adapter_name` when the caller knows what actually ran.
 - **`policy_execution_aligned`**: `True` / `False` when knowable; `null` when there is no policy selection or execution is unknown (e.g. `no_eligible_spec_selection`, or stage did not run a bounded call). Runtime uses `resolved_via_get_adapter`; Writers Room / Improvement compare normalized names when registry flags are absent.
 - **`execution_deviation`**: object only when selected and executed names differ; optional `note` from real paths (e.g. Writers Room `raw_fallback_reason`). No fabricated explanations.

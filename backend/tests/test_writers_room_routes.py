@@ -187,6 +187,10 @@ def test_writers_room_review_runs_unified_stack_flow(client, auth_headers):
         assert "routing_overview" in rev
         assert rev["routing_overview"].get("title")
         assert "no_eligible_spec_selection" in rev
+        assert "diagnostics_overview" in rev
+        d = rev["diagnostics_overview"]
+        assert d.get("summary") and d.get("severity") and "short_explanation" in d
+        assert "diagnostics_flags" in rev and "diagnostics_causes" in rev
         assert "policy_execution_aligned" in rev
         assert "execution_deviation" in rev
     gt = data.get("governance_truth") or {}

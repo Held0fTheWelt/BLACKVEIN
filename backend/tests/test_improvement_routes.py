@@ -178,6 +178,10 @@ def test_sandbox_execution_evaluation_and_recommendation_package(client, auth_he
         assert "routing_overview" in rev
         assert rev["routing_overview"].get("title")
         assert "no_eligible_spec_selection" in rev
+        assert "diagnostics_overview" in rev
+        d = rev["diagnostics_overview"]
+        assert d.get("summary") and d.get("severity") and "short_explanation" in d
+        assert "diagnostics_flags" in rev and "diagnostics_causes" in rev
         assert "policy_execution_aligned" in rev
         assert "execution_deviation" in rev
     mai = recommendation.get("model_assisted_interpretation") or {}

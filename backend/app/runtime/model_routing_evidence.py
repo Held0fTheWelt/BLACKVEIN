@@ -1,4 +1,4 @@
-"""Task 2C-2 / Task 2D / Task 2E: shared routing evidence for Runtime, Writers-Room, and Improvement.
+﻿"""Task 2C-2 / Task 2D / Task 2E / Task 2F: shared routing evidence for Runtime, Writers-Room, and Improvement.
 
 Task 2D field semantics (additive):
 - requested_* : RoutingRequest workflow_phase and task_kind.
@@ -10,6 +10,9 @@ Task 2D field semantics (additive):
 
 Task 2E: ``routing_overview`` is a deterministic summary derived from the emitted
 ``route_reason_code`` (and ``no_eligible_spec_selection``), not independent reasoning.
+
+Task 2F: ``diagnostics_overview``, ``diagnostics_flags``, and ``diagnostics_causes`` are a compact,
+deterministic operator layer derived only from existing routing evidence fields — not new policy logic.
 """
 from __future__ import annotations
 
@@ -17,6 +20,252 @@ from collections.abc import Mapping
 from typing import Any
 
 from app.runtime.model_routing_contracts import RouteReasonCode, RoutingDecision, RoutingRequest
+
+# Task 2F: fixed operator hints (allowlist); chosen only when evidence conditions match.
+_HINT_REVIEW_MODEL_REGISTRATION = "Review model registration"
+_HINT_EXECUTION_FELL_BACK_TO_PASSED_ADAPTER = "Execution fell back to passed adapter"
+_HINT_INSPECT_STRUCTURED_OUTPUT = "Inspect structured-output capability"
+_HINT_PREFERRED_ROLE_FAMILY_UNAVAILABLE = "Preferred role family unavailable"
+_HINT_SELECTION_DEGRADED_FALLBACK_WIDENING = "Selection degraded due to fallback widening"
+
+_SEVERITY_RANK = {"normal": 0, "elevated": 1, "degraded": 2, "failed_selection": 3}
+
+_ESCALATION_ROUTE_CODES = frozenset(
+    {
+        RouteReasonCode.escalation_due_to_complexity.value,
+        RouteReasonCode.escalation_due_to_high_stakes_task.value,
+        RouteReasonCode.escalation_due_to_structured_output_gap.value,
+        RouteReasonCode.escalation_due_to_explicit_hint.value,
+        RouteReasonCode.structured_output_required.value,
+        RouteReasonCode.escalation_applied.value,
+    }
+)
+
+_PRIMARY_ROUTE_CODES = frozenset(
+    {
+        RouteReasonCode.role_matrix_primary.value,
+        RouteReasonCode.latency_constraint.value,
+        RouteReasonCode.cost_constraint.value,
+    }
+)
+
+_DIAGNOSTICS_CAUSE_KEYS: tuple[str, ...] = (
+    "escalation_trigger",
+    "structured_output_gap",
+    "explicit_hint_present",
+    "preferred_pool_empty",
+    "preferred_pool_widened",
+    "mandatory_llm_pool_applied",
+    "counterfactual_latency_changed",
+    "counterfactual_cost_changed",
+)
+
+
+def _severity_max(a: str, b: str) -> str:
+    ra, rb = _SEVERITY_RANK.get(a, 0), _SEVERITY_RANK.get(b, 0)
+    return a if ra >= rb else b
+
+
+def _diagnostics_route_summary_class(
+    *,
+    route_reason_code: str,
+    no_eligible_spec_selection: bool,
+    degradation_applied: bool,
+    execution_deviation: dict[str, Any] | None,
+) -> str:
+    """Fixed vocabulary for diagnostics_overview.summary (Task 2F)."""
+    if execution_deviation is not None:
+        return "Execution deviation"
+    if no_eligible_spec_selection or route_reason_code == RouteReasonCode.no_eligible_adapter.value:
+        return "No eligible spec"
+    if route_reason_code == RouteReasonCode.fallback_only.value:
+        return "Fallback route"
+    if route_reason_code in _ESCALATION_ROUTE_CODES:
+        return "Escalated route"
+    if degradation_applied and route_reason_code in _PRIMARY_ROUTE_CODES:
+        return "Degraded route"
+    if route_reason_code in _PRIMARY_ROUTE_CODES:
+        return "Primary route"
+    return "Degraded route"
+
+
+def _diagnostics_title(
+    *,
+    routing_overview: dict[str, str],
+    execution_deviation: dict[str, Any] | None,
+) -> str:
+    if execution_deviation is not None:
+        return "Execution differed from policy selection"
+    return routing_overview["title"]
+
+
+def _diagnostics_severity(
+    *,
+    base_severity: str,
+    execution_deviation: dict[str, Any] | None,
+    fallback_to_passed_adapter: bool | None,
+) -> str:
+    out = base_severity
+    if execution_deviation is not None:
+        floor = "degraded" if fallback_to_passed_adapter else "elevated"
+        out = _severity_max(out, floor)
+    return out
+
+
+def _pick_operator_hint(
+    *,
+    route_reason_code: str,
+    no_eligible_spec_selection: bool,
+    bounded_model_call: bool | None,
+    skip_reason: str | None,
+    fallback_to_passed_adapter: bool | None,
+    degradation_applied: bool,
+    decision_factors: dict[str, Any] | None,
+) -> str:
+    factors = decision_factors or {}
+    sk = (skip_reason or "").strip()
+
+    if no_eligible_spec_selection or (
+        bounded_model_call is False and sk == "no_eligible_adapter_or_missing_provider_adapter"
+    ):
+        return _HINT_REVIEW_MODEL_REGISTRATION
+    if fallback_to_passed_adapter is True:
+        return _HINT_EXECUTION_FELL_BACK_TO_PASSED_ADAPTER
+    if route_reason_code == RouteReasonCode.escalation_due_to_structured_output_gap.value:
+        return _HINT_INSPECT_STRUCTURED_OUTPUT
+    if factors.get("structured_output_gap") is True:
+        return _HINT_INSPECT_STRUCTURED_OUTPUT
+    if route_reason_code == RouteReasonCode.fallback_only.value or factors.get("preferred_pool_empty") is True:
+        return _HINT_PREFERRED_ROLE_FAMILY_UNAVAILABLE
+    if (
+        degradation_applied
+        and factors.get("preferred_pool_widened") is True
+        and route_reason_code != RouteReasonCode.fallback_only.value
+    ):
+        return _HINT_SELECTION_DEGRADED_FALLBACK_WIDENING
+    return ""
+
+
+def _short_explanation(
+    *,
+    routing_overview_summary: str,
+    execution_deviation: dict[str, Any] | None,
+) -> str:
+    base = routing_overview_summary
+    if execution_deviation is None:
+        return base
+    sel = execution_deviation.get("selected_adapter_name") or ""
+    ex = execution_deviation.get("executed_adapter_name") or ""
+    note = execution_deviation.get("note")
+    suffix = f" Executed adapter ({ex}) differs from policy selection ({sel})."
+    if note:
+        suffix += f" Note: {note}."
+    return base + suffix
+
+
+def _build_diagnostics_causes(
+    *,
+    no_eligible_spec_selection: bool,
+    decision_factors: dict[str, Any] | None,
+    skip_reason: str | None,
+    execution_deviation: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Ordered, evidence-backed cause entries; no inference beyond supplied fields."""
+    causes: list[dict[str, Any]] = []
+    factors = decision_factors if isinstance(decision_factors, dict) else None
+
+    if no_eligible_spec_selection:
+        detail: Any = None
+        if factors is not None and "failure" in factors:
+            detail = factors["failure"]
+        causes.append({"code": "no_eligible_spec", "detail": detail or "no_eligible_adapter"})
+
+    sk = (skip_reason or "").strip()
+    if sk:
+        causes.append({"code": "bounded_call_skipped", "detail": sk})
+
+    if factors is not None:
+        for key in _DIAGNOSTICS_CAUSE_KEYS:
+            if key not in factors:
+                continue
+            val = factors[key]
+            if val is None or val is False:
+                continue
+            if key == "escalation_trigger" and val == "none":
+                continue
+            causes.append({"code": key, "detail": val})
+
+    if execution_deviation is not None:
+        causes.append({"code": "execution_deviation", "detail": dict(execution_deviation)})
+
+    return causes
+
+
+def _build_diagnostics_flags(
+    *,
+    escalation_applied: bool,
+    degradation_applied: bool,
+    no_eligible_spec_selection: bool,
+    policy_execution_aligned: bool | None,
+    fallback_to_passed_adapter: bool | None,
+    bounded_model_call: bool | None,
+    execution_deviation: dict[str, Any] | None,
+) -> dict[str, Any]:
+    return {
+        "escalation_applied": escalation_applied,
+        "degradation_applied": degradation_applied,
+        "no_eligible_spec_selection": no_eligible_spec_selection,
+        "policy_execution_aligned": policy_execution_aligned,
+        "fallback_to_passed_adapter": fallback_to_passed_adapter,
+        "bounded_model_call": bounded_model_call,
+        "has_execution_deviation": execution_deviation is not None,
+    }
+
+
+def _build_diagnostics_overview(
+    *,
+    routing_overview: dict[str, str],
+    route_reason_code: str,
+    no_eligible_spec_selection: bool,
+    degradation_applied: bool,
+    execution_deviation: dict[str, Any] | None,
+    fallback_to_passed_adapter: bool | None,
+    bounded_model_call: bool | None,
+    skip_reason: str | None,
+    decision_factors: dict[str, Any] | None,
+) -> dict[str, str]:
+    summary_class = _diagnostics_route_summary_class(
+        route_reason_code=route_reason_code,
+        no_eligible_spec_selection=no_eligible_spec_selection,
+        degradation_applied=degradation_applied,
+        execution_deviation=execution_deviation,
+    )
+    title = _diagnostics_title(routing_overview=routing_overview, execution_deviation=execution_deviation)
+    severity = _diagnostics_severity(
+        base_severity=routing_overview["severity"],
+        execution_deviation=execution_deviation,
+        fallback_to_passed_adapter=fallback_to_passed_adapter,
+    )
+    operator_hint = _pick_operator_hint(
+        route_reason_code=route_reason_code,
+        no_eligible_spec_selection=no_eligible_spec_selection,
+        bounded_model_call=bounded_model_call,
+        skip_reason=skip_reason,
+        fallback_to_passed_adapter=fallback_to_passed_adapter,
+        degradation_applied=degradation_applied,
+        decision_factors=decision_factors,
+    )
+    short_explanation = _short_explanation(
+        routing_overview_summary=routing_overview["summary"],
+        execution_deviation=execution_deviation,
+    )
+    return {
+        "title": title,
+        "summary": summary_class,
+        "severity": severity,
+        "operator_hint": operator_hint,
+        "short_explanation": short_explanation,
+    }
 
 
 def routing_overview_for_reason_code(
@@ -187,9 +436,10 @@ def build_routing_evidence(
     )
 
     overview = routing_overview_for_reason_code(code, no_eligible_spec_selection=no_eligible)
-    decision_factors = dec.get("decision_factors")
+    decision_factors_obj = dec.get("decision_factors")
+    decision_factors = decision_factors_obj if isinstance(decision_factors_obj, dict) else None
     routing_diagnostics: dict[str, Any] = {}
-    if isinstance(decision_factors, dict):
+    if decision_factors is not None:
         for k in (
             "escalation_trigger",
             "structured_output_gap",
@@ -202,6 +452,36 @@ def build_routing_evidence(
             if k in decision_factors:
                 routing_diagnostics[k] = decision_factors[k]
 
+    escalation_applied = bool(dec.get("escalation_applied"))
+    degradation_applied = bool(dec.get("degradation_applied"))
+
+    diagnostics_overview = _build_diagnostics_overview(
+        routing_overview=overview,
+        route_reason_code=code,
+        no_eligible_spec_selection=no_eligible,
+        degradation_applied=degradation_applied,
+        execution_deviation=deviation,
+        fallback_to_passed_adapter=fallback_to_passed_adapter,
+        bounded_model_call=bounded_model_call,
+        skip_reason=skip_reason,
+        decision_factors=decision_factors,
+    )
+    diagnostics_flags = _build_diagnostics_flags(
+        escalation_applied=escalation_applied,
+        degradation_applied=degradation_applied,
+        no_eligible_spec_selection=no_eligible,
+        policy_execution_aligned=aligned,
+        fallback_to_passed_adapter=fallback_to_passed_adapter,
+        bounded_model_call=bounded_model_call,
+        execution_deviation=deviation,
+    )
+    diagnostics_causes = _build_diagnostics_causes(
+        no_eligible_spec_selection=no_eligible,
+        decision_factors=decision_factors,
+        skip_reason=skip_reason,
+        execution_deviation=deviation,
+    )
+
     return {
         "routing_invoked": True,
         "requested_workflow_phase": req.get("workflow_phase"),
@@ -211,9 +491,12 @@ def build_routing_evidence(
         "selected_model": dec.get("selected_model") or "",
         "route_reason_code": code,
         "routing_overview": overview,
+        "diagnostics_overview": diagnostics_overview,
+        "diagnostics_flags": diagnostics_flags,
+        "diagnostics_causes": diagnostics_causes,
         "fallback_chain": list(dec.get("fallback_chain") or []),
-        "escalation_applied": bool(dec.get("escalation_applied")),
-        "degradation_applied": bool(dec.get("degradation_applied")),
+        "escalation_applied": escalation_applied,
+        "degradation_applied": degradation_applied,
         "routing_diagnostics": routing_diagnostics if routing_diagnostics else None,
         "executed_adapter_name": executed_adapter_name,
         "passed_adapter_name": passed_adapter_name,
@@ -262,3 +545,4 @@ def attach_stage_routing_evidence(
         skip_reason=str(sk) if sk else None,
         execution_deviation_note=execution_deviation_note,
     )
+

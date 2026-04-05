@@ -126,6 +126,8 @@ async def test_execute_turn_with_ai_uses_routed_llm_adapter_when_specs_registere
     assert ev.get("passed_adapter_name") == "passed_slm"
     assert ev.get("fallback_to_passed_adapter") is False
     assert ev.get("no_eligible_spec_selection") is False
+    assert "diagnostics_overview" in ev
+    assert "diagnostics_flags" in ev
 
 
 @pytest.mark.asyncio
@@ -153,3 +155,5 @@ async def test_execute_turn_with_ai_falls_back_when_no_model_specs(minimal_modul
     assert ev.get("no_eligible_spec_selection") is True
     assert ev.get("fallback_to_passed_adapter") is True
     assert ev.get("route_reason_code") == "no_eligible_adapter"
+    assert "diagnostics_overview" in ev
+    assert ev["diagnostics_flags"].get("no_eligible_spec_selection") is True
