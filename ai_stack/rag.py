@@ -1,11 +1,11 @@
 """Project-scoped retrieval for World of Shadows (RAG layer C).
 
-Hybrid retrieval (C1-next): when a local embedding index is present, queries are
-scored with a weighted mix of dense cosine similarity (``fastembed`` / ONNX) and
-the existing sparse semantic-term cosine. Canonical boosts, profile boosts, and
-source attribution are unchanged. Without embeddings (missing dependency, env
-disable, load failure, or query encode failure), the retriever uses the sparse
-path only and records ``retrieval_route=sparse_fallback`` in ranking notes.
+Hybrid retrieval (Task 2 quality pass): with a committed local embedding index,
+queries use profile-tuned dense/sparse fusion (hybrid v2), a deterministic
+reranking pass over a candidate pool, near-duplicate suppression, and profile-aware
+context packing. Dense/sparse agreement is applied once in reranking (explicit
+bonus), not duplicated in the initial hybrid core. Without embeddings, the path
+is sparse-only with ``retrieval_route=sparse_fallback`` in ranking notes.
 
 Persistence: JSON corpus under ``.wos/rag/runtime_corpus.json`` (``PersistentRagStore``)
 plus optional ``runtime_embeddings.npz`` + ``runtime_embeddings.meta.json`` for
@@ -119,9 +119,51 @@ class RetrievalDegradationMode(StrEnum):
     CORPUS_EMPTY = "corpus_empty"
 
 
-# Hybrid base score: dense + sparse cosine (both in ~[0, 1] for typical text matches).
+# Retrieval ranking behavior version (not corpus/storage INDEX_VERSION).
+RETRIEVAL_PIPELINE_VERSION = "task2_hybrid_v2"
+
+# Legacy single-weight hybrid (superseded by profile maps; kept for tests/import stability).
 HYBRID_DENSE_WEIGHT = 0.62
 HYBRID_SPARSE_WEIGHT = 0.38
+
+# Per-profile dense/sparse balance for initial hybrid core (both signals in ~[0, 1]).
+PROFILE_HYBRID_WEIGHTS: dict[str, tuple[float, float]] = {
+    "runtime_turn_support": (0.58, 0.42),
+    "writers_review": (0.60, 0.38),
+    "improvement_eval": (0.54, 0.46),
+}
+
+# Weak dense + strong sparse: do not let a low dense cosine collapse a strong lexical match.
+HYBRID_DENSE_WEAK_THRESHOLD = 0.24
+HYBRID_SPARSE_STRONG_THRESHOLD = 0.33
+# Rescue blend emphasizes sparse when dense is weak (explicit, linear).
+HYBRID_WEAK_DENSE_SPARSE_EMPHASIS = 0.78
+
+# Initial score scale (keeps final scores in a band compatible with downstream heuristics).
+HYBRID_CORE_SCALE = 4.0
+
+# Reranking pool sizing (deterministic).
+RERANK_POOL_FACTOR = 4
+RERANK_POOL_MIN = 16
+RERANK_POOL_CAP = 56
+
+# Agreement bonus applies only in reranking when both signals exceed a floor (single stage).
+RERANK_AGREEMENT_MIN_SIGNAL = 0.14
+RERANK_AGREEMENT_BONUS_CAP = 0.40
+
+# Near-duplicate suppression (character trigram Jaccard, deterministic).
+DUP_TRIGRAM_JACCARD_DROP = 0.91
+DUP_SAME_SOURCE_JACCARD_DROP = 0.86
+DUP_IMPROVEMENT_RELAXATION = 0.94
+
+# Initial retrieval boosts (reranking adds profile-specific module emphasis).
+INITIAL_MODULE_MATCH_BOOST = 1.15
+INITIAL_SCENE_HINT_BOOST = 1.12
+RERANK_MODULE_MATCH_EXTRA: dict[str, float] = {
+    "runtime_turn_support": 1.22,
+    "writers_review": 1.05,
+    "improvement_eval": 0.88,
+}
 
 
 class RetrievalDomainError(ValueError):
@@ -273,6 +315,8 @@ class RetrievalHit:
     score: float
     snippet: str
     selection_reason: str
+    pack_role: str = ""
+    why_selected: str = ""
 
 
 @dataclass(slots=True)
@@ -454,6 +498,238 @@ def _cosine_similarity(query_terms: dict[str, float], query_norm: float, chunk: 
     if dot <= 0:
         return 0.0
     return dot / (query_norm * chunk.term_norm)
+
+
+def _profile_hybrid_weights(profile_name: str, domain: RetrievalDomain) -> tuple[float, float]:
+    default_prof = DOMAIN_DEFAULT_PROFILE[domain]
+    key = profile_name or default_prof
+    return PROFILE_HYBRID_WEIGHTS.get(key, PROFILE_HYBRID_WEIGHTS.get(default_prof, (HYBRID_DENSE_WEIGHT, HYBRID_SPARSE_WEIGHT)))
+
+
+def _hybrid_core_initial(
+    dense_sim: float,
+    sparse_sim: float,
+    *,
+    use_hybrid: bool,
+    w_dense: float,
+    w_sparse: float,
+) -> float:
+    """Initial hybrid core: weighted blend plus an explicit weak-dense rescue rule."""
+    if not use_hybrid:
+        return sparse_sim
+    linear = w_dense * dense_sim + w_sparse * sparse_sim
+    if dense_sim < HYBRID_DENSE_WEAK_THRESHOLD and sparse_sim > HYBRID_SPARSE_STRONG_THRESHOLD:
+        rescue = HYBRID_WEAK_DENSE_SPARSE_EMPHASIS * sparse_sim + (1.0 - HYBRID_WEAK_DENSE_SPARSE_EMPHASIS) * dense_sim
+        return max(linear, rescue)
+    return linear
+
+
+def _rerank_agreement_bonus(dense_sim: float, sparse_sim: float, *, use_hybrid: bool) -> float:
+    """Single-stage dense/sparse agreement signal (rerank only)."""
+    if not use_hybrid:
+        return 0.0
+    if dense_sim < RERANK_AGREEMENT_MIN_SIGNAL or sparse_sim < RERANK_AGREEMENT_MIN_SIGNAL:
+        return 0.0
+    return RERANK_AGREEMENT_BONUS_CAP * min(dense_sim, sparse_sim)
+
+
+def _normalize_for_dup(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def _char_trigram_jaccard(a: str, b: str) -> float:
+    def trigrams(s: str) -> set[str]:
+        s = _normalize_for_dup(s)
+        if len(s) < 3:
+            return {s} if s else set()
+        return {s[i : i + 3] for i in range(len(s) - 2)}
+
+    ta, tb = trigrams(a), trigrams(b)
+    if not ta and not tb:
+        return 1.0
+    if not ta or not tb:
+        return 0.0
+    inter = len(ta & tb)
+    union = len(ta | tb)
+    return inter / union if union else 0.0
+
+
+@dataclass(slots=True)
+class _ScoredCandidate:
+    chunk_index: int
+    chunk: CorpusChunk
+    dense_sim: float
+    sparse_sim: float
+    hybrid_core: float
+    initial_score: float
+    initial_reason: str
+    module_match: bool
+    scene_match: bool
+
+
+def _pool_size(max_chunks: int) -> int:
+    k = max(1, max_chunks)
+    return min(RERANK_POOL_CAP, max(RERANK_POOL_MIN, k * RERANK_POOL_FACTOR))
+
+
+def _pool_has_strong_authored_for_module(pool: list[_ScoredCandidate], module_id: str | None) -> bool:
+    if not module_id:
+        return False
+    for c in pool:
+        if c.chunk.content_class != ContentClass.AUTHORED_MODULE:
+            continue
+        if c.chunk.canonical_priority < 3:
+            continue
+        if c.chunk.module_id == module_id:
+            return True
+    return False
+
+
+def _rerank_adjustments(
+    cand: _ScoredCandidate,
+    *,
+    profile_name: str,
+    request: RetrievalRequest,
+    pool: list[_ScoredCandidate],
+    use_hybrid: bool,
+    strong_authored_for_module: bool,
+) -> tuple[float, list[str]]:
+    """Additive rerank deltas; inspectable string fragments."""
+    delta = 0.0
+    parts: list[str] = []
+    cc = cand.chunk.content_class
+    mod_ex = RERANK_MODULE_MATCH_EXTRA.get(
+        profile_name,
+        RERANK_MODULE_MATCH_EXTRA[DOMAIN_DEFAULT_PROFILE[request.domain]],
+    )
+    if request.module_id and cand.module_match:
+        delta += mod_ex
+        parts.append(f"rerank_module_extra={mod_ex:.2f}")
+
+    agr = _rerank_agreement_bonus(cand.dense_sim, cand.sparse_sim, use_hybrid=use_hybrid)
+    if agr > 0:
+        delta += agr
+        parts.append(f"rerank_agreement={agr:.3f}")
+
+    if profile_name == "runtime_turn_support":
+        if cc in (ContentClass.TRANSCRIPT, ContentClass.RUNTIME_PROJECTION) and strong_authored_for_module:
+            pen = 0.95
+            delta -= pen
+            parts.append(f"runtime_clutter_penalty=-{pen:.2f}")
+        if cc == ContentClass.AUTHORED_MODULE and cand.chunk.canonical_priority >= 3:
+            b = 0.18
+            delta += b
+            parts.append(f"runtime_canonical_rerank=+{b:.2f}")
+    elif profile_name == "writers_review":
+        if cc == ContentClass.REVIEW_NOTE:
+            b = 0.32
+            delta += b
+            parts.append(f"writers_review_boost=+{b:.2f}")
+        if cc == ContentClass.TRANSCRIPT:
+            b = 0.14
+            delta += b
+            parts.append(f"writers_transcript_boost=+{b:.2f}")
+    elif profile_name == "improvement_eval":
+        if cc == ContentClass.EVALUATION_ARTIFACT:
+            b = 0.52
+            delta += b
+            parts.append(f"improvement_eval_boost=+{b:.2f}")
+        elif cc == ContentClass.REVIEW_NOTE:
+            b = 0.38
+            delta += b
+            parts.append(f"improvement_review_boost=+{b:.2f}")
+        elif cc == ContentClass.TRANSCRIPT:
+            b = 0.22
+            delta += b
+            parts.append(f"improvement_transcript_boost=+{b:.2f}")
+
+    # Redundancy: penalize near-duplicates of higher initial-scoring pool members.
+    higher = [p for p in pool if p.initial_score > cand.initial_score + 1e-9]
+    if higher:
+        best_j = max(_char_trigram_jaccard(cand.chunk.text, h.chunk.text) for h in higher[:12])
+        if best_j >= 0.87:
+            pen = 0.38 + 0.4 * (best_j - 0.87) / (1.0 - 0.87)
+            delta -= pen
+            parts.append(f"rerank_redundancy=-{pen:.2f}")
+
+    return delta, parts
+
+
+def _dedup_select(
+    ordered: list[tuple[float, _ScoredCandidate, list[str]]],
+    *,
+    max_chunks: int,
+    profile_name: str,
+) -> tuple[list[tuple[float, _ScoredCandidate, list[str]]], list[str]]:
+    """Greedy keep by descending rerank score; drop near-duplicates deterministically."""
+    kept: list[tuple[float, _ScoredCandidate, list[str]]] = []
+    notes: list[str] = []
+    drop_thr = DUP_TRIGRAM_JACCARD_DROP
+    src_thr = DUP_SAME_SOURCE_JACCARD_DROP
+    if profile_name == "improvement_eval":
+        # Allow slightly more overlap before dropping (eval workflows may repeat phrasing).
+        drop_thr = max(drop_thr, DUP_IMPROVEMENT_RELAXATION)
+    for rerank_score, cand, rparts in ordered:
+        if len(kept) >= max(1, max_chunks):
+            break
+        dup_reason = None
+        for ks, kcand, _ in kept:
+            j = _char_trigram_jaccard(cand.chunk.text, kcand.chunk.text)
+            if j >= drop_thr:
+                dup_reason = f"dup_trigram_jaccard={j:.2f}>={drop_thr:.2f}"
+                break
+            if cand.chunk.source_path == kcand.chunk.source_path and j >= src_thr:
+                relax = (
+                    profile_name == "improvement_eval"
+                    and cand.chunk.content_class == ContentClass.EVALUATION_ARTIFACT
+                )
+                if not relax:
+                    dup_reason = f"dup_same_source_jaccard={j:.2f}>={src_thr:.2f}"
+                    break
+        if dup_reason:
+            notes.append(f"dup_suppressed chunk_id={cand.chunk.chunk_id} ({dup_reason})")
+            continue
+        kept.append((rerank_score, cand, rparts))
+    return kept, notes
+
+
+def _pack_role_for_hit(
+    *,
+    profile: str,
+    canonical_priority: int,
+    content_class: ContentClass,
+) -> str:
+    if profile == "runtime_turn_support":
+        if content_class == ContentClass.AUTHORED_MODULE and canonical_priority >= 3:
+            return "canonical_evidence"
+        if content_class == ContentClass.POLICY_GUIDELINE:
+            return "policy_evidence"
+        return "supporting_context"
+    if profile == "improvement_eval":
+        if content_class in (ContentClass.EVALUATION_ARTIFACT, ContentClass.REVIEW_NOTE):
+            return "evaluative_evidence"
+        return "supporting_context"
+    if profile == "writers_review":
+        if content_class == ContentClass.AUTHORED_MODULE:
+            return "authored_context"
+        if content_class == ContentClass.REVIEW_NOTE:
+            return "review_context"
+        return "supporting_context"
+    return "supporting_context"
+
+
+def _pack_sort_key(hit: RetrievalHit, profile: str) -> tuple[int, float, str]:
+    """Order hits for compact_context: lower tuple sorts first."""
+    tier_order = {
+        "canonical_evidence": 0,
+        "policy_evidence": 1,
+        "evaluative_evidence": 0,
+        "authored_context": 0,
+        "review_context": 1,
+        "supporting_context": 2,
+    }
+    role = hit.pack_role or "supporting_context"
+    return (tier_order.get(role, 3), -hit.score, hit.chunk_id)
 
 
 _MODULE_PATH = re.compile(r"(?i)^content/modules/([^/]+)/")
@@ -918,12 +1194,16 @@ class ContextRetriever:
         query_terms = _build_semantic_terms(request.query)
         query_norm = math.sqrt(sum(weight * weight for weight in query_terms.values()))
         profile_name = request.profile or DOMAIN_DEFAULT_PROFILE[request.domain]
-        profile_boosts = PROFILE_CONTENT_BOOSTS.get(profile_name, PROFILE_CONTENT_BOOSTS[DOMAIN_DEFAULT_PROFILE[request.domain]])
+        profile_boosts = PROFILE_CONTENT_BOOSTS.get(
+            profile_name,
+            PROFILE_CONTENT_BOOSTS[DOMAIN_DEFAULT_PROFILE[request.domain]],
+        )
         canonical_weight = PROFILE_CANONICAL_WEIGHT.get(
             profile_name,
             PROFILE_CANONICAL_WEIGHT[DOMAIN_DEFAULT_PROFILE[request.domain]],
         )
-        ranked: list[tuple[float, CorpusChunk, str]] = []
+        w_dense, w_sparse = _profile_hybrid_weights(profile_name, request.domain)
+
         prefix_notes: list[str] = [
             f"retrieval_route={retrieval_route}",
             f"degradation_mode={degradation_mode}",
@@ -939,25 +1219,35 @@ class ContextRetriever:
         elif query_encode_failed:
             prefix_notes.append("embedding_query_encode_failed")
 
+        quality_notes: list[str] = [
+            f"retrieval_pipeline_version={RETRIEVAL_PIPELINE_VERSION}",
+            f"hybrid_v2_weights_dense={w_dense:.2f}_sparse={w_sparse:.2f}",
+        ]
+
+        candidates: list[_ScoredCandidate] = []
         for chunk_index, chunk in enumerate(self.corpus.chunks):
             if chunk.content_class not in allowed_classes:
                 continue
-            semantic_score = _cosine_similarity(query_terms, query_norm, chunk)
+            sparse_sim = _cosine_similarity(query_terms, query_norm, chunk)
             dense_sim = 0.0
             if use_hybrid and query_vec is not None:
                 dense_sim = float(np.dot(query_vec, self._embedding_index.vectors[chunk_index]))
                 dense_sim = max(0.0, min(1.0, dense_sim))
-                hybrid_core = HYBRID_DENSE_WEIGHT * dense_sim + HYBRID_SPARSE_WEIGHT * semantic_score
-            else:
-                hybrid_core = semantic_score
-            score = hybrid_core * 4.0
+            hybrid_core = _hybrid_core_initial(
+                dense_sim,
+                sparse_sim,
+                use_hybrid=use_hybrid,
+                w_dense=w_dense,
+                w_sparse=w_sparse,
+            )
+            score = hybrid_core * HYBRID_CORE_SCALE
             reasons: list[str] = []
             if use_hybrid and query_vec is not None:
                 reasons.append(
-                    f"hybrid_core={hybrid_core:.3f}; dense_cos={dense_sim:.3f}; sparse_cos={semantic_score:.3f}"
+                    f"hybrid_core={hybrid_core:.3f}; dense_cos={dense_sim:.3f}; sparse_cos={sparse_sim:.3f}"
                 )
-            elif semantic_score > 0:
-                reasons.append(f"semantic_similarity={semantic_score:.3f}")
+            elif sparse_sim > 0:
+                reasons.append(f"semantic_similarity={sparse_sim:.3f}")
             profile_boost = profile_boosts.get(chunk.content_class, 0.0)
             if profile_boost:
                 score += profile_boost
@@ -966,33 +1256,95 @@ class ContextRetriever:
             if canonical_boost:
                 score += canonical_boost
                 reasons.append(f"canonical_boost={canonical_boost:.2f}")
-            if request.module_id and chunk.module_id and request.module_id == chunk.module_id:
-                score += 2.0
-                reasons.append("module_match_boost=2")
-            if request.scene_id and request.scene_id in chunk.text:
-                score += 1.5
-                reasons.append("scene_hint_boost=1.5")
+            module_match = bool(
+                request.module_id and chunk.module_id and request.module_id == chunk.module_id
+            )
+            scene_match = bool(request.scene_id and request.scene_id in chunk.text)
+            if module_match:
+                score += INITIAL_MODULE_MATCH_BOOST
+                reasons.append(f"module_match_boost={INITIAL_MODULE_MATCH_BOOST:.2f}")
+            if scene_match:
+                score += INITIAL_SCENE_HINT_BOOST
+                reasons.append(f"scene_hint_boost={INITIAL_SCENE_HINT_BOOST:.2f}")
             if score <= 0:
                 continue
-            ranked.append((score, chunk, "; ".join(reasons) or "semantic_match"))
-
-        ranked.sort(key=lambda item: item[0], reverse=True)
-        selected = ranked[: max(1, request.max_chunks)]
-        hits = [
-            RetrievalHit(
-                chunk_id=chunk.chunk_id,
-                source_path=chunk.source_path,
-                source_name=chunk.source_name,
-                content_class=chunk.content_class.value,
-                source_version=chunk.source_version,
-                score=score,
-                snippet=chunk.text[:400],
-                selection_reason=reason,
+            candidates.append(
+                _ScoredCandidate(
+                    chunk_index=chunk_index,
+                    chunk=chunk,
+                    dense_sim=dense_sim,
+                    sparse_sim=sparse_sim,
+                    hybrid_core=hybrid_core,
+                    initial_score=score,
+                    initial_reason="; ".join(reasons) or "semantic_match",
+                    module_match=module_match,
+                    scene_match=scene_match,
+                )
             )
-            for score, chunk, reason in selected
-        ]
+
+        candidates.sort(key=lambda x: (x.initial_score, x.chunk.chunk_id), reverse=True)
+        pool_n = _pool_size(request.max_chunks)
+        pool = candidates[:pool_n]
+        quality_notes.append(f"rerank_pool_size={len(pool)}")
+        strong_authored = _pool_has_strong_authored_for_module(pool, request.module_id)
+
+        reranked: list[tuple[float, _ScoredCandidate, list[str]]] = []
+        for cand in pool:
+            rdelta, rparts = _rerank_adjustments(
+                cand,
+                profile_name=profile_name,
+                request=request,
+                pool=pool,
+                use_hybrid=use_hybrid,
+                strong_authored_for_module=strong_authored,
+            )
+            rerank_score = cand.initial_score + rdelta
+            merged_parts = list(rparts)
+            if rdelta != 0:
+                merged_parts.insert(0, f"rerank_delta={rdelta:+.3f}")
+            reranked.append((rerank_score, cand, merged_parts))
+
+        reranked.sort(key=lambda x: (x[0], x[1].chunk.chunk_id), reverse=True)
+        selected_tuples, dup_notes = _dedup_select(
+            reranked,
+            max_chunks=request.max_chunks,
+            profile_name=profile_name,
+        )
+        quality_notes.extend(dup_notes[:8])
+        if len(dup_notes) > 8:
+            quality_notes.append(f"dup_suppressed_more={len(dup_notes) - 8}")
+
+        hits: list[RetrievalHit] = []
+        for rerank_score, cand, rparts in selected_tuples:
+            reason_core = cand.initial_reason
+            if rparts:
+                reason_core = reason_core + " | " + "; ".join(rparts)
+            pack_role = _pack_role_for_hit(
+                profile=profile_name,
+                canonical_priority=cand.chunk.canonical_priority,
+                content_class=cand.chunk.content_class,
+            )
+            why = (
+                f"initial={cand.initial_score:.2f} final={rerank_score:.2f}; "
+                f"{pack_role.replace('_', ' ')}"
+            )
+            hits.append(
+                RetrievalHit(
+                    chunk_id=cand.chunk.chunk_id,
+                    source_path=cand.chunk.source_path,
+                    source_name=cand.chunk.source_name,
+                    content_class=cand.chunk.content_class.value,
+                    source_version=cand.chunk.source_version,
+                    score=rerank_score,
+                    snippet=cand.chunk.text[:400],
+                    selection_reason=reason_core,
+                    pack_role=pack_role,
+                    why_selected=why,
+                )
+            )
+
         if not hits:
-            notes = prefix_notes + ["no_ranked_hits_for_query"]
+            notes = prefix_notes + quality_notes + ["no_ranked_hits_for_query"]
             return RetrievalResult(
                 request=request,
                 status=RetrievalStatus.FALLBACK,
@@ -1012,7 +1364,11 @@ class ContextRetriever:
                 embedding_index_version=emb_idx_ver,
                 embedding_cache_dir_identity=emb_cache_id,
             )
-        ranking_notes = prefix_notes + [f"{hit.source_path} score={hit.score:.2f} ({hit.selection_reason})" for hit in hits]
+        detail_lines = [
+            f"{h.source_path} score={h.score:.2f} pack_role={h.pack_role} ({h.selection_reason})"
+            for h in hits
+        ]
+        ranking_notes = prefix_notes + quality_notes + detail_lines
         return RetrievalResult(
             request=request,
             status=RetrievalStatus.OK,
@@ -1060,23 +1416,67 @@ class ContextPackAssembler:
                 embedding_index_version=result.embedding_index_version,
                 embedding_cache_dir_identity=result.embedding_cache_dir_identity,
             )
-        lines = ["Retrieved context (ranked):"]
+        profile = result.request.profile or DOMAIN_DEFAULT_PROFILE[result.request.domain]
+        ordered_hits = sorted(result.hits, key=lambda h: _pack_sort_key(h, profile))
+
+        def _section_title(role: str) -> str | None:
+            if profile == "runtime_turn_support":
+                if role == "canonical_evidence":
+                    return "Canonical evidence"
+                if role == "policy_evidence":
+                    return "Policy evidence"
+                if role == "supporting_context":
+                    return "Supporting context"
+            elif profile == "improvement_eval":
+                if role == "evaluative_evidence":
+                    return "Evaluative evidence"
+                if role == "supporting_context":
+                    return "Supporting context"
+            elif profile == "writers_review":
+                if role == "authored_context":
+                    return "Authored context"
+                if role == "review_context":
+                    return "Review context"
+                if role == "supporting_context":
+                    return "Supporting context"
+            return None
+
+        lines: list[str] = [
+            f"Retrieved context (profile={profile}, pipeline={RETRIEVAL_PIPELINE_VERSION}):",
+        ]
         sources: list[dict[str, str]] = []
-        for index, hit in enumerate(result.hits, start=1):
-            lines.append(f"{index}. [{hit.source_name}] {hit.snippet}")
+        current_section: str | None = None
+        ordinal = 0
+        for hit in ordered_hits:
+            role = hit.pack_role or "supporting_context"
+            title = _section_title(role)
+            if title and title != current_section:
+                current_section = title
+                lines.append(f"--- {title} ---")
+            ordinal += 1
+            snippet = hit.snippet.strip()
+            if len(snippet) > 320:
+                snippet = snippet[:317].rstrip() + "..."
+            lines.append(f"{ordinal}. [{hit.source_name}] ({role}) {snippet}")
             sources.append(
                 {
                     "chunk_id": hit.chunk_id,
                     "source_path": hit.source_path,
-                    "snippet": hit.snippet,
+                    "snippet": snippet,
                     "content_class": hit.content_class,
                     "selection_reason": hit.selection_reason,
                     "source_version": hit.source_version,
                     "score": f"{hit.score:.4f}",
+                    "pack_role": hit.pack_role,
+                    "why_selected": hit.why_selected,
                 }
             )
+        lines.append("context_pack_order=workflow_sections_then_ordinal")
         return ContextPack(
-            summary=f"Retrieved {len(result.hits)} chunks for profile={result.request.profile}.",
+            summary=(
+                f"Retrieved {len(result.hits)} chunks for profile={profile} "
+                f"({RETRIEVAL_PIPELINE_VERSION})."
+            ),
             compact_context="\n".join(lines),
             sources=sources,
             hit_count=len(result.hits),

@@ -13,6 +13,7 @@ from ai_stack.rag import (
     INDEX_VERSION,
     PersistentRagStore,
     RagIngestionPipeline,
+    RETRIEVAL_PIPELINE_VERSION,
     RetrievalDomain,
     RetrievalRequest,
     RetrievalStatus,
@@ -652,3 +653,208 @@ def test_meta_commit_order_survives_replace_failure_on_meta(tmp_path: Path, monk
     _ensure_corpus_embedding_index(corpus2, Path(corpus.storage_path))
     assert corpus2.rag_dense_artifact_validity == "partial_write_failure"
     assert meta_path.read_text(encoding="utf-8") == corrupted
+
+
+def test_profile_specific_ranking_differs_for_same_query(tmp_path: Path) -> None:
+    """Runtime, writers, and improvement profiles should surface different evidence mixes."""
+    _write(
+        tmp_path / "content" / "modules" / "mod_a" / "scene.md",
+        "Canon scene text about dinner dispute civility collapse for the module.",
+    )
+    _write(
+        tmp_path / "docs" / "reports" / "review_mod_a.md",
+        "Review note: red flags remediation and writer feedback for dinner dispute module.",
+    )
+    _write(
+        tmp_path / "docs" / "reports" / "eval_mod_a.md",
+        "Acceptance evaluation metrics sandbox variant trigger coverage for the module.",
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    query = "dinner dispute sandbox variant metrics remediation"
+    rt = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query=query,
+            module_id="mod_a",
+            max_chunks=3,
+            use_sparse_only=True,
+        )
+    )
+    wr = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.WRITERS_ROOM,
+            profile="writers_review",
+            query=query,
+            module_id="mod_a",
+            max_chunks=3,
+            use_sparse_only=True,
+        )
+    )
+    im = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.IMPROVEMENT,
+            profile="improvement_eval",
+            query=query,
+            module_id="mod_a",
+            max_chunks=3,
+            use_sparse_only=True,
+        )
+    )
+    assert rt.hits[0].content_class == ContentClass.AUTHORED_MODULE.value
+    assert any(h.content_class == ContentClass.REVIEW_NOTE.value for h in wr.hits)
+    assert any(h.content_class == ContentClass.EVALUATION_ARTIFACT.value for h in im.hits)
+    rt_classes = [h.content_class for h in rt.hits]
+    im_classes = [h.content_class for h in im.hits]
+    assert rt_classes != im_classes or rt.hits[0].chunk_id != im.hits[0].chunk_id
+
+
+def test_runtime_prefers_canonical_over_transcript_when_both_match(tmp_path: Path) -> None:
+    """Runtime profile should deprioritize transcript clutter when strong authored module exists."""
+    body = (
+        "dinner dispute civility collapse chaos families argument escalation confrontation "
+        "same thematic keywords repeated for overlap"
+    )
+    _write(tmp_path / "content" / "modules" / "goc" / "canon.md", f"Authored canon: {body}")
+    _write(
+        tmp_path / "world-engine" / "app" / "var" / "runs" / "live.json",
+        f'{{"transcript":"{body}"}}',
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="dinner dispute civility collapse chaos families",
+            module_id="goc",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    assert res.hits[0].content_class == ContentClass.AUTHORED_MODULE.value
+
+
+def test_rerank_can_reorder_behind_module_match_sparse_only(tmp_path: Path) -> None:
+    """Module-scoped rerank extra should overtake a higher-lexical off-module chunk (deterministic)."""
+    qterms = (
+        "acceptance evaluation metrics trigger coverage sandbox variant comparison "
+        "recommendation diagnostic"
+    )
+    _write(
+        tmp_path / "content" / "published" / "other_mod" / "canon.md",
+        f"Published canon packed with keywords: {qterms} {qterms} extra density for sparse scoring.",
+    )
+    _write(
+        tmp_path / "content" / "modules" / "target_mod" / "draft.md",
+        f"Module target_mod draft: {qterms}",
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    req = RetrievalRequest(
+        domain=RetrievalDomain.RUNTIME,
+        profile="runtime_turn_support",
+        query="acceptance evaluation metrics trigger coverage sandbox variant",
+        module_id="target_mod",
+        max_chunks=2,
+        use_sparse_only=True,
+    )
+    res = retriever.retrieve(req)
+    top_path = res.hits[0].source_path.replace("\\", "/")
+    assert "target_mod" in top_path
+    assert any("rerank_module_extra" in h.selection_reason for h in res.hits if "target_mod" in h.source_path)
+
+
+def test_near_duplicate_suppression_frees_top_slots(tmp_path: Path) -> None:
+    """Near-identical chunks should not both consume top-k after dedup."""
+    text_a = "Unique evaluation trigger coverage sandbox variant metrics acceptance story."
+    text_b = text_a + " "  # effectively identical for trigram Jaccard
+    _write(tmp_path / "content" / "alpha.md", text_a)
+    _write(tmp_path / "content" / "beta.md", text_b)
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.IMPROVEMENT,
+            profile="improvement_eval",
+            query="evaluation trigger coverage sandbox variant metrics",
+            max_chunks=3,
+            use_sparse_only=True,
+        )
+    )
+    paths = {h.source_path.replace("\\", "/") for h in res.hits}
+    assert "alpha.md" in str(paths) or "beta.md" in str(paths)
+    assert not ("alpha.md" in str(paths) and "beta.md" in str(paths))
+    assert any("dup_suppressed" in n for n in res.ranking_notes)
+
+
+def test_context_pack_orders_sections_and_includes_pack_metadata(tmp_path: Path) -> None:
+    """Assembler should group workflow sections and expose pack_role / why_selected."""
+    _write(
+        tmp_path / "content" / "published" / "pm" / "canon.md",
+        "Published priority canon dispute civility for packing order test.",
+    )
+    _write(
+        tmp_path / "content" / "modules" / "pm" / "notes.md",
+        "Supporting draft dispute civility overlap for packing order test.",
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    assembler = ContextPackAssembler()
+    result = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="dispute civility packing order",
+            module_id="pm",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    pack = assembler.assemble(result)
+    assert "Canonical evidence" in pack.compact_context
+    assert RETRIEVAL_PIPELINE_VERSION in pack.compact_context
+    assert pack.sources[0].get("pack_role")
+    assert pack.sources[0].get("why_selected")
+    assert any("retrieval_pipeline_version=" in n for n in pack.ranking_notes)
+
+
+def test_ranking_notes_include_quality_pipeline_hybrid_weights(tmp_path: Path) -> None:
+    _write(tmp_path / "content" / "z.md", "gamma ray evaluation metrics sandbox.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    res = ContextRetriever(corpus).retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="evaluation metrics sandbox",
+            max_chunks=1,
+            use_sparse_only=True,
+        )
+    )
+    joined = " ".join(res.ranking_notes)
+    assert RETRIEVAL_PIPELINE_VERSION in joined
+    assert "hybrid_v2_weights_dense=" in joined
+    assert "rerank_pool_size=" in joined
+
+
+def test_sparse_fallback_still_populates_task1_prefix_and_quality_notes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sparse path must keep Task 1-style prefix notes and append Task 2 quality notes."""
+    monkeypatch.setenv("WOS_RAG_DISABLE_EMBEDDINGS", "1")
+    _write(tmp_path / "content" / "t.md", "sparse fallback pipeline check alpha beta.")
+    retriever, _, _ = build_runtime_retriever(tmp_path)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="alpha beta pipeline",
+            max_chunks=1,
+        )
+    )
+    assert res.retrieval_route == "sparse_fallback"
+    notes = res.ranking_notes
+    assert any(n.startswith("retrieval_route=") for n in notes)
+    assert any(n.startswith("degradation_mode=") for n in notes)
+    assert any("retrieval_pipeline_version=" in n for n in notes)

@@ -163,6 +163,10 @@ def test_runtime_context_pack_capability_returns_retrieval_payload(tmp_path: Pat
     assert audit["result_summary"]["hit_count"] >= 0
     assert audit["result_summary"]["domain"] == "runtime"
     assert audit["result_summary"]["profile"] == "runtime_turn_support"
+    if result["retrieval"].get("hit_count", 0) > 0:
+        src0 = result["retrieval"]["sources"][0]
+        assert "pack_role" in src0
+        assert "why_selected" in src0
 
 
 def test_review_bundle_audit_includes_evidence_source_count(tmp_path: Path) -> None:
