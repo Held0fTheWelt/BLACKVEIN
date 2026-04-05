@@ -66,8 +66,8 @@ SUITE_PYTEST_TARGETS: dict[str, tuple[Path, str]] = {
     "administration": (ADMIN_TOOL_DIR, "tests"),
     "engine": (WORLD_ENGINE_DIR, "tests"),
     "database": (DATABASE_DIR, "tests"),
-    "writers_room": (BACKEND_DIR, "tests/test_writers_room_routes.py tests/services/test_writers_room_unit.py tests/services/test_writers_room_model_routing.py"),
-    "improvement": (BACKEND_DIR, "tests/test_improvement_routes.py tests/services/test_improvement_unit.py tests/services/test_improvement_task2a_routing_negative.py tests/services/test_improvement_task2a_routing_positive.py"),
+    "writers_room": (BACKEND_DIR, "tests"),  # Includes all writers_room tests: routes + unit + model routing
+    "improvement": (BACKEND_DIR, "tests"),   # Includes all improvement tests: routes + unit + task2a routing
     # Writers-Room / improvement seed graphs and runtime turn graph; imports require repo root on PYTHONPATH.
     "ai_stack": (PROJECT_ROOT, "ai_stack/tests"),
 }
