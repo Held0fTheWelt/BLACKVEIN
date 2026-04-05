@@ -18,6 +18,14 @@ from ai_stack import (
 from app.config import APP_VERSION
 from app.observability.audit_log import log_story_runtime_failure, log_story_turn_event
 from app.story_runtime.commit_models import resolve_narrative_commit
+from app.story_runtime.narrative_threads import (
+    NARRATIVE_COMMIT_HISTORY_TAIL,
+    StoryNarrativeThreadSet,
+    ThreadUpdateTrace,
+    build_graph_thread_export,
+    thread_continuity_metrics,
+    update_narrative_threads,
+)
 
 
 @dataclass
@@ -31,6 +39,8 @@ class StorySession:
     current_scene_id: str = ""
     history: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
+    narrative_threads: StoryNarrativeThreadSet = field(default_factory=StoryNarrativeThreadSet)
+    last_thread_update_trace: ThreadUpdateTrace | None = None
 
 
 class StoryRuntimeManager:
@@ -88,6 +98,8 @@ class StoryRuntimeManager:
         session.turn_counter += 1
         session.updated_at = datetime.now(timezone.utc)
         prior_scene_id = session.current_scene_id
+        history_tail = session.history[-(NARRATIVE_COMMIT_HISTORY_TAIL - 1) :]
+        graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
         try:
             graph_state = self.turn_graph.run(
                 session_id=session.session_id,
@@ -96,6 +108,8 @@ class StoryRuntimeManager:
                 player_input=player_input,
                 trace_id=trace_id,
                 host_versions={"world_engine_app_version": APP_VERSION},
+                active_narrative_threads=graph_threads or None,
+                thread_pressure_summary=graph_summary,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -123,6 +137,13 @@ class StoryRuntimeManager:
             runtime_projection=session.runtime_projection,
         )
         session.current_scene_id = narrative_commit.committed_scene_id
+        session.narrative_threads, session.last_thread_update_trace = update_narrative_threads(
+            prior=session.narrative_threads,
+            latest_commit=narrative_commit,
+            history_tail=history_tail,
+            committed_scene_id=narrative_commit.committed_scene_id,
+            turn_number=session.turn_counter,
+        )
 
         model_ok = gen.get("success") is True
         outcome = "ok" if model_ok and not errors else "degraded"
@@ -201,6 +222,11 @@ class StoryRuntimeManager:
             if isinstance(op, list):
                 last_open_pressures = [str(x) for x in op]
 
+        thread_metrics = thread_continuity_metrics(session.narrative_threads)
+        last_thread_summary: str | None = None
+        if session.last_thread_update_trace is not None:
+            last_thread_summary = session.last_thread_update_trace.summary or None
+
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
@@ -215,6 +241,18 @@ class StoryRuntimeManager:
                 "last_narrative_commit_summary": summary,
                 "last_committed_consequences": last_consequences,
                 "last_open_pressures": last_open_pressures,
+                "narrative_thread_continuity": {
+                    "narrative_threads": session.narrative_threads.model_dump(mode="json"),
+                    "active_narrative_threads": [
+                        t.model_dump(mode="json")
+                        for t in session.narrative_threads.active
+                        if t.status != "resolved"
+                    ],
+                    "thread_count": thread_metrics["thread_count"],
+                    "dominant_thread_kind": thread_metrics["dominant_thread_kind"],
+                    "thread_pressure_level": thread_metrics["thread_pressure_level"],
+                    "last_narrative_thread_update_summary": last_thread_summary,
+                },
             },
             "last_committed_turn": last_committed_turn,
             "updated_at": session.updated_at.isoformat(),
@@ -226,6 +264,10 @@ class StoryRuntimeManager:
             "current_scene_id": session.current_scene_id,
             "turn_counter": session.turn_counter,
         }
+        trace_payload: dict[str, Any] | None = None
+        if session.last_thread_update_trace is not None:
+            trace_payload = session.last_thread_update_trace.model_dump(mode="json")
+
         return {
             "session_id": session.session_id,
             "turn_counter": session.turn_counter,
@@ -235,9 +277,19 @@ class StoryRuntimeManager:
             "committed_truth_vs_diagnostics": (
                 "Each diagnostics[] entry is a full orchestration envelope (graph, retrieval, model_route, "
                 "interpreted_input). Authoritative committed story-runtime truth is session fields, "
-                "history, and the bounded narrative_commit object (also embedded in each envelope for correlation)."
+                "history, and the bounded narrative_commit object (also embedded in each envelope for correlation). "
+                "Narrative thread continuity lives in session.narrative_threads and get_state committed_state "
+                "narrative_thread_continuity; narrative_thread_diagnostics.last_update_trace is bounded operator "
+                "reasoning only and is not an authority source."
             ),
             "authoritative_history_tail": session.history[-5:] if session.history else [],
+            "narrative_thread_diagnostics": {
+                "last_update_trace": trace_payload,
+                "note": (
+                    "Diagnostic trace for the latest thread update only; authoritative continuity is "
+                    "get_state.committed_state.narrative_thread_continuity and session.narrative_threads."
+                ),
+            },
             "warnings": [
                 "story_runtime_hosted_in_world_engine",
                 "ai_proposals_require_authoritative_runtime_commit",

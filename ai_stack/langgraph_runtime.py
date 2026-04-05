@@ -54,6 +54,9 @@ class RuntimeTurnState(TypedDict, total=False):
     player_input: str
     trace_id: str
     host_versions: dict[str, Any]
+    # Bounded prior-thread snapshot from story runtime (no evidence lists / no history blobs).
+    active_narrative_threads: list[dict[str, Any]]
+    thread_pressure_summary: str
     interpreted_input: dict[str, Any]
     task_type: str
     routing: dict[str, Any]
@@ -125,6 +128,8 @@ class RuntimeTurnGraphExecutor:
         player_input: str,
         trace_id: str | None = None,
         host_versions: dict[str, Any] | None = None,
+        active_narrative_threads: list[dict[str, Any]] | None = None,
+        thread_pressure_summary: str | None = None,
     ) -> RuntimeTurnState:
         initial_state: RuntimeTurnState = {
             "session_id": session_id,
@@ -137,6 +142,11 @@ class RuntimeTurnGraphExecutor:
             "node_outcomes": {},
             "graph_errors": [],
         }
+        if active_narrative_threads:
+            initial_state["active_narrative_threads"] = active_narrative_threads
+        if thread_pressure_summary:
+            # Keep in sync with world-engine story_runtime narrative_threads.THREAD_PRESSURE_SUMMARY_MAX (128).
+            initial_state["thread_pressure_summary"] = thread_pressure_summary[:128]
         return self._graph.invoke(initial_state)
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -210,6 +220,26 @@ class RuntimeTurnGraphExecutor:
         if context_text:
             base = f"{base}\n\n{context_text}"
         prompt = f"{base}\n\n{interpretation_block}"
+        threads = state.get("active_narrative_threads")
+        if isinstance(threads, list) and threads:
+            lines = ["Prior narrative threads (bounded snapshot, not authoritative diagnostics):"]
+            for item in threads:
+                if not isinstance(item, dict):
+                    continue
+                rid = item.get("thread_id")
+                kind = item.get("thread_kind")
+                st = item.get("status")
+                intens = item.get("intensity")
+                ent = item.get("related_entities")
+                if not isinstance(ent, list):
+                    ent = []
+                lines.append(
+                    f"- id={rid} kind={kind} status={st} intensity={intens} related_entities={ent[:4]}"
+                )
+            tsum = state.get("thread_pressure_summary")
+            if isinstance(tsum, str) and tsum.strip():
+                lines.append(f"thread_pressure_summary: {tsum.strip()[:128]}")
+            prompt = f"{prompt}\n\n" + "\n".join(lines)
         update = _track(state, node_name="retrieve_context")
         update["retrieval"] = retrieval
         update["context_text"] = context_text
