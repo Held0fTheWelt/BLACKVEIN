@@ -7,6 +7,7 @@ import pytest
 from ai_stack.rag import (
     ContentClass,
     DENSE_INDEX_META_SCHEMA,
+    RETRIEVAL_POLICY_VERSION,
     RetrievalDegradationMode,
     ContextPackAssembler,
     ContextRetriever,
@@ -14,6 +15,8 @@ from ai_stack.rag import (
     PersistentRagStore,
     RagIngestionPipeline,
     RETRIEVAL_PIPELINE_VERSION,
+    SourceEvidenceLane,
+    governance_view_for_chunk,
     RetrievalDomain,
     RetrievalRequest,
     RetrievalStatus,
@@ -858,3 +861,200 @@ def test_sparse_fallback_still_populates_task1_prefix_and_quality_notes(
     assert any(n.startswith("retrieval_route=") for n in notes)
     assert any(n.startswith("degradation_mode=") for n in notes)
     assert any("retrieval_pipeline_version=" in n for n in notes)
+    assert any(n.startswith("retrieval_policy_version=") for n in notes)
+
+
+def test_runtime_hard_excludes_module_draft_when_published_canonical_in_pool(tmp_path: Path) -> None:
+    """Task 3 hard gate: runtime drops same-module draft authored chunks when published canonical exists."""
+    shared = "Dinner dispute families civility collapse chaos escalation unique tokens for overlap."
+    _write(tmp_path / "content" / "modules" / "gate_mod" / "draft.md", shared)
+    _write(tmp_path / "content" / "published" / "gate_mod" / "canon.md", shared)
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="dinner dispute families civility collapse chaos escalation",
+            module_id="gate_mod",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    assert len(res.hits) >= 1
+    paths = {h.source_path.replace("\\", "/") for h in res.hits}
+    assert any("content/published/gate_mod/" in p for p in paths)
+    assert not any("content/modules/gate_mod/draft.md" in p for p in paths)
+    joined = " ".join(res.ranking_notes)
+    assert "policy_hard_excluded_pool_count=" in joined
+    assert "draft_when_published_canonical_in_pool" in joined
+
+
+def test_writers_room_retains_draft_alongside_published_canonical(tmp_path: Path) -> None:
+    """Writers profile does not apply the runtime draft hard-exclusion gate."""
+    # Distinct bodies so near-duplicate suppression does not drop the draft chunk.
+    draft_body = "Writers room draft dispute civility collapse chaos working material unique draft notes."
+    pub_body = "Writers room published canon dispute civility collapse chaos authoritative line."
+    _write(tmp_path / "content" / "modules" / "wr_mod" / "draft.md", draft_body)
+    _write(tmp_path / "content" / "published" / "wr_mod" / "canon.md", pub_body)
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.WRITERS_ROOM,
+            profile="writers_review",
+            query="writers room dispute civility collapse chaos draft published canon",
+            module_id="wr_mod",
+            max_chunks=3,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    paths = {h.source_path.replace("\\", "/") for h in res.hits}
+    assert any("content/published/wr_mod/" in p for p in paths)
+    assert any("content/modules/wr_mod/draft.md" in p for p in paths)
+    assert "policy_hard_excluded_pool_count=" not in " ".join(res.ranking_notes)
+
+
+def test_runtime_retains_module_draft_when_no_published_canonical_anchor(tmp_path: Path) -> None:
+    """Without published-tree canonical for the module, runtime may keep module draft as anchor evidence."""
+    body = "Solo module draft anchor dispute civility collapse for runtime policy note test."
+    _write(tmp_path / "content" / "modules" / "solo_mod" / "only_draft.md", body)
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="solo module draft anchor dispute civility collapse",
+            module_id="solo_mod",
+            max_chunks=1,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    assert res.hits
+    assert "content/modules/solo_mod/" in res.hits[0].source_path.replace("\\", "/")
+    assert res.hits[0].source_evidence_lane == SourceEvidenceLane.DRAFT_WORKING.value
+    assert "draft_lane_retained_no_published_canonical_anchor" in res.hits[0].policy_note
+
+
+def test_governance_metadata_on_hits_and_context_pack_sources(tmp_path: Path) -> None:
+    """Hits and ContextPack.sources expose evidence lane, visibility, and policy trace fields."""
+    _write(
+        tmp_path / "content" / "published" / "gm" / "canon.md",
+        "Governance metadata published canon dispute civility.",
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    assembler = ContextPackAssembler()
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="governance metadata dispute civility",
+            module_id="gm",
+            max_chunks=1,
+            use_sparse_only=True,
+        )
+    )
+    pack = assembler.assemble(res)
+    h0 = res.hits[0]
+    assert h0.source_evidence_lane == SourceEvidenceLane.CANONICAL.value
+    assert h0.source_visibility_class == "runtime_safe"
+    assert h0.policy_note.startswith("allowed:")
+    assert h0.profile_policy_influence
+    s0 = pack.sources[0]
+    assert s0.get("source_evidence_lane") == SourceEvidenceLane.CANONICAL.value
+    assert s0.get("policy_note")
+    assert s0.get("profile_policy_influence")
+    assert RETRIEVAL_POLICY_VERSION in pack.compact_context
+    assert "context_pack_governance=runtime_canonical_first_when_available" in pack.compact_context
+
+
+def test_runtime_task2_clutter_penalty_distinct_from_task3_policy_soft_notes(tmp_path: Path) -> None:
+    """Task 2 ``runtime_clutter_penalty`` remains on transcript; Task 3 adds separate ``policy_*`` notes."""
+    body = (
+        "Transcript clutter dispute civility collapse chaos families argument "
+        "keyword overlap for transcript penalty test."
+    )
+    _write(tmp_path / "content" / "modules" / "tr_mod" / "canon.md", f"Canon authored: {body}")
+    _write(
+        tmp_path / "world-engine" / "app" / "var" / "runs" / "live.json",
+        f'{{"transcript":"{body}"}}',
+    )
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    retriever = ContextRetriever(corpus)
+    res = retriever.retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.RUNTIME,
+            profile="runtime_turn_support",
+            query="transcript clutter dispute civility collapse chaos families",
+            module_id="tr_mod",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    tr_hits = [h for h in res.hits if "var/runs" in h.source_path.replace("\\", "/")]
+    for h in tr_hits:
+        assert "runtime_clutter_penalty" in h.selection_reason
+    assert any("retrieval_policy_version=" in n for n in res.ranking_notes)
+
+
+def test_improvement_policy_soft_boost_on_policy_guideline(tmp_path: Path) -> None:
+    """Improvement profile applies ``policy_soft_improvement_policy_diagnostic`` (orthogonal to Task 2 rerank)."""
+    _write(
+        tmp_path / "docs" / "architecture" / "eval_policy.md",
+        "Architecture policy diagnostic evaluation metrics sandbox trigger coverage soft policy.",
+    )
+    _write(tmp_path / "content" / "noise_eval.md", "Noise text without architecture policy diagnostic wording.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    res = ContextRetriever(corpus).retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.IMPROVEMENT,
+            profile="improvement_eval",
+            query="architecture policy diagnostic evaluation metrics sandbox trigger",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    pol = [h for h in res.hits if h.content_class == ContentClass.POLICY_GUIDELINE.value]
+    assert pol
+    assert "policy_soft_improvement_policy_diagnostic" in pol[0].selection_reason
+
+
+def test_improvement_profile_prefers_evaluative_lane_in_metadata(tmp_path: Path) -> None:
+    """Improvement retrieval labels evaluative sources clearly in hit metadata."""
+    _write(
+        tmp_path / "docs" / "reports" / "eval_governance.md",
+        "Acceptance evaluation metrics sandbox variant trigger coverage governance test.",
+    )
+    _write(tmp_path / "content" / "filler.md", "Unrelated cooking recipe without evaluation metrics.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    res = ContextRetriever(corpus).retrieve(
+        RetrievalRequest(
+            domain=RetrievalDomain.IMPROVEMENT,
+            profile="improvement_eval",
+            query="acceptance evaluation metrics sandbox variant trigger coverage",
+            max_chunks=2,
+            use_sparse_only=True,
+        )
+    )
+    assert res.status == RetrievalStatus.OK
+    eval_hits = [h for h in res.hits if h.content_class == ContentClass.EVALUATION_ARTIFACT.value]
+    assert eval_hits
+    assert eval_hits[0].source_evidence_lane == SourceEvidenceLane.EVALUATIVE.value
+    assert "evaluative_lane_preferred" in eval_hits[0].policy_note
+
+
+def test_governance_view_matches_ingested_paths(tmp_path: Path) -> None:
+    """Sanity: governance_view_for_chunk classifies published vs modules paths on stored chunks."""
+    _write(tmp_path / "content" / "published" / "x" / "a.md", "published body")
+    _write(tmp_path / "content" / "modules" / "x" / "b.md", "modules body")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    by_path = {c.source_path.replace("\\", "/"): c for c in corpus.chunks}
+    assert governance_view_for_chunk(by_path["content/published/x/a.md"]).evidence_lane == SourceEvidenceLane.CANONICAL
+    assert governance_view_for_chunk(by_path["content/modules/x/b.md"]).evidence_lane == SourceEvidenceLane.DRAFT_WORKING

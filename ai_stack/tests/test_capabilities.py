@@ -167,6 +167,9 @@ def test_runtime_context_pack_capability_returns_retrieval_payload(tmp_path: Pat
         src0 = result["retrieval"]["sources"][0]
         assert "pack_role" in src0
         assert "why_selected" in src0
+        assert result["retrieval"].get("retrieval_policy_version")
+        assert src0.get("source_evidence_lane")
+        assert src0.get("policy_note")
 
 
 def test_review_bundle_audit_includes_evidence_source_count(tmp_path: Path) -> None:

@@ -7,6 +7,12 @@ context packing. Dense/sparse agreement is applied once in reranking (explicit
 bonus), not duplicated in the initial hybrid core. Without embeddings, the path
 is sparse-only with ``retrieval_route=sparse_fallback`` in ranking notes.
 
+Task 3 (source governance): explicit evidence lanes, visibility classes, a hard
+policy gate on the rerank pool (runtime draft suppression when published canonical
+exists for the same module), and additive ``policy_soft_*`` adjustments that are
+separate from Task 2 rerank signals. Lifecycle/degradation notes (Task 1) and
+quality/rerank notes (Task 2) stay distinct from ``policy_*`` notes.
+
 Persistence: JSON corpus under ``.wos/rag/runtime_corpus.json`` (``PersistentRagStore``)
 plus optional ``runtime_embeddings.npz`` + ``runtime_embeddings.meta.json`` for
 reproducible local dense indices. The dense index uses `runtime_embeddings.meta.json`
@@ -74,6 +80,92 @@ class ContentClass(StrEnum):
     POLICY_GUIDELINE = "policy_guideline"
 
 
+class SourceEvidenceLane(StrEnum):
+    """Stable governance lane derived from content class and corpus signals (not a ranking score)."""
+
+    CANONICAL = "canonical"
+    SUPPORTING = "supporting"
+    DRAFT_WORKING = "draft_working"
+    INTERNAL_REVIEW = "internal_review"
+    EVALUATIVE = "evaluative"
+
+
+class SourceVisibilityClass(StrEnum):
+    """Who this material is intended for at a visibility (not authorization) level."""
+
+    RUNTIME_SAFE = "runtime_safe"
+    WRITERS_WORKING = "writers_working"
+    IMPROVEMENT_DIAGNOSTIC = "improvement_diagnostic"
+
+
+@dataclass(frozen=True, slots=True)
+class SourceGovernanceView:
+    """Compact, inspectable policy view for one chunk (pure function of chunk fields)."""
+
+    evidence_lane: SourceEvidenceLane
+    visibility_class: SourceVisibilityClass
+    derivation_note: str
+
+
+def governance_view_for_chunk(chunk: CorpusChunk) -> SourceGovernanceView:
+    """Map persisted chunk fields to evidence lane and visibility (deterministic, no I/O)."""
+    cc = chunk.content_class
+    path = chunk.source_path.replace("\\", "/").lower()
+    cp = chunk.canonical_priority
+
+    if cc == ContentClass.EVALUATION_ARTIFACT:
+        return SourceGovernanceView(
+            SourceEvidenceLane.EVALUATIVE,
+            SourceVisibilityClass.IMPROVEMENT_DIAGNOSTIC,
+            "content_class=evaluation_artifact",
+        )
+    if cc == ContentClass.REVIEW_NOTE:
+        return SourceGovernanceView(
+            SourceEvidenceLane.INTERNAL_REVIEW,
+            SourceVisibilityClass.WRITERS_WORKING,
+            "content_class=review_note",
+        )
+    if cc == ContentClass.POLICY_GUIDELINE:
+        return SourceGovernanceView(
+            SourceEvidenceLane.SUPPORTING,
+            SourceVisibilityClass.RUNTIME_SAFE,
+            "content_class=policy_guideline",
+        )
+    if cc in (ContentClass.TRANSCRIPT, ContentClass.RUNTIME_PROJECTION, ContentClass.CHARACTER_PROFILE):
+        return SourceGovernanceView(
+            SourceEvidenceLane.SUPPORTING,
+            SourceVisibilityClass.RUNTIME_SAFE,
+            f"content_class={cc.value}",
+        )
+    if cc == ContentClass.AUTHORED_MODULE:
+        # source_path is repo-relative (``content/published/...``), while canonical_priority
+        # is computed from absolute paths at ingest; accept both relative and absolute shapes.
+        in_published = "content/published/" in path
+        in_modules = "content/modules/" in path
+        if cp >= 4 and in_published:
+            return SourceGovernanceView(
+                SourceEvidenceLane.CANONICAL,
+                SourceVisibilityClass.RUNTIME_SAFE,
+                "authored_published_tree",
+            )
+        if cp >= 3 and in_modules:
+            return SourceGovernanceView(
+                SourceEvidenceLane.DRAFT_WORKING,
+                SourceVisibilityClass.WRITERS_WORKING,
+                "authored_modules_tree_draft",
+            )
+        return SourceGovernanceView(
+            SourceEvidenceLane.DRAFT_WORKING,
+            SourceVisibilityClass.WRITERS_WORKING,
+            "authored_flat_or_nonstandard_path",
+        )
+    return SourceGovernanceView(
+        SourceEvidenceLane.SUPPORTING,
+        SourceVisibilityClass.RUNTIME_SAFE,
+        "fallback_unknown_content_class",
+    )
+
+
 DOMAIN_CONTENT_ACCESS: dict[RetrievalDomain, set[ContentClass]] = {
     RetrievalDomain.RUNTIME: {
         ContentClass.AUTHORED_MODULE,
@@ -121,6 +213,9 @@ class RetrievalDegradationMode(StrEnum):
 
 # Retrieval ranking behavior version (not corpus/storage INDEX_VERSION).
 RETRIEVAL_PIPELINE_VERSION = "task2_hybrid_v2"
+
+# Source policy layer version (Task 3); orthogonal to pipeline and index versions.
+RETRIEVAL_POLICY_VERSION = "task3_source_governance_v1"
 
 # Legacy single-weight hybrid (superseded by profile maps; kept for tests/import stability).
 HYBRID_DENSE_WEIGHT = 0.62
@@ -317,6 +412,11 @@ class RetrievalHit:
     selection_reason: str
     pack_role: str = ""
     why_selected: str = ""
+    # Task 3 governance (additive; pack_role remains the workflow-oriented role).
+    source_evidence_lane: str = ""
+    source_visibility_class: str = ""
+    policy_note: str = ""
+    profile_policy_influence: str = ""
 
 
 @dataclass(slots=True)
@@ -364,9 +464,9 @@ class ContextPack:
     embedding_cache_dir_identity: str | None = None
 
 PROFILE_VERSIONS = {
-    "runtime_turn_support": "runtime_profile_v2",
-    "writers_review": "writers_profile_v2",
-    "improvement_eval": "improvement_profile_v2",
+    "runtime_turn_support": "runtime_profile_v3_source_policy",
+    "writers_review": "writers_profile_v3_source_policy",
+    "improvement_eval": "improvement_profile_v3_source_policy",
 }
 
 SEMANTIC_CANON = {
@@ -585,6 +685,170 @@ def _pool_has_strong_authored_for_module(pool: list[_ScoredCandidate], module_id
     return False
 
 
+def _pool_has_published_canonical_for_module(pool: list[_ScoredCandidate], module_id: str | None) -> bool:
+    """True when the pool already contains published-tree authored module chunks for this module."""
+    if not module_id:
+        return False
+    for c in pool:
+        if c.chunk.content_class != ContentClass.AUTHORED_MODULE:
+            continue
+        if c.chunk.canonical_priority < 4:
+            continue
+        if c.chunk.module_id == module_id:
+            return True
+    return False
+
+
+def _apply_hard_policy_pool_filter(
+    pool: list[_ScoredCandidate],
+    *,
+    profile_name: str,
+    request: RetrievalRequest,
+) -> tuple[list[_ScoredCandidate], list[str], int]:
+    """Remove candidates excluded by hard visibility rules (Task 3), before reranking.
+
+    Runtime: drop same-module ``draft_working`` authored chunks when a published canonical
+    authored chunk for that module is already present in the pool. Writers/improvement
+    profiles do not apply this gate so drafts and review material remain visible.
+    """
+    if profile_name != "runtime_turn_support" or not request.module_id:
+        return pool, [], 0
+    if not _pool_has_published_canonical_for_module(pool, request.module_id):
+        return pool, [], 0
+    kept: list[_ScoredCandidate] = []
+    excluded = 0
+    detail_notes: list[str] = []
+    for c in pool:
+        gov = governance_view_for_chunk(c.chunk)
+        if (
+            gov.evidence_lane == SourceEvidenceLane.DRAFT_WORKING
+            and c.chunk.content_class == ContentClass.AUTHORED_MODULE
+            and c.module_match
+        ):
+            excluded += 1
+            if len(detail_notes) < 8:
+                detail_notes.append(
+                    f"policy_hard_excluded chunk_id={c.chunk.chunk_id} "
+                    f"reason=draft_when_published_canonical_in_pool"
+                )
+            continue
+        kept.append(c)
+    summary: list[str] = []
+    if excluded:
+        summary.append(f"policy_hard_excluded_pool_count={excluded}")
+    summary.extend(detail_notes)
+    return kept, summary, excluded
+
+
+def _policy_soft_adjustments(
+    cand: _ScoredCandidate,
+    *,
+    profile_name: str,
+    request: RetrievalRequest,
+    strong_authored_for_module: bool,
+    gov: SourceGovernanceView,
+) -> tuple[float, list[str]]:
+    """Governance soft weights (Task 3). Prefix ``policy_soft_``; orthogonal to Task 2 rerank."""
+    delta = 0.0
+    parts: list[str] = []
+    cc = cand.chunk.content_class
+
+    if profile_name == "runtime_turn_support":
+        if cc == ContentClass.CHARACTER_PROFILE and strong_authored_for_module:
+            pen = 0.28
+            delta -= pen
+            parts.append(f"policy_soft_character_profile_when_strong_authored=-{pen:.2f}")
+    elif profile_name == "writers_review":
+        if gov.evidence_lane == SourceEvidenceLane.DRAFT_WORKING and cc == ContentClass.AUTHORED_MODULE:
+            b = 0.06
+            delta += b
+            parts.append(f"policy_soft_writers_draft_visibility=+{b:.2f}")
+    elif profile_name == "improvement_eval":
+        if gov.evidence_lane == SourceEvidenceLane.SUPPORTING and cc == ContentClass.POLICY_GUIDELINE:
+            b = 0.1
+            delta += b
+            parts.append(f"policy_soft_improvement_policy_diagnostic=+{b:.2f}")
+
+    return delta, parts
+
+
+def _pack_role_for_hit(
+    *,
+    profile: str,
+    chunk: CorpusChunk,
+    gov: SourceGovernanceView,
+) -> str:
+    if profile == "runtime_turn_support":
+        if gov.evidence_lane == SourceEvidenceLane.CANONICAL and chunk.content_class == ContentClass.AUTHORED_MODULE:
+            return "canonical_evidence"
+        if chunk.content_class == ContentClass.POLICY_GUIDELINE:
+            return "policy_evidence"
+        return "supporting_context"
+    if profile == "improvement_eval":
+        if gov.evidence_lane in (SourceEvidenceLane.EVALUATIVE, SourceEvidenceLane.INTERNAL_REVIEW):
+            return "evaluative_evidence"
+        return "supporting_context"
+    if profile == "writers_review":
+        if gov.evidence_lane == SourceEvidenceLane.DRAFT_WORKING and chunk.content_class == ContentClass.AUTHORED_MODULE:
+            return "draft_working_context"
+        if chunk.content_class == ContentClass.AUTHORED_MODULE:
+            return "authored_context"
+        if chunk.content_class == ContentClass.REVIEW_NOTE:
+            return "review_context"
+        return "supporting_context"
+    return "supporting_context"
+
+
+def _hit_policy_note(
+    profile_name: str,
+    gov: SourceGovernanceView,
+    *,
+    published_canonical_in_pool: bool,
+    chunk: CorpusChunk,
+) -> str:
+    """One compact English line: allow/exclude semantics for operators (final hits are always allowed)."""
+    if profile_name == "runtime_turn_support":
+        if gov.evidence_lane == SourceEvidenceLane.CANONICAL:
+            return "allowed:canonical_lane_for_runtime"
+        if gov.evidence_lane == SourceEvidenceLane.DRAFT_WORKING:
+            return "allowed:draft_lane_retained_no_published_canonical_anchor_in_pool"
+        if gov.evidence_lane == SourceEvidenceLane.SUPPORTING:
+            if published_canonical_in_pool and chunk.content_class != ContentClass.AUTHORED_MODULE:
+                return "allowed:supporting_lane_downranked_when_canonical_present_task2_rerank"
+            return "allowed:supporting_lane_runtime_safe"
+        return "allowed:runtime_default_lane"
+    if profile_name == "writers_review":
+        if gov.evidence_lane == SourceEvidenceLane.INTERNAL_REVIEW:
+            return "allowed:internal_review_visible_in_writers_room"
+        if gov.evidence_lane == SourceEvidenceLane.DRAFT_WORKING:
+            return "allowed:draft_working_visible_in_writers_room"
+        return "allowed:writers_broader_working_material"
+    if profile_name == "improvement_eval":
+        if gov.evidence_lane == SourceEvidenceLane.EVALUATIVE:
+            return "allowed:evaluative_lane_preferred_for_improvement"
+        if gov.evidence_lane == SourceEvidenceLane.INTERNAL_REVIEW:
+            return "allowed:review_lane_for_improvement_contrast"
+        if gov.evidence_lane == SourceEvidenceLane.CANONICAL:
+            return "allowed:canonical_anchor_for_improvement"
+        return "allowed:improvement_diagnostic_or_supporting"
+    return "allowed:default_policy_note"
+
+
+def _profile_policy_influence(profile_name: str, gov: SourceGovernanceView) -> str:
+    """Which named profile rule most influenced inclusion (compact trace)."""
+    if profile_name == "runtime_turn_support":
+        if gov.evidence_lane == SourceEvidenceLane.CANONICAL:
+            return "runtime_canonical_first"
+        return "runtime_safe_sources_only_domain_gate_plus_soft_policy"
+    if profile_name == "writers_review":
+        return "writers_broader_working_and_review_visibility"
+    if profile_name == "improvement_eval":
+        if gov.evidence_lane in (SourceEvidenceLane.EVALUATIVE, SourceEvidenceLane.INTERNAL_REVIEW):
+            return "improvement_evaluative_and_review_material"
+        return "improvement_mixed_anchor_and_diagnostic"
+    return "profile_policy_default"
+
+
 def _rerank_adjustments(
     cand: _ScoredCandidate,
     *,
@@ -693,31 +957,6 @@ def _dedup_select(
     return kept, notes
 
 
-def _pack_role_for_hit(
-    *,
-    profile: str,
-    canonical_priority: int,
-    content_class: ContentClass,
-) -> str:
-    if profile == "runtime_turn_support":
-        if content_class == ContentClass.AUTHORED_MODULE and canonical_priority >= 3:
-            return "canonical_evidence"
-        if content_class == ContentClass.POLICY_GUIDELINE:
-            return "policy_evidence"
-        return "supporting_context"
-    if profile == "improvement_eval":
-        if content_class in (ContentClass.EVALUATION_ARTIFACT, ContentClass.REVIEW_NOTE):
-            return "evaluative_evidence"
-        return "supporting_context"
-    if profile == "writers_review":
-        if content_class == ContentClass.AUTHORED_MODULE:
-            return "authored_context"
-        if content_class == ContentClass.REVIEW_NOTE:
-            return "review_context"
-        return "supporting_context"
-    return "supporting_context"
-
-
 def _pack_sort_key(hit: RetrievalHit, profile: str) -> tuple[int, float, str]:
     """Order hits for compact_context: lower tuple sorts first."""
     tier_order = {
@@ -725,6 +964,7 @@ def _pack_sort_key(hit: RetrievalHit, profile: str) -> tuple[int, float, str]:
         "policy_evidence": 1,
         "evaluative_evidence": 0,
         "authored_context": 0,
+        "draft_working_context": 1,
         "review_context": 1,
         "supporting_context": 2,
     }
@@ -1285,11 +1525,28 @@ class ContextRetriever:
         candidates.sort(key=lambda x: (x.initial_score, x.chunk.chunk_id), reverse=True)
         pool_n = _pool_size(request.max_chunks)
         pool = candidates[:pool_n]
+        pool, hard_policy_notes, _hard_excl = _apply_hard_policy_pool_filter(
+            pool,
+            profile_name=profile_name,
+            request=request,
+        )
         quality_notes.append(f"rerank_pool_size={len(pool)}")
         strong_authored = _pool_has_strong_authored_for_module(pool, request.module_id)
+        published_canonical_in_pool = _pool_has_published_canonical_for_module(pool, request.module_id)
+
+        policy_notes: list[str] = [f"retrieval_policy_version={RETRIEVAL_POLICY_VERSION}"]
+        policy_notes.extend(hard_policy_notes)
 
         reranked: list[tuple[float, _ScoredCandidate, list[str]]] = []
         for cand in pool:
+            gov = governance_view_for_chunk(cand.chunk)
+            pdelta, pparts = _policy_soft_adjustments(
+                cand,
+                profile_name=profile_name,
+                request=request,
+                strong_authored_for_module=strong_authored,
+                gov=gov,
+            )
             rdelta, rparts = _rerank_adjustments(
                 cand,
                 profile_name=profile_name,
@@ -1298,10 +1555,14 @@ class ContextRetriever:
                 use_hybrid=use_hybrid,
                 strong_authored_for_module=strong_authored,
             )
-            rerank_score = cand.initial_score + rdelta
-            merged_parts = list(rparts)
-            if rdelta != 0:
-                merged_parts.insert(0, f"rerank_delta={rdelta:+.3f}")
+            policy_delta = pdelta + rdelta
+            merged_parts: list[str] = []
+            if pparts:
+                merged_parts.extend(pparts)
+            merged_parts.extend(rparts)
+            if policy_delta != 0:
+                merged_parts.insert(0, f"score_delta_task2_rerank_plus_task3_policy={policy_delta:+.3f}")
+            rerank_score = cand.initial_score + policy_delta
             reranked.append((rerank_score, cand, merged_parts))
 
         reranked.sort(key=lambda x: (x[0], x[1].chunk.chunk_id), reverse=True)
@@ -1319,14 +1580,18 @@ class ContextRetriever:
             reason_core = cand.initial_reason
             if rparts:
                 reason_core = reason_core + " | " + "; ".join(rparts)
-            pack_role = _pack_role_for_hit(
-                profile=profile_name,
-                canonical_priority=cand.chunk.canonical_priority,
-                content_class=cand.chunk.content_class,
+            gov = governance_view_for_chunk(cand.chunk)
+            pack_role = _pack_role_for_hit(profile=profile_name, chunk=cand.chunk, gov=gov)
+            policy_note = _hit_policy_note(
+                profile_name,
+                gov,
+                published_canonical_in_pool=published_canonical_in_pool,
+                chunk=cand.chunk,
             )
+            rule = _profile_policy_influence(profile_name, gov)
             why = (
                 f"initial={cand.initial_score:.2f} final={rerank_score:.2f}; "
-                f"{pack_role.replace('_', ' ')}"
+                f"{pack_role.replace('_', ' ')} | policy: {policy_note}"
             )
             hits.append(
                 RetrievalHit(
@@ -1340,11 +1605,15 @@ class ContextRetriever:
                     selection_reason=reason_core,
                     pack_role=pack_role,
                     why_selected=why,
+                    source_evidence_lane=gov.evidence_lane.value,
+                    source_visibility_class=gov.visibility_class.value,
+                    policy_note=policy_note,
+                    profile_policy_influence=rule,
                 )
             )
 
         if not hits:
-            notes = prefix_notes + quality_notes + ["no_ranked_hits_for_query"]
+            notes = prefix_notes + quality_notes + policy_notes + ["no_ranked_hits_for_query"]
             return RetrievalResult(
                 request=request,
                 status=RetrievalStatus.FALLBACK,
@@ -1365,10 +1634,13 @@ class ContextRetriever:
                 embedding_cache_dir_identity=emb_cache_id,
             )
         detail_lines = [
-            f"{h.source_path} score={h.score:.2f} pack_role={h.pack_role} ({h.selection_reason})"
+            (
+                f"{h.source_path} score={h.score:.2f} lane={h.source_evidence_lane} "
+                f"pack_role={h.pack_role} influence={h.profile_policy_influence} ({h.selection_reason})"
+            )
             for h in hits
         ]
-        ranking_notes = prefix_notes + quality_notes + detail_lines
+        ranking_notes = prefix_notes + quality_notes + policy_notes + detail_lines
         return RetrievalResult(
             request=request,
             status=RetrievalStatus.OK,
@@ -1435,6 +1707,8 @@ class ContextPackAssembler:
             elif profile == "writers_review":
                 if role == "authored_context":
                     return "Authored context"
+                if role == "draft_working_context":
+                    return "Draft / working material"
                 if role == "review_context":
                     return "Review context"
                 if role == "supporting_context":
@@ -1442,7 +1716,7 @@ class ContextPackAssembler:
             return None
 
         lines: list[str] = [
-            f"Retrieved context (profile={profile}, pipeline={RETRIEVAL_PIPELINE_VERSION}):",
+            f"Retrieved context (profile={profile}, pipeline={RETRIEVAL_PIPELINE_VERSION}, policy={RETRIEVAL_POLICY_VERSION}):",
         ]
         sources: list[dict[str, str]] = []
         current_section: str | None = None
@@ -1457,7 +1731,11 @@ class ContextPackAssembler:
             snippet = hit.snippet.strip()
             if len(snippet) > 320:
                 snippet = snippet[:317].rstrip() + "..."
-            lines.append(f"{ordinal}. [{hit.source_name}] ({role}) {snippet}")
+            lane = hit.source_evidence_lane or "unknown"
+            vis = hit.source_visibility_class or "unknown"
+            lines.append(
+                f"{ordinal}. [{hit.source_name}] role={role} lane={lane} visibility={vis} {snippet}"
+            )
             sources.append(
                 {
                     "chunk_id": hit.chunk_id,
@@ -1469,8 +1747,18 @@ class ContextPackAssembler:
                     "score": f"{hit.score:.4f}",
                     "pack_role": hit.pack_role,
                     "why_selected": hit.why_selected,
+                    "source_evidence_lane": hit.source_evidence_lane,
+                    "source_visibility_class": hit.source_visibility_class,
+                    "policy_note": hit.policy_note,
+                    "profile_policy_influence": hit.profile_policy_influence,
                 }
             )
+        if profile == "runtime_turn_support":
+            lines.append("context_pack_governance=runtime_canonical_first_when_available")
+        elif profile == "writers_review":
+            lines.append("context_pack_governance=writers_broader_working_and_review_sections")
+        elif profile == "improvement_eval":
+            lines.append("context_pack_governance=improvement_evaluative_and_anchor_mix")
         lines.append("context_pack_order=workflow_sections_then_ordinal")
         return ContextPack(
             summary=(

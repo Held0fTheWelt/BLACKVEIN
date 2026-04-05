@@ -15,7 +15,13 @@ from pathlib import Path
 from typing import Any, Callable
 from uuid import uuid4
 
-from ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
+from ai_stack.rag import (
+    RETRIEVAL_POLICY_VERSION,
+    ContextPackAssembler,
+    ContextRetriever,
+    RetrievalDomain,
+    RetrievalRequest,
+)
 
 
 def _summarize_invocation_result(capability_name: str, result: dict[str, Any]) -> dict[str, Any] | None:
@@ -47,6 +53,18 @@ def _summarize_invocation_result(capability_name: str, result: dict[str, Any]) -
         trace_hint = build_retrieval_trace(retrieval)
         summary["evidence_tier"] = trace_hint.get("evidence_tier")
         summary["evidence_rationale"] = trace_hint.get("evidence_rationale")
+        summary["retrieval_policy_version"] = retrieval.get("retrieval_policy_version") or RETRIEVAL_POLICY_VERSION
+        if hit_count > 0:
+            sources = retrieval.get("sources")
+            if isinstance(sources, list) and sources:
+                first = sources[0]
+                if isinstance(first, dict):
+                    lane = first.get("source_evidence_lane")
+                    if isinstance(lane, str) and lane:
+                        summary["primary_source_evidence_lane"] = lane
+                    inf = first.get("profile_policy_influence")
+                    if isinstance(inf, str) and inf:
+                        summary["primary_profile_policy_influence"] = inf
         return summary
     if capability_name == "wos.review_bundle.build":
         evidence = result.get("evidence_sources", [])
@@ -342,6 +360,7 @@ def create_default_capability_registry(
                 "embedding_reason_codes": list(context_pack.embedding_reason_codes),
                 "embedding_index_version": context_pack.embedding_index_version,
                 "embedding_cache_dir_identity": context_pack.embedding_cache_dir_identity,
+                "retrieval_policy_version": RETRIEVAL_POLICY_VERSION,
             },
             "context_text": context_pack.compact_context,
         }
