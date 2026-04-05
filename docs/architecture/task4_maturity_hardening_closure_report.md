@@ -11,7 +11,7 @@ Task 4 completed within scope: validation seam map, explicit hardening gates, st
 | G-RUN-01 — Canonical staged success | PASS (existing + cross-surface runtime contract) |
 | G-RUN-02 — SLM-only | PASS (`test_runtime_staged_orchestration`) |
 | G-RUN-03 — Degraded paths | PASS (`test_runtime_task4_hardening`) |
-| G-RUN-04 — Orchestration preempted audit | PASS (`test_agent_orchestration_executes_real_separate_subagents_and_logs_trace`) |
+| G-RUN-04 — Orchestration preempted audit | PASS (`test_agent_orchestration_executes_real_separate_subagents_and_logs_trace` asserts preempted audit schema, `note_deep_traces`, single `orchestration_preempted` timeline row) |
 | G-RUN-05 — Legacy single-pass | PASS (`test_runtime_staged_orchestration`) |
 | G-RUN-06 — Authority / guard path | PASS (existing staged guard test + success paths unchanged) |
 | G-TOOL-01 — Staged synthesis → tool loop → finalize | PASS (`test_staged_synthesis_tool_request_then_tool_loop_finalizes_via_follow_up_generate`) |
@@ -21,7 +21,7 @@ Task 4 completed within scope: validation seam map, explicit hardening gates, st
 | G-BOOT-02 | PASS (existing `test_model_inventory_bootstrap` / `TestingConfig`) |
 | G-INV-01 | PASS (`test_model_inventory_bootstrap`) |
 | G-XS-01 | PASS (`test_cross_surface_operator_audit_contract`) |
-| G-NEG-01 | PASS (empty registry + preflight-only skip tests) |
+| G-NEG-01 | PASS (empty registry, preflight-only skip, synthesis phase with `no_eligible_spec_selection` + fallback to passed adapter) |
 | G-NEG-02 | PASS (`test_improvement_task2a_routing_negative`) |
 | G-DRIFT-01 | PASS (`test_task4_drift_resistance`) |
 | G-DOC-01 | PASS (this report + `ai_story_contract.md` + `llm_slm_role_stratification.md` + seam map + gates) |
@@ -53,13 +53,14 @@ Command (from `backend/`, coverage disabled for speed):
 python -m pytest tests/runtime/test_runtime_task4_hardening.py tests/runtime/test_runtime_staged_orchestration.py tests/runtime/test_operator_audit.py tests/runtime/test_model_inventory_bootstrap.py tests/runtime/test_task4_drift_resistance.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/services/test_improvement_task2a_routing_negative.py tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace -q --no-cov
 ```
 
-**Result:** `36 passed` (approx. 84s on the reference run).
+**Result:** `37 passed` with `--no-cov` (elapsed time varies by machine; one Windows reference run: ~51s).
 
 ## Summaries
 
 ### Runtime hardening
 
-- End-to-end `execute_turn_with_ai` coverage for `degraded_early_skip_then_synthesis`, `degraded_parse_forced_synthesis`, preflight-only skip with signal+synthesis still routed, empty `iter_model_specs()` with honest synthesis-on-passed-adapter degradation, and staged synthesis emitting a tool request followed by tool-loop finalization via follow-up generation.
+- End-to-end `execute_turn_with_ai` coverage for `degraded_early_skip_then_synthesis`, `degraded_parse_forced_synthesis`, preflight-only skip with signal+synthesis still routed, empty `iter_model_specs()` with honest synthesis-on-passed-adapter degradation, synthesis routing with no eligible spec (`no_eligible_spec_selection` true) while the bounded call still uses the passed adapter, and staged synthesis emitting a tool request followed by tool-loop finalization via follow-up generation.
+- Orchestration-preempted path: `operator_audit` matches the preempted builder contract (`audit_schema_version`, `note_deep_traces`, single `orchestration_preempted` timeline entry).
 
 ### Bootstrap / registry hardening
 
@@ -86,4 +87,4 @@ python -m pytest tests/runtime/test_runtime_task4_hardening.py tests/runtime/tes
 
 ## Semantic stability statement
 
-**Cross-model routing semantics (`route_model` / Task 2E) and authoritative Runtime semantics (guards, commit, reject, engine authority) are unchanged in this task**, except where future work might introduce narrowly justified bug fixes — **none were required or applied in Task 4**; this closure report and the gate set document the validation-only nature of the diff.
+**Cross-model routing semantics (`route_model` / Task 2E) and authoritative Runtime semantics (guards, commit, reject, engine authority) are unchanged in this task.** No narrowly justified hardening bug fixes were required; changes are tests and documentation only.

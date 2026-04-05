@@ -26,6 +26,7 @@ from app.runtime.ai_turn_executor import (
     _make_parse_failure_result,
     execute_turn_with_ai,
 )
+from app.runtime.operator_audit import AUDIT_SCHEMA_VERSION
 from app.runtime.input_interpreter import InputPrimaryMode
 from app.runtime.turn_executor import MockDecision, ProposedStateDelta
 from app.runtime.runtime_models import (
@@ -1467,10 +1468,15 @@ def test_agent_orchestration_executes_real_separate_subagents_and_logs_trace(
     assert controls.get("tool_loop_active") is False
     assert controls.get("tool_loop_requested") is False
     assert decision_log.operator_audit is not None
-    assert decision_log.operator_audit["audit_summary"].get("staged_pipeline_preempted") == "agent_orchestration"
-    assert decision_log.operator_audit["audit_summary"].get("preempt_reason_detail")
+    assert decision_log.operator_audit["audit_schema_version"] == AUDIT_SCHEMA_VERSION
+    pre_summary = decision_log.operator_audit["audit_summary"]
+    assert pre_summary.get("staged_pipeline_preempted") == "agent_orchestration"
+    assert pre_summary.get("preempt_reason_detail")
+    assert pre_summary.get("note_deep_traces")
     timeline = decision_log.operator_audit.get("audit_timeline") or []
-    assert any(e.get("stage_key") == "orchestration_preempted" for e in timeline)
+    preempt_entries = [e for e in timeline if e.get("stage_key") == "orchestration_preempted"]
+    assert len(preempt_entries) == 1
+    assert preempt_entries[0].get("stage_kind") == "orchestration_preempted"
     assert not (decision_log.runtime_stage_traces or [])
     assert decision_log.merge_finalization.fallback_used is False
     assert decision_log.merge_finalization.finalizer_status == "success"

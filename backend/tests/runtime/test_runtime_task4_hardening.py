@@ -47,6 +47,25 @@ def _synthesis_only_llm_spec(name: str) -> AdapterModelSpec:
     )
 
 
+def _slm_preflight_signal_only_spec(name: str) -> AdapterModelSpec:
+    """Preflight + signal only; generation / narrative_formulation has no matching spec."""
+
+    return AdapterModelSpec(
+        adapter_name=name,
+        provider_name="p",
+        model_name="slm",
+        model_tier=ModelTier.light,
+        llm_or_slm=LLMOrSLM.slm,
+        cost_class=CostClass.low,
+        latency_class=LatencyClass.low,
+        supported_phases=frozenset({WorkflowPhase.preflight, WorkflowPhase.interpretation}),
+        supported_task_kinds=frozenset(
+            {TaskKind.cheap_preflight, TaskKind.repetition_consistency_check}
+        ),
+        structured_output_reliability=StructuredOutputReliability.high,
+    )
+
+
 def _signal_and_synthesis_spec(name: str) -> AdapterModelSpec:
     """Eligible for signal + synthesis but not preflight (no preflight phase)."""
 
@@ -272,6 +291,41 @@ async def test_preflight_skipped_when_spec_lacks_preflight_phase_but_signal_runs
     traces = ((session.metadata.get("ai_decision_logs") or [])[-1].runtime_stage_traces) or []
     pf = next(t for t in traces if t.get("stage_id") == "preflight")
     assert pf.get("bounded_model_call") is False
+    clear_registry()
+
+
+@pytest.mark.asyncio
+async def test_synthesis_routing_no_eligible_spec_falls_back_to_passed_adapter(
+    minimal_module: ContentModule,
+):
+    """G-NEG-01: No spec matches synthesis phase; bounded call uses passed adapter; routing_evidence stays honest."""
+
+    clear_registry()
+    ad = StagedRecordingAdapter("slm_ps_only", slm_sufficient=False)
+    register_adapter_model(_slm_preflight_signal_only_spec("slm_ps_only"), ad)
+
+    session = SessionState(
+        session_id="s-synthesis-no-spec",
+        execution_mode="ai",
+        adapter_name="slm_ps_only",
+        module_id="m1",
+        module_version="1",
+        current_scene_id="scene1",
+    )
+    session.canonical_state = {}
+
+    await execute_turn_with_ai(session, 1, ad, minimal_module)
+
+    log = (session.metadata.get("ai_decision_logs") or [])[-1]
+    traces = log.runtime_stage_traces or []
+    syn = next(t for t in traces if t.get("stage_id") == "synthesis")
+    assert syn.get("bounded_model_call") is True
+    assert syn.get("fallback_to_passed_adapter") is True
+    assert syn.get("resolved_via_get_adapter") is False
+    rev = syn.get("routing_evidence") or {}
+    assert rev.get("no_eligible_spec_selection") is True
+    assert log.model_routing_trace.get("fallback_to_passed_adapter") is True
+    assert log.operator_audit is not None
     clear_registry()
 
 
