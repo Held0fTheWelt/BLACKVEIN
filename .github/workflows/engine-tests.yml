@@ -6,12 +6,14 @@ on:
     paths:
       - 'world-engine/**'
       - '.github/workflows/engine-tests.yml'
+      - '.devcontainer/**'
       - 'run_tests.py'
   pull_request:
     branches: [ master, main, develop ]
     paths:
       - 'world-engine/**'
       - '.github/workflows/engine-tests.yml'
+      - '.devcontainer/**'
       - 'run_tests.py'
 
 jobs:
@@ -31,6 +33,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            world-engine/requirements.txt
+            world-engine/requirements-dev.txt
 
       - name: Install dependencies
         run: |
@@ -67,6 +72,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            world-engine/requirements.txt
+            world-engine/requirements-dev.txt
 
       - name: Install dependencies
         run: |

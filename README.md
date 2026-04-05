@@ -125,9 +125,18 @@ python run_tests.py --suite administration
 python run_tests.py --suite engine
 ```
 
+**World engine (`engine` suite):** install dependencies first so imports of `ai_stack` and `langchain_core` succeed (matches CI):
+
+```bash
+pip install -r world-engine/requirements-dev.txt
+```
+
+GitHub Actions installs this automatically in `.github/workflows/engine-tests.yml` and related jobs. For **GitHub Codespaces** or **VS Code Dev Containers**, use `.devcontainer/devcontainer.json` (installs the same requirements on container create).
+
 ## Documentation
 
 - `docs/architecture/README.md`
 - `docs/architecture/ServerArchitecture.md`
 - `docs/development/LocalDevelopment.md`
 - `docs/operations/RUNBOOK.md`
+- `.devcontainer/devcontainer.json` — GitHub Codespaces / Dev Containers (installs `world-engine/requirements-dev.txt`, sets `PYTHONPATH` for `ai_stack`)

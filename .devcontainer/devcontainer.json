@@ -1,0 +1,16 @@
+{
+  "name": "World of Shadows (world-engine focus)",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.10-bookworm",
+  "postCreateCommand": "python -m pip install --upgrade pip && pip install -r world-engine/requirements-dev.txt",
+  "remoteEnv": {
+    "PYTHONPATH": "${containerWorkspaceFolder}:${containerWorkspaceFolder}/world-engine"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      },
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance"]
+    }
+  }
+}

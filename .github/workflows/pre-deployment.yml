@@ -23,6 +23,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+            administration-tool/requirements.txt
+            administration-tool/requirements-dev.txt
+            world-engine/requirements.txt
+            world-engine/requirements-dev.txt
 
       - name: Install dependencies
         run: |

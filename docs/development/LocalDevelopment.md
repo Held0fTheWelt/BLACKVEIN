@@ -51,6 +51,18 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8001
 ```
 
+### World engine tests (Linux / CI / Codespaces)
+
+World-engine pytest loads `ai_stack` from the repository root (`world-engine/tests/conftest.py` updates `sys.path`). Use **development** requirements so `langchain`, `langgraph`, and **`langchain-core`** are installed:
+
+```bash
+# From repository root (aligned with .github/workflows/engine-tests.yml)
+pip install -r world-engine/requirements-dev.txt
+cd world-engine && python -m pytest tests/ -q --tb=short
+```
+
+Do not rely on a Windows-only virtualenv when running on Linux (GitHub Actions, Dev Containers, Codespaces). The repo provides `.devcontainer/devcontainer.json` to install these dependencies automatically.
+
 ## Cross-service configuration
 
 ### Backend

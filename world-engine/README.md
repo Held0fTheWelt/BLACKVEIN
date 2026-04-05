@@ -37,6 +37,34 @@ uvicorn app.main:app --reload
 
 Browser client: `http://127.0.0.1:8000/`
 
+---
+
+## Tests (CI, Linux, and dev containers)
+
+Tests import the repository-root `ai_stack` package (see `tests/conftest.py`). Install **development** dependencies so LangChain / LangGraph and **`langchain-core`** (declared in `requirements.txt`) are present:
+
+```bash
+# From repository root (same as GitHub Actions engine workflows)
+pip install -r world-engine/requirements-dev.txt
+```
+
+Or from this directory:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Run pytest:
+
+```bash
+cd world-engine
+python -m pytest tests/ -q --tb=short
+```
+
+**GitHub Actions:** `.github/workflows/engine-tests.yml` and `.github/workflows/pre-deployment.yml` run `pip install -r world-engine/requirements-dev.txt` before engine tests. A Windows-only `.venv` checked into or copied from an archive is **not** usable on Linux (CI, Codespaces, Dev Containers); always install with `pip` in that environment.
+
+**Dev Containers / GitHub Codespaces:** open the repo using `.devcontainer/devcontainer.json`; `postCreateCommand` performs the install above and sets `PYTHONPATH` for `ai_stack` imports.
+
 For SQL-backed local testing:
 
 ```bash
