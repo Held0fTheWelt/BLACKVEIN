@@ -206,7 +206,7 @@ $ cd backend && python -m pytest tests/test_api_auth.py tests/test_admin_logs.py
 | `docs/test-environment-hygiene.md` | Environment management best practices (500+ lines) |
 | `run-smoke-tests.sh` | Canonical smoke runner for Unix |
 | `run-smoke-tests.bat` | Canonical smoke runner for Windows |
-| `TESTING_REPORT.md` | This final report |
+| `docs/reports/TESTING_REPORT.md` | This final report |
 
 ### Files Modified (4)
 
