@@ -66,7 +66,7 @@ def _retrieval_influence_from_turn(last_turn: dict[str, Any] | None) -> dict[str
 
 def _committed_narrative_surface(last_diag: dict[str, Any]) -> dict[str, Any]:
     committed_state = last_diag.get("committed_state")
-    tail = last_diag.get("committed_history_tail")
+    tail = last_diag.get("authoritative_history_tail")
     last_committed = None
     if isinstance(tail, list) and tail:
         last = tail[-1]
@@ -74,7 +74,7 @@ def _committed_narrative_surface(last_diag: dict[str, Any]) -> dict[str, Any]:
             last_committed = {
                 "turn_number": last.get("turn_number"),
                 "trace_id": last.get("trace_id"),
-                "progression_commit": last.get("progression_commit"),
+                "narrative_commit": last.get("narrative_commit"),
                 "committed_state_after": last.get("committed_state_after"),
                 "turn_outcome": last.get("turn_outcome"),
             }
@@ -85,7 +85,7 @@ def _committed_narrative_surface(last_diag: dict[str, Any]) -> dict[str, Any]:
         "diagnostic_envelope_note": (
             "Full turn rows under world_engine_diagnostics.diagnostics include graph, retrieval, and "
             "model_route (orchestration proposals). Committed narrative truth is session fields plus "
-            "history/committed_history_tail entries without the graph envelope."
+            "history/authoritative_history_tail entries without the graph envelope."
         ),
         "world_engine_warnings": warnings if isinstance(warnings, list) else [],
     }

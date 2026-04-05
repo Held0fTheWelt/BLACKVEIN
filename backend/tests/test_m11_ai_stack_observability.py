@@ -34,11 +34,11 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
                     },
                 }
             ],
-            "committed_history_tail": [
+            "authoritative_history_tail": [
                 {
                     "turn_number": 1,
                     "trace_id": "t-committed",
-                    "progression_commit": {"allowed": False, "reason": "no_scene_proposal"},
+                    "narrative_commit": {"allowed": False, "commit_reason_code": "no_scene_proposal"},
                     "committed_state_after": {"current_scene_id": "s1", "turn_counter": 1},
                 }
             ],

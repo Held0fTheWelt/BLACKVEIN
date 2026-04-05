@@ -67,13 +67,14 @@ def test_model_structured_proposal_commits_when_legal(progression_manager: Story
     )
     state = progression_manager.get_state(session.session_id)
 
-    assert turn["progression_commit"]["allowed"] is True
-    assert turn["progression_commit"]["selected_candidate_source"] == "model_structured_output"
-    assert turn["progression_commit"]["model_proposed_scene_id"] == "scene_2"
+    nc = turn["narrative_commit"]
+    assert nc["allowed"] is True
+    assert nc["selected_candidate_source"] == "model_structured_output"
+    assert nc["model_structured_proposed_scene_id"] == "scene_2"
     assert state["current_scene_id"] == "scene_2"
-    assert turn["progression_commit"]["candidate_sources"]
+    assert nc["candidate_sources"]
     hist = state["last_committed_turn"] or {}
-    assert hist.get("committed_interpretation_effect", {}).get("progression_commit_allowed") is True
+    assert hist.get("narrative_commit", {}).get("allowed") is True
     assert "graph" not in hist
 
 
@@ -106,9 +107,10 @@ def test_explicit_command_beats_model_proposal(progression_manager: StoryRuntime
         },
     )
     turn = progression_manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
-    assert turn["progression_commit"]["allowed"] is True
-    assert turn["progression_commit"]["committed_scene_id"] == "scene_2"
-    assert turn["progression_commit"]["selected_candidate_source"] == "explicit_command"
+    nc = turn["narrative_commit"]
+    assert nc["allowed"] is True
+    assert nc["committed_scene_id"] == "scene_2"
+    assert nc["selected_candidate_source"] == "explicit_command"
 
 
 def test_unknown_model_proposal_is_audited_not_selected(progression_manager: StoryRuntimeManager) -> None:
@@ -138,13 +140,14 @@ def test_unknown_model_proposal_is_audited_not_selected(progression_manager: Sto
         session_id=session.session_id,
         player_input="Nothing special here.",
     )
-    assert turn["progression_commit"]["reason"] == "no_scene_proposal"
-    assert turn["progression_commit"]["model_proposed_scene_id"] == "scene_99"
-    sources = turn["progression_commit"]["candidate_sources"]
+    nc = turn["narrative_commit"]
+    assert nc["commit_reason_code"] == "no_scene_proposal"
+    assert nc["model_structured_proposed_scene_id"] == "scene_99"
+    sources = nc["candidate_sources"]
     assert any(s.get("source") == "model_structured_output" and s.get("rejected_unknown_scene") for s in sources)
 
 
-def test_diagnostics_envelope_has_graph_committed_history_tail_does_not(progression_manager: StoryRuntimeManager) -> None:
+def test_diagnostics_envelope_has_graph_authoritative_history_tail_does_not(progression_manager: StoryRuntimeManager) -> None:
     payload = _base_graph_payload(
         interpreted_input={"kind": "speech", "confidence": 0.8},
         generation={
@@ -166,6 +169,6 @@ def test_diagnostics_envelope_has_graph_committed_history_tail_does_not(progress
     progression_manager.execute_turn(session_id=session.session_id, player_input="plain text")
     diag = progression_manager.get_diagnostics(session.session_id)
     assert "graph" in diag["diagnostics"][-1]
-    tail = diag["committed_history_tail"][-1]
+    tail = diag["authoritative_history_tail"][-1]
     assert "graph" not in tail
-    assert "committed_interpretation_effect" in tail
+    assert "narrative_commit" in tail

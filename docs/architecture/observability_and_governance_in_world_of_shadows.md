@@ -119,7 +119,7 @@ Readiness reporting must remain honest:
 
 Moderator/admin session evidence includes **`execution_truth`**:
 
-- **`committed_narrative_surface`**: World-Engine `committed_state` and `committed_history_tail` (no graph envelope)—authoritative committed progression summary.
+- **`committed_narrative_surface`**: World-Engine `committed_state` and `authoritative_history_tail` (no graph envelope)—authoritative committed narrative summary (`narrative_commit`).
 - **`last_turn_graph_mode`**: `execution_health`, `fallback_path_taken`, `graph_path_summary`, `adapter_invocation_mode` from the last diagnostic turn’s `graph`.
 - **`retrieval_influence`**: normalized tier/strength via `build_retrieval_trace` from the last turn’s `retrieval` payload.
 - **`tool_influence`**: trimmed `capability_audit` entries and **`material_influence`** when material capabilities (`wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build`) appear with non-error outcomes.

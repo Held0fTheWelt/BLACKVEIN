@@ -404,7 +404,10 @@ class TestGetStateEndpoint:
             lambda *_a, **_k: {
                 "turn_counter": 5,
                 "current_scene_id": "scene_3",
-                "committed_state": {"current_scene_id": "scene_3", "last_progression_commit": {"allowed": True}},
+                "committed_state": {
+                    "current_scene_id": "scene_3",
+                    "last_narrative_commit": {"allowed": True, "commit_reason_code": "legal_transition_committed"},
+                },
                 "runtime_projection": {"start_scene_id": "scene_1"},
             },
         )
@@ -502,7 +505,7 @@ class TestGetDiagnosticsEndpoint:
             lambda *_a, **_k: {
                 "turn_counter": 4,
                 "committed_state": {"current_scene_id": "scene_2", "turn_counter": 4},
-                "diagnostics": [{"progression_commit": {"allowed": True, "committed_scene_id": "scene_2"}}],
+                "diagnostics": [{"narrative_commit": {"allowed": True, "committed_scene_id": "scene_2"}}],
             },
         )
 
@@ -516,7 +519,7 @@ class TestGetDiagnosticsEndpoint:
         assert data["turn_counter"] == 4
         assert data["current_scene_id"] == "scene_2"
         assert data["committed_state"]["current_scene_id"] == "scene_2"
-        assert data["diagnostics"][0]["progression_commit"]["allowed"] is True
+        assert data["diagnostics"][0]["narrative_commit"]["allowed"] is True
         assert "world_engine_story_runtime_authoritative_diagnostics" in data["warnings"]
 
 

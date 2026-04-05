@@ -34,8 +34,8 @@ def test_story_turn_echoes_trace_header(client, internal_api_key):
     )
     assert diag.status_code == 200
     body = diag.json()
-    tail = body.get("committed_history_tail") or []
-    assert tail, "committed_history_tail should list committed turns without graph envelope"
+    tail = body.get("authoritative_history_tail") or []
+    assert tail, "authoritative_history_tail should list committed turns without graph envelope"
     assert tail[-1].get("trace_id") == custom
     full = body.get("diagnostics") or []
     assert full[-1].get("trace_id") == custom

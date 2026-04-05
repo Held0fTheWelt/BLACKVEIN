@@ -18,17 +18,16 @@ Define how story turns transition from AI/runtime proposals to authoritative com
    - known scene ids from `runtime_projection.scenes` (plus current scene)
    - legal edges from `runtime_projection.transition_hints`
 5. Only legal transitions are committed to authoritative session state (`current_scene_id`).
-6. Every turn emits a `progression_commit` record in turn history and diagnostics:
-   - `from_scene_id`
-   - `proposed_scene_id` (selected candidate, if any)
-   - `committed_scene_id`
-   - `allowed`
-   - `reason`
-   - `rule_source`
+6. Every turn emits a bounded **`narrative_commit`** (`StoryNarrativeCommitRecord`) in diagnostics (for correlation) and in session history as authoritative truth. Fields include:
+   - `prior_scene_id`, `proposed_scene_id`, `committed_scene_id`
+   - `situation_status` (`continue` | `transitioned` | `blocked` | `terminal`)
+   - `allowed`, `authoritative_reason`, `commit_reason_code`
    - `candidate_sources` — audit list of discovered candidates (command / model / token scan), including model ids that are **not** selectable because they are unknown to the projection
    - `selected_candidate_source` — which branch supplied the selected proposal (`explicit_command` | `model_structured_output` | `player_input_token_scan` | null)
-   - `model_proposed_scene_id` — raw model `proposed_scene_id` when present (even if not selected or unknown)
-7. Committed history entries include `committed_interpretation_effect`: a small stub linking interpreted kind/confidence to progression verdict. It is **not** a full canonical world-state delta.
+   - `model_structured_proposed_scene_id` — raw model `proposed_scene_id` when present (even if not selected or unknown)
+   - `committed_interpretation_summary` — bounded linkage from interpretation to progression (not a full world-state delta)
+   - `committed_consequences`, `open_pressures`, `resolved_pressures`, `is_terminal`
+7. Committed history entries omit full `interpreted_input` and graph blobs; orchestration detail stays in `diagnostics[]` envelopes only.
 
 ## Safety semantics
 
@@ -43,13 +42,13 @@ Define how story turns transition from AI/runtime proposals to authoritative com
 
 - authoritative `current_scene_id`
 - `turn_counter`
-- `committed_state` snapshot including `last_progression_commit`
-- `last_committed_turn` including `committed_interpretation_effect` and `progression_commit`
+- `committed_state` snapshot including `last_narrative_commit`, summary fields, and recent consequence tokens
+- `last_committed_turn` including `narrative_commit` (bounded) and `committed_state_after`
 
 `GET /api/story/sessions/{session_id}/diagnostics` exposes:
 
 - recent turn diagnostics (full envelopes, including `graph` / `retrieval`)
-- `committed_history_tail` without graph blobs, aligned with committed truth
+- `authoritative_history_tail` without graph blobs, aligned with committed truth
 
 ## Scope boundary (intentionally conservative)
 
