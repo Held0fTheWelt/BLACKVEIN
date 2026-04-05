@@ -38,8 +38,8 @@ class AdapterRequest(BaseModel):
         recent_events: List of recent events as plain dicts (not Pydantic objects)
         operator_input: Optional operator instruction or context
         input_interpretation: Deterministic pre-AI diagnostic envelope (Task 1A); not authoritative state.
-        continuity_context: Task 1C — JSON-safe snapshots of derived W2.3 layers from
-            ``session.context_layers`` only (no raw history, result, or metadata dumps).
+        continuity_context: Task 1C/1D — JSON-safe snapshots from ``session.context_layers``
+            only (W2.3 layers plus ``active_narrative_threads``; no raw history or metadata dumps).
         request_role_structured_output: If True, request output as AIRoleContract shape (W2.4.2+).
                                         Defaults to False for backward compatibility.
                                         W2.4.3 will update default to True when normalization is ready.

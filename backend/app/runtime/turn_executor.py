@@ -280,29 +280,40 @@ def _accumulate_turn_context(
 def _derive_runtime_context(
     session: SessionState,
     module: ContentModule,
+    last_result: TurnExecutionResult | None = None,
 ) -> None:
-    """Derive progression, relationship, and lore context from accumulated history.
+    """Derive progression, relationship, narrative threads, and lore from accumulated history.
 
-    W2.3-R3: Wire W2.3 downstream layers into real runtime flow.
+    W2.3-R3 + Task 1D: Wire downstream context layers into real runtime flow.
 
     Called after _accumulate_turn_context() to keep downstream layers current.
     Skips derivation if session history is not yet populated (guard for early calls).
 
-    Derivation order (W2.3-R3):
-    1. ProgressionSummary — structural signals from SessionHistory (no upstream deps)
-    2. RelationshipAxisContext — interpersonal dynamics from SessionHistory (no upstream deps)
-    3. LoreDirectionContext — module guidance injection; requires steps 1 and 2
+    Derivation order:
+    1. ProgressionSummary — from SessionHistory
+    2. RelationshipAxisContext — from SessionHistory
+    3. NarrativeThreadSet — derived when ``last_result.narrative_commit`` is present;
+       migration-on-read hydrates ``context_layers.narrative_threads`` from metadata if missing
+    4. LoreDirectionContext — single pass; optional ``thread_set`` only when step 3 ran
 
     Args:
         session: The SessionState to update (modified in place).
         module: The ContentModule for lore/direction extraction.
+        last_result: Last turn result; if missing or without narrative_commit, threads are not
+            updated, lore runs without thread_set, and thread markers are not applied.
 
     Note:
-        - All three derivations are deterministic pure functions
-        - Layers remain bounded: ProgressionSummary fields capped, salient_axes ≤ 10, selected_units ≤ 15
-        - Works for all guard_outcome values
+        - Deterministic bounded derivations; salient_axes ≤ 10, selected_units ≤ 15
+        - Thread snapshot is dual-written to ``session.metadata["narrative_threads"]`` on update
     """
     from app.runtime.lore_direction_context import derive_lore_direction_context
+    from app.runtime.narrative_threads import (
+        NarrativeThreadSet,
+        apply_thread_markers_to_layers,
+        hydrate_narrative_threads_layer,
+        sync_narrative_thread_set,
+        update_narrative_threads_from_commit,
+    )
     from app.runtime.progression_summary import derive_progression_summary
     from app.runtime.relationship_context import derive_relationship_axis_context
 
@@ -318,13 +329,34 @@ def _derive_runtime_context(
     relationship = derive_relationship_axis_context(history)
     session.context_layers.relationship_axis_context = relationship
 
-    # Step 3: LoreDirectionContext (depends on steps 1-2 + module + current scene)
+    # Task 1D: hydrate working thread layer (metadata → context_layers if needed)
+    hydrate_narrative_threads_layer(session)
+
+    thread_for_lore: NarrativeThreadSet | None = None
+    nc = last_result.narrative_commit if last_result is not None else None
+    if nc is not None:
+        prior = session.context_layers.narrative_threads
+        if not isinstance(prior, NarrativeThreadSet):
+            prior = NarrativeThreadSet()
+        updated = update_narrative_threads_from_commit(
+            prior,
+            narrative_commit=nc,
+            _history=history,
+            progression=progression,
+            relationship=relationship,
+        )
+        sync_narrative_thread_set(session, updated)
+        apply_thread_markers_to_layers(session)
+        thread_for_lore = updated
+
+    # Step 4: LoreDirectionContext (single pass; threads optional)
     lore = derive_lore_direction_context(
         module=module,
         current_scene_id=session.current_scene_id,
         history=history,
         progression_summary=progression,
         relationship_context=relationship,
+        thread_set=thread_for_lore,
     )
     session.context_layers.lore_direction_context = lore
 
@@ -337,7 +369,7 @@ def _finalize_success_turn(
 ) -> None:
     """Run shared post-turn accumulation for successful execution paths (including gate reject)."""
     _accumulate_turn_context(session, result, prior_scene_id=prior_scene_id)
-    _derive_runtime_context(session, module)
+    _derive_runtime_context(session, module, last_result=result)
 
 
 NARRATIVE_COMMIT_LOG_MAX_ENTRIES = 100
@@ -803,7 +835,7 @@ async def execute_turn(
         # W2.3-R2: Accumulate context even on failure
         _accumulate_turn_context(session, result, prior_scene_id=prior_scene_id)
         # W2.3-R3: Derive downstream context layers from updated history
-        _derive_runtime_context(session, module)
+        _derive_runtime_context(session, module, last_result=None)
 
         return result
 

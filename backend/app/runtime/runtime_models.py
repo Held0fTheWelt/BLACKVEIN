@@ -145,12 +145,13 @@ class DegradedSessionState(BaseModel):
 class SessionContextLayers(BaseModel):
     """W2.3 memory and context layers for a session.
 
-    Contains the five bounded context layers that enable longer-session coherence:
+    Contains the bounded context layers that enable longer-session coherence:
     - short_term_context: Most recent turn's context (W2.3.1)
     - session_history: Bounded history of turns (W2.3.2)
     - progression_summary: Compressed session progression (W2.3.3)
     - relationship_axis_context: Salient relationship dynamics (W2.3.4)
     - lore_direction_context: Selective module guidance injection (W2.3.5)
+    - narrative_threads: Task 1D derived persistent consequence threads (working snapshot)
 
     All layers are optional (None) until explicitly derived/accumulated.
     This wrapper keeps W2.3 layers grouped and distinct from core session state.
@@ -161,6 +162,7 @@ class SessionContextLayers(BaseModel):
         progression_summary: Compressed progression state (from W2.3.3).
         relationship_axis_context: Relationship dynamics snapshot (from W2.3.4).
         lore_direction_context: Selected module guidance (from W2.3.5).
+        narrative_threads: Task 1D bounded thread snapshot; mirrored in session.metadata.
     """
 
     short_term_context: Optional[Any] = None  # ShortTermTurnContext when populated
@@ -168,6 +170,7 @@ class SessionContextLayers(BaseModel):
     progression_summary: Optional[Any] = None  # ProgressionSummary when populated
     relationship_axis_context: Optional[Any] = None  # RelationshipAxisContext when populated
     lore_direction_context: Optional[Any] = None  # LoreDirectionContext when populated
+    narrative_threads: Optional[Any] = None  # NarrativeThreadSet when populated (Task 1D)
 
     # W3 Diagnostic Persistence
     last_turn_execution_result: Optional[dict[str, Any]] = None  # Full TurnExecutionResult for UI

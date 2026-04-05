@@ -23,6 +23,7 @@ from app.runtime.ai_adapter import (
     generate_with_timeout,
 )
 from app.runtime.input_interpreter import interpret_operator_input
+from app.runtime.narrative_threads import coerce_narrative_thread_set, compact_threads_for_adapter
 from app.runtime.short_term_context import ShortTermTurnContext
 from app.runtime.ai_decision import ParseResult, ParsedAIDecision, process_adapter_response
 from app.runtime.ai_decision_logging import construct_ai_decision_log
@@ -123,10 +124,10 @@ def process_role_structured_decision(
 
 
 def _continuity_context_from_session_layers(session: SessionState) -> dict[str, Any] | None:
-    """Task 1C: bounded JSON snapshots from ``context_layers`` only (binding precision §1).
+    """Task 1C/1D: bounded JSON snapshots from ``context_layers`` only (binding precision §1).
 
     Excludes diagnostic short-term blobs. Does not embed session_history, turn results,
-    or raw metadata.
+    or raw metadata. ``active_narrative_threads`` is built only from ``context_layers.narrative_threads``.
     """
     cl = session.context_layers
     out: dict[str, Any] = {}
@@ -159,6 +160,9 @@ def _continuity_context_from_session_layers(session: SessionState) -> dict[str, 
     lore = cl.lore_direction_context
     if lore is not None and hasattr(lore, "model_dump"):
         out["lore_direction_context"] = lore.model_dump(mode="json")
+
+    nt = coerce_narrative_thread_set(cl.narrative_threads)
+    out["active_narrative_threads"] = compact_threads_for_adapter(nt)
 
     return out if out else None
 

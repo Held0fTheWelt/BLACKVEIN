@@ -344,6 +344,8 @@ def test_build_adapter_request_includes_continuity_without_diagnostic_blobs(
     assert "ai_decision_log_full" not in st_out
     assert st_out.get("situation_status") == "continue"
     assert "progression_summary" in req.continuity_context
+    assert "active_narrative_threads" in req.continuity_context
+    assert isinstance(req.continuity_context["active_narrative_threads"], list)
 
 
 def test_system_error_short_term_leaves_narrative_fields_empty():

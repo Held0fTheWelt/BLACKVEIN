@@ -78,6 +78,9 @@ class ShortTermTurnContext(BaseModel):
         canonical_consequences: Bounded consequence tokens from narrative_commit.
         authoritative_reason: Bounded commit reason when present.
         is_terminal: True when commit marks a terminal ending.
+        active_thread_ids: Task 1D compact thread id list (filled after thread derivation).
+        dominant_thread_kind: Kind of the highest-pressure active thread, if any.
+        thread_pressure_level: Max intensity among active threads (0–5).
     """
 
     turn_number: int
@@ -97,6 +100,10 @@ class ShortTermTurnContext(BaseModel):
     canonical_consequences: list[str] = Field(default_factory=list)
     authoritative_reason: str | None = None
     is_terminal: bool = False
+
+    active_thread_ids: list[str] = Field(default_factory=list)
+    dominant_thread_kind: str = ""
+    thread_pressure_level: int = 0
 
     # W3 Diagnostic Persistence
     execution_result_full: dict | None = None  # Full execution result for UI diagnostics

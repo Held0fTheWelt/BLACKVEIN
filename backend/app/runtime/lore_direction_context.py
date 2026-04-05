@@ -19,6 +19,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule, RelationshipAxis
+from app.runtime.narrative_threads import NarrativeThreadSet
 from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext
 from app.runtime.session_history import SessionHistory
@@ -130,6 +131,7 @@ def derive_lore_direction_context(
     history: SessionHistory,
     progression_summary: ProgressionSummary,
     relationship_context: RelationshipAxisContext,
+    thread_set: NarrativeThreadSet | None = None,
 ) -> LoreDirectionContext:
     """Derive selective lore and direction context from module and runtime signals.
 
@@ -147,6 +149,7 @@ def derive_lore_direction_context(
         history: Session history for trigger analysis.
         progression_summary: Progression state for phase-appropriate guidance.
         relationship_context: Active relationships for relevant guidance.
+        thread_set: Task 1D optional derived threads (same pass; None if no commit this derivation).
 
     Returns:
         A bounded LoreDirectionContext with only relevant guidance.
@@ -346,6 +349,12 @@ def derive_lore_direction_context(
     # 8. Stalled momentum — reinforce scene phase direction without new unit explosion
     if progression_summary.progression_momentum == "stalled" and progression_summary.stalled_turn_count >= 2:
         selection_rationale.append("continuity_stalled_scene_hold")
+
+    # Task 1D: bounded thread tags (only when threads were updated this derivation)
+    if thread_set is not None and thread_set.active:
+        top = thread_set.active[0]
+        selection_rationale.append(f"thread_kind={top.thread_kind}")
+        selection_rationale.append(f"thread_status={top.status}")
 
     return LoreDirectionContext(
         selected_units=selected_units[:15],

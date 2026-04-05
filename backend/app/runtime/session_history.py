@@ -52,6 +52,9 @@ class HistoryEntry(BaseModel):
         canonical_consequences: Bounded consequence tokens carried from short-term context.
         authoritative_reason: Truncated authoritative reason for continuity.
         is_terminal: Whether the turn committed a terminal ending.
+        active_thread_ids: Task 1D thread id markers (compact).
+        dominant_thread_kind: Task 1D dominant thread kind.
+        thread_pressure_level: Task 1D max thread intensity snapshot.
     """
 
     turn_number: int
@@ -68,6 +71,10 @@ class HistoryEntry(BaseModel):
     canonical_consequences: list[str] = Field(default_factory=list)
     authoritative_reason: Optional[str] = None
     is_terminal: bool = False
+
+    active_thread_ids: list[str] = Field(default_factory=list)
+    dominant_thread_kind: str = ""
+    thread_pressure_level: int = 0
 
     @classmethod
     def from_short_term_context(cls, context: ShortTermTurnContext) -> HistoryEntry:
@@ -89,6 +96,9 @@ class HistoryEntry(BaseModel):
             canonical_consequences=consequences,
             authoritative_reason=_cap_history_reason(context.authoritative_reason),
             is_terminal=context.is_terminal,
+            active_thread_ids=list(context.active_thread_ids or []),
+            dominant_thread_kind=context.dominant_thread_kind or "",
+            thread_pressure_level=int(context.thread_pressure_level or 0),
         )
 
 
