@@ -166,6 +166,8 @@ Built by `build_routing_evidence` in `backend/app/runtime/model_routing_evidence
 
 Task 4 tightens **proof** and **drift resistance** without changing Task 2E routing precedence, Task 1 stage contracts, or Task 3 derivation rules.
 
+**Area 2 Task 4 closure gates (G-T4-01 … G-T4-08):** [`area2_task4_closure_gates.md`](./area2_task4_closure_gates.md). **Validation hardening closure report:** [`area2_validation_hardening_closure_report.md`](./area2_validation_hardening_closure_report.md). **Canonical pytest list:** [`backend/app/runtime/area2_validation_commands.py`](../../backend/app/runtime/area2_validation_commands.py) — `AREA2_TASK4_FULL_CLOSURE_PYTEST_MODULES`, `area2_task4_full_closure_pytest_invocation`. **Gate enforcement:** `backend/tests/runtime/test_area2_task4_closure_gates.py`. **G-T4-01** three-surface E2E contract truth; **G-T4-02** bootstrap validation; **G-T4-03** cross-surface compact contract; **G-T4-04** negative/degraded honesty; **G-T4-05** drift resistance; **G-T4-06** validation-command reality; **G-T4-07** proof-suite subprocess stability; **G-T4-08** documentation truth. Setup reference: [`docs/testing-setup.md`](../testing-setup.md).
+
 - **Seam map:** [`task4_validation_seam_map.md`](./task4_validation_seam_map.md) — baseline coverage vs gaps closed by tests.
 - **Hardening gates:** [`task4_hardening_gates.md`](./task4_hardening_gates.md) — explicit gate IDs (G-RUN-*, G-BOOT-*, G-XS-*, G-NEG-*, G-DRIFT-01, G-DOC-01).
 - **Closure:** [`task4_maturity_hardening_closure_report.md`](./task4_maturity_hardening_closure_report.md).

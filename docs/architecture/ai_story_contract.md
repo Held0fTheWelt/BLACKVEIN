@@ -28,6 +28,8 @@ The SLM helper roles described later in this document are **conceptual** narrati
 
 Task 4 **does not** change routing policy, `StoryAIAdapter`, or guard/commit/reject authority. It adds **documented validation gates**, **stronger automated tests**, and **cross-surface contract checks** so behavior stays honest and regression-visible.
 
+**Area 2 Task 4 formal closure (G-T4-01 … G-T4-08):** [`area2_task4_closure_gates.md`](./area2_task4_closure_gates.md) — binding terms and gate table. **Closure report:** [`area2_validation_hardening_closure_report.md`](./area2_validation_hardening_closure_report.md). **Canonical command list:** [`backend/app/runtime/area2_validation_commands.py`](../../backend/app/runtime/area2_validation_commands.py) (`AREA2_TASK4_FULL_CLOSURE_PYTEST_MODULES`, `area2_task4_full_closure_pytest_invocation`). **Tests:** `backend/tests/runtime/test_area2_task4_closure_gates.py`. Setup: [`docs/testing-setup.md`](../testing-setup.md) (Area 2 Task 4 full closure section). **G-T4-01** E2E/integration truth across Runtime, Writers-Room, and Improvement; **G-T4-02** bootstrap/profile validation; **G-T4-03** cross-surface compact contract; **G-T4-04** negative/degraded honesty; **G-T4-05** drift resistance; **G-T4-06** validation-command reality; **G-T4-07** full proof-suite stability (subprocess); **G-T4-08** documentation truth.
+
 - **Seam map (what was strong vs weak):** [`task4_validation_seam_map.md`](./task4_validation_seam_map.md)
 - **Explicit gate table (reviewable contract):** [`task4_hardening_gates.md`](./task4_hardening_gates.md)
 - **Closure report (PASS/FAIL, commands, residual risks):** [`task4_maturity_hardening_closure_report.md`](./task4_maturity_hardening_closure_report.md)

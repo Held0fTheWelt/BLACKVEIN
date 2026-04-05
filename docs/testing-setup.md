@@ -224,6 +224,23 @@ python -m pytest tests/runtime/test_area2_workstream_a_closure_gates.py tests/ru
 
 ---
 
+## Area 2 Task 4 full closure validation (canonical)
+
+**Gates:** **G-T4-01** (E2E truth, three surfaces), **G-T4-02** (bootstrap validation), **G-T4-03** (cross-surface contract), **G-T4-04** (negative/degraded honesty), **G-T4-05** (drift resistance), **G-T4-06** (validation-command reality), **G-T4-07** (required proof-suite stability via subprocess), **G-T4-08** (documentation truth). Gate table: [`docs/architecture/area2_task4_closure_gates.md`](architecture/area2_task4_closure_gates.md). Closure report: [`docs/architecture/area2_validation_hardening_closure_report.md`](architecture/area2_validation_hardening_closure_report.md).
+
+**Command surface (code):** [`backend/app/runtime/area2_validation_commands.py`](../backend/app/runtime/area2_validation_commands.py) — `AREA2_TASK4_FULL_CLOSURE_PYTEST_MODULES`, `area2_task4_full_closure_pytest_invocation()`.
+
+**Working directory:** `backend/` (same as dual-workstream: `pytest.ini` `pythonpath` and `testpaths`).
+
+**Module list (must match code, in order):** `tests/runtime/test_area2_workstream_a_closure_gates.py`, `tests/runtime/test_area2_workstream_b_closure_gates.py`, `tests/runtime/test_area2_task2_closure_gates.py`, `tests/runtime/test_area2_convergence_gates.py`, `tests/runtime/test_area2_final_closure_gates.py`, `tests/runtime/test_cross_surface_operator_audit_contract.py`, `tests/test_bootstrap_staged_runtime_integration.py`, `tests/runtime/test_model_inventory_bootstrap.py`, `tests/runtime/test_area2_task3_closure_gates.py`, `tests/runtime/test_runtime_task4_hardening.py`, `tests/runtime/test_task4_drift_resistance.py`, `tests/runtime/test_runtime_staged_orchestration.py`, `tests/runtime/test_runtime_ranking_closure_gates.py`, `tests/improvement/test_improvement_task2a_routing_negative.py`, `tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace`, `tests/runtime/test_area2_task4_closure_gates.py`.
+
+```bash
+cd backend
+python -m pytest tests/runtime/test_area2_workstream_a_closure_gates.py tests/runtime/test_area2_workstream_b_closure_gates.py tests/runtime/test_area2_task2_closure_gates.py tests/runtime/test_area2_convergence_gates.py tests/runtime/test_area2_final_closure_gates.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py tests/runtime/test_area2_task3_closure_gates.py tests/runtime/test_runtime_task4_hardening.py tests/runtime/test_task4_drift_resistance.py tests/runtime/test_runtime_staged_orchestration.py tests/runtime/test_runtime_ranking_closure_gates.py tests/improvement/test_improvement_task2a_routing_negative.py tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov
+```
+
+---
+
 ## Running Broader Test Subsets
 
 ### All Backend Tests (with coverage)
