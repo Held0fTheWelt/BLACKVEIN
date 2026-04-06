@@ -192,6 +192,23 @@ def build_responder_and_function(
         if "silent" in text or "say nothing" in text:
             candidates.append("withhold_or_evade")
             implied["withhold_or_evade"] = "silent_carry"
+        if (
+            "humiliat" in text
+            or "embarrass" in text
+            or "ashamed" in text
+            or "ridicule" in text
+            or "mock" in text
+        ):
+            candidates.append("redirect_blame")
+            implied["redirect_blame"] = "dignity_injury"
+        if (
+            "evade" in text
+            or "deflect" in text
+            or "avoid answering" in text
+            or "change subject" in text
+        ):
+            candidates.append("withhold_or_evade")
+            implied["withhold_or_evade"] = "silent_carry"
         if "sorry" in text or "apolog" in text or "repair" in text:
             candidates.append("repair_or_stabilize")
             implied["repair_or_stabilize"] = "repair_attempt"
@@ -204,13 +221,29 @@ def build_responder_and_function(
         if "why" in text or "motive" in text or "reason" in text:
             candidates.append("probe_motive")
             implied["probe_motive"] = "situational_pressure"
-        if "escalat" in text or "fight" in text or "angry" in text:
+        if "escalat" in text or "fight" in text or "angry" in text or "furious" in text or "attack" in text:
             candidates.append("escalate_conflict")
             implied["escalate_conflict"] = "situational_pressure"
+        if (
+            "side with" in text
+            or "siding with" in text
+            or "ally with" in text
+            or "stand with" in text
+            or "against your wife" in text
+            or "against your husband" in text
+        ):
+            candidates.append("scene_pivot")
+            implied["scene_pivot"] = "alliance_shift"
 
         if "blame_pressure" in prior_classes and not candidates:
             candidates.append("redirect_blame")
             implied["redirect_blame"] = "blame_pressure"
+        if "dignity_injury" in prior_classes and not candidates:
+            candidates.append("redirect_blame")
+            implied["redirect_blame"] = "dignity_injury"
+        if "alliance_shift" in prior_classes and "probe_motive" not in candidates and "why" in text:
+            candidates.append("probe_motive")
+            implied["probe_motive"] = "alliance_shift"
         if "blame_pressure" in prior_classes and "redirect_blame" not in candidates and "watch" in text:
             candidates.append("redirect_blame")
             implied["redirect_blame"] = "blame_pressure"
@@ -250,6 +283,13 @@ def build_responder_and_function(
             scene_id=current_scene_id,
             selected_scene_function=scene_fn,
         )
+        # Pressure-specific default nudges preserve character identity under repeated pressure.
+        if scene_fn == "redirect_blame" and "dignity_injury" in prior_classes:
+            actor = "veronique_vallon"
+            reason = "pressure_identity_bias:dignity_injury_host_reaction"
+        elif scene_fn == "scene_pivot" and "alliance_shift" in implied.values():
+            actor = "michel_longstreet"
+            reason = "pressure_identity_bias:alliance_shift_reposition"
 
     responders = [{"actor_id": actor, "reason": reason}]
 

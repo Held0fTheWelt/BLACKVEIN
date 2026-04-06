@@ -284,8 +284,34 @@ def build_goc_continuity_impacts_on_commit(
     blob = " ".join(
         str(e.get("description", "")) for e in proposed_state_effects if isinstance(e, dict)
     ).lower()
+    secondary_candidates: list[dict[str, str]] = []
+    if (
+        "side with" in blob
+        or "sides with" in blob
+        or "allied" in blob
+        or "against his wife" in blob
+        or "against her husband" in blob
+    ) and primary != "alliance_shift":
+        secondary_candidates.append({"class": "alliance_shift", "note": "effect_text_alliance_shift_keyword"})
+    if (
+        "humiliat" in blob
+        or "embarrass" in blob
+        or "ashamed" in blob
+        or "ridicule" in blob
+        or "mocked" in blob
+    ) and primary != "dignity_injury":
+        secondary_candidates.append({"class": "dignity_injury", "note": "effect_text_dignity_keyword"})
     if "blame" in blob and primary != "blame_pressure":
-        impacts.append({"class": "blame_pressure", "note": "effect_text_blame_keyword"})
+        secondary_candidates.append({"class": "blame_pressure", "note": "effect_text_blame_keyword"})
     if ("sorry" in blob or "apolog" in blob) and primary != "repair_attempt":
-        impacts.append({"class": "repair_attempt", "note": "effect_text_repair_keyword"})
+        secondary_candidates.append({"class": "repair_attempt", "note": "effect_text_repair_keyword"})
+    if ("silent" in blob or "say nothing" in blob) and primary != "silent_carry":
+        secondary_candidates.append({"class": "silent_carry", "note": "effect_text_silence_keyword"})
+
+    # Keep bounded carry-forward while preferring stronger relational signals first.
+    for candidate in secondary_candidates:
+        if candidate["class"] not in {x["class"] for x in impacts}:
+            impacts.append(candidate)
+        if len(impacts) >= 2:
+            break
     return impacts[:2]

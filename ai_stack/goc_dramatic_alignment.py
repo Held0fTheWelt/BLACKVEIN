@@ -113,6 +113,10 @@ _GENERIC_BOILERPLATE_PHRASES: tuple[str, ...] = (
     "the mood",
     "a sense of",
     "the underlying",
+    "in this scene",
+    "the narrative suggests",
+    "as a commentator",
+    "the player feels",
 )
 
 

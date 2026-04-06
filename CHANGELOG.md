@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.16] - 2026-04-07
+
+**Summary**: **God of Carnage (GoC) Phase 4** — hard MVP reliability/breadth/operator hardening with six distinct non-preview path families, three 5+ turn runs (including alliance/pressure movement evidence), stronger character pressure differentiation, stricter anti-commentary dramatic validation, and clearer pass/fail/degraded operator diagnostics while preserving frozen contracts and seam discipline.
+
+### Added
+
+- **`ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py`**: Phase 4 executable evidence suite covering six non-preview scenario paths, three 5-turn runs, alliance-shift continuity behavior, four-character pressure distinctness, and phase-regression preservation checks.
+
+### Changed
+
+- **`ai_stack/scene_director_goc.py`**: Expanded deterministic move recognition for humiliation/evasion/alliance cues; improved escalation cue coverage; added pressure-identity responder nudges under continuity carry-forward while retaining frozen scene-function vocabulary.
+- **`ai_stack/goc_turn_seams.py`**: Extended bounded continuity-on-commit extraction to include alliance-shift and dignity-injury signals (plus silence keyword carry), still capped and contract-safe.
+- **`ai_stack/goc_dramatic_alignment.py`**: Strengthened anti-seductive rejection with additional commentary-like boilerplate phrase guards.
+- **`ai_stack/langgraph_runtime.py`**: Enriched `graph_diagnostics.dramatic_review` with explicit operator fields (`run_classification`, pressure/alliance shift indicators, continuity-class snapshots, weak-run explanation) for fast pass/fail/degraded interpretation.
+
+### Tests
+
+- **`pytest`** `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py`.
+- **`pytest`** `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py`, `ai_stack/tests/test_goc_phase3_experience_richness.py`, `ai_stack/tests/test_goc_phase2_scenarios.py`, `ai_stack/tests/test_goc_phase1_runtime_gate.py`, `ai_stack/tests/test_goc_frozen_vocab.py`, `ai_stack/tests/test_langgraph_runtime.py`.
+
+### Notes
+
+- Phase 4 report generated at `tests/reports/GOC_PHASE4_RELIABILITY_BREADTH_OPERATOR_REPORT.md` (reports directory remains gitignored by repository policy; report is produced locally).
+
+---
+
 ## [0.3.15] - 2026-04-07
 
 **Summary**: **God of Carnage (GoC) Phase 3** — richer multi-turn experience closure with broader scene-function wins, stronger continuity-sensitive responder asymmetry, YAML-expanded director/render influence, deterministic anti-repetition diagnostics, and reviewer-facing dramatic explanations while preserving canonical YAML authority, frozen vocabularies, and proposal/validation/commit/visible seam boundaries.

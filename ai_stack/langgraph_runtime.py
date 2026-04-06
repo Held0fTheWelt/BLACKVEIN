@@ -758,6 +758,11 @@ class RuntimeTurnGraphExecutor:
             "pacing_mode": str(state.get("pacing_mode") or ""),
             "silence_mode": str(silence.get("mode") or ""),
         }
+        current_continuity = [
+            x.get("class")
+            for x in (state.get("continuity_impacts") or [])
+            if isinstance(x, dict) and x.get("class")
+        ]
         prior_sig = state.get("prior_dramatic_signature") if isinstance(state.get("prior_dramatic_signature"), dict) else {}
         similar_move = False
         interp = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
@@ -776,6 +781,29 @@ class RuntimeTurnGraphExecutor:
             quality_status = "fail"
         elif vo.get("status") != "approved" or "truth_aligned" not in (state.get("visibility_class_markers") or []):
             quality_status = "degraded_explainable"
+        alliance_shift_detected = "alliance_shift" in current_continuity
+        dignity_injury_detected = "dignity_injury" in current_continuity
+        pressure_shift_detected = bool(
+            set(current_continuity)
+            and set(current_continuity) != set(
+                x.get("class")
+                for x in prior_ci
+                if isinstance(x, dict) and x.get("class")
+            )
+        )
+        run_classification = quality_status
+        if quality_status == "pass":
+            run_classification = "pass"
+        elif quality_status == "fail":
+            run_classification = "fail"
+        else:
+            run_classification = "degraded_explainable"
+        weak_run_explanation = "none"
+        if run_classification != "pass":
+            weak_run_explanation = (
+                f"validation_status={vo.get('status')} reason={vo.get('reason')} "
+                f"alignment={alignment_note} visibility={state.get('visibility_class_markers') or []}"
+            )
         gd = {
             "graph_name": self.graph_name,
             "graph_version": self.graph_version,
@@ -808,6 +836,17 @@ class RuntimeTurnGraphExecutor:
                     else "pattern_variation_or_intent_shift_detected"
                 ),
                 "dramatic_quality_status": quality_status,
+                "run_classification": run_classification,
+                "current_continuity_classes": current_continuity,
+                "alliance_shift_detected": alliance_shift_detected,
+                "dignity_injury_detected": dignity_injury_detected,
+                "pressure_shift_detected": pressure_shift_detected,
+                "pressure_shift_explanation": (
+                    "continuity_classes_changed_from_prior_run"
+                    if pressure_shift_detected
+                    else "continuity_classes_stable_or_empty"
+                ),
+                "weak_run_explanation": weak_run_explanation,
                 "review_explanations": {
                     "responder": f"selected_responder_reason:{primary.get('reason')}",
                     "scene_function": str(mpr.get("rationale") or "single_path_rule"),
@@ -819,6 +858,12 @@ class RuntimeTurnGraphExecutor:
                     if prior_ci
                     else "carry_forward_classes=none",
                     "dramatic_quality": f"{quality_status}:{alignment_note}",
+                    "pressure_shift": (
+                        "current_continuity="
+                        + ",".join(str(x) for x in current_continuity)
+                        + ";prior_continuity="
+                        + ",".join(str(x.get("class")) for x in prior_ci if isinstance(x, dict) and x.get("class"))
+                    ),
                 },
             },
         }
