@@ -1,4 +1,9 @@
 from .version import AI_STACK_MILESTONE, AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
+
+# True only when LangGraph + LangChain imports succeeded (see try/ blocks below).
+# If False, use `pip install -e "./ai_stack[test]"` or `pip install -r ai_stack/requirements-test.txt`
+# plus editable `story_runtime_core`, and ensure the repository root is on PYTHONPATH.
+LANGGRAPH_RUNTIME_EXPORT_AVAILABLE: bool = False
 from .capabilities import (
     CapabilityAccessDeniedError,
     CapabilityDefinition,
@@ -88,6 +93,8 @@ try:
         ensure_langgraph_available,
     )
 
+    LANGGRAPH_RUNTIME_EXPORT_AVAILABLE = True
+
     __all__.extend(
         [
             "RuntimeTurnGraphExecutor",
@@ -98,6 +105,8 @@ try:
     )
 except ModuleNotFoundError:
     pass
+
+__all__.append("LANGGRAPH_RUNTIME_EXPORT_AVAILABLE")
 
 try:
     from .langchain_integration import (

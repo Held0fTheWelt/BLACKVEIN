@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.13] - 2026-04-06
+
+### Fixed
+
+- **AI stack test reproducibility**: `ai_stack[test]` optional dependencies now include **langchain-core**, **langgraph**, RAG/YAML/runtime pins so `pytest ai_stack/tests` matches a typical dev install; added **`ai_stack/requirements-test.txt`**, **`LANGGRAPH_RUNTIME_EXPORT_AVAILABLE`** on **`ai_stack`**, and **`.github/workflows/ai-stack-tests.yml`**.
+- **Setup scripts**: **`setup-test-environment.sh`** / **`.bat`** install editable **`story_runtime_core`** and **`ai_stack[test]`** and verify **`langchain_core`** / **`langgraph`** imports.
+- **`docs/testing-setup.md`**: Documents why **`RuntimeTurnGraphExecutor`** is conditionally exported and the exact install commands for a full **`ai_stack`** test run.
+- **`story_runtime_core`**: **`requires-python`** lowered to **>=3.10** to align with backend / CI Python 3.10.
+- **`backend/requirements.txt`**: Explicit **`langchain-core`** pin (was often transitive only).
+
+---
+
 ## [0.3.12] - 2026-04-06
 
 **Summary**: **God of Carnage (GoC) Phase 1** — runtime turn graph implements frozen vertical-slice contracts: canonical YAML authority checks, **named LangGraph scene-director** nodes (deterministic pre-model fields, §3.5 tie-break), **proposal / validation / commit / visible** seams, **`diagnostics_refs`** + **`experiment_preview`**, model output cannot silently overwrite director fields; **`RUNTIME_TURN_GRAPH_VERSION`** → **`m12_goc_freeze_v1`**.

@@ -59,7 +59,19 @@ echo "Installing production + test dependencies (requirements-test.txt)..."
 $PYTHON_BIN -m pip install --upgrade pip -q
 $PYTHON_BIN -m pip install -r requirements-test.txt -q
 
-cd ..
+cd "$REPO_ROOT"
+
+# Local packages: story runtime core + ai_stack with full test/runtime deps (LangChain / LangGraph).
+# Without this, `from ai_stack import RuntimeTurnGraphExecutor` may succeed only when PYTHONPATH
+# picks up partial installs; `LANGGRAPH_RUNTIME_EXPORT_AVAILABLE` stays False if imports fail.
+if [[ -d "story_runtime_core" ]]; then
+    echo -e "${YELLOW}Installing story_runtime_core (editable)...${NC}"
+    $PYTHON_BIN -m pip install -e "./story_runtime_core" -q || echo -e "${YELLOW}  (story_runtime_core editable install skipped or failed)${NC}"
+fi
+if [[ -d "ai_stack" ]]; then
+    echo -e "${YELLOW}Installing ai_stack[test] (editable, includes langchain-core / langgraph)...${NC}"
+    $PYTHON_BIN -m pip install -e "./ai_stack[test]" -q || echo -e "${YELLOW}  (ai_stack[test] editable install skipped or failed)${NC}"
+fi
 
 # Verify critical dependencies
 echo ""
@@ -67,7 +79,7 @@ echo -e "${YELLOW}Verifying critical dependencies...${NC}"
 
 MISSING=()
 
-packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio")
+packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio" "langchain_core" "langgraph")
 
 for pkg in "${packages[@]}"; do
     if $PYTHON_BIN -c "import ${pkg}" 2>/dev/null; then
@@ -98,4 +110,5 @@ echo ""
 echo "You can now run tests:"
 echo "  python -m pytest tests/smoke/ -v"
 echo "  python -m pytest backend/tests/ -v"
+echo "  PYTHONPATH=$REPO_ROOT python -m pytest ai_stack/tests -q"
 echo ""

@@ -60,7 +60,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-cd ..
+cd /d "%REPO_ROOT%"
+
+REM Editable local packages so ai_stack LangGraph tests and imports match CI / full repo layout.
+if exist "story_runtime_core\pyproject.toml" (
+    echo Installing story_runtime_core ^(editable^)...
+    python -m pip install -e "./story_runtime_core" -q
+)
+if exist "ai_stack\pyproject.toml" (
+    echo Installing ai_stack[test] ^(editable — langchain-core, langgraph, ...^)...
+    python -m pip install -e "./ai_stack[test]" -q
+)
 
 REM Verify critical dependencies
 echo.
@@ -69,7 +79,7 @@ echo Verifying critical dependencies...
 setlocal enabledelayedexpansion
 set "MISSING="
 
-for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio) do (
+for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio langchain_core langgraph) do (
     python -c "import %%p" >nul 2>&1
     if !errorlevel! equ 0 (
         echo   [OK] %%p
@@ -97,5 +107,6 @@ echo.
 echo You can now run tests:
 echo   python -m pytest tests/smoke/ -v
 echo   python -m pytest backend/tests/ -v
+echo   set PYTHONPATH=%%REPO_ROOT%% ^&^& python -m pytest ai_stack/tests -q
 echo.
 exit /b 0

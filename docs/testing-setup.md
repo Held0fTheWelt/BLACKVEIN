@@ -74,6 +74,32 @@ cd backend
 python -m pytest tests/ -v
 ```
 
+### AI stack / LangGraph tests (`ai_stack/tests`)
+
+**Why `from ai_stack import RuntimeTurnGraphExecutor` can fail:** `ai_stack/__init__.py` imports RAG and LangGraph modules inside `try` / `except ModuleNotFoundError` so lightweight consumers (for example MCP catalog checks) do not require **langchain-core** or **langgraph**. If those packages are missing, the import is skipped and `RuntimeTurnGraphExecutor` is **not** re-exported at package top level — this is intentional, not a broken install.
+
+**Reproducible full `ai_stack` test run** (from repository root):
+
+```bash
+python -m pip install -e "./story_runtime_core"
+python -m pip install -e "./ai_stack[test]"
+export PYTHONPATH="$(pwd)"   # Linux / macOS; Windows: set PYTHONPATH=%CD%
+python -m pytest ai_stack/tests -q --tb=short
+```
+
+Or use the pinned file (same intent as `[test]` extras):
+
+```bash
+python -m pip install -r ai_stack/requirements-test.txt
+python -m pip install -e "./story_runtime_core"
+python -m pip install -e "./ai_stack"
+python -m pytest ai_stack/tests -q --tb=short
+```
+
+After a correct install, `import ai_stack; assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE` should be **True**, and `RuntimeTurnGraphExecutor` appears in `ai_stack.__all__`.
+
+The root **`setup-test-environment.sh`** / **`setup-test-environment.bat`** scripts also install **`story_runtime_core`** and **`ai_stack[test]`** in editable mode after backend dependencies.
+
 ## Test Profiles: What They Mean
 
 The repository supports three explicit test execution profiles:
