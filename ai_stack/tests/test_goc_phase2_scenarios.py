@@ -10,7 +10,12 @@ from story_runtime_core import RoutingPolicy, interpret_player_input
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from story_runtime_core.model_registry import build_default_registry
 
-from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline, RuntimeTurnGraphExecutor
+pytest.importorskip(
+    "ai_stack.langgraph_runtime",
+    reason="LangGraph/LangChain stack required for GoC runtime graph tests",
+)
+from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
+from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.goc_gate_evaluation import (
     gate_diagnostic_sufficiency,
     gate_dramatic_quality,
