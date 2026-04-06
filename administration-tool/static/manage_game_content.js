@@ -42,7 +42,7 @@
     return {
       id: 'god_of_carnage_solo',
       slug: 'god-of-carnage',
-      title: 'God of Carnage — Single Adventure',
+      title: 'God of Carnage',
       kind: 'solo_story',
       join_policy: 'owner_only',
       summary: 'Authored single-adventure slice for a social confrontation inside a Paris apartment.',

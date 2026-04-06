@@ -30,6 +30,22 @@ from ai_stack.runtime_turn_contracts import (
     RAW_FALLBACK_BYPASS_NOTE,
 )
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
+from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_yaml_authority import detect_builtin_yaml_title_conflict, load_goc_canonical_module_yaml
+from ai_stack.scene_director_goc import (
+    build_pacing_and_silence,
+    build_responder_and_function,
+    build_scene_assessment,
+)
+from ai_stack.goc_turn_seams import (
+    build_diagnostics_refs,
+    repro_metadata_complete,
+    run_commit_seam,
+    run_validation_seam,
+    run_visible_render,
+    strip_director_overwrites_from_structured_output,
+    structured_output_to_proposed_effects,
+)
 
 
 def _dist_version(name: str) -> str:
@@ -54,10 +70,13 @@ class RuntimeTurnState(TypedDict, total=False):
     player_input: str
     trace_id: str
     host_versions: dict[str, Any]
+    host_experience_template: dict[str, Any]
+    force_experiment_preview: bool
     # Bounded prior-thread snapshot from story runtime (no evidence lists / no history blobs).
     active_narrative_threads: list[dict[str, Any]]
     thread_pressure_summary: str
     interpreted_input: dict[str, Any]
+    interpreted_move: dict[str, Any]
     task_type: str
     routing: dict[str, Any]
     selected_provider: str
@@ -72,6 +91,25 @@ class RuntimeTurnState(TypedDict, total=False):
     node_outcomes: dict[str, str]
     graph_errors: list[str]
     capability_audit: list[dict[str, Any]]
+    # Canonical turn field groups (CANONICAL_TURN_CONTRACT_GOC.md §4–§5).
+    goc_slice_active: bool
+    goc_canonical_yaml: dict[str, Any]
+    scene_assessment: dict[str, Any]
+    selected_responder_set: list[dict[str, Any]]
+    selected_scene_function: str
+    pacing_mode: str
+    silence_brevity_decision: dict[str, Any]
+    proposed_state_effects: list[dict[str, Any]]
+    validation_outcome: dict[str, Any]
+    committed_result: dict[str, Any]
+    visible_output_bundle: dict[str, Any]
+    continuity_impacts: list[dict[str, Any]]
+    visibility_class_markers: list[str]
+    failure_markers: list[dict[str, Any]]
+    fallback_markers: list[dict[str, Any]]
+    diagnostics_refs: list[dict[str, Any]]
+    experiment_preview: bool
+    transition_pattern: str
 
 
 def _track(state: RuntimeTurnState, *, node_name: str, outcome: str = "ok") -> RuntimeTurnState:
@@ -102,20 +140,34 @@ class RuntimeTurnGraphExecutor:
         graph = StateGraph(RuntimeTurnState)
         graph.add_node("interpret_input", self._interpret_input)
         graph.add_node("retrieve_context", self._retrieve_context)
+        graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
+        graph.add_node("director_assess_scene", self._director_assess_scene)
+        graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
         graph.add_node("route_model", self._route_model)
         graph.add_node("invoke_model", self._invoke_model)
         graph.add_node("fallback_model", self._fallback_model)
+        graph.add_node("proposal_normalize", self._proposal_normalize)
+        graph.add_node("validate_seam", self._validate_seam)
+        graph.add_node("commit_seam", self._commit_seam)
+        graph.add_node("render_visible", self._render_visible)
         graph.add_node("package_output", self._package_output)
         graph.set_entry_point("interpret_input")
         graph.add_edge("interpret_input", "retrieve_context")
-        graph.add_edge("retrieve_context", "route_model")
+        graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
+        graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
+        graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
+        graph.add_edge("director_select_dramatic_parameters", "route_model")
         graph.add_edge("route_model", "invoke_model")
         graph.add_conditional_edges(
             "invoke_model",
             self._next_step_after_invoke,
-            {"fallback_model": "fallback_model", "package_output": "package_output"},
+            {"fallback_model": "fallback_model", "proposal_normalize": "proposal_normalize"},
         )
-        graph.add_edge("fallback_model", "package_output")
+        graph.add_edge("fallback_model", "proposal_normalize")
+        graph.add_edge("proposal_normalize", "validate_seam")
+        graph.add_edge("validate_seam", "commit_seam")
+        graph.add_edge("commit_seam", "render_visible")
+        graph.add_edge("render_visible", "package_output")
         graph.add_edge("package_output", END)
         return graph.compile()
 
@@ -130,6 +182,8 @@ class RuntimeTurnGraphExecutor:
         host_versions: dict[str, Any] | None = None,
         active_narrative_threads: list[dict[str, Any]] | None = None,
         thread_pressure_summary: str | None = None,
+        host_experience_template: dict[str, Any] | None = None,
+        force_experiment_preview: bool | None = None,
     ) -> RuntimeTurnState:
         initial_state: RuntimeTurnState = {
             "session_id": session_id,
@@ -138,10 +192,15 @@ class RuntimeTurnGraphExecutor:
             "player_input": player_input,
             "trace_id": trace_id or "",
             "host_versions": host_versions or {},
+            "host_experience_template": host_experience_template or {},
             "nodes_executed": [],
             "node_outcomes": {},
             "graph_errors": [],
+            "failure_markers": [],
+            "fallback_markers": [],
         }
+        if force_experiment_preview is not None:
+            initial_state["force_experiment_preview"] = force_experiment_preview
         if active_narrative_threads:
             initial_state["active_narrative_threads"] = active_narrative_threads
         if thread_pressure_summary:
@@ -152,8 +211,13 @@ class RuntimeTurnGraphExecutor:
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
         interpretation = self.interpreter(state["player_input"])
         task_type = "classification" if interpretation.kind.value in {"explicit_command", "meta"} else "narrative_generation"
+        interp_dict = interpretation.model_dump(mode="json")
         update = _track(state, node_name="interpret_input")
-        update["interpreted_input"] = interpretation.model_dump(mode="json")
+        update["interpreted_input"] = interp_dict
+        update["interpreted_move"] = {
+            "player_intent": str(interp_dict.get("intent") or "unspecified"),
+            "move_class": str(interp_dict.get("kind") or "unknown"),
+        }
         update["task_type"] = task_type
         return update
 
@@ -248,6 +312,86 @@ class RuntimeTurnGraphExecutor:
             update["capability_audit"] = capability_audit
         return update
 
+    def _goc_resolve_canonical_content(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="goc_resolve_canonical_content")
+        failure_markers = list(state.get("failure_markers") or [])
+        module_id = state.get("module_id") or ""
+        if module_id == GOC_MODULE_ID:
+            try:
+                yaml_mod = load_goc_canonical_module_yaml()
+                update["goc_canonical_yaml"] = yaml_mod
+                update["goc_slice_active"] = True
+                host = state.get("host_experience_template")
+                if isinstance(host, dict):
+                    conflict = detect_builtin_yaml_title_conflict(
+                        host_template_id=host.get("template_id") if isinstance(host.get("template_id"), str) else None,
+                        host_template_title=host.get("title") if isinstance(host.get("title"), str) else None,
+                    )
+                    if conflict:
+                        failure_markers.append(conflict)
+            except Exception as exc:  # pragma: no cover - exercised when yaml missing in broken checkout
+                failure_markers.append({"failure_class": "graph_error", "note": f"goc_yaml_load_failed:{exc}"})
+                update["goc_slice_active"] = True
+        else:
+            update["goc_slice_active"] = False
+        update["failure_markers"] = failure_markers
+        return update
+
+    def _director_assess_scene(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="director_assess_scene")
+        module_id = state.get("module_id") or ""
+        yaml_blob = state.get("goc_canonical_yaml") if isinstance(state.get("goc_canonical_yaml"), dict) else None
+        if module_id != GOC_MODULE_ID:
+            update["scene_assessment"] = {
+                "scene_core": "non_goc_placeholder",
+                "pressure_state": "unknown",
+                "module_slice": module_id,
+            }
+            return update
+        if not yaml_blob:
+            markers = list(state.get("failure_markers") or [])
+            markers.append({"failure_class": "missing_scene_director", "note": "goc_canonical_yaml_missing"})
+            update["failure_markers"] = markers
+            update["scene_assessment"] = {
+                "scene_core": "goc_unresolved",
+                "pressure_state": "unknown",
+                "module_slice": module_id,
+            }
+            return update
+        update["scene_assessment"] = build_scene_assessment(
+            module_id=module_id,
+            current_scene_id=state.get("current_scene_id") or "",
+            canonical_yaml=yaml_blob,
+        )
+        return update
+
+    def _director_select_dramatic_parameters(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="director_select_dramatic_parameters")
+        module_id = state.get("module_id") or ""
+        interpreted_move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
+        player_input = state.get("player_input") or ""
+        pacing, silence = build_pacing_and_silence(
+            player_input=player_input,
+            interpreted_move=interpreted_move,
+            module_id=module_id,
+        )
+        if module_id != GOC_MODULE_ID:
+            update["selected_responder_set"] = []
+            update["selected_scene_function"] = "establish_pressure"
+            update["pacing_mode"] = pacing
+            update["silence_brevity_decision"] = silence
+            return update
+        responders, scene_fn, _implied = build_responder_and_function(
+            player_input=player_input,
+            interpreted_move=interpreted_move,
+            pacing_mode=pacing,
+        )
+        update["selected_responder_set"] = responders
+        update["selected_scene_function"] = scene_fn
+        update["pacing_mode"] = pacing
+        update["silence_brevity_decision"] = silence
+        return update
+
     def _route_model(self, state: RuntimeTurnState) -> RuntimeTurnState:
         decision = self.routing.choose(task_type=state["task_type"])
         selected = self.registry.get(decision.selected_model)
@@ -289,13 +433,15 @@ class RuntimeTurnGraphExecutor:
             call = runtime_result.call
             generation["success"] = call.success
             generation["error"] = call.metadata.get("error") if not call.success else None
+            generation["model_raw_text"] = call.content
+            structured = None
+            if runtime_result.parsed_output:
+                structured = runtime_result.parsed_output.model_dump(mode="json")
             generation["metadata"] = {
                 **call.metadata,
                 "langchain_prompt_used": True,
                 "langchain_parser_error": runtime_result.parser_error,
-                "structured_output": runtime_result.parsed_output.model_dump(mode="json")
-                if runtime_result.parsed_output
-                else None,
+                "structured_output": structured,
                 "adapter_invocation_mode": ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
             }
             if not call.success:
@@ -316,7 +462,7 @@ class RuntimeTurnGraphExecutor:
         return update
 
     def _next_step_after_invoke(self, state: RuntimeTurnState) -> str:
-        return "fallback_model" if state.get("fallback_needed") else "package_output"
+        return "fallback_model" if state.get("fallback_needed") else "proposal_normalize"
 
     def _fallback_model(self, state: RuntimeTurnState) -> RuntimeTurnState:
         fallback_generation = dict(state.get("generation", {}))
@@ -330,6 +476,7 @@ class RuntimeTurnGraphExecutor:
             fallback_generation["attempted"] = True
             fallback_generation["success"] = call.success
             fallback_generation["error"] = call.metadata.get("error") if not call.success else None
+            fallback_generation["model_raw_text"] = call.content
             fallback_generation["metadata"] = {
                 **call.metadata,
                 "langchain_prompt_used": False,
@@ -354,6 +501,87 @@ class RuntimeTurnGraphExecutor:
         update = _track(state, node_name="fallback_model", outcome="error")
         update["graph_errors"] = errors
         update["generation"] = fallback_generation
+        return update
+
+    def _proposal_normalize(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="proposal_normalize")
+        generation = dict(state.get("generation") or {})
+        meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+        structured = meta.get("structured_output")
+        structured_dict = structured if isinstance(structured, dict) else None
+        cleaned, strip_markers = strip_director_overwrites_from_structured_output(structured_dict)
+        if cleaned is not None:
+            meta = dict(meta)
+            meta["structured_output"] = cleaned
+            generation["metadata"] = meta
+        proposed = structured_output_to_proposed_effects(cleaned)
+        fallback_markers = list(state.get("fallback_markers") or [])
+        fallback_markers.extend(strip_markers)
+        update["generation"] = generation
+        update["proposed_state_effects"] = proposed
+        update["fallback_markers"] = fallback_markers
+        return update
+
+    def _validate_seam(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="validate_seam")
+        generation = state.get("generation") or {}
+        proposed = list(state.get("proposed_state_effects") or [])
+        outcome = run_validation_seam(
+            module_id=state.get("module_id") or "",
+            proposed_state_effects=proposed,
+            generation=generation if isinstance(generation, dict) else {},
+        )
+        update["validation_outcome"] = outcome
+        return update
+
+    def _commit_seam(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="commit_seam")
+        validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
+        proposed = list(state.get("proposed_state_effects") or [])
+        committed = run_commit_seam(
+            module_id=state.get("module_id") or "",
+            validation_outcome=validation,
+            proposed_state_effects=proposed,
+        )
+        continuity: list[dict[str, Any]] = []
+        if (
+            state.get("module_id") == GOC_MODULE_ID
+            and validation.get("status") == "approved"
+            and committed.get("commit_applied")
+            and state.get("selected_scene_function") == "reveal_surface"
+        ):
+            continuity.append({"class": "revealed_fact", "note": "director_selected_reveal_surface_committed"})
+        update["committed_result"] = committed
+        update["continuity_impacts"] = continuity
+        return update
+
+    def _render_visible(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="render_visible")
+        generation = dict(state.get("generation") or {})
+        if "content" not in generation and generation.get("model_raw_text"):
+            generation["content"] = generation["model_raw_text"]
+        committed = state.get("committed_result") if isinstance(state.get("committed_result"), dict) else {}
+        validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
+        tp = "diagnostics_only"
+        if state.get("graph_errors"):
+            tp = "diagnostics_only"
+        elif "fallback_model" in (state.get("nodes_executed") or []):
+            tp = "diagnostics_only"
+        elif committed.get("commit_applied"):
+            tp = "hard"
+        elif validation.get("status") == "approved":
+            tp = "soft"
+        bundle, vis_markers = run_visible_render(
+            module_id=state.get("module_id") or "",
+            committed_result=committed,
+            validation_outcome=validation,
+            generation=generation,
+            transition_pattern=tp,
+        )
+        update["generation"] = generation
+        update["visible_output_bundle"] = bundle
+        update["visibility_class_markers"] = vis_markers
+        update["transition_pattern"] = tp
         return update
 
     def _package_output(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -406,6 +634,37 @@ class RuntimeTurnGraphExecutor:
 
         repro_metadata["adapter_invocation_mode"] = adapter_mode
         repro_metadata["graph_path_summary"] = graph_path_summary
+        repro_ok = repro_metadata_complete(repro_metadata)
+        repro_metadata["repro_complete"] = repro_ok
+
+        failure_markers = list(state.get("failure_markers") or [])
+        module_id = state.get("module_id") or ""
+        validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
+        committed = state.get("committed_result") if isinstance(state.get("committed_result"), dict) else {}
+
+        experiment_preview = True
+        if state.get("force_experiment_preview"):
+            experiment_preview = True
+        elif module_id != GOC_MODULE_ID:
+            experiment_preview = True
+        elif validation.get("status") == "waived":
+            experiment_preview = True
+        elif validation.get("status") != "approved":
+            experiment_preview = True
+        elif not state.get("goc_slice_active"):
+            experiment_preview = True
+        else:
+            # GoC slice: full seams executed; allow non-preview when validation approved.
+            experiment_preview = False
+
+        if module_id == GOC_MODULE_ID and validation.get("status") == "approved" and not committed.get("commit_applied"):
+            # Empty commit is still a valid committed_result shell; keep non-preview for dry policy clarity.
+            pass
+
+        for fm in failure_markers:
+            fc = fm.get("failure_class") if isinstance(fm, dict) else None
+            if fc in ("scope_breach", "graph_error"):
+                experiment_preview = True
 
         cost_hints = build_operational_cost_hints_for_runtime_graph(
             retrieval=retrieval if isinstance(retrieval, dict) else {},
@@ -414,7 +673,7 @@ class RuntimeTurnGraphExecutor:
             model_prompt=state.get("model_prompt") if isinstance(state.get("model_prompt"), str) else None,
             fallback_path_taken=fallback_taken,
         )
-        update["graph_diagnostics"] = {
+        gd = {
             "graph_name": self.graph_name,
             "graph_version": self.graph_version,
             "nodes_executed": update["nodes_executed"],
@@ -426,6 +685,20 @@ class RuntimeTurnGraphExecutor:
             "repro_metadata": repro_metadata,
             "operational_cost_hints": cost_hints,
         }
+        update["graph_diagnostics"] = gd
+        update["experiment_preview"] = experiment_preview
+        tp = state.get("transition_pattern") or "diagnostics_only"
+        refs = build_diagnostics_refs(
+            graph_diagnostics=gd,
+            experiment_preview=experiment_preview,
+            transition_pattern=str(tp),
+            gate_hints={
+                "turn_integrity": "seams_materialized_in_graph",
+                "diagnostic_sufficiency": "repro_complete" if repro_ok else "repro_incomplete",
+            },
+        )
+        update["diagnostics_refs"] = refs
+        update["failure_markers"] = failure_markers
         return update
 
 

@@ -100,6 +100,17 @@ class StoryRuntimeManager:
         prior_scene_id = session.current_scene_id
         history_tail = session.history[-(NARRATIVE_COMMIT_HISTORY_TAIL - 1) :]
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
+        host_experience_template: dict[str, Any] | None = None
+        if session.module_id == "god_of_carnage":
+            rp = session.runtime_projection
+            if isinstance(rp, dict):
+                tid = rp.get("experience_template_id") or rp.get("seed_template_id")
+                tit = rp.get("experience_template_title")
+                if tid is not None or tit is not None:
+                    host_experience_template = {
+                        "template_id": str(tid) if tid is not None else None,
+                        "title": str(tit) if tit is not None else None,
+                    }
         try:
             graph_state = self.turn_graph.run(
                 session_id=session.session_id,
@@ -110,6 +121,7 @@ class StoryRuntimeManager:
                 host_versions={"world_engine_app_version": APP_VERSION},
                 active_narrative_threads=graph_threads or None,
                 thread_pressure_summary=graph_summary,
+                host_experience_template=host_experience_template,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -170,6 +182,12 @@ class StoryRuntimeManager:
                 "generation": graph_state.get("generation", {}),
             },
             "graph": graph_state.get("graph_diagnostics", {}),
+            "visible_output_bundle": graph_state.get("visible_output_bundle"),
+            "diagnostics_refs": graph_state.get("diagnostics_refs"),
+            "experiment_preview": graph_state.get("experiment_preview"),
+            "validation_outcome": graph_state.get("validation_outcome"),
+            "committed_result": graph_state.get("committed_result"),
+            "selected_scene_function": graph_state.get("selected_scene_function"),
         }
         committed_record = {
             "turn_number": session.turn_counter,

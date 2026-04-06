@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.12] - 2026-04-06
+
+**Summary**: **God of Carnage (GoC) Phase 1** — runtime turn graph implements frozen vertical-slice contracts: canonical YAML authority checks, **named LangGraph scene-director** nodes (deterministic pre-model fields, §3.5 tie-break), **proposal / validation / commit / visible** seams, **`diagnostics_refs`** + **`experiment_preview`**, model output cannot silently overwrite director fields; **`RUNTIME_TURN_GRAPH_VERSION`** → **`m12_goc_freeze_v1`**.
+
+### Added
+
+- **`ai_stack/goc_frozen_vocab.py`**: Frozen controlled vocabulary (scene function, pacing, silence/brevity, continuity, visibility, failure, transition pattern, gate families) aligned with **`docs/VERTICAL_SLICE_CONTRACT_GOC.md`** §5 and related freeze artifacts.
+- **`ai_stack/goc_yaml_authority.py`**: Loads canonical **`content/modules/god_of_carnage/module.yaml`**; detects builtin template title mismatch vs YAML → **`scope_breach`** marker.
+- **`ai_stack/scene_director_goc.py`**: Deterministic **`scene_assessment`**, **`selected_responder_set`**, **`selected_scene_function`**, **`pacing_mode`**, **`silence_brevity_decision`** (including multi-pressure §3.5 resolution).
+- **`ai_stack/goc_turn_seams.py`**: Proposal normalization hooks, **`validation_outcome`**, **`committed_result`**, **`visible_output_bundle`**, **`build_diagnostics_refs`**, **`repro_metadata_complete`** (gate §5.2 / §5.4 support).
+- **`ai_stack/tests/test_goc_frozen_vocab.py`**, **`ai_stack/tests/test_goc_phase1_runtime_gate.py`**: Vocabulary parity, non-preview GoC path, builtin/YAML conflict, §3.6 strip, repro completeness.
+
+### Changed
+
+- **`ai_stack/langgraph_runtime.py`**: Extended **`RuntimeTurnState`**; graph nodes **`goc_resolve_canonical_content`**, **`director_assess_scene`**, **`director_select_dramatic_parameters`**, **`proposal_normalize`**, **`validate_seam`**, **`commit_seam`**, **`render_visible`** before **`package_output`**; **`run()`** accepts **`host_experience_template`** and **`force_experiment_preview`**.
+- **`ai_stack/tests/test_langgraph_runtime.py`**: Asserts current graph version and **`repro_complete`** where applicable.
+- **`backend/app/content/builtins.py`**, **`world-engine/app/content/builtins.py`**: GoC template **title** aligned to YAML **`God of Carnage`**; comments document secondary vs canonical YAML authority.
+- **`backend/app/services/game_content_service.py`**: **`canonical_compilation`** includes **`canonical_content_authority`** path for compiled modules.
+- **`world-engine/app/story_runtime/manager.py`**: Passes **`host_experience_template`** for **`god_of_carnage`** when present in runtime projection; turn events include **`visible_output_bundle`**, **`diagnostics_refs`**, **`experiment_preview`**, validation/commit summaries, **`selected_scene_function`**.
+- **`administration-tool/static/manage_game_content.js`**: Default seed title aligned with canonical GoC title.
+- **`backend/tests/test_game_routes.py`**: Seed payload title expectation updated.
+
+### Tests
+
+- Full **`ai_stack/tests`** suite (including new GoC gate tests); spot **`backend`** and **`world-engine`** tests touched by template/title changes.
+
+---
+
 ## [0.3.11] - 2026-04-06
 
 **Summary**: Everything merged **after [0.3.10] (changelog at `dd7f8d1`)** through **2026-04-06**: **story-runtime** bounded narrative threads from narrative commits; **RAG** Task 3 source governance / profile policy, Task 4 evaluation and trace calibration, and a later **retrieval closure** pass (tier caps, lane/confidence posture, eval harness); **runtime** multi-stage SLM-first orchestration, first-class **ranking** stage and canonical ranking closure, **model inventory + registry bootstrap**, **operator_audit** on Runtime and bounded HTTP surfaces, and Task 4 maturity hardening (gates, E2E, cross-surface contracts); **Area 2** routing convergence (**G-CONV**), final operational closure (**G-FINAL**), Task 2 convergence, dual workstreams (**G-A**, **G-B**), **compact_operator_comparison** (**G-T3**), Task 4 validation gates (**G-T4**), plus **requirements-test hygiene** and reproducible install scripts; **MCP** M1 canonical surface/parity/governance closure with hardened validation-import path and **singular** closure report authority, then **M2** deep operational parity, descriptor derivation/operator-truth refinements, **session tools** on the MCP server, root **`.mcp.json`**, and **pyproject** expansion for **`backend/`** and **`story_runtime_core/`**; **world-engine** explicit **`langchain-core`** dependency and devcontainer/GitHub workflow alignment; **docs** testing reports moved under **`docs/reports/`**.

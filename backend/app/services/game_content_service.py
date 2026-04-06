@@ -244,6 +244,8 @@ def _attach_canonical_compilation(payload: dict) -> dict:
         "runtime_projection": compiled.runtime_projection.model_dump(mode="json"),
         "retrieval_corpus_seed": compiled.retrieval_corpus_seed.model_dump(mode="json"),
         "review_export_seed": compiled.review_export_seed.model_dump(mode="json"),
+        # VERTICAL_SLICE_CONTRACT_GOC.md §6.1 — YAML module tree is sole canonical dramatic source.
+        "canonical_content_authority": f"content/modules/{module_id}/",
     }
     return result
 

@@ -30,9 +30,10 @@ def load_builtin_templates() -> dict[str, ExperienceTemplate]:
 
 
 def build_god_of_carnage_solo() -> ExperienceTemplate:
+    # Secondary surface; canonical title from content/modules/god_of_carnage/module.yaml (VERTICAL_SLICE_CONTRACT_GOC.md §6.1).
     return ExperienceTemplate(
         id="god_of_carnage_solo",
-        title="God of Carnage — Single Adventure",
+        title="God of Carnage",
         kind=ExperienceKind.SOLO_STORY,
         join_policy=JoinPolicy.OWNER_ONLY,
         summary=(

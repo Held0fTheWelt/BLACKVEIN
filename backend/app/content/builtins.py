@@ -30,9 +30,12 @@ def load_builtin_templates() -> dict[str, ExperienceTemplate]:
 
 
 def build_god_of_carnage_solo() -> ExperienceTemplate:
+    # Secondary surface only: canonical dramatic source is content/modules/god_of_carnage/
+    # (VERTICAL_SLICE_CONTRACT_GOC.md §6.1). Title must match YAML module title or runtime
+    # emits scope_breach when host_experience_template is wired.
     return ExperienceTemplate(
         id="god_of_carnage_solo",
-        title="God of Carnage — Single Adventure",
+        title="God of Carnage",
         kind=ExperienceKind.SOLO_STORY,
         join_policy=JoinPolicy.OWNER_ONLY,
         summary=(

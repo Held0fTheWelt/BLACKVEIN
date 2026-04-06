@@ -208,7 +208,7 @@ def test_game_content_endpoints_seed_and_publish(client, moderator_headers):
     assert seed['template_id'] == 'god_of_carnage_solo'
     assert seed['is_published'] is True
     assert seed.get('content_lifecycle') == 'published'
-    assert seed['payload']['title'] == 'God of Carnage — Single Adventure'
+    assert seed['payload']['title'] == 'God of Carnage'
 
     new_payload = seed['payload'].copy()
     new_payload['id'] = 'god_of_carnage_side_story'

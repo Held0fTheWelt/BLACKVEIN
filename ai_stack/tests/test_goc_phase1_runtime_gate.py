@@ -1,0 +1,154 @@
+"""Phase 1 GoC closure: non-preview path, seams, diagnostics (frozen contracts)."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+from story_runtime_core import RoutingPolicy, interpret_player_input
+from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
+from story_runtime_core.model_registry import build_default_registry
+
+from ai_stack import ContextPackAssembler, ContextRetriever, RagIngestionPipeline, RuntimeTurnGraphExecutor
+from ai_stack.goc_turn_seams import repro_metadata_complete, strip_director_overwrites_from_structured_output
+from ai_stack.goc_yaml_authority import cached_goc_yaml_title, load_goc_canonical_module_yaml
+from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
+
+
+class JsonStructuredRuntimeAdapter(BaseModelAdapter):
+    """Returns JSON matching RuntimeTurnStructuredOutput for LangChain parse path."""
+
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+        payload = {
+            "narrative_response": "The living room tightens; civility still holds, but barely.",
+            "proposed_scene_id": None,
+            "intent_summary": "escalation_probe",
+        }
+        return ModelCallResult(
+            content=json.dumps(payload),
+            success=True,
+            metadata={"adapter": self.adapter_name},
+        )
+
+
+def _executor(tmp_path: Path) -> RuntimeTurnGraphExecutor:
+    content_file = tmp_path / "content" / "god_of_carnage.md"
+    content_file.parent.mkdir(parents=True, exist_ok=True)
+    content_file.write_text("God of Carnage phase-1 gate corpus.", encoding="utf-8")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    registry = build_default_registry()
+    routing = RoutingPolicy(registry)
+    return RuntimeTurnGraphExecutor(
+        interpreter=interpret_player_input,
+        routing=routing,
+        registry=registry,
+        adapters={
+            "mock": JsonStructuredRuntimeAdapter(),
+            "openai": JsonStructuredRuntimeAdapter(),
+            "ollama": JsonStructuredRuntimeAdapter(),
+        },
+        retriever=ContextRetriever(corpus),
+        assembler=ContextPackAssembler(),
+    )
+
+
+@pytest.fixture(autouse=True)
+def _clear_goc_title_cache() -> None:
+    cached_goc_yaml_title.cache_clear()
+    yield
+    cached_goc_yaml_title.cache_clear()
+
+
+def test_goc_non_preview_path_turn_integrity_and_diagnostics(tmp_path: Path) -> None:
+    graph = _executor(tmp_path)
+    result = graph.run(
+        session_id="s-goc-1",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="I press Annette on why she withheld the truth.",
+        trace_id="trace-goc-phase1",
+        host_experience_template={
+            "template_id": "god_of_carnage_solo",
+            "title": "God of Carnage",
+        },
+    )
+
+    assert result["graph_diagnostics"]["graph_version"] == RUNTIME_TURN_GRAPH_VERSION
+    nodes = result["graph_diagnostics"]["nodes_executed"]
+    for required in (
+        "goc_resolve_canonical_content",
+        "director_assess_scene",
+        "director_select_dramatic_parameters",
+        "proposal_normalize",
+        "validate_seam",
+        "commit_seam",
+        "render_visible",
+    ):
+        assert required in nodes
+
+    repro = result["graph_diagnostics"].get("repro_metadata") or {}
+    assert repro.get("repro_complete") is True
+    assert repro_metadata_complete(repro) is True
+
+    assert result.get("experiment_preview") is False
+    assert result["validation_outcome"].get("status") == "approved"
+    assert result["committed_result"].get("commit_applied") is True
+    assert result["proposed_state_effects"]
+    assert "truth_aligned" in (result.get("visibility_class_markers") or [])
+
+    refs = result.get("diagnostics_refs") or []
+    assert refs
+    preview_refs = [r for r in refs if r.get("ref_type") == "experiment_preview"]
+    assert preview_refs and preview_refs[0].get("experiment_preview") is False
+
+    yaml_mod = load_goc_canonical_module_yaml()
+    assert yaml_mod.get("module_id") == "god_of_carnage"
+    assert result["scene_assessment"].get("canonical_setting")
+
+
+def test_builtin_title_mismatch_marks_scope_breach_and_forces_preview(tmp_path: Path) -> None:
+    graph = _executor(tmp_path)
+    result = graph.run(
+        session_id="s-goc-2",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Hello",
+        trace_id="trace-goc-conflict",
+        host_experience_template={"template_id": "god_of_carnage_solo", "title": "Wrong Title XYZ"},
+    )
+    markers = result.get("failure_markers") or []
+    assert any(m.get("failure_class") == "scope_breach" for m in markers if isinstance(m, dict))
+    assert result.get("experiment_preview") is True
+
+
+def test_model_structured_output_cannot_overwrite_director_fields() -> None:
+    dirty = {
+        "narrative_response": "ok",
+        "selected_scene_function": "scene_pivot",
+        "pacing_mode": "containment",
+    }
+    cleaned, markers = strip_director_overwrites_from_structured_output(dirty)
+    assert cleaned is not None
+    assert "selected_scene_function" not in cleaned
+    assert "pacing_mode" not in cleaned
+    assert markers
+
+
+def test_empty_trace_yields_incomplete_repro_metadata(tmp_path: Path) -> None:
+    graph = _executor(tmp_path)
+    result = graph.run(
+        session_id="s-goc-3",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="test",
+        trace_id="",
+    )
+    repro = result["graph_diagnostics"].get("repro_metadata") or {}
+    assert repro.get("repro_complete") is False
+
+
+def test_yaml_title_is_stable_non_empty() -> None:
+    assert cached_goc_yaml_title() == "God of Carnage"

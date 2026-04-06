@@ -15,6 +15,7 @@ from ai_stack import (
     build_seed_improvement_graph,
     build_seed_writers_room_graph,
 )
+from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
@@ -128,16 +129,18 @@ def test_runtime_turn_graph_executes_nodes_and_emits_trace(tmp_path: Path) -> No
     graph = _build_graph(tmp_path)
     result = graph.run(
         session_id="session_1",
-        module_id="god_of_carnage",
+        module_id="other_module",
         current_scene_id="scene_1",
         player_input="I open the door",
+        trace_id="trace-langgraph-1",
     )
 
     assert result["graph_diagnostics"]["graph_name"] == "wos_runtime_turn_graph"
-    assert result["graph_diagnostics"]["graph_version"] == "m11_v1"
+    assert result["graph_diagnostics"]["graph_version"] == RUNTIME_TURN_GRAPH_VERSION
     repro = result["graph_diagnostics"].get("repro_metadata") or {}
     assert repro.get("ai_stack_semantic_version")
-    assert repro.get("runtime_turn_graph_version") == "m11_v1"
+    assert repro.get("runtime_turn_graph_version") == RUNTIME_TURN_GRAPH_VERSION
+    assert repro.get("repro_complete") is True
     assert repro.get("retrieval_profile") == "runtime_turn_support"
     assert "interpret_input" in result["graph_diagnostics"]["nodes_executed"]
     assert "route_model" in result["graph_diagnostics"]["nodes_executed"]
