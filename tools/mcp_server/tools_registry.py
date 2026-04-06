@@ -135,6 +135,44 @@ def create_default_registry() -> ToolRegistry:
         )
         return {"operator_truth": truth, "catalog_alignment": align}
 
+    def handle_session_get(arguments: dict) -> dict:
+        """Runtime-safe session snapshot (read-only, authority-respecting)."""
+        session_id = arguments.get("session_id")
+        if not session_id:
+            return {"error": "session_id required"}
+        try:
+            import uuid
+            trace_id = str(uuid.uuid4())
+            # Call backend's session endpoint (authority-respecting, read-only)
+            result = backend._get(
+                f"{backend.base_url}/api/v1/sessions/{session_id}",
+                trace_id
+            )
+            return result
+        except JsonRpcError as e:
+            return {"error": e.message}
+        except Exception as e:
+            return {"error": f"session_get failed: {str(e)}"}
+
+    def handle_session_diag(arguments: dict) -> dict:
+        """Runtime-safe session diagnostics (read-only, authority-respecting)."""
+        session_id = arguments.get("session_id")
+        if not session_id:
+            return {"error": "session_id required"}
+        try:
+            import uuid
+            trace_id = str(uuid.uuid4())
+            # Call backend's diagnostics endpoint (authority-respecting, read-only)
+            result = backend._get(
+                f"{backend.base_url}/api/v1/sessions/{session_id}/diagnostics",
+                trace_id
+            )
+            return result
+        except JsonRpcError as e:
+            return {"error": e.message}
+        except Exception as e:
+            return {"error": f"session_diag failed: {str(e)}"}
+
     def handle_blocked(name: str) -> Callable[[dict], dict]:
         def handler(arguments: dict) -> dict:
             return {
@@ -154,6 +192,8 @@ def create_default_registry() -> ToolRegistry:
         "wos.content.search": handle_search_content,
         "wos.capabilities.catalog": handle_capability_catalog,
         "wos.mcp.operator_truth": handle_operator_truth,
+        "wos.session.get": handle_session_get,
+        "wos.session.diag": handle_session_diag,
     }
 
     descriptions: dict[str, str] = {
@@ -164,11 +204,11 @@ def create_default_registry() -> ToolRegistry:
         "wos.content.search": "Search content with regex pattern",
         "wos.capabilities.catalog": "Canonical capability surface with governance metadata (read-only mirror)",
         "wos.mcp.operator_truth": "Compact MCP operator truth (profile, route, policy, no-eligible discipline)",
-        "wos.session.get": "Session snapshot (deferred — not implemented on MCP)",
-        "wos.session.execute_turn": "Execute turn (deferred — must use runtime authority, not MCP)",
-        "wos.session.logs": "Session logs (deferred — not implemented on MCP)",
-        "wos.session.state": "Session state (deferred — not implemented on MCP)",
-        "wos.session.diag": "Session diagnostics (deferred — not implemented on MCP)",
+        "wos.session.get": "Session snapshot (read-only, authority-respecting backend mirror)",
+        "wos.session.execute_turn": "Execute turn (deferred — must use runtime authority, not MCP shortcut)",
+        "wos.session.logs": "Session logs (deferred — audit surfaces in progress)",
+        "wos.session.state": "Session state (deferred — state machine surfaces in scope for Phase 3)",
+        "wos.session.diag": "Session diagnostics (read-only, authority-respecting backend mirror)",
     }
 
     schemas: dict[str, dict[str, Any]] = {

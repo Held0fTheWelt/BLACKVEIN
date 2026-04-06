@@ -200,17 +200,17 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
     McpCanonicalToolDescriptor(
         name="wos.session.get",
         authority_source=AUTH_BACKEND_HTTP,
-        tool_class=McpToolClass.review_bound,
-        implementation_status=McpImplementationStatus.deferred_stub,
+        tool_class=McpToolClass.read_only,
+        implementation_status=McpImplementationStatus.implemented,
         governance=McpToolGovernanceView(
             published_vs_draft="not_applicable",
-            canonical_vs_supporting="session_observability_preview",
+            canonical_vs_supporting="session_observability_canonical",
             runtime_safe_vs_internal_only="runtime_safe",
             writers_room_visible_vs_runtime_hidden="runtime_visible",
-            reviewable_vs_publishable_posture="preview_bound_no_direct_commit",
+            reviewable_vs_publishable_posture="read_only_observation_surface",
         ),
-        narrative_mutation_risk="none_stub",
-        permission_legacy="preview",
+        narrative_mutation_risk="none_observation_only",
+        permission_legacy="read",
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.execute_turn",
@@ -260,17 +260,17 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
     McpCanonicalToolDescriptor(
         name="wos.session.diag",
         authority_source=AUTH_BACKEND_HTTP,
-        tool_class=McpToolClass.review_bound,
-        implementation_status=McpImplementationStatus.deferred_stub,
+        tool_class=McpToolClass.read_only,
+        implementation_status=McpImplementationStatus.implemented,
         governance=McpToolGovernanceView(
             published_vs_draft="not_applicable",
-            canonical_vs_supporting="supporting_observability",
+            canonical_vs_supporting="supporting_observability_canonical",
             runtime_safe_vs_internal_only="runtime_safe",
             writers_room_visible_vs_runtime_hidden="runtime_visible",
-            reviewable_vs_publishable_posture="preview_bound",
+            reviewable_vs_publishable_posture="read_only_observation_surface",
         ),
-        narrative_mutation_risk="none_stub",
-        permission_legacy="preview",
+        narrative_mutation_risk="none_observation_only",
+        permission_legacy="read",
     ),
 )
 
@@ -280,6 +280,7 @@ def canonical_mcp_tool_descriptors_by_name() -> dict[str, McpCanonicalToolDescri
 
 
 def _tool_class_for_capability_row(name: str, kind: str) -> McpToolClass:
+    """Derive tool class strictly from capability kind and name (not static mapping)."""
     if kind == CapabilityKind.RETRIEVAL.value:
         return McpToolClass.read_only
     if name == "wos.review_bundle.build":
@@ -288,6 +289,7 @@ def _tool_class_for_capability_row(name: str, kind: str) -> McpToolClass:
 
 
 def _writers_room_visibility_token(modes: list[str]) -> str:
+    """Derive writers room visibility from allowed modes (not static)."""
     wr_visible = "writers_room" in modes
     runtime_in = "runtime" in modes
     if wr_visible and not runtime_in:
@@ -297,6 +299,28 @@ def _writers_room_visibility_token(modes: list[str]) -> str:
     if "runtime" in modes or "improvement" in modes:
         return "runtime_focused"
     return "mode_gated"
+
+
+def _derive_reviewable_posture(tool_class: McpToolClass, name: str) -> str:
+    """Derive reviewable posture from tool class and function (derived, not static)."""
+    if tool_class is McpToolClass.read_only:
+        return "read_only_no_review_path"
+    if "build" in name or "create" in name or "execute" in name:
+        return "review_required_for_mutation"
+    return "read_and_review_paths"
+
+
+def _derive_governance_risk_token(name: str, kind: str) -> str:
+    """Derive narrative mutation risk from tool name and kind (derived, not static)."""
+    if kind == CapabilityKind.RETRIEVAL.value:
+        return "none_read_only"
+    if "execute" in name or "commit" in name or "publish" in name:
+        return "high_direct_authority_mutation"
+    if "build" in name or "create" in name:
+        return "medium_stage_mutation"
+    if "diag" in name or "logs" in name or "state" in name:
+        return "none_observation_only"
+    return "medium_standard"
 
 
 def capability_records_for_mcp() -> list[dict[str, Any]]:

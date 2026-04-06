@@ -16,8 +16,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 from uuid import uuid4
 
-from ai_stack.rag import RETRIEVAL_POLICY_VERSION
-
 if TYPE_CHECKING:
     from ai_stack.rag import ContextPackAssembler, ContextRetriever
 
@@ -57,6 +55,7 @@ def _summarize_invocation_result(capability_name: str, result: dict[str, Any]) -
         summary["policy_outcome_hint"] = trace_hint.get("policy_outcome_hint")
         summary["dedup_shaped_selection"] = trace_hint.get("dedup_shaped_selection")
         summary["retrieval_trace_schema_version"] = trace_hint.get("retrieval_trace_schema_version")
+        from ai_stack.rag import RETRIEVAL_POLICY_VERSION
         summary["retrieval_policy_version"] = retrieval.get("retrieval_policy_version") or RETRIEVAL_POLICY_VERSION
         if hit_count > 0:
             sources = retrieval.get("sources")
@@ -650,6 +649,7 @@ def create_default_capability_registry(
         top_score = ""
         if context_pack.sources:
             top_score = str(context_pack.sources[0].get("score", ""))
+        from ai_stack.rag import RETRIEVAL_POLICY_VERSION
         return {
             "retrieval": {
                 "domain": context_pack.domain,
