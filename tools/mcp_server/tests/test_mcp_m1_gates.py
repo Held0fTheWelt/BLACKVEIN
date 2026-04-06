@@ -1,6 +1,7 @@
-"""MCP M1 named gate coverage (G-MCP-01 … G-MCP-06). G-MCP-07: see closure report + CI pytest."""
+"""MCP M1 named gate coverage (G-MCP-01 … G-MCP-07)."""
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -15,6 +16,8 @@ from ai_stack.mcp_canonical_surface import (
 )
 from tools.mcp_server.server import McpServer
 from tools.mcp_server.tools_registry import create_default_registry
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 REQUIRED_OPERATOR_TRUTH_KEYS = frozenset(
@@ -160,6 +163,34 @@ def test_g_mcp_06_no_capability_invoke_import_in_server():
     src = open(srv.__file__, encoding="utf-8").read()
     assert "CapabilityRegistry" not in src
     assert "create_default_capability_registry" not in src
+
+
+def test_g_mcp_06_deferred_review_bound_tool_stays_non_authoritative(monkeypatch):
+    monkeypatch.setenv("WOS_MCP_OPERATING_PROFILE", McpOperatingProfile.healthy.value)
+    with patch("tools.mcp_server.backend_client.BackendClient.create_session") as create_session:
+        create_session.return_value = {"session_id": "unexpected"}
+        server = McpServer()
+        req = {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {"name": "wos.session.execute_turn", "arguments": {"session_id": "s1"}},
+        }
+        resp = server.dispatch(req, "trace-deferred")
+        assert "result" in resp
+        assert resp["result"]["code"] == "NOT_IMPLEMENTED"
+        assert resp["result"]["implementation_status"] == "deferred_stub"
+        create_session.assert_not_called()
+
+
+def test_g_mcp_07_closure_report_contains_gate_matrix():
+    report_path = REPO_ROOT / "tests" / "reports" / "MCP_M1_CLOSURE_REPORT.md"
+    assert report_path.is_file()
+    text = report_path.read_text(encoding="utf-8")
+    for n in range(1, 8):
+        assert f"G-MCP-{n:02d}" in text
+    assert "Validation Commands" in text
+    assert "Actual Results" in text
 
 
 def test_operating_profiles_resolve(monkeypatch):

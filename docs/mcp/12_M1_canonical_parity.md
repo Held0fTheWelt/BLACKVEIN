@@ -16,6 +16,7 @@
 | `wos.goc.*`, `wos.content.search` | Repository filesystem read under `Config.repo_root` |
 | `wos.mcp.operator_truth` | Derived compact legibility from registry + profile + optional `probe_backend` |
 | `wos.session.execute_turn` (stub) | **Not** a capability invoke path — deferred; runtime guard/commit paths stay authoritative |
+| `wos.session.diag` (stub) | Deferred diagnostics surface; review-bound and non-authoritative in M1 |
 
 There is **no** MCP exposure of `CapabilityRegistry.invoke` or direct narrative mutation.
 
@@ -40,4 +41,9 @@ Call `wos.mcp.operator_truth` with optional `probe_backend: true` to set `backen
 
 ## Tests
 
-See `tools/mcp_server/tests/test_mcp_m1_gates.py` and closure report under `tests/reports/`.
+Primary M1 gates:
+- `tools/mcp_server/tests/test_mcp_m1_gates.py` (G-MCP-01 … G-MCP-07)
+- `ai_stack/tests/test_mcp_canonical_surface.py`
+- `backend/tests/runtime/test_mcp_enrichment.py` (canonical name parity on enrichment preflight)
+
+Closure evidence is published in `tests/reports/MCP_M1_CLOSURE_REPORT.md`.

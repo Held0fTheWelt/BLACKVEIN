@@ -5,9 +5,10 @@ from unittest.mock import MagicMock, Mock, AsyncMock, patch
 
 import pytest
 import requests
+from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 
 from app.mcp_client.client import MCPEnrichmentClient, MCPToolError, OperatorEndpointClient
-from app.mcp_client.enrichment import build_mcp_enrichment
+from app.mcp_client.enrichment import _PREFLIGHT_TOOLS, build_mcp_enrichment
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter
 from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.turn_dispatcher import dispatch_turn
@@ -326,3 +327,9 @@ class TestOperatorEndpointClient:
         with pytest.raises(MCPToolError) as exc:
             client.call_tool("wos.session.get", {"session_id": "x"})
         assert "invalid_json" in exc.value.reason
+
+
+def test_enrichment_prefight_tool_names_are_canonical():
+    canonical_names = {d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS}
+    preflight_names = {name for name, _priority in _PREFLIGHT_TOOLS}
+    assert preflight_names <= canonical_names

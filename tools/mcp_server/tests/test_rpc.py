@@ -2,6 +2,7 @@ import json
 from unittest.mock import Mock, patch
 
 import pytest
+from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
 from tools.mcp_server.server import McpServer
 
 
@@ -14,7 +15,7 @@ def test_tools_list_valid_response():
     assert response["id"] == 1
     assert "result" in response
     assert "tools" in response["result"]
-    assert len(response["result"]["tools"]) == 11
+    assert len(response["result"]["tools"]) == len(CANONICAL_MCP_TOOL_DESCRIPTORS)
 
 
 def test_unknown_tool_returns_error():

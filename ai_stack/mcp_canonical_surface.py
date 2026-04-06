@@ -257,6 +257,21 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         narrative_mutation_risk="none_stub",
         permission_legacy="preview",
     ),
+    McpCanonicalToolDescriptor(
+        name="wos.session.diag",
+        authority_source=AUTH_BACKEND_HTTP,
+        tool_class=McpToolClass.review_bound,
+        implementation_status=McpImplementationStatus.deferred_stub,
+        governance=McpToolGovernanceView(
+            published_vs_draft="not_applicable",
+            canonical_vs_supporting="supporting_observability",
+            runtime_safe_vs_internal_only="runtime_safe",
+            writers_room_visible_vs_runtime_hidden="runtime_visible",
+            reviewable_vs_publishable_posture="preview_bound",
+        ),
+        narrative_mutation_risk="none_stub",
+        permission_legacy="preview",
+    ),
 )
 
 

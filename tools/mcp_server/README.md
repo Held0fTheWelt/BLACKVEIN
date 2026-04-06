@@ -5,9 +5,13 @@
 Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/developer tooling via stdio transport.
 
 **Features:**
-- 2 P0 backend tools: system health, session creation
-- 3 P1 filesystem tools: list modules, get module metadata, search content
-- 4 blocked tools (NOT_IMPLEMENTED): for future phases
+- Canonical descriptor-derived tool registry (`ai_stack/mcp_canonical_surface.py`)
+- Explicit tool classes: `read_only`, `review_bound`, `write_capable`
+- Compact operator truth tool (`wos.mcp.operator_truth`)
+- 2 backend tools: system health, session creation
+- 3 filesystem tools: list modules, get module metadata, search content
+- 1 capability mirror tool: canonical governance-enriched capability catalog
+- 5 deferred stubs (NOT_IMPLEMENTED in M1): session runtime/observability follow-ups
 - HTTP client with 5-second timeout and automatic retry
 - Configuration from environment variables
 - Filesystem utilities with safety limits (10MB files, 100 search hits)
@@ -21,7 +25,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 | `BACKEND_BEARER_TOKEN` | (empty) | Optional bearer token for authentication |
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
 
-## Tools Available
+## Tools Available (M1 Canonical Surface)
 
 ### P0: Backend Integration
 
@@ -44,6 +48,7 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 - `wos.session.execute_turn` — Deferred to later phase
 - `wos.session.logs` — Deferred to later phase
 - `wos.session.state` — Deferred to later phase
+- `wos.session.diag` — Deferred to later phase
 
 ## Running the Server
 
@@ -70,7 +75,7 @@ The server reads JSON-RPC requests from stdin and writes responses to stdout.
 {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
 ```
 
-**Response:** Shows all 9 tools (2 P0 + 3 P1 + 4 blocked)
+**Response:** Shows all canonical M1 tools (descriptor-derived; no shadow list)
 
 ### tools/call: System Health
 
@@ -139,7 +144,8 @@ errors.py              → Error codes + JSON-RPC envelope
 pytest tools/mcp_server/tests/ -v
 ```
 
-**Results:** 43/43 tests passing
+**Results:** run the MCP suites from repo root:
+- `python -m pytest tools/mcp_server/tests/test_mcp_m1_gates.py ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_rpc.py backend/tests/runtime/test_mcp_enrichment.py -q --tb=short --no-cov`
 - 8 backend client tests
 - 7 config tests
 - 7 filesystem tests
@@ -151,7 +157,8 @@ pytest tools/mcp_server/tests/ -v
 
 ## Notes
 
-- All tools read-only (permission="read")
+- Legacy `permission` is compatibility metadata only; policy enforcement is class/profile-based
+- `write_capable` tools are denied unless `WOS_MCP_OPERATING_PROFILE=healthy`
 - HTTP timeout: 5 seconds with automatic 1x retry
 - Search limits: 10MB per file, 100 hits per query
 - Configuration from environment variables with defaults

@@ -168,6 +168,7 @@ def create_default_registry() -> ToolRegistry:
         "wos.session.execute_turn": "Execute turn (deferred — must use runtime authority, not MCP)",
         "wos.session.logs": "Session logs (deferred — not implemented on MCP)",
         "wos.session.state": "Session state (deferred — not implemented on MCP)",
+        "wos.session.diag": "Session diagnostics (deferred — not implemented on MCP)",
     }
 
     schemas: dict[str, dict[str, Any]] = {
@@ -199,6 +200,11 @@ def create_default_registry() -> ToolRegistry:
             "type": "object",
             "properties": {"probe_backend": {"type": "boolean"}},
             "required": [],
+        },
+        "wos.session.diag": {
+            "type": "object",
+            "properties": {"session_id": {"type": "string"}},
+            "required": ["session_id"],
         },
     }
 
