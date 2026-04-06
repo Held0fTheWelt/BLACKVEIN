@@ -145,6 +145,8 @@ def run_visible_render(
     scene_id = str(rc.get("current_scene_id") or "")
     scene_guidance = rc.get("scene_guidance") if isinstance(rc.get("scene_guidance"), dict) else {}
     prop_excerpt = str(rc.get("proposed_narrative_excerpt") or "").strip()
+    profile = rc.get("character_profile_snippet") if isinstance(rc.get("character_profile_snippet"), dict) else {}
+    guidance_snips = rc.get("scene_guidance_snippets") if isinstance(rc.get("scene_guidance_snippets"), dict) else {}
 
     if module_id != GOC_MODULE_ID:
         bundle = {
@@ -166,6 +168,18 @@ def run_visible_render(
         narr_len = len(prop_excerpt) if prop_excerpt else len(content)
         if supplement and (narr_len < 50 or silence_dec.get("mode") == "withheld"):
             gm_lines.append(f"(Director staging — phase context) {supplement}")
+        role = str(profile.get("formal_role") or profile.get("role") or "").strip()
+        tone = str(profile.get("baseline_tone") or "").strip()
+        phase_arc = str(profile.get("phase_arc_hint") or "").strip()
+        ai_hint = str(guidance_snips.get("ai_guidance_hint") or "").strip()
+        if role and (silence_dec.get("mode") == "withheld" or pacing_mode in ("compressed", "multi_pressure")):
+            gm_lines.append(f"(Director register — responder role) {role}")
+        if tone and pacing_mode in ("thin_edge", "multi_pressure"):
+            gm_lines.append(f"(Director register — tonal pressure) {tone}")
+        if phase_arc and narr_len < 90:
+            gm_lines.append(f"(Director staging — character pressure arc) {phase_arc}")
+        if ai_hint and (narr_len < 80 or pacing_mode == "multi_pressure"):
+            gm_lines.append(f"(Director staging — phase pressure cue) {ai_hint}")
         if not gm_lines:
             gm_lines = ["(scene continues — committed effects applied.)"]
         bundle = {

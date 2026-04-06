@@ -145,6 +145,80 @@ def scene_assessment_phase_hints(*, scene_guidance: dict[str, Any], scene_id: st
     }
 
 
+def scene_guidance_snippets(*, scene_guidance: dict[str, Any], scene_id: str) -> dict[str, str]:
+    """Read short operator/render snippets from scene_guidance without creating new truth."""
+    if not scene_guidance:
+        return {}
+    phase = guidance_phase_key_for_scene_id(scene_id)
+    block = scene_guidance.get(phase)
+    if not isinstance(block, dict):
+        return {"guidance_phase_key": phase}
+    out: dict[str, str] = {"guidance_phase_key": phase}
+    exit_signal = block.get("exit_signal")
+    if isinstance(exit_signal, str) and exit_signal.strip():
+        out["exit_signal"] = exit_signal.strip()[:220]
+    ai_guidance = block.get("ai_guidance")
+    if isinstance(ai_guidance, list):
+        for item in ai_guidance:
+            if isinstance(item, str) and item.strip():
+                out["ai_guidance_hint"] = item.strip()[:220]
+                break
+    return out
+
+
+def goc_character_profile_snippet(
+    *,
+    actor_id: str,
+    yaml_slice: dict[str, Any] | None,
+    scene_id: str = "",
+) -> dict[str, str]:
+    """Return short YAML-backed role/voice snippets for responder-specific rendering."""
+    if not isinstance(yaml_slice, dict):
+        return {}
+    actor_key_map = {
+        "veronique_vallon": "veronique",
+        "michel_longstreet": "michel",
+        "annette_reille": "annette",
+        "alain_reille": "alain",
+    }
+    key = actor_key_map.get(actor_id)
+    if not key:
+        return {}
+    chars = yaml_slice.get("characters") if isinstance(yaml_slice.get("characters"), dict) else {}
+    voice = yaml_slice.get("character_voice") if isinstance(yaml_slice.get("character_voice"), dict) else {}
+    cblock = chars.get(key) if isinstance(chars.get(key), dict) else {}
+    vblock = voice.get(key) if isinstance(voice.get(key), dict) else {}
+    out: dict[str, str] = {"character_key": key}
+    role = cblock.get("role")
+    if isinstance(role, str) and role.strip():
+        out["role"] = role.strip()[:120]
+    baseline = cblock.get("baseline_attitude")
+    if isinstance(baseline, str) and baseline.strip():
+        out["baseline_attitude"] = baseline.strip()[:180]
+    formal_role = vblock.get("formal_role")
+    if isinstance(formal_role, str) and formal_role.strip():
+        out["formal_role"] = formal_role.strip()[:140]
+    baseline_tone = vblock.get("baseline_tone")
+    if isinstance(baseline_tone, str) and baseline_tone.strip():
+        out["baseline_tone"] = baseline_tone.strip()[:140]
+    if scene_id.strip():
+        phase_key = guidance_phase_key_for_scene_id(scene_id)
+        arc = vblock.get("escalation_arc")
+        if isinstance(arc, dict):
+            phase_map = {
+                "phase_1_polite_opening": "phase_1",
+                "phase_2_moral_negotiation": "phase_2",
+                "phase_3_faction_shifts": "phase_3",
+                "phase_4_emotional_derailment": "phase_4",
+            }
+            phase_arc_key = phase_map.get(phase_key)
+            if phase_arc_key:
+                arc_text = arc.get(phase_arc_key)
+                if isinstance(arc_text, str) and arc_text.strip():
+                    out["phase_arc_hint"] = arc_text.strip()[:180]
+    return out
+
+
 def detect_builtin_yaml_title_conflict(
     *,
     host_template_id: str | None,

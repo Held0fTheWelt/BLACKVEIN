@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.3.15] - 2026-04-07
+
+**Summary**: **God of Carnage (GoC) Phase 3** — richer multi-turn experience closure with broader scene-function wins, stronger continuity-sensitive responder asymmetry, YAML-expanded director/render influence, deterministic anti-repetition diagnostics, and reviewer-facing dramatic explanations while preserving canonical YAML authority, frozen vocabularies, and proposal/validation/commit/visible seam boundaries.
+
+### Added
+
+- **`ai_stack/tests/test_goc_phase3_experience_richness.py`**: Phase 3 executable evidence with at least three short multi-turn runs, pass/fail/degraded dramatic-quality coverage, continuity-sensitive behavior changes, and anti-repetition diagnostics proof.
+
+### Changed
+
+- **`ai_stack/goc_yaml_authority.py`**: Added **`scene_guidance_snippets()`** and **`goc_character_profile_snippet()`** for read-only YAML-backed phase/character snippets used by runtime diagnostics and render supplements.
+- **`ai_stack/scene_director_goc.py`**: Extended YAML-aware responder tie-breaks (`michel` / `annette` / `alain`) under continuity pressure and scene-function context; added guidance snippets to scene assessment for operator legibility.
+- **`ai_stack/goc_turn_seams.py`**: Improved commit-aligned visible output with optional responder register and phase-pressure staging lines derived from canonical YAML snippets without introducing new world facts.
+- **`ai_stack/langgraph_runtime.py`**: Added optional **`prior_dramatic_signature`** input, richer render context wiring, deterministic **`dramatic_signature`** and pattern-fatigue flags, and expanded **`graph_diagnostics.dramatic_review.review_explanations`**.
+
+### Tests
+
+- **`pytest`** `ai_stack/tests/test_goc_phase3_experience_richness.py`, `ai_stack/tests/test_goc_phase2_scenarios.py`, `ai_stack/tests/test_langgraph_runtime.py`.
+
+### Notes
+
+- Phase 3 report generated at `tests/reports/GOC_PHASE3_EXPERIENCE_RICHNESS_REPORT.md` (reports directory remains gitignored by repository policy; report is produced locally).
+
+---
+
 ## [0.3.14] - 2026-04-07
 
 **Summary**: **God of Carnage (GoC) Phase 2** — bounded **`prior_continuity_impacts`** carry-forward (graph + world-engine session), **YAML slice bundle** (character voice, scene guidance, characters) feeding director assessment and visible staging, **dramatic alignment / anti-seductive rejection** at the validation seam, **multi-pressure resolution** diagnostics on `scene_assessment`, expanded **continuity-on-commit** (up to two frozen classes), and **Phase 2 scenario tests** (multiple non-preview paths). Closure report for operators lives under **`tests/reports/`** (gitignored path; generate locally after runs).

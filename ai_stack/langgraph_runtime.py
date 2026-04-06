@@ -33,8 +33,10 @@ from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSI
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.goc_yaml_authority import (
     detect_builtin_yaml_title_conflict,
+    goc_character_profile_snippet,
     load_goc_canonical_module_yaml,
     load_goc_yaml_slice_bundle,
+    scene_guidance_snippets,
 )
 from ai_stack.scene_director_goc import (
     build_pacing_and_silence,
@@ -102,6 +104,7 @@ class RuntimeTurnState(TypedDict, total=False):
     goc_canonical_yaml: dict[str, Any]
     goc_yaml_slice: dict[str, Any]
     prior_continuity_impacts: list[dict[str, Any]]
+    prior_dramatic_signature: dict[str, str]
     scene_assessment: dict[str, Any]
     selected_responder_set: list[dict[str, Any]]
     selected_scene_function: str
@@ -193,6 +196,7 @@ class RuntimeTurnGraphExecutor:
         host_experience_template: dict[str, Any] | None = None,
         force_experiment_preview: bool | None = None,
         prior_continuity_impacts: list[dict[str, Any]] | None = None,
+        prior_dramatic_signature: dict[str, str] | None = None,
     ) -> RuntimeTurnState:
         initial_state: RuntimeTurnState = {
             "session_id": session_id,
@@ -217,6 +221,8 @@ class RuntimeTurnGraphExecutor:
             initial_state["thread_pressure_summary"] = thread_pressure_summary[:128]
         if prior_continuity_impacts:
             initial_state["prior_continuity_impacts"] = list(prior_continuity_impacts)
+        if prior_dramatic_signature:
+            initial_state["prior_dramatic_signature"] = dict(prior_dramatic_signature)
         return self._graph.invoke(initial_state)
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -406,6 +412,7 @@ class RuntimeTurnGraphExecutor:
             pacing_mode=pacing,
             prior_continuity_impacts=prior,
             yaml_slice=yslice,
+            current_scene_id=state.get("current_scene_id") or "",
         )
         merged_sa = {**base_sa, "multi_pressure_resolution": resolution}
         update["scene_assessment"] = merged_sa
@@ -605,6 +612,19 @@ class RuntimeTurnGraphExecutor:
             tp = "soft"
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else {}
         sg = yslice.get("scene_guidance") if isinstance(yslice.get("scene_guidance"), dict) else {}
+        responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
+        primary = responders[0] if responders and isinstance(responders[0], dict) else {}
+        actor_id = str(primary.get("actor_id") or "")
+        actor_reason = str(primary.get("reason") or "")
+        char_snippet = goc_character_profile_snippet(
+            actor_id=actor_id,
+            yaml_slice=yslice,
+            scene_id=state.get("current_scene_id") or "",
+        )
+        guidance_snip = scene_guidance_snippets(
+            scene_guidance=sg,
+            scene_id=state.get("current_scene_id") or "",
+        )
         proposed_fx = list(state.get("proposed_state_effects") or [])
         prop_narr = extract_proposed_narrative_text(proposed_fx)
         bundle, vis_markers = run_visible_render(
@@ -621,6 +641,10 @@ class RuntimeTurnGraphExecutor:
                 "current_scene_id": state.get("current_scene_id") or "",
                 "scene_guidance": sg,
                 "proposed_narrative_excerpt": prop_narr,
+                "responder_actor_id": actor_id,
+                "responder_reason": actor_reason,
+                "character_profile_snippet": char_snippet,
+                "scene_guidance_snippets": guidance_snip,
             },
         )
         update["generation"] = generation
@@ -725,6 +749,33 @@ class RuntimeTurnGraphExecutor:
         prior_ci = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
         sa = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
         mpr = sa.get("multi_pressure_resolution") if isinstance(sa.get("multi_pressure_resolution"), dict) else {}
+        responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
+        primary = responders[0] if responders and isinstance(responders[0], dict) else {}
+        silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
+        dramatic_signature = {
+            "scene_function": str(state.get("selected_scene_function") or ""),
+            "responder": str(primary.get("actor_id") or ""),
+            "pacing_mode": str(state.get("pacing_mode") or ""),
+            "silence_mode": str(silence.get("mode") or ""),
+        }
+        prior_sig = state.get("prior_dramatic_signature") if isinstance(state.get("prior_dramatic_signature"), dict) else {}
+        similar_move = False
+        interp = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
+        prior_intent = str(prior_sig.get("player_intent") or "")
+        curr_intent = str(interp.get("player_intent") or "")
+        if prior_intent and curr_intent and prior_intent == curr_intent:
+            similar_move = True
+        stale_pattern = bool(
+            prior_sig
+            and prior_sig.get("scene_function") == dramatic_signature.get("scene_function")
+            and prior_sig.get("responder") == dramatic_signature.get("responder")
+            and similar_move
+        )
+        quality_status = "pass"
+        if vo.get("status") == "rejected" and str(vo.get("reason", "")).startswith("dramatic_alignment"):
+            quality_status = "fail"
+        elif vo.get("status") != "approved" or "truth_aligned" not in (state.get("visibility_class_markers") or []):
+            quality_status = "degraded_explainable"
         gd = {
             "graph_name": self.graph_name,
             "graph_version": self.graph_version,
@@ -738,6 +789,7 @@ class RuntimeTurnGraphExecutor:
             "operational_cost_hints": cost_hints,
             "dramatic_review": {
                 "selected_scene_function": state.get("selected_scene_function"),
+                "selected_responder": primary,
                 "pacing_mode": state.get("pacing_mode"),
                 "silence_brevity_decision": state.get("silence_brevity_decision"),
                 "prior_continuity_classes": [
@@ -748,6 +800,26 @@ class RuntimeTurnGraphExecutor:
                 "multi_pressure_rationale": mpr.get("rationale"),
                 "validation_reason": vo.get("reason"),
                 "dramatic_alignment_summary": alignment_note,
+                "dramatic_signature": dramatic_signature,
+                "pattern_repetition_risk": stale_pattern,
+                "pattern_repetition_note": (
+                    "same_scene_function_and_responder_under_similar_intent"
+                    if stale_pattern
+                    else "pattern_variation_or_intent_shift_detected"
+                ),
+                "dramatic_quality_status": quality_status,
+                "review_explanations": {
+                    "responder": f"selected_responder_reason:{primary.get('reason')}",
+                    "scene_function": str(mpr.get("rationale") or "single_path_rule"),
+                    "pacing": f"pacing_mode={state.get('pacing_mode')} silence_reason={silence.get('reason')}",
+                    "continuity": (
+                        "carry_forward_classes="
+                        + ",".join(str(x.get("class")) for x in prior_ci if isinstance(x, dict) and x.get("class"))
+                    )
+                    if prior_ci
+                    else "carry_forward_classes=none",
+                    "dramatic_quality": f"{quality_status}:{alignment_note}",
+                },
             },
         }
         update["graph_diagnostics"] = gd

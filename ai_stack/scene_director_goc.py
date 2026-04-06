@@ -13,7 +13,11 @@ from ai_stack.goc_frozen_vocab import (
     assert_scene_function,
     assert_silence_brevity_mode,
 )
-from ai_stack.goc_yaml_authority import scene_assessment_phase_hints
+from ai_stack.goc_yaml_authority import (
+    guidance_phase_key_for_scene_id,
+    scene_assessment_phase_hints,
+    scene_guidance_snippets,
+)
 
 
 def _severity_index(continuity_class: str) -> int:
@@ -106,6 +110,11 @@ def build_scene_assessment(
             assessment["guidance_phase_title"] = hints.get("guidance_phase_title")
         if hints.get("guidance_civility_required") is not None:
             assessment["guidance_civility_required"] = hints.get("guidance_civility_required")
+    snippets = scene_guidance_snippets(scene_guidance=sg, scene_id=current_scene_id)
+    if snippets.get("exit_signal"):
+        assessment["guidance_exit_signal_hint"] = snippets.get("exit_signal")
+    if snippets.get("ai_guidance_hint"):
+        assessment["guidance_ai_hint"] = snippets.get("ai_guidance_hint")
 
     return assessment
 
@@ -114,20 +123,43 @@ def _yaml_default_responder(
     *,
     yaml_slice: dict[str, Any] | None,
     prior_classes: list[str],
+    scene_id: str = "",
+    selected_scene_function: str = "",
 ) -> tuple[str, str]:
     """Asymmetry: unnamed moves route pressure to different actors under comparable carry-forward."""
     voice = {}
+    chars = {}
     if yaml_slice and isinstance(yaml_slice.get("character_voice"), dict):
         voice = yaml_slice["character_voice"]
+    if yaml_slice and isinstance(yaml_slice.get("characters"), dict):
+        chars = yaml_slice["characters"]
+    veronique = voice.get("veronique") if isinstance(voice.get("veronique"), dict) else {}
     michel = voice.get("michel") if isinstance(voice.get("michel"), dict) else {}
     annette = voice.get("annette") if isinstance(voice.get("annette"), dict) else {}
+    alain = voice.get("alain") if isinstance(voice.get("alain"), dict) else {}
+    veronique_role = (
+        veronique.get("formal_role") if isinstance(veronique.get("formal_role"), str) else "host_moral_idealist"
+    )
     michel_role = michel.get("formal_role") if isinstance(michel.get("formal_role"), str) else "pragmatist_host_spouse"
     annette_role = annette.get("formal_role") if isinstance(annette.get("formal_role"), str) else "guest_cynic"
+    alain_role = alain.get("formal_role") if isinstance(alain.get("formal_role"), str) else "guest_mediator"
+    phase_key = guidance_phase_key_for_scene_id(scene_id) if scene_id.strip() else "phase_2_moral_negotiation"
 
+    if "repair_attempt" in prior_classes:
+        return "alain_reille", f"yaml_voice_bias:{alain_role}"
     if "blame_pressure" in prior_classes:
         return "michel_longstreet", f"yaml_voice_bias:{michel_role}"
     if "revealed_fact" in prior_classes:
         return "annette_reille", f"yaml_voice_bias:{annette_role}"
+    if selected_scene_function == "repair_or_stabilize":
+        return "alain_reille", f"yaml_voice_bias:{alain_role}"
+    if selected_scene_function == "probe_motive":
+        return "annette_reille", f"yaml_voice_bias:{annette_role}"
+    if phase_key == "phase_1_polite_opening":
+        return "veronique_vallon", f"yaml_voice_bias:{veronique_role}"
+    if phase_key == "phase_3_faction_shifts":
+        return "michel_longstreet", f"yaml_voice_bias:{michel_role}"
+    _ = chars  # kept to show characters.yaml is loaded for future tie-break extension.
     return "annette_reille", "default_pressure_bearer"
 
 
@@ -138,6 +170,7 @@ def build_responder_and_function(
     pacing_mode: str,
     prior_continuity_impacts: list[dict[str, Any]] | None = None,
     yaml_slice: dict[str, Any] | None = None,
+    current_scene_id: str = "",
 ) -> tuple[list[dict[str, Any]], str, dict[str, str], dict[str, Any]]:
     """Choose responder set, scene function, implied continuity map, and multi-pressure resolution record."""
     text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
@@ -211,7 +244,12 @@ def build_responder_and_function(
         actor = "veronique_vallon"
         reason = "named_in_player_move"
     else:
-        actor, reason = _yaml_default_responder(yaml_slice=yaml_slice, prior_classes=prior_classes)
+        actor, reason = _yaml_default_responder(
+            yaml_slice=yaml_slice,
+            prior_classes=prior_classes,
+            scene_id=current_scene_id,
+            selected_scene_function=scene_fn,
+        )
 
     responders = [{"actor_id": actor, "reason": reason}]
 
@@ -258,6 +296,9 @@ def build_pacing_and_silence(
     elif "multi" in text and "pressure" in text:
         pacing = assert_pacing_mode("multi_pressure")
         silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "default_verbal_density"}
+    elif "repair_attempt" in text and "why" in text:
+        pacing = assert_pacing_mode("compressed")
+        silence = {"mode": assert_silence_brevity_mode("brief"), "reason": "continuity_compact_probe_after_repair"}
     elif "repair" in text and ("truth" in text or "reveal" in text or "secret" in text):
         pacing = assert_pacing_mode("multi_pressure")
         silence = {"mode": assert_silence_brevity_mode("normal"), "reason": "repair_and_exposure_compete"}
