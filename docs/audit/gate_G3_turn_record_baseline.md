@@ -1,5 +1,7 @@
 # Gate G3 Baseline: Canonical Dramatic Turn Record
 
+**Repository-truth note (2026-04-10):** The canonical pytest target for G3-style runtime graph seams was renamed from `test_goc_phase1_runtime_gate.py` to `test_goc_runtime_graph_seams_and_diagnostics.py`. Archived transcripts under `tests/reports/evidence/all_gates_closure_20260409/` still reflect the historical filename.
+
 ## Gate
 
 - Gate name: G3 Canonical Dramatic Turn Record
@@ -13,7 +15,7 @@
 - `ai_stack/runtime_turn_contracts.py`
 - `ai_stack/langgraph_runtime.py`
 - `backend/app/services/ai_stack_evidence_service.py`
-- `ai_stack/tests/test_goc_phase1_runtime_gate.py`
+- `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py`
 
 ## Required Evidence
 
@@ -32,7 +34,7 @@
 
 | command | status | basis | promotion requirement |
 | --- | --- | --- | --- |
-| `python -m pytest ai_stack/tests/test_goc_phase1_runtime_gate.py -q --tb=short` | `repo-verified` | Canonical runtime turn-record gate path in `ai_stack/tests/`. | Archived: `tests/reports/evidence/all_gates_closure_20260409/g3_turn_record_ai_stack.txt` |
+| `python -m pytest ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py -q --tb=short` | `repo-verified` | Canonical runtime turn-record / graph-seam path in `ai_stack/tests/` (renamed module). | Archived: `tests/reports/evidence/all_gates_closure_20260409/g3_turn_record_ai_stack.txt` (historical filename in transcript) |
 | `cd backend && python -m pytest tests/runtime/test_cross_surface_operator_audit_contract.py -q --tb=short --no-cov` | `repo-verified` | Cross-surface operator-audit contract continuity for emitted turn records. | Archived: `tests/reports/evidence/all_gates_closure_20260409/g3_cross_surface_contract_backend.txt` |
 
 ## Baseline Findings

@@ -3,7 +3,7 @@
 ## Validation commands
 - `python -m pytest ai_stack/tests/test_research_intake_golden.py ai_stack/tests/test_research_aspect_golden.py ai_stack/tests/test_research_exploration_golden.py ai_stack/tests/test_research_verification_golden.py ai_stack/tests/test_research_canon_improvement_golden.py ai_stack/tests/test_research_review_bundle_golden.py ai_stack/tests/test_research_contract_enforcement.py ai_stack/tests/test_capabilities.py tools/mcp_server/tests/test_research_mcp_contracts.py`
   - Result: `24 passed`
-- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_tools_handlers.py tools/mcp_server/tests/test_mcp_m1_gates.py`
+- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_tools_handlers.py tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`
   - Result: `33 passed`
 - `python -m pytest administration-tool/tests/test_manage_inspector_suite.py`
   - Result: `11 passed`

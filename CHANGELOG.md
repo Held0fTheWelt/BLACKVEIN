@@ -8,10 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.5.1] - 2026-04-10
 
-**Summary**: **Test readability, documentation surface truth, and CI alignment** — Area 2 and GoC test modules and functions use behavior-describing names instead of task/area/closure filenames; canonical pytest invocations in docs match `area2_validation_commands`; experience-score CLI tests live under `tests/experience_scoring_cli/`; large documentation consolidation (architecture legacy archive, technical namespaces, audit and consolidation ledgers); backend test suite splits and narrative/drift contracts; G9 evidence anchors updated for renamed AI stack modules.
+**Summary**: **Test readability, documentation surface truth, and CI alignment** — Area 2 and GoC test modules and functions use behavior-describing names instead of task/area/closure filenames; canonical pytest invocations in docs match `area2_validation_commands`; experience-score CLI tests live under `tests/experience_scoring_cli/`; large documentation consolidation (architecture legacy archive, technical namespaces, audit and consolidation ledgers); backend test suite splits and narrative/drift contracts; G9 evidence anchors updated for renamed AI stack modules. **Fixture / documentation / test integrity repair**: active docs, closure reports, README, MCP parity docs, audit inventories, and gate baselines now reference real test paths and runnable commands; MCP M1 closure evidence uses `test_mcp_operational_parity_and_registry.py`; `MCP_M1_CANONICAL_PARITY_CLOSURE_REPORT.md` is explicitly historical; RAG ingestion globs match `_detect_content_class` (architecture docs + `world-engine/**/var/runs` JSON).
 
 ### Added
 
+- **`tests/smoke/test_repository_documented_paths_resolve.py`**: repository-truth guard — asserts documented pytest targets from research closure, README GoC bundle, semantic-planner roadmap, MCP closure report, and G9 CLI fixtures exist on disk; MCP README must not reference removed `test_mcp_m1_gates.py`; `MCP_M1_CLOSURE_REPORT.md` must name the operational parity module.
 - **`backend/tests/runtime/doc_test_paths.py`**: resolves legacy `docs/architecture/<name>` references to `docs/archive/architecture-legacy/` and `docs/technical/*` for tests that assert documentation cross-links.
 - **Consolidation and test-naming audit artifacts** (English): `docs/archive/documentation-consolidation-2026/TEST_NAMING_READABILITY_INVENTORY.md`, `TEST_RENAME_AND_NORMALIZATION_MAP.md`, `TEST_INTERNAL_NAME_CLEANUP_LEDGER.md`, `TEST_NAMING_VALIDATION_REPORT.md`.
 - **Additional focused backend tests** (among others): narrative continuity/thread progression, runtime drift resistance, session API contracts, authorization and state-transition boundaries, error and bulk-operation contracts, activity logging audit, constraint and service-layer edge cases; smoke refresh (`test_smoke_contracts.py`, `test_goc_module_structure_smoke.py`).
@@ -28,6 +29,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Documentation layout**: former `docs/architecture/*` canon and closure material moved under `docs/archive/architecture-legacy/`; active technical docs under `docs/technical/`; RAG task and superpowers execution artifacts archived under `docs/archive/*`; index and cross-links updated across `docs/testing-setup.md`, Area 2 closure reports, `llm-slm-role-stratification.md`, `ai_story_contract.md`, and related audit baselines.
 - **CI**: `.github/workflows/backend-tests.yml` uses `tests/experience_scoring_cli/` and the renamed G10 validation orchestration module path.
 - **Scripts**: `scripts/g9_level_a_evidence_capture.py` and selected `outgoing/**/scenario_goc_roadmap_s5_primary_failure_fallback.json` metadata aligned with renamed pytest nodes.
+- **Documentation and evidence alignment (integrity pass)**  
+  - `README.md`: representative GoC tests and focused regression command use current `ai_stack/tests` modules (no removed `test_goc_phase*.py`).  
+  - `docs/research_mvp_gate_closure.md`, `docs/mcp/12_M1_canonical_parity.md`, `tools/mcp_server/README.md`: MCP parity command targets `test_mcp_operational_parity_and_registry.py`.  
+  - `tests/reports/MCP_M1_CLOSURE_REPORT.md`: gate matrix, validation commands, and result counts (21 + 17) aligned with current suite; `tests/reports/MCP_M1_CANONICAL_PARITY_CLOSURE_REPORT.md` labeled historical with pointer to canonical report.  
+  - `docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md` §11: lists actual planner contract test modules.  
+  - Audit / gate docs: `docs/audit/repo_evidence_index.md`, `gate_G3`/`G4`/`G5` baselines, `canonical_to_repo_mapping_table.md`, `TASK_1A_REPOSITORY_BASELINE.md`, `TASK_3_P0_P1_EXECUTION_INVENTORY.md`, `task3_retained_gate_suites.json` (v2), `task3_sidecar_disposition.json`, `PLAN_G9_S4_Misinterpretation_Correction_Closure.md` — paths for G9 CLI tests, MCP gates, GoC renames, and runtime successors.  
+  - `tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`: `test_g_mcp_07` asserts the updated closure-report command line.
+- **RAG (`ai_stack/rag.py`)**: `_source_patterns` includes `docs/architecture/**/*.md` and `world-engine/**/var/runs/**/*.json` so ingestion matches content-class detection and `test_rag` / documented G5-style bundles stay green.
 
 ### Removed
 
@@ -37,6 +46,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Remaining `test_phase4_*` / `test_phase5_*` (and some `test_phase3_*`) names in AI stack breadth suites are **intentionally deferred** to limit churn in historical audit strings; see `TEST_NAMING_VALIDATION_REPORT.md`.
 - **`docs.zip`** is ignored at the repository root (local bundle only).
+- **`.gitignore`**: removed a one-off `backend/.coverage.Hollywood.*` entry in favor of existing `.coverage.*` rules.
+
+### Tests (integrity verification)
+
+- `python -m pytest tests/smoke/test_repository_documented_paths_resolve.py tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py` — green (path + MCP closure report coupling).
+- `python -m pytest ai_stack/tests` — green after RAG pattern fix (217 passed in verification run).
 
 ---
 
@@ -79,7 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Tests
 
 - `python -m pytest ai_stack/tests/test_research_intake_golden.py ai_stack/tests/test_research_aspect_golden.py ai_stack/tests/test_research_exploration_golden.py ai_stack/tests/test_research_verification_golden.py ai_stack/tests/test_research_canon_improvement_golden.py ai_stack/tests/test_research_review_bundle_golden.py ai_stack/tests/test_research_contract_enforcement.py ai_stack/tests/test_capabilities.py tools/mcp_server/tests/test_research_mcp_contracts.py` -> **24 passed**
-- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_tools_handlers.py tools/mcp_server/tests/test_mcp_m1_gates.py` -> **33 passed**
+- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_tools_handlers.py tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py` -> **33 passed**
 - `python -m pytest administration-tool/tests/test_manage_inspector_suite.py` -> **11 passed**
 
 ### Notes
@@ -109,7 +124,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Inspector workbench semantic-planner projection parity (read-only)**: Inspector projection schema versions bumped to `*_v2`; turn projection aligns `gate_projection` with `DramaticEffectGateOutcome` (legacy scores isolated under `legacy_compatibility_summary`); `decision_trace_projection` adds backend-computed `semantic_decision_flow` (explicit per-stage `presence`) and `graph_execution_flow`; `support_posture` uses `support_level_for_module` / `resolve_dramatic_effect_evaluator` only; timeline, comparison, coverage, and provenance-raw projections expose canonical gate/posture/support fields; workbench UI renders structured planner cards, primary gate posture vs secondary legacy details, semantic Mermaid default with graph-execution toggle. See `tests/reports/INSPECTOR_WORKBENCH_SEMANTIC_PLANNER_PROJECTION_CLOSURE_REPORT.md`.
 - **Legacy admin URLs** (`/manage/ai-stack/governance`, `/manage/ai-stack-governance`, `/manage/inspector-suite`, `/manage/inspector-suite/turn`) now respond with **308 Permanent Redirect** to `/manage/inspector-workbench`.
 - **Inspector Suite UI final polish**: removed superseded `ai_stack_governance.html`, `inspector_suite.html`, `manage_ai_stack_governance.js`, and `manage_inspector_suite.js`; workbench panels use structured tables/KV blocks plus secondary full-JSON `<details>`; Provenance tab keeps canonical entries primary and raw bundle explicitly secondary; admin tests assert exact redirect `Location` and follow-through to the workbench template.
-- **AI stack runtime seams** (integration with planner/dramatic paths): `goc_turn_seams.py`, `langgraph_runtime.py`, `scene_director_goc.py`, `goc_dramatic_alignment.py`, `goc_gate_evaluation.py`; scenario tests `tests/test_goc_phase2_scenarios.py`, `tests/test_goc_retrieval_heavy_scenario.py`.
+- **AI stack runtime seams** (integration with planner/dramatic paths): `goc_turn_seams.py`, `langgraph_runtime.py`, `scene_director_goc.py`, `goc_dramatic_alignment.py`, `goc_gate_evaluation.py`; scenario tests `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`, `ai_stack/tests/test_goc_retrieval_heavy_scenario.py`.
 
 ### Notes
 

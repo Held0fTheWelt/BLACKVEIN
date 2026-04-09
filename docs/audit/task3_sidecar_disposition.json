@@ -3,30 +3,30 @@
   "generated_at": "2026-04-09",
   "sidecars": [
     {
-      "sidecar_path": "tests/goc_gates/fixtures/g9_matrix_all_4_5.json",
+      "sidecar_path": "tests/experience_scoring_cli/fixtures/g9_matrix_all_4_5.json",
       "sidecar_class": "fixture_data",
-      "owner_suite": "tests/goc_gates/test_g9_threshold_validator.py",
+      "owner_suite": "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
       "status": "justified_standalone",
       "justification": "Canonical fixture input for pass-path threshold validation; standalone fixture placement is coherent."
     },
     {
-      "sidecar_path": "tests/goc_gates/fixtures/g9_matrix_fail_failure_scenario_degradation.json",
+      "sidecar_path": "tests/experience_scoring_cli/fixtures/g9_matrix_fail_failure_scenario_degradation.json",
       "sidecar_class": "fixture_data",
-      "owner_suite": "tests/goc_gates/test_g9_threshold_validator.py",
+      "owner_suite": "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
       "status": "justified_standalone",
       "justification": "Canonical fixture input for failure-path threshold validation."
     },
     {
-      "sidecar_path": "tests/goc_gates/fixtures/g9_matrix_non_failure_low_degradation_ok.json",
+      "sidecar_path": "tests/experience_scoring_cli/fixtures/g9_matrix_non_failure_low_degradation_ok.json",
       "sidecar_class": "fixture_data",
-      "owner_suite": "tests/goc_gates/test_g9_threshold_validator.py",
+      "owner_suite": "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
       "status": "justified_standalone",
       "justification": "Canonical fixture input for non-failure degradation floor behavior."
     },
     {
       "sidecar_path": "docs/goc_evidence_templates/g9_experience_score_matrix.template.json",
       "sidecar_class": "template",
-      "owner_suite": "tests/goc_gates/test_g9_threshold_validator.py",
+      "owner_suite": "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
       "status": "justified_standalone",
       "justification": "Template is consumed by tests and external evidence workflows; template ownership remains in evidence-template surface."
     },
@@ -61,16 +61,16 @@
     {
       "sidecar_path": "tests/reports/MCP_M1_CLOSURE_REPORT.md",
       "sidecar_class": "report_evidence",
-      "owner_suite": "tools/mcp_server/tests/test_mcp_m1_gates.py",
+      "owner_suite": "tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py",
       "status": "justified_standalone",
       "justification": "Canonical report currently asserted by gate tests and used as explicit evidence artifact."
     },
     {
       "sidecar_path": "tests/reports/MCP_M1_CANONICAL_PARITY_CLOSURE_REPORT.md",
       "sidecar_class": "report_evidence_superseded",
-      "owner_suite": "tools/mcp_server/tests/test_mcp_m1_gates.py",
-      "status": "removed",
-      "justification": "Superseded report should be removed after references are updated to canonical closure report."
+      "owner_suite": "tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py",
+      "status": "historical_archived",
+      "justification": "Superseded report retained as historical audit trail; authoritative surface is MCP_M1_CLOSURE_REPORT.md."
     }
   ]
 }

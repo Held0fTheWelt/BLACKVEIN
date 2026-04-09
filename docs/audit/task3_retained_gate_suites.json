@@ -1,114 +1,115 @@
 {
-  "version": "task3-v1",
-  "generated_at": "2026-04-09",
+  "version": "task3-v2",
+  "generated_at": "2026-04-10",
+  "predecessor_note": "Replaces task3-v1 (2026-04-09): several v1 suite_path entries pointed at removed Area2 gate modules, removed GoC phase filenames, removed tests/goc_gates tree, and the renamed MCP gate file.",
   "retained_gate_suites": [
     {
-      "suite_path": "backend/tests/runtime/test_area2_task4_closure_gates.py",
+      "suite_path": "backend/tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py",
       "priority": "P0",
-      "retention_reason": "Cross-surface orchestration gate with explicit closure semantics",
-      "non_redundant_value": "Provides gate-level integration semantics not represented by single-owner unit suites",
+      "retention_reason": "Cross-surface bootstrap + routing registry gate proofs (successor surface for former Area2 gate orchestration)",
+      "non_redundant_value": "Embeds closure-report / command-orchestration alignment for runtime routing",
       "consumer": "Runtime gate/closure reviewers",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained due to acceptance-gate role; rename may occur after gate identity remains explicit"
+      "naming_action": "keep",
+      "justification": "Executable gate-style proofs with doc/report coupling in-repo"
     },
     {
-      "suite_path": "backend/tests/runtime/test_area2_convergence_gates.py",
+      "suite_path": "backend/tests/runtime/test_runtime_validation_commands_orchestration.py",
       "priority": "P0",
-      "retention_reason": "Convergence gate for authority/routing semantics",
-      "non_redundant_value": "Enforces cross-surface authority contracts with explicit gate IDs",
+      "retention_reason": "Validation command orchestration + closure report coupling",
+      "non_redundant_value": "Guards documented invocation lines against drift",
       "consumer": "Runtime contract owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Independent gate value beyond lower-level behavior tests"
+      "naming_action": "keep",
+      "justification": "Distinct doc/command integrity role"
     },
     {
-      "suite_path": "backend/tests/runtime/test_area2_final_closure_gates.py",
+      "suite_path": "backend/tests/runtime/test_runtime_startup_profiles_operator_truth.py",
       "priority": "P0",
-      "retention_reason": "Final closure gate validating end-state acceptance",
-      "non_redundant_value": "Captures final-state acceptance semantics distinct from convergence-only checks",
+      "retention_reason": "Startup profiles + operator truth cross-surface checks",
+      "non_redundant_value": "Operator-truth semantics tied to runtime startup posture",
       "consumer": "Runtime release/gate owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained as explicit acceptance gate"
+      "naming_action": "keep",
+      "justification": "Non-redundant orchestration coverage"
     },
     {
-      "suite_path": "ai_stack/tests/test_goc_phase5_final_mvp_closure.py",
+      "suite_path": "ai_stack/tests/test_goc_mvp_breadth_playability_regression.py",
       "priority": "P0",
-      "retention_reason": "Phase-level acceptance closure for runtime breadth and diagnostics",
-      "non_redundant_value": "Contains broad acceptance semantics not replaceable by narrow component tests",
+      "retention_reason": "GoC MVP breadth / playability acceptance anchor",
+      "non_redundant_value": "Breadth regression semantics beyond single-turn unit tests",
       "consumer": "AI stack acceptance reviewers",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained as explicit phase acceptance suite"
+      "naming_action": "keep",
+      "justification": "Explicit acceptance-oriented GoC surface (replaces removed phase5 filename)"
     },
     {
-      "suite_path": "tools/mcp_server/tests/test_mcp_m1_gates.py",
+      "suite_path": "tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py",
       "priority": "P0",
-      "retention_reason": "MCP governance/contract gate suite",
-      "non_redundant_value": "Validates canonical MCP gate policy and report authority constraints",
+      "retention_reason": "MCP governance/contract gate suite (G-MCP-01 … G-MCP-08) + MCP M1 closure report coupling",
+      "non_redundant_value": "Canonical MCP gate policy, registry parity, and report authority constraints",
       "consumer": "MCP contract/governance owners",
-      "naming_action": "keep_gate_role",
-      "justification": "Distinct gate semantics with external interface impact"
+      "naming_action": "keep",
+      "justification": "Renamed from test_mcp_m1_gates.py; same gate role"
     },
     {
-      "suite_path": "tests/goc_gates/test_g9_threshold_validator.py",
+      "suite_path": "tests/experience_scoring_cli/test_experience_score_matrix_cli.py",
       "priority": "P0",
-      "retention_reason": "CLI-level acceptance gate for threshold contract",
-      "non_redundant_value": "Ensures threshold acceptance behavior through script invocation path",
+      "retention_reason": "CLI-level acceptance gate for G9 threshold validator",
+      "non_redundant_value": "Subprocess pytest coverage for scripts/g9_threshold_validator.py",
       "consumer": "Gate/evidence operators",
-      "naming_action": "keep_gate_role",
-      "justification": "Standalone acceptance value with fixture/template sidecar dependencies"
+      "naming_action": "keep",
+      "justification": "Replaces removed tests/goc_gates/test_g9_threshold_validator.py location"
     },
     {
-      "suite_path": "backend/tests/runtime/test_runtime_ranking_closure_gates.py",
+      "suite_path": "backend/tests/runtime/test_runtime_model_ranking_synthesis_contracts.py",
       "priority": "P1",
-      "retention_reason": "Runtime ranking closure gate",
-      "non_redundant_value": "Asserts ranking closure semantics across orchestration paths",
+      "retention_reason": "Runtime ranking / synthesis closure contracts",
+      "non_redundant_value": "Ranking closure semantics across orchestration paths",
       "consumer": "Runtime ranking maintainers",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Maintains explicit closure contract visibility"
+      "naming_action": "keep",
+      "justification": "Explicit closure contract visibility"
     },
     {
-      "suite_path": "ai_stack/tests/test_goc_phase1_runtime_gate.py",
+      "suite_path": "ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py",
       "priority": "P1",
-      "retention_reason": "Phase 1 runtime gate",
-      "non_redundant_value": "Provides phase-scoped acceptance coverage unavailable in generic unit suites",
+      "retention_reason": "GoC runtime graph seams + diagnostics",
+      "non_redundant_value": "Phase-scoped runtime acceptance (successor to removed phase1 filename)",
       "consumer": "AI runtime gate maintainers",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained for phase acceptance traceability"
+      "naming_action": "keep",
+      "justification": "Core LangGraph/GoC seam coverage"
     },
     {
-      "suite_path": "ai_stack/tests/test_goc_phase2_scenarios.py",
+      "suite_path": "ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py",
       "priority": "P1",
-      "retention_reason": "Phase 2 scenario acceptance suite",
-      "non_redundant_value": "Validates scenario-level acceptance behavior not captured by isolated tests",
+      "retention_reason": "GoC breadth / continuity diagnostics scenarios",
+      "non_redundant_value": "Scenario-level acceptance not captured by seam-only tests",
       "consumer": "AI scenario validation owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained due to explicit acceptance role"
+      "naming_action": "keep",
+      "justification": "Successor surface for removed phase2 breadth filename"
     },
     {
-      "suite_path": "ai_stack/tests/test_goc_phase3_experience_richness.py",
+      "suite_path": "ai_stack/tests/test_goc_multi_turn_experience_quality.py",
       "priority": "P1",
-      "retention_reason": "Phase 3 experience-quality acceptance suite",
-      "non_redundant_value": "Covers experience-quality acceptance criteria across runtime outputs",
+      "retention_reason": "Multi-turn experience quality acceptance",
+      "non_redundant_value": "Experience-quality criteria across runtime outputs",
       "consumer": "AI quality gate owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained as non-redundant acceptance surface"
+      "naming_action": "keep",
+      "justification": "Successor surface for removed phase3 filename"
     },
     {
-      "suite_path": "ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py",
+      "suite_path": "ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py",
       "priority": "P1",
-      "retention_reason": "Phase 4 reliability/breadth acceptance suite",
-      "non_redundant_value": "Captures reliability breadth semantics and operator-facing acceptance constraints",
+      "retention_reason": "Reliability / long-run operator readiness",
+      "non_redundant_value": "Reliability and operator-facing readiness constraints",
       "consumer": "AI reliability gate owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained due to cross-cutting acceptance scope"
+      "naming_action": "keep",
+      "justification": "Successor surface for removed phase4 filename"
     },
     {
-      "suite_path": "tools/mcp_server/tests/test_mcp_m2_gates.py",
+      "suite_path": "tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py",
       "priority": "P1",
-      "retention_reason": "MCP M2 acceptance gate suite",
-      "non_redundant_value": "Validates post-M1 MCP gate expansion and closure criteria",
+      "retention_reason": "MCP runtime-safe session surface contracts",
+      "non_redundant_value": "Post-M1 MCP session/tooling safety coverage",
       "consumer": "MCP release gate owners",
-      "naming_action": "keep_gate_role_normalize_name_later",
-      "justification": "Retained as explicit gate/acceptance suite"
+      "naming_action": "keep",
+      "justification": "Renamed from test_mcp_m2_gates.py"
     }
   ]
 }

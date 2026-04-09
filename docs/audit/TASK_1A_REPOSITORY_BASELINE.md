@@ -205,16 +205,18 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 
 ### 5.6 Opaque / mixed test modules
 
+**Amendment (2026-04-10):** This subsection was drafted against an older tree. Current equivalents: MCP M1 gates → [`tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`](../../tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py); MCP M2 gates → [`tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py`](../../tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py); G9 threshold validator pytest → [`tests/experience_scoring_cli/test_experience_score_matrix_cli.py`](../../tests/experience_scoring_cli/test_experience_score_matrix_cli.py). Former `backend/tests/runtime/test_area2_*_closure_gates.py` modules are **not present**; runtime gate-style coverage lives under `backend/tests/runtime/test_runtime_*.py` (orchestration, operator truth, validation commands).
+
 | Path | Class | Reason | Pri | Downstream |
 |------|-------|--------|-----|------------|
-| [`backend/tests/runtime/test_area2_*_closure_gates.py`](../../backend/tests/runtime/) | S_contract_gate_closure | Area2/task naming | P0 | Rename only after suite classification |
-| [`backend/tests/runtime/test_area2_convergence_gates.py`](../../backend/tests/runtime/test_area2_convergence_gates.py) | S_contract_gate_closure | Shared helpers imported by siblings | P0 | Owning-suite consolidation |
-| [`tests/goc_gates/test_g9_threshold_validator.py`](../../tests/goc_gates/test_g9_threshold_validator.py) | S_cli_tool_smoke | Spawns `scripts/g9_threshold_validator.py` | P0 | Sidecar ownership |
-| [`tools/mcp_server/tests/test_mcp_m1_gates.py`](../../tools/mcp_server/tests/test_mcp_m1_gates.py) | S_contract_gate_closure | MCP milestone gates | P1 | Naming/readability |
-| [`tools/mcp_server/tests/test_mcp_m2_gates.py`](../../tools/mcp_server/tests/test_mcp_m2_gates.py) | S_contract_gate_closure | Same | P1 | Same |
+| `backend/tests/runtime/test_area2_*_closure_gates.py` (historical) | S_contract_gate_closure | Area2/task naming | P0 | **Removed / superseded** — see `test_runtime_*` suites |
+| [`backend/tests/runtime/test_runtime_validation_commands_orchestration.py`](../../backend/tests/runtime/test_runtime_validation_commands_orchestration.py) | S_contract_gate_closure | Doc/command orchestration proofs | P0 | Closure-report coupling |
+| [`tests/experience_scoring_cli/test_experience_score_matrix_cli.py`](../../tests/experience_scoring_cli/test_experience_score_matrix_cli.py) | S_cli_tool_smoke | Spawns `scripts/g9_threshold_validator.py` | P0 | Sidecar ownership |
+| [`tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`](../../tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py) | S_contract_gate_closure | MCP milestone gates | P1 | Renamed from `test_mcp_m1_gates.py` |
+| [`tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py`](../../tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py) | S_contract_gate_closure | MCP session surface gates | P1 | Renamed from `test_mcp_m2_gates.py` |
 | `backend/tests/test_authorization_boundaries.py` (+ related split modules) | S_integration_service | API permission and constraint tests | P1 | Keep suite names behavior-readable |
 | [`backend/tests/test_goc_semantic_parity.py`](../../backend/tests/test_goc_semantic_parity.py) | S_contract_gate_closure | GoC parity | P1 | Doc cross-links |
-| [`ai_stack/tests/test_goc_phase2_scenarios.py`](../../ai_stack/tests/test_goc_phase2_scenarios.py) | S_retrieval_rag | Phase vocabulary | P2 | Phase glossary |
+| [`ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`](../../ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py) | S_retrieval_rag | Breadth / continuity diagnostics | P2 | Successor to removed phase-scenario filename |
 
 *Summary:* ~200 backend tests, 60 world-engine tests, 39 ai_stack tests, plus admin/frontend/database/writers-room—apply `S_*` tags before renames.
 
@@ -222,7 +224,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 
 | Path | Class | Owning suite / consumer | Pri | Downstream |
 |------|-------|-------------------------|-----|------------|
-| [`tests/goc_gates/fixtures/*.json`](../../tests/goc_gates/fixtures/) | C_fixture_json | `test_g9_threshold_validator.py` | P0 | Co-locate or document |
+| [`tests/experience_scoring_cli/fixtures/*.json`](../../tests/experience_scoring_cli/fixtures/) | C_fixture_json | `test_experience_score_matrix_cli.py` | P0 | G9 matrix fixtures for validator CLI |
 | [`docs/goc_evidence_templates/*`](../goc_evidence_templates/) | C_template_shared_doc | Validator tests + scripts | P0 | Template governance |
 | [`backend/.coveragerc`](../../backend/.coveragerc) | C_coverage_config | Backend pytest/coverage | P1 | Suite consolidation |
 | [`tests/Makefile`](../../tests/Makefile), [`tests/run_tests.py`](../../tests/run_tests.py), [`tests/run_tests.sh`](../../tests/run_tests.sh) | C_makefile_runner | Multi-suite orchestration | P1 | Doc cross-link |

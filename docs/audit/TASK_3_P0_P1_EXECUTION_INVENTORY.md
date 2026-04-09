@@ -2,6 +2,8 @@
 
 **Execution status (integrated run, 2026-04-09):** P0/P1 items in this inventory were **applied in the repository** (merge/split/rename/smoke relocation + non-GoC moves). Evidence: `docs/audit/TASK_3_VALIDATION_REPORT.md` § *Integrated-run verification*.
 
+**Repository-truth amendment (2026-04-10):** Several paths named in the **markdown table below** are **historical** (2026-04-09 snapshot) and no longer exist on disk as written—especially `backend/tests/runtime/test_area2_*_closure_gates.py`, `ai_stack/tests/test_goc_phase*.py`, `tests/goc_gates/*`, and `tools/mcp_server/tests/test_mcp_m1_gates.py`. For **machine-checkable, current suite paths**, use [`docs/audit/task3_retained_gate_suites.json`](task3_retained_gate_suites.json) **version `task3-v2`** and [`docs/archive/documentation-consolidation-2026/TEST_RENAME_AND_NORMALIZATION_MAP.md`](../archive/documentation-consolidation-2026/TEST_RENAME_AND_NORMALIZATION_MAP.md).
+
 ## Scope lock
 
 This document operationalizes Task 3 for:
@@ -28,27 +30,27 @@ No lower-priority choice is permitted when a higher-priority option is still app
 
 ## P0/P1 Active Test Inventory
 
-Canonical paths below reflect the **post-execution** tree (2026-04-09). Removed predecessors are recorded only in the executed maps below.
+Canonical paths below were refreshed **2026-04-10** to match files that exist on disk (see amendment note above for why earlier rows referenced removed names).
 
 | Path | Current classification | Inclusion reason | Priority | Downstream task relevance | Chosen disposition | Disposition justification |
 |---|---|---|---|---|---|---|
-| `backend/tests/runtime/test_area2_task4_closure_gates.py` | Mixed gate/meta orchestrator suite | High ownership ambiguity and broad orchestration behavior | P0 | Controls split-vs-retain gate logic | Retain as justified gate/acceptance suite | Suite acts as cross-surface gate orchestrator; merge/split would hide gate role and evidence intent. |
-| `backend/tests/runtime/test_area2_convergence_gates.py` | Runtime gate suite | Historical naming + cross-doc assertions; hosts merged former workstream A gate block | P0 | Core retained-gate criteria anchor | Retain as justified gate/acceptance suite | Cross-surface authority/routing contract validation is non-redundant. |
-| `backend/tests/runtime/test_area2_final_closure_gates.py` | Runtime final gate suite | Historical naming + adjacency to convergence gates; hosts merged former workstream B gate block | P0 | Gate retention and naming normalization | Retain as justified gate/acceptance suite | Distinct end-state gate semantics and acceptance role. |
+| `backend/tests/runtime/test_runtime_validation_commands_orchestration.py` | Mixed gate/meta orchestrator suite | Doc/command orchestration + closure alignment | P0 | Controls validation-command integrity | Retain as justified gate/acceptance suite | Successor surface for former `test_area2_task4_closure_gates.py`. |
+| `backend/tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py` | Runtime gate suite | Bootstrap + registry + routing operational proofs | P0 | Core retained-gate criteria anchor | Retain as justified gate/acceptance suite | Successor surface for former `test_area2_convergence_gates.py`. |
+| `backend/tests/runtime/test_runtime_startup_profiles_operator_truth.py` | Runtime final gate suite | Startup profiles + operator-truth reproducibility | P0 | Gate retention and naming normalization | Retain as justified gate/acceptance suite | Successor surface for former `test_area2_final_closure_gates.py`. |
 | `backend/tests/test_authorization_boundaries.py` | Split contract suite | Successor module after omnibus split | P0 | Split rules proof point | Retain | Part of the seven-way split that replaced `test_coverage_expansion.py` (removed). Siblings: `test_constraint_validation.py`, `test_state_transition_rules.py`, `test_activity_logging_audit.py`, `test_error_response_contracts.py`, `test_bulk_operation_contracts.py`, `test_service_layer_edge_cases.py`. |
-| `ai_stack/tests/test_goc_phase5_final_mvp_closure.py` | Acceptance/gate suite | High-visibility historical naming + broad acceptance role | P0 | Gate retention policy | Retain as justified gate/acceptance suite | Provides explicit acceptance breadth semantics not reducible to unit-level suites. |
-| `tools/mcp_server/tests/test_mcp_m1_gates.py` | MCP gate suite | Explicit gate contracts + report coupling | P0 | Gate rationale coverage and sidecar coupling | Retain as justified gate/acceptance suite | Distinct MCP governance/contract gate role; non-redundant. |
-| `tests/goc_gates/test_g9_threshold_validator.py` | CLI gate/acceptance suite | Sidecar-heavy gate semantics | P0 | Sidecar ownership and gate retention | Retain as justified gate/acceptance suite | Validates threshold acceptance contract through CLI path; must remain explicit. |
-| `backend/tests/runtime/test_runtime_ranking_closure_gates.py` | Gate-style runtime suite | Historical naming but coherent role | P1 | Naming + retained gate scope | Retain as justified gate/acceptance suite | Ranking closure contract is cross-stage and non-redundant. |
+| `ai_stack/tests/test_goc_mvp_breadth_playability_regression.py` | Acceptance/gate suite | MVP breadth / playability regression anchor | P0 | Gate retention policy | Retain as justified gate/acceptance suite | Renamed from `test_goc_phase5_final_mvp_closure.py`. |
+| `tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py` | MCP gate suite | Explicit gate contracts + report coupling | P0 | Gate rationale coverage and sidecar coupling | Retain as justified gate/acceptance suite | Renamed from `test_mcp_m1_gates.py`; same gate role. |
+| `tests/experience_scoring_cli/test_experience_score_matrix_cli.py` | CLI gate/acceptance suite | Sidecar-heavy gate semantics | P0 | Sidecar ownership and gate retention | Retain as justified gate/acceptance suite | G9 threshold validator subprocess tests; fixtures under `tests/experience_scoring_cli/fixtures/`. |
+| `backend/tests/runtime/test_runtime_model_ranking_synthesis_contracts.py` | Gate-style runtime suite | Ranking + synthesis orchestration contracts | P1 | Naming + retained gate scope | Retain as justified gate/acceptance suite | Renamed from `test_runtime_ranking_closure_gates.py`. |
 | `backend/tests/runtime/test_runtime_drift_resistance.py` | Behavior suite | Drift-resistance regression surface | P1 | Naming normalization (done) | Retain | Renamed from `test_task4_drift_resistance.py`. |
 | `backend/tests/runtime/test_narrative_continuity.py` | Behavior suite | Narrative continuity | P1 | Naming normalization (done) | Retain | Renamed from `test_task_1c_continuity.py`. |
 | `backend/tests/runtime/test_narrative_thread_progression.py` | Behavior suite | Thread progression | P1 | Naming normalization (done) | Retain | Renamed from `test_task_1d_narrative_threads.py`. |
 | `backend/tests/test_session_api_contracts.py` | Session API contract suite | Session API behavior and diagnostics contracts | P1 | Gate-vs-non-gate naming separation (done) | Retain | Renamed from `test_session_api_closure.py`. |
-| `ai_stack/tests/test_goc_phase1_runtime_gate.py` | Acceptance/gate suite | Phase marker + gate semantics | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Distinct runtime gate role with acceptance semantics. |
-| `ai_stack/tests/test_goc_phase2_scenarios.py` | Acceptance/gate suite | Phase marker + scenario acceptance role | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Non-redundant phase-scenario acceptance surface. |
-| `ai_stack/tests/test_goc_phase3_experience_richness.py` | Acceptance/gate suite | Phase marker + quality acceptance role | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Experience-quality acceptance cannot be reduced to one lower suite. |
-| `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py` | Acceptance/gate suite | Phase marker + reliability breadth role | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Cross-cutting reliability acceptance role is distinct. |
-| `tools/mcp_server/tests/test_mcp_m2_gates.py` | MCP gate suite | Milestone-coded naming | P1 | Naming + gate retention | Retain as justified gate/acceptance suite | M2 gate validates expanded MCP contract closure. |
+| `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py` | Acceptance/gate suite | Runtime graph seams + diagnostics | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Renamed from `test_goc_phase1_runtime_gate.py`. |
+| `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py` | Acceptance/gate suite | Breadth + continuity diagnostics | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Renamed from `test_goc_phase2_scenarios.py`. |
+| `ai_stack/tests/test_goc_multi_turn_experience_quality.py` | Acceptance/gate suite | Multi-turn experience quality | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Renamed from `test_goc_phase3_experience_richness.py`. |
+| `ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py` | Acceptance/gate suite | Long-run operator readiness | P1 | Gate retention policy | Retain as justified gate/acceptance suite | Renamed from `test_goc_phase4_reliability_breadth_operator.py`. |
+| `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py` | MCP gate suite | Runtime-safe session surface | P1 | Naming + gate retention | Retain as justified gate/acceptance suite | Renamed from `test_mcp_m2_gates.py`. |
 | `tests/smoke/test_smoke_contracts.py` | Smoke contract suite | Root smoke anti-drift | P1 | Naming normalization at root smoke surface (done) | Retain | Renamed from `test_w0_contracts.py`. |
 | `tests/smoke/test_goc_module_structure_smoke.py` | Smoke structure suite | Module-structure smoke | P1 | Naming normalization at root smoke surface (done) | Retain | Renamed from `test_w1_module.py`. |
 
@@ -79,18 +81,18 @@ Canonical paths below reflect the **post-execution** tree (2026-04-09). Removed 
 
 | Former source suite (removed) | Owning suite target | Merge rationale |
 |---|---|---|
-| `backend/tests/runtime/test_area2_workstream_a_closure_gates.py` | `backend/tests/runtime/test_area2_convergence_gates.py` | Workstream A is gate fragment with owner semantics already present in convergence gate. |
-| `backend/tests/runtime/test_area2_workstream_b_closure_gates.py` | `backend/tests/runtime/test_area2_final_closure_gates.py` | Workstream B is gate fragment better represented under final gate ownership. |
+| `backend/tests/runtime/test_area2_workstream_a_closure_gates.py` | `backend/tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py` | Intermediate merge target `test_area2_convergence_gates.py` was itself renamed; current owner is the operational bootstrap/registry suite. |
+| `backend/tests/runtime/test_area2_workstream_b_closure_gates.py` | `backend/tests/runtime/test_runtime_startup_profiles_operator_truth.py` | Intermediate merge target `test_area2_final_closure_gates.py` was itself renamed; current owner is the startup profiles / operator-truth suite. |
 
 ## Internal naming cleanup scope (material only)
 
-Affected files for internal normalization during execution:
-- `backend/tests/runtime/test_area2_convergence_gates.py`
-- `backend/tests/runtime/test_area2_final_closure_gates.py`
-- `backend/tests/runtime/test_area2_task4_closure_gates.py`
-- `ai_stack/tests/test_goc_phase5_final_mvp_closure.py`
-- `tools/mcp_server/tests/test_mcp_m1_gates.py`
-- `tools/mcp_server/tests/test_mcp_m2_gates.py`
+Affected files for internal normalization during execution (current names):
+- `backend/tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py`
+- `backend/tests/runtime/test_runtime_startup_profiles_operator_truth.py`
+- `backend/tests/runtime/test_runtime_validation_commands_orchestration.py`
+- `ai_stack/tests/test_goc_mvp_breadth_playability_regression.py`
+- `tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`
+- `tools/mcp_server/tests/test_mcp_runtime_safe_session_surface.py`
 - `backend/tests/test_authorization_boundaries.py` and the other six split successors of removed `test_coverage_expansion.py` (see Split-Suite Map above)
 
 Internal cleanup targets:

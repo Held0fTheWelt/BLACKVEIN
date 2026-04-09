@@ -691,14 +691,16 @@ Recommended migration posture:
 - move existing heuristics behind explicit contracts step by step,
 - do not break existing operator or closure surfaces in one jump.
 
-Recommended tests:
+Recommended tests (**current repository**, as of this roadmap revision — prefer these paths in runbooks; older filename stubs like `test_semantic_move_contract.py` were never added as standalone modules):
 
-- `ai_stack/tests/test_semantic_move_contract.py`
-- `ai_stack/tests/test_character_mind_contract.py`
-- `ai_stack/tests/test_social_state_contract.py`
-- `ai_stack/tests/test_scene_plan_contract.py`
-- `ai_stack/tests/test_dramatic_effect_gate.py`
-- graph-level regression tests ensuring no second truth surface appears
+- `ai_stack/tests/test_semantic_planner_contracts.py` — Pydantic roundtrips for `SemanticMoveRecord`, `SocialStateRecord`, `ScenePlanRecord`, `CharacterMindRecord`
+- `ai_stack/tests/test_character_mind_goc.py` — character-mind contract usage on the GoC path
+- `ai_stack/tests/test_social_state_goc.py` — social-state contract usage on the GoC path
+- `ai_stack/tests/test_semantic_move_interpretation_goc.py` — semantic move interpretation integration
+- `ai_stack/tests/test_dramatic_effect_gate.py` — dramatic-effect gate contracts
+- `ai_stack/tests/test_semantic_planner_graph_authority.py` — single-graph authority / operator payload checks
+- `ai_stack/tests/test_semantic_planner_golden_cases.py` — deterministic golden cases (fixture-backed)
+- broader GoC / LangGraph regression: [README.md](../../README.md) and [docs/testing-setup.md](../testing-setup.md)
 
 ---
 

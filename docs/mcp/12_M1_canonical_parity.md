@@ -42,7 +42,7 @@ Call `wos.mcp.operator_truth` with optional `probe_backend: true` to set `backen
 ## Tests
 
 Primary M1 gates:
-- `tools/mcp_server/tests/test_mcp_m1_gates.py` (G-MCP-01 … G-MCP-07)
+- `tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py` (G-MCP-01 … G-MCP-08; former `test_mcp_m1_gates.py`)
 - `ai_stack/tests/test_mcp_canonical_surface.py`
 - `backend/tests/runtime/test_mcp_enrichment.py` (canonical name parity on enrichment preflight)
 

@@ -1,5 +1,7 @@
 # Gate G5 Baseline: Retrieval Governance
 
+**Repository-truth note (2026-04-10):** Long-run / reliability coverage moved from `test_goc_phase4_reliability_breadth_operator.py` to `test_goc_reliability_longrun_operator_readiness.py`.
+
 ## Gate
 
 - Gate name: G5 Retrieval Governance
@@ -15,7 +17,7 @@
 - `docs/rag_task4_evaluation_harness.md`
 - `ai_stack/tests/test_rag.py`
 - `ai_stack/tests/retrieval_eval_scenarios.py`
-- `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py`
+- `ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py`
 
 ## Required Evidence
 
@@ -35,7 +37,7 @@
 
 | command | status | basis | promotion requirement |
 | --- | --- | --- | --- |
-| `python -m pytest ai_stack/tests/test_rag.py ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short` | `repo-verified` | Canonical retrieval governance/reliability/roadmap retrieval-heavy path. | Archived: `tests/reports/evidence/all_gates_closure_20260409/g5_retrieval_ai_stack.txt` |
+| `python -m pytest ai_stack/tests/test_rag.py ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short` | `repo-verified` | Canonical retrieval governance/reliability/roadmap retrieval-heavy path (renamed reliability module). | Archived: `tests/reports/evidence/all_gates_closure_20260409/g5_retrieval_ai_stack.txt` |
 | `cd backend && python -m pytest tests/test_goc_evidence_retrieval_governance.py -q --tb=short --no-cov` | `repo-verified` | Backend retrieval-governance evidence contract path. | Archived: `tests/reports/evidence/all_gates_closure_20260409/g5_retrieval_backend.txt` |
 
 ## Baseline Findings

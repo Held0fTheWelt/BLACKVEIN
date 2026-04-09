@@ -105,12 +105,13 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 - `ai_stack/goc_turn_seams.py` — validation, commit, visible render, `diagnostics_refs`
 - `ai_stack/goc_yaml_authority.py` — canonical YAML load for GoC slice surfaces
 
-**Representative tests**
+**Representative tests** (current filenames; legacy “phase*” modules were renamed or folded into these surfaces)
 
-- `ai_stack/tests/test_goc_phase1_runtime_gate.py` — seams, non-preview path, repro metadata
-- `ai_stack/tests/test_goc_phase2_scenarios.py` — breadth, continuity, anti-seductive validation
-- `ai_stack/tests/test_goc_phase3_experience_richness.py` — multi-turn richness
-- `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py` — reliability, long runs, operator diagnostics
+- `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py` — graph seams, validation/commit path, diagnostics
+- `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py` — breadth / continuity scenario coverage
+- `ai_stack/tests/test_goc_multi_turn_experience_quality.py` — multi-turn experience and fallback posture
+- `ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py` — long-run / operator-readiness stress
+- `ai_stack/tests/test_goc_mvp_breadth_playability_regression.py` — MVP breadth playability regression anchor
 
 ## Content authoring and canonical modules
 
@@ -339,12 +340,14 @@ Focused GoC regression example (add [test] install as above):
 
 ```bash
 python -m pytest \
-  ai_stack/tests/test_goc_phase1_runtime_gate.py \
-  ai_stack/tests/test_goc_phase2_scenarios.py \
-  ai_stack/tests/test_goc_phase3_experience_richness.py \
-  ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py \
-  ai_stack/tests/test_goc_phase5_final_mvp_closure.py \
   ai_stack/tests/test_goc_frozen_vocab.py \
+  ai_stack/tests/test_goc_roadmap_semantic_surface.py \
+  ai_stack/tests/test_scene_direction_subdecision_matrix.py \
+  ai_stack/tests/test_goc_field_initialization_envelope.py \
+  ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py \
+  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py \
+  ai_stack/tests/test_goc_multi_turn_experience_quality.py \
+  ai_stack/tests/test_goc_mvp_breadth_playability_regression.py \
   ai_stack/tests/test_goc_closure_residuals.py \
   ai_stack/tests/test_langgraph_runtime.py \
   -q --tb=short

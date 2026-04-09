@@ -1,5 +1,7 @@
 # Gate G4 Baseline: Scene Direction Boundary
 
+**Repository-truth note (2026-04-10):** Scenario coverage moved from `test_goc_phase2_scenarios.py` to `test_goc_runtime_breadth_continuity_diagnostics.py`. Archived transcripts may still mention the old module name.
+
 ## Gate
 
 - Gate name: G4 Scene Direction Boundary
@@ -12,8 +14,8 @@
 - `ai_stack/goc_turn_seams.py`
 - `ai_stack/langgraph_runtime.py`
 - `docs/CANONICAL_TURN_CONTRACT_GOC.md`
-- `ai_stack/tests/test_goc_phase1_runtime_gate.py`
-- `ai_stack/tests/test_goc_phase2_scenarios.py`
+- `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py`
+- `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`
 
 ## Required Evidence
 
@@ -32,7 +34,7 @@
 
 | command | status | basis | promotion requirement |
 | --- | --- | --- | --- |
-| `python -m pytest ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_goc_phase2_scenarios.py -q --tb=short` | `repo-verified` | Canonical matrix + bounded scenario behavior path for G4. | Archived: `tests/reports/evidence/all_gates_closure_20260409/g4_scene_direction_boundary.txt` |
+| `python -m pytest ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py -q --tb=short` | `repo-verified` | Canonical matrix + bounded scenario behavior path for G4 (renamed scenario module). | Archived: `tests/reports/evidence/all_gates_closure_20260409/g4_scene_direction_boundary.txt` |
 
 ## Baseline Findings
 

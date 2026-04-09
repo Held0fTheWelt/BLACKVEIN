@@ -144,8 +144,10 @@ errors.py              → Error codes + JSON-RPC envelope
 pytest tools/mcp_server/tests/ -v
 ```
 
-**Results:** run the MCP suites from repo root:
-- `python -m pytest tools/mcp_server/tests/test_mcp_m1_gates.py ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_rpc.py backend/tests/runtime/test_mcp_enrichment.py -q --tb=short --no-cov`
+**Results:** run the MCP suites from repo root (`PYTHONPATH` = repository root):
+- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py tools/mcp_server/tests/test_rpc.py -q --tb=short --no-cov`
+- `python -m pytest backend/tests/runtime/test_mcp_enrichment.py -q --tb=short --no-cov` (from `backend/` or with equivalent pytest config)
+- Full MCP tree: `python -m pytest tools/mcp_server/tests -q --tb=short --no-cov`
 - 8 backend client tests
 - 7 config tests
 - 7 filesystem tests

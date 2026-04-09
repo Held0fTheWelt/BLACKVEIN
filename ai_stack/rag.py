@@ -1052,7 +1052,9 @@ class RagIngestionPipeline:
             "content/**/*.yml",
             "content/**/*.yaml",
             "docs/technical/**/*.md",
+            "docs/architecture/**/*.md",
             "docs/reports/**/*.md",
+            "world-engine/**/var/runs/**/*.json",
         ]
 
     def _select_sources(self, repo_root: Path) -> list[Path]:

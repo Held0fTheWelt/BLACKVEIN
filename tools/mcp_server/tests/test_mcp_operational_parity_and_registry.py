@@ -194,7 +194,8 @@ def test_g_mcp_07_closure_report_contains_gate_matrix():
     assert "Actual Results" in text
     assert (
         "python -m pytest ai_stack/tests/test_mcp_canonical_surface.py "
-        "tools/mcp_server/tests/test_mcp_m1_gates.py tools/mcp_server/tests/test_rpc.py "
+        "tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py "
+        "tools/mcp_server/tests/test_rpc.py "
         "-q --tb=short --no-cov"
     ) in text
     assert "python -m pytest backend/tests/runtime/test_mcp_enrichment.py -q --tb=short --no-cov" in text

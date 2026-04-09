@@ -20,7 +20,7 @@ This planning artifact exists solely to **re-check** the current S4 evidence and
 
 ## 3. Current S4 insufficiency summary
 
-Per [docs/audit/gate_G9_experience_acceptance_baseline.md](../audit/gate_G9_experience_acceptance_baseline.md), the primary automated anchor mapped to S4 is `test_phase3_run_b_continuity_changes_later_behavior_more_than_once` in [ai_stack/tests/test_goc_phase3_experience_richness.py](../../ai_stack/tests/test_goc_phase3_experience_richness.py). The same baseline and [scripts/g9_level_a_evidence_capture.py](../../scripts/g9_level_a_evidence_capture.py) (`assess_roadmap_s4`) document that this chain demonstrates **continuity-driven re-staging** (same surface player line, different primary responder under carry-forward), **not** an explicit imperfect interpretation of player intent followed by a **player-led correction turn**.
+Per [docs/audit/gate_G9_experience_acceptance_baseline.md](../audit/gate_G9_experience_acceptance_baseline.md), the primary automated anchor mapped to S4 is `test_phase3_run_b_continuity_changes_later_behavior_more_than_once` in [ai_stack/tests/test_goc_multi_turn_experience_quality.py](../../ai_stack/tests/test_goc_multi_turn_experience_quality.py) (renamed from `test_goc_phase3_experience_richness.py`). The same baseline and [scripts/g9_level_a_evidence_capture.py](../../scripts/g9_level_a_evidence_capture.py) (`assess_roadmap_s4`) document that this chain demonstrates **continuity-driven re-staging** (same surface player line, different primary responder under carry-forward), **not** an explicit imperfect interpretation of player intent followed by a **player-led correction turn**.
 
 Therefore:
 

@@ -41,13 +41,13 @@ Each item is tagged by gate relevance and evidence role.
 | `ai_stack/runtime_turn_contracts.py` | runtime turn constants/types | G3 | code | Stable diagnostics vocabulary constants. |
 | `ai_stack/langgraph_runtime.py` | runtime turn executor and output packaging | G3, G4, G5 | code | Runtime state, retrieval/routing, graph diagnostics. |
 | `backend/app/services/ai_stack_evidence_service.py` | backend evidence aggregation | G3, G5 | code | Session evidence and retrieval influence summary. |
-| `ai_stack/tests/test_goc_phase1_runtime_gate.py` | runtime gate test surface | G3, G4 | test | Gate-aligned runtime tests (not executed in this block). |
+| `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py` | runtime graph seams + diagnostics | G3, G4 | test | Gate-aligned runtime tests (successor to removed `test_goc_phase1_runtime_gate.py`). |
 | `ai_stack/scene_director_goc.py` | scene direction control logic | G4 | code | Deterministic selection and bounded modes. |
-| `ai_stack/tests/test_goc_phase2_scenarios.py` | scene-direction scenario tests | G4 | test | Scenario behavior checks (not executed here). |
+| `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py` | breadth / continuity scenario tests | G4 | test | Scenario behavior checks (successor to removed `test_goc_phase2_scenarios.py`). |
 | `ai_stack/rag.py` | retrieval governance implementation | G5 | code | Evidence lanes, visibility classes, governance pathing. |
 | `ai_stack/tests/test_rag.py` | retrieval test surface | G5 | test | Retrieval behavior checks (not executed here). |
 | `ai_stack/tests/retrieval_eval_scenarios.py` | retrieval scenario harness | G5 | test | Retrieval-evaluative scenario coverage surface. |
-| `ai_stack/tests/test_goc_phase4_reliability_breadth_operator.py` | retrieval reliability test surface | G5 | test | Reliability/breadth checks (not executed here). |
+| `ai_stack/tests/test_goc_reliability_longrun_operator_readiness.py` | retrieval reliability / long-run operator surface | G5 | test | Reliability/breadth checks (successor to removed `test_goc_phase4_reliability_breadth_operator.py`). |
 | `administration-tool/app.py` | admin UI/control plane routes | G6 | code | Governance pages and admin management routes. |
 | `backend/app/api/v1/ai_stack_governance_routes.py` | admin governance APIs | G6 | code | Moderator/admin evidence APIs. |
 | `backend/app/api/v1/improvement_routes.py` | governance-tied improvement APIs | G6 | code | Improvement lifecycle and review state flows. |
@@ -63,7 +63,7 @@ Each item is tagged by gate relevance and evidence role.
 | `backend/app/contracts/improvement_operating_loop.py` | Improvement loop stage enum + contract version | G8 | code | Roadmap §6.8 typed loop stages. |
 | `docs/goc_evidence_templates/` | G9/G9B human evidence shells + JSON schemas | G9, G9B | doc | G9 matrix, G9B raw/delta/reconciliation templates, manifest, `g9b_level_b_attempt_record.template.json`; `schemas/` (incl. `g9b_level_b_attempt_record.schema.json`); scaffolding only. |
 | `scripts/g9_threshold_validator.py` | §6.9 threshold arithmetic helper | G9 | code | Validates filled matrices; does not invent scores. |
-| `tests/goc_gates/` | Validator CLI regression tests | G9 | test | Pytest against `scripts/g9_threshold_validator.py`. |
+| `tests/experience_scoring_cli/test_experience_score_matrix_cli.py` | Validator CLI regression tests | G9 | test | Pytest subprocess coverage for `scripts/g9_threshold_validator.py` with fixtures under `tests/experience_scoring_cli/fixtures/`. |
 | `ai_stack/goc_g9_roadmap_scenarios.py` | Frozen §6.9 scenario ids + failure_oriented defaults | G9 | code | Single source with templates and retrieval-heavy test. |
 | `ai_stack/goc_s4_misinterpretation_scenario.py` | Canonical §8.2 S4 three-turn chain (misroute / correction / incorporation) | G9 | code | Shared by S4 pytest and capture script. |
 | `ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py` | Roadmap S4 automated anchor | G9 | test | `test_roadmap_s4_misinterpretation_correction_chain`; collected by `pytest ai_stack/tests` (see `ai-stack-tests.yml`). |
