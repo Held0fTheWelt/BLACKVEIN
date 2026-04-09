@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.4.1] - 2026-04-10
+
+**Summary**: **Inspector Suite final closure** — one canonical operator workbench in the administration tool, read-only multi-endpoint projections on the backend (timeline, bounded turn-to-turn comparison, coverage/health, provenance/raw), permanent redirects from legacy governance/inspector URLs, and committed architecture plus closure documentation.
+
+### Added
+
+- **Canonical Inspector workbench**: administration route `/manage/inspector-workbench` (`manage_inspector_workbench`), template and `manage_inspector_workbench.js`; single nav entry replaces separate AI Stack Governance and Inspector Suite links.
+- **Read-only Inspector APIs** (moderator/admin, `FEATURE_MANAGE_GAME_OPERATIONS`): `GET /api/v1/admin/ai-stack/inspector/timeline/<session_id>`, `.../comparison/<session_id>`, `.../coverage-health/<session_id>`, `.../provenance-raw/<session_id>` (`mode=canonical|raw` where applicable), with activity logging alongside existing turn projection.
+- **`inspector_projection_service`**: timeline rows from World-Engine diagnostics; mandatory session-scoped turn-to-turn comparison when at least two turns exist; coverage/health aggregates (gate/validation distributions, fallback frequency, rejection/rationale and unsupported/unavailable counters); provenance/raw drilldown with explicit canonical-vs-raw boundary.
+- **Contracts**: extended inspector schema version constants and `build_inspector_view_projection_root` for dedicated projection payloads.
+- **Documentation**: `docs/architecture/inspector_suite_canonical_workbench.md`, `docs/reports/INSPECTOR_SUITE_FINAL_CLOSURE_REPORT.md`.
+
+### Changed
+
+- **Legacy admin URLs** (`/manage/ai-stack/governance`, `/manage/ai-stack-governance`, `/manage/inspector-suite`, `/manage/inspector-suite/turn`) now respond with **308 Permanent Redirect** to `/manage/inspector-workbench`.
+- **Tests**: backend coverage for new inspector endpoints and read-only POST rejection; administration-tool route, redirect, nav, and workbench mountpoint contracts updated.
+
+### Notes
+
+- UI remains render-only; raw evidence is inspection material only and is not used as canonical semantic truth in client logic.
+- Turn projection endpoint and existing session-evidence behavior are unchanged aside from the new sibling routes.
+
+---
+
 ## [0.4.0] - 2026-04-09
 
 **Summary**: This release improves reliability and auditability for gate evaluation and operating workflows. It adds stronger evidence capture and comparison tooling, expands scenario and retrieval coverage in the AI stack, aligns backend services with the unified operating model, tightens CI/testing documentation around the canonical turn flow, and adds an **AI Stack Closure Cockpit** in the administration tool with a read-only API that normalizes canonical GoC audit artifacts for operators.
@@ -14,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Play-Service control (application-level)**: Persisted desired posture in `site_settings` (`play_service_control`), admin APIs `GET`/`POST` `/api/v1/admin/play-service-control`, `POST` `.../test`, `POST` `.../apply` (feature `manage.play_service_control`, **admin-only** JWT). Separates **desired** vs **observed** state; secrets never returned (presence flags only); bounded upstream probes (750 ms, parallel health/ready); apply updates `app.config` only (no shell/Docker/systemd). `PLAY_SERVICE_CONTROL_DISABLED` and `PLAY_SERVICE_ALLOW_NEW_SESSIONS` gate `game_service` requests and new run/story-session creation. Administration-tool page `/manage/play-service-control` with nav, dashboard card, and cross-links to/from diagnosis.
 - **System diagnosis**: `GET /api/v1/admin/system-diagnosis` (feature `manage.system_diagnosis`) aggregates backend health, database, play-service configuration and `GET /api/health` / `GET /api/health/ready` against `PLAY_SERVICE_INTERNAL_URL`, published experiences feed, and AI stack release readiness, with 750 ms upstream timeouts, 250 ms internal budgets, parallel checks, prerequisite short-circuit when play config is incomplete, and a 5 s process-local cache (`?refresh=1` bypasses). Administration-tool page `/manage/diagnosis` with nav/dashboard entry loads data only via this endpoint.
-- **Semantic dramatic planner (phases 0–4, GoC)**: canonical runtime contracts (`SemanticMoveRecord`, `CharacterMindRecord`, `SocialStateRecord`, `ScenePlanRecord`), deterministic semantic-move interpretation (`semantic_move_interpretation_goc`), bounded social-state and CharacterMind projection from YAML/continuity, planner-canonical `ScenePlanRecord` on the existing LangGraph path, and `planner_state_projection` in `graph_diagnostics` / operator turn record. Phases 5–6 not in scope.
+- **Semantic dramatic planner (phases 0–6, GoC)**: canonical runtime contracts (`SemanticMoveRecord`, `CharacterMindRecord`, `SocialStateRecord`, `ScenePlanRecord`), deterministic semantic-move interpretation (`semantic_move_interpretation_goc`), bounded social-state and CharacterMind projection from YAML/continuity, planner-canonical `ScenePlanRecord` on the existing LangGraph path, and `planner_state_projection` in `graph_diagnostics` / operator turn record. **Phases 5–6**: `dramatic_effect_contract` / `dramatic_effect_gate` (planner-aware dramatic effect + bounded legacy structural fallback), `semantic_planner_effect_surface` (Non-GoC `not_supported` only), validation seam wired via `DramaticEffectEvaluationContext`, `dramatic_effect_outcome` on turn state and operator record; see `tests/reports/SEMANTIC_DRAMATIC_PLANNER_EFFECTIVENESS_AND_GENERALIZATION_CLOSURE_REPORT.md`.
 - **AI Stack Closure Cockpit**: read-only API `GET /api/v1/admin/ai-stack/closure-cockpit` backed by `ai_stack_closure_cockpit_service`, normalizing canonical GoC audit artifacts (gate summary matrix, closure-level classification, G9B attempt record, run metadata) for operator dashboards without browser-side scoring.
 - **Administration-tool**: AI Stack Governance page sections for aggregate closure summary, full gate stack (G1–G10 inkl. G9B), current blockers (repo-local vs evidential), G9/G9B/G10 emphasis, artifact drilldown, and explicit distinction between integrative gate health (z. B. G10) and program Level B.
 - Tests for the closure-cockpit endpoint, POST rejection on read-only routes, and governance template markers for the new UI.
