@@ -35,3 +35,7 @@ backend/var/improvement/
 backend/var/writers_room/
 .wos/
 .coverage.*
+# MkDocs static site output (see mkdocs.yml site_dir)
+/site/
+# Local documentation bundle (not source of truth)
+docs.zip

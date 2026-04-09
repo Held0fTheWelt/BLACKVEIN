@@ -3,7 +3,7 @@
 **Status:** Proposed MVP architecture and migration roadmap for the next GoC runtime maturity step  
 **Scope:** God of Carnage vertical slice first; no cross-module generalization in this phase  
 **Audience:** Runtime, AI-stack, backend, and operator-facing architecture work  
-**Related repo surfaces:** `ai_stack/langgraph_runtime.py`, `ai_stack/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/architecture/backend_runtime_classification.md`
+**Related repo surfaces:** `ai_stack/langgraph_runtime.py`, `ai_stack/scene_director_goc.py`, `ai_stack/goc_dramatic_alignment.py`, `ai_stack/goc_yaml_authority.py`, `backend/app/runtime/role_contract.py`, `backend/app/runtime/narrative_threads.py`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/technical/architecture/backend-runtime-classification.md`
 
 ---
 

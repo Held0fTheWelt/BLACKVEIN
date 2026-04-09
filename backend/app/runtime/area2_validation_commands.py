@@ -13,11 +13,9 @@ from __future__ import annotations
 
 # Pytest targets: paths relative to backend/ (pytest.ini testpaths = tests).
 AREA2_DUAL_CLOSURE_PYTEST_MODULES: tuple[str, ...] = (
-    "tests/runtime/test_area2_workstream_a_closure_gates.py",
-    "tests/runtime/test_area2_workstream_b_closure_gates.py",
-    "tests/runtime/test_area2_task2_closure_gates.py",
-    "tests/runtime/test_area2_convergence_gates.py",
-    "tests/runtime/test_area2_final_closure_gates.py",
+    "tests/runtime/test_runtime_routing_registry_composed_proofs.py",
+    "tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py",
+    "tests/runtime/test_runtime_startup_profiles_operator_truth.py",
     "tests/runtime/test_cross_surface_operator_audit_contract.py",
     "tests/test_bootstrap_staged_runtime_integration.py",
     "tests/runtime/test_model_inventory_bootstrap.py",
@@ -42,17 +40,17 @@ def area2_dual_closure_pytest_argv(no_cov: bool = True) -> list[str]:
 
 # --- Area 2 Task 4 full closure (G-T4): proof modules + gate orchestrator -----------------
 
-AREA2_TASK4_GATE_MODULE: str = "tests/runtime/test_area2_task4_closure_gates.py"
+AREA2_TASK4_GATE_MODULE: str = "tests/runtime/test_runtime_validation_commands_orchestration.py"
 
 # Proof-only: used by G-T4-07 subprocess to avoid recursive self-invocation of the gate module.
 AREA2_TASK4_PROOF_PYTEST_MODULES: tuple[str, ...] = (
     *AREA2_DUAL_CLOSURE_PYTEST_MODULES,
-    "tests/runtime/test_area2_task3_closure_gates.py",
-    "tests/runtime/test_runtime_task4_hardening.py",
-    "tests/runtime/test_task4_drift_resistance.py",
+    "tests/runtime/test_runtime_operator_comparison_cross_surface.py",
+    "tests/runtime/test_runtime_ai_turn_degraded_paths_tool_loop.py",
+    "tests/runtime/test_runtime_drift_resistance.py",
     "tests/runtime/test_runtime_staged_orchestration.py",
-    "tests/runtime/test_runtime_ranking_closure_gates.py",
-    "tests/improvement/test_improvement_task2a_routing_negative.py",
+    "tests/runtime/test_runtime_model_ranking_synthesis_contracts.py",
+    "tests/improvement/test_improvement_model_routing_denied.py",
     "tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace",
 )
 

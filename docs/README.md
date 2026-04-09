@@ -1,99 +1,39 @@
-# WorldOfShadows Documentation
+# WorldOfShadows documentation
 
-Complete knowledge base for the WorldOfShadows project. Navigate by topic below or use the detailed index.
+Audience-first documentation entrypoint.
 
-## Quick Links
+## Start here (everyone)
 
-- **New to the project?** Start with [Architecture Overview](./architecture/README.md)
-- **Setting up locally?** See [Local Development Guide](./development/LocalDevelopment.md)
-- **Running tests?** Check [Testing Guide](./testing/README.md)
-- **Deploying?** Read [Operations & Deployment](./operations/README.md)
+- Plain-language orientation: [`docs/start-here/README.md`](start-here/README.md)
+- Master index: [`docs/INDEX.md`](INDEX.md)
+- Full glossary: [`docs/reference/glossary.md`](reference/glossary.md)
+- Short glossary: [`docs/start-here/glossary.md`](start-here/glossary.md)
+- Doc registry: [`docs/reference/documentation-registry.md`](reference/documentation-registry.md)
 
-## Documentation Structure
+## Audience roots
 
-### 📐 [Architecture](./architecture/README.md)
-System design, component relationships, data flow, and technical decisions.
-- Server architecture and microservices
-- Frontend and backend integration
-- Database schema and ORM
-- Multilingual support design
+- **Users:** [`docs/user/README.md`](user/README.md)
+- **Administrators / operators:** [`docs/admin/README.md`](admin/README.md)
+- **Developers:** [`docs/dev/README.md`](dev/README.md)
+- **Technical system (architecture, AI, runtime):** [`docs/technical/README.md`](technical/README.md)
+- **Stakeholder slides:** [`docs/presentations/`](presentations/)
+- **ADRs:** [`docs/governance/README.md`](governance/README.md)
 
-### 💻 [Development](./development/README.md)
-Local setup, coding standards, common tasks, and development workflows.
-- Getting started locally
-- Development environment configuration
-- Coding practices and conventions
-- Debugging guide
+## Optional static site (MkDocs)
 
-### 🧪 [Testing](./testing/README.md)
-Test strategy, test matrices, execution profiles, and quality gates.
-- Test infrastructure overview
-- Running specific test suites
-- CI/CD workflows
-- Quality baselines and release gates
+From repository root (after `pip install -r requirements-docs.txt`):
 
-### 🚀 [Operations](./operations/README.md)
-Deployment, monitoring, incident response, and production runbooks.
-- Deployment procedures
-- Health checks and monitoring
-- Alerting configuration
-- Production runbooks
+```bash
+python -m mkdocs serve
+```
 
-### 🔌 [API Documentation](./api/README.md)
-REST API reference, WebSocket specification, and integration guides.
-- Backend API reference
-- World Engine API
-- Administration tool endpoints
-- Authentication and authorization
+Build output is gitignored at `/site/` (see `mkdocs.yml`). CI builds on changes to `docs/`, `mkdocs.yml`, and `requirements-docs.txt`.
 
-### ✨ [Features](./features/README.md)
-Feature documentation including forum, game mechanics, and community systems.
-- Forum system (categories, threads, moderation)
-- Game mechanics and runtime
-- User roles and permissions
-- Community features
+## Legacy and evidence
 
-### 🔐 [Security](./security/README.md)
-Security policies, threat models, vulnerability management, and compliance.
-- Security audit findings
-- Vulnerability management
-- Authentication and encryption
-- Data protection policies
+- **Archived** architecture and RAG task narratives: [`docs/archive/`](archive/)
+- **Audit baselines:** [`docs/audit/`](audit/) — engineering evidence, not primary onboarding
 
-### 📊 [Database](./database/README.md)
-Database schema, migrations, indexes, and data management.
-- Schema documentation
-- Migration procedures
-- Index optimization
-- Data export and recovery
+## Consolidation record
 
-## Key Documents by Role
-
-**Product Managers & Stakeholders:**
-- [Feature Documentation](./features/README.md) - User-facing features and capabilities
-- [Architecture Overview](./architecture/README.md) - How the system works
-- [Operations & Deployment](./operations/README.md) - Release and production information
-
-**Developers:**
-- [Local Development](./development/README.md) - Setting up and coding
-- [API Documentation](./api/README.md) - Endpoint reference
-- [Testing Guide](./testing/README.md) - Writing and running tests
-- [Security Guide](./security/README.md) - Secure coding practices
-
-**DevOps & Operations:**
-- [Operations & Deployment](./operations/README.md) - Infrastructure and deployment
-- [Database Guide](./database/README.md) - Database operations
-- [Security Guide](./security/README.md) - Security monitoring and incidents
-
-**QA & Testing:**
-- [Testing Guide](./testing/README.md) - Test strategies and execution
-- [Feature Documentation](./features/README.md) - What to test
-
-## Last Updated
-- Migration 039: Refresh tokens table (2026-03-26)
-- Test infrastructure: 9-wave expansion (2026-03-26)
-- Security audit: Phase completion (2026-03-15)
-
----
-
-**Missing a document?** Check the [Issue Tracker](https://github.com/your-org/worldofshadows/issues) or ask on the team Slack.
+See [`docs/archive/documentation-consolidation-2026/`](archive/documentation-consolidation-2026/) for topic maps, migration ledgers, and the final validation report from the 2026 documentation overhaul.

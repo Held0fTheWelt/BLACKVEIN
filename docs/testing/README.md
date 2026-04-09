@@ -2,6 +2,12 @@
 
 This directory contains testing guidance and target matrices for the World of Shadows project.
 
+Audience split notice:
+
+- Developer execution guidance is being aligned under `docs/dev/README.md`.
+- Admin release-governance guidance is being aligned under `docs/admin/README.md`.
+- Until relocation is complete, this directory contains mixed audience content.
+
 **Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, `--scope`, Makefile).
 
 ---

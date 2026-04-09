@@ -10,7 +10,7 @@ from app.runtime.ai_turn_executor import execute_turn_with_ai
 from app.runtime.operator_audit import AUDIT_SCHEMA_VERSION, RUNTIME_RANKING_ORCHESTRATION_SUMMARY_KEYS
 from app.runtime.runtime_models import SessionState
 
-from .test_area2_convergence_gates import assert_area2_truth_shape
+from .test_runtime_operational_bootstrap_and_routing_registry import assert_operator_audit_truth_payload_shape
 from .test_runtime_staged_orchestration import (  # noqa: PLC2701
     StagedRecordingAdapter,
     _llm_spec,
@@ -75,7 +75,7 @@ def _assert_operator_audit_shell(audit: dict, *, expected_surface: str) -> None:
     # G-CONV-05: additive compact Area 2 operator truth
     truth = audit.get("area2_operator_truth")
     assert isinstance(truth, dict), "operator_audit must include area2_operator_truth"
-    assert_area2_truth_shape(truth)
+    assert_operator_audit_truth_payload_shape(truth)
 
 
 def _assert_routing_evidence_contract(ev: dict) -> None:
@@ -200,7 +200,7 @@ def test_improvement_operator_audit_and_deterministic_base_separation(client, au
     assert "Advisory" in mai["disclaimer"] or "advisory" in mai["disclaimer"].lower()
 
 
-def test_g_conv_08_cross_surface_area2_truth_coherence(client, auth_headers):
+def test_operator_truth_coherent_across_bounded_http_surfaces(client, auth_headers):
     """G-CONV-08: same area2_operator_truth key set across Runtime, WR, Improvement."""
     wr = client.post(
         "/api/v1/writers-room/reviews",
@@ -209,7 +209,7 @@ def test_g_conv_08_cross_surface_area2_truth_coherence(client, auth_headers):
     )
     assert wr.status_code == 200
     wr_truth = (wr.get_json().get("operator_audit") or {}).get("area2_operator_truth") or {}
-    assert_area2_truth_shape(wr_truth)
+    assert_operator_audit_truth_payload_shape(wr_truth)
 
     variant_resp = client.post(
         "/api/v1/improvement/variants",
@@ -229,13 +229,13 @@ def test_g_conv_08_cross_surface_area2_truth_coherence(client, auth_headers):
     assert exp.status_code == 200
     imp_truth = (exp.get_json().get("recommendation_package") or {}).get("operator_audit") or {}
     imp_truth = imp_truth.get("area2_operator_truth") or {}
-    assert_area2_truth_shape(imp_truth)
+    assert_operator_audit_truth_payload_shape(imp_truth)
 
     assert set(wr_truth.keys()) == set(imp_truth.keys()), "WR vs Improvement area2_operator_truth keys must match"
 
 
 @pytest.mark.asyncio
-async def test_g_conv_08_runtime_truth_keys_match_bounded_http_surface(
+async def test_runtime_operator_truth_keys_align_with_bounded_http(
     client,
     auth_headers,
     minimal_module: ContentModule,
@@ -258,7 +258,7 @@ async def test_g_conv_08_runtime_truth_keys_match_bounded_http_surface(
     await execute_turn_with_ai(session, 1, slm_ad, minimal_module)
     log = (session.metadata.get("ai_decision_logs") or [])[-1]
     rt_truth = (log.operator_audit or {}).get("area2_operator_truth") or {}
-    assert_area2_truth_shape(rt_truth)
+    assert_operator_audit_truth_payload_shape(rt_truth)
     clear_registry()
 
     wr = client.post(
@@ -268,5 +268,5 @@ async def test_g_conv_08_runtime_truth_keys_match_bounded_http_surface(
     )
     assert wr.status_code == 200
     wr_truth = (wr.get_json().get("operator_audit") or {}).get("area2_operator_truth") or {}
-    assert_area2_truth_shape(wr_truth)
+    assert_operator_audit_truth_payload_shape(wr_truth)
     assert set(rt_truth.keys()) == set(wr_truth.keys()), "Runtime vs Writers-Room area2_operator_truth keys must match"

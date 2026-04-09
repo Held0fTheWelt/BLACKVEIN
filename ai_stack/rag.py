@@ -1025,7 +1025,7 @@ def _detect_content_class(path: Path) -> ContentClass | None:
         return ContentClass.AUTHORED_MODULE
     if "/var/runs/" in normalized:
         return ContentClass.TRANSCRIPT
-    if "/docs/architecture/" in normalized:
+    if "/docs/technical/" in normalized or "/docs/architecture/" in normalized:
         return ContentClass.POLICY_GUIDELINE
     if "/docs/reports/" in normalized:
         filename = path.name.lower()
@@ -1051,9 +1051,8 @@ class RagIngestionPipeline:
             "content/**/*.json",
             "content/**/*.yml",
             "content/**/*.yaml",
-            "docs/architecture/**/*.md",
+            "docs/technical/**/*.md",
             "docs/reports/**/*.md",
-            "world-engine/app/var/runs/**/*.json",
         ]
 
     def _select_sources(self, repo_root: Path) -> list[Path]:

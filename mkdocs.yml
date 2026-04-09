@@ -1,0 +1,112 @@
+# MkDocs Material site for World of Shadows documentation.
+# Source lives under docs/ (docs-as-code). This does not replace the GitHub repo view;
+# it provides search, nav tabs, and Mermaid rendering for readers who prefer a static site.
+
+site_name: World of Shadows Documentation
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - admonition
+  - pymdownx.details
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+nav:
+  - Documentation index: INDEX.md
+  - Start here:
+      - Overview: start-here/README.md
+      - What is World of Shadows: start-here/what-is-world-of-shadows.md
+      - How the system works: start-here/how-world-of-shadows-works.md
+      - System map: start-here/system-map-services-and-data-stores.md
+      - God of Carnage as an experience: start-here/god-of-carnage-as-an-experience.md
+      - How AI fits: start-here/how-ai-fits-the-platform.md
+      - Glossary (short): start-here/glossary.md
+  - User:
+      - Overview: user/README.md
+      - Getting started: user/getting-started.md
+      - How to start a session: user/how-to-start-a-session.md
+      - How input affects the experience: user/how-input-affects-the-experience.md
+      - FAQ: user/faq.md
+      - God of Carnage player guide: user/god-of-carnage-player-guide.md
+      - Forum player guide: user/forum-player-guide.md
+      - Runtime interactions: user/runtime-interactions-player-visible.md
+  - Admin:
+      - Overview: admin/README.md
+      - Setup and first run: admin/setup-and-first-run.md
+      - Services and health checks: admin/services-and-health-checks.md
+      - Publishing and module activation: admin/publishing-and-module-activation.md
+      - Diagnostics and auditing: admin/diagnostics-and-auditing.md
+      - Deployment guide: admin/deployment-guide.md
+      - Operations runbook: admin/operations-runbook.md
+      - Monitoring & incidents: admin/monitoring-logging-and-incident-response.md
+      - Security overview: admin/security-and-compliance-overview.md
+      - Release & quality gates: admin/release-and-quality-gates-for-operators.md
+  - Developer:
+      - Overview: dev/README.md
+      - Onboarding: dev/onboarding.md
+      - Contributing: dev/contributing.md
+      - Local development & tests: dev/local-development-and-test-workflow.md
+      - Runtime authority (seam): dev/architecture/runtime-authority-and-session-lifecycle.md
+      - AI stack & GoC seams: dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md
+      - Content modules & compiler: dev/architecture/content-modules-and-compiler-pipeline.md
+      - Normative contracts index: dev/contracts/normative-contracts-index.md
+      - OpenAPI strategy: dev/api/openapi-and-api-explorer-strategy.md
+      - Test pyramid: dev/testing/test-pyramid-and-suite-map.md
+      - MCP developer guide: dev/tooling/mcp-server-developer-guide.md
+  - Technical:
+      - Overview: technical/README.md
+      - Architecture overview: technical/architecture/architecture-overview.md
+      - Service boundaries: technical/architecture/service-boundaries.md
+      - Runtime authority & state flow: technical/runtime/runtime-authority-and-state-flow.md
+      - AI stack overview: technical/ai/ai-stack-overview.md
+      - RAG: technical/ai/RAG.md
+      - MCP: technical/integration/MCP.md
+      - LangGraph: technical/integration/LangGraph.md
+      - LangChain: technical/integration/LangChain.md
+      - Writers room & publishing: technical/content/writers-room-and-publishing-flow.md
+      - Test strategy & suites: technical/reference/test-strategy-and-suite-layout.md
+      - Observability & governance: technical/operations/observability-and-governance.md
+  - Presentations:
+      - Executive summary: presentations/executive-summary-world-of-shadows.md
+      - GoC stakeholder brief: presentations/goc-vertical-slice-stakeholder-brief.md
+  - Reference & governance:
+      - Glossary: reference/glossary.md
+      - Documentation registry: reference/documentation-registry.md
+      - Baseline validation: reference/baseline-validation-note.md
+      - Governance index: governance/README.md
+      - ADR 0001 Runtime authority: governance/adr-0001-runtime-authority-in-world-engine.md
+      - ADR template: governance/adr-template.md
+  - Contracts (GoC):
+      - Canonical turn contract: CANONICAL_TURN_CONTRACT_GOC.md
+      - Vertical slice contract: VERTICAL_SLICE_CONTRACT_GOC.md
+
+extra:
+  generator: false

@@ -1,6 +1,6 @@
 """Backend `app.runtime` — W2 session shapes, policies, and in-process simulation.
 
-This package mixes three kinds of code (see ``docs/architecture/backend_runtime_classification.md``):
+This package mixes three kinds of code (see ``docs/technical/architecture/backend-runtime-classification.md``):
 
 1. **Canonical reusable** — Pydantic models, validators, presenters, preview dry-run,
    serialization helpers (safe to import; does not imply live execution here).

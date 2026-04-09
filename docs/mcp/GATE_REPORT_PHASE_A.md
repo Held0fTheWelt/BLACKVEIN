@@ -101,7 +101,7 @@ MCP Phase A (A1.1 + A1.2 + A1.3 + A2) has been successfully implemented with all
 **Full Backend Test Suite:**
 ```
 PASSED:    2901
-FAILED:    3 (test_session_api_closure.py — expected, now fixed)
+FAILED:    3 (`test_session_api_contracts.py`, formerly `test_session_api_closure.py` — expected, now fixed)
 TOTAL:     2904
 TIME:      874.01s (14:34)
 COVERAGE:  78.13%
@@ -138,7 +138,7 @@ This confirms A1.3 endpoints are **fully implemented, no stubs**.
 - `backend/app/api/v1/session_routes.py` — Export endpoint
 - `backend/app/web/routes.py` — Web trace middleware
 - `backend/app/runtime/turn_dispatcher.py` — turn.execute logging
-- `backend/tests/test_session_api_closure.py` — Updated expectations
+- `backend/tests/test_session_api_contracts.py` — Updated expectations (renamed from `test_session_api_closure.py`)
 
 ---
 

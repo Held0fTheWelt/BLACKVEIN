@@ -1,40 +1,12 @@
-# Architecture Overview
+# Architecture (redirect)
 
-World of Shadows uses a multi-service architecture with explicit ownership boundaries.
+**Active technical system documentation** now lives under **[`docs/technical/`](../technical/README.md)** — architecture, runtime, AI/RAG, integrations (MCP, LangGraph, LangChain), content pipeline, and technical operations.
 
-## Services
+Historical closure reports, Area 2 gate narratives, and superseded milestone snapshots were moved to **[`docs/archive/architecture-legacy/`](../archive/architecture-legacy/)** for traceability only. Do **not** use them as the primary explanation layer for newcomers.
 
-- `frontend/` - player/public presentation
-- `administration-tool/` - admin/management presentation (separate by design)
-- `backend/` - API/business/auth/policy integration service
-- `world-engine/` - authoritative runtime and websocket execution
+**Still at repository root (narrow contract exceptions):**
 
-## Interaction model
+- [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md)
+- [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md)
 
-```mermaid
-flowchart LR
-  Browser --> FrontendService
-  Browser --> AdminTool
-  FrontendService --> BackendApi
-  FrontendService --> PlayService
-  BackendApi --> PlayService
-  BackendApi --> Database
-```
-
-## Key decisions
-
-1. Backend does not host canonical player/public HTML pages.
-2. Legacy `backend/app/web/*` exists only for compatibility redirects and infrastructure fallback.
-3. Administration UI is intentionally isolated in `administration-tool/`.
-4. Runtime execution authority remains in `world-engine`.
-
-## Related docs
-
-- `docs/architecture/ServerArchitecture.md`
-- `docs/architecture/FrontendBackendRestructure.md`
-- `docs/architecture/ai_stack_in_world_of_shadows.md`
-- `docs/architecture/runtime_authority_decision.md`
-- `docs/architecture/canonical_authored_content_model.md`
-- `docs/architecture/player_input_interpretation_contract.md`
-- `docs/development/LocalDevelopment.md`
-- `docs/operations/RUNBOOK.md`
+**Quick entry:** [`docs/technical/architecture/architecture-overview.md`](../technical/architecture/architecture-overview.md)

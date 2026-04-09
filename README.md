@@ -76,7 +76,7 @@ flowchart LR
 - **Backend** owns persistence, auth, and orchestration; it proxies or calls the play service where configured.
 - **Canonical player HTML** lives under **`frontend/`**; backend **`/`** redirects to **`/backend`** (operator/developer surface).
 
-Further reading: [docs/architecture/README.md](docs/architecture/README.md), [docs/architecture/ServerArchitecture.md](docs/architecture/ServerArchitecture.md), [docs/architecture/runtime_authority_decision.md](docs/architecture/runtime_authority_decision.md).
+Further reading: [docs/architecture/README.md](docs/architecture/README.md) (redirect), [docs/technical/architecture/service-boundaries.md](docs/technical/architecture/service-boundaries.md), [docs/technical/runtime/runtime-authority-and-state-flow.md](docs/technical/runtime/runtime-authority-and-state-flow.md).
 
 ## Prerequisites
 
@@ -115,7 +115,7 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 ## Content authoring and canonical modules
 
 - Authoritative authored content lives under **`content/modules/<module_id>/`** (YAML and referenced assets).
-- The backend **content compiler** projects modules for runtime and retrieval; see [docs/architecture/canonical_authored_content_model.md](docs/architecture/canonical_authored_content_model.md) and `backend/app/content/compiler/`.
+- The backend **content compiler** projects modules for runtime and retrieval; see [docs/technical/content/canonical_authored_content_model.md](docs/technical/content/canonical_authored_content_model.md) and `backend/app/content/compiler/`.
 - **Builtins** templates (e.g. experience seeds) are **secondary** to YAML for GoC; they must not silently override canonical module truth (see vertical slice contract §6.1).
 
 ## AI stack (high level)
@@ -123,8 +123,8 @@ Phase reports (Phase 2–4 breadth, experience, reliability) are produced under 
 - **RAG**: corpus ingestion and context packs (`ai_stack/rag.py`); used on the runtime turn path for grounded prompts.
 - **LangGraph**: `RuntimeTurnGraphExecutor` orchestrates interpret → retrieve → GoC resolve → director → model → normalize → validate → commit → render → package.
 - **LangChain**: adapter invocation bridge for structured runtime output (`ai_stack/langchain_integration/`).
-- **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/architecture/ai_stack_in_world_of_shadows.md](docs/architecture/ai_stack_in_world_of_shadows.md) and `ai_stack/capabilities.py`.
-- **Player input**: structured interpretation contract in `story_runtime_core` — [docs/architecture/player_input_interpretation_contract.md](docs/architecture/player_input_interpretation_contract.md).
+- **Capabilities / MCP**: guarded capability registry and MCP server live alongside the stack; see [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md) and `ai_stack/capabilities.py`.
+- **Player input**: structured interpretation contract in `story_runtime_core` — [docs/technical/runtime/player_input_interpretation_contract.md](docs/technical/runtime/player_input_interpretation_contract.md).
 
 Model routing (registry, adapters, timeouts) is configured in the world-engine startup path; local runs typically use **mock** or configured providers per `story_runtime_core` registry.
 
@@ -132,7 +132,7 @@ Model routing (registry, adapters, timeouts) is configured in the world-engine s
 
 - **`tools/mcp_server/`** — MCP server implementation (operator/session tooling as implemented in-repo).
 - **`.mcp.json`** (repo root) — Cursor/MCP client configuration where used.
-- **Improvement loop** HTTP APIs are part of the backend (`/api/v1/improvement/...`); see architecture docs under `docs/architecture/`.
+- **Improvement loop** HTTP APIs are part of the backend (`/api/v1/improvement/...`); see [docs/technical/ai/improvement_loop_in_world_of_shadows.md](docs/technical/ai/improvement_loop_in_world_of_shadows.md).
 
 ## Writers Room
 
@@ -144,7 +144,7 @@ The **canonical** Writers-Room workflow is implemented on the **backend** (JWT, 
 | Workflow orchestration (retrieval, LangGraph seed, proposals, review bundle) | `backend/app/services/writers_room_service.py` |
 | LangGraph seed + LangChain Writers-Room invocation | `ai_stack/langgraph_runtime.py` (`build_seed_writers_room_graph`), `ai_stack/langchain_integration/` (`invoke_writers_room_adapter_with_langchain`, …) |
 | Standalone browser UI (uses `BACKEND_API_URL` / `BACKEND_BASE_URL` + JWT) | `writers-room/app.py` and `writers-room/app/` |
-| Architecture (stages, HITL, shared stack) | [docs/architecture/writers_room_on_unified_stack.md](docs/architecture/writers_room_on_unified_stack.md) |
+| Architecture (stages, HITL, shared stack) | [docs/technical/content/writers-room-and-publishing-flow.md](docs/technical/content/writers-room-and-publishing-flow.md) |
 | Governance / operator surfaces | `administration-tool` canonical Inspector Suite workbench: `/manage/inspector-workbench` (`templates/manage/inspector_workbench.html`, `static/manage_inspector_workbench.js`); read-only admin APIs under `/api/v1/admin/ai-stack/...` (see `backend/app/api/v1/ai_stack_governance_routes.py`) |
 
 **Quick check:** OpenAPI or route list is not duplicated here; search the backend for `writers-room` or read `writers_room_routes.py` for exact methods and paths.
@@ -393,15 +393,22 @@ Workflows under `.github/workflows/`:
 
 ## Documentation index
 
+**Audience-first docs (start here)**
+
+- [docs/INDEX.md](docs/INDEX.md) — master map (users, admins, developers, presentations)
+- [docs/start-here/README.md](docs/start-here/README.md) — plain-language system introduction
+- [docs/reference/glossary.md](docs/reference/glossary.md) — terminology
+
 **Architecture and runtime**
 
-- [docs/architecture/writers_room_on_unified_stack.md](docs/architecture/writers_room_on_unified_stack.md)
-- [docs/architecture/README.md](docs/architecture/README.md)
-- [docs/architecture/ServerArchitecture.md](docs/architecture/ServerArchitecture.md)
-- [docs/architecture/ai_stack_in_world_of_shadows.md](docs/architecture/ai_stack_in_world_of_shadows.md)
-- [docs/architecture/runtime_authority_decision.md](docs/architecture/runtime_authority_decision.md)
-- [docs/architecture/canonical_authored_content_model.md](docs/architecture/canonical_authored_content_model.md)
-- [docs/architecture/player_input_interpretation_contract.md](docs/architecture/player_input_interpretation_contract.md)
+- [docs/technical/README.md](docs/technical/README.md) — technical documentation root
+- [docs/architecture/README.md](docs/architecture/README.md) — redirect to `docs/technical/`
+- [docs/technical/content/writers-room-and-publishing-flow.md](docs/technical/content/writers-room-and-publishing-flow.md)
+- [docs/technical/architecture/service-boundaries.md](docs/technical/architecture/service-boundaries.md)
+- [docs/technical/ai/ai-stack-overview.md](docs/technical/ai/ai-stack-overview.md)
+- [docs/technical/runtime/runtime-authority-and-state-flow.md](docs/technical/runtime/runtime-authority-and-state-flow.md)
+- [docs/technical/content/canonical_authored_content_model.md](docs/technical/content/canonical_authored_content_model.md)
+- [docs/technical/runtime/player_input_interpretation_contract.md](docs/technical/runtime/player_input_interpretation_contract.md)
 
 **Product / slice / freeze**
 
@@ -410,6 +417,10 @@ Workflows under `.github/workflows/`:
 - [docs/VERTICAL_SLICE_CONTRACT_GOC.md](docs/VERTICAL_SLICE_CONTRACT_GOC.md)
 - [docs/CANONICAL_TURN_CONTRACT_GOC.md](docs/CANONICAL_TURN_CONTRACT_GOC.md)
 - [docs/GATE_SCORING_POLICY_GOC.md](docs/GATE_SCORING_POLICY_GOC.md)
+
+**Repository cleanup baseline (classification gate)**
+
+- [docs/audit/TASK_1A_REPOSITORY_BASELINE.md](docs/audit/TASK_1A_REPOSITORY_BASELINE.md) — Task 1A inventory, `D*`/`R*`/`X*` tags, evidence-path and mirror policy appendices
 
 **Operations and local dev**
 

@@ -2,7 +2,7 @@
 
 **Live play runs in the World Engine**, not in this Flask process. These routes expose
 volatile in-memory ``SessionState`` for operators/MCP/tests; they must not be treated as
-an equivalent live runtime (see ``docs/architecture/backend_runtime_classification.md``).
+an equivalent live runtime (see ``docs/technical/architecture/backend-runtime-classification.md``).
 
 - POST /api/v1/sessions — create in-process session (includes explicit JSON warnings)
 - GET … — snapshots/diagnostics (volatile; token may be required)

@@ -162,13 +162,13 @@ python -m pytest tests/improvement/ -q --tb=short --no-cov
 **Validator CLI tests** (repository root; only `pytest` required — no Flask):
 
 ```bash
-python -m pytest tests/goc_gates/ -q --tb=short
+python -m pytest tests/experience_scoring_cli/ -q --tb=short
 ```
 
 **Automated scenario bundle** aligned with roadmap §6.9 (from repository root, with `story_runtime_core` + `ai_stack[test]` installed and `PYTHONPATH` set to the repo root as for the ai_stack suite):
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_phase2_scenarios.py ai_stack/tests/test_goc_phase3_experience_richness.py ai_stack/tests/test_goc_phase5_final_mvp_closure.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
+python -m pytest ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py ai_stack/tests/test_goc_multi_turn_experience_quality.py ai_stack/tests/test_goc_mvp_breadth_playability_regression.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
 ```
 
 **G10 audit-plan backend trio** (requires backend dependencies — same failure mode as the baseline audit if you only installed ai_stack into `.venv`):
@@ -176,7 +176,7 @@ python -m pytest ai_stack/tests/test_goc_phase2_scenarios.py ai_stack/tests/test
 ```bash
 cd backend
 python -m pip install -r requirements-dev.txt
-python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov
+python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
 ```
 
 If you see `ModuleNotFoundError` for parent-repo packages (e.g. `ai_stack`), set `PYTHONPATH` to the **repository root** (parent of `backend/`) and retry:
@@ -186,14 +186,14 @@ cd backend
 python -m pip install -r requirements-dev.txt
 # PowerShell: $env:PYTHONPATH = "<repo-root>"
 # bash: export PYTHONPATH="$(cd .. && pwd)"
-python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov
+python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
 ```
 
 **Archived witness (example):** `tests/reports/evidence/g10_backend_e2e_20260409/pytest_g10_backend_trio.txt` (15 passed, `exit_code: 0`) with `run_metadata.json`.
 
 **CI interpretation:** A green `g10-backend-e2e-evidence-path` job proves the trio command is runnable in CI. **Program / roadmap closure** is not implied: step 11 must still be grounded in the **authoritative** G9/G9B evidence bundle (`g9_level_a_fullsix_20260410` — see `docs/audit/gate_G9_experience_acceptance_baseline.md`), and `docs/audit/gate_G10_end_to_end_closure_baseline.md` governs integrative structural vs `closure_level_status` (§7A prerequisite health).
 
-**CI:** `.github/workflows/backend-tests.yml` runs **`g10-backend-e2e-evidence-path`** with exactly the trio command above after `pip install -r backend/requirements-dev.txt`. The **`requirements-test-hygiene`** job also runs `python -m pytest tests/goc_gates/ -q --tb=short` from the repository root.
+**CI:** `.github/workflows/backend-tests.yml` runs **`g10-backend-e2e-evidence-path`** with exactly the trio command above after `pip install -r backend/requirements-dev.txt`. The **`requirements-test-hygiene`** job also runs `python -m pytest tests/experience_scoring_cli/ -q --tb=short` from the repository root.
 
 ### AI stack / LangGraph tests (`ai_stack/tests`)
 
@@ -236,7 +236,7 @@ See `docs/audit/gate_G9_experience_acceptance_baseline.md` (`g9_s4_closure_20260
 **G9 Level-A S5-targeted partial capture:** writes only S5 scenario JSON, `run_metadata.json`, and `pytest_s5_anchor.txt` (script runs the S5 pytest node). Not a full six-scenario matrix.
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained -q --tb=short
+python -m pytest ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained -q --tb=short
 python scripts/g9_level_a_evidence_capture.py tests/reports/evidence/<audit_run_id> --audit-run-id <audit_run_id> --evidence-run-scope s5_targeted_partial
 ```
 
@@ -246,11 +246,11 @@ Example bundle: `tests/reports/evidence/g9_s5_targeted_20260409/`. The S5 node i
 
 ```bash
 python -m pytest \
-  ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_standard_escalation_non_preview \
-  ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_thin_edge_silence_non_preview \
-  ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_multi_pressure_non_preview \
+  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_standard_escalation_non_preview \
+  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_thin_edge_silence_non_preview \
+  ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_multi_pressure_non_preview \
   ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py::test_roadmap_s4_misinterpretation_correction_chain \
-  ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained \
+  ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained \
   ai_stack/tests/test_goc_retrieval_heavy_scenario.py::test_roadmap_scenario_retrieval_heavy_governance_visible \
   -v 2>&1 | tee tests/reports/evidence/<audit_run_id>/pytest_g9_roadmap_bundle.txt
 
@@ -268,7 +268,7 @@ Authoritative example bundle: `tests/reports/evidence/g9_level_a_fullsix_2026041
 **GoC structural gate smoke (G1–G4 contract closure):** from repo root with `PYTHONPATH` set to the repository root, run:
 
 ```bash
-python -m pytest ai_stack/tests/test_goc_frozen_vocab.py ai_stack/tests/test_goc_roadmap_semantic_surface.py ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_goc_field_initialization_envelope.py ai_stack/tests/test_goc_phase1_runtime_gate.py -q --tb=short
+python -m pytest ai_stack/tests/test_goc_frozen_vocab.py ai_stack/tests/test_goc_roadmap_semantic_surface.py ai_stack/tests/test_scene_direction_subdecision_matrix.py ai_stack/tests/test_goc_field_initialization_envelope.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py -q --tb=short
 python -m pytest story_runtime_core/tests/test_model_registry.py -q --tb=short
 ```
 
@@ -281,7 +281,7 @@ python -m pytest tests/test_goc_semantic_parity.py tests/runtime/test_model_rout
 **G5 / G6 (retrieval governance summary + admin semantic boundary):** from repo root with `story_runtime_core` and `ai_stack[test]` installed as for the ai_stack suite above,
 
 ```bash
-python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_goc_phase1_runtime_gate.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
+python -m pytest ai_stack/tests/test_retrieval_governance_summary.py ai_stack/tests/test_capabilities.py ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py ai_stack/tests/test_goc_retrieval_heavy_scenario.py -q --tb=short
 ```
 
 From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
@@ -290,7 +290,7 @@ From `backend/` (repo root still on `PYTHONPATH` via `pytest.ini`):
 python -m pytest tests/test_goc_admin_semantic_boundary.py tests/test_goc_evidence_retrieval_governance.py -q --tb=short --no-cov
 ```
 
-**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so new modules such as `test_goc_roadmap_s4_misinterpretation_correction.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/goc_gates/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
+**CI alignment:** `.github/workflows/ai-stack-tests.yml` runs `python -m pytest ai_stack/tests -q --tb=short` with `PYTHONPATH` set to the workspace (entire `ai_stack/tests` tree collected — **no file allowlist**), so new modules such as `test_goc_roadmap_s4_misinterpretation_correction.py` run automatically when workflow triggers apply. `.github/workflows/backend-tests.yml` runs `pytest tests/` for the full `backend/tests` tree when `backend/**`, `ai_stack/**`, or `story_runtime_core/**` changes — so backend tests that import `ai_stack` (including `test_goc_evidence_retrieval_governance.py`) still run on pure stack PRs, not only when `backend/` files change. The same workflow runs explicit **`writers-room-g7-contract-tests`** (`tests/writers_room/`), **`improvement-g8-contract-tests`** (`tests/improvement/`), **`g10-backend-e2e-evidence-path`** (G10 audit trio), and root **`tests/experience_scoring_cli/`** inside **`requirements-test-hygiene`**; **`backend-coverage-tests`** waits on the fast suite, both contract jobs, and the G10 trio job (see sections above).
 
 The root **`setup-test-environment.sh`** / **`setup-test-environment.bat`** scripts also install **`story_runtime_core`** and **`ai_stack[test]`** in editable mode after backend dependencies.
 
@@ -427,7 +427,7 @@ This runs ~140 tests covering:
 
 ## Area 2 dual-workstream validation (canonical)
 
-Focused regression for **Workstream A** (practical convergence) and **Workstream B** (reproducibility). Gate tables: [`docs/architecture/area2_workstream_a_gates.md`](architecture/area2_workstream_a_gates.md), [`docs/architecture/area2_workstream_b_gates.md`](architecture/area2_workstream_b_gates.md). Combined report: [`docs/architecture/area2_dual_workstream_closure_report.md`](architecture/area2_dual_workstream_closure_report.md).
+Focused regression for **Workstream A** (practical convergence) and **Workstream B** (reproducibility). Gate tables: [`docs/archive/architecture-legacy/area2_workstream_a_gates.md`](archive/architecture-legacy/area2_workstream_a_gates.md), [`docs/archive/architecture-legacy/area2_workstream_b_gates.md`](archive/architecture-legacy/area2_workstream_b_gates.md). Combined report: [`docs/archive/architecture-legacy/area2_dual_workstream_closure_report.md`](archive/architecture-legacy/area2_dual_workstream_closure_report.md).
 
 **Command surface (code):** [`backend/app/runtime/area2_validation_commands.py`](../backend/app/runtime/area2_validation_commands.py) — `AREA2_DUAL_CLOSURE_PYTEST_MODULES`, `area2_dual_closure_pytest_invocation()`.
 
@@ -437,26 +437,26 @@ Focused regression for **Workstream A** (practical convergence) and **Workstream
 
 ```bash
 cd backend
-python -m pytest tests/runtime/test_area2_workstream_a_closure_gates.py tests/runtime/test_area2_workstream_b_closure_gates.py tests/runtime/test_area2_task2_closure_gates.py tests/runtime/test_area2_convergence_gates.py tests/runtime/test_area2_final_closure_gates.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py -q --tb=short --no-cov
+python -m pytest tests/runtime/test_runtime_routing_registry_composed_proofs.py tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py tests/runtime/test_runtime_startup_profiles_operator_truth.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py -q --tb=short --no-cov
 ```
 
-**G-B-01** startup profile determinism, **G-B-02** bootstrap reproducibility, **G-B-03** clean-environment validation, **G-B-04** dependency/setup explicitness, **G-B-05** test-profile stability, **G-B-06** validation-command reality, and **G-B-07** documentation truth are enforced in `backend/tests/runtime/test_area2_workstream_b_closure_gates.py`.
+**G-A-01 … G-A-07** (Workstream A) are enforced in `backend/tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py`. **G-B-01** startup profile determinism, **G-B-02** bootstrap reproducibility, **G-B-03** clean-environment validation, **G-B-04** dependency/setup explicitness, **G-B-05** test-profile stability, **G-B-06** validation-command reality, and **G-B-07** documentation truth are enforced in `backend/tests/runtime/test_runtime_startup_profiles_operator_truth.py`.
 
 ---
 
 ## Area 2 Task 4 full closure validation (canonical)
 
-**Gates:** **G-T4-01** (E2E truth, three surfaces), **G-T4-02** (bootstrap validation), **G-T4-03** (cross-surface contract), **G-T4-04** (negative/degraded honesty), **G-T4-05** (drift resistance), **G-T4-06** (validation-command reality), **G-T4-07** (required proof-suite stability via subprocess), **G-T4-08** (documentation truth). Gate table: [`docs/architecture/area2_task4_closure_gates.md`](architecture/area2_task4_closure_gates.md). Closure report: [`docs/architecture/area2_validation_hardening_closure_report.md`](architecture/area2_validation_hardening_closure_report.md).
+**Gates:** **G-T4-01** (E2E truth, three surfaces), **G-T4-02** (bootstrap validation), **G-T4-03** (cross-surface contract), **G-T4-04** (negative/degraded honesty), **G-T4-05** (drift resistance), **G-T4-06** (validation-command reality), **G-T4-07** (required proof-suite stability via subprocess), **G-T4-08** (documentation truth). Gate table: [`docs/archive/architecture-legacy/area2_task4_closure_gates.md`](archive/architecture-legacy/area2_task4_closure_gates.md). Closure report: [`docs/archive/architecture-legacy/area2_validation_hardening_closure_report.md`](archive/architecture-legacy/area2_validation_hardening_closure_report.md).
 
 **Command surface (code):** [`backend/app/runtime/area2_validation_commands.py`](../backend/app/runtime/area2_validation_commands.py) — `AREA2_TASK4_FULL_CLOSURE_PYTEST_MODULES`, `area2_task4_full_closure_pytest_invocation()`.
 
 **Working directory:** `backend/` (same as dual-workstream: `pytest.ini` `pythonpath` and `testpaths`).
 
-**Module list (must match code, in order):** `tests/runtime/test_area2_workstream_a_closure_gates.py`, `tests/runtime/test_area2_workstream_b_closure_gates.py`, `tests/runtime/test_area2_task2_closure_gates.py`, `tests/runtime/test_area2_convergence_gates.py`, `tests/runtime/test_area2_final_closure_gates.py`, `tests/runtime/test_cross_surface_operator_audit_contract.py`, `tests/test_bootstrap_staged_runtime_integration.py`, `tests/runtime/test_model_inventory_bootstrap.py`, `tests/runtime/test_area2_task3_closure_gates.py`, `tests/runtime/test_runtime_task4_hardening.py`, `tests/runtime/test_task4_drift_resistance.py`, `tests/runtime/test_runtime_staged_orchestration.py`, `tests/runtime/test_runtime_ranking_closure_gates.py`, `tests/improvement/test_improvement_task2a_routing_negative.py`, `tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace`, `tests/runtime/test_area2_task4_closure_gates.py`.
+**Module list (must match code, in order):** `tests/runtime/test_runtime_routing_registry_composed_proofs.py`, `tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py`, `tests/runtime/test_runtime_startup_profiles_operator_truth.py`, `tests/runtime/test_cross_surface_operator_audit_contract.py`, `tests/test_bootstrap_staged_runtime_integration.py`, `tests/runtime/test_model_inventory_bootstrap.py`, `tests/runtime/test_runtime_operator_comparison_cross_surface.py`, `tests/runtime/test_runtime_ai_turn_degraded_paths_tool_loop.py`, `tests/runtime/test_runtime_drift_resistance.py`, `tests/runtime/test_runtime_staged_orchestration.py`, `tests/runtime/test_runtime_model_ranking_synthesis_contracts.py`, `tests/improvement/test_improvement_model_routing_denied.py`, `tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace`, `tests/runtime/test_runtime_validation_commands_orchestration.py`.
 
 ```bash
 cd backend
-python -m pytest tests/runtime/test_area2_workstream_a_closure_gates.py tests/runtime/test_area2_workstream_b_closure_gates.py tests/runtime/test_area2_task2_closure_gates.py tests/runtime/test_area2_convergence_gates.py tests/runtime/test_area2_final_closure_gates.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py tests/runtime/test_area2_task3_closure_gates.py tests/runtime/test_runtime_task4_hardening.py tests/runtime/test_task4_drift_resistance.py tests/runtime/test_runtime_staged_orchestration.py tests/runtime/test_runtime_ranking_closure_gates.py tests/improvement/test_improvement_task2a_routing_negative.py tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov
+python -m pytest tests/runtime/test_runtime_routing_registry_composed_proofs.py tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py tests/runtime/test_runtime_startup_profiles_operator_truth.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py tests/runtime/test_runtime_operator_comparison_cross_surface.py tests/runtime/test_runtime_ai_turn_degraded_paths_tool_loop.py tests/runtime/test_runtime_drift_resistance.py tests/runtime/test_runtime_staged_orchestration.py tests/runtime/test_runtime_model_ranking_synthesis_contracts.py tests/improvement/test_improvement_model_routing_denied.py tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
 ```
 
 ---
@@ -496,7 +496,7 @@ python -m pytest tests/ -m security -v
 ### Content Module Tests
 
 ```bash
-python -m pytest tests/smoke/test_w0_contracts.py tests/smoke/test_w1_module.py -v
+python -m pytest tests/smoke/test_smoke_contracts.py tests/smoke/test_goc_module_structure_smoke.py -v
 ```
 
 ---

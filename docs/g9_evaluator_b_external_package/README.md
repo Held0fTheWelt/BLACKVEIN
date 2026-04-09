@@ -2,6 +2,12 @@
 
 This directory is an **execution-ready handoff kit** for a **real independent Evaluator B** scoring pass against the **fixed** God of Carnage (GoC) Gate G9 scenario set for audit run `g9_level_a_fullsix_20260410`. It is **English** project-facing documentation.
 
+## Canonical location vs this folder
+
+- **Canonical distribution / frozen bundles** live under repo-root **`outgoing/`** (e.g. `outgoing/g9b_external_evaluator_outgoing_g9_level_a_fullsix_20260410/`). That tree is the **owner** for versioned handoff zips and frozen scenario JSON.
+- This **`docs/g9_evaluator_b_external_package/`** tree is an **in-repo documentation mirror** so internal docs can link to instructions without opening `outgoing/`. **Do not** let it become the only updated copy when both should match.
+- **Stale-mirror rule:** Any change to shared handout or template files must update **`outgoing/` and this directory in the same commit**, or the commit message must record a deliberate exception plus a follow-up to resync. Full policy: [`docs/audit/TASK_1A_REPOSITORY_BASELINE.md`](../audit/TASK_1A_REPOSITORY_BASELINE.md) Appendix C.
+
 ## What this is
 
 - Instructions, checklists, a frozen-source manifest, and **empty JSON return templates** aligned with `docs/goc_evidence_templates/schemas/`.

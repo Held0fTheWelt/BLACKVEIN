@@ -20,8 +20,8 @@ This baseline assumes the Task 3 dependency artifacts exist and were not re-audi
 
 - `docs/ROADMAP_MVP_GoC.md` §6.9
 - `docs/GATE_SCORING_POLICY_GOC.md` (rubric alignment only where consistent with roadmap numeric frame)
-- `ai_stack/tests/test_goc_phase2_scenarios.py`
-- `ai_stack/tests/test_goc_phase3_experience_richness.py`
+- `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`
+- `ai_stack/tests/test_goc_multi_turn_experience_quality.py`
 - `ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py`
 - `ai_stack/goc_s4_misinterpretation_scenario.py`
 - `ai_stack/tests/test_goc_retrieval_heavy_scenario.py`
@@ -39,11 +39,11 @@ This baseline assumes the Task 3 dependency artifacts exist and were not re-audi
 
 | # | Roadmap scenario | Primary automated anchors | Transcript / trace pointers |
 |---|------------------|---------------------------|-----------------------------|
-| 1 | Direct provocation | `test_scenario_standard_escalation_non_preview` (`ai_stack/tests/test_goc_phase2_scenarios.py`) | `trace-p2-escalate`; `visible_output_bundle`, `selected_scene_function`, `graph_diagnostics.dramatic_review` |
+| 1 | Direct provocation | `test_scenario_standard_escalation_non_preview` (`ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`) | `trace-p2-escalate`; `visible_output_bundle`, `selected_scene_function`, `graph_diagnostics.dramatic_review` |
 | 2 | Deflection / brevity | `test_scenario_thin_edge_silence_non_preview` | `trace-p2-thin`; `silence_brevity_decision`, pacing `thin_edge` |
 | 3 | Pressure escalation | `test_scenario_multi_pressure_non_preview` | `trace-p2-multi`; `scene_assessment.multi_pressure_resolution` |
 | 4 | Misinterpretation / correction | `test_roadmap_s4_misinterpretation_correction_chain` (`ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py`); canonical chain in `ai_stack/goc_s4_misinterpretation_scenario.py` | `trace-roadmap-s4-t1-misroute`, `trace-roadmap-s4-t2-correction`, `trace-roadmap-s4-t3-incorporation`; `roadmap_s4_evidence` in scenario JSON |
-| 5 | Primary model failure + fallback | `test_phase3_run_c_fail_and_degraded_are_explained` — primary `openai` path uses `ErrorAdapter`; graph `fallback_model` uses **`mock`** adapter wired to a succeeding fixture (`JsonAdapter`) so recovery is exercised | `trace-p3-c3`; `nodes_executed` includes `fallback_model`; `routing.fallback_stage_reached` (`graph_fallback_executed`); `generation.fallback_used`; after recovery: `validation_outcome` approved, `dramatic_review.run_classification` **pass** |
+| 5 | Primary model failure + fallback | `test_experience_multiturn_primary_failure_fallback_and_degraded_explained` — primary `openai` path uses `ErrorAdapter`; graph `fallback_model` uses **`mock`** adapter wired to a succeeding fixture (`JsonAdapter`) so recovery is exercised | `trace-p3-c3`; `nodes_executed` includes `fallback_model`; `routing.fallback_stage_reached` (`graph_fallback_executed`); `generation.fallback_used`; after recovery: `validation_outcome` approved, `dramatic_review.run_classification` **pass** |
 | 6 | Retrieval-heavy context | `test_roadmap_scenario_retrieval_heavy_governance_visible` (`ai_stack/tests/test_goc_retrieval_heavy_scenario.py`) | `trace-roadmap-s6-retrieval-heavy`; `retrieval_governance_summary`, dramatic turn `retrieval_record` |
 
 ## Historical runs (do not mix without `audit_run_id`)
@@ -57,7 +57,7 @@ This baseline assumes the Task 3 dependency artifacts exist and were not re-audi
 
 **Purpose:** Documented stronger S5 primary-failure + mock fallback recovery **before** the post-S5 full six-scenario rerun; remains a partial bundle only.
 
-- **Pytest anchor:** `ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained` (witness: `pytest_s5_anchor.txt` in that bundle).
+- **Pytest anchor:** `ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained` (witness: `pytest_s5_anchor.txt` in that bundle).
 - **Artifacts:** `run_metadata.json`, `scenario_goc_roadmap_s5_primary_failure_fallback.json`, `pytest_s5_anchor.txt`, `s5_evidence_notes.md`, `g9_s5_provisional_evaluator_row.json` (S5-only — **not** the 6×5 matrix).
 
 ## Level A evaluative evidence run (`g9_level_a_fullsix_20260410`)
@@ -67,11 +67,11 @@ This baseline assumes the Task 3 dependency artifacts exist and were not re-audi
 Six roadmap-aligned tests were executed in one bundle (repository root, `PYTHONPATH` = repo root):
 
 ```text
-ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_standard_escalation_non_preview
-ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_thin_edge_silence_non_preview
-ai_stack/tests/test_goc_phase2_scenarios.py::test_scenario_multi_pressure_non_preview
+ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_standard_escalation_non_preview
+ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_thin_edge_silence_non_preview
+ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py::test_scenario_multi_pressure_non_preview
 ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py::test_roadmap_s4_misinterpretation_correction_chain
-ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained
+ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained
 ai_stack/tests/test_goc_retrieval_heavy_scenario.py::test_roadmap_scenario_retrieval_heavy_governance_visible
 ```
 

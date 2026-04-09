@@ -24,7 +24,7 @@ Latest security assessment and remediation status.
   - Refresh token: 7-day lifetime (stored in database)
 - **Revocation:** Refresh tokens can be revoked immediately
 - **Password:** Salted PBKDF2 hashing
-- **Implementation:** See [Backend API](../architecture/BackendApi.md)
+- **Implementation:** See [Backend API reference](../api/REFERENCE.md) and [Service boundaries](../technical/architecture/service-boundaries.md)
 
 ### Authorization
 - **Model:** Role-based access control (RBAC)
@@ -191,7 +191,7 @@ pytest tests/ --cov=app --cov-report=html
 
 ## Related Documentation
 
-- [Architecture Security](../architecture/README.md#security-architecture)
+- [Architecture overview](../technical/architecture/architecture-overview.md) · [Architecture redirect](../architecture/README.md)
 - [API Security](../api/README.md#authentication--authorization)
 - [Development Best Practices](../development/README.md#security-best-practices)
 - [Operations Security](../operations/README.md#-security-operations)

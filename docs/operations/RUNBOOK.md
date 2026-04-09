@@ -93,7 +93,7 @@ Required env:
 1. Open `http://127.0.0.1:5001/manage`
 2. Verify management functionality still works independently
 3. Optional: open `http://127.0.0.1:5001/manage/diagnosis` (requires JWT and feature `manage.system_diagnosis`) for aggregated system health from `GET /api/v1/admin/system-diagnosis`
-4. Optional: open `http://127.0.0.1:5001/manage/play-service-control` (requires JWT and feature `manage.play_service_control`, **admin only**) to edit **desired** Play-Service posture, run **test**/**apply** in-process (`/api/v1/admin/play-service-control*`). This is **not** host orchestration; **diagnosis** remains the read-only aggregated **observed** view. Operator labels vs. transport, timeout semantics, and new-session gating scope: see **Play-Service control: known implementation limits** in `docs/architecture/observability_and_governance_in_world_of_shadows.md`.
+4. Optional: open `http://127.0.0.1:5001/manage/play-service-control` (requires JWT and feature `manage.play_service_control`, **admin only**) to edit **desired** Play-Service posture, run **test**/**apply** in-process (`/api/v1/admin/play-service-control*`). This is **not** host orchestration; **diagnosis** remains the read-only aggregated **observed** view. Operator labels vs. transport, timeout semantics, and new-session gating scope: see **Play-Service control: known implementation limits** in `docs/technical/operations/observability-and-governance.md`.
 
 ## Docker Compose (host ports)
 

@@ -9,7 +9,7 @@ on:
       - 'ai_stack/**'
       - 'story_runtime_core/**'
       - 'tests/requirements_hygiene/**'
-      - 'tests/goc_gates/**'
+      - 'tests/experience_scoring_cli/**'
       - 'scripts/g9_threshold_validator.py'
       - 'docs/goc_evidence_templates/**'
       - '.github/workflows/backend-tests.yml'
@@ -23,7 +23,7 @@ on:
       - 'ai_stack/**'
       - 'story_runtime_core/**'
       - 'tests/requirements_hygiene/**'
-      - 'tests/goc_gates/**'
+      - 'tests/experience_scoring_cli/**'
       - 'scripts/g9_threshold_validator.py'
       - 'docs/goc_evidence_templates/**'
       - '.github/workflows/backend-tests.yml'
@@ -47,7 +47,7 @@ jobs:
       - name: Static requirements chain (repo root)
         run: python -m pytest tests/requirements_hygiene/ -q
       - name: G9 threshold validator CLI tests (repo root, no backend install)
-        run: python -m pytest tests/goc_gates/ -q --tb=short
+        run: python -m pytest tests/experience_scoring_cli/ -q --tb=short
 
   backend-fast-tests:
     name: Backend Fast Tests (Unit Tests)
@@ -144,7 +144,7 @@ jobs:
       - name: Run G10 audit trio (full lifecycle, bootstrap, area2 closure gates)
         working-directory: ./backend
         run: |
-          python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov
+          python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
 
   backend-coverage-tests:
     name: Backend Coverage Tests (85% Gate)

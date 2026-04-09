@@ -18,6 +18,8 @@ Dual-status model per `docs/ROADMAP_MVP_GoC.md` §11.1 and `docs/GoC_Gate_Baseli
 
 ## Notes
 
+- **Clone reproducibility:** `.gitignore` lists `/tests/reports`; only intentionally tracked files under `tests/reports/` (e.g. the MCP M1 closure Markdown reports) ship with every clone. Paths such as `tests/reports/evidence/...` cited below are **machine-local capture trees** unless explicitly listed by `git ls-files`—regenerate them with the suites/commands in the per-gate baselines and [Testing](../../README.md#testing). Policy detail: [TASK_1A_REPOSITORY_BASELINE.md](TASK_1A_REPOSITORY_BASELINE.md) Appendix B.
+- **Task 4 closure controls:** Final validation and closure decisions for cleanup program status are tracked in [TASK_4_FINAL_VALIDATION_COMMAND_SET.md](TASK_4_FINAL_VALIDATION_COMMAND_SET.md) and [TASK_4_FINAL_CLEANUP_CLOSURE_REPORT.md](TASK_4_FINAL_CLEANUP_CLOSURE_REPORT.md).
 - **Structural `green`:** G1–G10 and G9B are structural `green` on canonical execution evidence. G1–G8 promotion evidence is archived in `tests/reports/evidence/all_gates_closure_20260409/`; G9/G9B authoritative evaluative bundle remains `g9_level_a_fullsix_20260410`; G10 authoritative trio remains `g10_backend_e2e_20260409` and was revalidated by `all_gates_closure_20260409/g10_backend_trio_rerun.txt`.
 - **`closure_level_status` and program closure:** G10 is now `level_a_capable` with prerequisite gate health satisfied (G1–G8 structural green) and authoritative G9/G9B alignment. Program-level Level B remains blocked by G9B independence evidence (`failed_insufficient_independence`), so no `level_b_capable` upgrade is made.
 - **G9B** is listed after G9; ordering follows audit dependency (`docs/GoC_Gate_Baseline_Audit_Plan.md` §5).

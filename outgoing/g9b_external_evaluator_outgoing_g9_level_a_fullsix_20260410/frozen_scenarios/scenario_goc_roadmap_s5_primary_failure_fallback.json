@@ -2,8 +2,8 @@
   "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
   "failure_oriented": true,
   "automated_trace_anchor": "trace-p3-c3",
-  "pytest_anchor": "test_phase3_run_c_fail_and_degraded_are_explained",
-  "pytest_anchor_node": "ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained",
+  "pytest_anchor": "test_experience_multiturn_primary_failure_fallback_and_degraded_explained",
+  "pytest_anchor_node": "ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained",
   "prior_turns_trace_ids": [
     "trace-p3-c1",
     "trace-p3-c2"

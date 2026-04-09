@@ -6,8 +6,8 @@ It describes an external command workflow that is not part of the canonical
 World of Shadows runtime architecture. The canonical runtime and AI stack
 decision lives in:
 
-- `docs/architecture/ai_stack_in_world_of_shadows.md`
-- `docs/architecture/runtime_authority_decision.md`
+- `docs/technical/ai/ai-stack-overview.md`
+- `docs/technical/runtime/runtime-authority-and-state-flow.md`
 
 ---
 

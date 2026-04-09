@@ -38,7 +38,7 @@ See [REST API Reference](./REFERENCE.md#backend-api) for complete details.
 - **Header:** `Authorization: Bearer <access_token>`
 - **Tokens:** Access (short-lived) + Refresh (long-lived)
 - **Revocation:** Via refresh_tokens database table
-- **See:** [Backend API](../architecture/BackendApi.md)
+- **See:** [API reference](./REFERENCE.md), [Service boundaries](../technical/architecture/service-boundaries.md)
 
 ## World Engine API
 
@@ -203,12 +203,12 @@ Complete collections available in `postman/` directory.
 
 ## Integration Guides
 
-- [Backend Integration](../architecture/FrontendBackendRestructure.md) - How frontend uses backend API
+- [Backend integration (archived note)](../archive/architecture-legacy/FrontendBackendRestructure.md) — historical; see [Service boundaries](../technical/architecture/service-boundaries.md)
 - [Game Integration](../features/README.md#game-integration) - How to integrate world engine
 
 ## Related Documentation
 
-- [Architecture Overview](../architecture/README.md) - System design
+- [Technical architecture](../technical/architecture/architecture-overview.md) — system design; [Architecture redirect](../architecture/README.md)
 - [Security Guide](../security/README.md) - Authentication & authorization
 - [Testing Guide](../testing/README.md) - API testing strategies
 

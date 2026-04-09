@@ -2,9 +2,9 @@
 """Capture structured G9 Level-A evidence from real graph.run() outputs.
 
 Aligned with pytest anchors:
-  test_goc_phase2_scenarios: s1, s2, s3
+  test_goc_runtime_breadth_continuity_diagnostics: s1, s2, s3
   ai_stack.goc_s4_misinterpretation_scenario: s4 (misinterpretation / correction chain)
-  test_goc_phase3_experience_richness: s5 (run_c step 3)
+  test_goc_multi_turn_experience_quality: s5 (primary-failure / fallback / degraded explanation)
   test_goc_retrieval_heavy_scenario: s6
 
 S4 (Roadmap §6.9 scenario 4) uses the canonical three-turn chain in
@@ -78,7 +78,7 @@ S5_PARTIAL_DEFAULT_NOTE = (
     "Not a full six-scenario G9 Level A matrix or threshold validation run."
 )
 S5_PYTEST_NODE = (
-    "ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained"
+    "ai_stack/tests/test_goc_multi_turn_experience_quality.py::test_experience_multiturn_primary_failure_fallback_and_degraded_explained"
 )
 
 
@@ -434,7 +434,7 @@ def main() -> int:
             "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
             "failure_oriented": True,
             "automated_trace_anchor": "trace-p3-c3",
-            "pytest_anchor": "test_phase3_run_c_fail_and_degraded_are_explained",
+            "pytest_anchor": "test_experience_multiturn_primary_failure_fallback_and_degraded_explained",
             "pytest_anchor_node": S5_PYTEST_NODE,
             "prior_turns_trace_ids": ["trace-p3-c1", "trace-p3-c2"],
             "failure_turn": _summarize_result(r5),

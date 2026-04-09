@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.1] - 2026-04-10
+
+**Summary**: **Test readability, documentation surface truth, and CI alignment** — Area 2 and GoC test modules and functions use behavior-describing names instead of task/area/closure filenames; canonical pytest invocations in docs match `area2_validation_commands`; experience-score CLI tests live under `tests/experience_scoring_cli/`; large documentation consolidation (architecture legacy archive, technical namespaces, audit and consolidation ledgers); backend test suite splits and narrative/drift contracts; G9 evidence anchors updated for renamed AI stack modules.
+
+### Added
+
+- **`backend/tests/runtime/doc_test_paths.py`**: resolves legacy `docs/architecture/<name>` references to `docs/archive/architecture-legacy/` and `docs/technical/*` for tests that assert documentation cross-links.
+- **Consolidation and test-naming audit artifacts** (English): `docs/archive/documentation-consolidation-2026/TEST_NAMING_READABILITY_INVENTORY.md`, `TEST_RENAME_AND_NORMALIZATION_MAP.md`, `TEST_INTERNAL_NAME_CLEANUP_LEDGER.md`, `TEST_NAMING_VALIDATION_REPORT.md`.
+- **Additional focused backend tests** (among others): narrative continuity/thread progression, runtime drift resistance, session API contracts, authorization and state-transition boundaries, error and bulk-operation contracts, activity logging audit, constraint and service-layer edge cases; smoke refresh (`test_smoke_contracts.py`, `test_goc_module_structure_smoke.py`).
+- **Documentation expansion**: admin, dev, governance, start-here, user, and technical topic trees; MkDocs scaffolding (`mkdocs.yml`, `requirements-docs.txt`, `.github/workflows/docs.yml`) where introduced in the tree.
+- **`backend/fixtures/improvement_experiment_runs/`** with README for committed improvement experiment JSON fixtures (relocated from under `world-engine/app/var/runs`).
+
+### Changed
+
+- **Backend runtime test modules renamed** for readable scope, for example: `test_runtime_operational_bootstrap_and_routing_registry.py`, `test_runtime_startup_profiles_operator_truth.py`, `test_runtime_routing_registry_composed_proofs.py`, `test_runtime_operator_comparison_cross_surface.py`, `test_runtime_validation_commands_orchestration.py`, `test_runtime_model_ranking_synthesis_contracts.py`, `test_runtime_ai_turn_degraded_paths_tool_loop.py`; improvement routing tests `test_improvement_model_routing_allowed.py` / `test_improvement_model_routing_denied.py`. **`area2_validation_commands`** module lists updated to match.
+- **Internal pytest names** normalized in orchestration, operator-comparison, cross-surface, and ranking suites (e.g. `test_full_validation_*`, `test_operator_comparison_*`, `test_runtime_ranking_*`) while retaining documented gate ids in prose where needed.
+- **AI stack test filenames**: phase-style names replaced with descriptive modules (`test_goc_runtime_graph_seams_and_diagnostics.py`, `test_goc_runtime_breadth_continuity_diagnostics.py`, `test_goc_multi_turn_experience_quality.py`, `test_goc_reliability_longrun_operator_readiness.py`, `test_goc_mvp_breadth_playability_regression.py`); primary G9 S5 anchor test renamed for clarity.
+- **Root CLI tests**: `tests/goc_gates/` → `tests/experience_scoring_cli/` (`test_experience_score_matrix_cli.py` and fixtures).
+- **MCP server tests**: `test_mcp_operational_parity_and_registry.py`, `test_mcp_runtime_safe_session_surface.py`.
+- **Documentation layout**: former `docs/architecture/*` canon and closure material moved under `docs/archive/architecture-legacy/`; active technical docs under `docs/technical/`; RAG task and superpowers execution artifacts archived under `docs/archive/*`; index and cross-links updated across `docs/testing-setup.md`, Area 2 closure reports, `llm-slm-role-stratification.md`, `ai_story_contract.md`, and related audit baselines.
+- **CI**: `.github/workflows/backend-tests.yml` uses `tests/experience_scoring_cli/` and the renamed G10 validation orchestration module path.
+- **Scripts**: `scripts/g9_level_a_evidence_capture.py` and selected `outgoing/**/scenario_goc_roadmap_s5_primary_failure_fallback.json` metadata aligned with renamed pytest nodes.
+
+### Removed
+
+- Obsolete or superseded backend test modules (e.g. legacy Area 2 workstream split files, duplicated drift/narrative task filenames, broad `test_coverage_expansion` / `test_session_api_closure` in favor of focused suites) as reflected in the current tree.
+
+### Notes
+
+- Remaining `test_phase4_*` / `test_phase5_*` (and some `test_phase3_*`) names in AI stack breadth suites are **intentionally deferred** to limit churn in historical audit strings; see `TEST_NAMING_VALIDATION_REPORT.md`.
+- **`docs.zip`** is ignored at the repository root (local bundle only).
+
+---
+
 ## [0.5.0] - 2026-04-10
 
 **Summary**: **Research-and-Canon-Improvement MVP closure repair** — hardened deterministic exploration semantics, stricter truth/governance contracts, stronger A–F golden fixtures, 3-layer budget enforcement evidence, and mandatory structured turn-to-turn comparison rendering for the Inspector workbench.
@@ -1169,7 +1203,7 @@ Next Phase:  AI loop implementation (story generation, trigger detection, state 
 
 **Created smoke test** to prevent documentation/schema drift:
 
-- **`tests/smoke/test_w0_contracts.py`** (103 lines, 8 tests)
+- **`tests/smoke/test_smoke_contracts.py`** (renamed from `test_w0_contracts.py`; 8 tests, lightweight anti-drift scaffold)
   - TestContractDocs: Validates 4 contract files exist and are > 500 bytes
   - TestSchemas: Validates 4 schema files exist, parse as valid JSON, contain required fields
   - All 8 tests pass in 0.17 seconds (negligible CI impact)
@@ -1232,7 +1266,7 @@ Next Phase:  AI loop implementation (story generation, trigger detection, state 
 |-----------|--------|-----------|--------|
 | Canonical contracts | 4 docs | mvp_definition, god_of_carnage_module_contract, ai_story_contract, session_runtime_contract | ✅ Complete |
 | Schema skeletons | 4 schemas | content_module, ai_story_output, session_state, state_delta | ✅ Complete |
-| Validation scaffold | 1 test file | tests/smoke/test_w0_contracts.py (8 tests, 0.17s) | ✅ Complete |
+| Validation scaffold | 1 test file | tests/smoke/test_smoke_contracts.py (8 tests; formerly `test_w0_contracts.py`) | ✅ Complete |
 | SLM/LLM roles | Defined | 5 SLM helpers + 1 story LLM in ai_story_contract.md | ✅ Complete |
 | Folder structure | Organized | docs/architecture/, schemas/, tests/smoke/, docs/audits/, docs/reports/ | ✅ Complete |
 | Gate: Core terms | Defined | Engine/AI/SLM/UI/Content authority model in mvp_definition.md | ✅ Pass |
@@ -2170,7 +2204,7 @@ scripts/run-quality-gates.sh full-suite
 - Extended world-engine integration with updated HTTP/WS API surfaces.
 - Refined runtime management logic (engine/runtime manager/models) for the Flask play integration workflow.
 - Updated auth ticket handling and related configuration/runtime models.
-- Added `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` and strengthened world-engine test coverage for API/runtime manager behavior.
+- Added `docs/reports/PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` (integration note; originally added at repo root, later relocated) and strengthened world-engine test coverage for API/runtime manager behavior.
 
 ---
 

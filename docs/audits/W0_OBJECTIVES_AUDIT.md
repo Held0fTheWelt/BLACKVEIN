@@ -64,7 +64,7 @@ Wave 0 (W0) successfully delivered all mandated objectives from the MVP definiti
 
 **Delivered**:
 
-**File**: `tests/smoke/test_w0_contracts.py` (103 lines)
+**File**: `tests/smoke/test_smoke_contracts.py` (renamed from `test_w0_contracts.py`; same smoke contract scope)
 
 **Test Coverage** (8 tests):
 
@@ -162,7 +162,7 @@ schemas/
 
 tests/
   └── smoke/
-      └── test_w0_contracts.py
+      └── test_smoke_contracts.py
 ```
 
 **Assessment**: ✅ **PASS** — All required folders exist, logically organized, no sprawl.
