@@ -97,6 +97,12 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 | Administration-tool **`/manage/play-service-control`** | Play-Service **control** UI: save/test/apply via admin APIs above (proxy); complements diagnosis (control ≠ diagnosis). |
 | Activity log | `ai_stack` / `session_evidence_view` entries when evidence API is used. |
 
+### Play-Service control: known implementation limits
+
+- **Modes (`local` / `docker` / `remote`)** are **operator labels** on top of the **same** backend routing model: one **public URL + internal URL** pair in `app.config`, not separate transport stacks per mode.
+- **Timeouts**: upstream checks use explicit bounds (e.g. httpx client timeout) at execution points; there is **no** single hard **end-to-end 250 ms SLA** for all local validation in one wall-clock envelope.
+- **`allow_new_sessions`**: enforced at the **primary** session-creation entry points in `game_service` (e.g. new play runs and new story sessions). Other code paths that call the play service are **not** universally gated by this flag yet.
+
 ## Secrets and privacy
 
 - Never log API keys, JWTs, or shared play-service secrets.

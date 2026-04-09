@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Notes
 
+- **Play-Service control** (MVP): non-`disabled` modes are **labels** over one shared URL-pair model, not distinct backend transports. Internal validation uses bounded timeouts at execution points, not a single hard end-to-end 250 ms local-check SLA. New-session gating is enforced at the primary `game_service` creation entry points, not yet on every play-service call path.
 - The strict-blind Evaluator-B run is recorded as not independent enough for stronger certification claims; it remains valid for comparative analysis only.
 - Generated evidence artifacts remain local by policy and are recreated through the capture scripts when needed.
 
