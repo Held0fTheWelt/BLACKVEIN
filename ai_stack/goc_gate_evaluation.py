@@ -41,7 +41,10 @@ def gate_diagnostic_sufficiency(state: dict[str, Any]) -> GateOutcome:
 
 def gate_dramatic_quality(state: dict[str, Any]) -> GateOutcome:
     vo = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
-    if vo.get("status") == "rejected" and str(vo.get("reason", "")).startswith("dramatic_alignment"):
+    reason = str(vo.get("reason", ""))
+    if vo.get("status") == "rejected" and (
+        reason.startswith("dramatic_alignment") or reason.startswith("dramatic_effect_")
+    ):
         return "fail"
     markers = state.get("visibility_class_markers") or []
     if not isinstance(markers, list):

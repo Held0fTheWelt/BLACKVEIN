@@ -7,7 +7,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 
-from flask import Flask, request, session, render_template, Response
+from flask import Flask, request, session, render_template, Response, redirect, url_for
 import secrets  # Import the secrets module
 
 # Backend API base URL (no trailing slash). Used for login link and for frontend JS.
@@ -362,15 +362,30 @@ def _register_routes(app):
         """Runtime operations dashboard for active runs and transcripts (alternate URL)."""
         return render_template("manage/game_operations.html")
 
+    @app.route("/manage/inspector-workbench")
+    def manage_inspector_workbench():
+        """Canonical unified Inspector Suite workbench."""
+        return render_template("manage/inspector_workbench.html")
+
     @app.route("/manage/ai-stack/governance")
     def manage_ai_stack_governance():
-        """AI stack observability and governance evidence (session diagnostics, improvement packages)."""
-        return render_template("manage/ai_stack_governance.html")
+        """Legacy path redirected permanently to canonical Inspector workbench."""
+        return redirect(url_for("manage_inspector_workbench"), code=308)
 
     @app.route("/manage/ai-stack-governance")
     def manage_ai_stack_governance_alt():
-        """Alternate URL for AI stack governance view."""
-        return render_template("manage/ai_stack_governance.html")
+        """Legacy alias redirected permanently to canonical Inspector workbench."""
+        return redirect(url_for("manage_inspector_workbench"), code=308)
+
+    @app.route("/manage/inspector-suite")
+    def manage_inspector_suite():
+        """Legacy path redirected permanently to canonical Inspector workbench."""
+        return redirect(url_for("manage_inspector_workbench"), code=308)
+
+    @app.route("/manage/inspector-suite/turn")
+    def manage_inspector_suite_turn():
+        """Legacy alias redirected permanently to canonical Inspector workbench."""
+        return redirect(url_for("manage_inspector_workbench"), code=308)
 
     @app.route("/manage/data")
     def manage_data():

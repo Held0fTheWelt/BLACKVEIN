@@ -71,7 +71,8 @@ def test_roadmap_scenario_retrieval_heavy_governance_visible(tmp_path: Path) -> 
     registry = build_default_registry()
     routing = RoutingPolicy(registry)
     adapter = _JsonAdapter(
-        "The table goes quiet; retrieved notes on prior insults shape how the host answers you."
+        "Michel's voice rises at the table; he demands you explain why you insulted him and justify "
+        "your motive while blame stays sharp, the room tight and quiet as retrieved notes on prior insults shape the moment."
     )
     merged = {"mock": adapter, "openai": adapter, "ollama": adapter}
     graph = RuntimeTurnGraphExecutor(

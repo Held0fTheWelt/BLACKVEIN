@@ -33,7 +33,7 @@ from conftest import captured_templates
         ("/manage/forum", "manage/forum.html"),
         ("/manage/game-content", "manage/game_content.html"),
         ("/manage/game-operations", "manage/game_operations.html"),
-        ("/manage/ai-stack-governance", "manage/ai_stack_governance.html"),
+        ("/manage/inspector-workbench", "manage/inspector_workbench.html"),
         ("/manage/diagnosis", "manage/diagnosis.html"),
         ("/manage/play-service-control", "manage/play_service_control.html"),
         ("/manage/analytics", "manage_analytics.html"),

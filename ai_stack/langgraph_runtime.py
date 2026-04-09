@@ -42,11 +42,19 @@ from ai_stack.goc_yaml_authority import (
     load_goc_yaml_slice_bundle,
     scene_guidance_snippets,
 )
+from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.scene_director_goc import (
     build_pacing_and_silence,
     build_responder_and_function,
     build_scene_assessment,
+    prior_continuity_classes,
 )
+from ai_stack.scene_plan_contract import ScenePlanRecord
+from ai_stack.semantic_move_contract import SemanticMoveRecord
+from ai_stack.semantic_move_interpretation_goc import interpret_goc_semantic_move, semantic_move_fingerprint
+from ai_stack.social_state_contract import SocialStateRecord
+from ai_stack.social_state_goc import build_social_state_record, social_state_fingerprint
+from ai_stack.dramatic_effect_gate import build_evaluation_context_from_runtime_state
 from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_turn_seams import (
     build_diagnostics_refs,
@@ -132,6 +140,12 @@ class RuntimeTurnState(TypedDict, total=False):
     turn_initiator_type: str
     turn_input_class: str
     turn_execution_mode: str
+    # Bounded semantic planner state (phases 0–4); advisory until validation/commit.
+    semantic_move_record: dict[str, Any]
+    social_state_record: dict[str, Any]
+    character_mind_records: list[dict[str, Any]]
+    scene_plan_record: dict[str, Any]
+    dramatic_effect_outcome: dict[str, Any]
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"
@@ -398,32 +412,103 @@ class RuntimeTurnGraphExecutor:
         update = _track(state, node_name="director_assess_scene")
         module_id = state.get("module_id") or ""
         yaml_blob = state.get("goc_canonical_yaml") if isinstance(state.get("goc_canonical_yaml"), dict) else None
+        interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        interpreted_move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
+        prior_early = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else None
+        pc_early = prior_continuity_classes(prior_early)
         if module_id != GOC_MODULE_ID:
-            update["scene_assessment"] = {
+            placeholder = {
                 "scene_core": "non_goc_placeholder",
                 "pressure_state": "unknown",
                 "module_slice": module_id,
             }
+            update["scene_assessment"] = placeholder
+            sem_e = interpret_goc_semantic_move(
+                module_id=module_id,
+                player_input=state.get("player_input") or "",
+                interpreted_input=interpreted_input,
+                interpreted_move=interpreted_move,
+                prior_continuity_classes=pc_early,
+            )
+            soc_e = build_social_state_record(
+                prior_continuity_impacts=prior_early,
+                active_narrative_threads=state.get("active_narrative_threads")
+                if isinstance(state.get("active_narrative_threads"), list)
+                else None,
+                thread_pressure_summary=state.get("thread_pressure_summary")
+                if isinstance(state.get("thread_pressure_summary"), str)
+                else None,
+                scene_assessment=placeholder,
+            )
+            update["semantic_move_record"] = sem_e.to_runtime_dict()
+            update["social_state_record"] = soc_e.to_runtime_dict()
             return update
         if not yaml_blob:
             markers = list(state.get("failure_markers") or [])
             markers.append({"failure_class": "missing_scene_director", "note": "goc_canonical_yaml_missing"})
             update["failure_markers"] = markers
-            update["scene_assessment"] = {
+            unresolved = {
                 "scene_core": "goc_unresolved",
                 "pressure_state": "unknown",
                 "module_slice": module_id,
             }
+            update["scene_assessment"] = unresolved
+            sem_u = interpret_goc_semantic_move(
+                module_id=module_id,
+                player_input=state.get("player_input") or "",
+                interpreted_input=interpreted_input,
+                interpreted_move=interpreted_move,
+                prior_continuity_classes=pc_early,
+            )
+            soc_u = build_social_state_record(
+                prior_continuity_impacts=prior_early,
+                active_narrative_threads=state.get("active_narrative_threads")
+                if isinstance(state.get("active_narrative_threads"), list)
+                else None,
+                thread_pressure_summary=state.get("thread_pressure_summary")
+                if isinstance(state.get("thread_pressure_summary"), str)
+                else None,
+                scene_assessment=unresolved,
+            )
+            update["semantic_move_record"] = sem_u.to_runtime_dict()
+            update["social_state_record"] = soc_u.to_runtime_dict()
             return update
         prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else None
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else None
-        update["scene_assessment"] = build_scene_assessment(
+        interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        interpreted_move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
+        base_sa = build_scene_assessment(
             module_id=module_id,
             current_scene_id=state.get("current_scene_id") or "",
             canonical_yaml=yaml_blob,
             prior_continuity_impacts=prior,
             yaml_slice=yslice,
         )
+        pc = prior_continuity_classes(prior)
+        sem_model = interpret_goc_semantic_move(
+            module_id=module_id,
+            player_input=state.get("player_input") or "",
+            interpreted_input=interpreted_input,
+            interpreted_move=interpreted_move,
+            prior_continuity_classes=pc,
+        )
+        sem_dict = sem_model.to_runtime_dict()
+        soc_model = build_social_state_record(
+            prior_continuity_impacts=prior,
+            active_narrative_threads=state.get("active_narrative_threads")
+            if isinstance(state.get("active_narrative_threads"), list)
+            else None,
+            thread_pressure_summary=state.get("thread_pressure_summary")
+            if isinstance(state.get("thread_pressure_summary"), str)
+            else None,
+            scene_assessment=base_sa,
+        )
+        soc_dict = soc_model.to_runtime_dict()
+        base_sa["semantic_move_fingerprint"] = semantic_move_fingerprint(sem_model)
+        base_sa["social_state_fingerprint"] = social_state_fingerprint(soc_model)
+        update["scene_assessment"] = base_sa
+        update["semantic_move_record"] = sem_dict
+        update["social_state_record"] = soc_dict
         return update
 
     def _director_select_dramatic_parameters(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -441,10 +526,21 @@ class RuntimeTurnGraphExecutor:
             update["selected_scene_function"] = "establish_pressure"
             update["pacing_mode"] = pacing
             update["silence_brevity_decision"] = silence
+            update["character_mind_records"] = []
+            update["scene_plan_record"] = ScenePlanRecord(
+                selected_scene_function="establish_pressure",
+                selected_responder_set=[],
+                pacing_mode=pacing,
+                silence_brevity_decision=dict(silence),
+                planner_rationale_codes=["non_goc_slice"],
+                selection_source="non_goc_slice",
+            ).to_runtime_dict()
             return update
         prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else None
         yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else None
         base_sa = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
+        sem_rec = state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else None
+        soc_rec = state.get("social_state_record") if isinstance(state.get("social_state_record"), dict) else None
         responders, scene_fn, _implied, resolution = build_responder_and_function(
             player_input=player_input,
             interpreted_move=interpreted_move,
@@ -452,6 +548,8 @@ class RuntimeTurnGraphExecutor:
             prior_continuity_impacts=prior,
             yaml_slice=yslice,
             current_scene_id=state.get("current_scene_id") or "",
+            semantic_move_record=sem_rec,
+            social_state_record=soc_rec,
         )
         merged_sa = {**base_sa, "multi_pressure_resolution": resolution}
         update["scene_assessment"] = merged_sa
@@ -459,6 +557,52 @@ class RuntimeTurnGraphExecutor:
         update["selected_scene_function"] = scene_fn
         update["pacing_mode"] = pacing
         update["silence_brevity_decision"] = silence
+        primary = responders[0] if responders and isinstance(responders[0], dict) else {}
+        active_keys = ["veronique", "michel", "annette", "alain"]
+        if primary.get("actor_id"):
+            aid = str(primary["actor_id"])
+            if "veronique" in aid:
+                active_keys = ["veronique", "michel", "annette", "alain"]
+            elif "michel" in aid:
+                active_keys = ["michel", "veronique", "annette", "alain"]
+            elif "annette" in aid:
+                active_keys = ["annette", "alain", "veronique", "michel"]
+            elif "alain" in aid:
+                active_keys = ["alain", "annette", "veronique", "michel"]
+        mind_models = build_character_mind_records_for_goc(
+            yaml_slice=yslice,
+            active_character_keys=active_keys,
+            current_scene_id=state.get("current_scene_id") or "",
+        )
+        mind_dicts = [m.to_runtime_dict() for m in mind_models]
+        update["character_mind_records"] = mind_dicts
+        sem_fp = ""
+        soc_fp = ""
+        if sem_rec:
+            try:
+                sem_fp = semantic_move_fingerprint(SemanticMoveRecord.model_validate(sem_rec))
+            except Exception:
+                sem_fp = str(sem_rec.get("move_type", ""))[:32]
+        if soc_rec:
+            try:
+                soc_fp = social_state_fingerprint(SocialStateRecord.model_validate(soc_rec))
+            except Exception:
+                soc_fp = ""
+        rationale_codes: list[str] = [
+            str(resolution.get("selection_source") or "unknown"),
+            f"scene_fn:{scene_fn}",
+        ]
+        scene_plan = ScenePlanRecord(
+            selected_scene_function=scene_fn,
+            selected_responder_set=list(responders),
+            pacing_mode=pacing,
+            silence_brevity_decision=dict(silence),
+            planner_rationale_codes=rationale_codes,
+            semantic_move_fingerprint=sem_fp,
+            social_state_fingerprint=soc_fp,
+            selection_source=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
+        )
+        update["scene_plan_record"] = scene_plan.to_runtime_dict()
         return update
 
     def _route_model(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -625,17 +769,36 @@ class RuntimeTurnGraphExecutor:
         generation = state.get("generation") or {}
         proposed = list(state.get("proposed_state_effects") or [])
         silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
+        narr = extract_proposed_narrative_text(proposed)
+        eval_ctx = build_evaluation_context_from_runtime_state(
+            module_id=str(state.get("module_id") or ""),
+            proposed_narrative=narr,
+            selected_scene_function=str(state.get("selected_scene_function") or "establish_pressure"),
+            pacing_mode=str(state.get("pacing_mode") or "standard"),
+            silence_brevity_decision=dict(silence),
+            semantic_move_record=state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else None,
+            social_state_record=state.get("social_state_record") if isinstance(state.get("social_state_record"), dict) else None,
+            character_mind_records=list(state.get("character_mind_records") or [])
+            if isinstance(state.get("character_mind_records"), list)
+            else [],
+            scene_plan_record=state.get("scene_plan_record") if isinstance(state.get("scene_plan_record"), dict) else None,
+            prior_continuity_impacts=list(state.get("prior_continuity_impacts") or [])
+            if isinstance(state.get("prior_continuity_impacts"), list)
+            else [],
+            selected_responder_set=list(state.get("selected_responder_set") or [])
+            if isinstance(state.get("selected_responder_set"), list)
+            else [],
+        )
         outcome = run_validation_seam(
             module_id=state.get("module_id") or "",
             proposed_state_effects=proposed,
             generation=generation if isinstance(generation, dict) else {},
-            director_context={
-                "selected_scene_function": state.get("selected_scene_function") or "",
-                "pacing_mode": state.get("pacing_mode") or "",
-                "silence_brevity_decision": silence,
-            },
+            evaluation_context=eval_ctx,
         )
         update["validation_outcome"] = outcome
+        geo = outcome.get("dramatic_effect_gate_outcome")
+        if isinstance(geo, dict):
+            update["dramatic_effect_outcome"] = geo
         return update
 
     def _commit_seam(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -824,9 +987,13 @@ class RuntimeTurnGraphExecutor:
             fallback_path_taken=fallback_taken,
         )
         vo = validation
+        reason_str = str(vo.get("reason") or "")
+        dramatic_quality_reject = reason_str.startswith("dramatic_alignment") or reason_str.startswith(
+            "dramatic_effect_"
+        )
         alignment_note = "alignment_ok"
-        if vo.get("status") == "rejected" and str(vo.get("reason", "")).startswith("dramatic_alignment"):
-            alignment_note = f"alignment_reject:{vo.get('reason')}"
+        if vo.get("status") == "rejected" and dramatic_quality_reject:
+            alignment_note = f"alignment_reject:{reason_str}"
         prior_ci = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
         sa = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
         mpr = sa.get("multi_pressure_resolution") if isinstance(sa.get("multi_pressure_resolution"), dict) else {}
@@ -859,7 +1026,7 @@ class RuntimeTurnGraphExecutor:
             and similar_move
         )
         quality_status = "pass"
-        if vo.get("status") == "rejected" and str(vo.get("reason", "")).startswith("dramatic_alignment"):
+        if vo.get("status") == "rejected" and dramatic_quality_reject:
             quality_status = "fail"
         elif vo.get("status") != "approved" or "truth_aligned" not in (state.get("visibility_class_markers") or []):
             quality_status = "degraded_explainable"
@@ -911,6 +1078,9 @@ class RuntimeTurnGraphExecutor:
                 "director_heuristic_trace": [str(x) for x in heuristic_trace][:16],
                 "validation_reason": vo.get("reason"),
                 "dramatic_alignment_summary": alignment_note,
+                "dramatic_effect_gate_outcome": state.get("dramatic_effect_outcome"),
+                "dramatic_quality_gate": vo.get("dramatic_quality_gate"),
+                "dramatic_effect_weak_signal": vo.get("dramatic_effect_weak_signal"),
                 "dramatic_signature": dramatic_signature,
                 "pattern_repetition_risk": stale_pattern,
                 "pattern_repetition_note": (
@@ -949,6 +1119,13 @@ class RuntimeTurnGraphExecutor:
                         + ",".join(str(x.get("class")) for x in prior_ci if isinstance(x, dict) and x.get("class"))
                     ),
                 },
+            },
+            "planner_state_projection": {
+                "semantic_move_record": state.get("semantic_move_record"),
+                "social_state_record": state.get("social_state_record"),
+                "character_mind_records": state.get("character_mind_records"),
+                "scene_plan_record": state.get("scene_plan_record"),
+                "note": "Derived projection of RuntimeTurnState planner fields — not a second truth surface.",
             },
         }
         update["graph_diagnostics"] = gd

@@ -1,0 +1,171 @@
+{% extends "manage/base.html" %}
+{% block title %}Inspector Suite{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+{% endblock %}
+{% block content %}
+<section class="manage-section inspector-suite" data-page="inspector-suite">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Read-only diagnostics</p>
+            <h1>Inspector Suite</h1>
+            <p class="manage-lead">
+                Canonical single-turn diagnostic projections from backend ownership.
+                This workbench renders backend projection truth and does not infer runtime semantics in the browser.
+            </p>
+        </div>
+    </div>
+
+    <section class="panel" style="margin-bottom: 1rem;">
+        <header class="panel-header">
+            <h2>Turn source</h2>
+            <p>Calls <code>GET /api/v1/admin/ai-stack/inspector/turn/&lt;session_id&gt;?mode=canonical|raw</code>.</p>
+        </header>
+        <div class="manage-actions-row">
+            <div class="form-row" style="min-width: 18rem; flex: 1;">
+                <label class="field-label" for="inspector-session-id">Backend session id</label>
+                <input type="text" id="inspector-session-id" class="field-input" placeholder="session uuid" autocomplete="off" />
+            </div>
+            <div class="form-row" style="min-width: 12rem;">
+                <label class="field-label" for="inspector-mode">Read mode</label>
+                <select id="inspector-mode" class="field-input">
+                    <option value="canonical" selected>canonical</option>
+                    <option value="raw">raw</option>
+                </select>
+            </div>
+            <button class="btn" id="inspector-load-turn" type="button">Load turn projection</button>
+        </div>
+        <p id="inspector-load-state" class="manage-state" aria-live="polite"></p>
+    </section>
+
+    <div class="inspector-tabbar" role="tablist" aria-label="Inspector Suite sections">
+        <button type="button" class="inspector-tab active" id="inspector-tab-turn" data-panel="inspector-panel-turn" aria-selected="true">Turn Inspector</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-timeline" data-panel="inspector-panel-timeline" aria-selected="false">Timeline</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-comparison" data-panel="inspector-panel-comparison" aria-selected="false">Comparison</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-coverage" data-panel="inspector-panel-coverage" aria-selected="false">Coverage / Health</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-provenance-raw" data-panel="inspector-panel-provenance-raw" aria-selected="false">Provenance / Raw Inspector</button>
+    </div>
+
+    <section class="panel inspector-panel" id="inspector-panel-turn" data-inspector-panel>
+        <header class="panel-header">
+            <h2>Turn Inspector</h2>
+            <p>Single-turn canonical diagnostic projection (Mermaid is a subordinate view).</p>
+        </header>
+
+        <div class="manage-grid two-col">
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Decision summary</h3>
+                </header>
+                <div id="inspector-decision-summary" class="inspector-kv-grid">
+                    <p class="manage-empty">Load a canonical turn projection to inspect decision summary.</p>
+                </div>
+            </section>
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Authority boundary</h3>
+                </header>
+                <div id="inspector-authority-boundary" class="inspector-kv-grid">
+                    <p class="manage-empty">No data loaded.</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="manage-grid two-col">
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Planner state</h3>
+                </header>
+                <pre id="inspector-planner-state" class="code-block"></pre>
+            </section>
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Mermaid decision flow</h3>
+                </header>
+                <div id="inspector-mermaid-host" class="inspector-mermaid-host">
+                    <p class="manage-empty">No flow data loaded.</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="manage-grid two-col">
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Gate outcome</h3>
+                </header>
+                <pre id="inspector-gate-outcome" class="code-block"></pre>
+            </section>
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Validation outcome</h3>
+                </header>
+                <pre id="inspector-validation-outcome" class="code-block"></pre>
+            </section>
+        </div>
+
+        <div class="manage-grid two-col">
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Fallback status</h3>
+                </header>
+                <pre id="inspector-fallback-status" class="code-block"></pre>
+            </section>
+            <section class="panel">
+                <header class="panel-header">
+                    <h3>Rejection analysis</h3>
+                </header>
+                <pre id="inspector-rejection-analysis" class="code-block"></pre>
+            </section>
+        </div>
+
+        <section class="panel">
+            <header class="panel-header">
+                <h3>Provenance projection</h3>
+            </header>
+            <pre id="inspector-provenance" class="code-block"></pre>
+        </section>
+
+        <section class="panel">
+            <header class="panel-header">
+                <h3>Raw JSON inspector</h3>
+            </header>
+            <pre id="inspector-raw-json" class="code-block"></pre>
+        </section>
+    </section>
+
+    <section class="panel inspector-panel" id="inspector-panel-timeline" data-inspector-panel hidden>
+        <header class="panel-header">
+            <h2>Timeline</h2>
+            <p>Reserved for future multi-turn diagnostics. Not implemented in M1.</p>
+        </header>
+        <p class="manage-empty">Timeline analytics are intentionally out of scope for this slice.</p>
+    </section>
+
+    <section class="panel inspector-panel" id="inspector-panel-comparison" data-inspector-panel hidden>
+        <header class="panel-header">
+            <h2>Comparison</h2>
+            <p>Reserved for run-vs-run comparison. Not implemented in M1.</p>
+        </header>
+        <p class="manage-empty">Comparison engine is reserved and not claimed as implemented.</p>
+    </section>
+
+    <section class="panel inspector-panel" id="inspector-panel-coverage" data-inspector-panel hidden>
+        <header class="panel-header">
+            <h2>Coverage / Health</h2>
+            <p>Reserved for broader semantic coverage and health views. Not implemented in M1.</p>
+        </header>
+        <p class="manage-empty">Coverage/health aggregate views are intentionally deferred.</p>
+    </section>
+
+    <section class="panel inspector-panel" id="inspector-panel-provenance-raw" data-inspector-panel hidden>
+        <header class="panel-header">
+            <h2>Provenance / Raw Inspector</h2>
+            <p>Reserved for richer provenance drilldown and raw evidence tooling. Not implemented in M1.</p>
+        </header>
+        <p class="manage-empty">Use Turn Inspector raw JSON section for current M1 evidence readout.</p>
+    </section>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_inspector_suite.js') }}"></script>
+{% endblock %}

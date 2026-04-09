@@ -48,6 +48,17 @@ def test_admin_ai_stack_closure_cockpit_rejects_post(client, moderator_headers) 
     assert r.status_code in {405, 404}
 
 
+def test_admin_ai_stack_inspector_extended_routes_reject_post(client, moderator_headers) -> None:
+    for path in (
+        "/api/v1/admin/ai-stack/inspector/timeline/test-session",
+        "/api/v1/admin/ai-stack/inspector/comparison/test-session",
+        "/api/v1/admin/ai-stack/inspector/coverage-health/test-session",
+        "/api/v1/admin/ai-stack/inspector/provenance-raw/test-session",
+    ):
+        r = client.post(path, json={"semantic_patch": True}, headers=moderator_headers)
+        assert r.status_code in {405, 404}
+
+
 def test_game_admin_no_hypothetical_semantic_registry_write_route(client, moderator_headers) -> None:
     """Control-plane routes exist; semantic registry mutation is not an admin POST surface."""
     r = client.post(

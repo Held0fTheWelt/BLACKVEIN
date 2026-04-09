@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ai_stack.goc_dramatic_alignment import dramatic_alignment_violation, extract_proposed_narrative_text
+from ai_stack.dramatic_effect_contract import DramaticEffectEvaluationContext
+from ai_stack.dramatic_effect_gate import evaluate_dramatic_effect_gate, validation_reason_for_outcome
+from ai_stack.goc_dramatic_alignment import extract_proposed_narrative_text
 from ai_stack.goc_field_initialization_envelope import (
     SETTER_SURFACE_RUNTIME_HOST_SESSION,
     goc_uninitialized_field_envelope,
@@ -80,7 +82,7 @@ def run_validation_seam(
     module_id: str,
     proposed_state_effects: list[dict[str, Any]],
     generation: dict[str, Any],
-    director_context: dict[str, Any] | None = None,
+    evaluation_context: DramaticEffectEvaluationContext | None = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text (CANONICAL_TURN_CONTRACT_GOC.md §2.1)."""
     if module_id != GOC_MODULE_ID:
@@ -110,27 +112,67 @@ def run_validation_seam(
                 "validator_lane": "goc_rule_engine_v1",
             }
 
-    ctx = director_context if isinstance(director_context, dict) else {}
     narr = extract_proposed_narrative_text(proposed_state_effects)
-    viol = dramatic_alignment_violation(
-        selected_scene_function=str(ctx.get("selected_scene_function") or "establish_pressure"),
-        pacing_mode=str(ctx.get("pacing_mode") or "standard"),
-        silence_brevity_decision=ctx.get("silence_brevity_decision")
-        if isinstance(ctx.get("silence_brevity_decision"), dict)
-        else None,
-        proposed_narrative=narr,
-    )
-    if viol:
+    ctx = evaluation_context
+    if ctx is None:
+        ctx = DramaticEffectEvaluationContext(
+            module_id=module_id,
+            proposed_narrative=narr,
+            selected_scene_function="establish_pressure",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+        )
+    elif ctx.proposed_narrative.strip() != narr.strip():
+        ctx = ctx.model_copy(update={"proposed_narrative": narr})
+
+    gate_out = evaluate_dramatic_effect_gate(ctx)
+    gate_dict = gate_out.to_runtime_dict()
+    base: dict[str, Any] = {
+        "dramatic_effect_gate_outcome": gate_dict,
+        "validator_lane": "goc_rule_engine_v1",
+    }
+
+    gr = gate_out.gate_result.value
+    if gr == "not_supported":
         return {
+            **base,
             "status": "rejected",
-            "reason": viol,
-            "dramatic_quality_gate": "alignment_reject",
-            "validator_lane": "goc_rule_engine_v1",
+            "reason": "dramatic_effect_gate_not_supported",
+            "dramatic_quality_gate": "effect_gate_not_supported",
         }
+
+    if gr in (
+        "rejected_empty_fluency",
+        "rejected_character_implausibility",
+        "rejected_scene_function_mismatch",
+        "rejected_continuity_pressure",
+    ):
+        if gate_out.legacy_fallback_used and gate_out.rejection_reasons:
+            reason = gate_out.rejection_reasons[0]
+        else:
+            reason = validation_reason_for_outcome(gate_out) or "dramatic_effect_reject_unknown"
+        return {
+            **base,
+            "status": "rejected",
+            "reason": reason,
+            "dramatic_quality_gate": "effect_gate_reject",
+        }
+
+    if gr == "accepted_with_weak_signal":
+        return {
+            **base,
+            "status": "approved",
+            "reason": "goc_default_validator_pass",
+            "dramatic_quality_gate": "effect_gate_weak_signal",
+            "dramatic_effect_weak_signal": True,
+        }
+
     return {
+        **base,
         "status": "approved",
         "reason": "goc_default_validator_pass",
-        "validator_lane": "goc_rule_engine_v1",
+        "dramatic_quality_gate": "effect_gate_pass",
+        "dramatic_effect_weak_signal": False,
     }
 
 
@@ -470,6 +512,10 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
             "turn_input_class": state.get("turn_input_class"),
             "turn_execution_mode": state.get("turn_execution_mode"),
         },
+        "semantic_move_record": state.get("semantic_move_record"),
+        "social_state_record": state.get("social_state_record"),
+        "character_mind_records": state.get("character_mind_records"),
+        "scene_plan_record": state.get("scene_plan_record"),
         "interpreted_move": state.get("interpreted_move"),
         "scene_assessment": state.get("scene_assessment"),
         "selected_responder_set": state.get("selected_responder_set"),
@@ -478,6 +524,7 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
         "silence_brevity_decision": state.get("silence_brevity_decision"),
         "proposed_state_effects": state.get("proposed_state_effects"),
         "validation_outcome": state.get("validation_outcome"),
+        "dramatic_effect_outcome": state.get("dramatic_effect_outcome"),
         "committed_result": state.get("committed_result"),
         "visible_output_bundle": state.get("visible_output_bundle"),
         "continuity_impacts": state.get("continuity_impacts"),

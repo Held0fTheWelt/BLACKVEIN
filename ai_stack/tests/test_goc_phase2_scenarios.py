@@ -188,8 +188,10 @@ def test_anti_seductive_fluent_empty_rejected(tmp_path: Path) -> None:
     assert result.get("selected_scene_function") == "escalate_conflict"
     vo = result.get("validation_outcome") or {}
     assert vo.get("status") == "rejected"
-    assert str(vo.get("reason", "")).startswith("dramatic_alignment")
-    assert vo.get("dramatic_quality_gate") == "alignment_reject"
+    assert str(vo.get("reason", "")).startswith("dramatic_effect_") or str(vo.get("reason", "")).startswith(
+        "dramatic_alignment"
+    )
+    assert vo.get("dramatic_quality_gate") == "effect_gate_reject"
     assert gate_dramatic_quality(result) == "fail"
     dr = (result.get("graph_diagnostics") or {}).get("dramatic_review") or {}
     assert "alignment_reject" in str(dr.get("dramatic_alignment_summary") or "")

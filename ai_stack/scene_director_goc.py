@@ -184,20 +184,162 @@ def _yaml_default_responder(
     return "annette_reille", "default_pressure_bearer"
 
 
-def build_responder_and_function(
+def semantic_move_to_scene_candidates(
     *,
+    move_type: str,
+    pacing_mode: str,
+    prior_classes: list[str],
     player_input: str,
     interpreted_move: dict[str, Any],
-    pacing_mode: str,
-    prior_continuity_impacts: list[dict[str, Any]] | None = None,
-    yaml_slice: dict[str, Any] | None = None,
-    current_scene_id: str = "",
-) -> tuple[list[dict[str, Any]], str, dict[str, str], dict[str, Any]]:
-    """Choose responder set, scene function, implied continuity map, and multi-pressure resolution record."""
+) -> tuple[list[str], dict[str, str], list[str]]:
+    """Map semantic move_type to scene-function candidates — planner-primary (not keyword surface)."""
     text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
     move_class = str(interpreted_move.get("move_class") or "").lower()
     intent = str(interpreted_move.get("player_intent") or "").lower()
-    prior_classes = prior_continuity_classes(prior_continuity_impacts)
+    implied: dict[str, str] = {}
+    candidates: list[str] = []
+    heuristic_trace: list[str] = []
+
+    if pacing_mode == "containment":
+        candidates.append("scene_pivot")
+        implied["scene_pivot"] = "refused_cooperation"
+        heuristic_trace.append("semantic:pacing_containment->scene_pivot")
+        return candidates, implied, heuristic_trace
+
+    if move_type == "competing_repair_and_reveal":
+        candidates.append("repair_or_stabilize")
+        implied["repair_or_stabilize"] = "repair_attempt"
+        candidates.append("reveal_surface")
+        implied["reveal_surface"] = "revealed_fact"
+        heuristic_trace.append("semantic:competing_repair_and_reveal->repair_plus_reveal_candidates")
+        _merge_continuity_supplements(
+            candidates,
+            implied,
+            heuristic_trace,
+            prior_classes,
+            text,
+            move_class,
+            intent,
+            player_input,
+            pacing_mode,
+        )
+        return candidates, implied, heuristic_trace
+
+    if pacing_mode == "thin_edge":
+        if move_type == "silence_withdrawal":
+            candidates.append("withhold_or_evade")
+            implied["withhold_or_evade"] = "silent_carry"
+            heuristic_trace.append("semantic:thin_edge+silence_withdrawal->withhold_or_evade")
+        elif "silent" in text or "say nothing" in text:
+            candidates.append("withhold_or_evade")
+            implied["withhold_or_evade"] = "silent_carry"
+            heuristic_trace.append("semantic:thin_edge_silence_compat->withhold_or_evade")
+        else:
+            candidates.append("establish_pressure")
+            implied["establish_pressure"] = "situational_pressure"
+            heuristic_trace.append("semantic:thin_edge_default->establish_pressure")
+        _merge_continuity_supplements(
+            candidates,
+            implied,
+            heuristic_trace,
+            prior_classes,
+            text,
+            move_class,
+            intent,
+            player_input,
+            pacing_mode,
+        )
+        return candidates, implied, heuristic_trace
+
+    primary_map: dict[str, tuple[str, str]] = {
+        "off_scope_containment": ("scene_pivot", "refused_cooperation"),
+        "silence_withdrawal": ("withhold_or_evade", "silent_carry"),
+        "repair_attempt": ("repair_or_stabilize", "repair_attempt"),
+        "direct_accusation": ("redirect_blame", "blame_pressure"),
+        "indirect_provocation": ("escalate_conflict", "situational_pressure"),
+        "evasive_deflection": ("withhold_or_evade", "silent_carry"),
+        "humiliating_exposure": ("redirect_blame", "dignity_injury"),
+        "alliance_reposition": ("scene_pivot", "alliance_shift"),
+        "probe_inquiry": ("probe_motive", "situational_pressure"),
+        "escalation_threat": ("escalate_conflict", "situational_pressure"),
+        "reveal_surface": ("reveal_surface", "revealed_fact"),
+        "establish_situational_pressure": ("establish_pressure", "situational_pressure"),
+    }
+    fn, cont = primary_map.get(move_type, ("establish_pressure", "situational_pressure"))
+    candidates.append(fn)
+    implied[fn] = cont
+    heuristic_trace.append(f"semantic:move_type={move_type}->{fn}")
+
+    _merge_continuity_supplements(
+        candidates,
+        implied,
+        heuristic_trace,
+        prior_classes,
+        text,
+        move_class,
+        intent,
+        player_input,
+        pacing_mode,
+    )
+
+    if not candidates:
+        candidates.append("establish_pressure")
+        implied["establish_pressure"] = "situational_pressure"
+        heuristic_trace.append("semantic:fallback_empty->establish_pressure")
+
+    return candidates, implied, heuristic_trace
+
+
+def _merge_continuity_supplements(
+    candidates: list[str],
+    implied: dict[str, str],
+    heuristic_trace: list[str],
+    prior_classes: list[str],
+    text: str,
+    move_class: str,
+    intent: str,
+    player_input: str,
+    pacing_mode: str,
+) -> None:
+    """Add carry-forward and structural nudges (bounded compatibility layer)."""
+    if (
+        ("question" in move_class or "question" in intent or player_input.strip().endswith("?"))
+        and "probe_motive" not in candidates
+        and pacing_mode != "containment"
+    ):
+        candidates.append("probe_motive")
+        implied["probe_motive"] = "situational_pressure"
+        heuristic_trace.append("compat:question_shape->probe_motive")
+
+    if "blame_pressure" in prior_classes and not candidates:
+        candidates.append("redirect_blame")
+        implied["redirect_blame"] = "blame_pressure"
+        heuristic_trace.append("continuity:blame_pressure_fallback->redirect_blame")
+    if "dignity_injury" in prior_classes and not candidates:
+        candidates.append("redirect_blame")
+        implied["redirect_blame"] = "dignity_injury"
+        heuristic_trace.append("continuity:dignity_injury_fallback->redirect_blame")
+    if "alliance_shift" in prior_classes and "probe_motive" not in candidates and "why" in text:
+        candidates.append("probe_motive")
+        implied["probe_motive"] = "alliance_shift"
+        heuristic_trace.append("continuity:alliance_shift_nudge->probe_motive")
+    if "blame_pressure" in prior_classes and "redirect_blame" not in candidates and "watch" in text:
+        candidates.append("redirect_blame")
+        implied["redirect_blame"] = "blame_pressure"
+        heuristic_trace.append("continuity:watch_under_blame->redirect_blame")
+
+
+def _legacy_keyword_scene_candidates(
+    *,
+    pacing_mode: str,
+    player_input: str,
+    interpreted_move: dict[str, Any],
+    prior_classes: list[str],
+) -> tuple[list[str], dict[str, str], list[str]]:
+    """Pre-semantic keyword/tie-break heuristic — bounded fallback only when semantic record absent."""
+    text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
+    move_class = str(interpreted_move.get("move_class") or "").lower()
+    intent = str(interpreted_move.get("player_intent") or "").lower()
     implied: dict[str, str] = {}
     candidates: list[str] = []
     heuristic_trace: list[str] = []
@@ -309,8 +451,50 @@ def build_responder_and_function(
             implied["establish_pressure"] = "situational_pressure"
             heuristic_trace.append("default->establish_pressure")
 
+    return candidates, implied, heuristic_trace
+
+
+def build_responder_and_function(
+    *,
+    player_input: str,
+    interpreted_move: dict[str, Any],
+    pacing_mode: str,
+    prior_continuity_impacts: list[dict[str, Any]] | None = None,
+    yaml_slice: dict[str, Any] | None = None,
+    current_scene_id: str = "",
+    semantic_move_record: dict[str, Any] | None = None,
+    social_state_record: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], str, dict[str, str], dict[str, Any]]:
+    """Choose responder set, scene function, implied continuity map, and multi-pressure resolution record."""
+    text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
+    prior_classes = prior_continuity_classes(prior_continuity_impacts)
+    selection_source = "semantic_pipeline_v1"
+    if semantic_move_record and isinstance(semantic_move_record, dict) and semantic_move_record.get("move_type"):
+        move_type = str(semantic_move_record["move_type"])
+        candidates, implied, heuristic_trace = semantic_move_to_scene_candidates(
+            move_type=move_type,
+            pacing_mode=pacing_mode,
+            prior_classes=prior_classes,
+            player_input=player_input,
+            interpreted_move=interpreted_move,
+        )
+    else:
+        selection_source = "legacy_fallback"
+        candidates, implied, heuristic_trace = _legacy_keyword_scene_candidates(
+            pacing_mode=pacing_mode,
+            player_input=player_input,
+            interpreted_move=interpreted_move,
+            prior_classes=prior_classes,
+        )
+
     scene_fn = select_single_scene_function(candidates, implied_continuity_by_function=implied)
     assert_subdecision_label_in_matrix("scene_function", scene_fn)
+
+    semantic_trace_ref = ""
+    if semantic_move_record and isinstance(semantic_move_record.get("interpretation_trace"), list):
+        tr = semantic_move_record["interpretation_trace"]
+        if tr and isinstance(tr[0], dict) and tr[0].get("detail_code"):
+            semantic_trace_ref = str(tr[0].get("detail_code"))[:120]
 
     resolution: dict[str, Any] = {
         "candidates": list(candidates),
@@ -321,9 +505,23 @@ def build_responder_and_function(
             f"(carry_forward_classes={prior_classes}); tie-break lexicographic smallest label."
         ),
         "heuristic_trace": heuristic_trace[:16],
+        "selection_source": selection_source,
+        "semantic_move_trace_ref": semantic_trace_ref,
+        "social_state_asymmetry": (social_state_record or {}).get("responder_asymmetry_code")
+        if isinstance(social_state_record, dict)
+        else None,
     }
 
-    if "annette" in text:
+    hint = None
+    if semantic_move_record and isinstance(semantic_move_record.get("target_actor_hint"), str):
+        hint = semantic_move_record["target_actor_hint"]
+
+    if hint and (
+        hint.endswith("_reille") or hint.endswith("longstreet") or hint.endswith("vallon")
+    ):
+        actor = hint
+        reason = "semantic_target_actor_hint"
+    elif "annette" in text:
         actor = "annette_reille"
         reason = "named_in_player_move"
     elif "alain" in text:
@@ -342,7 +540,6 @@ def build_responder_and_function(
             scene_id=current_scene_id,
             selected_scene_function=scene_fn,
         )
-        # Pressure-specific default nudges preserve character identity under repeated pressure.
         if scene_fn == "redirect_blame" and "dignity_injury" in prior_classes:
             actor = "veronique_vallon"
             reason = "pressure_identity_bias:dignity_injury_host_reaction"

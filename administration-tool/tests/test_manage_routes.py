@@ -420,6 +420,7 @@ class TestManagementRoutesContextConsistency:
             "/manage/forum",
             "/manage/diagnosis",
             "/manage/play-service-control",
+            "/manage/inspector-workbench",
             "/users/1/profile",
         ],
     )
@@ -449,6 +450,7 @@ class TestManagementRoutesContextConsistency:
             "/manage/forum",
             "/manage/diagnosis",
             "/manage/play-service-control",
+            "/manage/inspector-workbench",
             "/users/1/profile",
         ],
     )

@@ -17,6 +17,7 @@ __pycache__/
 htmlcov/
 .pytest_cache/
 temp_tests_backup/
+_tmp_goc_dbg/
 *.egg-info/
 dist/
 build/

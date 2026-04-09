@@ -8,25 +8,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.4.1] - 2026-04-10
 
-**Summary**: **Inspector Suite final closure** — one canonical operator workbench in the administration tool, read-only multi-endpoint projections on the backend (timeline, bounded turn-to-turn comparison, coverage/health, provenance/raw), permanent redirects from legacy governance/inspector URLs, and committed architecture plus closure documentation.
+**Summary**: **Inspector Suite final closure** — one canonical operator workbench in the administration tool, read-only multi-endpoint projections on the backend (timeline, bounded turn-to-turn comparison, coverage/health, provenance/raw), permanent redirects from legacy governance/inspector URLs, and committed architecture plus closure documentation. This release also lands the **semantic dramatic planner contract modules and tests** in `ai_stack/` (character mind, social state, scene plan, semantic move interpretation, dramatic effect gate/surface) and wires them through existing GoC seams, LangGraph runtime, and scene director paths.
 
 ### Added
 
-- **Canonical Inspector workbench**: administration route `/manage/inspector-workbench` (`manage_inspector_workbench`), template and `manage_inspector_workbench.js`; single nav entry replaces separate AI Stack Governance and Inspector Suite links.
-- **Read-only Inspector APIs** (moderator/admin, `FEATURE_MANAGE_GAME_OPERATIONS`): `GET /api/v1/admin/ai-stack/inspector/timeline/<session_id>`, `.../comparison/<session_id>`, `.../coverage-health/<session_id>`, `.../provenance-raw/<session_id>` (`mode=canonical|raw` where applicable), with activity logging alongside existing turn projection.
-- **`inspector_projection_service`**: timeline rows from World-Engine diagnostics; mandatory session-scoped turn-to-turn comparison when at least two turns exist; coverage/health aggregates (gate/validation distributions, fallback frequency, rejection/rationale and unsupported/unavailable counters); provenance/raw drilldown with explicit canonical-vs-raw boundary.
-- **Contracts**: extended inspector schema version constants and `build_inspector_view_projection_root` for dedicated projection payloads.
-- **Documentation**: `docs/architecture/inspector_suite_canonical_workbench.md`, `docs/reports/INSPECTOR_SUITE_FINAL_CLOSURE_REPORT.md`.
+- **Canonical Inspector workbench**: `administration-tool/app.py` route `/manage/inspector-workbench` (`manage_inspector_workbench`); `templates/manage/inspector_workbench.html`; `static/manage_inspector_workbench.js`; `static/manage.css` updates for inspector/workbench chrome; `templates/manage/base.html` single nav entry (replaces separate AI Stack Governance + Inspector Suite links). Legacy shell assets retained as non-canonical references: `templates/manage/inspector_suite.html`, `static/manage_inspector_suite.js`.
+- **Read-only Inspector APIs** in `backend/app/api/v1/ai_stack_governance_routes.py` (moderator/admin, `FEATURE_MANAGE_GAME_OPERATIONS`): `GET /api/v1/admin/ai-stack/inspector/timeline/<session_id>`, `.../comparison/<session_id>`, `.../coverage-health/<session_id>`, `.../provenance-raw/<session_id>` (`mode=canonical|raw` where applicable), with activity logging alongside existing turn projection.
+- **`backend/app/services/inspector_projection_service.py`**: timeline rows from World-Engine diagnostics; mandatory session-scoped turn-to-turn comparison when at least two turns exist; coverage/health aggregates (gate/validation distributions, fallback frequency, rejection/rationale and unsupported/unavailable counters); provenance/raw drilldown with explicit canonical-vs-raw boundary.
+- **`backend/app/services/inspector_turn_projection_service.py`** and **`backend/app/contracts/inspector_turn_projection.py`**: turn projection assembly, extended schema version constants, `build_inspector_view_projection_root`; `backend/app/contracts/__init__.py` re-exports.
+- **Backend tests**: `backend/tests/test_inspector_turn_projection.py` (turn + new projection endpoints, read-only POST rejection); `backend/tests/test_goc_admin_semantic_boundary.py` extended for new inspector routes.
+- **Administration-tool tests**: `tests/test_manage_inspector_suite.py` (canonical workbench + 308 legacy matrix); updates to `test_manage_game_routes.py`, `test_manage_routes.py`, `test_routes.py`, `test_routes_and_rendering.py`.
+- **Documentation**: `docs/architecture/inspector_suite_canonical_workbench.md`, `docs/architecture/inspector_suite_m1_diagnostic_projection.md`, `docs/reports/INSPECTOR_SUITE_FINAL_CLOSURE_REPORT.md`.
+- **AI stack — semantic / dramatic planner surface (new modules)**: `character_mind_contract.py`, `character_mind_goc.py`, `social_state_contract.py`, `social_state_goc.py`, `scene_plan_contract.py`, `semantic_move_contract.py`, `semantic_move_interpretation_goc.py`, `semantic_planner_effect_surface.py`, `dramatic_effect_contract.py`, `dramatic_effect_gate.py`, plus tests `test_character_mind_goc.py`, `test_social_state_goc.py`, `test_semantic_move_interpretation_goc.py`, `test_semantic_planner_contracts.py`, `test_semantic_planner_golden_cases.py`, `test_semantic_planner_graph_authority.py`, `test_dramatic_effect_contract.py`, `test_dramatic_effect_gate.py`.
 
 ### Changed
 
 - **Legacy admin URLs** (`/manage/ai-stack/governance`, `/manage/ai-stack-governance`, `/manage/inspector-suite`, `/manage/inspector-suite/turn`) now respond with **308 Permanent Redirect** to `/manage/inspector-workbench`.
-- **Tests**: backend coverage for new inspector endpoints and read-only POST rejection; administration-tool route, redirect, nav, and workbench mountpoint contracts updated.
+- **AI stack runtime seams** (integration with planner/dramatic paths): `goc_turn_seams.py`, `langgraph_runtime.py`, `scene_director_goc.py`, `goc_dramatic_alignment.py`, `goc_gate_evaluation.py`; scenario tests `tests/test_goc_phase2_scenarios.py`, `tests/test_goc_retrieval_heavy_scenario.py`.
 
 ### Notes
 
 - UI remains render-only; raw evidence is inspection material only and is not used as canonical semantic truth in client logic.
 - Turn projection endpoint and existing session-evidence behavior are unchanged aside from the new sibling routes.
+- Local-only debug scratch `_tmp_goc_dbg/` is listed in `.gitignore` and not shipped with the release.
 
 ---
 

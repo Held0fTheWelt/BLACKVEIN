@@ -489,3 +489,63 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     overflow: auto;
     margin: 0 0 1rem 0;
 }
+
+/* Inspector Suite */
+.inspector-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.inspector-tab {
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font: inherit;
+}
+
+.inspector-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.inspector-panel {
+    margin-bottom: 1rem;
+}
+
+.inspector-kv-grid {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.inspector-kv-item {
+    display: grid;
+    grid-template-columns: minmax(10rem, 14rem) 1fr;
+    gap: 0.75rem;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.35rem;
+}
+
+.inspector-kv-key {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.inspector-kv-value {
+    word-break: break-word;
+}
+
+.inspector-mermaid-host {
+    min-height: 8rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    overflow: auto;
+    background: var(--void);
+}

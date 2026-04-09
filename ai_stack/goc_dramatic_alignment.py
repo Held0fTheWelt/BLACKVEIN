@@ -150,14 +150,18 @@ def _silence_mode(silence_brevity_decision: dict[str, Any] | None) -> str:
     return str(m) if m else "normal"
 
 
-def dramatic_alignment_violation(
+def dramatic_alignment_legacy_fallback_only(
     *,
     selected_scene_function: str,
     pacing_mode: str,
     silence_brevity_decision: dict[str, Any] | None,
     proposed_narrative: str,
 ) -> str | None:
-    """Return rejection reason code if alignment fails; None if OK."""
+    """Bounded legacy seam: length thresholds, withhold beat, meta-commentary bans only.
+
+    Does **not** perform scene-function token-list checks or generic-boilerplate primary logic;
+    those are owned by ``dramatic_effect_gate`` (planner-aware path).
+    """
     text = proposed_narrative.strip()
     sm = _silence_mode(silence_brevity_decision)
     low = text.lower()
@@ -185,16 +189,44 @@ def dramatic_alignment_violation(
     if len(text) < _MIN_CHARS_HIGH_STAKES:
         return "dramatic_alignment_insufficient_mass"
 
-    tokens = _FUNCTION_SUBSTRING_TOKENS.get(selected_scene_function, ())
-    if tokens and not any(t in low for t in tokens):
-        return "dramatic_alignment_no_function_support"
-
-    for phrase in _GENERIC_BOILERPLATE_PHRASES:
-        if phrase in low:
-            if tokens and any(t in low for t in tokens):
-                continue
-            return "dramatic_alignment_generic_boilerplate"
     if any(phrase in low for phrase in _COMMENTARY_META_PHRASES):
         return "dramatic_alignment_meta_commentary"
+
+    return None
+
+
+def dramatic_alignment_violation(
+    *,
+    selected_scene_function: str,
+    pacing_mode: str,
+    silence_brevity_decision: dict[str, Any] | None,
+    proposed_narrative: str,
+) -> str | None:
+    """Deprecated full surface path: legacy structural + token/boilerplate checks.
+
+    Prefer ``dramatic_effect_gate`` + ``dramatic_alignment_legacy_fallback_only`` for new code.
+    """
+    text = proposed_narrative.strip()
+    low = text.lower()
+    legacy = dramatic_alignment_legacy_fallback_only(
+        selected_scene_function=selected_scene_function,
+        pacing_mode=pacing_mode,
+        silence_brevity_decision=silence_brevity_decision,
+        proposed_narrative=proposed_narrative,
+    )
+    if legacy:
+        return legacy
+
+    high_stakes = {"escalate_conflict", "redirect_blame", "reveal_surface"}
+    if selected_scene_function in high_stakes and len(text) >= _MIN_CHARS_HIGH_STAKES:
+        tokens = _FUNCTION_SUBSTRING_TOKENS.get(selected_scene_function, ())
+        if tokens and not any(t in low for t in tokens):
+            return "dramatic_alignment_no_function_support"
+
+        for phrase in _GENERIC_BOILERPLATE_PHRASES:
+            if phrase in low:
+                if tokens and any(t in low for t in tokens):
+                    continue
+                return "dramatic_alignment_generic_boilerplate"
 
     return None

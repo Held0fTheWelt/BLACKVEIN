@@ -195,6 +195,7 @@ class TestManagementRoutesRenderingContract:
             ("/manage/slogans", "manage/slogans.html"),
             ("/manage/data", "manage/data.html"),
             ("/manage/forum", "manage/forum.html"),
+            ("/manage/inspector-workbench", "manage/inspector_workbench.html"),
             ("/manage/diagnosis", "manage/diagnosis.html"),
             ("/manage/play-service-control", "manage/play_service_control.html"),
             ("/manage/analytics", "manage_analytics.html"),
