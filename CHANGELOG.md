@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.0] - 2026-04-10
+
+**Summary**: **Research-and-Canon-Improvement MVP closure repair** — hardened deterministic exploration semantics, stricter truth/governance contracts, stronger A–F golden fixtures, 3-layer budget enforcement evidence, and mandatory structured turn-to-turn comparison rendering for the Inspector workbench.
+
+### Added
+
+- **Research closure enforcement tests**: `ai_stack/tests/test_research_contract_enforcement.py` with negative/positive invariants for engine budget requirement, unknown anchor blocking, governance-field integrity, and copyright posture enforcement.
+- **Comparison rendering structure checks** in `administration-tool/tests/test_manage_inspector_suite.py` for mandatory-dimension and structured comparison fields.
+
+### Changed
+
+- **Canonical research contracts and engine semantics**
+  - `ai_stack/research_contract.py`: added explicit abort reason `time_budget_exhausted`.
+  - `ai_stack/research_exploration.py`: fixed time-budget abort classification, stabilized abort handling, and clarified consumed-budget time accounting via `elapsed_wall_time_ms`.
+  - `ai_stack/research_validation.py`: promotion now requires `kept_for_validation`; unknown evidence anchors are blocked deterministically.
+  - `ai_stack/research_langgraph.py`: source-local segment filtering for aspect extraction, deterministic canon-relevance hinting, populated `aspects` bundle section, and computed `review_safe` posture.
+  - `ai_stack/canon_improvement_engine.py`: proposal/issue persistence posture aligned to review-safe non-mutation flow (`approved_research` artifacts, no implied adoption).
+- **Store/governance hardening**
+  - `ai_stack/research_store.py`: referential integrity checks (sources/anchors/aspects/nodes/edges/claims), semantic-empty object blocking for governance-critical fields, and fail-fast load behavior for invalid/corrupt store state.
+  - `ai_stack/research_ingestion.py`: segment records now carry `source_id` for deterministic source-bound extraction.
+  - `ai_stack/research_claims.py`: claim payload shape now requires non-empty valid `evidence_anchor_ids`.
+- **Golden fixture A–F strengthening**
+  - Upgraded `test_research_intake_golden.py`, `test_research_aspect_golden.py`, `test_research_exploration_golden.py`, `test_research_verification_golden.py`, `test_research_canon_improvement_golden.py`, `test_research_review_bundle_golden.py` with stricter deterministic structural/status assertions.
+  - `ai_stack/research_golden_cases.py` extended with `time_budget_exhausted` to keep abort taxonomy complete and testable.
+- **Capability/MCP audit parity**
+  - `ai_stack/capabilities.py` now includes compact consumed/effective budget evidence in `wos.research.explore` result summaries.
+  - `ai_stack/tests/test_capabilities.py` adds invalid-budget negative-path coverage for `wos.research.explore`.
+- **Inspector comparison mandatory minimum rendering**
+  - `administration-tool/static/manage_inspector_workbench.js`: explicit `mandatory_dimension` display, structured supported/unsupported dimension blocks, additional trace/continuity comparison columns, and row-level block rendering for nested comparison fields (`visible_output_surface_comparison`, `multi_pressure_candidates_to`) with full JSON retained as secondary diagnostics.
+
+### Tests
+
+- `python -m pytest ai_stack/tests/test_research_intake_golden.py ai_stack/tests/test_research_aspect_golden.py ai_stack/tests/test_research_exploration_golden.py ai_stack/tests/test_research_verification_golden.py ai_stack/tests/test_research_canon_improvement_golden.py ai_stack/tests/test_research_review_bundle_golden.py ai_stack/tests/test_research_contract_enforcement.py ai_stack/tests/test_capabilities.py tools/mcp_server/tests/test_research_mcp_contracts.py` -> **24 passed**
+- `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_registry.py tools/mcp_server/tests/test_tools_handlers.py tools/mcp_server/tests/test_mcp_m1_gates.py` -> **33 passed**
+- `python -m pytest administration-tool/tests/test_manage_inspector_suite.py` -> **11 passed**
+
+### Notes
+
+- This release closes roadmap-aligned MVP gates for the research/canon pipeline with stronger evidence-backed determinism and review-safe posture.
+- Canon mutation remains blocked in this release; proposal outputs are recommendation-only until explicit downstream adoption flow.
+
+---
+
 ## [0.4.1] - 2026-04-10
 
 **Summary**: **Inspector Suite final closure** — one canonical operator workbench in the administration tool, read-only multi-endpoint projections on the backend (timeline, bounded turn-to-turn comparison, coverage/health, provenance/raw), permanent redirects from legacy governance/inspector URLs, and committed architecture plus closure documentation. This release also lands the **semantic dramatic planner contract modules and tests** in `ai_stack/` (character mind, social state, scene plan, semantic move interpretation, dramatic effect gate/surface) and wires them through existing GoC seams, LangGraph runtime, and scene director paths.
@@ -23,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Inspector workbench semantic-planner projection parity (read-only)**: Inspector projection schema versions bumped to `*_v2`; turn projection aligns `gate_projection` with `DramaticEffectGateOutcome` (legacy scores isolated under `legacy_compatibility_summary`); `decision_trace_projection` adds backend-computed `semantic_decision_flow` (explicit per-stage `presence`) and `graph_execution_flow`; `support_posture` uses `support_level_for_module` / `resolve_dramatic_effect_evaluator` only; timeline, comparison, coverage, and provenance-raw projections expose canonical gate/posture/support fields; workbench UI renders structured planner cards, primary gate posture vs secondary legacy details, semantic Mermaid default with graph-execution toggle. See `tests/reports/INSPECTOR_WORKBENCH_SEMANTIC_PLANNER_PROJECTION_CLOSURE_REPORT.md`.
 - **Legacy admin URLs** (`/manage/ai-stack/governance`, `/manage/ai-stack-governance`, `/manage/inspector-suite`, `/manage/inspector-suite/turn`) now respond with **308 Permanent Redirect** to `/manage/inspector-workbench`.
 - **Inspector Suite UI final polish**: removed superseded `ai_stack_governance.html`, `inspector_suite.html`, `manage_ai_stack_governance.js`, and `manage_inspector_suite.js`; workbench panels use structured tables/KV blocks plus secondary full-JSON `<details>`; Provenance tab keeps canonical entries primary and raw bundle explicitly secondary; admin tests assert exact redirect `Location` and follow-through to the workbench template.
 - **AI stack runtime seams** (integration with planner/dramatic paths): `goc_turn_seams.py`, `langgraph_runtime.py`, `scene_director_goc.py`, `goc_dramatic_alignment.py`, `goc_gate_evaluation.py`; scenario tests `tests/test_goc_phase2_scenarios.py`, `tests/test_goc_retrieval_heavy_scenario.py`.
