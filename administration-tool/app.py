@@ -392,6 +392,11 @@ def _register_routes(app):
         """Moderator dashboard with queue and recent actions."""
         return render_template("manage_moderator_dashboard.html")
 
+    @app.route("/manage/diagnosis")
+    def manage_diagnosis():
+        """Aggregated system diagnosis for operators (backend GET /api/v1/admin/system-diagnosis)."""
+        return render_template("manage/diagnosis.html")
+
     @app.errorhandler(500)
     def handle_500_error(error):
         """Log 500 errors with full details for debugging."""
