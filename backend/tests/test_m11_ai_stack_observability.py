@@ -471,3 +471,34 @@ def test_release_readiness_improvement_weak_retrieval_backing_is_partial(client,
     assert backing.get("evidence_posture") == "weak_retrieval_backing"
     assert payload["decision_support"]["latest_improvement_retrieval_context_class"] == "none"
     assert payload["decision_support"]["improvement_review_ready_for_retrieval_graded_review"] is False
+
+
+def test_closure_cockpit_endpoint_returns_normalized_gate_truth(client, moderator_headers):
+    response = client.get("/api/v1/admin/ai-stack/closure-cockpit", headers=moderator_headers)
+    assert response.status_code == 200
+    payload = response.get_json()
+
+    assert payload.get("canonical_model") == "ai_stack_closure_cockpit_v1"
+    assert "aggregate_summary" in payload
+    assert "gate_stack" in payload
+    assert "current_blockers" in payload
+    assert "g9_g9b_g10_focus" in payload
+    assert "source_refs" in payload
+
+    gate_ids = [gate.get("gate_id") for gate in payload.get("gate_stack", [])]
+    assert gate_ids == ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G9B", "G10"]
+
+    agg = payload.get("aggregate_summary") or {}
+    assert "level_a_status" in agg
+    assert "level_b_status" in agg
+    assert "key_blocker_summary" in agg
+    assert "authoritative_reference" in agg
+
+    blockers = payload.get("current_blockers") or {}
+    assert "repo_local_resolved" in blockers
+    assert "evidential_or_external" in blockers
+    assert blockers.get("decisive_blocker_id") == "g9b_independence"
+
+    focus = payload.get("g9_g9b_g10_focus") or {}
+    assert "anti_misread_statement" in focus
+    assert (focus.get("g9b_independence") or {}).get("level_b_attempt_status") == "failed_insufficient_independence"

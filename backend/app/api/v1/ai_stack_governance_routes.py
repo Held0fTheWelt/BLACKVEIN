@@ -10,6 +10,7 @@ from app.auth.permissions import get_current_user, require_feature, require_jwt_
 from app.extensions import limiter
 from app.observability.trace import get_trace_id
 from app.services.activity_log_service import log_activity
+from app.services.ai_stack_closure_cockpit_service import build_closure_cockpit_report
 from app.services.ai_stack_evidence_service import build_release_readiness_report, build_session_evidence_bundle
 from app.services.improvement_service import list_recommendation_packages
 
@@ -58,4 +59,15 @@ def admin_ai_stack_release_readiness():
     """Return honest release-readiness state for repaired AI stack paths."""
     trace_id = g.get("trace_id") or get_trace_id()
     report = build_release_readiness_report(trace_id=trace_id)
+    return jsonify(report), 200
+
+
+@api_v1_bp.route("/admin/ai-stack/closure-cockpit", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_feature(FEATURE_MANAGE_GAME_OPERATIONS)
+def admin_ai_stack_closure_cockpit():
+    """Return normalized closure cockpit state from canonical GoC audit artifacts."""
+    trace_id = g.get("trace_id") or get_trace_id()
+    report = build_closure_cockpit_report(trace_id=trace_id)
     return jsonify(report), 200

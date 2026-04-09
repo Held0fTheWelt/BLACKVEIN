@@ -6,9 +6,48 @@
         <div>
             <p class="manage-eyebrow">Observability &amp; governance</p>
             <h1>AI Stack Governance</h1>
-            <p class="manage-lead">Inspect session evidence from the backend and World-Engine story host, plus improvement recommendation packages. Data is loaded live from the API; paste a backend runtime session id from tests or operators.</p>
+            <p class="manage-lead">Inspect canonical closure truth, aggregate readiness posture, and runtime governance evidence from one operator surface. Data is loaded live from read-only APIs and canonical audit artifacts.</p>
         </div>
     </div>
+
+    <section class="panel" style="margin-bottom: 1.5rem;">
+        <header class="panel-header">
+            <h2>AI Stack Closure Cockpit</h2>
+            <p>Canonical closure dashboard from <code>GET /api/v1/admin/ai-stack/closure-cockpit</code>. This UI reports artifact-derived truth and does not run a separate browser scoring engine.</p>
+        </header>
+        <div class="manage-actions-row">
+            <button class="btn" id="ai-stack-load-closure-cockpit" type="button">Load closure cockpit</button>
+        </div>
+        <p id="ai-stack-cockpit-source-stamp" class="manage-state" aria-live="polite"></p>
+        <div id="ai-stack-cockpit-warning" class="form-error" style="display:none;"></div>
+
+        <section class="ai-closure-block">
+            <h3>Aggregate closure summary</h3>
+            <div id="ai-stack-aggregate-summary" class="ai-closure-grid"></div>
+        </section>
+
+        <section class="ai-closure-block">
+            <h3>Current blockers</h3>
+            <p class="manage-state">Repo-local closure truth and evidential/external blockers are separated explicitly.</p>
+            <div id="ai-stack-blockers-panel"></div>
+        </section>
+
+        <section class="ai-closure-block">
+            <h3>G9 / G9B / G10 emphasis</h3>
+            <div id="ai-stack-g9-focus" class="ai-closure-grid"></div>
+            <p id="ai-stack-level-distinction" class="ai-level-distinction"></p>
+        </section>
+
+        <section class="ai-closure-block">
+            <h3>Gate stack overview (G1-G10, G9B)</h3>
+            <div id="ai-stack-gate-stack" class="ai-gate-stack"></div>
+        </section>
+
+        <section class="ai-closure-block">
+            <h3>Evidence links and artifact drilldown</h3>
+            <div id="ai-stack-source-refs"></div>
+        </section>
+    </section>
 
     <section class="panel" style="margin-bottom: 1.5rem;">
         <header class="panel-header">

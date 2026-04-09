@@ -8,10 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.4.0] - 2026-04-09
 
-**Summary**: This release improves reliability and auditability for gate evaluation and operating workflows. It adds stronger evidence capture and comparison tooling, expands scenario and retrieval coverage in the AI stack, aligns backend services with the unified operating model, and tightens CI/testing documentation around the canonical turn flow.
+**Summary**: This release improves reliability and auditability for gate evaluation and operating workflows. It adds stronger evidence capture and comparison tooling, expands scenario and retrieval coverage in the AI stack, aligns backend services with the unified operating model, tightens CI/testing documentation around the canonical turn flow, and adds an **AI Stack Closure Cockpit** in the administration tool with a read-only API that normalizes canonical GoC audit artifacts for operators.
 
 ### Added
 
+- **AI Stack Closure Cockpit**: read-only API `GET /api/v1/admin/ai-stack/closure-cockpit` backed by `ai_stack_closure_cockpit_service`, normalizing canonical GoC audit artifacts (gate summary matrix, closure-level classification, G9B attempt record, run metadata) for operator dashboards without browser-side scoring.
+- **Administration-tool**: AI Stack Governance page sections for aggregate closure summary, full gate stack (G1–G10 inkl. G9B), current blockers (repo-local vs evidential), G9/G9B/G10 emphasis, artifact drilldown, and explicit distinction between integrative gate health (z. B. G10) and program Level B.
+- Tests for the closure-cockpit endpoint, POST rejection on read-only routes, and governance template markers for the new UI.
 - Added scripts and test coverage to capture six-scenario gate evidence, validate thresholds, package strict-blind handoffs, and compute score deltas between evaluator runs.
 - Added structured audit baselines and reusable evidence templates so gate outcomes can be reviewed consistently and reproduced across runs.
 - Added broader AI-stack coverage for roadmap scenarios, semantic-surface checks, retrieval-governance summaries, and scene-direction subdecision handling, with matching unit tests.

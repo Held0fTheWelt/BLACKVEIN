@@ -280,3 +280,94 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     font-size: 0.9rem;
     white-space: pre-wrap;
 }
+
+.ai-closure-block {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.ai-closure-block h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1.05rem;
+}
+
+.ai-closure-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.ai-summary-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 0.85rem;
+}
+
+.ai-summary-card h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.ai-summary-card p {
+    margin: 0.35rem 0;
+    line-height: 1.4;
+}
+
+.ai-summary-card ul {
+    margin: 0.35rem 0 0 1rem;
+    padding: 0;
+}
+
+.ai-gate-stack {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ai-gate-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--void);
+    padding: 0.85rem;
+}
+
+.ai-gate-card h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.ai-gate-card p {
+    margin: 0.25rem 0;
+}
+
+.ai-gate-card details {
+    margin-top: 0.5rem;
+}
+
+.ai-blocker-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.ai-blocker-card {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--border);
+}
+
+.ai-artifact-list {
+    margin: 0.35rem 0 0 1rem;
+    padding: 0;
+}
+
+.ai-level-distinction {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(122, 92, 158, 0.1);
+    font-weight: 500;
+}

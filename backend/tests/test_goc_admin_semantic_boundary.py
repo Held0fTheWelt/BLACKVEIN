@@ -39,6 +39,15 @@ def test_admin_ai_stack_release_readiness_rejects_post(client, moderator_headers
     assert r.status_code in {405, 404}
 
 
+def test_admin_ai_stack_closure_cockpit_rejects_post(client, moderator_headers) -> None:
+    r = client.post(
+        "/api/v1/admin/ai-stack/closure-cockpit",
+        json={"semantic_patch": True},
+        headers=moderator_headers,
+    )
+    assert r.status_code in {405, 404}
+
+
 def test_game_admin_no_hypothetical_semantic_registry_write_route(client, moderator_headers) -> None:
     """Control-plane routes exist; semantic registry mutation is not an admin POST surface."""
     r = client.post(
