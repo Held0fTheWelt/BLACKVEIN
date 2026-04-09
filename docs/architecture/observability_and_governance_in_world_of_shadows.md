@@ -90,7 +90,9 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 | `GET /api/v1/admin/ai-stack/session-evidence/<session_id>` | Moderator/admin (game operations feature): aggregated backend + World-Engine evidence bundle. |
 | `GET /api/v1/admin/ai-stack/improvement-packages` | Same audience: improvement recommendation packages listing. |
 | `GET /api/v1/admin/ai-stack/release-readiness` | Same audience: honest readiness summary (`ready`/`partial`) per area; story-runtime cross-layer remains `partial` in this aggregate (use session-evidence after real turns); Writers-Room LangGraph depth is explicitly `partial` (seed stub). |
+| `GET /api/v1/admin/system-diagnosis` | Moderator/admin with feature `manage.system_diagnosis`: aggregated operator diagnosis (backend `/api/v1/health`, DB, play-service config and internal `/api/health` + `/api/health/ready`, published experiences feed, `build_release_readiness_report`); 5 s TTL cache, `?refresh=1` forces refresh. |
 | Administration-tool **`/manage/ai-stack/governance`** | UI shell calling the above APIs via the existing proxy (JWT in browser). |
+| Administration-tool **`/manage/diagnosis`** | Loads only `GET /api/v1/admin/system-diagnosis` through the proxy (no direct play-service calls from the browser). |
 | Activity log | `ai_stack` / `session_evidence_view` entries when evidence API is used. |
 
 ## Secrets and privacy

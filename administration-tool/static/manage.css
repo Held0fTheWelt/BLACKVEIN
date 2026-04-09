@@ -371,3 +371,89 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     background: rgba(122, 92, 158, 0.1);
     font-weight: 500;
 }
+
+/* System diagnosis (/manage/diagnosis) */
+.manage-dx-meta {
+    margin-bottom: 1rem;
+}
+
+.manage-dx-overall-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 0 1rem 0;
+}
+
+.manage-dx-summary-counts {
+    font-size: 0.95rem;
+}
+
+.manage-dx-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: lowercase;
+    border: 1px solid var(--border);
+}
+
+.manage-dx-badge--ok {
+    background: rgba(46, 160, 67, 0.15);
+    color: #2ea043;
+    border-color: rgba(46, 160, 67, 0.45);
+}
+
+.manage-dx-badge--init {
+    background: rgba(210, 153, 34, 0.18);
+    color: #d29922;
+    border-color: rgba(210, 153, 34, 0.45);
+}
+
+.manage-dx-badge--fail {
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+    border-color: rgba(248, 81, 73, 0.45);
+}
+
+.manage-dx-group {
+    margin-bottom: 1.25rem;
+}
+
+.manage-dx-check-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.manage-dx-check {
+    border-top: 1px solid var(--border);
+    padding: 0.85rem 0;
+}
+
+.manage-dx-check:first-child {
+    border-top: none;
+    padding-top: 0;
+}
+
+.manage-dx-check-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+}
+
+.manage-dx-check-label {
+    font-weight: 600;
+}
+
+.manage-dx-msg {
+    margin: 0.35rem 0 0 0;
+    line-height: 1.45;
+}
+
+.manage-dx-detail {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+}

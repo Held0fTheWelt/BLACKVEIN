@@ -29,6 +29,10 @@
             <h3>Game operations</h3>
             <p>Inspect active runs, review transcripts, and terminate unstable runtime sessions.</p>
         </a>
+        <a href="{{ url_for('manage_diagnosis') }}" class="card card-link" id="manage-dashboard-diagnosis" data-feature="manage.system_diagnosis">
+            <h3>Diagnosis</h3>
+            <p>Aggregated system health: backend, database, play service, published content, and AI readiness.</p>
+        </a>
     </div>
 </div>
 {% endblock %}

@@ -418,6 +418,7 @@ class TestManagementRoutesContextConsistency:
             "/manage/feature-areas",
             "/manage/wiki",
             "/manage/forum",
+            "/manage/diagnosis",
             "/users/1/profile",
         ],
     )
@@ -445,6 +446,7 @@ class TestManagementRoutesContextConsistency:
             "/manage/feature-areas",
             "/manage/wiki",
             "/manage/forum",
+            "/manage/diagnosis",
             "/users/1/profile",
         ],
     )

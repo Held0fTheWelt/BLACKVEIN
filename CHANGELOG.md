@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **System diagnosis**: `GET /api/v1/admin/system-diagnosis` (feature `manage.system_diagnosis`) aggregates backend health, database, play-service configuration and `GET /api/health` / `GET /api/health/ready` against `PLAY_SERVICE_INTERNAL_URL`, published experiences feed, and AI stack release readiness, with 750 ms upstream timeouts, 250 ms internal budgets, parallel checks, prerequisite short-circuit when play config is incomplete, and a 5 s process-local cache (`?refresh=1` bypasses). Administration-tool page `/manage/diagnosis` with nav/dashboard entry loads data only via this endpoint.
 - **AI Stack Closure Cockpit**: read-only API `GET /api/v1/admin/ai-stack/closure-cockpit` backed by `ai_stack_closure_cockpit_service`, normalizing canonical GoC audit artifacts (gate summary matrix, closure-level classification, G9B attempt record, run metadata) for operator dashboards without browser-side scoring.
 - **Administration-tool**: AI Stack Governance page sections for aggregate closure summary, full gate stack (G1–G10 inkl. G9B), current blockers (repo-local vs evidential), G9/G9B/G10 emphasis, artifact drilldown, and explicit distinction between integrative gate health (z. B. G10) and program Level B.
 - Tests for the closure-cockpit endpoint, POST rejection on read-only routes, and governance template markers for the new UI.

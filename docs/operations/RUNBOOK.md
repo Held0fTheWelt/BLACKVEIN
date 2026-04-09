@@ -92,6 +92,7 @@ Required env:
 ### Admin flow
 1. Open `http://127.0.0.1:5001/manage`
 2. Verify management functionality still works independently
+3. Optional: open `http://127.0.0.1:5001/manage/diagnosis` (requires JWT and feature `manage.system_diagnosis`) for aggregated system health from `GET /api/v1/admin/system-diagnosis`
 
 ## Docker Compose (host ports)
 
