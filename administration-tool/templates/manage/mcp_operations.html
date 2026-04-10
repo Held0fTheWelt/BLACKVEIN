@@ -1,0 +1,80 @@
+{% extends "manage/base.html" %}
+{% block title %}MCP Operations{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="mcp-operations">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Operations</p>
+            <h1>MCP Operations</h1>
+            <p class="manage-lead">Observability and bounded actions for the World of Shadows MCP surface (suites, activity, diagnostics, structured logs). This is not a second runtime.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="mcp-ops-refresh">Refresh current tab</button>
+        </div>
+    </div>
+
+    <p id="mcp-ops-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="mcp-ops-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <div class="mcp-ops-tabs" role="tablist" aria-label="MCP cockpit sections">
+        <button type="button" class="mcp-ops-tab is-active" role="tab" id="mcp-tab-overview" aria-selected="true" aria-controls="mcp-panel-overview" data-tab="overview">Overview</button>
+        <button type="button" class="mcp-ops-tab" role="tab" id="mcp-tab-activity" aria-selected="false" aria-controls="mcp-panel-activity" data-tab="activity">Activity</button>
+        <button type="button" class="mcp-ops-tab" role="tab" id="mcp-tab-diagnostics" aria-selected="false" aria-controls="mcp-panel-diagnostics" data-tab="diagnostics">Diagnostics</button>
+        <button type="button" class="mcp-ops-tab" role="tab" id="mcp-tab-logs" aria-selected="false" aria-controls="mcp-panel-logs" data-tab="logs">Logs</button>
+        <button type="button" class="mcp-ops-tab" role="tab" id="mcp-tab-actions" aria-selected="false" aria-controls="mcp-panel-actions" data-tab="actions">Actions</button>
+    </div>
+
+    <div id="mcp-panel-overview" class="mcp-ops-panel" role="tabpanel" aria-labelledby="mcp-tab-overview">
+        <div id="mcp-ops-overview" class="muted">Loading…</div>
+    </div>
+    <div id="mcp-panel-activity" class="mcp-ops-panel" style="display:none;" role="tabpanel" aria-labelledby="mcp-tab-activity" hidden>
+        <div class="manage-actions-row" style="margin-bottom:0.75rem;">
+            <label class="form-label" style="display:inline-flex;align-items:center;gap:0.35rem;">
+                <input type="checkbox" id="mcp-activity-errors-only" /> Errors only
+            </label>
+        </div>
+        <div id="mcp-ops-activity" class="mcp-ops-table-wrap"></div>
+    </div>
+    <div id="mcp-panel-diagnostics" class="mcp-ops-panel" style="display:none;" role="tabpanel" aria-labelledby="mcp-tab-diagnostics" hidden>
+        <div id="mcp-ops-diagnostics" class="mcp-ops-table-wrap"></div>
+        <section class="panel" style="margin-top:1rem;">
+            <header class="panel-header"><h2>Create manual case</h2></header>
+            <form id="mcp-manual-case-form" class="manage-psc-form">
+                <label class="form-label">Case type <input type="text" name="case_type" class="form-input" required placeholder="e.g. suite_misrouting" /></label>
+                <label class="form-label">Summary <input type="text" name="summary" class="form-input" required /></label>
+                <label class="form-label">Suite <input type="text" name="suite_name" class="form-input" placeholder="unknown" /></label>
+                <button type="submit" class="btn btn-primary">Create case</button>
+            </form>
+        </section>
+    </div>
+    <div id="mcp-panel-logs" class="mcp-ops-panel" style="display:none;" role="tabpanel" aria-labelledby="mcp-tab-logs" hidden>
+        <div class="manage-actions-row" style="margin-bottom:0.75rem;">
+            <label class="form-label" style="display:inline-flex;align-items:center;gap:0.35rem;">
+                <input type="checkbox" id="mcp-logs-errors-only" /> Errors only
+            </label>
+        </div>
+        <div id="mcp-ops-logs" class="mcp-ops-table-wrap"></div>
+    </div>
+    <div id="mcp-panel-actions" class="mcp-ops-panel" style="display:none;" role="tabpanel" aria-labelledby="mcp-tab-actions" hidden>
+        <div class="manage-actions-row" style="flex-wrap:wrap;gap:0.5rem;">
+            <button type="button" class="btn" id="mcp-action-refresh-catalog">Refresh catalog alignment</button>
+            <button type="button" class="btn" id="mcp-action-rebuild">Rebuild diagnostic cases</button>
+            <button type="button" class="btn" id="mcp-action-audit-bundle">Generate audit bundle (JSON)</button>
+        </div>
+        <section class="panel" style="margin-top:1rem;">
+            <header class="panel-header"><h2>Reclassify diagnostic case</h2></header>
+            <p class="muted">Use the case <code>case_id</code> (UUID) from the Diagnostics table.</p>
+            <div class="manage-psc-form">
+                <label class="form-label">Case ID <input type="text" id="mcp-reclass-case-id" class="form-input" autocomplete="off" /></label>
+                <label class="form-label">Suite display override <input type="text" id="mcp-reclass-suite" class="form-input" placeholder="e.g. wos-admin" autocomplete="off" /></label>
+                <label class="form-label">Status <input type="text" id="mcp-reclass-status" class="form-input" placeholder="open | acknowledged | closed" autocomplete="off" /></label>
+                <button type="button" class="btn" id="mcp-action-reclassify">Apply reclassify</button>
+            </div>
+        </section>
+        <pre id="mcp-ops-actions-output" class="manage-psc-json muted" style="margin-top:1rem;max-height:24rem;overflow:auto;"></pre>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_mcp_operations.js') }}"></script>
+{% endblock %}

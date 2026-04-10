@@ -540,3 +540,15 @@ The correct MVP is:
 That is small enough to be realistic.  
 That is large enough to produce immediate operational value.  
 That is the right MVP cut.
+
+---
+
+## 20. Implementation pointer (repository)
+
+The MVP is implemented in-repo as follows (English ops detail: [docs/technical/operations/mcp-operations-cockpit.md](technical/operations/mcp-operations-cockpit.md)):
+
+- **Admin UI:** `/manage/mcp-operations` in `administration-tool` (nav + dashboard card), feature `manage.mcp_operations`.
+- **Admin APIs:** `/api/v1/admin/mcp/*` and actions under `/api/v1/admin/mcp/actions/*` in `backend/app/api/v1/mcp_operations_routes.py`.
+- **Ingest:** `POST /api/v1/operator/mcp-telemetry/ingest` (Bearer `MCP_SERVICE_TOKEN`); optional push from MCP via `WOS_MCP_TELEMETRY_INGEST_URL` (see `tools/mcp_server/README.md`).
+- **Persistence:** `mcp_ops_telemetry` and `mcp_diagnostic_cases` (Alembic revision `041`).
+- **Suite registry counts:** `ai_stack/mcp_static_catalog.py` (shared with `tools/mcp_server/resource_prompt_support.py`).

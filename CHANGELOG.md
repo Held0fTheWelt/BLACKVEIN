@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.4] - 2026-04-10
+
+**Summary**: **MCP Operations Cockpit (MVP)** — bounded operator surface in `administration-tool` at `/manage/mcp-operations` (Overview, Activity, Diagnostics, Logs, Actions) backed by real persisted telemetry and diagnostic cases; service-token ingest `POST /api/v1/operator/mcp-telemetry/ingest`; admin APIs under `/api/v1/admin/mcp/*` with feature `manage.mcp_operations`; optional MCP server push via `WOS_MCP_TELEMETRY_INGEST_URL` + `MCP_SERVICE_TOKEN`; shared static resource/prompt catalog in `ai_stack` for suite counts; Alembic `041` tables `mcp_ops_telemetry` and `mcp_diagnostic_cases`.
+
+### Added
+
+- **`backend/app/models/mcp_ops_telemetry.py`**, **`backend/app/models/mcp_diagnostic_case.py`**: append-only MCP telemetry rows and hybrid diagnostic cases (`suite_display_override`, auto_rule vs manual).
+- **`backend/migrations/versions/041_mcp_operations_cockpit.py`**: schema for telemetry and diagnostic cases.
+- **`backend/app/services/mcp_operations_service.py`**: ingest normalization, retention (`WOS_MCP_TELEMETRY_RETENTION_DAYS`), Activity (`tool_call` only) vs Logs (all `request`/`response`/`tool_call`) projections, auto cases (`failed_tool_call`, `policy_rejection`), rebuild, audit bundle, reclassify.
+- **`backend/app/api/v1/mcp_operations_routes.py`**: ingest + admin GET/POST routes (overview, suites, activity, logs, diagnostics, manual case, actions: refresh-catalog, retry-job/rebuild, audit-bundle, reclassify).
+- **`backend/tests/test_mcp_operations_cockpit.py`**: ingest auth, projections, auto rules, actions, ≥22 synthetic activity rows.
+- **`ai_stack/mcp_static_catalog.py`**: `MCP_RESOURCE_SPECS` / `MCP_PROMPT_SPECS`, `mcp_exposure_counts_by_suite`, `mcp_suite_registry_rows` (single source for cockpit + MCP server listings).
+- **`ai_stack/tests/test_mcp_static_catalog.py`**: registry and count invariants.
+- **`administration-tool/templates/manage/mcp_operations.html`**, **`administration-tool/static/manage_mcp_operations.js`**, **`administration-tool/static/manage.css`**: tabbed cockpit UI (English copy).
+- **`administration-tool/tests/test_manage_mcp_operations.py`**: route, template, shell, nav wiring.
+- **`docs/technical/operations/mcp-operations-cockpit.md`**: English ops reference and E2E verification steps.
+
+### Changed
+
+- **`backend/app/auth/feature_registry.py`**: `FEATURE_MANAGE_MCP_OPERATIONS` (`manage.mcp_operations`) for moderators and admins.
+- **`backend/app/api/v1/__init__.py`**, **`backend/app/models/__init__.py`**: register MCP cockpit routes and models.
+- **`backend/tests/test_areas_api.py`**: `auth/me` allowed_features includes `manage.mcp_operations`.
+- **`administration-tool/app.py`**: `GET /manage/mcp-operations`.
+- **`administration-tool/templates/manage/base.html`**, **`administration-tool/templates/manage/dashboard.html`**: nav link and dashboard card with `data-feature="manage.mcp_operations"`.
+- **`tools/mcp_server/resource_prompt_support.py`**: imports resource/prompt specs from `ai_stack.mcp_static_catalog`.
+- **`tools/mcp_server/logging_utils.py`**, **`tools/mcp_server/server.py`**: per-dispatch telemetry capture and best-effort POST to backend when ingest URL + token are set.
+- **`tools/mcp_server/README.md`**: `WOS_MCP_TELEMETRY_INGEST_URL` and `MCP_SERVICE_TOKEN` for telemetry.
+- **`docs/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: §20 implementation pointer to code paths and ops doc.
+
+### Tests (integrity verification)
+
+- `python -m pytest backend/tests/test_mcp_operations_cockpit.py -q --no-cov` — green.
+- `python -m pytest administration-tool/tests/test_manage_mcp_operations.py -q --no-cov` — green.
+- `python -m pytest ai_stack/tests/test_mcp_static_catalog.py -q --no-cov` — green.
+
+---
+
 ## [0.5.3] - 2026-04-10
 
 **Summary**: **WOS_VSL MVP in-repo closure** — Phase 0 owner table and slice record, canonical five-suite MCP map in code and docs, stdio MCP server gains `resources/*` and `prompts/*` with `wos://` read mirrors, suite filtering via `WOS_MCP_SUITE`, pilot operator review sheet and external-blocker register, metrics helpers and closure tests; MCP `wos.session.execute_turn` now calls `POST /sessions/{id}/turns` with `player_input`.

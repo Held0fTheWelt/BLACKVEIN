@@ -671,3 +671,55 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     white-space: nowrap;
     border: 0;
 }
+
+/* MCP Operations cockpit */
+.mcp-ops-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+.mcp-ops-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+}
+.mcp-ops-tab:hover {
+    color: var(--text);
+    background: var(--surface);
+}
+.mcp-ops-tab.is-active {
+    color: var(--text);
+    border-color: var(--border);
+    background: var(--surface);
+    font-weight: 600;
+}
+.mcp-ops-table-wrap {
+    overflow-x: auto;
+}
+.mcp-ops-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+.mcp-ops-table-wrap th,
+.mcp-ops-table-wrap td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.45rem 0.5rem;
+    text-align: left;
+    vertical-align: top;
+}
+.mcp-ops-badge-unknown {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}

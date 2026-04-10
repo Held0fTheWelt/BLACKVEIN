@@ -417,6 +417,11 @@ def _register_routes(app):
         """Application-level Play-Service desired state, test, and apply (backend admin APIs via proxy)."""
         return render_template("manage/play_service_control.html")
 
+    @app.route("/manage/mcp-operations")
+    def manage_mcp_operations():
+        """MCP operations cockpit: overview, activity, diagnostics, logs, actions (backend admin APIs via proxy)."""
+        return render_template("manage/mcp_operations.html")
+
     @app.errorhandler(500)
     def handle_500_error(error):
         """Log 500 errors with full details for debugging."""

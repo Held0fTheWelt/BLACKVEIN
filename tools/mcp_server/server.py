@@ -28,7 +28,15 @@ from ai_stack.mcp_canonical_surface import (
 from .backend_client import BackendClient
 from .config import Config
 from .fs_tools import FileSystemTools
-from .logging_utils import generate_trace_id, log_request, log_response, log_tool_call
+from .logging_utils import (
+    begin_telemetry_capture,
+    end_telemetry_capture,
+    flush_telemetry_to_backend,
+    generate_trace_id,
+    log_request,
+    log_response,
+    log_tool_call,
+)
 from .rate_limiter import RateLimiter
 from .resource_prompt_support import (
     McpResourceReader,
@@ -156,6 +164,8 @@ class McpServer:
         params = request.get("params", {})
         request_id = request.get("id")
 
+        suite_meta = "all" if self._suite_filter is None else self._suite_filter.value
+        _cap_tok = begin_telemetry_capture(suite_meta)
         start = time.time()
         log_request(trace_id, method, params)
 
@@ -226,6 +236,9 @@ class McpServer:
             log_response(trace_id, method, "error", duration_ms, "INTERNAL_ERROR")
             error = JsonRpcError(INTERNAL_ERROR, f"Internal error: {str(e)}")
             return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
+        finally:
+            batch = end_telemetry_capture(_cap_tok)
+            flush_telemetry_to_backend(batch)
 
     def run(self) -> None:
         """Main REPL: read JSON-RPC from stdin, write response to stdout."""

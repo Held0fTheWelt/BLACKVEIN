@@ -83,3 +83,4 @@ from app.api.v1 import improvement_routes  # noqa: F401, E402
 from app.api.v1 import ai_stack_governance_routes  # noqa: F401, E402
 from app.api.v1 import system_diagnosis_routes  # noqa: F401, E402
 from app.api.v1 import play_service_control_routes  # noqa: F401, E402
+from app.api.v1 import mcp_operations_routes  # noqa: F401, E402

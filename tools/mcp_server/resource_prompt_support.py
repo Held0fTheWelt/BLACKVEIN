@@ -13,6 +13,7 @@ from ai_stack.mcp_canonical_surface import (
     capability_records_for_mcp,
     verify_catalog_names_alignment,
 )
+from ai_stack.mcp_static_catalog import MCP_PROMPT_SPECS, MCP_RESOURCE_SPECS
 
 from tools.mcp_server.backend_client import BackendClient
 from tools.mcp_server.errors import JsonRpcError
@@ -25,64 +26,8 @@ def _json_text(payload: Any) -> str:
 
 def list_resource_descriptors(suite_filter: McpSuite | None) -> list[dict[str, str]]:
     """Static resource catalog for ``resources/list`` (templates use ``{session_id}`` / ``{module_id}`` in URI)."""
-    specs: list[tuple[str, str, str, McpSuite]] = [
-        (
-            "wos://system/health",
-            "system_health",
-            "Backend health JSON (GET /api/v1/health)",
-            McpSuite.wos_admin,
-        ),
-        (
-            "wos://mcp/operator_truth",
-            "operator_truth",
-            "MCP operator truth aggregate; optional query probe_backend=true|false",
-            McpSuite.wos_admin,
-        ),
-        (
-            "wos://capabilities/catalog",
-            "capabilities_catalog",
-            "Capability catalog with governance metadata",
-            McpSuite.wos_admin,
-        ),
-        (
-            "wos://session/{session_id}",
-            "session_snapshot",
-            "Backend session snapshot; substitute {session_id}",
-            McpSuite.wos_admin,
-        ),
-        (
-            "wos://session/{session_id}/diagnostics",
-            "session_diagnostics",
-            "Session diagnostics bundle",
-            McpSuite.wos_runtime_read,
-        ),
-        (
-            "wos://session/{session_id}/state",
-            "session_state",
-            "World-engine session state snapshot",
-            McpSuite.wos_runtime_read,
-        ),
-        (
-            "wos://session/{session_id}/logs",
-            "session_logs",
-            "Session logs; optional query limit=N (default 100)",
-            McpSuite.wos_runtime_read,
-        ),
-        (
-            "wos://content/modules",
-            "content_modules_list",
-            "List module ids under content/modules",
-            McpSuite.wos_author,
-        ),
-        (
-            "wos://content/module/{module_id}",
-            "content_module_detail",
-            "Module file manifest; substitute {module_id}",
-            McpSuite.wos_author,
-        ),
-    ]
     out: list[dict[str, str]] = []
-    for uri, name, description, suite in specs:
+    for uri, name, description, suite in MCP_RESOURCE_SPECS:
         if suite_filter is not None and suite != suite_filter:
             continue
         out.append(
@@ -97,34 +42,8 @@ def list_resource_descriptors(suite_filter: McpSuite | None) -> list[dict[str, s
 
 
 def list_prompt_descriptors(suite_filter: McpSuite | None) -> list[dict[str, str]]:
-    specs: list[tuple[str, str, str, McpSuite]] = [
-        (
-            "wos-admin-session-triage",
-            "Admin: triage a weak run",
-            "Call resources: health, operator_truth, then session snapshot for the backend session_id.",
-            McpSuite.wos_admin,
-        ),
-        (
-            "wos-runtime-read-trace-review",
-            "Runtime read: trace review order",
-            "For a session_id, read resources in order: diagnostics, state, logs.",
-            McpSuite.wos_runtime_read,
-        ),
-        (
-            "wos-author-module-spotcheck",
-            "Author: module spot-check",
-            "List modules (resource wos://content/modules), then read wos://content/module/{module_id}.",
-            McpSuite.wos_author,
-        ),
-        (
-            "wos-ai-research-bundle",
-            "AI: bounded research bundle",
-            "Use research tools only: explore with mandatory budget → validate → bundle.build (review-bound).",
-            McpSuite.wos_ai,
-        ),
-    ]
     out: list[dict[str, str]] = []
-    for name, title, description, suite in specs:
+    for name, title, description, suite in MCP_PROMPT_SPECS:
         if suite_filter is not None and suite != suite_filter:
             continue
         out.append({"name": name, "description": f"{title}. {description}"})

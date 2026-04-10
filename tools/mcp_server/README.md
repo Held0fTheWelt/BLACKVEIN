@@ -21,6 +21,8 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
 | `WOS_MCP_OPERATING_PROFILE` | `healthy` | `healthy` allows `write_capable` tools; `review_safe` / `test_isolated` deny them |
 | `WOS_MCP_SUITE` | `all` | `wos-admin` \| `wos-author` \| `wos-ai` \| `wos-runtime-read` \| `wos-runtime-control` \| `all` |
+| `WOS_MCP_TELEMETRY_INGEST_URL` | (empty) | If set with `MCP_SERVICE_TOKEN`, each JSON-RPC dispatch POSTs captured log lines to `POST /api/v1/operator/mcp-telemetry/ingest` on the backend (best-effort; failures only go to stderr) |
+| `MCP_SERVICE_TOKEN` | (empty) | Same token the backend expects for operator routes; required for telemetry ingest |
 
 ## Tools Available (M1 Canonical Surface)
 
