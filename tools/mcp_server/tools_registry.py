@@ -6,6 +6,7 @@ from ai_stack.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpCanonicalToolDescriptor,
     McpImplementationStatus,
+    McpSuite,
     build_compact_mcp_operator_truth,
     capability_records_for_mcp,
     descriptor_to_public_metadata,
@@ -49,6 +50,7 @@ class ToolDefinition:
             "implementation_status": meta["implementation_status"],
             "governance": meta["governance"],
             "narrative_mutation_risk": meta["narrative_mutation_risk"],
+            "mcp_suite": meta["mcp_suite"],
         }
 
 
@@ -71,11 +73,18 @@ class ToolRegistry:
         return [tool.to_dict() for tool in self.tools.values()]
 
 
-def create_default_registry() -> ToolRegistry:
+def create_default_registry(
+    suite_filter: Optional[McpSuite] = None,
+    *,
+    backend: Optional[BackendClient] = None,
+    fs: Optional[FileSystemTools] = None,
+) -> ToolRegistry:
     registry = ToolRegistry()
     config = Config()
-    backend = BackendClient(base_url=config.backend_url, bearer_token=config.bearer_token)
-    fs = FileSystemTools(config)
+    if backend is None:
+        backend = BackendClient(base_url=config.backend_url, bearer_token=config.bearer_token)
+    if fs is None:
+        fs = FileSystemTools(config)
     from ai_stack.research_contract import ExplorationBudget
     from ai_stack.research_langgraph import (
         build_research_bundle,
@@ -227,21 +236,23 @@ def create_default_registry() -> ToolRegistry:
             return {"error": f"session_state failed: {str(e)}"}
 
     def handle_session_execute_turn(arguments: dict) -> dict:
-        """Execute turn in session (review-bound, authority-required from runtime)."""
+        """Execute turn in session (review-bound, proxies POST /sessions/{id}/turns → world-engine)."""
         session_id = arguments.get("session_id")
-        prompt = arguments.get("prompt")
+        player_input = (
+            (arguments.get("player_input") or arguments.get("prompt") or arguments.get("input") or "")
+            .strip()
+        )
         if not session_id:
             return {"error": "session_id required"}
-        if not prompt:
-            return {"error": "prompt required"}
+        if not player_input:
+            return {"error": "player_input or prompt is required"}
         try:
             import uuid
             trace_id = str(uuid.uuid4())
-            # Call backend's session turn execution endpoint (authority-required)
             result = backend._post(
-                f"{backend.base_url}/api/v1/sessions/{session_id}/execute_turn",
-                {"prompt": prompt},
-                trace_id
+                f"{backend.base_url}/api/v1/sessions/{session_id}/turns",
+                trace_id,
+                json={"player_input": player_input},
             )
             return result
         except JsonRpcError as e:
@@ -394,7 +405,7 @@ def create_default_registry() -> ToolRegistry:
         "wos.capabilities.catalog": "Canonical capability surface with governance metadata (read-only mirror)",
         "wos.mcp.operator_truth": "Compact MCP operator truth (profile, route, policy, no-eligible discipline)",
         "wos.session.get": "Session snapshot (read-only, authority-respecting backend mirror)",
-        "wos.session.execute_turn": "Execute turn in session (review-bound, authority-required from runtime)",
+        "wos.session.execute_turn": "Execute turn via backend → world-engine (POST /turns; pass player_input or prompt)",
         "wos.session.logs": "Session event logs (read-only, authority-respecting audit surfaces)",
         "wos.session.state": "Session state snapshot (read-only, authority-respecting runtime state machine)",
         "wos.session.diag": "Session diagnostics (read-only, authority-respecting backend mirror)",
@@ -468,7 +479,9 @@ def create_default_registry() -> ToolRegistry:
             "type": "object",
             "properties": {
                 "session_id": {"type": "string"},
+                "player_input": {"type": "string"},
                 "prompt": {"type": "string"},
+                "input": {"type": "string"},
             },
             "required": ["session_id"],
         },
@@ -536,6 +549,8 @@ def create_default_registry() -> ToolRegistry:
     }
 
     for desc in CANONICAL_MCP_TOOL_DESCRIPTORS:
+        if suite_filter is not None and desc.mcp_suite != suite_filter:
+            continue
         name = desc.name
         if name in handlers:
             handler_fn = handlers[name]

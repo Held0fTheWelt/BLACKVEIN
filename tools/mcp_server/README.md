@@ -5,25 +5,22 @@
 Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/developer tooling via stdio transport.
 
 **Features:**
-- Canonical descriptor-derived tool registry (`ai_stack/mcp_canonical_surface.py`)
-- Explicit tool classes: `read_only`, `review_bound`, `write_capable`
-- Compact operator truth tool (`wos.mcp.operator_truth`)
-- 2 backend tools: system health, session creation
-- 3 filesystem tools: list modules, get module metadata, search content
-- 1 capability mirror tool: canonical governance-enriched capability catalog
-- 5 deferred stubs (NOT_IMPLEMENTED in M1): session runtime/observability follow-ups
-- HTTP client with 5-second timeout and automatic retry
-- Configuration from environment variables
-- Filesystem utilities with safety limits (10MB files, 100 search hits)
-- 43 comprehensive unit tests (TDD)
+- Canonical descriptor-derived tool registry (`ai_stack/mcp_canonical_surface.py`) with per-tool **`mcp_suite`** (WOS_VSL five-suite map)
+- **`resources/list`** + **`resources/read`** for stable reads (`wos://…` URIs — see `docs/mcp/MVP_SUITE_MAP.md`)
+- **`prompts/list`** + **`prompts/get`** for recurring operator/author/AI workflows
+- Explicit tool classes: `read_only`, `review_bound`, `write_capable` + operating profile gating
+- HTTP client with 5-second timeout and automatic retry; optional bearer token for backend session routes
+- **`WOS_MCP_SUITE`** env to expose only one suite’s tools/resources/prompts (default: all)
 
 ## Environment Configuration
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `BACKEND_BASE_URL` | `https://yvesthx.pythonanywhere.com` | Backend API endpoint |
-| `BACKEND_BEARER_TOKEN` | (empty) | Optional bearer token for authentication |
+| `BACKEND_BASE_URL` | `http://localhost:8000` | Backend API endpoint (override for your deploy) |
+| `BACKEND_BEARER_TOKEN` | (empty) | Bearer for MCP-protected session routes (`/api/v1/sessions/...`) |
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |
+| `WOS_MCP_OPERATING_PROFILE` | `healthy` | `healthy` allows `write_capable` tools; `review_safe` / `test_isolated` deny them |
+| `WOS_MCP_SUITE` | `all` | `wos-admin` \| `wos-author` \| `wos-ai` \| `wos-runtime-read` \| `wos-runtime-control` \| `all` |
 
 ## Tools Available (M1 Canonical Surface)
 
@@ -42,13 +39,33 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 | `wos.goc.get_module` | `module_id` | Get module metadata and file list |
 | `wos.content.search` | `pattern`, `case_sensitive?` | Search content with regex |
 
-### Blocked (NOT_IMPLEMENTED)
+Session observability and research tools are implemented; see `tools_registry.py` and `docs/mcp/MVP_SUITE_MAP.md`.
 
-- `wos.session.get` — Deferred to later phase
-- `wos.session.execute_turn` — Deferred to later phase
-- `wos.session.logs` — Deferred to later phase
-- `wos.session.state` — Deferred to later phase
-- `wos.session.diag` — Deferred to later phase
+## Suite connection recipes (same binary, different env)
+
+```bash
+# Admin / operations only
+set WOS_MCP_SUITE=wos-admin
+python -m tools.mcp_server.server
+
+# Authoring / draft content only
+set WOS_MCP_SUITE=wos-author
+python -m tools.mcp_server.server
+
+# Research & evaluation only
+set WOS_MCP_SUITE=wos-ai
+python -m tools.mcp_server.server
+
+# Read-only runtime observability
+set WOS_MCP_SUITE=wos-runtime-read
+python -m tools.mcp_server.server
+
+# Narrow control (session create + guarded turn)
+set WOS_MCP_SUITE=wos-runtime-control
+python -m tools.mcp_server.server
+```
+
+On Unix: `export WOS_MCP_SUITE=wos-admin` then start the server.
 
 ## Running the Server
 
@@ -132,7 +149,8 @@ config.py              → Environment configuration + repo root detection
 backend_client.py      → HTTP client (5s timeout, auto-retry)
 fs_tools.py            → Filesystem utilities (list, get, search)
 tools_registry.py      → Tool definitions + handlers
-server.py              → JSON-RPC main loop
+server.py              → JSON-RPC main loop (tools + resources + prompts)
+resource_prompt_support.py → `wos://` resource catalog and prompt bodies
 logging_utils.py       → Structured logging
 rate_limiter.py        → Token bucket rate limiting
 errors.py              → Error codes + JSON-RPC envelope

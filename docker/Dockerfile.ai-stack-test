@@ -3,8 +3,8 @@
 #   docker build -f docker/Dockerfile.ai-stack-test -t wos-ai-stack-test .
 # Run full ai_stack suite:
 #   docker run --rm wos-ai-stack-test
-# Run a subset (e.g. GoC regression):
-#   docker run --rm wos-ai-stack-test python -m pytest ai_stack/tests/test_goc_phase5_final_mvp_closure.py -q --tb=short
+# Run a subset (WOS_VSL MCP / metrics closure):
+#   docker run --rm wos-ai-stack-test python -m pytest ai_stack/tests/test_wos_vsl_mvp_closure.py ai_stack/tests/test_mcp_suite_map_complete.py -q --tb=short
 #
 # Requires a root .dockerignore to keep the build context lean (see .dockerignore).
 FROM python:3.10-bookworm

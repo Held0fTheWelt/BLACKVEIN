@@ -16,6 +16,8 @@ def test_tools_list_valid_response():
     assert "result" in response
     assert "tools" in response["result"]
     assert len(response["result"]["tools"]) == len(CANONICAL_MCP_TOOL_DESCRIPTORS)
+    first = response["result"]["tools"][0]
+    assert "mcp_suite" in first
 
 
 def test_unknown_tool_returns_error():
@@ -56,3 +58,5 @@ def test_initialize_returns_server_info():
     assert "result" in response
     assert "serverInfo" in response["result"]
     assert response["result"]["serverInfo"]["name"] == "wos-mcp-server"
+    caps = response["result"]["capabilities"]
+    assert "resources" in caps and "prompts" in caps and "tools" in caps

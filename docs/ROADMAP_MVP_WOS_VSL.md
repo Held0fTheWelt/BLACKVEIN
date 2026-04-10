@@ -105,10 +105,11 @@ This roadmap already completes the following Phase 0 outcomes:
 - launch posture is defined
 - pilot decision logic is defined
 
-### 4.2 Still open after this document
-Two items remain open and must be completed before leaving Phase 0:
-1. **Owner table by subsystem**
-2. **Named slice record** in the project tracker for the currently selected MVP module
+### 4.2 Phase 0 closeout (repository)
+The following are recorded in-repo:
+
+1. **Owner table by subsystem** — [ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md](ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md) (role-based owners; named assignees to be filled when staffing is fixed).
+2. **Named slice record** — same document: MVP module id `god_of_carnage`, aligned with [VERTICAL_SLICE_CONTRACT_GOC.md](VERTICAL_SLICE_CONTRACT_GOC.md). Mirror the module id in your external project tracker if used.
 
 ### 4.3 Required owner table
 Phase 0 is only fully closed when the project records named owners for at least:
@@ -121,7 +122,7 @@ Phase 0 is only fully closed when the project records named owners for at least:
 - MCP suite architecture
 - pilot evaluation / reporting
 
-If exact people are not yet assigned, a role-based owner table must be recorded separately before Phase 1 starts.
+If exact people are not yet assigned, a role-based owner table must be recorded before Phase 1 starts — see [ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md](ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md).
 
 ### 4.4 Module status for MVP
 The selected module posture is:
@@ -449,6 +450,8 @@ These should be postponed unless they directly unblock the MVP:
 > Does a tightly authored, governed dramatic runtime create a noticeably better player experience than generic AI roleplay for a narrow dramatic use case?
 
 ### 10.2 Core experiments
+
+**In-repo instruments:** operator review sheet — [pilot/MVP_OPERATOR_REVIEW_SHEET.md](pilot/MVP_OPERATOR_REVIEW_SHEET.md); MCP suite map for misrouting — [mcp/MVP_SUITE_MAP.md](mcp/MVP_SUITE_MAP.md); static metrics — `ai_stack/wos_vsl_mcp_metrics.py` and `ai_stack/tests/test_wos_vsl_mvp_closure.py`.
 
 #### Experiment 1 — Internal controlled playtest
 Measure:

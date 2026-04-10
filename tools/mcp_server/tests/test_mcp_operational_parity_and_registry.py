@@ -180,6 +180,10 @@ def test_g_mcp_06_review_bound_tools_are_implemented(monkeypatch):
         resp = server.dispatch(req, "trace-implemented")
         # Should succeed since tool is implemented
         assert "result" in resp or "error" not in resp
+        mock_post.assert_called_once()
+        args, kwargs = mock_post.call_args
+        assert "/sessions/s1/turns" in args[0]
+        assert kwargs.get("json") == {"player_input": "test"}
 
 
 def test_g_mcp_07_closure_report_contains_gate_matrix():

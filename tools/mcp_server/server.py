@@ -21,19 +21,38 @@ from .errors import (
 from ai_stack.mcp_canonical_surface import (
     McpToolClass,
     operating_profile_allows_write_capable,
+    resolve_active_mcp_suite_filter,
     resolve_mcp_operating_profile,
 )
 
+from .backend_client import BackendClient
+from .config import Config
+from .fs_tools import FileSystemTools
 from .logging_utils import generate_trace_id, log_request, log_response, log_tool_call
 from .rate_limiter import RateLimiter
+from .resource_prompt_support import (
+    McpResourceReader,
+    get_prompt_messages,
+    list_prompt_descriptors,
+    list_resource_descriptors,
+)
 from .tools_registry import create_default_registry
 
 
 class McpServer:
     """JSON-RPC 2.0 MCP server."""
 
-    def __init__(self):
-        self.registry = create_default_registry()
+    def __init__(self) -> None:
+        self._suite_filter = resolve_active_mcp_suite_filter()
+        config = Config()
+        self._backend = BackendClient(base_url=config.backend_url, bearer_token=config.bearer_token)
+        self._fs = FileSystemTools(config)
+        self.registry = create_default_registry(
+            suite_filter=self._suite_filter,
+            backend=self._backend,
+            fs=self._fs,
+        )
+        self._resource_reader = McpResourceReader(self._backend, self._fs)
         self.rate_limiter = RateLimiter(max_calls=30, window_seconds=60)
 
     def validate_input(self, tool: Any, arguments: dict) -> None:
@@ -91,11 +110,45 @@ class McpServer:
 
     def handle_initialize(self, params: dict) -> dict:
         """Handle initialize request."""
+        suite_meta = "all" if self._suite_filter is None else self._suite_filter.value
         return {
             "protocolVersion": "2024-11-05",
-            "capabilities": {},
-            "serverInfo": {"name": "wos-mcp-server", "version": "0.1.0"},
+            "capabilities": {
+                "resources": {"subscribe": False, "listChanged": False},
+                "prompts": {"listChanged": False},
+                "tools": {"listChanged": False},
+            },
+            "serverInfo": {
+                "name": "wos-mcp-server",
+                "version": "0.1.0",
+                "wos_mcp_suite": suite_meta,
+            },
         }
+
+    def handle_resources_list(self, params: dict) -> dict:
+        return {"resources": list_resource_descriptors(self._suite_filter)}
+
+    def handle_resources_read(self, params: dict, trace_id: str) -> dict:
+        uri = params.get("uri")
+        if not uri or not isinstance(uri, str):
+            raise InvalidInputError("Missing or invalid 'uri' for resources/read")
+        try:
+            mime, text = self._resource_reader.read(uri.strip(), trace_id)
+        except ValueError as exc:
+            raise InvalidInputError(str(exc)) from exc
+        return {"contents": [{"uri": uri, "mimeType": mime, "text": text}]}
+
+    def handle_prompts_list(self, params: dict) -> dict:
+        return {"prompts": list_prompt_descriptors(self._suite_filter)}
+
+    def handle_prompts_get(self, params: dict) -> dict:
+        name = params.get("name")
+        if not name or not isinstance(name, str):
+            raise InvalidInputError("Missing or invalid 'name' for prompts/get")
+        body = get_prompt_messages(name.strip(), self._suite_filter)
+        if body is None:
+            raise ToolNotFoundError(f"Prompt not found: {name}")
+        return body
 
     def dispatch(self, request: dict, trace_id: str) -> dict:
         """Dispatch JSON-RPC request to handler."""
@@ -118,6 +171,14 @@ class McpServer:
                 result = self.handle_tools_list(params)
             elif method == "tools/call":
                 result = self.handle_tools_call(params, trace_id)
+            elif method == "resources/list":
+                result = self.handle_resources_list(params)
+            elif method == "resources/read":
+                result = self.handle_resources_read(params, trace_id)
+            elif method == "prompts/list":
+                result = self.handle_prompts_list(params)
+            elif method == "prompts/get":
+                result = self.handle_prompts_get(params)
             else:
                 raise ValueError(f"Unknown method: {method}")
 

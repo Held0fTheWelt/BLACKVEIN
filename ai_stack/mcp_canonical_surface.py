@@ -46,6 +46,19 @@ class McpImplementationStatus(StrEnum):
     deferred_stub = "deferred_stub"
 
 
+class McpSuite(StrEnum):
+    """MVP MCP suite family (ROADMAP_MVP_WOS_VSL §7.2). Used for filtering and misrouting metrics."""
+
+    wos_admin = "wos-admin"
+    wos_author = "wos-author"
+    wos_ai = "wos-ai"
+    wos_runtime_read = "wos-runtime-read"
+    wos_runtime_control = "wos-runtime-control"
+
+
+MCP_SUITES_ALL: Final[tuple[McpSuite, ...]] = tuple(McpSuite)
+
+
 MCP_OPERATOR_TRUTH_GRAMMAR_VERSION: Final[str] = "mcp_operator_truth_v1"
 
 MCP_CATALOG_CAPABILITY_NAMES: Final[tuple[str, ...]] = tuple(
@@ -83,6 +96,7 @@ class McpCanonicalToolDescriptor:
     governance: McpToolGovernanceView
     narrative_mutation_risk: str
     permission_legacy: str
+    mcp_suite: McpSuite
 
 
 AUTH_BACKEND_HTTP = "backend_http_authority"
@@ -106,6 +120,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_admin,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.create",
@@ -121,6 +136,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_direct_manuscript",
         permission_legacy="write",
+        mcp_suite=McpSuite.wos_runtime_control,
     ),
     McpCanonicalToolDescriptor(
         name="wos.goc.list_modules",
@@ -136,6 +152,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_author,
     ),
     McpCanonicalToolDescriptor(
         name="wos.goc.get_module",
@@ -151,6 +168,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_author,
     ),
     McpCanonicalToolDescriptor(
         name="wos.content.search",
@@ -166,6 +184,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_author,
     ),
     McpCanonicalToolDescriptor(
         name="wos.capabilities.catalog",
@@ -181,6 +200,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_admin,
     ),
     McpCanonicalToolDescriptor(
         name="wos.mcp.operator_truth",
@@ -196,6 +216,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_admin,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.get",
@@ -211,6 +232,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_admin,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.execute_turn",
@@ -226,36 +248,39 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="blocked_from_mcp",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_runtime_control,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.logs",
         authority_source=AUTH_BACKEND_HTTP,
-        tool_class=McpToolClass.review_bound,
+        tool_class=McpToolClass.read_only,
         implementation_status=McpImplementationStatus.implemented,
         governance=McpToolGovernanceView(
             published_vs_draft="not_applicable",
             canonical_vs_supporting="supporting_observability",
             runtime_safe_vs_internal_only="runtime_safe",
             writers_room_visible_vs_runtime_hidden="runtime_visible",
-            reviewable_vs_publishable_posture="preview_bound",
+            reviewable_vs_publishable_posture="read_only_observation_surface",
         ),
         narrative_mutation_risk="none_observation_only",
-        permission_legacy="preview",
+        permission_legacy="read",
+        mcp_suite=McpSuite.wos_runtime_read,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.state",
         authority_source=AUTH_BACKEND_HTTP,
-        tool_class=McpToolClass.review_bound,
+        tool_class=McpToolClass.read_only,
         implementation_status=McpImplementationStatus.implemented,
         governance=McpToolGovernanceView(
             published_vs_draft="not_applicable",
             canonical_vs_supporting="canonical_runtime_state_preview",
             runtime_safe_vs_internal_only="runtime_safe",
             writers_room_visible_vs_runtime_hidden="runtime_visible",
-            reviewable_vs_publishable_posture="preview_bound_no_write_via_mcp",
+            reviewable_vs_publishable_posture="read_only_observation_surface",
         ),
         narrative_mutation_risk="none_stub",
-        permission_legacy="preview",
+        permission_legacy="read",
+        mcp_suite=McpSuite.wos_runtime_read,
     ),
     McpCanonicalToolDescriptor(
         name="wos.session.diag",
@@ -271,6 +296,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_runtime_read,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.source.inspect",
@@ -286,6 +312,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.aspect.extract",
@@ -301,6 +328,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.claim.list",
@@ -316,6 +344,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.run.get",
@@ -331,6 +360,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.exploration.graph",
@@ -346,6 +376,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.canon.issue.inspect",
@@ -361,6 +392,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_observation_only",
         permission_legacy="read",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.explore",
@@ -376,6 +408,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="review_bound_generation_only",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.validate",
@@ -391,6 +424,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="review_bound_non_publish",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.research.bundle.build",
@@ -406,6 +440,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_bundle_only",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.canon.improvement.propose",
@@ -421,6 +456,7 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="review_bound_non_publish",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_ai,
     ),
     McpCanonicalToolDescriptor(
         name="wos.canon.improvement.preview",
@@ -436,12 +472,29 @@ CANONICAL_MCP_TOOL_DESCRIPTORS: tuple[McpCanonicalToolDescriptor, ...] = (
         ),
         narrative_mutation_risk="none_preview_only",
         permission_legacy="preview",
+        mcp_suite=McpSuite.wos_ai,
     ),
 )
 
 
 def canonical_mcp_tool_descriptors_by_name() -> dict[str, McpCanonicalToolDescriptor]:
     return {d.name: d for d in CANONICAL_MCP_TOOL_DESCRIPTORS}
+
+
+def canonical_tool_names_for_suite(suite: McpSuite) -> tuple[str, ...]:
+    """Tool names belonging to a single MVP MCP suite (for ``WOS_MCP_SUITE`` filtering)."""
+    return tuple(d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS if d.mcp_suite == suite)
+
+
+def resolve_active_mcp_suite_filter() -> McpSuite | None:
+    """If ``WOS_MCP_SUITE`` is set to a suite id, restrict exposed tools/resources/prompts; ``all`` = no filter."""
+    raw = (os.environ.get("WOS_MCP_SUITE") or "all").strip().lower()
+    if raw in ("", "all", "*"):
+        return None
+    try:
+        return McpSuite(raw)
+    except ValueError:
+        return None
 
 
 def _tool_class_for_capability_row(name: str, kind: str) -> McpToolClass:
@@ -737,4 +790,5 @@ def descriptor_to_public_metadata(d: McpCanonicalToolDescriptor) -> dict[str, An
         "implementation_status": d.implementation_status.value,
         "governance": governance_dict(d.governance),
         "narrative_mutation_risk": d.narrative_mutation_risk,
+        "mcp_suite": d.mcp_suite.value,
     }

@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.3] - 2026-04-10
+
+**Summary**: **WOS_VSL MVP in-repo closure** — Phase 0 owner table and slice record, canonical five-suite MCP map in code and docs, stdio MCP server gains `resources/*` and `prompts/*` with `wos://` read mirrors, suite filtering via `WOS_MCP_SUITE`, pilot operator review sheet and external-blocker register, metrics helpers and closure tests; MCP `wos.session.execute_turn` now calls `POST /sessions/{id}/turns` with `player_input`.
+
+### Added
+
+- **`docs/ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`**: Role-based subsystem owners and MVP module id `god_of_carnage` (Phase 0).
+- **`docs/mcp/MVP_SUITE_MAP.md`**: Suite ↔ tool ↔ resource URI ↔ prompt mapping and misrouting rubric for pilot metrics.
+- **`docs/pilot/MVP_OPERATOR_REVIEW_SHEET.md`**: Operator classification template aligned with roadmap §10.
+- **`docs/MVP_WOS_VSL_EXTERNAL_BLOCKERS.md`**: Explicit non-repository dependencies (cohort, surveys, secrets).
+- **`docs/technical/integration/mvp_wos_vsl_mcp_surface.md`**: Integration pointer for MCP MVP surface.
+- **`docs/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: Roadmap for a bounded MCP operations cockpit in `administration-tool`.
+- **`ai_stack/wos_vsl_mcp_metrics.py`**: Static helpers for write-capable / high-risk mutation counts and read-via-resource share (roadmap §10.3).
+- **`ai_stack/tests/test_mcp_suite_map_complete.py`**, **`ai_stack/tests/test_wos_vsl_mvp_closure.py`**: Suite completeness and MVP metric thresholds.
+- **`tools/mcp_server/resource_prompt_support.py`**: Resource catalog, prompt bodies, and `McpResourceReader` for `wos://` URIs.
+- **`tools/mcp_server/tests/test_mcp_resources_prompts_and_filter.py`**: Coverage for resources, prompts, and suite filtering.
+
+### Changed
+
+- **`docs/ROADMAP_MVP_WOS_VSL.md`**: §4.2 Phase 0 closeout in-repo; §10.2 links to pilot instruments and metrics; owner-doc links use `ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`.
+- **`ai_stack/mcp_canonical_surface.py`**: `McpSuite`, `mcp_suite` on every canonical tool descriptor, `resolve_active_mcp_suite_filter`, `canonical_tool_names_for_suite`; `wos.session.logs` and `wos.session.state` reclassified as `read_only`; public metadata includes `mcp_suite`.
+- **`tools/mcp_server/server.py`**: Shared `BackendClient` / `FileSystemTools`, `resources/list|read`, `prompts/list|get`, `initialize` capabilities; `serverInfo.wos_mcp_suite`.
+- **`tools/mcp_server/tools_registry.py`**: Optional `suite_filter` and injectable backend/fs; `mcp_suite` on `tools/list`; **`wos.session.execute_turn`** targets **`/api/v1/sessions/{id}/turns`** with **`player_input`** (aliases `prompt` / `input`).
+- **`tools/mcp_server/README.md`**: `WOS_MCP_SUITE` / `WOS_MCP_OPERATING_PROFILE`, suite connection recipes, resources/prompts; removed stale deferred-session list.
+- **`docker/Dockerfile.ai-stack-test`**: Example pytest subset points to `test_wos_vsl_mvp_closure.py` and `test_mcp_suite_map_complete.py` (replaces removed phase-5 path).
+- **`tools/mcp_server/tests/test_rpc.py`**, **`test_mcp_operational_parity_and_registry.py`**: Assertions for capabilities, `mcp_suite`, and turn POST shape.
+
+### Tests (integrity verification)
+
+- `python -m pytest ai_stack/tests/test_mcp_suite_map_complete.py ai_stack/tests/test_wos_vsl_mvp_closure.py ai_stack/tests/test_mcp_canonical_surface.py` — green.
+- `python -m pytest tools/mcp_server/tests -q --tb=short` — green.
+
+---
+
 ## [0.5.2] - 2026-04-10
 
 **Summary**: **MVP Phase 2 comparison readiness and play-shell runtime truth** — generic LLM baseline (Arm B) for controlled differentiation tests, facilitator playbook with H1–H3 feedback, frozen opening brief; frontend play shell projects last-turn narration, commit summary, consequences, and operator raw projection from the backend → world-engine bridge; A1 runtime note aligned with the shell behavior.
