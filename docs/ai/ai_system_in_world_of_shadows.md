@@ -2,34 +2,79 @@
 
 ## Title and purpose
 
-This document is the **spine** for AI-related documentation: it explains how retrieval, orchestration, model routing, runtime authority, authoring workflows, and operator tooling **fit together** in this repository. It is written for contributors who need a **system picture**, not a bag of isolated definitions.
+This document is the **canonical spine** for AI in this repository: how retrieval, orchestration, model routing, runtime authority, authoring workflows, **research and canon-improvement tooling**, and **operator surfaces (including MCP)** fit together. It is written for contributors who need a **system picture**, not a collection of disconnected buzzwords.
 
-**Companion pages** (deeper detail, maintained alongside code):
+**Companion pages** (detail, maintained alongside code):
 
 - [AI stack overview](../technical/ai/ai-stack-overview.md)
-- [How AI fits the platform](../start-here/how-ai-fits-the-platform.md) (plain language + pointers)
-- [RAG](../technical/ai/RAG.md), [LLM / SLM role stratification](../technical/ai/llm-slm-role-stratification.md)
-- [LangGraph integration](../technical/integration/LangGraph.md), [LangChain integration](../technical/integration/LangChain.md)
+- [How AI fits the platform](../start-here/how-ai-fits-the-platform.md)
+- [RAG](../technical/ai/RAG.md), [LLM / SLM routing](../technical/ai/llm-slm-role-stratification.md)
+- [Improvement and research loops](../technical/ai/improvement_loop_in_world_of_shadows.md)
+- [LangGraph](../technical/integration/LangGraph.md), [LangChain](../technical/integration/LangChain.md), [MCP](../technical/integration/MCP.md)
 - [Runtime authority and state flow](../technical/runtime/runtime-authority-and-state-flow.md), [World-engine narrative commit](../technical/runtime/world_engine_authoritative_narrative_commit.md)
-- [MCP scope](../mcp/00_M0_scope.md) and the [MCP server developer guide](../dev/tooling/mcp-server-developer-guide.md)
+- [MCP suite map (practical)](../mcp/MVP_SUITE_MAP.md) and [MCP server developer guide](../dev/tooling/mcp-server-developer-guide.md)
 
 ---
 
-## Scope and source-of-truth
+## Scope and source of truth
 
-**Priority:** (1) implementation in this repo, (2) normative docs such as [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md) and [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md), (3) tests and gate reports, (4) architecture/governance artifacts, (5) **inference** — explicitly labeled when used.
+**Order of truth:**
 
-**Legacy archive warning:** Older milestone summaries under [`docs/archive/architecture-legacy/`](../archive/architecture-legacy/) may describe LangGraph, RAG, or LangChain as “planned” or “deferred.” That is **out of date** relative to the current tree. When archive text disagrees with code, **trust the vertical slice contract, `ai_stack/langgraph_runtime.py`, and the documents linked above**.
+1. **Implementation** in this repository (Python modules, server entrypoints, contracts under `docs/` that are explicitly normative).
+2. **Runtime- and server-facing code paths** (world-engine turn loop, backend HTTP routes, MCP stdio server).
+3. **Documentation** that is kept aligned with the above.
+4. **Tests** as supporting evidence for behavior, not as a substitute for reading production code.
+5. **Inference** — only when the code is genuinely ambiguous; label it explicitly.
 
-**Graph version (code):** `RUNTIME_TURN_GRAPH_VERSION` in `ai_stack/version.py` (currently `m12_goc_freeze_v1`).
+**Archive warning:** Older summaries under [`docs/archive/architecture-legacy/`](../archive/architecture-legacy/) may describe components as “planned.” When archive text disagrees with the current tree, **trust the implemented modules** (for example `ai_stack/langgraph_runtime.py`, `ai_stack/research_langgraph.py`, `tools/mcp_server/server.py`) and the normative slice contracts linked from this doc.
+
+**Graph version (code):** `RUNTIME_TURN_GRAPH_VERSION` in `ai_stack/version.py`.
 
 ---
 
 ## Executive overview
 
-World of Shadows uses **several cooperating layers** for AI: local **RAG** builds context packs; **LangGraph** runs the **runtime turn graph** inside the play host; **LangChain** supports **structured invocation** inside that graph and in backend workflows; **model routing** chooses adapters by phase/task (LLM- vs SLM-biased roles); **capabilities** expose governed tool-shaped operations; **MCP** surfaces operator/developer tooling **outside** the authoritative turn loop.
+**Reading shorthand:** **LLM** means a large language model pool (higher-capacity adapters); **SLM** means a small or efficient model pool (faster or cheaper adapters). **GoC** means the God of Carnage vertical slice contract family (`docs/VERTICAL_SLICE_CONTRACT_GOC.md`).
 
-**Nothing in that stack replaces runtime authority:** models and graphs **propose**; **validation and commit seams** (GoC) and the **world-engine session host** determine what becomes **live session truth** and history.
+World of Shadows uses **three distinguishable AI-related planes** that share libraries but serve different jobs:
+
+| Plane | Role | Primary anchors |
+|--------|------|------------------|
+| **Runtime play AI** | Per-turn interpretation, retrieval, direction, model calls, validation/commit inside the live narrative pipeline | `ai_stack/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py` |
+| **Research / improvement AI** | Bounded exploration over sources, structured claims, optional canon-issue and **non-publish** proposal previews; **separate** sandbox experiment loop for module variants | `ai_stack/research_*.py`, `ai_stack/canon_improvement_engine.py`, `backend/app/api/v1/improvement_routes.py` |
+| **Operator / control-plane AI** | Tools and APIs for inspection, diagnostics, governance packages—not a second story runtime | `tools/mcp_server/`, backend governance and session APIs |
+
+Across all planes: **models and graphs propose**; **validation, commit rules, and the session host** decide what becomes **live session truth**. RAG supplies **context**, not canon. **MCP** exposes **tools, resources, and prompts** for operators; it does not replace the play service’s authority.
+
+### Diagram: AI planes in World of Shadows
+
+*Anchored in:* `ai_stack/langgraph_runtime.py` (runtime graph), `ai_stack/research_langgraph.py` (research pipeline), `tools/mcp_server/server.py` (MCP control plane).
+
+```mermaid
+flowchart TB
+  subgraph runtime [Runtime_play_AI]
+    WE[world_engine_StoryRuntimeManager]
+    LG[RuntimeTurnGraphExecutor]
+    RAG[ai_stack_rag.py_ContextRetriever]
+  end
+  subgraph research [Research_and_improvement_AI]
+    RS[ResearchStore_.wos_research]
+    RP[run_research_pipeline]
+    SB[improvement_HTTP_sandbox]
+  end
+  subgraph control [Operator_control_plane]
+    MCP[MCP_stdio_server]
+    BE[backend_governance_APIs]
+  end
+  WE --> LG
+  LG --> RAG
+  RP --> RS
+  SB --> BE
+  MCP --> BE
+  BE -.->|proxy_read_policy| WE
+```
+
+**What this clarifies:** Runtime play, research storage, sandbox improvement, and MCP sit in **different authority zones**. They may share **routing and capability** patterns in the backend, but they are not one interchangeable “AI blob.”
 
 ---
 
@@ -37,104 +82,159 @@ World of Shadows uses **several cooperating layers** for AI: local **RAG** build
 
 ### Plain language
 
-AI helps interpret input, retrieve relevant text, propose narrative structure, and enrich operator workflows. It does **not** “own” the story state: the platform **checks** proposals and **records** only what rules allow.
+AI helps interpret input, retrieve relevant text, propose narrative structure, run bounded research, and enrich operator workflows. It does **not** own committed story state: the platform **checks** proposals and **records** only what rules allow.
 
 ### Technical precision
 
-- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, capabilities — outputs are **inputs to validation** until seams and host logic accept them (see [`runtime-authority-and-state-flow.md`](../technical/runtime/runtime-authority-and-state-flow.md)).
-- **`story_runtime_core`:** Shared interpretation, adapters, registry patterns used by both world-engine and backend paths.
-- **`world-engine`:** Authoritative host for **live** `StorySession` lifecycle, turn execution, diagnostics append, and bounded narrative commit resolution after the graph returns (`StoryRuntimeManager` in `world-engine/app/story_runtime/manager.py`).
-- **`backend`:** Policy, auth, Writers’ Room / improvement HTTP surfaces, proxy to play via `PLAY_SERVICE_*`, governance APIs — **not** a second authoritative runtime for the canonical play path.
+- **`ai_stack`:** Turn graph execution, RAG, LangChain bridges, **capabilities** (`ai_stack/capabilities.py`), **research pipeline** (`ai_stack/research_langgraph.py`, `research_store.py`). Outputs are **inputs to validation** or **review-bound artifacts** until host or governance accepts them.
+- **`story_runtime_core`:** Shared adapters, registry patterns used by world-engine and backend paths.
+- **`world-engine`:** Authoritative host for live `StorySession` lifecycle, turn execution, diagnostics, and bounded narrative commit after the graph returns (`world-engine/app/story_runtime/manager.py`).
+- **`backend`:** Policy, auth, Writers’ Room, improvement HTTP surfaces, proxy to play—**not** a parallel authoritative runtime for the canonical play path.
 
-### Why this matters in World of Shadows
+### Why this matters
 
-Without this split, debugging “why did the scene change?” collapses into opaque model behavior. The repo **encodes** separation: graph diagnostics, validation outcomes, commit records, and `resolve_narrative_commit` give **inspectable** reasons.
-
-### How it connects
-
-Feeds into every later section: RAG (context), LangGraph (ordering), LangChain (structured IO), routing (which adapter), MCP (visibility), Writers’ Room (authoring-time AI).
+Without this split, debugging “why did the scene change?” collapses into opaque model behavior. The repo encodes separation: graph diagnostics, validation outcomes, commit records, and `resolve_narrative_commit` give inspectable reasons.
 
 ### What this is not
 
-It is **not** the claim that “the LLM is only chat.” Models can be deeply involved — but **authority** for committed runtime effects is **elsewhere**.
+Not the claim that “the LLM is only chat.” Models can be deeply involved—but **authority** for committed runtime effects is **elsewhere**.
+
+### Neighbors
+
+Feeds every later section: RAG, LangGraph, LangChain, routing, capabilities, research store, MCP.
 
 ---
 
 ## The major AI building blocks
 
-Each subsection follows: **plain** → **technical** → **why WoS** → **connections** → **not**.
+Each subsection: **plain language** → **technical** → **why WoS** → **what it is not** → **neighbors**.
 
 ### LLM — synthesis under guardrails
 
-**Plain:** Large models are used where nuanced language or structured narrative output is needed, under routing rules that can prefer cheaper models for smaller tasks.
+**Plain:** Larger models are used where nuanced language or structured narrative output is needed; routing can prefer cheaper models for smaller jobs.
 
-**Technical:** Task kinds such as `narrative_formulation` and `scene_direction` are **LLM-first** in `TASK_ROUTING_MODE` (`backend/app/runtime/model_routing.py`). Adapters implement `StoryAIAdapter` / structured outputs; traces capture routing decisions and degradation. On the **canonical GoC path**, the graph invokes the routed adapter after `route_model` (`ai_stack/langgraph_runtime.py`).
+**Technical:** `TaskKind` values such as `narrative_formulation` and `scene_direction` are **LLM-biased** in `TASK_ROUTING_MODE` (`backend/app/runtime/model_routing.py`). On the canonical GoC (God of Carnage) play path, the **world-engine** graph invokes the routed adapter after `route_model` (`ai_stack/langgraph_runtime.py`). Traces capture routing decisions and degradation. Backend `execute_turn_with_ai` uses a **separate** multi-stage routing path when enabled ([llm-slm-role-stratification.md](../technical/ai/llm-slm-role-stratification.md)).
 
-**Why WoS:** Drama and ambiguity need capacity; the project still refuses to let that capacity **short-circuit** validation.
+**Why WoS:** Drama and ambiguity need capacity; the project still refuses to let that capacity short-circuit validation.
 
-**Connections:** SLM routing for cheaper stages; LangChain for parsers/templates; RAG for prompts; commit seams for acceptance.
+**Not:** LLM output is not canonical authored YAML and not committed runtime truth until seams and host resolution say so.
 
-**Not:** LLM output is **not** canonical authored text and **not** committed runtime truth until seams and host resolution say so.
+**Neighbors:** SLM-biased stages; LangChain parsers; RAG context; GoC slice seams.
 
 ### SLM — fast, bounded work
 
 **Plain:** Smaller or cheaper models handle classification-like or preflight work when policy allows.
 
-**Technical:** `TASK_ROUTING_MODE` marks several task kinds as **SLM-first** (e.g. `classification`, `cheap_preflight`, `ranking`). Runtime **staged orchestration** in `backend/app/runtime/runtime_ai_stages.py` (invoked from `execute_turn_with_ai` in `backend/app/runtime/ai_turn_executor.py`) runs **preflight → signal → ranking → conditional synthesis** with **honest traces** when stages are skipped or degraded. *Inference:* exact deployment of every stage in all product modes may vary by session metadata (e.g. `runtime_staged_orchestration`).
+**Technical:** `TASK_ROUTING_MODE` marks several task kinds as **SLM-first** (e.g. `classification`, `cheap_preflight`, `ranking`). Staged orchestration in `backend/app/runtime/runtime_ai_stages.py` (from `execute_turn_with_ai` in `backend/app/runtime/ai_turn_executor.py`) runs preflight → signal → ranking → conditional synthesis with explicit traces when stages skip or degrade. Session metadata can disable staging (`runtime_staged_orchestration`).
 
-**Why WoS:** Cost, latency, and predictable **bounded** calls matter at scale.
+**Why WoS:** Cost, latency, and predictable bounded calls matter at scale.
 
-**Connections:** Same registry/bootstrap as LLM paths (`routing_registry_bootstrap.py`); shared `routing_evidence` shapes across Runtime, Writers’ Room, and Improvement.
+**Not:** SLM-first routing does not mean “SLM replaces the LangGraph turn graph” on the world-engine path; it shapes **which adapter** runs for **which routing request** on backend-orchestrated surfaces.
 
-**Not:** SLM-first routing does **not** mean “SLM replaces the graph”; it shapes **which adapter** runs for which **task** in backend-orchestrated paths.
+**Neighbors:** `routing_registry_bootstrap.py`, `model_routing_evidence.py`, Writers’ Room and improvement routes (shared routing evidence shapes).
 
 ### LangGraph — orchestration without owning the session
 
-**Plain:** LangGraph defines the **order of steps** in a turn: interpret, retrieve, direct, call the model, normalize, validate, commit, render, package.
+**Plain:** LangGraph defines the **order of steps** in a turn: interpret, retrieve, align to slice, direct, call the model, normalize, validate, commit, render, package.
 
-**Technical:** `RuntimeTurnGraphExecutor` (`ai_stack/langgraph_runtime.py`) compiles a `StateGraph` with nodes including `interpret_input`, `retrieve_context`, `goc_resolve_canonical_content`, director nodes, `route_model`, `invoke_model`, optional `fallback_model`, `proposal_normalize`, **`validate_seam`**, **`commit_seam`**, `render_visible`, `package_output`. Version `RUNTIME_TURN_GRAPH_VERSION` is exposed for reproducibility.
+**Technical:** `RuntimeTurnGraphExecutor` (`ai_stack/langgraph_runtime.py`) compiles a `StateGraph` whose nodes include `interpret_input`, `retrieve_context`, `goc_resolve_canonical_content`, director nodes, `route_model`, `invoke_model`, optional `fallback_model`, `proposal_normalize`, `validate_seam`, `commit_seam`, `render_visible`, `package_output`.
 
-**Why WoS:** A single explicit graph makes **operator diagnostics** (`graph_diagnostics`, node outcomes, fallback markers) possible.
+**Why WoS:** A single explicit graph makes operator diagnostics (`graph_diagnostics`, node outcomes, fallback markers) possible.
 
-**Connections:** LangChain inside `invoke_model`; RAG in `retrieve_context`; world-engine calls `turn_graph.run(...)` then persists history.
+**Not:** LangGraph does not replace `StoryRuntimeManager`; the host still owns `turn_counter`, `history`, `diagnostics`, `resolve_narrative_commit`, and narrative threads.
 
-**Not:** LangGraph does **not** replace `StoryRuntimeManager`; the host still increments `turn_counter`, appends `history` / `diagnostics`, runs `resolve_narrative_commit`, and updates narrative threads.
+**Neighbors:** LangChain inside `invoke_model`; RAG in `retrieve_context`; world-engine calls `turn_graph.run(...)` then persists.
 
 ### LangChain — integration inside nodes, not a second runtime
 
-**Plain:** LangChain helps build prompts and parse structured model output where the project chose that stack.
+**Plain:** LangChain builds prompts and parses structured model output where the project uses that stack.
 
 **Technical:** `invoke_runtime_adapter_with_langchain` bridges templates and parsers in the graph; Writers’ Room uses `invoke_writers_room_adapter_with_langchain` and retriever bridges (`docs/technical/integration/LangChain.md`).
 
 **Why WoS:** Structured JSON and retriever integration without forking a separate orchestration framework.
 
-**Connections:** Feeds LangGraph’s `invoke_model`; shares honesty patterns with graph fallback (`raw_adapter_fallback` when mock/unparseable).
+**Not:** LangChain is not the authority for validation/commit; it is an invocation helper.
 
-**Not:** LangChain is **not** the authority for validation/commit; it is an **invocation helper**.
+**Neighbors:** LangGraph `invoke_model`; graph fallback when mock or unparseable.
 
 ### RAG — retrieval is context, not canon
 
-**Plain:** The system searches project-owned files to build **context packs** for prompts.
+**Plain:** The system searches project-owned material to build **context packs** for prompts.
 
-**Technical:** `ai_stack/rag.py` — local corpus (e.g. under `.wos/rag/`), sparse and optional hybrid embeddings, profiles and governance lanes. Ingestion includes `content/**/*` and selected `docs/**` paths (see [RAG.md](../technical/ai/RAG.md)).
+**Technical:** `ai_stack/rag.py` — local corpus (e.g. under `.wos/rag/`), sparse and optional hybrid embeddings, profiles and governance lanes. Ingestion paths are documented in [RAG.md](../technical/ai/RAG.md).
 
-**Why WoS:** Grounding in **repository text** improves relevance while keeping **governance** separate from “what the model read last.”
+**Why WoS:** Grounding in repository text improves relevance while keeping governance separate from “what the model read last.”
 
-**Connections:** `retrieve_context` node; Writers’ Room domains/profiles; capabilities like `wos.context_pack.build`.
+**Not:** Retrieved chunks are not authoritative narrative state; authored module YAML under `content/modules/` remains the slice’s primary authored source unless product policy says otherwise.
 
-**Not:** Retrieved chunks are **not** authoritative narrative state; they are **inputs**. Canon for modules remains **authored YAML** under `content/modules/` unless product policy says otherwise ([how-ai-fits-the-platform.md](../start-here/how-ai-fits-the-platform.md)).
+**Neighbors:** `retrieve_context` node; capability `wos.context_pack.build`; Writers’ Room domains.
 
-### MCP — control plane around the story
+### Governed capabilities (inside processes)
 
-**Plain:** MCP tools help operators and developers inspect and act through **controlled** APIs — not by replacing the play service.
+**Plain:** Named, mode-gated operations (context packs, transcripts, review bundles, research explore) run **inside** backend or graph code with schemas and audit semantics—not as ad-hoc string APIs.
 
-**Technical:** `tools/mcp_server/` implements tools; `docs/mcp/` defines scope, security baseline, and parity expectations. M0 explicitly states MCP must not write persistent story state or bypass guards ([`00_M0_scope.md`](../mcp/00_M0_scope.md)).
+**Technical:** `ai_stack/capabilities.py` defines capabilities such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build`, and the research/canon tools (`wos.research.explore`, …) with `CapabilityKind`, per-capability **allowed_modes** (for example `runtime` / `writers_room` / `improvement` / `admin` for core narrative workflows, and `research` / `admin` / `improvement` for the research surface), plus denial/audit behavior.
 
-**Why WoS:** A **stable tool surface** for diagnostics and workflows without coupling model prompts to ad-hoc scripts.
+**Why WoS:** Same vocabulary for “what is allowed in which mode” across runtime, Writers’ Room, improvement, and MCP catalog mirroring.
 
-**Connections:** Aligns conceptually with `ai_stack/capabilities.py` (capability IDs and audit rows); complements admin UI and backend governance.
+**Not:** Capabilities are **not** the full MCP product; MCP adds **transport, suite filtering, resources, prompts**, and stdio JSON-RPC (`tools/mcp_server/server.py`).
 
-**Not:** MCP is **not** the runtime authority for turns and **not** a substitute for `execute_turn` on the play host.
+**Neighbors:** [MCP.md](../technical/integration/MCP.md); `mcp_canonical_surface.py` for tool descriptors and suite membership.
+
+---
+
+## Research, sandbox improvement, and canon improvement (first-class)
+
+This is a **real subsystem**, not a footnote: structured intake, exploration graphs, claims, validation promotion rules, review bundles, and deterministic canon-issue/proposal derivation live under `ai_stack/research_*.py`, `ai_stack/canon_improvement_engine.py`, and `ai_stack/research_contract.py`.
+
+### Plain language
+
+**Research** here means: ingest source material, extract **aspects**, run **budget-limited** exploration that branches hypotheses, promote **claims** when evidence and contradiction checks allow, optionally derive **canon issues** and **improvement proposals** as **review-only** artifacts. Nothing in this path automatically rewrites `content/modules/` or live session state.
+
+**Sandbox improvement** (backend) is a **separate** loop: variant modules, isolated experiment runs, metrics, recommendation packages for governance—documented in [improvement_loop_in_world_of_shadows.md](../technical/ai/improvement_loop_in_world_of_shadows.md).
+
+### Technical precision
+
+- **Contracts and enums:** `ai_stack/research_contract.py` — `ResearchStatus`, exploration relation types, abort reasons, canon issue and proposal types, legal status transitions.
+- **Persistence:** `ai_stack/research_store.py` — JSON store at `.wos/research/research_store.json` (schema `research_store_v1`), buckets for sources, anchors, aspects, exploration nodes/edges, claims, issues, proposals, runs.
+- **Pipeline orchestration:** `ai_stack/research_langgraph.py` — `run_research_pipeline` runs normalize/ingest (`research_ingestion.py`), aspect extraction (`research_aspect_extraction.py`), bounded exploration (`research_exploration.py`), claim verification (`research_validation.py`), canon improvement derivation (`canon_improvement_engine.py`), and embeds a **review bundle** in the run record (`build_review_bundle`). Bundle flags include `canon_mutation_permitted: false`.
+- **Canon improvement engine:** `ai_stack/canon_improvement_engine.py` — keyword-driven issue classification from validated claims, `ImprovementProposalRecord` with `preview_patch_ref` and `mutation_allowed: false` in previews.
+- **Orchestration entry (deterministic Python):** `ai_stack/research_langgraph.py` sequences the stages above for callers such as MCP (`tools/mcp_server/tools_registry.py`). Despite the filename, this module does **not** compile a LangGraph `StateGraph`; runtime turn orchestration remains in `langgraph_runtime.py`.
+
+### Why this matters in World of Shadows
+
+Authors and operators need a **bounded** way to turn notes and sources into **structured, inspectable** artifacts that can feed human review—without conflating “exploration output” with “published canon” or “committed play state.”
+
+### What this is not
+
+- Not automatic publishing of modules.
+- Not a replacement for the runtime turn graph.
+- Not the same as sandbox **experiment** metrics (that loop lives under improvement HTTP APIs).
+
+### Neighbors
+
+- **MCP `wos-ai` suite** tools call into `research_langgraph` and the store (`tools/mcp_server/tools_registry.py`).
+- **Capabilities:** Research-related capabilities use allowed modes `research`, `admin`, and `improvement` in `capabilities.py` (audit-required); they are distinct from the core `runtime` / `writers_room` context-pack surface.
+- **RAG:** The research subsystem persists to `.wos/research/`; **retrieval** for research-shaped prompts can use `RetrievalDomain.RESEARCH` / profile `research_eval` when callers build `RetrievalRequest` that way ([RAG.md](../technical/ai/RAG.md)).
+- **Sandbox improvement:** shares **model routing evidence** patterns with Writers’ Room but uses different persistence and endpoints.
+
+### Diagram: Research pipeline (control flow)
+
+*Anchored in:* `ai_stack/research_langgraph.py` (`run_research_pipeline`), `ai_stack/research_exploration.py`, `ai_stack/research_validation.py`, `ai_stack/canon_improvement_engine.py`.
+
+```mermaid
+flowchart LR
+  IN[source_inputs_normalize_ingest]
+  ASP[aspect_extraction]
+  EXP[bounded_exploration_graph]
+  VAL[verify_and_promote_claims]
+  CI[derive_canon_improvements]
+  BDL[build_review_bundle]
+  RUN[persist_ResearchRun_in_store]
+  IN --> ASP --> EXP --> VAL --> CI --> BDL --> RUN
+```
+
+**What this clarifies:** Exploration and canon-improvement derivation are **sequential stages inside one pipeline**; the bundle explicitly marks governance posture (`silent_mutation_blocked`, `canon_mutation_permitted: false` in `build_review_bundle`).
 
 ---
 
@@ -146,25 +246,13 @@ Each subsection follows: **plain** → **technical** → **why WoS** → **conne
 
 ### Technical precision
 
-- **Inside the graph:** `validate_seam` → `commit_seam` (GoC seams; see `goc_turn_seams.py` / contract docs).
-- **Host after `run()`:** `resolve_narrative_commit` builds `StoryNarrativeCommitRecord` (bounded scene/interpreter linkage — see `world-engine/app/story_runtime/commit_models.py`).
-- **Backend in-process path:** `ai_turn_executor.py` documents itself as **transitional** integration for `SessionState` loops — **not** a parallel live runtime to world-engine.
+- **Inside the graph:** `validate_seam` → `commit_seam` (GoC slice seams; `ai_stack/goc_turn_seams.py` and contract docs).
+- **Host after `run()`:** `resolve_narrative_commit` builds `StoryNarrativeCommitRecord` (`world-engine/app/story_runtime/commit_models.py`).
+- **Backend `ai_turn_executor`:** Documented as **transitional** for in-process `SessionState` loops—not a parallel live runtime to world-engine.
 
-### Why WoS
+### Diagram: Proposal vs authority
 
-Clear boundaries prevent “the model said it, so it happened” bugs and make compliance with slice contracts testable.
-
-### Connections
-
-RAG → proposal only; LangGraph → ordering; LangChain → formatting; MCP → observation.
-
-### What this is not
-
-Not a claim that **every** future module uses identical seams; **GoC** is the binding reference for the frozen vertical slice.
-
-### Diagram: AI participation boundaries
-
-**Title:** Where AI participates vs where the host commits
+*Anchored in:* `ai_stack/langgraph_runtime.py`, `world-engine/app/story_runtime/manager.py`.
 
 ```mermaid
 flowchart TB
@@ -191,39 +279,21 @@ flowchart TB
   MGR --> HIST
 ```
 
-**What to notice:** AI-heavy steps sit **left**; durable session effects flow through **validate/commit** and **manager** paths on the **right**.
-
-**Why it matters:** Prevents conflating “model output” with “committed turn record.”
-
 ---
 
 ## From authored material to live runtime
 
 ### Plain language
 
-Authors work in **module sources** and review flows; **publishing** and **compilation** make content available to the game; **RAG** may ingest overlapping paths for **prompt context** — but **runtime projection** and **contracts** define what the play host uses for a given module.
+Authors work in **module sources** and review flows; publishing and compilation make content available to the game; **RAG** may ingest overlapping paths for **prompt context**—but **runtime projection** and **contracts** define what the play host uses.
 
 ### Technical precision
 
-- **Authored source:** `content/modules/` (canonical module YAML for the slice, per [how-ai-fits-the-platform.md](../start-here/how-ai-fits-the-platform.md)).
-- **RAG ingestion:** Broad repo paths including `content/**` and docs ([RAG.md](../technical/ai/RAG.md)); **profile** and **lane** rules bias what surfaces where.
-- **Writers’ Room:** Backend routes under `/api/v1/writers-room/...` with LangChain-backed flows ([LangChain.md](../technical/integration/LangChain.md)).
+- **Authored source:** `content/modules/` (slice canon for the GoC vertical slice, per platform docs).
+- **RAG:** Broader paths; see [RAG.md](../technical/ai/RAG.md).
+- **Writers’ Room:** Backend `/api/v1/writers-room/...` with LangChain-backed flows.
 
-### Why WoS
-
-Separating **authored canon**, **retrieved context**, and **committed runtime** avoids silent drift (“the retriever found an old doc, so the module changed”).
-
-### Connections
-
-MCP read tools may expose content listings/search; they do not redefine canon.
-
-### What this is not
-
-RAG matching score is **not** an approval workflow.
-
-### Diagram: Writers’ Room to published content to runtime
-
-**Title:** Content and context lifecycles (simplified)
+### Diagram: Content and context lifecycles
 
 ```mermaid
 flowchart LR
@@ -248,37 +318,65 @@ flowchart LR
   WE --> GRAPH
 ```
 
-**What to notice:** **Two parallel lines**: governance path into **runtime projection** vs **RAG ingest** feeding **retrieve_context**.
-
-**Why it matters:** Explains why retrieval can include docs while **play** still follows **module contracts**.
-
 ---
 
-## How the layers work together
+## MCP — control plane, not a second runtime
 
 ### Plain language
 
-A turn is a **pipeline**: understand input, pull context, align to canonical slice and director logic, call the right model, normalize, validate, commit effects, render what the player should see, package diagnostics.
+MCP is a **stdio JSON-RPC server** that exposes **tools** (actions), **resources** (stable `wos://` reads), and **prompts** (workflow recipes), grouped into **suites** for least-privilege use. It reaches the **backend** and **repo filesystem**; it does not silently become the authoritative turn engine.
 
 ### Technical precision
 
-High-level node order is in `RuntimeTurnGraphExecutor._build_graph` and mirrored in [ai-stack-overview.md](../technical/ai/ai-stack-overview.md). Normative field names: [`VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md).
+- **Descriptors and suites:** `ai_stack/mcp_canonical_surface.py` — `CANONICAL_MCP_TOOL_DESCRIPTORS`, `McpSuite` (`wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, `wos-runtime-control`), tool classes (`read_only`, `review_bound`, `write_capable`), `build_compact_mcp_operator_truth`.
+- **Server:** `tools/mcp_server/server.py` — `initialize` advertises tools, resources, prompts; `handle_tools_call` enforces `WOS_MCP_OPERATING_PROFILE` for write-capable tools.
+- **Resources and prompts:** `ai_stack/mcp_static_catalog.py` + `tools/mcp_server/resource_prompt_support.py`.
+- **Capability mirror:** `wos.capabilities.catalog` tool uses `capability_records_for_mcp()` — **no** `CapabilityRegistry.invoke` through MCP (`mcp_canonical_surface.py` module docstring).
 
-### Why WoS
+### Diagram: MCP vs runtime and backends
 
-Layering allows **swap** (e.g. retriever backend) without losing **ordering** and **seam** semantics.
+*Anchored in:* `tools/mcp_server/server.py`, `tools/mcp_server/backend_client.py`, `ai_stack/mcp_canonical_surface.py`.
 
-### Connections
+```mermaid
+flowchart TB
+  subgraph clients [Clients]
+    AG[agent_or_IDE]
+  end
+  subgraph mcp [MCP_server_stdio]
+    T[tools]
+    R[resources_wos_URI]
+    P[prompts]
+  end
+  subgraph platform [Platform]
+    BE[backend_HTTP]
+    FS[repo_filesystem]
+    AI[ai_stack_research_store_pipeline]
+  end
+  subgraph runtimePlane [Live_play_authority]
+    WE[world_engine]
+  end
+  AG --> mcp
+  T --> BE
+  T --> FS
+  T --> AI
+  R --> BE
+  R --> FS
+  BE -->|session_proxy| WE
+```
 
-Backend `execute_turn_with_ai` is a **different** orchestration surface for in-process sessions; do not assume identical graphs without reading code.
+**What this clarifies:** MCP is an **operator/agent front-end**. It may trigger **guarded** backend calls (for example session snapshot or `execute_turn` policy); it does **not** replace `StoryRuntimeManager` or module publish workflows.
 
-### What this is not
+**Full reference:** [MCP.md](../technical/integration/MCP.md), [MVP_SUITE_MAP.md](../mcp/MVP_SUITE_MAP.md).
 
-Not every HTTP entrypoint runs the full LangGraph path — follow the call chain from the handler you care about.
+---
 
-### Diagram: Core architecture (focused)
+## How the layers work together (runtime turn)
 
-**Title:** Primary runtime AI components
+High-level node order lives in `RuntimeTurnGraphExecutor._build_graph` and [ai-stack-overview.md](../technical/ai/ai-stack-overview.md). Normative field names: [`VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md).
+
+**Not every HTTP handler runs the full LangGraph path** — follow the call chain from the handler you care about (`backend` vs `world-engine`).
+
+### Diagram: Primary runtime components
 
 ```mermaid
 flowchart TB
@@ -292,6 +390,7 @@ flowchart TB
     LG[langgraph_runtime]
     LC[langchain_integration]
     CAP[capabilities.py]
+    RES[research_subsystem]
   end
   FE --> BE
   BE --> WE
@@ -300,250 +399,27 @@ flowchart TB
   AS --> asDetail
 ```
 
-**What to notice:** **`ai_stack` hangs under world-engine** for canonical play, not under the frontend.
-
-**Why it matters:** Correct mental model for where to open code during incidents.
-
-### Diagram: LangGraph vs LangChain responsibilities
-
-**Title:** Orchestration vs integration
-
-```mermaid
-flowchart LR
-  subgraph orchestration [LangGraph_orchestration]
-    N1[interpret_input]
-    N2[retrieve_context]
-    N3[director_and_route]
-    N4[invoke_model]
-    N5[validate_and_commit_seams]
-  end
-  subgraph integration [LangChain_integration]
-    PT[prompt_templates]
-    PR[structured_parsers]
-    RB[retriever_bridge]
-  end
-  N4 --> PT
-  N4 --> PR
-  N2 --> RB
-```
-
-**What to notice:** LangChain **serves** specific nodes; LangGraph **owns** the graph shape.
-
-**Why it matters:** Avoids “two orchestrators” confusion.
-
-### Diagram: RAG, canon, and runtime state
-
-**Title:** Three meanings of “truth”
-
-```mermaid
-flowchart TB
-  AUTH[Authored_module_YAML_and_governance]
-  RET[RAG_retrieved_chunks]
-  RUN[Committed_runtime_session_history]
-  AUTH --> COMP[compilation_and_projection]
-  COMP --> RUN
-  RET --> PROMPT[model_prompt_context]
-  PROMPT --> PROP[proposal_payloads]
-  PROP --> VAL[validation_seam]
-  VAL --> RUN
-```
-
-**What to notice:** **Only one path** (via validation/commit) ties **retrieval** to **committed runtime**.
-
-**Why it matters:** Core governance story for reviewers and safety discussions.
-
 ---
 
-## AI mechanics across backend, world-engine, Writers’ Room, and admin
+## Telemetry and diagnostics
 
 ### Plain language
 
-- **Players** hit frontend → backend → **play service** for live turns.
-- **Writers** use backend APIs for review-oriented generation.
-- **Admins** use administration tooling and governance APIs for visibility.
+Turns emit **structured diagnostics**: graph health, validation hints, trace IDs—so operators can answer “what path ran?” without reading raw prompts.
 
 ### Technical precision
 
-- **Trace propagation:** Backend can pass `X-WoS-Trace-Id` to world-engine (`backend/app/services/game_service.py` pattern) for correlated logs.
-- **World-engine:** `StoryRuntimeManager.execute_turn` passes `trace_id` into `turn_graph.run` and logs turn events.
-- **Writers’ Room / Improvement:** Share Task 2A routing evidence patterns ([llm-slm-role-stratification.md](../technical/ai/llm-slm-role-stratification.md)).
+- **Graph:** `graph_diagnostics` on turn state.
+- **Session events:** `StoryRuntimeManager` appends diagnostics (`retrieval`, `model_route`, `graph`, `validation_outcome`, `committed_result`, …).
+- **Trace ID:** Backend may forward `X-WoS-Trace-Id` toward world-engine (`backend/app/services/game_service.py` pattern).
 
-### Why WoS
-
-Same **routing evidence** shape across surfaces reduces “it looked fine in the admin but not in play” surprises when comparing JSON.
-
-### Connections
-
-MCP tools for operators; Langfuse or other vendors are **not** required by this spine — integrate only where the repo already does.
-
-### What this is not
-
-Admin UI readability does not imply **write authority** into live sessions without going through defined APIs.
-
-### Diagram: System context
-
-**Title:** World of Shadows — major subsystems
-
-```mermaid
-flowchart TB
-  subgraph users [People_and_clients]
-    PL[player]
-    OP[operator_admin]
-    DEV[developer]
-  end
-  subgraph apps [Applications]
-    PF[player_frontend]
-    ADM[administration_tool]
-  end
-  subgraph services [Services]
-    BE[backend]
-    WE[world_engine_play_service]
-  end
-  subgraph ai [AI_and_data_plane]
-    AS[ai_stack]
-    RAG[(local_RAG_corpus)]
-  end
-  subgraph tools [Tooling]
-    MCP[mcp_server]
-  end
-  PL --> PF
-  OP --> ADM
-  DEV --> MCP
-  PF --> BE
-  ADM --> BE
-  BE --> WE
-  WE --> AS
-  AS --> RAG
-  MCP --> BE
-```
-
-**What to notice:** MCP reaches **backend/tooling**, not a shortcut into **player HTTP** as runtime authority.
-
-**Why it matters:** Correct incident routing (play vs platform vs operator tools).
-
-### Diagram: LLM / SLM role model (routing view)
-
-**Title:** Task-kind bias (simplified)
-
-```mermaid
-flowchart TB
-  REQ[RoutingRequest_phase_and_task_kind]
-  REQ --> MODE{TASK_ROUTING_MODE}
-  MODE -->|slm_first| SLM[SLM_class_pool]
-  MODE -->|llm_first| LLM[LLM_class_pool]
-  MODE -->|escalation_sensitive| ESC[hints_and_mandatory_LLM_narrowing]
-  ESC --> PICK[deterministic_route_model_pick]
-  SLM --> PICK
-  LLM --> PICK
-  PICK --> ADP[StoryAIAdapter_call]
-```
-
-**What to notice:** **Routing** chooses **adapter**; it does not replace **graph seams**.
-
-**Why it matters:** Explains logs like `degradation_applied` vs graph `fallback_model`.
+**Not:** A guarantee that every deployment exports to a third-party APM; the repo emphasizes JSON-shaped diagnostics and logs.
 
 ---
 
-## Telemetry, diagnostics, and operational observability
-
-### Plain language
-
-Turns emit **structured diagnostics**: graph health, validation hints, trace IDs — so operators can answer “what path ran?” without reading raw prompts.
-
-### Technical precision
-
-- **Graph:** `graph_diagnostics` on turn state (nodes, outcomes, errors, dramatic review fields where enabled).
-- **Session event:** `StoryRuntimeManager` appends diagnostics including `retrieval`, `model_route`, `graph`, `validation_outcome`, `committed_result`, etc.
-- **Trace ID:** Threaded from backend to world-engine for log correlation.
-
-### Why WoS
-
-M11-era work emphasized reproducibility metadata (`repro_metadata`, graph version) and audit surfaces ([ai-stack-overview.md](../technical/ai/ai-stack-overview.md) / CHANGELOG narrative).
-
-### Connections
-
-Gate reports under `docs/reports/ai_stack_gates/` record what was proven at release milestones.
-
-### What this is not
-
-**Not** a guarantee that every environment exports to a third-party APM; this repo focuses on **JSON-shaped** diagnostics and logs.
-
-### Diagram: Observability flow
-
-**Title:** From request to inspectable artifacts
-
-```mermaid
-sequenceDiagram
-  participant Client
-  participant Backend
-  participant WorldEngine
-  participant Graph as LangGraph_runtime
-  participant Logs as logs_and_audit_events
-  Client->>Backend: API_with_optional_trace_id
-  Backend->>WorldEngine: forward_X_WoS_Trace_Id
-  WorldEngine->>Graph: turn_graph_run
-  Graph-->>WorldEngine: state_plus_graph_diagnostics
-  WorldEngine->>Logs: story_turn_event
-  WorldEngine-->>Backend: turn_payload
-  Backend-->>Client: response_plus_embedded_diagnostics
-```
-
-**What to notice:** **Correlation** rides on **trace_id**, not on MCP.
-
-**Why it matters:** Support and QA can align browser sessions with engine logs.
-
-### Diagram: AI + MCP control plane
-
-**Title:** MCP beside runtime authority
-
-```mermaid
-flowchart LR
-  subgraph runtimePlane [Runtime_authority_plane]
-    WE[world_engine_turn_loop]
-    VAL[validation_and_commit]
-  end
-  subgraph controlPlane [Operator_control_plane]
-    MCP[mcp_tools]
-    BE[backend_governance_APIs]
-    ADM[admin_UI]
-  end
-  MCP --> BE
-  ADM --> BE
-  BE -->|read_and_policy| WE
-  MCP -.->|no_direct_session_commit| WE
-```
-
-**What to notice:** Dotted line: **no direct** MCP → session commit (**policy**: [`docs/mcp/00_M0_scope.md`](../mcp/00_M0_scope.md)).
-
-**Why it matters:** Prevents misunderstanding MCP as a “hidden player.”
-
----
-
-## AI turn execution sequence (canonical play path)
-
-### Plain language
-
-The play service runs the graph once per turn, then updates session history with the committed narrative record and diagnostics.
-
-### Technical precision
+## AI turn execution sequence (canonical play)
 
 `StoryRuntimeManager.execute_turn` (simplified): increment counter → `turn_graph.run(...)` → `resolve_narrative_commit(...)` → `update_narrative_threads(...)` → append `history` / `diagnostics` → return event payload.
-
-### Why WoS
-
-This is the **happiest path** operators care about for God of Carnage.
-
-### Connections
-
-Backend `execute_story_turn` proxies to the same play API.
-
-### What this is not
-
-Does not describe WebSocket-only variants in full detail — see world-engine route modules for transport specifics.
-
-### Diagram: Canonical turn sequence
-
-**Title:** Play turn — who calls what
 
 ```mermaid
 sequenceDiagram
@@ -551,7 +427,7 @@ sequenceDiagram
   participant G as RuntimeTurnGraphExecutor
   participant R as RAG_retriever
   participant A as Model_adapter
-  participant S as GoC_seams
+  participant S as GoC_validate_commit_seams
   MGR->>G: run_turn_state
   G->>G: interpret_input
   G->>R: retrieve_context
@@ -565,81 +441,51 @@ sequenceDiagram
   MGR->>MGR: append_history_and_diagnostics
 ```
 
-**What to notice:** **Two commit-related layers**: seam inside **G**, then **bounded narrative commit** in **MGR**.
-
-**Why it matters:** Accurate reading of code in `manager.py` plus `langgraph_runtime.py`.
-
 ---
 
 ## System-wide interaction model
 
-### Sequential view
-
-**Typical live turn:** Client → Backend (auth/policy) → World-engine → LangGraph (RAG + director + model + seams) → Manager persistence → Response with visible bundle and diagnostics.
-
-**Typical review workflow:** Client → Writers’ Room API → LangChain-backed generation + retrieval profiles → **draft outputs** for humans — not automatic promotion to live play state.
-
-### Structural view
-
 | Layer | Responsibility |
-|--------|----------------|
+|--------|------------------|
 | Frontend | UX, calls backend |
-| Backend | Auth, governance, Writers’ Room / improvement, proxy to play |
+| Backend | Auth, governance, Writers’ Room, improvement, proxy to play |
 | World-engine | Session authority, invokes `ai_stack` graph |
-| ai_stack | RAG, graph, LangChain, capabilities |
+| ai_stack | RAG, graph, LangChain, capabilities, research pipeline |
 | story_runtime_core | Shared adapters / interpretation |
 | MCP / Admin | Operator tooling and visibility |
 
-### Operational view
+**Typical live turn:** Client → Backend → World-engine → LangGraph (RAG + director + model + seams) → Manager persistence → Response with visible bundle and diagnostics.
 
-On-call: identify **surface** (play vs review vs tooling), pull **trace_id**, compare **graph_diagnostics.execution_health** and validation outcomes, then check **routing traces** if the issue is model selection.
+**Typical review workflow:** Writers’ Room API → LangChain-backed **draft** outputs for humans—not automatic promotion to live play.
 
-### Diagram: Layered stack state
-
-**Title:** From user intent to durable record
-
-```mermaid
-stateDiagram-v2
-  [*] --> Interpreted: interpret_input
-  Interpreted --> Contexted: retrieve_context
-  Contexted --> Directed: director_nodes
-  Directed --> Proposed: invoke_model
-  Proposed --> Validated: validate_seam
-  Validated --> CommittedGraph: commit_seam
-  CommittedGraph --> SessionRecord: manager_history_append
-  SessionRecord --> [*]
-```
-
-**What to notice:** **SessionRecord** is only after **manager** work — not immediately after model return.
-
-**Why it matters:** Ties UX timing to persistence timing.
+**Research workflow:** Source inputs → `run_research_pipeline` → persisted run + bundle → human review; optional MCP tools under `wos-ai` suite.
 
 ---
 
-## Open seams, transitional areas, and future growth
+## Open seams and growth (honest)
 
-- **Backend `ai_turn_executor`:** Explicitly **transitional** for in-process `SessionState` — keep mental model separate from world-engine GoC path.
-- **Checkpoint persistence:** LangGraph checkpointing described elsewhere as deferred in favor of traces and deterministic fallback ([LangGraph integration doc](../technical/integration/LangGraph.md)) — verify before assuming durable graph replay in production.
-- **Archive docs:** May lag; prefer contracts + code.
-- **Suggested next pages under `docs/ai/`:** `runtime_authority_and_ai_boundaries.md` (extract from this spine), `ai_and_mcp_operator_playbook.md`, `rag_governance_and_profiles.md` — split when sections grow unwieldy.
+- **Backend `ai_turn_executor`:** Transitional for in-process `SessionState`; keep separate from world-engine GoC path.
+- **LangGraph checkpointing:** Described in [LangGraph.md](../technical/integration/LangGraph.md); verify before assuming durable graph replay in production.
+- **Research `wos.research.validate` (MCP):** Returns a **summary view** of an existing run’s claim ids (`tools/mcp_server/tools_registry.py`); full verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research_validation.py`).
 
 ---
 
 ## Conclusion
 
-AI in World of Shadows is a **relationship system**: **RAG** supplies **retrieved context**; **LangGraph** supplies **ordered orchestration**; **LangChain** supplies **structured integration**; **routing** assigns **LLM vs SLM** workloads; **MCP** supplies **operator control plane** tooling; **world-engine** supplies **runtime authority** and **session truth** after **validation and commit**.
+AI in World of Shadows is a **relationship system**: **RAG** supplies retrieved context; **LangGraph** supplies ordered **runtime** orchestration; **LangChain** supplies structured invocation; **routing** assigns LLM- vs SLM-biased work; **capabilities** govern named operations inside services; **research and canon-improvement** supply **bounded, review-bound** structured artifacts; **MCP** supplies **operator control-plane** tools, resources, and prompts; **world-engine** supplies **runtime authority** after validation and commit.
 
-If you remember one sentence: **retrieval feeds proposals; seams and the session host feed truth.**
+**One sentence:** Retrieval and exploration feed **proposals and review artifacts**; seams, the session host, and governance feeds feed **truth and publish decisions**.
 
 ---
 
-## Suggested cross-links (navigation)
+## Navigation
 
-| Topic | Go to |
-|--------|--------|
+| Topic | Document |
+|--------|----------|
 | Graph nodes and diagnostics | [LangGraph.md](../technical/integration/LangGraph.md) |
 | RAG profiles and ingestion | [RAG.md](../technical/ai/RAG.md) |
 | Routing matrix and traces | [llm-slm-role-stratification.md](../technical/ai/llm-slm-role-stratification.md) |
+| Research vs sandbox improvement | [improvement_loop_in_world_of_shadows.md](../technical/ai/improvement_loop_in_world_of_shadows.md) |
+| MCP suites, tools, resources | [MCP.md](../technical/integration/MCP.md), [MVP_SUITE_MAP.md](../mcp/MVP_SUITE_MAP.md) |
 | Play vs backend ownership | [runtime-authority-and-state-flow.md](../technical/runtime/runtime-authority-and-state-flow.md) |
-| MCP safety and scope | [docs/mcp/00_M0_scope.md](../mcp/00_M0_scope.md) |
 | Normative GoC contract | [VERTICAL_SLICE_CONTRACT_GOC.md](../VERTICAL_SLICE_CONTRACT_GOC.md) |

@@ -14,7 +14,7 @@ Think of it as: **AI suggests** → **runtime decides** → **players see** vali
 
 ### Retrieval (RAG)
 
-`ai_stack/rag.py` builds **context packs** for prompts using repository paths and module semantics (including distinctions such as `content/modules/` vs `content/published/`). Retrieval feeds the turn graph’s `retrieve_context` stage. Governance-oriented docs also live under `docs/rag_task*.md` and related files.
+`ai_stack/rag.py` builds **context packs** for prompts using repository paths and module semantics (including distinctions such as `content/modules/` vs `content/published/`). Retrieval feeds the turn graph’s `retrieve_context` stage. Domains (runtime, Writers’ Room, improvement, research) and governance lanes are documented in [RAG.md](../technical/ai/RAG.md). Older RAG milestone notes are archived under `docs/archive/rag-task-legacy/`.
 
 ### Orchestration (LangGraph, GoC slice)
 
@@ -32,7 +32,7 @@ For God of Carnage, `ai_stack/langgraph_runtime.py` defines `RuntimeTurnGraphExe
 
 ### MCP tooling
 
-`tools/mcp_server/` exposes **read-oriented** tools (module listing, content search, health) and selected backend operations as implemented. Developers should read [MCP server developer guide](../dev/tooling/mcp-server-developer-guide.md) for boundaries and env configuration.
+`tools/mcp_server/` is a **stdio MCP control plane**: **tools**, read-only **`wos://` resources**, and **prompts**, grouped into **five suites** (`wos-admin`, `wos-author`, `wos-ai`, `wos-runtime-read`, `wos-runtime-control`). It mirrors backend and filesystem authority; it does not replace the play host. See [MCP integration reference](../technical/integration/MCP.md), the practical [suite map](../mcp/MVP_SUITE_MAP.md), and [MCP server developer guide](../dev/tooling/mcp-server-developer-guide.md) for setup.
 
 ### Writers Room
 

@@ -22,7 +22,7 @@ Welcome. This page orients **new contributors** in a few minutes; deep system tr
 - [RAG](../technical/ai/RAG.md)
 - [LangGraph](../technical/integration/LangGraph.md)
 - [LangChain](../technical/integration/LangChain.md)
-- [MCP capabilities](../technical/integration/MCP.md)
+- [MCP integration](../technical/integration/MCP.md)
 
 ## Session / runtime quick links
 

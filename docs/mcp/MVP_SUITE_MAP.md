@@ -1,10 +1,12 @@
-# MVP MCP suite map (WOS_VSL)
+# MCP suite map (operator quick reference)
 
-**Normative companion:** [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md) §7.2 and §10.5 (suite misrouting classification).
+**Conceptual model (tools, resources, prompts, suites, authority):** [MCP integration reference](../technical/integration/MCP.md) — read that first; this page is the **operator quick map** (tool and URI tables only).
 
-This table is the **intended home** for each canonical tool (`ai_stack.mcp_canonical_surface.CANONICAL_MCP_TOOL_DESCRIPTORS`). Pilot reviewers classify misrouting against this map.
+**Roadmap cross-reference:** [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md) — suite expectations and pilot misrouting metrics are spelled out there (sections on MCP suites and review methodology).
 
-**Runtime rule:** MCP is a **control plane** only. Reads reflect backend / world-engine authority; nothing here commits narrative truth.
+Canonical tool names and suite membership are defined in code: `ai_stack/mcp_canonical_surface.py` (`CANONICAL_MCP_TOOL_DESCRIPTORS`). Pilot reviewers classify misrouting against the tables below.
+
+**Runtime rule:** MCP is **control plane only**. Reads reflect backend or filesystem authority; research outputs and bundles are **review-bound**; nothing here publishes canonical module YAML or replaces live session authority.
 
 ## Suite overview
 
@@ -34,7 +36,7 @@ This table is the **intended home** for each canonical tool (`ai_stack.mcp_canon
 | `wos.research.exploration.graph` | `wos-ai` | Exploration graph |
 | `wos.canon.issue.inspect` | `wos-ai` | Canon issue read |
 | `wos.research.explore` | `wos-ai` | Bounded exploration (review-bound) |
-| `wos.research.validate` | `wos-ai` | Validation pass |
+| `wos.research.validate` | `wos-ai` | Run validation checkpoint (see MCP doc for semantics) |
 | `wos.research.bundle.build` | `wos-ai` | Review bundle |
 | `wos.canon.improvement.propose` | `wos-ai` | Proposal generation (non-publish) |
 | `wos.canon.improvement.preview` | `wos-ai` | Proposal preview |
@@ -46,7 +48,7 @@ This table is the **intended home** for each canonical tool (`ai_stack.mcp_canon
 
 ## MCP resources (stable reads)
 
-Resources mirror read-only HTTP/FS paths **without** mixing think/write. URI scheme: `wos://…` (opaque to clients; resolved by `tools/mcp_server`).
+Resources mirror read-only HTTP/FS paths **without** mixing read and write operations. URI scheme: `wos://…` (opaque to clients; resolved by `tools/mcp_server`). Specs: `ai_stack/mcp_static_catalog.py` (`MCP_RESOURCE_SPECS`).
 
 | URI template | Suite | Source | Params |
 |--------------|-------|--------|--------|
@@ -61,6 +63,8 @@ Resources mirror read-only HTTP/FS paths **without** mixing think/write. URI sch
 | `wos://content/module/{module_id}` | `wos-author` | Single module (FS) | path `module_id` |
 
 ## MCP prompts (recurring workflows)
+
+Declared in `ai_stack/mcp_static_catalog.py` (`MCP_PROMPT_SPECS`); bodies in `tools/mcp_server/resource_prompt_support.py`.
 
 | Prompt name | Suite | Purpose |
 |-------------|-------|---------|
@@ -86,4 +90,4 @@ See [tools/mcp_server/README.md](../../tools/mcp_server/README.md) for command e
 
 An interaction is **misrouted** if the suite used is not the **primary owner** in the tables above for that workflow (e.g. using `wos-ai` only to fetch session diagnostics — should be `wos-runtime-read` or `wos-admin` per intent).
 
-Formula (manual): `misrouted_interactions / reviewed_interactions` — [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md) §10.5.
+Formula (manual): `misrouted_interactions / reviewed_interactions` — see roadmap MCP review section in [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md).

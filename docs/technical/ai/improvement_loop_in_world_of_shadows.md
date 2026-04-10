@@ -1,122 +1,99 @@
-# Improvement Loop in World of Shadows
+# Improvement and research loops in World of Shadows
 
-Status: D2 repaired mutation/evaluation baseline.
+World of Shadows has **two complementary loops** that both support **governance and quality** but use **different storage, entrypoints, and outputs**. Neither loop auto-publishes canonical module YAML or replaces the world-engine turn authority.
 
-## Canonical loop
+**Spine:** [AI in World of Shadows — Connected System Reference](../../ai/ai_system_in_world_of_shadows.md).
 
-1. Select baseline (`baseline_id`, e.g. `god_of_carnage`).
-2. Create candidate variant with explicit lineage.
-3. Execute sandbox experiment (isolated from authoritative publish state).
-4. Evaluate run outputs with concrete metrics.
-5. Build recommendation package for governance review.
-6. Expose packages through backend governance API.
+---
 
-`POST /api/v1/improvement/experiments/run` returns **`workflow_stages`**: ordered steps with UTC timestamps (`variant_resolution`, `baseline_context`, `sandbox_execution`, `evaluation_and_recommendation_draft`, `retrieval_improvement_context`, `transcript_tool_evidence`, `governance_review_bundle`). The same list is persisted on the stored **`recommendation_package`**.
+## 1. Sandbox improvement loop (backend HTTP)
 
-**`evidence_bundle`** on the recommendation package explicitly attaches **`retrieval_source_paths`** (from `wos.context_pack.build`), **`transcript_evidence`** (run id, turn counts from `wos.transcript.read`), metric snapshots, and **`governance_review_bundle_id`** / **`governance_review_bundle_status`** after `wos.review_bundle.build`. Recommendation JSON is written **after** this enrichment so governance consumers see a single coherent artifact.
+**Purpose:** Compare **baseline** vs **candidate** module variants under isolated execution, compute metrics, and persist **recommendation packages** for human governance.
 
-## Mutation flow
+**Anchors:** `backend/app/api/v1/improvement_routes.py`, improvement services under `backend/app/services/` (variants, experiments, evaluation), capability invocations such as `wos.context_pack.build`, `wos.transcript.read`, `wos.review_bundle.build` from `ai_stack/capabilities.py`.
 
-1. Create candidate variant from baseline with explicit lineage.
-2. Attach concrete mutation plan (`mutation_plan`) to candidate.
-3. Execute candidate in sandbox over controlled inputs.
-4. Execute baseline transcript in parallel for direct comparison.
+### Canonical workflow (API-shaped)
 
-Candidate variants now include mutation intent rather than summary-only placeholders.
+1. Select baseline (`baseline_id`, for example slice module family).
+2. Create candidate variant with explicit lineage and mutation plan.
+3. Run sandbox experiment (`execution_mode=sandbox`, non-authoritative publish state).
+4. Evaluate outputs; build recommendation draft with metrics and comparison deltas.
+5. Enrich with retrieval paths, transcript evidence, governance review bundle references.
+6. Expose via `GET /api/v1/improvement/recommendations` for inspection.
 
-## Variant and experiment model
+`POST /api/v1/improvement/experiments/run` returns **`workflow_stages`** (ordered steps with timestamps) persisted on the **`recommendation_package`**. The package’s **`evidence_bundle`** ties together context-pack paths, transcript evidence, and review bundle metadata.
 
-Implemented JSON-backed models:
+### Model routing on this surface
 
-- Variant:
-  - `variant_id`
-  - `baseline_id`
-  - `candidate_summary`
-  - `metadata`
-  - `mutation_plan`
-  - `lineage`
-  - `review_status`
-- Experiment:
-  - `experiment_id`
-  - `variant_id`
-  - `baseline_id`
-  - sandbox transcript
-  - baseline transcript
-  - execution metadata
-- Recommendation package:
-  - baseline and candidate references
-  - evaluation payload
-  - comparison deltas
-  - evidence bundle references
-  - recommendation summary
-  - governance review state
+After deterministic evaluation scaffolding, bounded **preflight** and **synthesis** stages may call `route_model` with adapter specs aligned to Writers’ Room. Traces use the same **`routing_evidence`** shape as other product surfaces; missing adapters produce explicit skip reasons—**models do not override** threshold or governance semantics.
 
-## Sandbox execution boundary
+**Anchors:** `backend/app/services/improvement_task2a_routing.py` (implementation module for bounded recommendation-stage routing), `backend/app/runtime/model_routing_evidence.py`.
 
-Sandbox experiments run through controlled simulation (`execution_mode=sandbox`) and are explicitly marked non-authoritative (`publish_state=isolated_non_authoritative`).
+### Honest product gaps
 
-No direct live publish mutation occurs in this path.
+Large-scale statistical experiment grids, dedicated triage UI, and full database-backed experiment storage may lag the JSON-oriented implementation—verify `backend` modules for current persistence.
 
-## Evaluation flow
+---
 
-Evaluation now computes:
+## 2. Research store and canon-improvement pipeline (`ai_stack`)
 
-- candidate metrics,
-- baseline metrics,
-- comparison deltas between candidate and baseline,
-- notable failures.
+**Purpose:** Turn **source inputs** into a **structured, inspectable** artifact chain: normalized sources, **aspects**, bounded **exploration graph**, **claims**, optional **canon issues** and **improvement proposals**, and a **review bundle** embedded in a **research run** record.
 
-Recommendation outcome is determined by guard/repetition thresholds plus negative comparison deltas on quality/flow.
+**Anchors:**
 
-## Evaluation dimensions implemented
+- `ai_stack/research_contract.py` — statuses, exploration enums, issue/proposal taxonomies, legal state transitions.
+- `ai_stack/research_store.py` — JSON persistence under `.wos/research/research_store.json`
+- `ai_stack/research_langgraph.py` — `run_research_pipeline`, `build_review_bundle`, helpers (`inspect_source`, `exploration_graph`, …). **Note:** orchestration here is **sequential Python**, not a compiled LangGraph `StateGraph` (see `research_langgraph.py` module docstring).
+- `ai_stack/research_ingestion.py`, `research_aspect_extraction.py`, `research_exploration.py`, `research_validation.py`
+- `ai_stack/canon_improvement_engine.py` — deterministic issue/proposal derivation from validated claims
 
-- `guard_reject_rate`
-- `trigger_coverage`
-- `repetition_signal`
-- `structure_flow_health`
-- `transcript_quality_heuristic`
-- `scene_marker_coverage`
-- notable failure flags
-- baseline metric mirror set
-- comparison deltas:
-  - `guard_reject_rate_delta`
-  - `repetition_signal_delta`
-  - `structure_flow_health_delta`
-  - `quality_heuristic_delta`
+### Pipeline stages (control flow)
 
-## Evidence model
+1. **Intake:** Normalize and ingest sources; anchors and segments (`research_ingestion.py`).
+2. **Aspects:** Extract and store aspect records per source (`research_aspect_extraction.py`).
+3. **Exploration:** Bounded graph of hypotheses with budgets and abort reasons (`research_exploration.py`).
+4. **Claims:** Promote exploration nodes to claims when schema, evidence anchors, and contradiction scans allow (`research_validation.py` — `verify_and_promote_claims`).
+5. **Canon improvement:** Derive `CanonIssueRecord` / `ImprovementProposalRecord` rows with **non-publish** previews (`canon_improvement_engine.py` — `derive_canon_improvements`).
+6. **Bundle:** `build_review_bundle` attaches governance flags (`canon_mutation_permitted: false`, `silent_mutation_blocked: true`, `review_safe` heuristic).
+7. **Persist:** `ResearchRunRecord` stored via `ResearchStore.upsert_run`.
 
-Recommendation packages carry explicit evidence:
+### Diagram: research pipeline vs sandbox improvement
 
-- variant lineage and mutation plan,
-- experiment and baseline identifiers,
-- evaluation comparison payload,
-- artifact references to persisted experiment/variant records.
+*Anchors:* `ai_stack/research_langgraph.py`, `backend/app/api/v1/improvement_routes.py`.
 
-## Recommendation and review package
+```mermaid
+flowchart TB
+  subgraph RS[Research_store_pipeline]
+    P1[ingest_aspects_explore]
+    P2[claims_issues_proposals]
+    P3[review_bundle_in_run]
+  end
+  subgraph SB[Sandbox_improvement_HTTP]
+    V[variant_experiment]
+    E[evaluate_recommendation]
+  end
+  RS -->|human_review| GOV[governance_decision]
+  SB -->|human_review| GOV
+  GOV -.->|publish_separate_process| CANON[content_modules_and_runtime_projection]
+```
 
-Packages include:
+**What this clarifies:** Both loops end in **human governance**; neither writes canon or live session truth by default.
 
-- baseline reference,
-- candidate reference,
-- experiment reference,
-- evaluation evidence and metrics,
-- comparison evidence bundle,
-- recommendation summary (`promote_for_human_review` or `revise_before_review`),
-- governance review status (`pending_governance_review`).
+---
 
-## Governance integration surface
+## 3. MCP exposure (`wos-ai` suite)
 
-Backend APIs:
+Operators and agents invoke research tools through the MCP server; handlers call the same Python functions as in-process capabilities.
 
-- `POST /api/v1/improvement/variants`
-- `POST /api/v1/improvement/experiments/run`
-- `GET /api/v1/improvement/recommendations`
+**Anchors:** `tools/mcp_server/tools_registry.py` (`run_research_pipeline`, `build_research_bundle`, `propose_canon_improvement`, …), `ai_stack/mcp_canonical_surface.py` (suite `wos-ai`).
 
-These provide governance-side inspection and decision support without automatic publish.
+**Note on `wos.research.validate`:** The MCP handler returns a **summary** of claim ids already produced for a run (`handle_research_validate` in `tools_registry.py`); **full** verification runs inside `run_research_pipeline` via `verify_and_promote_claims` (`ai_stack/research_validation.py`). Treat the MCP tool as a **workflow checkpoint**, not a second verification engine.
 
-## Deferred beyond M10
+---
 
-- richer statistical experiment comparison across large run sets,
-- dedicated admin UI for recommendation triage and approvals,
-- robust persistent database-backed experiment storage and migrations.
+## Related documentation
+
+- [MCP.md](../integration/MCP.md) — suite model, tools vs resources vs prompts
+- [MVP_SUITE_MAP.md](../../mcp/MVP_SUITE_MAP.md) — tool/suite listing
+- [llm-slm-role-stratification.md](llm-slm-role-stratification.md) — shared `routing_evidence` shapes across Writers’ Room and improvement HTTP
+- [RAG.md](RAG.md) — retrieval domains (including `research` policy in `rag.py`)
