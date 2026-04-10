@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.5.2] - 2026-04-10
+
+**Summary**: **MVP Phase 2 comparison readiness and play-shell runtime truth** — generic LLM baseline (Arm B) for controlled differentiation tests, facilitator playbook with H1–H3 feedback, frozen opening brief; frontend play shell projects last-turn narration, commit summary, consequences, and operator raw projection from the backend → world-engine bridge; A1 runtime note aligned with the shell behavior.
+
+### Added
+
+- **`scripts/mvp_generic_llm_baseline_chat.py`**: httpx-based chat-completions REPL for the MVP generic baseline (no world-engine); `--print-opening` emits machine-readable JSON on stdout; optional `--max-turns`, model and base URL overrides via env (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `MVP_BASELINE_MODEL`).
+- **`scripts/data/mvp_goc_baseline_opening.json`**: frozen evaluator goal framing, opening narration, player role hint, and Arm B system prompt aligned with the God of Carnage slice premise (not authored canon text).
+- **`docs/validation/mvp_comparative_evaluation_playbook.md`**: facilitator session script, Arm A vs B table, turn-budget guidance, and scoring form mapped to assumptions H1–H3 (`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md` Phase 2).
+- **`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`**: execution-ready MVP roadmap (product scope, phases, milestones M1–M4); Phase 2 links to baseline CLI, data file, and playbook.
+- **`backend/tests/test_mvp_baseline_script_cli.py`**: smoke tests for `--print-opening` JSON and `build_initial_messages` / `load_opening_bundle` (no live API).
+
+### Changed
+
+- **Frontend play shell** (`frontend/app/routes.py`, `frontend/templates/session_shell.html`, `frontend/static/style.css`): compact **last committed turn** panel — narration from `gm_narration`, spoken lines, scene/commit/validation/graph-error strip, committed consequences tail, collapsible raw projection; session-stashed view key `play_shell_runtime_views`.
+- **`frontend/tests/test_routes_extended.py`**: coverage for runtime view projection and execute flow against mocked backend turn payloads.
+- **`docs/technical/runtime/a1_free_input_primary_runtime_path.md`**: documents post-turn projection fields and operator raw block (single authority via bridge JSON).
+
+### Tests (integrity verification)
+
+- `python -m pytest backend/tests/test_mvp_baseline_script_cli.py` — green.
+- `python -m pytest frontend/tests/test_routes_extended.py -k play` — green.
+
+---
+
 ## [0.5.1] - 2026-04-10
 
 **Summary**: **Test readability, documentation surface truth, and CI alignment** — Area 2 and GoC test modules and functions use behavior-describing names instead of task/area/closure filenames; canonical pytest invocations in docs match `area2_validation_commands`; experience-score CLI tests live under `tests/experience_scoring_cli/`; large documentation consolidation (architecture legacy archive, technical namespaces, audit and consolidation ledgers); backend test suite splits and narrative/drift contracts; G9 evidence anchors updated for renamed AI stack modules. **Fixture / documentation / test integrity repair**: active docs, closure reports, README, MCP parity docs, audit inventories, and gate baselines now reference real test paths and runnable commands; MCP M1 closure evidence uses `test_mcp_operational_parity_and_registry.py`; `MCP_M1_CANONICAL_PARITY_CLOSURE_REPORT.md` is explicitly historical; RAG ingestion globs match `_detect_content_class` (architecture docs + `world-engine/**/var/runs` JSON).

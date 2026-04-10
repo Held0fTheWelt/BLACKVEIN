@@ -1,6 +1,53 @@
 {% extends "base.html" %}
 {% block title %}Play Session{% endblock %}
 {% block content %}
+{% if runtime_view %}
+<section class="panel play-runtime-panel">
+  <h2>Last committed turn (world-engine)</h2>
+  <p class="runtime-meta">
+    {% if runtime_view.turn_number is not none %}Turn {{ runtime_view.turn_number }}{% endif %}
+    {% if runtime_view.trace_id %}· trace <code>{{ runtime_view.trace_id }}</code>{% endif %}
+    {% if runtime_view.interpreted_input_kind %}· input kind <strong>{{ runtime_view.interpreted_input_kind }}</strong>{% endif %}
+  </p>
+  {% if runtime_view.player_line %}
+  <p class="runtime-player-line"><strong>You:</strong> {{ runtime_view.player_line }}</p>
+  {% endif %}
+  <div class="runtime-scene-strip runtime-meta">
+    {% if runtime_view.current_scene_id %}Scene now: <code>{{ runtime_view.current_scene_id }}</code>{% endif %}
+    {% if runtime_view.committed_scene_id %}· committed scene: <code>{{ runtime_view.committed_scene_id }}</code>{% endif %}
+    {% if runtime_view.commit_reason_code %}· commit: <code>{{ runtime_view.commit_reason_code }}</code>{% endif %}
+    {% if runtime_view.validation_status %}· validation: <strong>{{ runtime_view.validation_status }}</strong>{% endif %}
+    {% if runtime_view.graph_error_count %}· graph errors: <strong class="runtime-warn">{{ runtime_view.graph_error_count }}</strong>{% endif %}
+  </div>
+  <h3 class="runtime-narration-heading">Narration</h3>
+  {% if runtime_view.narration_text %}
+  <div class="play-narration">{{ runtime_view.narration_text }}</div>
+  {% else %}
+  <p class="runtime-meta">No <code>gm_narration</code> lines were present in this turn bundle. Expand diagnostics or retry when the model path is healthy.</p>
+  {% endif %}
+  {% if runtime_view.spoken_lines %}
+  <h3 class="runtime-narration-heading">Spoken lines</h3>
+  <ul class="runtime-spoken">
+    {% for line in runtime_view.spoken_lines %}
+    <li>{{ line }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if runtime_view.committed_consequences %}
+  <h3 class="runtime-narration-heading">Committed consequences (carry-forward)</h3>
+  <ul class="runtime-consequences">
+    {% for c in runtime_view.committed_consequences %}
+    <li>{{ c }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <details class="runtime-diagnostics">
+    <summary>Operator: raw projection (same fields as API bridge)</summary>
+    <pre class="runtime-diagnostics-pre">{{ runtime_view | tojson(indent=2) }}</pre>
+  </details>
+</section>
+{% endif %}
+
 <section class="panel">
   <h1>Play session {{ session_id }}</h1>
   {% if backend_session_id %}

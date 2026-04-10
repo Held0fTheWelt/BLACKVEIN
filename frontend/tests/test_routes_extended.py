@@ -419,6 +419,60 @@ def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
     assert kwargs["json_data"]["player_input"] == "I look around and wait."
 
 
+def test_play_execute_surfaces_world_engine_narration_on_shell(client, monkeypatch):
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/game/tickets":
+            return FakeResponse(payload={"ticket": "t"})
+        if path == "/api/v1/sessions":
+            return FakeResponse(payload={"session_id": "backend-session-1"})
+        if path == "/api/v1/sessions/backend-session-1/turns":
+            return FakeResponse(
+                payload={
+                    "trace_id": "trace-test",
+                    "world_engine_story_session_id": "we-1",
+                    "turn": {
+                        "turn_number": 3,
+                        "raw_input": kwargs["json_data"]["player_input"],
+                        "interpreted_input": {"kind": "speech"},
+                        "visible_output_bundle": {"gm_narration": ["The room holds its breath.", "A chair scrapes."]},
+                        "validation_outcome": {"status": "approved"},
+                        "graph": {"errors": []},
+                    },
+                    "state": {
+                        "current_scene_id": "scene_2",
+                        "turn_counter": 3,
+                        "committed_state": {
+                            "last_narrative_commit_summary": {
+                                "committed_scene_id": "scene_2",
+                                "commit_reason_code": "committed_ok",
+                            },
+                            "last_committed_consequences": ["tension_escalates"],
+                        },
+                    },
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.routes.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        sess["current_user"] = {"username": "u1"}
+        sess["play_shell_run_modules"] = {"sid": "god_of_carnage"}
+        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
+    client.post(
+        "/play/sid/execute",
+        data={"player_input": "I stare at Veronique."},
+        follow_redirects=False,
+    )
+    r = client.get("/play/sid")
+    assert r.status_code == 200
+    assert b"The room holds its breath." in r.data
+    assert b"scene_2" in r.data
+    assert b"committed_ok" in r.data
+    assert b"tension_escalates" in r.data
+    assert b"trace-test" in r.data
+
+
 def test_play_execute_rejects_missing_backend_session_binding(client, monkeypatch):
     monkeypatch.setattr(
         "app.routes.request_backend",

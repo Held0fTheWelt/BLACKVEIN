@@ -22,6 +22,67 @@ from .auth import require_login
 
 frontend_bp = Blueprint("frontend", __name__)
 
+PLAY_SHELL_RUNTIME_VIEWS_KEY = "play_shell_runtime_views"
+
+
+def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any]:
+    """Project world-engine bridge JSON into a compact, player-facing last-turn view."""
+    turn = api_payload.get("turn") if isinstance(api_payload.get("turn"), dict) else {}
+    state = api_payload.get("state") if isinstance(api_payload.get("state"), dict) else {}
+    bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
+    gm = bundle.get("gm_narration")
+    lines: list[str] = []
+    if isinstance(gm, list):
+        lines = [str(x).strip() for x in gm if str(x).strip()]
+    narration_text = "\n\n".join(lines)
+    spoken = bundle.get("spoken_lines")
+    spoken_lines: list[str] = []
+    if isinstance(spoken, list):
+        spoken_lines = [str(x).strip() for x in spoken if str(x).strip()]
+
+    committed = state.get("committed_state") if isinstance(state.get("committed_state"), dict) else {}
+    summary = (
+        committed.get("last_narrative_commit_summary")
+        if isinstance(committed.get("last_narrative_commit_summary"), dict)
+        else {}
+    )
+    consequences = committed.get("last_committed_consequences")
+    cons_list: list[str] = []
+    if isinstance(consequences, list):
+        cons_list = [str(x) for x in consequences[:12]]
+
+    val = turn.get("validation_outcome") if isinstance(turn.get("validation_outcome"), dict) else {}
+    val_status = str(val.get("status") or "").strip() or None
+
+    graph = turn.get("graph") if isinstance(turn.get("graph"), dict) else {}
+    errs = graph.get("errors")
+    err_count = len(errs) if isinstance(errs, list) else 0
+
+    interp = turn.get("interpreted_input") if isinstance(turn.get("interpreted_input"), dict) else {}
+    input_kind = str(interp.get("kind") or "").strip() or "unknown"
+
+    nc = committed.get("last_narrative_commit") if isinstance(committed.get("last_narrative_commit"), dict) else {}
+    if not nc:
+        nc = turn.get("narrative_commit") if isinstance(turn.get("narrative_commit"), dict) else {}
+
+    return {
+        "trace_id": str(api_payload.get("trace_id") or "").strip() or None,
+        "world_engine_story_session_id": str(api_payload.get("world_engine_story_session_id") or "").strip() or None,
+        "turn_number": turn.get("turn_number"),
+        "player_line": str(turn.get("raw_input") or "").strip(),
+        "interpreted_input_kind": input_kind,
+        "narration_text": narration_text,
+        "spoken_lines": spoken_lines,
+        "committed_scene_id": summary.get("committed_scene_id") or nc.get("committed_scene_id"),
+        "commit_reason_code": summary.get("commit_reason_code") or nc.get("commit_reason_code"),
+        "situation_status": summary.get("situation_status"),
+        "validation_status": val_status,
+        "graph_error_count": err_count,
+        "committed_consequences": cons_list,
+        "current_scene_id": state.get("current_scene_id"),
+        "turn_counter": state.get("turn_counter"),
+    }
+
 
 def _clear_auth_state() -> None:
     session.pop("access_token", None)
@@ -329,11 +390,17 @@ def play_shell(session_id: str):
                 flash(backend_payload.get("error", "Could not create runtime session."), "error")
         else:
             flash("No module mapping found for this run. Start a new run from Play Start.", "error")
+    runtime_views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
+    if not isinstance(runtime_views, dict):
+        runtime_views = {}
+    runtime_view = runtime_views.get(session_id)
+
     return render_template(
         "session_shell.html",
         session_id=session_id,
         ticket=ticket_payload,
         backend_session_id=backend_session_id,
+        runtime_view=runtime_view,
     )
 
 
@@ -359,8 +426,15 @@ def play_execute(session_id: str):
     except BackendApiError as exc:
         flash(str(exc), "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
+    if isinstance(payload, dict):
+        views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
+        if not isinstance(views, dict):
+            views = {}
+        views[session_id] = _build_play_shell_runtime_view(payload)
+        session[PLAY_SHELL_RUNTIME_VIEWS_KEY] = views
+        session.modified = True
     interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
-    flash(f"Turn executed in runtime (input kind: {interpreted}).", "success")
+    flash(f"Turn executed (interpreted as {interpreted}). Scene and narration below update from the world-engine response.", "success")
     return redirect(url_for("frontend.play_shell", session_id=session_id))
 
 

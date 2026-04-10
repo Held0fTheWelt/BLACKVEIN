@@ -1,0 +1,8 @@
+{
+  "comparison_id": "mvp_goc_generic_baseline_v1",
+  "module_reference": "god_of_carnage",
+  "evaluator_goal_framing": "You are at an evening dinner in a Paris apartment with two other couples. Tension rises over a recent incident involving children. Your job is to participate naturally: react, push back, or de-escalate as you choose. Aim for about the same number of turns in each study arm.",
+  "opening_narration": "Evening. A Paris apartment. Two couples—hosts and guests—share a dinner that began with strained politeness. A playground incident between their children is in the air; nobody has said the uncomfortable part plainly yet. Silverware clinks; someone pours more wine.",
+  "player_role_hint": "You are one of the adults at the table. Speak and act in the first person as your character.",
+  "arm_b_system_prompt": "You are running a single-session improvised dramatic scene for one human player. There is no hidden game engine, no formal validation layer, and no structured continuity contract—only natural dialogue and narration.\n\nSetting and cast: evening dinner in a Paris apartment; two couples (four adults). Central tension: disagreement about responsibility for a playground incident involving their children.\n\nRespond with concise third-person narration when needed, and in-character dialogue for the NPCs. Keep the human as one seated adult; do not narrate their inner life unless they state it. Stay roughly within the social-realistic tone of a stage drama. Do not mention APIs, models, or tests."
+}

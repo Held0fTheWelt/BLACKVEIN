@@ -1313,3 +1313,37 @@ body.dashboard { background: var(--void); }
 .panel a { color: var(--primary); }
 .panel a:hover { color: var(--primary-hover); }
 .form-input { width: 100%; max-width: 16rem; }
+
+/* Play shell — last turn projection from world-engine bridge (MVP evaluator surface) */
+.play-runtime-panel { border-color: var(--violet); }
+.runtime-meta { color: var(--text-muted); font-size: 0.88rem; margin: 0.35rem 0; }
+.runtime-meta code { font-size: 0.85em; }
+.runtime-player-line { margin: 0.75rem 0; line-height: 1.45; }
+.runtime-scene-strip { margin-bottom: 1rem; }
+.runtime-warn { color: var(--danger); }
+.runtime-narration-heading { font-size: 1rem; margin: 1rem 0 0.35rem; color: var(--text-muted); }
+.play-narration {
+    white-space: pre-wrap;
+    font-family: var(--mono-font);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    padding: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0;
+}
+.runtime-spoken,
+.runtime-consequences { margin: 0.35rem 0 0 1.1rem; padding: 0; }
+.runtime-diagnostics { margin-top: 1.25rem; }
+.runtime-diagnostics-pre {
+    max-height: 22rem;
+    overflow: auto;
+    font-family: var(--mono-font);
+    font-size: 0.78rem;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 0.5rem 0 0;
+}

@@ -27,7 +27,12 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 ## UI truthfulness updates
 
 - Shell copy now states natural language as the primary input path.
-- The execute action now runs a real runtime turn and surfaces runtime interpretation kind in user feedback.
+- The execute action runs a real runtime turn via the backend → world-engine bridge.
+- After each successful turn, the play shell stores a **compact projection** of the bridge JSON and renders:
+  - **Narration** from `turn.visible_output_bundle.gm_narration` (truth-aligned staging returned by the runtime).
+  - **Scene / commit summary** from `state.committed_state` when present (committed scene id, reason code, validation status, graph error count).
+  - **Committed consequences** tail when the engine exposes `last_committed_consequences` (continuity signal for evaluators).
+  - A collapsible **raw projection** block for operators (same fields as stashed in the Flask session, not a second authority).
 
 ## Known limits (still in scope boundary)
 
