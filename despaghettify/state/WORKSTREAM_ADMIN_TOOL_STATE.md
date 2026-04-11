@@ -1,39 +1,39 @@
-# Workstream State: Administration Tool
+# Workstream state: Administration Tool
 
-## Current Objective
+## Current objective
 
-Admin-UI, Management-Routen und MCP unter `tools/mcp_server/` nach [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Kanonische fachliche Spur: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md) (Workstream-Zuordnung in der Inputliste).
+Admin UI, management routes, and MCP under `tools/mcp_server/` per [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Canonical functional track: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md) (workstream mapping in the input list).
 
-## Current Repository Status
+## Current repository status
 
-- Typischer Scope: `administration-tool/`, `tools/mcp_server/`.
-- Artefakte: `artifacts/workstreams/administration_tool/pre|post/`.
+- Typical scope: `administration-tool/`, `tools/mcp_server/`.
+- Artefacts: `artifacts/workstreams/administration_tool/pre|post/`.
 
-## Hotspot / Target Status
-
-- —
-
-## Last Completed Wave/Session
+## Hotspot / target status
 
 - —
 
-## Pre-Work Baseline Reference
+## Last completed wave/session
+
+- —
+
+## Pre-work baseline reference
 
 - `artifacts/workstreams/administration_tool/pre/git_status_scope.txt` *(optional)*
 - `artifacts/workstreams/administration_tool/pre/session_YYYYMMDD_DS-xxx_*`
 
-## Post-Work Verification Reference
+## Post-work verification reference
 
 - `artifacts/workstreams/administration_tool/post/session_YYYYMMDD_DS-xxx_*`
 
-## Known Blockers
+## Known blockers
 
 - —
 
-## Next Recommended Wave
+## Next recommended wave
 
-- Nächste priorisierte **DS-*** aus Inputliste / Umsetzungsreihenfolge; MCP-Änderungen mit Backend-Schnittstellen abstimmen.
+- Next prioritised **DS-*** from input list / implementation order; align MCP changes with backend interfaces.
 
-## Contradictions / Caveats
+## Contradictions / caveats
 
-- Fortschrittsclaims ohne verlinkte Evidenz gelten nicht als Abschlussnachweis.
+- Progress claims without linked evidence do not count as closure proof.

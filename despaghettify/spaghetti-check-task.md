@@ -1,27 +1,30 @@
-# Task: Struktur- / Spaghetti-Check (reproduzierbar)
+# Task: Structure / spaghetti check (reproducible)
 
-*Pfad:* `despaghettify/spaghetti-check-task.md` — Überblick: [README.md](README.md).
+*Path:* `despaghettify/spaghetti-check-task.md` — Overview: [README.md](README.md).
 
-Dieser Auftrag beschreibt die **vollständige** Analyse-Spur für den Despaghettify-Hub: **Strukturmetriken** erheben, **Hotspots** benennen, die kanonische [Inputliste](despaghettification_implementation_input.md) an drei Stellen pflegen — **Letzter Struktur-Scan**, **Informations-Inputliste** (Tabelle), **Empfohlene Umsetzungsreihenfolge** (Vorschlag) — **ohne** Code-Refactors (Umsetzung bleibt beim Despag-Umsetzer und folgt [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) bei echten Wellen).
+This task describes the **full** analysis track for the Despaghettify hub: collect **structure metrics**, name **hotspots**, maintain the canonical [input list](despaghettification_implementation_input.md) — **without** code refactors (implementation stays with the implementer and follows [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) for real waves).
 
-## Bindende Quellen
+**Threshold:** Compute the heuristic aggregate score **S** as defined in the input list from the scan. **Only if S > 19%** (strictly greater than 19): also edit or newly propose the **information input list** (DS table including workstream mapping) and **recommended implementation order**. **If S ≤ 19%**, do **not** touch those two sections in the spaghetti check (no new DS rows, no phase reshuffle) — updating **Latest structure scan** including **S** and the **Open hotspots** field is still required (see below), but only with **still-unresolved** items.
 
-| Dokument | Rolle |
-|----------|--------|
-| [despaghettification_implementation_input.md](despaghettification_implementation_input.md) | **Letzter Struktur-Scan** (Zahlen, Datum, Score), **Informations-Inputliste** (DS-Zeilen aus Befund), **Empfohlene Umsetzungsreihenfolge** (Phasen-Tabelle aus Abhängigkeiten ableiten); § **DS-ID → primärer Workstream** bei neuen IDs mitpflegen. |
-| [tools/spaghetti_ast_scan.py](../tools/spaghetti_ast_scan.py) | Kanonische Ausführung der Metriken (Repo-Wurzel = CWD). |
-| [state/EXECUTION_GOVERNANCE.md](state/EXECUTION_GOVERNANCE.md) | Analyse und Markdown-Pflege erzeugen **keine** neuen Pre/Post-Artefakte; die entstehen erst, wenn eine **Wave** mit Evidenz anläuft. |
-| Lokale Planung / Issues | Scan-Zahlen und vorgeschlagene Reihenfolge nur nach Abstimmung in externe Tickets spiegeln; im Repo genügen die drei Inputlisten-Abschnitte. |
+## Binding sources
 
-## Nicht tun
+| Document | Role |
+|----------|------|
+| [despaghettification_implementation_input.md](despaghettification_implementation_input.md) | **Always:** **Latest structure scan** (date, **N**, **L₅₀**, **L₁₀₀**, **D₆**, **S**, extra checks, **Open hotspots** — **prune resolved items**, never re-list solved hotspots; see §1). **Only if S > 19%:** **information input list** (DS rows), **recommended implementation order** (phase proposal), § **DS-ID → primary workstream** for new IDs. |
+| [tools/spaghetti_ast_scan.py](../tools/spaghetti_ast_scan.py) | Canonical metric run (repository root = CWD). |
+| [state/EXECUTION_GOVERNANCE.md](state/EXECUTION_GOVERNANCE.md) | Analysis and Markdown maintenance create **no** new pre/post artefacts; those appear only when a **wave** with evidence runs. |
+| Local planning / issues | Always share scan numbers; mirror proposed order / new DS rows to external tickets only after agreement — and in-repo **only** if **S > 19%** (otherwise the scan section suffices). |
 
-- **Nicht** `docs/archive/documentation-consolidation-2026/*` ändern.
-- **Keine** Prozent-Scores als „objektive“ Wahrheit verkaufen — höchstens **heuristische** Einordnung in der Scan-Tabelle.
-- **Kein** Ersatz für grüne CI: Scan ist **Lesart**, Tests bleiben authoritative.
+## Do not
 
-## Umfang des Python-AST-Laufs (fix)
+- Do **not** change `docs/archive/documentation-consolidation-2026/*`.
+- Do **not** sell percentage scores as “objective” truth — at most **heuristic** placement in the scan table.
+- Do **not** leave **resolved** items in the **Open hotspots** field of the structure scan (no stale callouts; no re-copying hotspots that the repo or a prior solve wave already fixed — see §1).
+- Not a substitute for green CI: the scan is **read-side**; tests remain authoritative.
 
-Diese Verzeichnisse **immer** einbeziehen (Pfade relativ zur Repository-Wurzel):
+## Python AST run scope (fixed)
+
+Always include these directories (paths relative to repository root):
 
 - `backend/app`
 - `world-engine/app`
@@ -30,13 +33,13 @@ Diese Verzeichnisse **immer** einbeziehen (Pfade relativ zur Repository-Wurzel):
 - `tools/mcp_server`
 - `administration-tool`
 
-**Ignorieren:** `.state_tmp`, `site/`, `node_modules`, `.venv`, `venv`, `__pycache__` (und alles unterhalb davon).
+**Ignore:** `.state_tmp`, `site/`, `node_modules`, `.venv`, `venv`, `__pycache__` (and everything under them).
 
-## Reproduktion: AST-Scan-Skript
+## Reproduction: AST scan script
 
-**Im Repository vorhanden:** [tools/spaghetti_ast_scan.py](../tools/spaghetti_ast_scan.py) — bei Änderung der Metrikdefinition **Task-Dokument und Skript gemeinsam** pflegen.
+**In repository:** [tools/spaghetti_ast_scan.py](../tools/spaghetti_ast_scan.py) — if metric definitions change, maintain **task document and script together**.
 
-Der folgende Block ist eine **Kopie** der Logik (falls das Skript fehlt oder abweicht):
+The following block is a **copy** of the logic (if the script is missing or diverges):
 
 ```python
 from __future__ import annotations
@@ -120,47 +123,52 @@ if __name__ == "__main__":
     main()
 ```
 
-Ausführung von der **Repository-Wurzel**:
+Run from **repository root**:
 
 ```bash
 python tools/spaghetti_ast_scan.py
 ```
 
-## Zusatzchecks (fix)
+## Extra checks (fixed)
 
-1. **Duplikat Builtins:** Suche nach `def build_god_of_carnage_solo` in `**/builtins.py` (Backend + World-Engine) — Zustand in Scan-Tabelle kurz erwähnen, solange das für euch ein offenes Builtins-/Drift-Thema ist.
-2. **Import-Workarounds (Stichprobe):** unter `backend/app/runtime` nach `TYPE_CHECKING`, `avoid circular`, `circular dependency` greppen — nur qualitativ („weiterhin vorhanden“ / „weniger Treffer“), keine vollständige Graph-Analyse nötig.
+1. **Duplicate builtins:** search for `def build_god_of_carnage_solo` in `**/builtins.py` (backend + world-engine) — mention state briefly in the scan table while builtins/drift remains an open theme.
+2. **Import workarounds (spot check):** grep under `backend/app/runtime` for `TYPE_CHECKING`, `avoid circular`, `circular dependency` — qualitative only (“still present” / “fewer hits”); no full graph analysis required.
 
-## Pflege der Inputliste (drei Pflichtblöcke)
+## Maintaining the input list
 
-Alles in [despaghettification_implementation_input.md](despaghettification_implementation_input.md):
+All in [despaghettification_implementation_input.md](despaghettification_implementation_input.md). The **S > 19%** threshold refers to the heuristic aggregate score **S** documented in the input list (same formula as there).
 
-### 1) Letzter Struktur-Scan
+### 1) Latest structure scan — **always**
 
-- **Datum** und Metriken (**N**, **L₅₀**, **L₁₀₀**, **D₆**, **S**) aus dem Skriptlauf; **Score *S*** und Zähler konsistent zur Formel in der Inputliste.
-- **Zusatzchecks** (Builtins, Runtime-Stichprobe `TYPE_CHECKING` / Zirkel-Hinweise) kurz im Scan-Abschnitt verankern, wenn ihr sie ausführt.
-- Längste Funktionen und Top-Nesting **vollständig** nur in der **Skript-Ausgabe**; im Markdown **Kernaussagen** und ggf. **Offene Schwerpunkte** (2–5 Bulletpoints).
+- **Date** and metrics (**N**, **L₅₀**, **L₁₀₀**, **D₆**, **S**) from the script run; **score *S*** and counter consistent with the formula in the input list.
+- **Extra checks** (builtins, runtime spot check `TYPE_CHECKING` / cycle hints) briefly in the scan section if you run them.
+- Longest functions and top nesting **fully** only in **script output**; in Markdown **core findings** and the **Open hotspots** table row as follows:
+  - **Open hotspots must not show solved problems.** Before writing, read the previous **Open hotspots** text and reconcile with the **current** repo and this run’s script output (line counts, paths, names). If a named function or theme is **no longer** a top offender or was **split / moved / shortened** by an implemented wave, **drop** that fragment from **Open hotspots**; use **—** when nothing structural remains to call out beyond the numeric row.
+  - Only list **still-open** structural issues (typically 2–5 short clauses aligned with current top lines / nesting or checks). Do **not** reintroduce text that [spaghetti-solve-task.md](spaghetti-solve-task.md) already cleared unless the problem has **regressed** in the tree.
+  - Do **not** duplicate the full script leaderboard in **Open hotspots** — that belongs in terminal output only; the cell is for **curated, unresolved** callouts.
 
-### 2) Informations-Inputliste (Tabelle) befüllen
+### 2) Information input list (table) — **only if S > 19%**
 
-- Jede erkannte oder verschärfte **Struktur-/Spaghetti-Lücke** bekommt eine **eigene Zeile** mit Spalten: **ID**, **Muster**, **Ort**, **Hinweis / Messidee**, **Richtung** (Lösungsskizze in einem Satz), **Kollisionshinweis** (was parallel riskant wäre).
-- **IDs:** bestehende **DS-***-Zeilen **aktualisieren** (Messwerte, Ort, Kollision), statt Duplikate zu erfinden; nur bei **neuen** Themen die nächste freie **DS-***-Nummer vergeben.
-- Direkt danach die Tabelle **DS-ID → primärer Workstream** im selben Dokument pflegen (Slug → `artifacts/workstreams/<slug>/pre|post/` laut [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md)).
+- Each recognised or worsened **structure / spaghetti gap** gets its **own row** with columns: **ID**, **pattern**, **location**, **hint / measurement idea**, **direction** (one-sentence sketch), **collision hint** (what would be risky in parallel).
+- **IDs:** **update** existing **DS-*** rows (measurements, location, collision) instead of inventing duplicates; assign the next free **DS-*** number only for **new** topics.
+- Then maintain the **DS-ID → primary workstream** table in the same document (slug → `artifacts/workstreams/<slug>/pre|post/` per [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md)).
+- **If S ≤ 19%:** do **not** change this section or the workstream table within the spaghetti check.
 
-### 3) Empfohlene Umsetzungsreihenfolge vorschlagen
+### 3) Recommended implementation order — **only if S > 19%**
 
-- Abschnitt **„Empfohlene Umsetzungsreihenfolge“** als **Vorschlag** des Analyse-Agenten: Tabelle **Priorität / Phase**, **DS-ID(s)**, **Kurzlogik**, **Workstream (primär)**, **Anmerkung** (Abhängigkeiten, Gates).
-- **Heuristik (Reihenfolge):** Schnittstellen und gemeinsame Kanten (**DTOs, klare Module-Grenzen**) vor großen Verschiebungen; **hohe Kopplung / tiefe Nesting-Hotspots** nicht parallel von zwei Ownern ohne abgestimmte Artefakt-Sets; Builtins-/Import-Themen nicht hinter großen Runtime-Umbauten verstecken, wenn der Scan sie oben hält.
-- Wenn nur Zahlen ohne neue inhaltliche These: Reihenfolgetabelle **bestätigen** oder eine Zeile **„keine Änderung gegenüber letztem Scan“** — keine leeren Platzhalter-Phasen stehen lassen, wenn die Inputtabelle Zeilen hat.
+- Section **“Recommended implementation order”** as the analysis agent’s **proposal**: table **priority / phase**, **DS-ID(s)**, **short logic**, **workstream (primary)**, **note** (dependencies, gates).
+- **Heuristic (order):** interfaces and shared edges (**DTOs, clear module boundaries**) before large moves; **high coupling / deep nesting hotspots** not in parallel by two owners without aligned artefact sets; do not hide builtins/import topics behind large runtime refactors when the scan surfaces them first.
+- If only numbers change without a new substantive thesis: **confirm** the phase table or add a row **“no change vs last scan”** — do not leave empty placeholder phases when the input table has rows.
+- **If S ≤ 19%:** do **not** change this section within the spaghetti check (no phase shuffle for scan noise only).
 
 ### Optional
 
-- **Fortschritt / Arbeitslog** und **`WORKSTREAM_*_STATE.md`**: nur bei **formaler Wave** mit Pre/Post (siehe Governance).
+- **Progress / work log** and **`WORKSTREAM_*_STATE.md`**: only for a **formal wave** with pre/post (see governance).
 
-## Ergebnisformat für den Auftraggeber (kurz)
+## Output format for the requester (short)
 
-Nach Lauf **3–8 Sätze** zu Länge/Nesting/Hotspots, **1–3 Sätze** zur **vorgeschlagenen Umsetzungsreihenfolge** (erste Phase und warum), plus Verweis auf geänderte Abschnitte in der Inputliste (Scan-Tabelle, DS-Zeilen, Phasen-Tabelle).
+After the run: **3–8 sentences** on length/nesting, **S**, and whether **Open hotspots** shrank or cleared (no solved items left listed). **Only if S > 19%:** additionally **1–3 sentences** on **proposed implementation order** (first phase and why) plus pointer to changed sections (**scan**, **DS table**, **phase table**). **If S ≤ 19%:** reference **Latest structure scan** (including **Open hotspots** pruned to unresolved only) — no obligation to change DS / phases.
 
-## Gegenstück: Umsetzung Welle für Welle
+## Counterpart: implementation wave by wave
 
-Die **Ausführungs-Spur** (Reihenfolge prüfen, ggf. anpassen, dann Despag-Wellen mit Pre/Post bis zur Liste leer): [spaghetti-solve-task.md](spaghetti-solve-task.md).
+The **execution track** (review order, adjust if needed, then Despaghettify waves with pre/post until the list is empty): [spaghetti-solve-task.md](spaghetti-solve-task.md).

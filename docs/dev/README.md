@@ -19,10 +19,10 @@ Entry point for **contributors**: workflows, layout, and links into **technical*
 
 Authoritative architecture and integration detail: [`docs/technical/README.md`](../technical/README.md).
 
-## Code structure (de-spaghettification)
+## Code structure (despaghettification)
 
-- Despaghettifizierung — task input list and coordination (German, **living** document — not part of the frozen 2026 doc archive): [`despaghettify/despaghettification_implementation_input.md`](../../despaghettify/despaghettification_implementation_input.md) (see [`despaghettify/README.md`](../../despaghettify/README.md))  
-  Anchors to [`docs/archive/documentation-consolidation-2026/`](../archive/documentation-consolidation-2026/) for **topic** consolidation; this file tracks **code** structure work items (`DS-*`) without editing those archive artifacts.
+- **Living** task input list and coordination (English, under `despaghettify/` — not part of the frozen 2026 doc archive): [`despaghettify/despaghettification_implementation_input.md`](../../despaghettify/despaghettification_implementation_input.md) (see [`despaghettify/README.md`](../../despaghettify/README.md))  
+  Links to [`docs/archive/documentation-consolidation-2026/`](../archive/documentation-consolidation-2026/) for **topic** consolidation; that input list tracks **code** structure work items (`DS-*`) without editing those archive artefacts.
 
 ## Additional references
 

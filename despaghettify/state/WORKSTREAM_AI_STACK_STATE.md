@@ -1,40 +1,40 @@
-# Workstream State: AI Stack
+# Workstream state: AI Stack
 
-## Current Objective
+## Current objective
 
-Änderungen unter `ai_stack/` mit denselben Pre/Post-Regeln wie [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Strukturthemen: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
+Changes under `ai_stack/` follow the same pre/post rules as [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Structure topics: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
 
-## Current Repository Status
+## Current repository status
 
-- Typischer Scope: `ai_stack/`, zugehörige Tests unter `ai_stack/tests/`.
-- Nach der nächsten Wave: Artefakte unter `artifacts/workstreams/ai_stack/pre|post/`.
+- Typical scope: `ai_stack/`, tests under `ai_stack/tests/`.
+- After the next wave: artefacts under `artifacts/workstreams/ai_stack/pre|post/`.
 
-## Hotspot / Target Status
-
-- —
-
-## Last Completed Wave/Session
+## Hotspot / target status
 
 - —
 
-## Pre-Work Baseline Reference
+## Last completed wave/session
+
+- —
+
+## Pre-work baseline reference
 
 - `artifacts/workstreams/ai_stack/pre/git_status_scope.txt` *(optional)*
 - `artifacts/workstreams/ai_stack/pre/session_YYYYMMDD_DS-xxx_*`
 
-## Post-Work Verification Reference
+## Post-work verification reference
 
 - `artifacts/workstreams/ai_stack/post/session_YYYYMMDD_DS-xxx_*`
-- Pre→Post-Vergleich wie in der Governance beschrieben.
+- Pre→post comparison as described in governance.
 
-## Known Blockers
+## Known blockers
 
 - —
 
-## Next Recommended Wave
+## Next recommended wave
 
-- Aus der Despag-**Informations-Inputliste** und der **Umsetzungsreihenfolge**; bei RAG/LangGraph/Capabilities Schnittstellen zu `backend_runtime_services` abstimmen.
+- From the Despaghettify **information input list** and **implementation order**; align interfaces with `backend_runtime_services` when touching RAG / LangGraph / capabilities.
 
-## Contradictions / Caveats
+## Contradictions / caveats
 
-- Narrative Fortschrittsclaims ohne Artefaktbezug sind nicht closure-fähig.
+- Progress narrative without artefact references is not closure-ready.

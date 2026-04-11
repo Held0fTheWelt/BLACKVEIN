@@ -1,16 +1,16 @@
-# Execution State Hub
+# Execution state hub
 
-Dieser Ordner ist die kanonische Restart-Schicht fuer zustandsaendernde Ausfuehrungsarbeit im Repository.
+This folder is the canonical restart layer for state-changing execution work in the repository.
 
-Kernprinzip:
-- State-Dokumente sichern Kontinuitaet.
-- Artefakte sichern Beweise.
-- Abschlussclaims sind nur gueltig, wenn Pre- und Post-Artefakte verlinkt und vergleichbar sind.
+Core principles:
+- State documents preserve continuity.
+- Artefacts preserve evidence.
+- Closure claims are only valid when pre and post artefacts are linked and comparable.
 
-Hinweis: `artifacts/workstreams/…/pre|post/` kann zwischen Wellen **leer** sein (z. B. nach Bereinigung). Neue strukturelle Wellen legen die Session-Dateien dort wieder an; fehlende alte Pfade ersetzen **nicht** Git-Historie, CI oder Tests.
+Note: `artifacts/workstreams/…/pre|post/` may be **empty** between waves (e.g. after cleanup). New structural waves add session files again; missing old paths do **not** replace Git history, CI, or tests.
 
-Kanonische Einstiegspunkte:
+Canonical entry points:
 - `EXECUTION_GOVERNANCE.md`
 - `WORKSTREAM_INDEX.md`
 
-Strukturelle Code-Refactors (Spaghetti / Modulgrenzen) mit denselben Pre/Post-Pfaden: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
+Structural code refactors (spaghetti / module boundaries) use the same pre/post paths: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).

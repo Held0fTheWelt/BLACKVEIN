@@ -1,39 +1,39 @@
-# Workstream State: Documentation
+# Workstream state: Documentation
 
-## Current Objective
+## Current objective
 
-Dokumentationsänderungen (MkDocs, Nav, Links) unter objektiver Validierung; keine ungestützten Abschlussclaims. Regeln: [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Struktur-/Doku-Bezug zur Despag-Spur: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
+Documentation changes (MkDocs, nav, links) under objective validation; no unsupported closure claims. Rules: [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Structure/documentation link to the Despaghettify track: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
 
-## Current Repository Status
+## Current repository status
 
-- Typischer Scope: `docs/`, `mkdocs.yml`, ggf. CI-Doku-Jobs.
-- Artefakte: `artifacts/workstreams/documentation/pre|post/` (z. B. `mkdocs build --strict`, Scope-Snapshot).
+- Typical scope: `docs/`, `mkdocs.yml`, documentation CI jobs if any.
+- Artefacts: `artifacts/workstreams/documentation/pre|post/` (e.g. `mkdocs build --strict`, scope snapshot).
 
-## Hotspot / Target Status
-
-- —
-
-## Last Completed Wave/Session
+## Hotspot / target status
 
 - —
 
-## Pre-Work Baseline Reference
+## Last completed wave/session
 
-- `artifacts/workstreams/documentation/pre/session_YYYYMMDD_*` *(strict-build-Log, Scope, …)*
+- —
 
-## Post-Work Verification Reference
+## Pre-work baseline reference
+
+- `artifacts/workstreams/documentation/pre/session_YYYYMMDD_*` *(strict-build log, scope, …)*
+
+## Post-work verification reference
 
 - `artifacts/workstreams/documentation/post/session_YYYYMMDD_*`
-- Optional: `pre_post_comparison.json` bei formaler Wave.
+- Optional: `pre_post_comparison.json` for a formal wave.
 
-## Known Blockers
+## Known blockers
 
 - —
 
-## Next Recommended Wave
+## Next recommended wave
 
-- Bei größeren Doku-PRs: strict-build vor/nachher dokumentieren; `mkdocs.yml`-Validation-Policy bewusst halten.
+- For larger documentation PRs: document strict build before/after; keep `mkdocs.yml` validation policy intentional.
 
-## Contradictions / Caveats
+## Contradictions / caveats
 
-- „Doku fertig“ ohne grünen Validierungsnachweis ist keine Governance-Closure.
+- “Docs done” without a green validation proof is not a governance closure.

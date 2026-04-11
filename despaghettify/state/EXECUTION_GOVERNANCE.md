@@ -1,58 +1,58 @@
-# Repository-Wide Execution Governance
+# Repository-wide execution governance
 
-## Zweck
+## Purpose
 
-Dieses Dokument definiert die verbindliche Governance fuer alle zustandsaendernden Workstreams in `WorldOfShadows`.
-Es ergaenzt vorhandene Fach- und Audit-Dokumentation, ersetzt sie aber nicht.
+This document defines binding governance for all state-changing workstreams in `WorldOfShadows`.
+It complements existing functional and audit documentation; it does not replace it.
 
-Autoritaetsreihenfolge bei Widerspruch:
-1. Repository-Realitaet (Dateien, Code, aktueller Zustand)
-2. Objektive Artefakte im Repository
-3. Kanonische State-Dokumente unter `despaghettify/state/`
-4. Historische Narrative/Chat-Kontext
+Authority order when sources disagree:
+1. Repository reality (files, code, current behaviour)
+2. Objective artefacts in the repository
+3. Canonical state documents under `despaghettify/state/`
+4. Historical narrative / chat context
 
-## Geltungsbereich
+## Scope
 
-Die Governance gilt fuer alle realen state-changing Workstreams, insbesondere:
+Governance applies to all real state-changing workstreams, in particular:
 - Backend Runtime and Services
 - AI Stack
 - Administration Tool
 - Documentation
 - World Engine
 
-## Verbindliches Modell pro Workstream
+## Binding model per workstream
 
-Jeder Workstream muss haben:
-1. Ein kanonisches State-Dokument unter `despaghettify/state/`.
-2. Ein Pre-Artefakt-Set unter `despaghettify/state/artifacts/workstreams/<workstream>/pre/`.
-3. Ein Post-Artefakt-Set unter `despaghettify/state/artifacts/workstreams/<workstream>/post/`.
+Each workstream must have:
+1. A canonical state document under `despaghettify/state/`.
+2. A pre-artefact set under `despaghettify/state/artifacts/workstreams/<workstream>/pre/`.
+3. A post-artefact set under `despaghettify/state/artifacts/workstreams/<workstream>/post/`.
 
-Mindestens ein Artefakt muss menschenlesbar sein (`.txt`/`.md`), ein maschinenlesbares Artefakt ist bevorzugt (`.json`).
+At least one artefact must be human-readable (`.txt` / `.md`); a machine-readable artefact (`.json`) is preferred.
 
-## Completion Gate (nicht verhandelbar)
+## Completion gate (non-negotiable)
 
-Ein Wave-, Task- oder Closure-Claim ist nur zulaessig, wenn alle Punkte erfuellt sind:
-- Das zugehoerige State-Dokument wurde vor Arbeitsbeginn gelesen.
-- Repository-Realitaet wurde frisch inspiziert.
-- Pre-Artefakte existieren.
-- Ausfuehrungsarbeit wurde gegen den aktuellen Repo-Stand gemacht.
-- Post-Artefakte existieren.
-- Post gegen Pre ist dokumentiert verglichen.
-- State-Dokument wurde aus Evidenz aktualisiert.
-- Es bleibt kein unbelegter Abschlussclaim stehen.
+A wave, task, or closure claim is only allowed when all of the following hold:
+- The relevant state document was read before work started.
+- Repository reality was inspected on a fresh tree.
+- Pre-artefacts exist.
+- Execution work was done against the current repository state.
+- Post-artefacts exist.
+- Post vs pre is compared and documented.
+- The state document was updated from evidence.
+- No unsupported closure claim remains.
 
-## Contradiction Stop Rule
+## Contradiction stop rule
 
-Wenn Repo-Realitaet und bestehende State-/Audit-Narrative widersprechen:
-- Stoppen.
-- Widerspruch im betroffenen State-Dokument unter "Contradictions/Caveats" erfassen.
-- Scope und naechste Schritte neu auf Repo-Realitaet ausrichten.
-- Erst dann weiterarbeiten.
+When repository reality contradicts existing state or audit narrative:
+- Stop.
+- Record the contradiction in the affected state document under "Contradictions / caveats".
+- Re-scope and plan next steps from repository reality.
+- Only then continue.
 
-## Rollout-Artefakte dieser Governance-Installation
+## Rollout artefacts for this governance installation
 
-Repositoryweiter Rollout-Nachweis:
+Repository-wide rollout evidence:
 - Pre: `despaghettify/state/artifacts/repo_governance_rollout/pre/`
 - Post: `despaghettify/state/artifacts/repo_governance_rollout/post/`
 
-Workstreams werden im `WORKSTREAM_INDEX.md` gefuehrt.
+Workstreams are listed in `WORKSTREAM_INDEX.md`.

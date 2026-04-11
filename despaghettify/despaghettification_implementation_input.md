@@ -1,151 +1,152 @@
-# Despaghettifizierung — Informations-Inputliste für Umsetzer
+# Despaghettification — information input list for implementers
 
-*Pfad:* `despaghettify/despaghettification_implementation_input.md` — Überblick: [README.md](README.md).
+*Path:* `despaghettify/despaghettification_implementation_input.md` — Overview: [README.md](README.md).
 
-Dieses Dokument ist **kein** Teil des eingefrorenen Konsolidierungs-Archivs unter [`docs/archive/documentation-consolidation-2026/`](../docs/archive/documentation-consolidation-2026/). Dort liegen **abgeschlossene** Befunde und Migrationsnachweise (Ledgers, Topic Map, Validierungsreports) — **diese Dateien nicht überschreiben oder „fortschreiben“**.
+This document is **not** part of the frozen consolidation archive under [`docs/archive/documentation-consolidation-2026/`](../docs/archive/documentation-consolidation-2026/). That archive holds **completed** findings and migration evidence (ledgers, topic map, validation reports) — **do not overwrite or “continue writing” those files**.
 
-Hier hingegen liegt **lebendige Arbeitsgrundlage**: strukturelle und Spaghetti-Themen im **Code**, priorisierte Inputzeilen für Task-Umsetzer, Koordinationsregeln und eine **freiwillige** Fortschrittsnotiz. Analog zur Dokumentations-Konsolidierung 2026 gilt: **eine kanonische Wahrheit pro Thema** — hier angewendet auf **Code-Struktur** (weniger Duplikate, klarere Grenzen, kleinere kohärente Module).
+Here you find the **living working basis**: structural and spaghetti topics in **code**, prioritised input rows for task implementers, coordination rules, and an **optional** progress note. Like documentation consolidation 2026: **one canonical truth per topic** — applied here to **code structure** (fewer duplicates, clearer boundaries, smaller coherent modules).
 
-**Diese Datei ist Teil der Wellen-Disziplin:** Wer eine **Despaghettifizierungs-Welle** im Code umsetzt (neue Helfer-Module, spürbare AST-/Strukturänderung), **überarbeitet dieselbe Welle auch diese Markdown-Datei** — nicht nur den Code. Konkret: siehe § **„Pflege dieser Datei bei strukturellen Wellen“** unter Koordination. Das ersetzt **nicht** Pre/Post-Artefakte unter `despaghettify/state/artifacts/…` (sie bleiben laut [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) verbindlich), ergänzt sie aber als **fachliche** Einstiegs- und Prioritätsspur.
+**This file is part of wave discipline:** Whoever implements a **despaghettification wave** in code (new helper modules, noticeable AST/structure change) **updates this Markdown in the same wave** — not only the code. Details: § **“Maintaining this file during structural waves”** under coordination. This does **not** replace pre/post artefacts under `despaghettify/state/artifacts/…` (they remain mandatory per [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md)); it complements them as the **functional** entry and priority track.
 
-## Anbindung an `despaghettify/state/` (Execution Governance, Pre/Post)
+## Link to `despaghettify/state/` (execution governance, pre/post)
 
-Dieses Dokument ist **kein** Ersatz für [`state/EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md), sondern die **fachliche Inputseite** für strukturelle Refactors, die **dieselben** Beweis- und Restart-Regeln nutzen sollen.
+This document is **not** a replacement for [`state/EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md); it is the **functional input side** for structural refactors that should use the **same** evidence and restart rules.
 
-| Governance-Baustein | Rolle für Despaghettifizierung |
-|---------------------|----------------------------------|
-| [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) | Verbindlich: State-Dokument lesen, **Pre-** und **Post-Artefakte** je Wave, Vergleich Pre→Post, State aus Evidenz aktualisieren (**Completion Gate**). |
-| [`WORKSTREAM_INDEX.md`](state/WORKSTREAM_INDEX.md) | Ordnet **Workstream** → `artifacts/workstreams/<slug>/pre|post/`. |
-| [`state/README.md`](state/README.md) | Einstieg State-Hub. |
-| `despaghettify/state/artifacts/repo_governance_rollout/pre|post/` | Optional für **repo-weite** Wellen (z. B. großer Diff über mehrere Pakete); sinnvoll, wenn eine DS-Welle die gleichen Repo-Commands wie der Rollout braucht. |
+| Governance building block | Role for despaghettification |
+|---------------------------|------------------------------|
+| [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) | Mandatory: read state document, **pre** and **post** artefacts per wave, compare pre→post, update state from evidence (**completion gate**). |
+| [`WORKSTREAM_INDEX.md`](state/WORKSTREAM_INDEX.md) | Maps **workstream** → `artifacts/workstreams/<slug>/pre|post/`. |
+| [`state/README.md`](state/README.md) | Entry to the state hub. |
+| `despaghettify/state/artifacts/repo_governance_rollout/pre|post/` | Optional for **repo-wide** waves (e.g. large diff across packages); useful when a structural wave needs the same repo commands as the rollout. |
 
-**Artefakt-Pfade (kanonisch, relativ zu `despaghettify/state/`):**
+**Artefact paths (canonical, relative to `despaghettify/state/`):**
 
-- Pro betroffenem Workstream: `artifacts/workstreams/<workstream>/pre/` und `…/post/`.
-- Slugs wie im Index: `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine` (Documentation nur, wenn MkDocs/Nav mitbetroffen ist).
+- Per affected workstream: `artifacts/workstreams/<workstream>/pre/` and `…/post/`.
+- Slugs as in the index: `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine` (documentation only if MkDocs/nav is in scope).
 
-**Namenskonvention für strukturelle Wellen (DS-*):**
+**Naming convention for structural waves (DS-*):**
 
-- Sitzungs-/Wellenpräfix wie bestehend: `session_YYYYMMDD_…`.
-- **DS-ID im Dateinamen**, z. B. `session_YYYYMMDD_DS-001_scope_snapshot.txt`, `session_YYYYMMDD_DS-001_pytest_collect.exit.txt`, `session_YYYYMMDD_DS-001_pre_post_comparison.json` (letzteres liegt typischerweise unter **`post/`**).
-- Mindestens **ein** menschenlesbares Artefakt (`.txt`/`.md`) und **bevorzugt** ein maschinenlesbares (`.json`) — wie in der Governance gefordert.
+- Session/wave prefix as today: `session_YYYYMMDD_…`.
+- **DS-ID in the filename**, e.g. `session_YYYYMMDD_DS-001_scope_snapshot.txt`, `session_YYYYMMDD_DS-001_pytest_collect.exit.txt`, `session_YYYYMMDD_DS-001_pre_post_comparison.json` (the latter typically under **`post/`**).
+- At least **one** human-readable artefact (`.txt`/`.md`) and **preferably** one machine-readable (`.json`) — as governance requires.
 
-**DS-ID → primärer Workstream (Wo Pre/Post ablegen):**
+**DS-ID → primary workstream (where to place pre/post):**
 
-| ID | Primärer Workstream (`artifacts/workstreams/…`) | Mitbeteiligt (eigene Pre/Post nur bei echtem Scope) |
-|----|--------------------------------------------------|------------------------------------------------------|
+| ID | Primary workstream (`artifacts/workstreams/…`) | Also involved (own pre/post only for real scope) |
+|----|--------------------------------------------------|-----------------------------------------------------|
 | — | — | — |
 
-**Neu befüllen:** Pro aktiver **DS-*** eine Zeile (oder Gruppe mit gleichem Primär-Workstream); Slugs wie in [`WORKSTREAM_INDEX.md`](state/WORKSTREAM_INDEX.md): `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine`, `documentation`. Repo-weite Querverifikation ohne Produktcode: optional `artifacts/repo_governance_rollout/pre|post/` (z. B. **DS-REPLAY-G**).
+**Fill in:** For each active **DS-*** one row (or a group sharing the same primary workstream); slugs as in [`WORKSTREAM_INDEX.md`](state/WORKSTREAM_INDEX.md): `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine`, `documentation`. Repo-wide cross-check without product code: optional `artifacts/repo_governance_rollout/pre|post/` (e.g. **DS-REPLAY-G**).
 
-Umsetzer: **Completion Gate** aus `EXECUTION_GOVERNANCE.md` abhaken; im zugehörigen `WORKSTREAM_*_STATE.md` die Welle und die neuen Artefakt-Pfade eintragen. Kreuzungen vermeiden: pro **DS-ID** ein klarer Wellen-Owner; mehrere Workstreams nur mit abgestimmten **getrennten** Artefakt-Sets.
+Implementers: tick the **completion gate** from `EXECUTION_GOVERNANCE.md`; record the wave and new artefact paths in the matching `WORKSTREAM_*_STATE.md`. Avoid crossings: one clear wave owner per **DS-ID**; multiple workstreams only with agreed **separate** artefact sets.
 
-## Anknüpfung an documentation-consolidation-2026
+## Link to documentation-consolidation-2026
 
-| Archiv-Artefakt | Bezug zur Code-Despaghettifizierung |
-|-----------------|-------------------------------------|
-| [`TOPIC_CONSOLIDATION_MAP.md`](../docs/archive/documentation-consolidation-2026/TOPIC_CONSOLIDATION_MAP.md) | Themen sind auf **eine** aktive Doku pro Thema gemappt; Code-Refactors sollten **dieselbe** fachliche Kante nicht in zwei parallelen Implementierungen erneut aufspannen (z. B. RAG, MCP, Runtime). |
-| [`DURABLE_TRUTH_MIGRATION_LEDGER.md`](../docs/archive/documentation-consolidation-2026/DURABLE_TRUTH_MIGRATION_LEDGER.md) | Vorbild für **nachvollziehbare** Verschiebung statt stiller Drift; Despaghettifizierung: **eine Quelle** für geteilte Bausteine (z. B. Builtins). |
-| [`FINAL_DOCUMENTATION_VALIDATION_REPORT.md`](../docs/archive/documentation-consolidation-2026/FINAL_DOCUMENTATION_VALIDATION_REPORT.md) | Abschlusskriterien für einen **Konsolidierungsstrang**; für Code: Tests/CI grün, Verhalten unverändert, Schnittstellen explizit. |
+| Archive artefact | Link to code despaghettification |
+|------------------|----------------------------------|
+| [`TOPIC_CONSOLIDATION_MAP.md`](../docs/archive/documentation-consolidation-2026/TOPIC_CONSOLIDATION_MAP.md) | Topics map to **one** active doc per topic; code refactors should not reopen the same functional edge across two parallel implementations (e.g. RAG, MCP, runtime). |
+| [`DURABLE_TRUTH_MIGRATION_LEDGER.md`](../docs/archive/documentation-consolidation-2026/DURABLE_TRUTH_MIGRATION_LEDGER.md) | Model for **traceable** moves instead of silent drift; despaghettification: **one source** for shared building blocks (e.g. builtins). |
+| [`FINAL_DOCUMENTATION_VALIDATION_REPORT.md`](../docs/archive/documentation-consolidation-2026/FINAL_DOCUMENTATION_VALIDATION_REPORT.md) | Closure criteria for a **documentation** strand; for code: tests/CI green, behaviour unchanged, interfaces explicit. |
 
-## Koordination — Aufgaben erweitern ohne sich zu kreuzen
+## Coordination — extend work without colliding
 
-1. **Claims:** Vor größeren Refactors die **ID(s)** im Team/Issue/PR nennen (alle **`DS-*`**, die ihr gerade aus der Informations-Inputliste bearbeitet). Pro ID idealerweise **ein** klarer Owner.
-2. **Kein Doppel-Track:** Zwei Umsetzer bearbeiten **nicht** dieselbe ID parallel; bei Aufteilung: Unteraufgaben explizit trennen (z. B. DS-003a nur Backend-Wiring, DS-003b nur World-Engine-Import).
-3. **Archiv unangetastet:** Befunde aus Code-Arbeit **nicht** in `documentation-consolidation-2026/*.md` spiegeln; stattdessen CHANGELOG, PR-Beschreibung, **`despaghettify/state/`-Artefakte**, **diese Inputliste** (§ *Letzter Struktur-Scan*, befüllte DS-Zeilen, optional § *Fortschritt*) und die zugehörigen **`WORKSTREAM_*_STATE.md`** nutzen.
-4. **Schnittstellen zuerst:** Bei Zyklen (Runtime-Cluster) kleine **DTO-/Protokoll-Module** vor großem Verschieben; vermeidet PRs, die halbe `app.runtime` gleichzeitig anfassen.
-5. **Messung optional:** AST-/Review-basierte Längen sind **Richtwerte**; Erfolg ist **verständliche** Grenzen + grüne Suites, nicht ein Prozent-Score.
+1. **Claims:** Before larger refactors, name the **ID(s)** in team/issue/PR (all **`DS-*** you are taking from this information input list). Preferably **one** clear owner per ID.
+2. **No double track:** Two implementers do **not** work the same ID in parallel; if split: separate sub-tasks explicitly (e.g. DS-003a backend wiring only, DS-003b world-engine import only).
+3. **Leave archive alone:** Do not mirror code findings into `documentation-consolidation-2026/*.md`; use CHANGELOG, PR description, **`despaghettify/state/` artefacts**, **this input list** (§ *Latest structure scan*, filled DS rows, optional § *progress*) and matching **`WORKSTREAM_*_STATE.md`**.
+4. **Interfaces first:** For cycles (runtime cluster) small **DTO / protocol modules** before big moves; avoids PRs that touch half of `app.runtime` at once.
+5. **Measurement optional:** AST/review-based lengths are **guidance**; success is **understandable** boundaries + green suites, not a percentage score.
 
-### Pflege dieser Datei bei strukturellen Wellen (mit dem Code mitführen)
+### Maintaining this file during structural waves (move with the code)
 
-Bei jeder relevanten **DS-*/Despaghettifizierungs-Welle** diese Datei **in derselben PR-/Commit-Logik** anpassen (kein reines „Code-only“):
+For every relevant **DS-*** / despaghettification **wave**, update this file in the **same PR/commit logic** (not “code only”):
 
-| Was | Inhalt |
-|-----|--------|
-| **Informations-Inputliste** | Pro **DS-***: Spalten pflegen (*Hinweis / Messidee*, *Richtung*, *Kollisionshinweis*); abgeschlossene Wellen kurz markieren. |
-| **§ Letzter Struktur-Scan** | Nach messbarer Änderung: **Haupttabelle** (Stand, **N**, **L₅₀**, **L₁₀₀**, **D₆**, **S**, Zähler) + Unterabschnitt **Score *S***; optional **Zusatzchecks** / **Offene Schwerpunkte**; bei Runtime-Kanten `tools/ds005_runtime_import_check.py`. Ranglisten nur Skriptausgabe. |
-| **§ Empfohlene Umsetzungsreihenfolge** | Bei neuer Priorität, Abhängigkeit oder Phase aktualisieren; optional Mermaid. |
-| **§ Fortschritt / Arbeitslog** | Optional **eine** neue Zeile: DS-ID(s), Kurzfassung, Gates/Tests, Pre/Post-Pfade (oder „siehe PR“). |
-| **DS-ID → Workstream-Tabelle** | Neue oder verschobene **DS-*** hier verorten; Mitbeteiligte Workstreams vermerken. |
+| What | Content |
+|------|---------|
+| **Information input list** | Per **DS-***: maintain columns (*hint / measurement idea*, *direction*, *collision hint*); mark completed waves briefly. |
+| **§ Latest structure scan** | After measurable change: **main table** (as-of date, **N**, **L₅₀**, **L₁₀₀**, **D₆**, **S**, counter) + subsection **score *S***; optional **extra checks**; **open hotspots** on **every** [spaghetti-check-task.md](spaghetti-check-task.md) run (**prune** solved items — never list resolved problems); [spaghetti-solve-task.md](spaghetti-solve-task.md) when a wave **resolves** listed hotspots (clear, shorten, or rewrite remaining risk). For runtime edges `tools/ds005_runtime_import_check.py`. Rankings: script output only. |
+| **§ Recommended implementation order** | Update when priority, dependency, or phase changes; optional Mermaid. |
+| **§ Progress / work log** | Optional **one** new row: DS-ID(s), short summary, gates/tests, pre/post paths (or “see PR”). |
+| **DS-ID → workstream table** | Place new or moved **DS-*** here; note co-involved workstreams. |
 
-**Governance:** `despaghettify/state/artifacts/workstreams/<slug>/pre|post/` und `WORKSTREAM_*_STATE.md` bleiben der **formale** Nachweis; diese Datei ist die **kompakte** Arbeits- und Review-Landkarte.
+**Governance:** `despaghettify/state/artifacts/workstreams/<slug>/pre|post/` and `WORKSTREAM_*_STATE.md` remain **formal** evidence; this file is the **compact** working and review map.
 
-## Letzter Struktur-Scan (Orientierung, keine Gewähr)
+## Latest structure scan (orientation, no warranty)
 
-**Zweck:** Eine **befüllbare** Übersicht nach messbaren Läufen — bei größeren Refactors **Datum**, **Haupttabelle**, **Score-Eingaben** und ggf. **Zusatzchecks** / **Offene Schwerpunkte** aktualisieren. Messablauf, Builtins-Grep, Runtime-Stichprobe, Befüllung der Inputtabelle und Vorschlag zur Umsetzungsreihenfolge: [spaghetti-check-task.md](spaghetti-check-task.md). **Ranglisten** und längste Funktionen: nur Ausgabe von `python tools/spaghetti_ast_scan.py` (Repo-Wurzel).
+**Purpose:** A **fillable** overview after measurable runs — after larger refactors update **date**, **main table**, **score inputs**, and optional **extra checks** / **open hotspots**. Measurement flow, builtins grep, runtime spot check: [spaghetti-check-task.md](spaghetti-check-task.md). The spaghetti check maintains the **information input list** and **recommended implementation order** there **only** when the heuristic score **S > 19%**; otherwise this scan section (including **S**) is enough. **Rankings** and longest functions: output of `python tools/spaghetti_ast_scan.py` only (repo root). **Open hotspots** (known structural callouts in the table row below): [spaghetti-solve-task.md](spaghetti-solve-task.md) **independently** clears or narrows items when a wave resolves them — same PR as the code, even when **S ≤ 19%** so the check task does not edit other cells. On every [spaghetti-check-task.md](spaghetti-check-task.md) run, **prune** **Open hotspots** so it never lists **already solved** problems (only current unresolved callouts).
 
-| Feld | Wert (beim Scan-Update anpassen) |
-|------|----------------------------------|
-| **Stand (Datum)** | **—** |
-| Befehl Spaghetti-Scan | `python tools/spaghetti_ast_scan.py` (ROOTS = Spalte *Messumfang*) |
-| Messumfang (ROOTS) | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` |
-| **N** — Funktionen gesamt | **—** |
-| **L₅₀** / **L₁₀₀** — Funktionen />50 / />100 AST-Zeilen | **—** / **—** |
-| **D₆** — Verschachtelung ≥6 (gesamt) | **—** |
-| **S** — heuristischer Gesamt-Score | **—** |
-| **Zähler für S** (L₅₀ + 5·L₁₀₀ + 25·D₆) | **—** |
-| Zusatzcheck Builtins | *optional:* Grep wie im Task-Dokument — **Trefferzahl** und **Datum**, sonst **—** |
-| Zusatzcheck Runtime | *optional:* `python tools/ds005_runtime_import_check.py` — **exit-Code**; bei Auffälligkeit **kurz** (z. B. `TYPE_CHECKING`, Lazy-Imports), sonst **—** |
-| **Offene Schwerpunkte** | *nur ausfüllen, wenn nötig:* was Scan/Review nahelegt und **nicht** schon in einer **DS-***-Zeile steht; sonst **—** |
+| Field | Value (adjust when updating scan) |
+|-------|-------------------------------------|
+| **As of (date)** | **2026-04-11** (spaghetti-check-task run) |
+| Spaghetti scan command | `python tools/spaghetti_ast_scan.py` (ROOTS = *measurement scope* column) |
+| Measurement scope (ROOTS) | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` |
+| **N** — total functions | **4143** |
+| **L₅₀** / **L₁₀₀** — functions />50 / />100 AST lines | **257** / **70** |
+| **D₆** — nesting ≥6 (total) | **0** |
+| **S** — heuristic aggregate score | **≈ 14.7%** (≈ 14.65%; **S ≤ 19%** → check task does **not** update § *Information input list* / § *Recommended implementation order*) |
+| **Counter for S** (L₅₀ + 5·L₁₀₀ + 25·D₆) | **607** (= 257 + 350 + 0) |
+| Extra check builtins | Grep `def build_god_of_carnage_solo` in `**/builtins.py`: **0** hits (**2026-04-11**) |
+| Extra check runtime | `python tools/ds005_runtime_import_check.py` **exit 0**; no `TYPE_CHECKING` under `backend/app/runtime/**/*.py`; comments / local imports for cycle avoidance e.g. `turn_executor`, `ai_decision`, `role_structured_decision`, `ai_failure_recovery` (**2026-04-11** spot check) |
+| **Open hotspots** | **—** No separate curated structural callouts beyond the row above; longest functions and paths are **only** in `python tools/spaghetti_ast_scan.py` output (this cell must not duplicate the script leaderboard). **S ≤ 19%** → no new DS rows from this check run. |
 
-### Score *S* — Eingaben und Berechnung
+### Score *S* — inputs and calculation
 
-| Symbol | Bedeutung | Wert |
-|--------|-----------|------|
-| **N** | Funktionen gesamt | **—** |
-| **L₅₀** | />50 AST-Zeilen | **—** |
-| **L₁₀₀** | />100 AST-Zeilen | **—** |
-| **D₆** | Verschachtelung ≥6 | **—** |
+| Symbol | Meaning | Value |
+|--------|---------|-------|
+| **N** | Total functions | **4143** |
+| **L₅₀** | />50 AST lines | **257** |
+| **L₁₀₀** | />100 AST lines | **70** |
+| **D₆** | Nesting ≥6 | **0** |
 
-**Formel:** `S = 100 × (L₅₀ + 5·L₁₀₀ + 25·D₆) / N`
+**Formula:** `S = 100 × (L₅₀ + 5·L₁₀₀ + 25·D₆) / N`
 
-**Zähler:** L₅₀ + 5·L₁₀₀ + 25·D₆ — nach Befüllung der Symbole oben ausrechnen und **S** in die Haupttabelle übernehmen.
+**Counter:** **607** (= 257 + 5×70 + 25×0). **Evaluation:** 100 × 607 ÷ 4143 ≈ **14.65** → one decimal **≈ 14.7%** (copy **S** into the main table).
 
-*Hinweis:* Heuristik mit ±2–3 % Rauschen (siehe Task-Dokument).
+*Note:* Heuristic with roughly ±2–3% noise (see task document).
 
-## Informations-Inputliste (erweiterbar)
+## Information input list (extensible)
 
-Jede Zeile: **ID**, **Muster**, **Ort**, **Hinweis / Messidee**, **Richtung**, **Kollisionshinweis** (was parallel riskant ist).
+Each row: **ID**, **pattern**, **location**, **hint / measurement idea**, **direction**, **collision hint** (what is risky in parallel).
 
-| ID | Muster | Ort (typisch) | Hinweis / Messidee | Richtung (Lösungsskizze) | Kollisionshinweis |
-|----|--------|---------------|--------------------|---------------------------|-------------------|
+| ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
+|----|---------|--------------------|-------------------------|----------------------------|----------------|
 | — | — | — | — | — | — |
 
-**Neue Zeilen:** fortlaufende **DS-001**, **DS-002**, … (oder euer ID-Schema); kurz begründen, warum es ein Struktur-/Spaghetti-Thema ist. Nach § *DS-ID → primärer Workstream* die passenden `artifacts/workstreams/<slug>/pre|post/`-Pfade wählen.
+**New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); briefly justify why it is a structure/spaghetti topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
 
-## Empfohlene Umsetzungsreihenfolge
+## Recommended implementation order
 
-Priorisierte **Phasen**, **Reihenfolge** und **Abhängigkeiten** — abgestimmt mit der § **Informations-Inputliste** und [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md). Nach Befüllung optional: Unterabschnitte pro Phase, Mermaid-`flowchart`, Gates je Welle, Kurz-Prioritätenliste.
+Prioritised **phases**, **order**, and **dependencies** — aligned with § **information input list** and [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md). After filling: optional subsections per phase, Mermaid `flowchart`, gates per wave, short priority list.
 
-| Priorität / Phase | DS-ID(s) | Kurzlogik | Workstream (primär) | Anmerkung (Abhängigkeiten, Gates) |
-|-------------------|----------|-----------|---------------------|-----------------------------------|
+| Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
+|------------------|----------|-------------|----------------------|----------------------------|
 | — | — | — | — | — |
 
-**Neu befüllen:** Zeilen aus der Inputtabelle übernehmen; harte Ketten (z. B. Schnittstellen vor großem Verschieben) explizit machen. Koordination § *Pflege dieser Datei*: bei geänderter Priorität oder neuen **DS-*** diesen Abschnitt und ggf. Mermaid anpassen.
+**Fill in:** take rows from the input table; make hard chains explicit (e.g. interfaces before large moves). Coordination § *Maintaining this file*: when priority changes or new **DS-*** appear, update this section and Mermaid if used.
 
-**Umsetzung** der Phasen bis zum dokumentierten Abschluss (Completion Gate, Session-für-Session): [spaghetti-solve-task.md](spaghetti-solve-task.md).
+**Implementation** of phases until documented closure (completion gate, session by session): [spaghetti-solve-task.md](spaghetti-solve-task.md).
 
-## Fortschritt / Arbeitslog (freiwillig, ergänzend zur Pflicht-Pflege oben)
+## Progress / work log (optional, in addition to mandatory maintenance above)
 
-Umsetzer können hier **kurz** eintragen, was sichtbar vorangeht (für Reviewer und nächste Iteration). **Pflicht** bei strukturellen Wellen bleibt die **Aktualisierung der Inputtabelle, des § Struktur-Scan und — bei Bedarf — dieses Logs** (siehe Koordination § *Pflege dieser Datei*). **Ergänzend** legen neue Wellen **Pre/Post-Dateien** unter `despaghettify/state/artifacts/…` an (siehe `EXECUTION_GOVERNANCE.md`); ältere Session-Artefakte können fehlen, wenn sie bewusst bereinigt wurden — Nachweis dann über Git/CI/PR. Kein Ersatz für Issues/PRs.
+Implementers may **briefly** record visible progress (for reviewers and the next iteration). **Mandatory** for structural waves remains **updating the input table, § structure scan, and — if needed — this log** (see coordination § *Maintaining this file*). **Additionally**, new waves add **pre/post files** under `despaghettify/state/artifacts/…` (see `EXECUTION_GOVERNANCE.md`); older session artefacts may be missing if intentionally cleaned — proof then via Git/CI/PR. Not a substitute for issues/PRs.
 
-| Datum | ID(s) | Kurzbeschreibung | Pre-Artefakte (rel. zu `despaghettify/state/`) | Post-Artefakte (rel. zu `despaghettify/state/`) | State-Dokument(e) aktualisiert | PR / Commit |
-|-------|-------|------------------|----------------------------------------|----------------------------------------|------------------------------|-------------|
+| date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
+|------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
+| 2026-04-11 | — (spaghetti-check) | [spaghetti-check-task.md](spaghetti-check-task.md): `spaghetti_ast_scan.py` — **N=4143**, **L₅₀=257**, **L₁₀₀=70**, **D₆=0**, counter **607**, **S≈14.7%** (<19% → § *Information input list* / § *Recommended implementation order* unchanged). Builtins grep **0**; `ds005_runtime_import_check.py` **exit 0**; runtime spot check as in scan table. | — | — | — | — |
 | — | — | — | — | — | — | — |
 
-**Neue Zeilen:** chronologisch (**neueste oben** empfohlen); **DS-ID(s)**, gelaufene Gates/Tests, Pfade zu Pre/Post wie in [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md); bei reinem Scan/Doku-Update kurz vermerken. Längere Historie: Git, PRs, `WORKSTREAM_*_STATE.md`.
+**New rows:** chronologically (**newest first** recommended); **DS-ID(s)**, gates/tests run, pre/post paths as in [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md); for scan/docs-only updates note briefly. Longer history: Git, PRs, `WORKSTREAM_*_STATE.md`.
 
-## Kanonische technische Lesepfades (nach Refactor)
+## Canonical technical reading paths (after refactor)
 
-Nach strukturellen Änderungen an Runtime/AI/RAG/MCP die **aktive** technische Doku abstimmen (nicht das Archiv 2026):
+After structural changes to runtime/AI/RAG/MCP, align **active** technical docs (not the 2026 archive):
 
-- Runtime / Autorität: [`docs/technical/runtime/runtime-authority-and-state-flow.md`](../docs/technical/runtime/runtime-authority-and-state-flow.md) — Supervisor-Orchestrierung: `supervisor_orchestrate_execute.py` + `supervisor_orchestrate_execute_sections.py`; Subagent-Aufruf: `supervisor_invoke_agent.py` + `supervisor_invoke_agent_sections.py`
-- Inspector-Projektion (Backend): `inspector_turn_projection_sections.py` orchestriert; Bausteine in `inspector_turn_projection_sections_{utils,constants,semantic,provenance}.py`
-- Admin-Tool-Routen: `administration-tool/route_registration.py` + `route_registration_{proxy,pages,manage,security}.py`
-- GoC-Solo-Builtin (Core): `story_runtime_core/goc_solo_builtin_template.py` + `goc_solo_builtin_catalog.py` + `goc_solo_builtin_roles_rooms.py`
+- Runtime / authority: [`docs/technical/runtime/runtime-authority-and-state-flow.md`](../docs/technical/runtime/runtime-authority-and-state-flow.md) — supervisor orchestration: `supervisor_orchestrate_execute.py` + `supervisor_orchestrate_execute_sections.py`; subagent invocation: `supervisor_invoke_agent.py` + `supervisor_invoke_agent_sections.py`
+- Inspector projection (backend): `inspector_turn_projection_sections.py` orchestrates; pieces in `inspector_turn_projection_sections_{utils,constants,semantic,provenance}.py`
+- Admin tool routes: `administration-tool/route_registration.py` + `route_registration_{proxy,pages,manage,security}.py`
+- God-of-Carnage solo builtin (core): `story_runtime_core/goc_solo_builtin_template.py` + `goc_solo_builtin_catalog.py` + `goc_solo_builtin_roles_rooms.py`
 - AI / RAG / LangGraph: [`docs/technical/ai/RAG.md`](../docs/technical/ai/RAG.md), [`docs/technical/integration/LangGraph.md`](../docs/technical/integration/LangGraph.md), [`docs/technical/integration/MCP.md`](../docs/technical/integration/MCP.md)
-- Dev-Seam-Übersicht: [`docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md`](../docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md)
+- Dev seam overview: [`docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md`](../docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md)
 
 ---
 
-*Erstellt als operatives Brückenstück zwischen struktureller Code-Arbeit, dem State-Hub unter [`despaghettify/state/`](state/README.md) (Pre/Post-Evidenz) und dem abgeschlossenen Dokumentations-Archiv 2026.*
+*Created as an operational bridge between structural code work, the state hub under [`despaghettify/state/`](state/README.md) (pre/post evidence), and the completed documentation archive of 2026.*

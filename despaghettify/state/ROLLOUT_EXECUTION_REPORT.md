@@ -1,9 +1,9 @@
-# Execution Governance Rollout Report
+# Execution governance rollout report
 
 ## 1) Repository status quo found
 
-- Es existieren bereits starke Governance-/Audit-Flaechen unter `docs/audit/`, `docs/audits/`, `audits/`, aber kein einheitlicher kanonischer State-Hub fuer laufende Workstreams.
-- Der Repository-Status war zum Rollout-Zeitpunkt stark aktiv; Git-Snapshots lagen unter `artifacts/repo_governance_rollout/pre|post/` (Ordner können im Arbeitsbaum **leer** sein, sobald Session-Dateien bereinigt wurden).
+- Strong governance / audit surfaces already exist under `docs/audit/`, `docs/audits/`, `audits/`, but there was no single canonical state hub for ongoing workstreams.
+- The repository was highly active at rollout time; Git snapshots lived under `artifacts/repo_governance_rollout/pre|post/` (directories may be **empty** in the working tree once session files are cleaned up).
 
 ## 2) Workstreams identified
 
@@ -13,27 +13,27 @@
 - Documentation
 - World Engine
 
-Kanonische Liste: `WORKSTREAM_INDEX.md`.
+Canonical list: `WORKSTREAM_INDEX.md`.
 
 ## 3) Governance gaps identified
 
-- Kein kanonischer, restart-sicherer State-Ordner fuer laufende Ausfuehrungsarbeit.
-- Keine durchgaengige Pflicht auf Pre/Post-Artefakte je Workstream.
-- Potenzielle Claim/Evidence-Luecke bei historischen Narrativen.
-- Dokumentations-Workstream ohne gruenen strikten Build.
+- No canonical, restart-safe state folder for ongoing execution work.
+- No consistent requirement for pre/post artefacts per workstream.
+- Potential claim/evidence gap for historical narrative.
+- Documentation workstream without a reliably green strict build.
 
 ## 4) Canonical governance structure chosen
 
-- Governance-Definition: `EXECUTION_GOVERNANCE.md`
-- Workstream-Index: `WORKSTREAM_INDEX.md`
-- Pro Workstream ein State-Dokument unter `despaghettify/state/WORKSTREAM_*_STATE.md`
-- Artefaktlayout:
-  - Repo-Rollout: `artifacts/repo_governance_rollout/{pre,post}/`
-  - Pro Workstream: `artifacts/workstreams/<workstream>/{pre,post}/`
+- Governance definition: `EXECUTION_GOVERNANCE.md`
+- Workstream index: `WORKSTREAM_INDEX.md`
+- One state document per workstream under `despaghettify/state/WORKSTREAM_*_STATE.md`
+- Artefact layout:
+  - Repo rollout: `artifacts/repo_governance_rollout/{pre,post}/`
+  - Per workstream: `artifacts/workstreams/<workstream>/{pre,post}/`
 
 ## 5) Files created or updated
 
-Neu:
+Created:
 - `despaghettify/state/README.md`
 - `despaghettify/state/EXECUTION_GOVERNANCE.md`
 - `despaghettify/state/WORKSTREAM_INDEX.md`
@@ -44,23 +44,23 @@ Neu:
 - `despaghettify/state/WORKSTREAM_WORLD_ENGINE_STATE.md`
 - `despaghettify/state/ROLLOUT_EXECUTION_REPORT.md`
 
-Aktualisiert:
-- `docs/INDEX.md` (Link auf State-Hub)
-- `docs/reference/documentation-registry.md` (Execution-Governance-Verweise)
+Updated:
+- `docs/INDEX.md` (link to state hub)
+- `docs/reference/documentation-registry.md` (execution governance references)
 
-## 6) Artefakt- und Textpflege (aktueller Stand)
+## 6) Artefact and text maintenance (current)
 
-- **Struktur** (`artifacts/workstreams/<slug>/pre|post/`, `artifacts/repo_governance_rollout/pre|post/`) bleibt kanonisch laut [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md).
-- Konkrete **Session-Dateien** aus früheren Wellen wurden aus dem Arbeitsbaum **entfernt**; `WORKSTREAM_*_STATE.md` und die Despag-[Inputliste](../despaghettification_implementation_input.md) sind als **Templates** ausgerichtet. Neue Wellen legen Beweisdateien wieder ab und tragen Pfade in den State-Dokumenten ein.
-- Die früheren Abschnitte **6–12** dieses Berichts sowie eingebettete „Follow-up Wave“-Listen verwiesen auf **nicht mehr vorhandene** Pfade — sie wurden zugunsten dieses Kurzstands gestrichen. Sachlicher Nachweis älterer Arbeit: **Git-Historie**, PRs, CI.
+- **Layout** (`artifacts/workstreams/<slug>/pre|post/`, `artifacts/repo_governance_rollout/pre|post/`) remains canonical per [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md).
+- Concrete **session files** from earlier waves were **removed** from the working tree; `WORKSTREAM_*_STATE.md` and the Despaghettify [input list](../despaghettification_implementation_input.md) are aligned as **templates**. New waves add evidence files again and record paths in the state documents.
+- Former sections **6–12** of this report and embedded “follow-up wave” lists pointed at **missing** paths — they were dropped in favour of this short form. Evidence of older work: **Git history**, PRs, CI.
 
-## 7) Historischer Rollout-Kern (unverändert gültig)
+## 7) Historical rollout core (still valid)
 
-- State-Hub unter `despaghettify/state/` mit `EXECUTION_GOVERNANCE.md`, `WORKSTREAM_INDEX.md`, `WORKSTREAM_*_STATE.md`.
-- Completion Gate: Pre→Post-Vergleich, keine Closure ohne Evidenz.
+- State hub under `despaghettify/state/` with `EXECUTION_GOVERNANCE.md`, `WORKSTREAM_INDEX.md`, `WORKSTREAM_*_STATE.md`.
+- Completion gate: pre→post comparison; no closure without evidence.
 
 ---
 
-## Archiv-Hinweis (ehemals eingebettete „Follow-up Wave Updates“)
+## Archive note (formerly embedded “follow-up wave updates”)
 
-Die früher hier dokumentierten Wellen (z. B. 2026-04-10: Doku-Remediation, Builtins, AI-Turn-Executor) enthielten lange Listen konkreter `session_*`-Pfade unter `despaghettify/state/artifacts/`. Diese Dateien sind **nicht mehr** im Arbeitsbaum; die Narrative bleiben nur in **Git-Historie** und in **PRs** nachvollziehbar. Neue Arbeit: [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md), `WORKSTREAM_*_STATE.md` (Templates), Despag-[Inputliste](../despaghettification_implementation_input.md).
+Waves documented here earlier (e.g. 2026-04-10: documentation remediation, builtins, AI turn executor) contained long lists of concrete `session_*` paths under `despaghettify/state/artifacts/`. Those files are **no longer** in the working tree; the narrative survives only in **Git history** and **PRs**. New work: [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md), `WORKSTREAM_*_STATE.md` (templates), Despaghettify [input list](../despaghettification_implementation_input.md).

@@ -1,39 +1,39 @@
-# Workstream State: World Engine
+# Workstream state: World Engine
 
-## Current Objective
+## Current objective
 
-World-Engine-Änderungen unter [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Gemeinsame Kanten mit Backend/`story_runtime_core`: Inputliste [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
+World Engine changes under [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Shared edges with backend / `story_runtime_core`: input list [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md).
 
-## Current Repository Status
+## Current repository status
 
-- Typischer Scope: `world-engine/`, zugehörige Tests.
-- Artefakte: `artifacts/workstreams/world_engine/pre|post/`.
+- Typical scope: `world-engine/`, related tests.
+- Artefacts: `artifacts/workstreams/world_engine/pre|post/`.
 
-## Hotspot / Target Status
-
-- —
-
-## Last Completed Wave/Session
+## Hotspot / target status
 
 - —
 
-## Pre-Work Baseline Reference
+## Last completed wave/session
+
+- —
+
+## Pre-work baseline reference
 
 - `artifacts/workstreams/world_engine/pre/git_status_scope.txt` *(optional)*
 - `artifacts/workstreams/world_engine/pre/session_YYYYMMDD_DS-xxx_*`
 
-## Post-Work Verification Reference
+## Post-work verification reference
 
 - `artifacts/workstreams/world_engine/post/session_YYYYMMDD_DS-xxx_*`
 
-## Known Blockers
+## Known blockers
 
 - —
 
-## Next Recommended Wave
+## Next recommended wave
 
-- Pre/Post-Collect und Scope-Snapshot bei jeder strukturellen Wave; Drift-Themen (Builtins/Models) mit Backend und `story_runtime_core` abstimmen.
+- Pre/post collect and scope snapshot for every structural wave; align drift topics (builtins / models) with backend and `story_runtime_core`.
 
-## Contradictions / Caveats
+## Contradictions / caveats
 
-- Historische Claims ohne Evidenz-Links sind nicht ausreichend.
+- Historical claims without evidence links are insufficient.

@@ -1,42 +1,42 @@
-# Workstream State: Backend Runtime and Services
+# Workstream state: Backend Runtime and Services
 
-## Current Objective
+## Current objective
 
-Backend-Runtime- und Service-Änderungen unter [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md) führen. Strukturelle Refactors: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md) (Inputliste, Struktur-Scan, optional Arbeitslog). Orientierungszahlen und Hotspots nur dort pflegen, nicht hier duplizieren.
+Run backend runtime and service changes under [`EXECUTION_GOVERNANCE.md`](EXECUTION_GOVERNANCE.md). Structural refactors: [`despaghettify/despaghettification_implementation_input.md`](../despaghettification_implementation_input.md) (input list, structure scan, optional work log). Keep orientation numbers and hotspots only there — do not duplicate here.
 
-## Current Repository Status
+## Current repository status
 
-- Typischer Scope: `backend/app/runtime`, `backend/app/services`, `backend/app/api/v1`, zugehörige Tests.
-- Nach der nächsten **Wave**: Scope-Snapshot unter `artifacts/workstreams/backend_runtime_services/pre/` ablegen (siehe Namenskonvention in der Inputliste).
+- Typical scope: `backend/app/runtime`, `backend/app/services`, `backend/app/api/v1`, related tests.
+- After the next **wave**: place a scope snapshot under `artifacts/workstreams/backend_runtime_services/pre/` (see naming convention in the input list).
 
-## Hotspot / Target Status
+## Hotspot / target status
 
-- — *(bei Bedarf nach Review/Scan kurz benennen.)*
+- — *(Short note after review/scan if needed.)*
 
-## Last Completed Wave/Session
+## Last completed wave/session
 
-- — *(Datum, **DS-ID(s)**, Kurzfassung; Links zu `pre|post`-Artefakten relativ zu `despaghettify/state/`.)*
+- — *(Date, **DS-ID(s)**, summary; links to `pre|post` artefacts relative to `despaghettify/state/`.)*
 
-## Pre-Work Baseline Reference
+## Pre-work baseline reference
 
-Kanonisches Muster (Dateien erst anlegen, wenn eine Wave läuft):
+Canonical pattern (create files only when a wave runs):
 
 - `artifacts/workstreams/backend_runtime_services/pre/git_status_scope.txt` *(optional)*
-- `artifacts/workstreams/backend_runtime_services/pre/session_YYYYMMDD_DS-xxx_*` *(Claim, Snapshot, Collect, … — siehe Governance)*
+- `artifacts/workstreams/backend_runtime_services/pre/session_YYYYMMDD_DS-xxx_*` *(claim, snapshot, collect, … — see governance)*
 
-## Post-Work Verification Reference
+## Post-work verification reference
 
 - `artifacts/workstreams/backend_runtime_services/post/session_YYYYMMDD_DS-xxx_*`
-- Pre→Post-Vergleich und `pre_post_comparison.json` wo gefordert.
+- Pre→post comparison and `pre_post_comparison.json` where required.
 
-## Known Blockers
+## Known blockers
 
 - —
 
-## Next Recommended Wave
+## Next recommended wave
 
-- Nächste **DS-*-Zeile** aus der Informations-Inputliste; Claim **DS-ID + Owner** vor größeren Änderungen.
+- Next **DS-*** row from the information input list; claim **DS-ID + owner** before large changes.
 
-## Contradictions / Caveats
+## Contradictions / caveats
 
-- Abschlussclaims nur mit verlinkten, versionierten Artefakten; fehlende alte Pfade ersetzen nicht Git-Historie oder CI.
+- Closure claims only with linked, versioned artefacts; missing old paths do not replace Git history or CI.
