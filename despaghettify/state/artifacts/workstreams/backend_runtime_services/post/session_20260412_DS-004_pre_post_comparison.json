@@ -1,0 +1,19 @@
+{
+  "wave_id": "DS-004-report-assembly",
+  "date": "2026-04-12",
+  "workstream": "backend_runtime_services",
+  "pre_reference": "artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-004_report_assembly_pre.md",
+  "post_reference": "artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-004_report_assembly_post.md",
+  "metrics": {
+    "assemble_closure_cockpit_report_ast_lines": {"pre_estimate": 161, "post": 64},
+    "assemble_session_evidence_bundle_ast_lines": {"pre_estimate": 155, "post": 24}
+  },
+  "new_modules": [
+    "backend/app/services/ai_stack_closure_cockpit_report_sections.py",
+    "backend/app/services/ai_stack_evidence_session_bundle_sections.py"
+  ],
+  "gates": {
+    "pytest_m11_ai_stack_observability": "11 passed, 3 skipped",
+    "ds005_runtime_import_check": "exit 0"
+  }
+}
