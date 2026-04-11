@@ -2,6 +2,8 @@
 
 **Purpose:** Remove **ephemeral / local** artefacts from the working tree (including **despaghettification-adjacent** caches and scratch), reset [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) to the **canonical empty template**, then run **[`spaghetti-check-task.md`](spaghetti-check-task.md)** **once** to repopulate § *Latest structure scan* (and, if the trigger policy is met, the DS table and recommended order).
 
+**Order (this task only):** **Reset first, check second.** Steps **1–2** only clean and restore placeholders — they do **not** run the AST scan or fill **C1..C7** / **M7**. Step **3** is the **first and only** analysis pass after the reset: run [`spaghetti-check-task.md`](spaghetti-check-task.md) once; that pass updates the input list from the EMPTY baseline.
+
 **Language:** English (hub policy).
 
 ---
@@ -119,9 +121,11 @@ Execute the full procedure from that document **in order**, at minimum:
 2. **Duplicate builtins** grep and **runtime** spot checks as described in `spaghetti-check-task.md` § *Extra checks*.
 3. `python tools/ds005_runtime_import_check.py` as described there.
 4. Update [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) per **Maintaining the input list** in `spaghetti-check-task.md`:
-   - **Always:** § *Latest structure scan* (date, **M7**, **C1..C7**, telemetry, extra checks, **Open hotspots** pruned to **unresolved** only).
+   - **Always:** § *Latest structure scan* (as-of **date and time**, **M7**, **C1..C7**, telemetry, extra checks, **Open hotspots** pruned to **unresolved** only).
    - **Only if trigger met** (per-category thresholds **or** composite **`M7 ≥ M7_ref`** — see [`spaghetti-check-task.md`](spaghetti-check-task.md) **Threshold**): § *Information input list* and § *Recommended implementation order*.
    - **If trigger not met:** do **not** change the DS table or phase table beyond what the reset already set to placeholders.
+
+**Recommended implementation order (explicit obligation after reset):** The EMPTY template clears the phase table to `—`. Step 3 **must** repopulate § *Recommended implementation order* whenever § *Information input list* gets non-placeholder **DS-*** rows. Do **not** stop after the DS table — follow [`spaghetti-check-task.md`](spaghetti-check-task.md) § *Maintaining the input list* → **“How to build a *suitable* phase table”**: cover every DS-ID with a phase, order by runtime/import risk before large orchestrators, assign **primary workstream** per [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md), and add **note** gates (`pytest`, `ds005`). The reset task does **not** fix a global phase order in advance; the **check pass** derives it from the scan + DS rows so [spaghetti-solve-task.md](spaghetti-solve-task.md) has an unambiguous sequence.
 
 **Output to requester:** follow the short **Output format** paragraph at the end of `spaghetti-check-task.md`.
 
@@ -131,7 +135,7 @@ Execute the full procedure from that document **in order**, at minimum:
 
 - [ ] Step **1a–1c** completed: repo caches, wave-adjacent `var/` trees (where present), hub scratch files under `despaghettify/` (excluding `state/` and `templates/`).
 - [ ] `despaghettification_implementation_input.md` matches the **EMPTY** template before the check (byte-for-byte optional: diff against `templates/…EMPTY.md`).
-- [ ] One full **spaghetti-check** pass completed; scan section filled; DS/phases updated only per trigger policy.
+- [ ] One full **spaghetti-check** pass completed; scan section filled; DS/phases updated only per trigger policy; if DS rows were filled, **§ *Recommended implementation order*** is a **complete** phase table (no `—` placeholders) matching `spaghetti-check-task.md` §3 **How to build a *suitable* phase table**.
 
 ---
 

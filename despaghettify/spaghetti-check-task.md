@@ -4,6 +4,8 @@
 
 This task describes the **full** analysis track for the Despaghettify hub: collect **structure metrics**, name **hotspots**, maintain the canonical [input list](despaghettification_implementation_input.md) — **without** code refactors (implementation stays with the implementer and follows [`EXECUTION_GOVERNANCE.md`](state/EXECUTION_GOVERNANCE.md) for real waves).
 
+**Scan timestamp (non-negotiable):** Any run that updates § *Latest structure scan* in the input list **must** set **As of (date & time)** to the **actual moment** the scan steps were executed (see §1 under *Maintaining the input list*).
+
 **Threshold:** Compute the weighted 7-category score **M7** as defined in the input list. **Update § *Information input list* and § *Recommended implementation order* (and § *DS-ID → primary workstream* for new IDs)** when **any** trigger below fires; otherwise do **not** touch those sections (no new DS rows, no phase reshuffle) — **Latest structure scan** including **M7**, category breakdown, AST telemetry, and **Open hotspots** is **always** updated (see below).
 
 **Per-category triggers** (each **C** is the same 0–100 style score as in the input list; strict **>**):
@@ -26,7 +28,7 @@ This task describes the **full** analysis track for the Despaghettify hub: colle
 
 | Document | Role |
 |----------|------|
-| [despaghettification_implementation_input.md](despaghettification_implementation_input.md) | **Always:** **Latest structure scan** (date, **M7**, category scores C1..C7, AST telemetry **N/L₅₀/L₁₀₀/D₆**, extra checks, **Open hotspots** — **prune resolved items**, never re-list solved hotspots; see §1). **Only if trigger policy is met** (per-category thresholds **or** **`M7 ≥ M7_ref`**; see **Threshold** above): **information input list** (DS rows), **recommended implementation order** (phase proposal), § **DS-ID → primary workstream** for new IDs. |
+| [despaghettification_implementation_input.md](despaghettification_implementation_input.md) | **Always:** **Latest structure scan** (as-of **date and time**, **M7**, category scores C1..C7, AST telemetry **N/L₅₀/L₁₀₀/D₆**, extra checks, **Open hotspots** — **prune resolved items**, never re-list solved hotspots; see §1). **Only if trigger policy is met** (per-category thresholds **or** **`M7 ≥ M7_ref`**; see **Threshold** above): **information input list** (DS rows), **recommended implementation order** (phase proposal), § **DS-ID → primary workstream** for new IDs. |
 | [tools/spaghetti_ast_scan.py](../tools/spaghetti_ast_scan.py) | Canonical metric run (repository root = CWD). |
 | [state/EXECUTION_GOVERNANCE.md](state/EXECUTION_GOVERNANCE.md) | Analysis and Markdown maintenance create **no** new pre/post artefacts; those appear only when a **wave** with evidence runs. |
 | Local planning / issues | Always share scan numbers; mirror proposed order / new DS rows to external tickets only after agreement — and in-repo **only** if trigger policy is met (otherwise the scan section suffices). |
@@ -156,7 +158,8 @@ All in [despaghettification_implementation_input.md](despaghettification_impleme
 
 ### 1) Latest structure scan — **always**
 
-- **Date** and metrics from the scan run: category scores **C1..C7**, weighted **M7**, and AST telemetry (**N**, **L₅₀**, **L₁₀₀**, **D₆**).
+- **As of (date & time) — required:** Fill the **As of (date & time)** cell with the **timestamp when this check run’s scan commands ran** (not a hand-waved day only). Use **`YYYY-MM-DD HH:mm:ss`** (24-hour). **Timezone:** optional; add **once** in parentheses after the time if it matters (e.g. `(Europe/Berlin)` or `(UTC)`). If the repo assumes one zone everywhere, a single sentence in the input list header is enough and the cell may omit the suffix.
+- **Metrics:** category scores **C1..C7**, weighted **M7**, and AST telemetry (**N**, **L₅₀**, **L₁₀₀**, **D₆**).
 - **Extra checks** (builtins, runtime spot check `TYPE_CHECKING` / cycle hints) briefly in the scan section if you run them.
 - Longest functions and top nesting **fully** only in **script output**; in Markdown **core findings** and the **Open hotspots** table row as follows:
   - **Open hotspots must not show solved problems.** Before writing, read the previous **Open hotspots** text and reconcile with the **current** repo and this run’s script output (line counts, paths, names). If a named function or theme is **no longer** a top offender or was **split / moved / shortened** by an implemented wave, **drop** that fragment from **Open hotspots**; use **—** when nothing structural remains to call out beyond the numeric row.
@@ -176,6 +179,14 @@ All in [despaghettification_implementation_input.md](despaghettification_impleme
 - **Heuristic (order):** interfaces and shared edges (**DTOs, clear module boundaries**) before large moves; **high coupling / deep nesting hotspots** not in parallel by two owners without aligned artefact sets; do not hide builtins/import topics behind large runtime refactors when the scan surfaces them first.
 - If only numbers change without a new substantive thesis: **confirm** the phase table or add a row **“no change vs last scan”** — do not leave empty placeholder phases when the input table has rows.
 - **If trigger policy is not met:** do **not** change this section within the spaghetti check (no phase shuffle for scan noise only).
+
+**How to build a *suitable* phase table (required whenever DS rows are filled):**
+
+1. **Cover every open DS-ID** from § *Information input list* with at least one **phase** row (unless two IDs are explicitly merged into one wave with team agreement — then one row may list multiple **DS-*** and the note must say so). **Never** leave the phase table as `—` while the DS table has real rows.
+2. **Order phases by risk and blast radius**, not by DS number: prefer topics that **stabilise shared runtime / import seams** (turn pipeline, narrative commit, `app.runtime` edges, `ds005`-visible modules) **before** very large **service orchestration** functions that pull many imports. Put **package-separated** hotspots (e.g. `ai_stack` only) in a **later** phase unless the scan shows they block backend work.
+3. **One primary workstream per phase row** (see [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md)): it must match where **pre/post** artefacts would go for that wave. If a phase touches two packages, pick the **primary** workstream and mention the other in **note** (“call sites only”, “no separate pre/post”).
+4. **Short logic** = one line: *what* this phase achieves structurally (e.g. “shrink X before refactoring Y”). **Note** = concrete **gates**: which `pytest` paths, `ds005`, or integration checks the implementer should run after the slice.
+5. **Dependencies:** if phase B genuinely requires interfaces from phase A, say so in **note** on phase B; avoid claiming a hard dependency unless imports or tests prove it — default is **soft ordering** (risk reduction), which is still valid to document as “prefer A before B”.
 
 ### Optional
 

@@ -4,74 +4,71 @@ All notable changes to the World of Shadows project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+**House style:** Prefer plain language over cryptic shorthand. The abbreviations **CI** (continuous integration) and **E2E** (end-to-end) are explicitly allowed when they read more clearly than the long form.
+
 ---
 
 ## [Unreleased]
 
+_No entries._
+
+---
+
+## [0.6.1] - 2026-04-11
+
+**Summary:** Everything merged on the default branch **after** the **`v0.6.0`** release point through the **documentation and task housekeeping checkpoint** (`b031405`), plus pending edits to the **structure-review hub** task files in the working tree (reset-then-check wording, scan clock fields, empty template — commit together when you tag this patch).
+
+### Added
+
+- **Central route and rate-limit configuration (structure list item four):** shared constants for HTTP route surfaces (`route_*_config` pattern) with tests; a single **rate limiter** configuration module consumed by `backend/app/extensions.py`.
+- **Narrative state as plain objects (structure list item seven):** small modules carry narrative hand-off data so the runtime story pipeline has clearer seams.
+- **Improvement policy evaluation split out (structure list item eight):** improvement “what is allowed” checks live in dedicated modules instead of a single crowded file.
+- **Closure evidence for the route work above:** integration tests plus governance “after” notes under `despaghettify/state/artifacts/workstreams/backend_runtime_services/post/` for the same structural theme.
+
 ### Changed
 
-- **AI stack / RAG (DS-009 optional):** split context-pack internals into `rag_context_pack_section_titles.py`, `rag_context_pack_result_tail.py`, `rag_context_pack_compact_body.py`, `rag_context_pack_trace_footer.py`; `rag_context_pack_build.py` remains the thin `assemble_context_pack` orchestrator. Evidence: `…/post/session_20260412_DS-009_optional_post.md`; RAG trio **73** passed; `ds005` exit **0**.
-- **AI stack / RAG (DS-009):** new `ai_stack/rag_context_pack_build.py` with `assemble_context_pack` (section ordering, compact body, trace/governance footers); `ContextPackAssembler` in `rag_context_pack_assembler.py` delegates to it so the `ai_stack.rag` facade and call sites stay unchanged. Evidence: `despaghettify/state/artifacts/workstreams/ai_stack/post/session_20260412_DS-009_post.md`; `pytest` RAG trio (test_rag, test_retrieval_governance_summary, test_langgraph_runtime) **73** passed; `ds005_runtime_import_check.py` exit **0**.
-- **Backend runtime (DS-001 complete):** `turn_executor_decision_delta.py` holds delta construction/application; `turn_executor_validated_pipeline` imports `validate_decision` from `app.runtime.validators` (no dependency on `turn_executor`). `turn_executor` lazy-imports the validated pipeline module only. `test_execute_turn_system_error_path` monkeypatches `turn_executor_validated_pipeline.validate_decision`.
-- **Writers Room pipeline (DS-002 stage 1):** `writers_room_pipeline.py` no longer redefines helpers that live in `writers_room_pipeline_manifest.py` and `writers_room_pipeline_context_preview.py` (fixes shadowed imports / broken duplicate defs). Main workflow function size unchanged; further stage splits tracked under DS-002.
-- **Writers Room pipeline (DS-002 stage 2):** new `writers_room_pipeline_retrieval_stage.py` with `run_writers_room_retrieval_stage` and `WritersRoomRetrievalStageResult`; the main workflow delegates intake/seed/context retrieval and trace construction (~18 AST lines removed from `_execute_writers_room_workflow_package`).
-- **Writers Room pipeline (DS-002 stage 3):** new `writers_room_pipeline_generation_stage.py` for preflight/synthesis routing, LangChain generation, and mock fallback; orchestrator shrinks further (`_execute_writers_room_workflow_package` **449** AST lines). `_norm_wr_adapter` re-exported from `writers_room_pipeline` for existing tests.
-- **Writers Room pipeline (DS-002 stage 4):** new `writers_room_pipeline_packaging_stage.py` for issues, recommendations, review bundle, proposal package, and related aggregates; main workflow function **185** AST lines. Manifest helpers (`_append_workflow_stage`, `_utc_now`) and preview helpers remain re-exported from `writers_room_pipeline` for `writers_room_service` and tests.
-- **Writers Room pipeline (DS-002 stage 5):** new `writers_room_pipeline_finalize_stage.py` for workflow manifest, capability/operator audits, governance snapshot, LangChain preview envelope, and `package_out` (including artifact manifest); `_execute_writers_room_workflow_package` **82** AST lines. `_writers_room_artifact_manifest` and `_workflow_stage_ids` stay re-exported from the orchestrator module.
-- **Governance / despaghettify (DS-002 closure):** `post/session_20260411_DS-002_closure_notes.md` plus input list and workstream state mark **DS-002** closed (2026-04-11); Phase 2 note points to **DS-003** next.
-- **AI stack / RAG (DS-003 stage 1):** new `ai_stack/rag_types.py` and `ai_stack/rag_constants.py` holding StrEnums, `SourceGovernanceView`, domain error, domain access map, and retrieval tuning/version constants; `rag.py` imports and re-exports through the existing `ai_stack.rag` facade (~1973 lines in `rag.py`).
-- **AI stack / RAG (DS-003 stage 2):** new `ai_stack/rag_governance.py` with `governance_view_for_chunk` and a small `GovernanceChunkView` protocol; `rag.py` re-imports for the same public API (~1915 lines in `rag.py`).
-- **AI stack / RAG (DS-003 stage 3):** new `ai_stack/rag_embedding_index.py` for dense index load/save/ensure and related dataclasses; `rag.py` re-imports for stable tests and call sites (~1706 lines in `rag.py`).
-- **AI stack / RAG (DS-003 stage 4):** new `ai_stack/rag_retrieval_lexical.py` for profile version maps, semantic canon/expansions, content boosts, default profiles per domain, and lexical/hybrid helper functions; `rag_retrieval_rerank_adjustments_profile_deltas` imports `DOMAIN_DEFAULT_PROFILE` and trigram helpers from there; `rag.py` ~1515 lines.
-- **AI stack / RAG (DS-003 stage 5):** new `ai_stack/rag_retrieval_policy_pool.py` for rerank pool sizing, hard/soft policy pool filtering, pack roles, policy notes, dedup selection, and pack sort keys (structural `Protocol` types to avoid import cycles with `rag.py`); `rag.py` ~1286 lines.
-- **AI stack / RAG (DS-003 stage 6):** new `ai_stack/rag_retrieval_support.py` for query profile context, ranking prefix/quality notes, merged rerank pool (lazy import of `compute_rerank_adjustments`), `RetrievalResult` builders (lazy import of result types from `rag`), hard-filtered pool sorting, and `_RetrievalEncodeScorePoolPhase`; `rag.py` ~1000 lines (facade re-imports); `RetrievalDegradationMode` remains exported from `ai_stack.rag` for tests.
-- **AI stack / RAG (DS-003 stage 7):** new `ai_stack/rag_context_pack_assembler.py` (`ContextPackAssembler`) and `ai_stack/rag_persistent_store.py` (`PersistentRagStore`, lazy `InMemoryRetrievalCorpus` on load); `rag.py` ~797 lines; `json`/`os`/`tempfile` only in the store module.
-- **AI stack / RAG (DS-003 stage 8):** new `ai_stack/rag_context_retriever.py` with `ContextRetriever` and `_run_retrieval_encode_score_pool_phase`; `rag.py` imports `ContextRetriever` after `_ScoredCandidate` (safe cycle with `rag` ↔ `rag_context_retriever`); hybrid-encoding import block removed from `rag.py` tail; `rag.py` ~470 lines.
-- **AI stack / RAG (DS-003 stage 9):** new `ai_stack/rag_ingestion.py` with `RagIngestionPipeline`, `_infer_module_id`, `_detect_content_class`; `rag.py` imports `RagIngestionPipeline` after `InMemoryRetrievalCorpus` (safe partial import); drops `hashlib`/`re` and ingestion-only lexical imports from the facade; `rag.py` ~314 lines.
-- **AI stack / RAG (DS-003 stage 10–12 + optional trim):** `rag_corpus.py`, `rag_runtime_bootstrap.py` with lazy `build_runtime_retriever` delegate in `rag.py`; `rag_retrieval_dtos.py` holds `RetrievalRequest` / `RetrievalHit` / `RetrievalResult` / `ContextPack` (facade and tests unchanged); internal modules import DTOs and constants directly where helpful; `rag.py` slimmed further.
-- **Backend runtime (DS-001 optional):** `tools/ds005_runtime_import_check.py` also imports `app.runtime.turn_executor_validated_pipeline`; policy note `despaghettify/state/artifacts/workstreams/backend_runtime_services/post/DS-001_runtime_import_policy_note.md`.
-- **Writers Room (DS-002 optional):** `writers_room_pipeline_workflow.py` holds `_WritersRoomWorkflow`, `_WORKFLOW`, and `_get_workflow`; `writers_room_pipeline.py` keeps stage orchestration and re-exports manifest/preview/generation helpers for `writers_room_service` and tests.
-- **Writers Room storage (DS-002 follow-up):** `writers_room_store.py` holds `WritersRoomStore`; `writers_room_service` imports it (tests may still import `WritersRoomStore` from `writers_room_service`).
-- **Backend runtime (DS-001 follow-up):** `ds005_runtime_import_check.py` also imports `app.runtime.validators` after the validated pipeline module.
-- **Tests / RAG imports (DS-003 follow-up):** improvement tests use `rag_constants.INDEX_VERSION`; writers_room route tests import `ContextRetriever` from `rag_context_retriever`.
-- **DS-005 (control-flow, wave 1):** `user_routes_users_update_guards.py` centralizes authorization, password-field rejection, format-only field validation, username/email kwargs, and role-level branches for PUT `/users/<id>`; `user_routes_users_update.py` delegates. `pytest` `tests/test_user_routes.py -k users_update` and `tests/test_users_api.py -k users_update` pass.
-- **DS-005 (control-flow, wave 2):** `news_service_create_guards.validate_news_create_payload` and `user_service_account_guards` (`create_user_validate_inputs`, `change_password_validate_inputs`) extract validation from `create_news`, `create_user`, and `change_password`. `pytest` `tests/test_news_service.py`, `tests/test_user_service.py`, and `tests/test_service_layer.py` pass (125).
-- **DS-005 (control-flow, wave 3):** `news_service_update_guards.validate_news_update_patch` centralizes partial-update validation for `update_news`; `normalize_news_slug` is exported from `news_service_create_guards` for shared slug rules. `pytest` `tests/test_news_service.py` passes (48).
-- **DS-005 (control-flow, wave 4):** `news_service_translation_upsert_guards` splits create vs update validation for `upsert_article_translation`; `news_service` drops an unused `TRANSLATION_STATUSES` import. `pytest` `tests/test_news_service.py` passes (48).
-- **DS-005 (control-flow, wave 5):** `user_service_update_guards.update_user_build_patch` centralizes field validation for `update_user`. `pytest` `tests/test_user_service.py` (27), `tests/test_user_routes.py -k users_update` (55), and `tests/test_users_api.py -k users_update` (4) pass.
-- **DS-005 (control-flow, wave 6):** `user_service_admin_guards` for `assign_role` (`assign_role_build_patch`, shared `ALLOWED_ASSIGN_ROLE_NAMES`) and `ban_user` (`ban_user_validate_actor`, `normalize_ban_reason`). `pytest` `tests/test_service_layer.py -k "ban_user or unban_user or assign_role"` (8), `tests/test_users_api.py -k "assign_role or ban"` (14), `tests/test_user_routes.py -k assign_role` (18) pass.
-- **DS-005 (closure, user/news slice):** Documented closure for the planned guard extraction scope (PUT user, `user_service` account/update/admin paths, `news_service` create/update/translation upsert). Evidence: `despaghettify/state/artifacts/workstreams/backend_runtime_services/post/session_20260411_DS-005_closure_notes.md`. Regression bundle: `pytest` `tests/test_news_service.py`, `tests/test_user_service.py`, `tests/test_service_layer.py`, `tests/test_user_routes.py`, `tests/test_users_api.py` — **321 passed**.
+- **Version-one HTTP routes:** many files under `backend/app/api/v1` now import shared limits and path constants; `auth_routes`, `session_routes`, `user_routes`, and `site_routes` each use their matching frozen helper; `extensions.py` reads limiter settings from the shared module.
+- **Writers’ room packaging and inspector assembly (structure list item six):** the long packaging path is split into **sub-stages**; inspector “fill this section” logic moves into helper modules under `backend/app/services/`.
+- **Runtime narrative pipeline (same list item seven):** decision guard checks are extracted; orchestration code lines up with the new narrative state objects.
+- **Structure hub documentation:** housekeeping commits refresh the living **implementation input** list and fix the **recommended work order** table; progress and closure write-ups for the three structural themes above are updated under `despaghettify/state/`.
+- **Hub task files (workspace, not yet tagged):** `spaghetti-reset-task.md` spells out “clean temp files and template first, then run one structure scan pass”; `spaghetti-check-task.md` carries the seven-category score gates, mandatory “as of” clock on every scan, and no longer mentions the reset recipe; `templates/despaghettification_implementation_input.EMPTY.md` and the live scan table match those rules.
+
+### Fixed
+
+- **Runtime inventory metadata:** `turn_executor_decision_delta` is listed again in the backend runtime **module classification** file so generator and review tooling stay truthful (`9b18fd1`).
+- **Writers’ room pipeline:** restore the **`_utc_now`** import so `writers_room_service` can keep importing it from the orchestrator module (`177ccba`).
+- **Automated tests:** repair **test double** target paths in observability and session suites; skip observability cases that still fight **test double isolation** (`07b3dc1`, `e41591a`).
 
 ---
 
 ## [0.6.0] - 2026-04-11
 
-This release collects work that was previously under-released or unreleased, and adds the commits recorded after `07534ad` (2026-04-11). Headings follow this file’s Keep a Changelog layout; bullets replace working-tree snapshots. Together, the items below are intended to represent **everything since the last published version line** (`[0.5.6]`) that belongs in `0.6.0`, including governance and documentation moves that never shipped under a correct patch number.
+**Summary:** Pulls together work that had not yet shipped under a tidy patch line, including everything since **`[0.5.6]`** through the commits after internal checkpoint `07534ad` on 2026-04-11. Section headings follow **Keep a Changelog**; bullets describe merged history rather than a live working tree. Governance and documentation moves that previously had no matching version number land here.
 
 ### Added
 
-- **Despaghettify hub** under `despaghettify/`: implementation input list (`despaghettification_implementation_input.md`), reproducible structure-scan task (`spaghetti-check-task.md`), wave-by-wave implementation task (`spaghetti-solve-task.md`), and package `README`.
-- **Execution governance state** under `despaghettify/state/`: governance contract, workstream index, per-workstream state files, rollout report, and artifact tree layout (`artifacts/workstreams/<slug>/pre|post/`, optional repo-wide rollout folder).
-- **Documentation and API surface files** under `docs/api/` (OpenAPI-related sources and taxonomy) and continued developer notes under `docs/dev/`.
-- **Automated tests (commits after `07534ad`)** with raised line coverage on: research claims, operational profile edge cases, gate evaluation for God-of-Carnage solo flow, dramatic alignment constants, research store helpers, canonical tool-surface package, scene director decision paths, LangGraph research helpers, capability registry handler helpers, bounded research exploration, and canon improvement contract paths; see individual commit messages on `main` after `07534ad` for file-level detail.
+- **Structure-review hub** under `despaghettify/`: the living **implementation input** list (`despaghettification_implementation_input.md`), the repeatable **structure scan** task (`spaghetti-check-task.md`), the **wave-by-wave implementation** task (`spaghetti-solve-task.md`), and the hub **readme**.
+- **Execution governance files** under `despaghettify/state/`: the binding governance text, workstream index, per-workstream state pages, rollout narrative, and the `artifacts/workstreams/<slug>/pre|post/` tree (plus an optional repository-wide rollout folder).
+- **Public HTTP surface documentation** under `docs/api/` (machine-readable route inventory sources in **OpenAPI** format, plus taxonomy) and continued developer notes under `docs/dev/`.
+- **Automated tests** (commits after `07534ad`) with higher line coverage on: research-claim helpers, operational profile edge cases, gate checks for the **God of Carnage solo** flow, dramatic-alignment constants, research storage helpers, the canonical **Model Context Protocol** tool listing package, scene-director decision paths, **LangGraph**-backed research helpers, capability-registry handler helpers, bounded research exploration, and canon-improvement contract paths — see commit messages on the default branch after `07534ad` for per-file detail.
 
 ### Changed
 
-- **Despaghettification (structural, behaviour-preserving):** large runtime and AI surfaces were split into smaller modules with clearer boundaries while keeping outward behaviour stable.
-  - `backend/app/runtime/ai_turn_executor.py` — staged refactor across logging, tool loop, recovery, parsing, routing, and related helpers.
+- **Structure clean-up (behaviour preserved):** large **Python** runtime and **artificial-intelligence** stack files were split into smaller modules with clearer import edges while outward behaviour stayed the same.
+  - `backend/app/runtime/ai_turn_executor.py` — staged work across logging, tool loop, recovery, parsing, routing, and related helpers.
   - `backend/app/runtime/turn_executor.py` — `execute_turn` split into an early source-gate rejection path and a validated execution pipeline.
   - `ai_stack/capabilities.py` — default capability registry moved to a dedicated module with lazy attribute access so imports stay stable.
-  - `ai_stack/langgraph_runtime` — state, tracking, seed graphs, and executor logic separated; thin facade module keeps public exports.
+  - `ai_stack/langgraph_runtime` — state, tracking, seed graphs, and executor logic separated; a thin facade module keeps public exports.
   - `tools/mcp_server` — tool registry split into metadata, handler modules by domain, and a small composition entrypoint.
   - `story_runtime_core` — shared builtins and experience templates as the canonical home; backend and world-engine content layers delegate instead of duplicating large static copies; drift tests guard divergence.
-- **MkDocs** — strict-build remediation via configuration and validation policy so the docs site builds reliably.
-- **Governance narrative hygiene** — workstream state files and rollout report shortened to maintainable templates without stale session path lists; evidence may live only in history for older waves.
-- **Retrospective verification pass** — bundled automated runs across backend runtime, AI stack (including LangGraph and capabilities paths), MCP server, administration UI, and builtins drift between backend and world-engine, with evidence recorded under `despaghettify/state/` where applicable.
-- **Ongoing API and product surfaces** — forum, session, game, user, administration, play-facing frontend, OpenAPI generation and drift checks, improvement and writers-room services, and related configuration continued to evolve; specifics remain in the touched modules and tests rather than this changelog.
-- **World Engine administration console** — follow-up wiring, templates, client scripts, and tests on top of the `[0.5.6]` feature drop (same product area, continued iteration).
-- **Continuous integration** — GitHub Actions workflows for backend, AI stack, engine, and documentation pipelines updated to track new suites and install paths.
+- **Documentation site generator (MkDocs)** — strict-build fixes through configuration and validation policy so the docs site builds reliably.
+- **Governance narrative hygiene** — workstream state files and rollout report shortened to maintainable templates without stale session path lists; evidence for older waves may live only in **Git** history.
+- **Retrospective verification pass** — bundled automated runs across backend runtime, **artificial-intelligence** stack (including **LangGraph** and capability paths), **Model Context Protocol** server, administration **user interface**, and builtins drift between backend and world-engine, with evidence recorded under `despaghettify/state/` where applicable.
+- **Ongoing HTTP and product surfaces** — forum, session, game, user, administration, play-facing frontend, **OpenAPI** specification generation and drift checks, improvement and writers-room services, and related configuration continued to evolve; specifics remain in the touched modules and tests rather than this changelog.
+- **World Engine administration console** — follow-up wiring, templates, client scripts, and tests on top of the **`[0.5.6]`** feature drop (same product area, continued iteration).
+- **CI** — **GitHub Actions** workflows for backend, **artificial-intelligence** stack, engine, and documentation pipelines updated to track new suites and install paths.
 - **Environment templates** — root and `backend/.env.example` refreshed for new flags and service endpoints where required by the above surfaces.
-- **Runtime package classification** (`7e35459`) — module classification metadata updated so new backend runtime modules are included consistently.
+- **Runtime package classification** (`7e35459`) — metadata updated so new backend runtime modules are included consistently.
 
 ### Removed
 
