@@ -37,12 +37,7 @@ from app.services.game_service import (
 from app.observability.trace import get_trace_id
 from app.observability.audit_log import log_world_engine_bridge
 from app.runtime.input_interpreter import interpret_player_input
-
-SESSION_START_ERROR_STATUS = {
-    "module_not_found": 404,
-    "module_invalid": 422,
-    "no_start_scene": 422,
-}
+from app.config.route_constants import route_session_config, route_status_codes
 
 
 @api_v1_bp.route("/sessions", methods=["POST"])
@@ -103,7 +98,11 @@ def create_new_session():
         ]
         return jsonify(body), 201
     except SessionStartError as exc:
-        return jsonify({"error": str(exc)}), SESSION_START_ERROR_STATUS.get(exc.reason, 422)
+        status_code = (
+            route_status_codes.not_found if exc.reason == "module_not_found"
+            else route_status_codes.unprocessable_entity
+        )
+        return jsonify({"error": str(exc)}), status_code
     except Exception as e:
         # Keep explicit fallback for unexpected failures.
         return jsonify({"error": str(e)}), 500
@@ -327,9 +326,6 @@ def get_session_capability_audit(session_id):
     ), 200
 
 
-_PLAY_OPERATOR_DIAG_MAX = 40
-
-
 @api_v1_bp.route("/sessions/<session_id>/play-operator-bundle", methods=["GET"])
 @jwt_required()
 def get_play_operator_bundle(session_id):
@@ -420,7 +416,7 @@ def get_play_operator_bundle(session_id):
     if isinstance(diagnostics, dict):
         rows = diagnostics.get("diagnostics")
         if isinstance(rows, list):
-            diag_rows = rows[-_PLAY_OPERATOR_DIAG_MAX:]
+            diag_rows = rows[-route_session_config.play_operator_diag_max:]
         turn_counter = diagnostics.get("turn_counter")
         committed_state = diagnostics.get("committed_state")
 

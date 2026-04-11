@@ -64,6 +64,7 @@ class RouteStatusCodes:
     unauthorized: int = 401
     forbidden: int = 403
     not_found: int = 404
+    unprocessable_entity: int = 422
     conflict: int = 409
     internal_error: int = 500
     too_many_requests: int = 429
