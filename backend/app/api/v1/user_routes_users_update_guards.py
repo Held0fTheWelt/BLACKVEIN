@@ -122,6 +122,42 @@ def user_put_role_level_kwargs_for_admin_other(
     return kwargs, None
 
 
+def user_put_collect_service_kwargs(
+    data: dict[str, Any],
+    *,
+    current: Any,
+    target: Any,
+    user_id: int,
+) -> tuple[dict[str, Any], ErrorPair | None]:
+    """Merge kwargs for ``user_service.update_user`` (username, email, language, role paths).
+
+    ``display_name`` / ``bio`` / ``phone`` / ``birthday`` are validated when present but not
+    passed through (not supported by ``update_user`` — contract-only validation).
+    """
+    base, err = user_put_username_email_kwargs(data)
+    if err:
+        return {}, err
+    kwargs: dict[str, Any] = dict(base)
+    fmt_err = user_put_validate_format_only_fields(data)
+    if fmt_err:
+        return {}, fmt_err
+    if "preferred_language" in data:
+        kwargs["preferred_language"] = data.get("preferred_language")
+    if current.id != user_id and current_user_is_admin():
+        role_kw, rerr = user_put_role_level_kwargs_for_admin_other(
+            data, current=current, target=target, user_id=user_id
+        )
+        if rerr:
+            return {}, rerr
+        kwargs.update(role_kw)
+    elif current.id == user_id:
+        role_kw, rerr = user_put_role_level_kwargs_for_self(data, current=current)
+        if rerr:
+            return {}, rerr
+        kwargs.update(role_kw)
+    return kwargs, None
+
+
 def user_put_role_level_kwargs_for_self(
     data: dict[str, Any],
     *,

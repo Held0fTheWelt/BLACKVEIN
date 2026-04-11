@@ -1,31 +1,25 @@
 """Validated turn pipeline (validation → deltas → apply → narrative commit) — DS-054.
 
 DS-007 Task 3: Decision gates extracted to pipeline_decision_guards module.
-Reduced from 155 to ~100 LOC via guard extraction and cleanup.
+DS-005 optional: early pipeline stages and narrative logging live in companion modules.
 """
 
 from __future__ import annotations
 
-from copy import deepcopy
 from datetime import datetime, timezone
 
 from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
 from app.runtime.narrative_commit import resolve_narrative_commit
-from app.runtime.runtime_models import (
-    GuardOutcome,
-    MockDecision,
-    NarrativeCommitRecord,
-    SessionState,
-)
-from app.runtime.scene_legality import SceneTransitionLegality
+from app.runtime.runtime_models import MockDecision, SessionState
 from app.runtime.turn_execution_types import TurnExecutionResult
-from app.runtime.turn_executor_decision_delta import (
-    _compute_guard_outcome,
-    apply_deltas,
-    construct_deltas,
+from app.runtime.turn_executor_decision_delta import _compute_guard_outcome
+from app.runtime.turn_executor_validated_pipeline_apply import (
+    validated_turn_validate_construct_and_apply,
 )
-from app.runtime.validators import validate_decision
+from app.runtime.turn_executor_validated_pipeline_narrative_log import (
+    log_narrative_outcomes_after_commit,
+)
 
 
 def run_validated_turn_pipeline(
@@ -51,63 +45,12 @@ def run_validated_turn_pipeline(
     Returns:
         TurnExecutionResult with complete execution data and narrative commit.
     """
-    # Stage 1: Validate decision
-    validation_outcome = validate_decision(mock_decision, session, module)
-
-    event_log.log(
-        "decision_validated",
-        f"Decision validated: {validation_outcome.status} "
-        f"({len(validation_outcome.accepted_delta_indices)} accepted, "
-        f"{len(validation_outcome.rejected_delta_indices)} rejected)",
-        payload={
-            "status": validation_outcome.status,
-            "is_valid": validation_outcome.is_valid,
-            "accepted_delta_count": len(validation_outcome.accepted_delta_indices),
-            "rejected_delta_count": len(validation_outcome.rejected_delta_indices),
-            "errors": validation_outcome.errors,
-        },
+    validation_outcome, accepted_deltas, rejected_deltas, updated_state = (
+        validated_turn_validate_construct_and_apply(
+            session, current_turn, mock_decision, module, event_log
+        )
     )
 
-    # Stage 2: Construct deltas from validated decision
-    accepted_deltas, rejected_deltas = construct_deltas(
-        mock_decision, session, validation_outcome, current_turn
-    )
-
-    event_log.log(
-        "deltas_generated",
-        f"Deltas: {len(accepted_deltas)} accepted, {len(rejected_deltas)} rejected",
-        payload={
-            "accepted_count": len(accepted_deltas),
-            "rejected_count": len(rejected_deltas),
-            "accepted_deltas": [
-                {
-                    "id": d.id,
-                    "delta_type": d.delta_type,
-                    "target_path": d.target_path,
-                    "target_entity": d.target_entity,
-                    "previous_value": d.previous_value,
-                    "next_value": d.next_value,
-                    "source": d.source,
-                }
-                for d in accepted_deltas
-            ],
-            "rejected_delta_ids": [d.id for d in rejected_deltas],
-        },
-    )
-
-    # Stage 3: Apply deltas to canonical state
-    updated_state = apply_deltas(session.canonical_state, accepted_deltas)
-
-    event_log.log(
-        "deltas_applied",
-        f"{len(accepted_deltas)} delta(s) applied to canonical state",
-        payload={
-            "applied_count": len(accepted_deltas),
-            "delta_ids": [d.id for d in accepted_deltas],
-        },
-    )
-
-    # Stage 4: Resolve narrative commit from post-delta state
     guard_outcome_value = _compute_guard_outcome(accepted_deltas, rejected_deltas, "success")
     narrative_commit = resolve_narrative_commit(
         turn_number=current_turn,
@@ -124,8 +67,7 @@ def run_validated_turn_pipeline(
     updated_scene_id = narrative_commit.committed_scene_id
     updated_ending_id = narrative_commit.committed_ending_id
 
-    # Stage 5: Log narrative outcomes and check scene transitions
-    _log_narrative_outcomes(
+    log_narrative_outcomes_after_commit(
         event_log,
         narrative_commit,
         session,
@@ -135,7 +77,6 @@ def run_validated_turn_pipeline(
         module,
     )
 
-    # Stage 6: Complete execution
     completed_at = datetime.now(timezone.utc)
     duration_ms = (completed_at - started_at).total_seconds() * 1000
 
@@ -171,54 +112,3 @@ def run_validated_turn_pipeline(
         duration_ms=duration_ms,
         events=event_log.flush(),
     )
-
-
-def _log_narrative_outcomes(
-    event_log: RuntimeEventLog,
-    narrative_commit: NarrativeCommitRecord,
-    session: SessionState,
-    mock_decision: MockDecision,
-    updated_state: dict,
-    prior_scene_id: str | None,
-    module: ContentModule,
-) -> None:
-    """Log narrative commit outcomes (endings, scene transitions, blocks).
-
-    Extracted narrative outcome logging to reduce main function complexity.
-    """
-    if narrative_commit.situation_status == "ending_reached":
-        event_log.log(
-            "ending_triggered",
-            f"Ending triggered: {narrative_commit.committed_ending_id}",
-            payload={"ending_id": narrative_commit.committed_ending_id},
-        )
-    elif narrative_commit.situation_status == "transitioned":
-        event_log.log(
-            "scene_changed",
-            f"Scene transitioned to {narrative_commit.committed_scene_id}",
-            payload={
-                "from_scene": prior_scene_id,
-                "to_scene": narrative_commit.committed_scene_id,
-            },
-        )
-    elif mock_decision.proposed_scene_id:
-        post_delta_session = session.model_copy(deep=True)
-        post_delta_session.canonical_state = deepcopy(updated_state)
-        post_delta_session.current_scene_id = prior_scene_id or session.current_scene_id
-        td = SceneTransitionLegality.check_transition_legal(
-            prior_scene_id or session.current_scene_id,
-            mock_decision.proposed_scene_id,
-            module,
-            session=post_delta_session,
-            detected_triggers=mock_decision.detected_triggers,
-        )
-        if not td.allowed:
-            event_log.log(
-                "scene_transition_blocked",
-                f"Scene transition to {mock_decision.proposed_scene_id} blocked: {td.reason}",
-                payload={
-                    "from_scene": prior_scene_id,
-                    "proposed_scene": mock_decision.proposed_scene_id,
-                    "reason": td.reason,
-                },
-            )

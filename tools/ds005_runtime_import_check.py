@@ -20,6 +20,8 @@ if str(BACKEND_ROOT) not in sys.path:
 # Order matches despaghettify/state/artifacts/.../session_*_DS-005b_pre_scope_frozen_modules.txt
 FROZEN_RUNTIME_MODULES = [
     "app.runtime.turn_executor",
+    "app.runtime.turn_executor_validated_pipeline_apply",
+    "app.runtime.turn_executor_validated_pipeline_narrative_log",
     "app.runtime.turn_executor_validated_pipeline",
     "app.runtime.validators",
     "app.runtime.role_structured_decision",

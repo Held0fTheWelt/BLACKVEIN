@@ -1,0 +1,21 @@
+{
+  "wave_id": "DS-005-optional-thin",
+  "date": "2026-04-10",
+  "workstream": "backend_runtime_services",
+  "pre_reference": "artifacts/workstreams/backend_runtime_services/pre/session_20260410_DS-005_optional_thin_pre.md",
+  "post_reference": "artifacts/workstreams/backend_runtime_services/post/session_20260410_DS-005_optional_thin_post.md",
+  "metrics": {
+    "execute_users_update_put_ast_lines": {"pre_estimate": 152, "post": 70},
+    "run_validated_turn_pipeline_ast_lines": {"pre_estimate": 143, "post": 90}
+  },
+  "new_modules": [
+    "backend/app/runtime/turn_executor_validated_pipeline_apply.py",
+    "backend/app/runtime/turn_executor_validated_pipeline_narrative_log.py"
+  ],
+  "guard_additions": ["user_put_collect_service_kwargs in user_routes_users_update_guards.py"],
+  "gates": {
+    "ds005_runtime_import_check": "exit 0",
+    "pytest_users_update_bundle": "59 passed",
+    "pytest_execute_turn_system_error_path": "passed"
+  }
+}
