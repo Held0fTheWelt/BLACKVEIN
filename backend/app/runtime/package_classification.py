@@ -129,6 +129,7 @@ _ALL_RUNTIME_ROOT_MODULES: frozenset[str] = frozenset(
         "turn_dispatcher",
         "turn_execution_types",
         "turn_executor",
+        "turn_executor_decision_delta",
         "turn_executor_validated_pipeline",
         "validators",
         "validators_action_structure",
