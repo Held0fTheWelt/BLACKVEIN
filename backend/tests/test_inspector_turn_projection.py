@@ -344,7 +344,7 @@ def test_comparison_projection_includes_turn_to_turn_deltas(monkeypatch):
 
 def test_coverage_health_projection_reports_required_metrics(monkeypatch):
     monkeypatch.setattr(
-        "app.services.inspector_projection_service.build_session_evidence_bundle",
+        "app.services.ai_stack_evidence_service.build_session_evidence_bundle",
         lambda **_kwargs: _bundle_with_two_turns(),
     )
     payload = build_inspector_coverage_health_projection(session_id="backend-sid", trace_id="trace-123")
