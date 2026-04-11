@@ -34,11 +34,16 @@ This document is **not** a replacement for [`state/EXECUTION_GOVERNANCE.md`](../
 
 | ID | Primary workstream (`artifacts/workstreams/…`) | Also involved (own pre/post only for real scope) |
 |----|--------------------------------------------------|-----------------------------------------------------|
-| DS-001 | `backend_runtime_services` | — |
-| DS-002 | `backend_runtime_services` | — |
-| DS-003 | `backend_runtime_services` | — |
-| DS-004 | `backend_runtime_services` | `ai_stack` (callers / semantics; no separate pre/post unless scope crosses package) |
-| DS-005 | `backend_runtime_services` | — |
+| ~~DS-006~~ ✓ CLOSED (2026-04-13 Writers’ Room stages) | `backend_runtime_services` | — |
+| ~~DS-007~~ ✓ CLOSED (2026-04-13 inspector/analytics) | `backend_runtime_services` | — |
+| ~~DS-008~~ ✓ CLOSED (2026-04-13 dramatic gate + MCP) | `ai_stack` | `tools/mcp_server` (co-scope; artefacts under **ai_stack** pre/post) |
+| ~~DS-009~~ ✓ CLOSED (2026-04-10) | `backend_runtime_services` | — |
+| ~~DS-010~~ ✓ CLOSED (2026-04-12 AI turn integration phases) | `backend_runtime_services` | — |
+| DS-011 | `backend_runtime_services` | — |
+| DS-012 | `world_engine` | — |
+| DS-013 | `ai_stack` | — |
+| DS-014 | `backend_runtime_services` | — |
+| DS-015 | `backend_runtime_services` | — |
 
 **Fill in:** For each active **DS-*** one row (or a group sharing the same primary workstream); slugs as in [`WORKSTREAM_INDEX.md`](../state/WORKSTREAM_INDEX.md): `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine`, `documentation`. Repo-wide cross-check without product code: optional `artifacts/repo_governance_rollout/pre|post/` (e.g. **DS-REPLAY-G**).
 
@@ -66,9 +71,9 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 
 | What | Content |
 |------|---------|
-| **Information input list** | Per **DS-***: maintain columns (*hint / measurement idea*, *direction*, *collision hint*); mark completed waves briefly. |
-| **§ Latest structure scan** | After measurable change: **main table** (as-of **date and time**, **M7** overall, 7 category scores, and AST telemetry **N / L₅₀ / L₁₀₀ / D₆**); subsection **M7 calculation and thresholds**; optional **extra checks**; **open hotspots** on every [spaghetti-check-task.md](../spaghetti-check-task.md) run (**prune** solved items). For runtime edges `tools/ds005_runtime_import_check.py`. Rankings: script output only. |
-| **§ Recommended implementation order** | Update when priority, dependency, or phase changes; optional Mermaid. |
+| **Information input list** | Per **DS-***: maintain columns; **pattern** starts with **C1..C7** symbol(s) (`**C3 ·** …`) per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; mark completed waves briefly. |
+| **§ Latest structure scan** | After measurable change: **main table** (as-of **date and time**, **M7** as **%**, **C1..C7** with **`%`**, AST telemetry **N / L₅₀ / L₁₀₀ / D₆**); subsection **Score *M7*** with the **same** **C1..C7** **`%`** and **AST telemetry** as the **extra row directly under C7** in the three-column table; optional **extra checks**; **open hotspots** on every [spaghetti-check-task.md](../spaghetti-check-task.md) run (**prune** solved items). For runtime edges `tools/ds005_runtime_import_check.py`. Rankings: script output only. |
+| **§ Recommended implementation order** | Update when priority, dependency, or phase changes; **mandatory** Mermaid `flowchart` below the phase table on every [spaghetti-check-task.md](../spaghetti-check-task.md) pass that fills phases (see that doc §3). |
 | **§ Progress / work log** | Optional **one** new row: DS-ID(s), short summary, gates/tests, pre/post paths (or “see PR”). |
 | **DS-ID → workstream table** | Place new or moved **DS-*** here; note co-involved workstreams. |
 
@@ -80,84 +85,101 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 
 | Field | Value (adjust when updating scan) |
 |-------|-------------------------------------|
-| **As of (date & time)** | **2026-04-12** *(Europe/Berlin; DS-002 packaging stage slice)* |
+| **As of (date & time)** | **2026-04-12 00:55:51** *(Europe/Berlin)* — post **DS-010** AST telemetry refresh |
 | Spaghetti scan command | `python tools/spaghetti_ast_scan.py` (ROOTS = *measurement scope* column) |
 | Measurement scope (ROOTS) | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` |
-| **M7** — weighted 7-category spaghetti score | **≈ 25.4%** |
-| C1: Circular dependencies | **18** |
-| C2: Nesting depth | **12** |
-| C3: Long functions + complexity | **45** |
-| C4: Multi-responsibility modules | **27** |
-| C5: Magic numbers + global state | **18** |
-| C6: Missing abstractions / duplication | **22** |
-| C7: Confusing control flow | **24** |
-| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | **4230** / **263** / **71** / **0** |
-| Extra check builtins | **One** `def build_god_of_carnage_solo` in `story_runtime_core/goc_solo_builtin_template.py`; **0** duplicate defs in `**/builtins.py` (backend + world-engine) — **2026-04-11 23:37:21** *(Europe/Berlin)* |
-| Extra check runtime | `python tools/ds005_runtime_import_check.py` — exit **0** (unchanged frozen list); grep under `backend/app/runtime` for deferred-import / cycle comments: **4** sites (unchanged heuristic) — **2026-04-12** |
-| **Open hotspots** | — *(input-list queue cleared through **DS-002** packaging slice; run `spaghetti_ast_scan` for the next leaderboard.)* **D₆ = 0**; telemetry baseline **4230 / 263 / 71 / 0** (not re-run). |
+| **M7** — weighted 7-category spaghetti score | **≈ 24.3%** |
+| C1: Circular dependencies | **17%** |
+| C2: Nesting depth | **11%** |
+| C3: Long functions + complexity | **44%** |
+| C4: Multi-responsibility modules | **26%** |
+| C5: Magic numbers + global state | **16%** |
+| C6: Missing abstractions / duplication | **21%** |
+| C7: Confusing control flow | **23%** |
+| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | **4320** / **271** / **54** / **0** |
+| Extra check builtins | **One** `def build_god_of_carnage_solo` in `story_runtime_core/goc_solo_builtin_template.py`; **0** defs in `**/builtins.py` (backend + world-engine) |
+| Extra check runtime | `python tools/ds005_runtime_import_check.py` — exit **0**; grep `TYPE_CHECKING` / `avoid circular` / `circular dependency` under `backend/app/runtime`: **0** hits |
+| **Open hotspots** | **D₆ = 0**; **54** functions **>100** AST lines (**L₅₀=271**). **`run_execute_turn_with_ai_integration`** split (**DS-010** ✓). Longest callables: **`admin_security`**, **`execute_auth_login`**, **`resolve_narrative_commit`** (nesting depth 5), **`build_goc_priority_rules`**, **supervisor finalize / non-finalizer** trio. Next band: **`register_manage_routes`**, **`users_assign_role`**, **`_check_play_http`**, **`preflight_validate_payload`**. Open **DS-011–014**; full leaderboard: `python tools/spaghetti_ast_scan.py` only. |
 
 ### Score *M7* — inputs, weights, and calculation
 
 | Symbol | Meaning | Value |
 |--------|---------|-------|
-| **C1** | Circular dependencies | **18** |
-| **C2** | Nesting depth | **12** |
-| **C3** | Long functions + complexity | **45** |
-| **C4** | Multi-responsibility modules | **27** |
-| **C5** | Magic numbers + global state | **18** |
-| **C6** | Missing abstractions / duplication | **22** |
-| **C7** | Confusing control flow | **24** |
+| **C1** | Circular dependencies | **17%** |
+| **C2** | Nesting depth | **11%** |
+| **C3** | Long functions + complexity | **44%** |
+| **C4** | Multi-responsibility modules | **26%** |
+| **C5** | Magic numbers + global state | **16%** |
+| **C6** | Missing abstractions / duplication | **21%** |
+| **C7** | Confusing control flow | **23%** |
+| **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | **4320** / **271** / **54** / **0** |
 
-**Formula:** `M7 = 0.20*C1 + 0.10*C2 + 0.20*C3 + 0.15*C4 + 0.10*C5 + 0.15*C6 + 0.10*C7`
+**Formula:** `M7 = 0.20*C1 + 0.10*C2 + 0.20*C3 + 0.15*C4 + 0.10*C5 + 0.15*C6 + 0.10*C7` *(**C1..C7** as 0–100; use the number without the `%` sign in the sum.)*
 
-**Evaluation:** After filling **C1..C7**, compute **M7** and copy into the main table.
+**Evaluation:** Fill **C1..C7** with **`%`** in the main scan and this table; compute **M7** for the main scan table; copy **AST telemetry** counts into the row under **C7** so they match the main scan row.
 
 **Trigger policy for check task updates:**
 
-Update § *Information input list*, § *Recommended implementation order*, and § *DS-ID → primary workstream* (for new IDs) when **any** of the following holds (scores **C1..C7** are the same 0–100 style values as in the tables above; use strict **>** for per-category lines):
+Update § *Information input list*, § *Recommended implementation order*, and § *DS-ID → primary workstream* (for new IDs) when **any** of the following holds (scores **C1..C7** are **percent** values 0–100 as in the tables above, e.g. **17%**; triggers compare the **number** to the threshold, e.g. 17 > 5; use strict **>** for per-category lines):
 
 | Condition | Rule |
 |-----------|------|
-| **C1** — Circular dependencies | **C1 > 5** |
-| **C2** — Nesting depth | **C2 > 10** |
-| **C3** — Long functions + complexity | **C3 > 35** |
-| **C4** — Multi-responsibility modules | **C4 > 25** |
-| **C5** — Magic numbers + global state | **C5 > 20** *(default bar; change here by team agreement if needed)* |
-| **C6** — Missing abstractions / duplication | **C6 > 15** |
-| **C7** — Confusing control flow | **C7 > 20** |
-| **Composite** | **`M7 ≥ M7_ref`** with **`M7_ref = 19%`** — the value of **M7** when each **C1..C7** is set to its trigger boundary (**C5** uses **20** in that calculation): `0.20×5 + 0.10×10 + 0.20×35 + 0.15×25 + 0.10×20 + 0.15×15 + 0.10×20 = 19.0%`. |
+| **C1** — Circular dependencies | **C1 > 5%** |
+| **C2** — Nesting depth | **C2 > 8%** |
+| **C3** — Long functions + complexity | **C3 > 25%** |
+| **C4** — Multi-responsibility modules | **C4 > 20%** |
+| **C5** — Magic numbers + global state | **C5 > 12%** |
+| **C6** — Missing abstractions / duplication | **C6 > 14%** |
+| **C7** — Confusing control flow | **C7 > 10%** |
+| **Composite** | **`M7 ≥ M7_ref`** with **`M7_ref ≈ 14.1%`** — `0.20×5 + 0.10×8 + 0.20×25 + 0.15×20 + 0.10×12 + 0.15×14 + 0.10×10` at trigger boundaries; same unit as **M7**; canonical definition: [spaghetti-check-task.md](spaghetti-check-task.md) **Threshold**. |
 
-**Otherwise** (no per-category trigger **and** **`M7 < 19%`**): update **only** § *Latest structure scan*.
+**Otherwise** (no per-category trigger **and** **`M7 < 14.1%`**): update **only** § *Latest structure scan*.
 
-*Note:* M7 is heuristic; AST telemetry (`N/L₅₀/L₁₀₀/D₆`) remains mandatory context for trend comparability.
+*Note:* **M7** is heuristic.
 
 ## Information input list (extensible)
 
-Each row: **ID**, **pattern**, **location**, **hint / measurement idea**, **direction**, **collision hint** (what is risky in parallel).
+Each row: **ID**, **pattern** (starts with **C1..C7** from the [spaghetti-check-task.md](../spaghetti-check-task.md) **Per-category triggers** table, e.g. **`C3 ·`** …), **location**, **hint / measurement idea**, **direction**, **collision hint** (what is risky in parallel).
 
 | ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
 |----|---------|--------------------|-------------------------|----------------------------|----------------|
-| ~~DS-001~~ ✓ CLOSED (2026-04-11) | ~~Deferred imports / cycle-avoidance pattern~~ | ~~`backend/app/runtime` (four modules with local-import comments)~~ | ~~`ds005` clean; grep cycle-hint comments~~ | ✓ Seams tightened; 4 deferred imports promoted; type narrowing applied | Completed |
-| ~~DS-002~~ ✓ CLOSED (2026-04-12 packaging) | ~~Very long stage callable~~ | ~~`run_writers_room_packaging_stage` (**53** AST L); `writers_room_pipeline_packaging_payloads` + early/tail phase helpers~~ | ~~AST leaderboard~~ | ✓ Further extractions; ✓ stable public API (`WritersRoomPackagingStageResult`) | Completed (prior DS-002 Writers Room pipeline stages 1–5 closure remains in workstream history) |
-| ~~DS-003~~ ✓ CLOSED (2026-04-12 structure) | ~~Long commit-path orchestration~~ | ~~`update_narrative_threads_from_commit_impl` (**63** AST L orchestrator); `NarrativeCommitThreadDrive` + `narrative_threads_update_from_commit_phases` + `narrative_threads_commit_path_utils`~~ | ~~AST + narrative tests~~ | ✓ Explicit drive + phased apply; pure helpers module | Completed (prior DS-007 narrative DTO workstream closure remains authoritative for protocol) |
-| ~~DS-004~~ ✓ CLOSED (2026-04-12 assembly) | ~~Multi-section report assembly~~ | ~~`assemble_closure_cockpit_report` (**64** AST L); `assemble_session_evidence_bundle` (**24** AST L); `ai_stack_closure_cockpit_report_sections`, `ai_stack_evidence_session_bundle_sections`~~ | ~~AST; callers~~ | ✓ Section helpers; ✓ payload contracts preserved (M11 pytest) | Completed (distinct from earlier DS-004 magic-number wave in workstream history) |
-| ~~DS-005~~ ✓ CLOSED (2026-04-10 optional) | ~~API + pipeline orchestration~~ | ~~`execute_users_update_put` (**70** AST L); `run_validated_turn_pipeline` (**90** AST L); `user_put_collect_service_kwargs`; `turn_executor_validated_pipeline_{apply,narrative_log}`~~ | ~~AST; route + runtime tests~~ | ✓ Thin handler; ✓ pipeline companion modules | Completed (see prior DS-005 guard waves 2026-04-11 + optional thin 2026-04-10) |
+| ~~DS-006~~ ✓ CLOSED (2026-04-13) | ~~**C3 ·** Very long Writers’ Room stage callables~~ | ~~`writers_room_pipeline_generation_stage.py`, `writers_room_pipeline_finalize_stage.py`~~ | ~~AST; writers-room pytest~~ | ✓ `writers_room_pipeline_generation_preflight`, `writers_room_pipeline_generation_synthesis`, `writers_room_pipeline_finalize_audits`, `writers_room_pipeline_finalize_package_out`; thin stage entrypoints; `_norm_wr_adapter` re-export preserved | Completed |
+| ~~DS-007~~ ✓ CLOSED (2026-04-13) | ~~**C3 · C4 ·** Large inspector / analytics projection builders~~ | ~~`inspector_projection_coverage_health.py`, `inspector_projection_service.py`, `analytics_service.py` (timeline)~~ | ~~AST; inspector + analytics pytest~~ | ✓ `inspector_projection_coverage_health_distribution`, `inspector_projection_turn_view`, `inspector_projection_comparison`, `inspector_projection_provenance_raw_entries`, `analytics_service_timeline`; public APIs unchanged | Completed |
+| ~~DS-008~~ ✓ CLOSED (2026-04-13) | ~~**C3 · C4 ·** Long **ai_stack** evaluators and **MCP** handler assembly~~ | ~~`dramatic_effect_gate_evaluate_core.py`; `tools_registry_handlers_backend_session.py`~~ | ~~AST; gate + MCP tests~~ | ✓ `dramatic_effect_gate_evaluate_tags`, `dramatic_effect_gate_evaluate_branch_outcomes`, thin `evaluate_dramatic_effect_gate`; ✓ `backend_session_mcp_handler_factories` + thin `build_backend_session_mcp_handlers` | Completed |
+| ~~DS-009~~ ✓ CLOSED (2026-04-10) | ~~**C3 ·** Improvement / release-readiness long orchestrations~~ | ~~`improvement_experiment_pipeline_finalize.py`; `ai_stack_release_readiness_report_payload_parts.py`~~ | ~~AST; improvement + M11 pytest~~ | ✓ `improvement_experiment_pipeline_finalize_phases`; signal extractors + `build_readiness_areas_list` + `ai_stack_release_readiness_static_tail`; thin finalize + thin `build_release_readiness_area_rows`; static tail re-export from `report_payload_parts` | Completed |
+| ~~DS-010~~ ✓ CLOSED (2026-04-12) | ~~**C3 ·** Long AI turn integration orchestration~~ | ~~`ai_turn_execute_integration.py` (`run_execute_turn_with_ai_integration`)~~ | ~~AST; `ds005`; runtime tests~~ | ✓ `ai_turn_execute_integration_phases` (`run_routing_and_first_response_phase`, `run_after_first_response_tail`); thin `run_execute_turn_with_ai_integration`; `package_classification` updated | Completed |
+| DS-011 | **C3 · C4 ·** Auth admin + login handler monoliths | `backend/app/auth/admin_security.py`, `backend/app/api/v1/auth_login_handler.py` | AST; auth / login pytest | Separate policy tables vs HTTP wiring | Touches security-sensitive paths — small PRs, full auth tests |
+| DS-012 | **C2 · C3 ·** Deep narrative commit resolver | `world-engine/app/story_runtime/commit_models.py` (`resolve_narrative_commit`, high nesting) | AST; `pytest world-engine/tests/test_story_runtime_narrative_commit.py` (+ threads tests as needed) | Phase split on commit resolution branches | `world_engine` workstream; avoid parallel edits with backend narrative DTO churn |
+| DS-013 | **C3 ·** Long GoC semantic priority rules builder | `ai_stack/goc_semantic_priority_rules.py` (`build_goc_priority_rules`) | AST; `pytest ai_stack/tests/` (GoC / semantic rules as applicable) | Table-driven rules or sub-builders | `ai_stack` package only — later in pipeline unless blocking backend |
+| DS-014 | **C3 ·** Supervisor finalize + non-finalizer orchestration giants | `supervisor_merge_finalize_finalizer_budget.py`, `supervisor_orchestrate_execute_sections.py`, `supervisor_orchestrator.py` | AST; `ds005`; supervisor / turn runtime tests | Split budget vs section orchestration vs `finalize_with_agent` tail | Same package cluster as DS-010 — sequence waves or shared pre scope |
+| DS-015 | **C1 ·** Runtime import-seam hardening (cycle-prone `app.runtime` cluster) | `backend/app/runtime` (turn executor, supervisor orchestration, AI integration edges) | `python tools/ds005_runtime_import_check.py`; targeted `pytest tests/runtime` (or subset); optional static import fan-in review | Introduce or tighten **DTO / protocol / facade** leaves so hot modules do not import each other in cycles; keep `package_classification` and frozen import lists truthful | **Before** large DS-014 refactors when both touch supervisor/turn graph; coordinate with DS-011 only if auth pulls runtime types |
 
-**New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); briefly justify why it is a structure/spaghetti topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
+**New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); **pattern** begins with **C1..C7** per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; briefly justify the topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
 
 ## Recommended implementation order
 
-Prioritised **phases**, **order**, and **dependencies** — aligned with § **information input list** and [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md). After filling: optional subsections per phase, Mermaid `flowchart`, gates per wave, short priority list.
+Prioritised **phases**, **order**, and **dependencies** — aligned with § **information input list** and [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md). After filling the phase table: **mandatory** Mermaid `flowchart` (or `graph`) **immediately below** the table, per [spaghetti-check-task.md](../spaghetti-check-task.md) §3; optional extra subsections per phase.
 
 | Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
 |------------------|----------|-------------|----------------------|----------------------------|
-| 1 | DS-001 | Stabilise runtime import / cycle-hint seams before wide service churn | `backend_runtime_services` | `python tools/ds005_runtime_import_check.py`; targeted runtime pytest if touched |
-| 2 | ~~DS-005~~ ✓ | Thin user PUT + validated turn pipeline surfaces | `backend_runtime_services` | **Done (2026-04-10):** `ds005` + users_update pytest + `test_execute_turn_system_error_path`; artefacts `session_20260410_DS-005_optional_thin_*` |
-| 3 | ~~DS-003~~ ✓ | Decompose narrative commit orchestration with explicit contracts | `backend_runtime_services` | **Done (2026-04-12):** narrative thread + narrative bundle pytest; artefacts `session_20260412_DS-003_commit_path_structure_*` |
-| 4 | ~~DS-004~~ ✓ | Split closure cockpit + evidence bundle assembly by section | `backend_runtime_services` | **Done (2026-04-12):** `pytest backend/tests/test_m11_ai_stack_observability.py` + `ds005`; artefacts `session_20260412_DS-004_report_assembly_*` |
-| 5 | ~~DS-002~~ ✓ | Tackle Writers Room packaging stage last (largest AST body) | `backend_runtime_services` | **Done (2026-04-12):** `pytest backend/tests/writers_room/` (64) + `ds005`; artefacts `session_20260412_DS-002_packaging_stage_*` |
+| 1 | ~~DS-010~~ ✓ | ~~Shrink **`run_execute_turn_with_ai_integration`** before wider runtime churn~~ | `backend_runtime_services` | **Done (2026-04-12):** `ds005` exit 0; `pytest tests/runtime` **1088** passed (`-o addopts=`); artefacts `session_20260412_DS-010_ai_turn_execute_integration_*` |
+| 2 | **DS-015** | **C1:** stabilise **`app.runtime`** import seams (DTO/protocol/facade) before large supervisor refactors | `backend_runtime_services` | After **Phase 1** (DS-010 ✓); **`ds005` exit 0** + runtime pytest slice; **before** DS-014 so supervisor/turn splits do not fight a fragile import graph |
+| 3 | DS-014 | Break up **supervisor finalize / non-finalizer / `finalize_with_agent`** long callables | `backend_runtime_services` | After **DS-015** when same graph is hot; `ds005` + supervisor-related backend tests |
+| 4a | DS-011 | Split **`admin_security`** and **`execute_auth_login`** into testable units | `backend_runtime_services` | **Parallel** with **4b** after Phase 3; auth/login route + service tests; security review on behaviour-visible changes |
+| 4b | DS-012 | Reduce **`resolve_narrative_commit`** size and nesting | `world_engine` | **Parallel** with **4a**; coordinate if shared narrative types; `pytest world-engine/tests/test_story_runtime_narrative_commit.py` (+ related narrative thread tests) |
+| 5 | DS-013 | Decompose **`build_goc_priority_rules`** | `ai_stack` | **After 4a and 4b**; `pytest ai_stack/tests/` (GoC / semantic priority coverage) |
 
-**Fill in:** one phase row per open **DS-*** (or an explicit merge noted in **note**). Order by **risk**: stabilise **runtime / import seams** (`backend_runtime_services` under `app.runtime`, `ds005`-touched paths) before very large **service orchestration** waves; **`ai_stack`**-only (or other packages) typically **later** unless the scan shows a hard blocker. **Workstream (primary)** must match [WORKSTREAM_INDEX.md](../state/WORKSTREAM_INDEX.md) for pre/post paths. **note** column: concrete **gates** (`pytest …`, `ds005`). Full rules: [spaghetti-check-task.md](../spaghetti-check-task.md) § *Maintaining the input list* → **Recommended implementation order** → *How to build a suitable phase table*. Coordination § *Maintaining this file*: when priority changes or new **DS-*** appear, update this section and Mermaid if used.
+```mermaid
+flowchart TD
+  P1["✓ 1 · DS-010 · AI turn integration"] --> P2["2 · DS-015 · Runtime C1 seams"]
+  P2 --> P3["3 · DS-014 · Supervisor finalize"]
+  P3 --> P4a["4a · DS-011 · Auth"]
+  P3 --> P4b["4b · DS-012 · Narrative commit"]
+  P4a --> P5["5 · DS-013 · GoC rules"]
+  P4b --> P5
+```
+
+**Fill in:** one phase row per open **DS-*** (or an explicit merge noted in **note**). Order by **risk**: stabilise **runtime / import seams** (`backend_runtime_services` under `app.runtime`, `ds005`-touched paths) before very large **service orchestration** waves; **`ai_stack`**-only (or other packages) typically **later** unless the scan shows a hard blocker. **Parallel:** when two DS waves are independent (different primary workstream, no hard import coupling), use parallel phase bands (e.g. `3a`/`3b`) and document in **note**. **Workstream (primary)** must match [WORKSTREAM_INDEX.md](../state/WORKSTREAM_INDEX.md) for pre/post paths. **note** column: concrete **gates** (`pytest …`, `ds005`). **Mermaid:** mandatory diagram **under** the table once phase rows are real (omit while the table is only `—`); **one line per node**, text inside `["…"]`, parts separated by **` · `** (phase · DS-ID · short hook) — see [spaghetti-check-task.md](../spaghetti-check-task.md) §3. Full rules: same doc § *Maintaining the input list* → **Recommended implementation order** → *How to build a suitable phase table*. Coordination § *Maintaining this file*: when priority changes or new **DS-*** appear, update this section **and** the Mermaid block.
 
 **Implementation** of phases until documented closure (completion gate, session by session): [spaghetti-solve-task.md](../spaghetti-solve-task.md).
 
@@ -167,13 +189,14 @@ Implementers may **briefly** record visible progress (for reviewers and the next
 
 | date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
 |------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
-| 2026-04-12 | DS-002 | **Packaging stage:** `writers_room_pipeline_packaging_payloads` + phased orchestration; `run_writers_room_packaging_stage` **53** AST L. | `artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-002_packaging_stage_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-002_packaging_stage_post.md` + `…/post/session_20260412_DS-002_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | `992810f` |
-| 2026-04-12 | DS-004 | **Report assembly:** closure cockpit + session evidence bundles split into section modules; entrypoints slimmed; M11 + ds005 green. | `artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-004_report_assembly_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-004_report_assembly_post.md` + `…/post/session_20260412_DS-004_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | `aa53e75` |
-| 2026-04-12 | DS-003 | **Commit-path structure:** split `update_narrative_threads_from_commit_impl` into drive builder, terminal resolution, non-terminal apply; pure helpers in `narrative_threads_commit_path_utils`. | `artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-003_commit_path_structure_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-003_commit_path_structure_post.md` + `…/post/session_20260412_DS-003_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | `3753a4b` |
-| 2026-04-10 | DS-005 | **Optional thin slice:** `user_put_collect_service_kwargs` + slim `execute_users_update_put`; validated pipeline split into `turn_executor_validated_pipeline_apply` + `turn_executor_validated_pipeline_narrative_log`; test monkeypatch target updated. | `artifacts/workstreams/backend_runtime_services/pre/session_20260410_DS-005_optional_thin_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260410_DS-005_optional_thin_post.md` + `…/post/session_20260410_DS-005_optional_thin_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | `ba499a7` |
-| 2026-04-11 | DS-001 | **Closure (2026-04-11):** Deferred imports / cycle-avoidance pattern resolved. Tasks 1–4: promoted 4 deferred imports to module-level top-level (role_structured_decision.py, ai_decision.py, ai_failure_recovery.py, turn_executor.py). Type narrowing applied: `ParseResult.role_aware_decision` now `ParsedRoleAwareDecision \| None`. Backwards compatible. All tests: 207/207 passing (role_structured_decision, ai_decision, ai_decision_logging, ai_failure_recovery, turn_executor, session_history). | `session_20260411_DS-001_baseline.md` (plan reference) | See `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` § *Hotspot / target status* | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | `3b0e27a` (turn_executor), `d834e4b` (ai_failure_recovery), prior (ai_decision, role_structured_decision) |
-| 2026-04-11 | — | **spaghetti-check-task** (standalone): `spaghetti_ast_scan.py` (**N=4230**, **L₅₀=263**, **L₁₀₀=71**, **D₆=0**); builtins grep; runtime grep (**4** cycle-hint sites); `ds005` exit **0**. § *Latest structure scan* refreshed (**As of** + extra-check stamps + **Open hotspots**). **M7** / **C1..C7** and **DS / phase** tables **unchanged** — same telemetry and thesis as prior row (per check task: confirm when only numbers stable). | — | — | — | — |
-| 2026-04-11 | — | **spaghetti-reset-task:** Steps 1–2 (temp cleanup where present; input reset from `templates/…EMPTY.md`); Step 3 one **spaghetti-check** — AST **N=4230**, **L₅₀=263**, **L₁₀₀=71**, **D₆=0**; builtins grep; runtime grep; `ds005` exit **0**. Trigger met (**M7 ≈ 25.4% ≥ 19%**); filled scan, **DS-001..005**, workstream map, phase table. | — | — | — | — |
+| 2026-04-12 | DS-010 | **AI turn execute integration:** routing/first-response phase + post-routing tail module; entrypoint ~29 AST L; runtime suite 1088 passed. | `artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-010_ai_turn_execute_integration_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-010_ai_turn_execute_integration_post.md` + `…/post/session_20260412_DS-010_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | workspace |
+| 2026-04-12 | — | **spaghetti-check-task:** `spaghetti_ast_scan` (N=4318, L₅₀=270, L₁₀₀=55, D₆=0); builtins + runtime grep + `ds005` exit 0; **M7 ≥ 19%** trigger → new **DS-010–014** + phase table refresh from current top-12. | — | — | — | workspace |
+| 2026-04-10 | DS-009 | **Improvement finalize + release-readiness payloads:** phase helpers for evidence/review/rationale/store; signal extractors + area row list + static-tail module; thin entrypoints. | `artifacts/workstreams/backend_runtime_services/pre/session_20260410_DS-009_improvement_finalize_release_readiness_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260410_DS-009_improvement_finalize_release_readiness_post.md` + `…/post/session_20260410_DS-009_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | workspace |
+| 2026-04-13 | DS-008 | **Dramatic effect gate + MCP session tools:** tag/branch modules + thin `evaluate_dramatic_effect_gate`; handler factories + thin registry builder. | `artifacts/workstreams/ai_stack/pre/session_20260413_DS-008_dramatic_gate_mcp_pre.md` | `artifacts/workstreams/ai_stack/post/session_20260413_DS-008_dramatic_gate_mcp_post.md` + `…/post/session_20260413_DS-008_pre_post_comparison.json` | `WORKSTREAM_AI_STACK_STATE.md` | workspace |
+| 2026-04-13 | DS-006 | **Writers’ Room generation/finalize:** preflight + synthesis modules; finalize audits + package_out assembly; stage entrypoints slimmed. | `artifacts/workstreams/backend_runtime_services/pre/session_20260413_DS-006_writers_room_stages_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260413_DS-006_writers_room_stages_post.md` + `…/post/session_20260413_DS-006_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | workspace |
+| 2026-04-13 | DS-007 | **Inspector + analytics split:** coverage distribution + turn view + comparison + provenance entries + analytics timeline module; orchestrators slimmed. | `artifacts/workstreams/backend_runtime_services/pre/session_20260413_DS-007_inspector_analytics_pre.md` | `artifacts/workstreams/backend_runtime_services/post/session_20260413_DS-007_inspector_analytics_post.md` + `…/post/session_20260413_DS-007_pre_post_comparison.json` | `WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md` | workspace |
+| 2026-04-10 | — | **`spaghetti-add-task-to-meet-trigger` (C1):** added **DS-015** (runtime import-seam / cycle-risk); renumbered § *Recommended implementation order* and Mermaid — **C1** **17%** unchanged until a [spaghetti-check-task.md](../spaghetti-check-task.md) scan refresh. | — | — | — | workspace |
+| 2026-04-12 | — | **spaghetti-reset-task** (Steps 1–3): temp dirs per reset doc; `despaghettification_implementation_input.md` reset from `templates/…EMPTY.md`; one **spaghetti-check** — AST **N=4266**, **L₅₀=268**, **L₁₀₀=65**, **D₆=0**; builtins + `ds005` exit **0**; runtime cycle-hint grep **0** hits. Trigger met (**M7 ≈ 24.3% ≥ 19%**); repopulated **DS-006..009**, workstream map, phase table. Prior **DS-001..005** closure history: **Git** parent revision. | — | — | — | workspace |
 
 **New rows:** chronologically (**newest first** recommended); **DS-ID(s)**, gates/tests run, pre/post paths as in [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md); for scan/docs-only updates note briefly. Longer history: Git, PRs, `WORKSTREAM_*_STATE.md`.
 
@@ -182,11 +205,17 @@ Implementers may **briefly** record visible progress (for reviewers and the next
 After structural changes to runtime/AI/RAG/MCP, align **active** technical docs (not the 2026 archive):
 
 - Runtime / authority: [`docs/technical/runtime/runtime-authority-and-state-flow.md`](../../docs/technical/runtime/runtime-authority-and-state-flow.md) — supervisor orchestration: `supervisor_orchestrate_execute.py` + `supervisor_orchestrate_execute_sections.py`; subagent invocation: `supervisor_invoke_agent.py` + `supervisor_invoke_agent_sections.py`
-- Inspector projection (backend): `inspector_turn_projection_sections.py` orchestrates; pieces in `inspector_turn_projection_sections_{utils,constants,semantic,provenance}.py`
+- Inspector projection (backend): `inspector_turn_projection_sections.py` orchestrates; pieces in `inspector_turn_projection_sections_{utils,constants,semantic,provenance}.py`; evidence-backed views: `inspector_projection_coverage_health_distribution.py`, `inspector_projection_turn_view.py`, `inspector_projection_comparison.py`, `inspector_projection_provenance_raw_entries.py` (+ thin `inspector_projection_coverage_health.py` / `inspector_projection_service.py`); analytics daily timeline: `analytics_service_timeline.py`
+- Writers’ Room pipeline (backend): `writers_room_pipeline.py` orchestrates stages; generation preflight/synthesis: `writers_room_pipeline_generation_preflight.py`, `writers_room_pipeline_generation_synthesis.py` (+ thin `writers_room_pipeline_generation_stage.py`); finalize audits/package: `writers_room_pipeline_finalize_audits.py`, `writers_room_pipeline_finalize_package_out.py` (+ thin `writers_room_pipeline_finalize_stage.py`); packaging/retrieval/manifest modules unchanged by this wave.
 - Admin tool routes: `administration-tool/route_registration.py` + `route_registration_{proxy,pages,manage,security}.py`
 - God-of-Carnage solo builtin (core): `story_runtime_core/goc_solo_builtin_template.py` + `goc_solo_builtin_catalog.py` + `goc_solo_builtin_roles_rooms.py`
 - AI / RAG / LangGraph: [`docs/technical/ai/RAG.md`](../../docs/technical/ai/RAG.md), [`docs/technical/integration/LangGraph.md`](../../docs/technical/integration/LangGraph.md), [`docs/technical/integration/MCP.md`](../../docs/technical/integration/MCP.md)
 - Dev seam overview: [`docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md`](../../docs/dev/architecture/ai-stack-rag-langgraph-and-goc-seams.md)
+- Dramatic effect gate (GoC): `dramatic_effect_gate.py` → `dramatic_effect_gate_evaluate_core.evaluate_dramatic_effect_gate`; tags/scene groups in `dramatic_effect_gate_evaluate_tags.py`; branch outcomes in `dramatic_effect_gate_evaluate_branch_outcomes.py`
+- MCP backend session tools: `tools_registry_handlers_backend_session.build_backend_session_mcp_handlers` composes `backend_session_mcp_handler_factories.make_handle_*` (registry wiring unchanged in `tools_registry_handlers.py`)
+- Improvement experiment finalize (API): `improvement_experiment_pipeline_finalize.finalize_improvement_experiment_capability_phase` delegates to `improvement_experiment_pipeline_finalize_phases` (evidence hydrate → governance review → rationale/strength → enrich/validate/store)
+- Release-readiness partial payloads: `ai_stack_release_readiness_report_payload_parts.build_release_readiness_area_rows` composes `ai_stack_release_readiness_signal_extractors` + `ai_stack_release_readiness_area_rows_list`; `build_release_readiness_static_tail` lives in `ai_stack_release_readiness_static_tail` (re-exported from `report_payload_parts` for existing imports)
+- In-process AI turn integration: `ai_turn_executor.execute_turn_with_ai` → `ai_turn_execute_integration.run_execute_turn_with_ai_integration` (thin) → `ai_turn_execute_integration_phases` (`run_routing_and_first_response_phase`, `run_after_first_response_tail`)
 
 ---
 

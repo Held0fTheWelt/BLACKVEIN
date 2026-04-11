@@ -1,6 +1,6 @@
 # Spaghetti reset task (clean slate + one check pass)
 
-**Purpose:** Remove **ephemeral / local** artefacts from the working tree (including **despaghettification-adjacent** caches and scratch), reset [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) to the **canonical empty template**, then run **[`spaghetti-check-task.md`](spaghetti-check-task.md)** **once** to repopulate § *Latest structure scan* (and, if the trigger policy is met, the DS table and recommended order).
+**Purpose:** Run **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** first (wipe **all** [`state/artifacts/workstreams/`](state/artifacts/workstreams/) session trees and recreate empty `pre|post` per slug), remove **ephemeral / local** artefacts from the working tree (caches and scratch as below), reset [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) to the **canonical empty template**, then run **[`spaghetti-check-task.md`](spaghetti-check-task.md)** **once** to repopulate § *Latest structure scan* (and, if the trigger policy is met, the DS table and recommended order).
 
 **Order (this task only):** **Reset first, check second.** Steps **1–2** only clean and restore placeholders — they do **not** run the AST scan or fill **C1..C7** / **M7**. Step **3** is the **first and only** analysis pass after the reset: run [`spaghetti-check-task.md`](spaghetti-check-task.md) once; that pass updates the input list from the EMPTY baseline.
 
@@ -11,12 +11,23 @@
 ## Preconditions
 
 - Work from **repository root** (the folder that contains `tools/`, `backend/`, `despaghettify/`).
-- **Do not** delete or rewrite anything under `despaghettify/state/artifacts/**` as part of “temp cleanup” — those are **governance pre/post evidence**. If you intentionally prune old sessions, do it only per team policy and **never** conflate with this reset.
+- **Workstream wipe is intentional:** this reset **starts** with [`spaghetti-clean-task.md`](spaghetti-clean-task.md) **Step 1**, which **deletes all files** under `despaghettify/state/artifacts/workstreams/**` and recreates empty `pre/` / `post/` folders. Do **not** run a full reset if you must keep local-only session artefacts with no backup.
+- Other paths under `despaghettify/state/artifacts/` (e.g. `repo_governance_rollout/`) are **not** removed by the clean task unless you extend locally by team policy.
 - If you use `git clean`, **never** use `-x` or `-fd` without reviewing what would be removed; this task uses **explicit paths** only.
 
 ---
 
+## Step 0 — Spaghetti clean (workstreams + optional same-pass ephemeral cleanup)
+
+Execute **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** in full at minimum **Step 1** (wipe and recreate `artifacts/workstreams/`). **Recommended:** also run **Step 2** of that document here so one pass covers workstreams **and** the ephemeral dirs below (then **skip** duplicating 1a–1c in Step 1 of this document if you already ran clean Step 2).
+
+If you **only** run clean **Step 1** (workstreams) and omit clean **Step 2**, continue with **Step 1** below for caches and hub scratch.
+
+---
+
 ## Step 1 — Remove ephemeral directories and despaghettification-adjacent temp
+
+**Skip** this step if you already completed **Step 2** of [`spaghetti-clean-task.md`](spaghetti-clean-task.md) in **Step 0**.
 
 ### 1a — Repo-wide caches and build scratch
 
@@ -44,7 +55,7 @@ These are **not** under `despaghettify/state/artifacts/**` but are typical **loc
 
 ### 1c — Ephemeral files inside `despaghettify/` (hub only, not governance)
 
-Remove **loose** scratch files under `despaghettify/` that agents or editors sometimes leave next to the hub docs — **never** delete the canonical task docs, `templates/`, or anything under `despaghettify/state/` (including `state/artifacts/**`).
+Remove **loose** scratch files under `despaghettify/` that agents or editors sometimes leave next to the hub docs — **never** delete the canonical task docs, `templates/`, or arbitrary files under `despaghettify/state/` **except** the controlled workstream wipe already done in **Step 0** (which only replaces `state/artifacts/workstreams/`). The scripts below **exclude** `despaghettify/state/` paths from the hub file sweep.
 
 **Eligible patterns** (files only; skip directories `state/`, `templates/`):
 
@@ -87,7 +98,7 @@ find despaghettify -type f \( -name '*.tmp' -o -name '*.bak' -o -name '*.log' -o
   ! -path 'despaghettify/state/*' ! -path 'despaghettify/templates/*' -delete 2>/dev/null || true
 ```
 
-**Do not** add `despaghettify/state/`, `.git/`, or user-owned secrets (e.g. `.env`) to deletion lists. **Never** treat `despaghettify/state/artifacts/**/pre|post/**` as “temp” for this reset.
+**Do not** add `despaghettify/state/` **Markdown state docs**, `.git/`, or user-owned secrets (e.g. `.env`) to deletion lists. Workstream **session files** under `artifacts/workstreams/` are removed **only** via **Step 0** ([`spaghetti-clean-task.md`](spaghetti-clean-task.md)), not by the optional duplicate of 1a–1c here.
 
 ---
 
@@ -109,7 +120,7 @@ Copy-Item -Force despaghettify\templates\despaghettification_implementation_inpu
 cp -f despaghettify/templates/despaghettification_implementation_input.EMPTY.md despaghettify/despaghettification_implementation_input.md
 ```
 
-After copy, the input list contains **placeholders** (`—`) for M7, C1–C7, AST telemetry, tables, and open hotspots — ready for the next check pass.
+After copy, the input list contains **placeholders** (`—`) for **M7**, **C1–C7** (**`%`** on the next check), **AST telemetry** (main scan row + row **under C7** in § *Score M7*), tables, and open hotspots — ready for the next check pass.
 
 ---
 
@@ -121,11 +132,11 @@ Execute the full procedure from that document **in order**, at minimum:
 2. **Duplicate builtins** grep and **runtime** spot checks as described in `spaghetti-check-task.md` § *Extra checks*.
 3. `python tools/ds005_runtime_import_check.py` as described there.
 4. Update [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) per **Maintaining the input list** in `spaghetti-check-task.md`:
-   - **Always:** § *Latest structure scan* (as-of **date and time**, **M7**, **C1..C7**, telemetry, extra checks, **Open hotspots** pruned to **unresolved** only).
+   - **Always:** § *Latest structure scan* (as-of **date and time**; **M7** / **C1..C7** with **`%`**; **AST telemetry** in the main table **and** under **C7** in the § *Score M7* table per [`spaghetti-check-task.md`](spaghetti-check-task.md) §1; extra checks; **Open hotspots** pruned to **unresolved** only).
    - **Only if trigger met** (per-category thresholds **or** composite **`M7 ≥ M7_ref`** — see [`spaghetti-check-task.md`](spaghetti-check-task.md) **Threshold**): § *Information input list* and § *Recommended implementation order*.
    - **If trigger not met:** do **not** change the DS table or phase table beyond what the reset already set to placeholders.
 
-**Recommended implementation order (explicit obligation after reset):** The EMPTY template clears the phase table to `—`. Step 3 **must** repopulate § *Recommended implementation order* whenever § *Information input list* gets non-placeholder **DS-*** rows. Do **not** stop after the DS table — follow [`spaghetti-check-task.md`](spaghetti-check-task.md) § *Maintaining the input list* → **“How to build a *suitable* phase table”**: cover every DS-ID with a phase, order by runtime/import risk before large orchestrators, assign **primary workstream** per [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md), and add **note** gates (`pytest`, `ds005`). The reset task does **not** fix a global phase order in advance; the **check pass** derives it from the scan + DS rows so [spaghetti-solve-task.md](spaghetti-solve-task.md) has an unambiguous sequence.
+**Recommended implementation order (explicit obligation after reset):** The EMPTY template clears the phase table to `—`. Step 3 **must** repopulate § *Recommended implementation order* whenever § *Information input list* gets non-placeholder **DS-*** rows. Do **not** stop after the DS table — follow [`spaghetti-check-task.md`](spaghetti-check-task.md) § *Maintaining the input list* → **“How to build a *suitable* phase table”**: cover every DS-ID with a phase, order by runtime/import risk before large orchestrators, assign **primary workstream** per [state/WORKSTREAM_INDEX.md](state/WORKSTREAM_INDEX.md), add **note** gates (`pytest`, `ds005`), include **parallel** bands where independence holds (see check task §3), and add the **mandatory Mermaid `flowchart`** directly under the phase table (§3: **single-line** `["phase · DS-ID · hook"]` labels; fork/join for parallelism). The reset task does **not** fix a global phase order in advance; the **check pass** derives it from the scan + DS rows so [spaghetti-solve-task.md](spaghetti-solve-task.md) has an unambiguous sequence.
 
 **Output to requester:** follow the short **Output format** paragraph at the end of `spaghetti-check-task.md`.
 
@@ -133,9 +144,10 @@ Execute the full procedure from that document **in order**, at minimum:
 
 ## Completion checklist
 
-- [ ] Step **1a–1c** completed: repo caches, wave-adjacent `var/` trees (where present), hub scratch files under `despaghettify/` (excluding `state/` and `templates/`).
+- [ ] **Step 0** completed: [`spaghetti-clean-task.md`](spaghetti-clean-task.md) **Step 1** (all `artifacts/workstreams/` session content removed; empty `pre|post` per slug recreated).
+- [ ] Step **1a–1c** (or clean task **Step 2**) completed: repo caches, wave-adjacent `var/` trees (where present), hub scratch files under `despaghettify/` (excluding `state/` and `templates/`).
 - [ ] `despaghettification_implementation_input.md` matches the **EMPTY** template before the check (byte-for-byte optional: diff against `templates/…EMPTY.md`).
-- [ ] One full **spaghetti-check** pass completed; scan section filled; DS/phases updated only per trigger policy; if DS rows were filled, **§ *Recommended implementation order*** is a **complete** phase table (no `—` placeholders) matching `spaghetti-check-task.md` §3 **How to build a *suitable* phase table**.
+- [ ] One full **spaghetti-check** pass completed; scan section filled (**C1..C7** / **M7** as **%**; **AST telemetry** in main table **and** row under **C7** in § *Score M7* per `spaghetti-check-task.md` §1); DS/phases updated only per trigger policy; if DS rows were filled, **§ *Recommended implementation order*** is a **complete** phase table (no `—` placeholders) **and** includes the **mandatory Mermaid** block per `spaghetti-check-task.md` §3.
 
 ---
 
