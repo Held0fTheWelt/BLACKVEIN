@@ -84,7 +84,7 @@ class TestCreateSessionEndpoint:
     def test_create_session_module_not_found_returns_404(self, client, monkeypatch):
         monkeypatch.setattr(
             "app.api.v1.session_routes.create_session",
-            lambda module_id: (_ for _ in ()).throw(
+            lambda module_id, metadata_updates=None: (_ for _ in ()).throw(
                 SessionStartError("module_not_found", module_id, "missing")
             ),
         )
@@ -97,7 +97,7 @@ class TestCreateSessionEndpoint:
     def test_create_session_module_invalid_returns_422(self, client, monkeypatch):
         monkeypatch.setattr(
             "app.api.v1.session_routes.create_session",
-            lambda module_id: (_ for _ in ()).throw(
+            lambda module_id, metadata_updates=None: (_ for _ in ()).throw(
                 SessionStartError("module_invalid", module_id, "invalid")
             ),
         )
@@ -110,7 +110,7 @@ class TestCreateSessionEndpoint:
     def test_create_session_no_start_scene_returns_422(self, client, monkeypatch):
         monkeypatch.setattr(
             "app.api.v1.session_routes.create_session",
-            lambda module_id: (_ for _ in ()).throw(
+            lambda module_id, metadata_updates=None: (_ for _ in ()).throw(
                 SessionStartError("no_start_scene", module_id, "missing initial scene")
             ),
         )

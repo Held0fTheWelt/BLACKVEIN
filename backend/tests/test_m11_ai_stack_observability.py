@@ -12,11 +12,11 @@ def test_admin_session_evidence_returns_runtime_bundle(client, moderator_headers
     session_id = create_resp.get_json()["session_id"]
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.game_service.get_story_state",
         lambda *_a, **_k: {"session_id": "we-x", "turn_counter": 0},
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.game_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -155,11 +155,11 @@ def test_session_evidence_includes_repaired_layer_signals(client, moderator_head
     session_id = create_resp.get_json()["session_id"]
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.game_service.get_story_state",
         lambda *_a, **_k: {"session_id": "we-y", "turn_counter": 1},
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.game_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -290,11 +290,11 @@ def test_session_evidence_surfaces_degraded_execution_health(client, moderator_h
     session_id = create_resp.get_json()["session_id"]
 
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.game_service.get_story_state",
         lambda *_a, **_k: {"session_id": "we-z", "turn_counter": 1},
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.game_service.get_story_diagnostics",
         lambda *_a, **_k: {
             "diagnostics": [
                 {
@@ -335,11 +335,11 @@ def test_session_evidence_empty_diagnostics_surfaces_no_turn_cross_layer(client,
     create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
     session_id = create_resp.get_json()["session_id"]
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_state",
+        "app.services.game_service.get_story_state",
         lambda *_a, **_k: {"session_id": "we-empty", "turn_counter": 0},
     )
     monkeypatch.setattr(
-        "app.services.ai_stack_evidence_service.get_story_diagnostics",
+        "app.services.game_service.get_story_diagnostics",
         lambda *_a, **_k: {"diagnostics": [], "committed_state": {"current_scene_id": "s0", "turn_counter": 0}},
     )
     from app.runtime.session_store import get_session as get_runtime_session
