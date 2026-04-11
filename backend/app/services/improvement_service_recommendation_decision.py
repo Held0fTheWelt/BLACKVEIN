@@ -5,13 +5,19 @@ from __future__ import annotations
 from typing import Any
 
 from app.contracts.improvement_operating_loop import ImprovementLoopStage
-from app.contracts.writers_room_artifact_class import WritersRoomArtifactClass
 
 from app.services.improvement_service import (
-    IMPROVEMENT_PUBLICATION_CONTRACT_VERSION,
     ImprovementStore,
     _evaluation_metrics_fingerprint,
     _utc_now,
+)
+from app.services.improvement_service_policy_evaluators import (
+    check_governance_state_valid_for_decision,
+    check_recommendation_already_finalized,
+    validate_improvement_decision,
+    build_artifact_class_and_verification,
+    build_improvement_loop_progress,
+    build_publication_verification_trace,
 )
 
 
@@ -39,12 +45,11 @@ def apply_improvement_recommendation_decision(
         }
     current = str(state.get("status", "pending_governance_review"))
     normalized = decision.strip().lower()
-    if normalized not in {"accept", "reject", "revise"}:
-        raise ValueError("decision_must_be_accept_reject_or_revise")
-    if current in {"governance_accepted", "governance_rejected"}:
-        raise ValueError("recommendation_already_finalized")
-    if current not in {"pending_governance_review", "governance_revision_requested"}:
-        raise ValueError("invalid_governance_state_for_decision")
+
+    # Apply policy validation guards
+    validate_improvement_decision(decision)
+    check_recommendation_already_finalized(current)
+    check_governance_state_valid_for_decision(current)
 
     history = state.get("history")
     if not isinstance(history, list):
@@ -102,74 +107,29 @@ def apply_improvement_recommendation_decision(
     evaluation = package.get("evaluation") if isinstance(package.get("evaluation"), dict) else {}
     metrics_fp = _evaluation_metrics_fingerprint(evaluation)
 
-    if next_status == "governance_accepted":
-        package["improvement_output_artifact_class"] = WritersRoomArtifactClass.approved_authored_artifact.value
-        post_verification: dict[str, Any] = {
-            "contract_version": IMPROVEMENT_PUBLICATION_CONTRACT_VERSION,
-            "experiment_id": experiment_id,
-            "evaluation_metrics_sha256_16": metrics_fp,
-            "outcome": "verified_against_stored_evaluation",
-            "recorded_at": now,
-            "scope": "re_read_persisted_evaluation_metrics",
-        }
-    else:
-        package["improvement_output_artifact_class"] = WritersRoomArtifactClass.rejected_artifact.value
-        post_verification = {
-            "contract_version": IMPROVEMENT_PUBLICATION_CONTRACT_VERSION,
-            "experiment_id": experiment_id,
-            "outcome": "not_applicable",
-            "recorded_at": now,
-            "scope": "terminal_rejection_no_publication",
-        }
+    # Build artifact class and post-verification record based on decision
+    artifact_class_value, post_verification = build_artifact_class_and_verification(
+        decision=normalized,
+        now=now,
+        experiment_id=experiment_id,
+        metrics_fp=metrics_fp,
+    )
+    package["improvement_output_artifact_class"] = artifact_class_value
+    package["post_verification"] = post_verification
 
+    # Build improvement loop progress entries
     progress = package.get("improvement_loop_progress")
     if not isinstance(progress, list):
         progress = []
-    progress.append(
-        {
-            "loop_stage": ImprovementLoopStage.approval_rejection.value,
-            "completed_at": now,
-            "id": "human_governance_decision",
-            "resource_id": package_id,
-            "detail": {"decision": normalized},
-        }
-    )
-    progress.append(
-        {
-            "loop_stage": ImprovementLoopStage.publication.value,
-            "completed_at": now,
-            "id": "governance_registry_publication_record",
-            "resource_id": package_id,
-            "detail": {"terminal_governance_status": next_status},
-        }
-    )
-    progress.append(
-        {
-            "loop_stage": ImprovementLoopStage.post_change_verification.value,
-            "completed_at": now,
-            "id": "post_change_verification_trace",
-            "resource_id": package_id,
-            "detail": {"outcome": post_verification.get("outcome")},
-        }
-    )
+    progress.extend(build_improvement_loop_progress(normalized, now, package_id))
     package["improvement_loop_progress"] = progress
 
-    package["publication_verification_trace"] = {
-        "contract_version": IMPROVEMENT_PUBLICATION_CONTRACT_VERSION,
-        "terminal_governance_status": next_status,
-        "recorded_at": now,
-        "declared_runtime_promotion": False,
-        "verification_scope": "governance_registry_with_post_decision_verification_record",
-        "publication_surface": "improvement_recommendation_registry",
-        "published_record_id": package_id,
-        "improvement_entry_class": package.get("improvement_entry_class"),
-        "improvement_output_artifact_class": package.get("improvement_output_artifact_class"),
-        "post_change_verification": post_verification,
-        "requires_follow_up_audit": True,
-        "note": (
-            "Acceptance records HITL approval of the recommendation package only. "
-            "Canonical authored truth promotion remains a separate governed action."
-        ),
-    }
+    # Build publication verification trace record
+    package["publication_verification_trace"] = build_publication_verification_trace(
+        decision=normalized,
+        now=now,
+        package=package,
+        next_status=next_status,
+    )
     storage.write_json("recommendations", package_id, package)
     return package
