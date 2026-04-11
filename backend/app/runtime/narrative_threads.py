@@ -6,7 +6,7 @@ They are not authoritative truth; narrative_commit remains canonical post-turn o
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,7 @@ from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext
 from app.runtime.runtime_models import NarrativeCommitRecord, SessionState
 from app.runtime.session_history import SessionHistory
+from app.runtime.narrative_state_transfer_dto import NarrativeCommitEvent
 
 _STATE_CHANGED_PREFIX = "state_changed:"
 _MAX_ACTIVE_THREADS = 8
@@ -127,12 +128,26 @@ def compact_threads_for_adapter(thread_set: NarrativeThreadSet | None) -> list[d
 def update_narrative_threads_from_commit(
     prior: NarrativeThreadSet,
     *,
-    narrative_commit: NarrativeCommitRecord,
+    narrative_commit: Union[NarrativeCommitRecord, NarrativeCommitEvent],
     _history: SessionHistory,
     progression: ProgressionSummary,
     relationship: RelationshipAxisContext,
 ) -> NarrativeThreadSet:
-    """Derive next thread snapshot from authoritative commit and existing layers."""
+    """Derive next thread snapshot from authoritative commit and existing layers.
+
+    DS-007 Task 2: Updated signature to accept both legacy NarrativeCommitRecord
+    and new NarrativeCommitEvent DTO for type-safe state transfer.
+
+    Args:
+        prior: Current narrative thread set to update.
+        narrative_commit: Either NarrativeCommitRecord (legacy) or NarrativeCommitEvent (DS-007).
+        _history: Session history context.
+        progression: Progression summary metrics.
+        relationship: Relationship axis context for character tensions.
+
+    Returns:
+        Updated NarrativeThreadSet with derived thread state.
+    """
     from app.runtime.narrative_threads_update_from_commit import update_narrative_threads_from_commit_impl
 
     return update_narrative_threads_from_commit_impl(

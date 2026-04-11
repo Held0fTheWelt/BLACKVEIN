@@ -1,9 +1,13 @@
-"""Commit-Pfad: Narrative-Threads aus NarrativeCommit ableiten (DS-049)."""
+"""Commit-Pfad: Narrative-Threads aus NarrativeCommit ableiten (DS-049).
+
+DS-007 Task 2: Updated to accept NarrativeCommitEvent DTO for type-safe
+state transfer between turn_executor and narrative layers.
+"""
 
 from __future__ import annotations
 
 import hashlib
-from typing import Any
+from typing import Any, Union
 
 from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext
@@ -24,6 +28,7 @@ from app.runtime.narrative_threads import (
     _MAX_RESOLVED_RECENT,
     _STATE_CHANGED_PREFIX,
 )
+from app.runtime.narrative_state_transfer_dto import NarrativeCommitEvent
 
 
 def _paths_from_consequences(consequences: list[str]) -> list[str]:
@@ -107,19 +112,42 @@ def _evict_lowest_priority(active: list[NarrativeThreadState]) -> list[Narrative
 def update_narrative_threads_from_commit_impl(
     prior: NarrativeThreadSet,
     *,
-    narrative_commit: NarrativeCommitRecord,
+    narrative_commit: Union[NarrativeCommitRecord, NarrativeCommitEvent],
     _history: SessionHistory,
     progression: ProgressionSummary,
     relationship: RelationshipAxisContext,
 ) -> NarrativeThreadSet:
-    """Derive next thread snapshot from authoritative commit and existing layers."""
-    cons = list(narrative_commit.canonical_consequences or [])
+    """Derive next thread snapshot from authoritative commit and existing layers.
+
+    Args:
+        prior: Current narrative thread set to update.
+        narrative_commit: Either NarrativeCommitRecord (legacy) or NarrativeCommitEvent (DS-007).
+        _history: Session history context.
+        progression: Progression summary metrics.
+        relationship: Relationship axis context for character tensions.
+
+    Returns:
+        Updated NarrativeThreadSet with derived thread state.
+    """
+    # Extract payload and consequences from either DTO type
+    if isinstance(narrative_commit, NarrativeCommitEvent):
+        payload = narrative_commit.commit_payload
+        cons = list(payload.get("canonical_consequences") or [])
+        turn_no = payload.get("turn_number", 0)
+        scene = payload.get("committed_scene_id", "")
+        is_terminal = payload.get("is_terminal", False)
+        situation_status = payload.get("situation_status", "continue")
+    else:
+        cons = list(narrative_commit.canonical_consequences or [])
+        turn_no = narrative_commit.turn_number
+        scene = narrative_commit.committed_scene_id or ""
+        is_terminal = narrative_commit.is_terminal
+        situation_status = narrative_commit.situation_status
+
     paths = _paths_from_consequences(cons)
     chars = _character_ids_from_paths(paths)
-    turn_no = narrative_commit.turn_number
-    scene = narrative_commit.committed_scene_id or ""
 
-    if narrative_commit.is_terminal or narrative_commit.situation_status == "ending_reached":
+    if is_terminal or situation_status == "ending_reached":
         resolved_batch = [
             t.model_copy(
                 update={
@@ -200,7 +228,7 @@ def update_narrative_threads_from_commit_impl(
             )
 
     if progression.progression_momentum == "stalled" and progression.stalled_turn_count >= 2:
-        if narrative_commit.situation_status == "continue":
+        if situation_status == "continue":
             aid = _avoidance_thread_id(scene)
             upsert_thread(
                 aid,
@@ -230,7 +258,7 @@ def update_narrative_threads_from_commit_impl(
                 t.status = "escalating"
 
     if (
-        narrative_commit.situation_status == "continue"
+        situation_status == "continue"
         and progression.same_scene_progression_count >= 2
         and paths
         and chars
