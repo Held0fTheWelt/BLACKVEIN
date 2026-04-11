@@ -20,5 +20,7 @@ Config = _config_module.Config
 DevelopmentConfig = _config_module.DevelopmentConfig
 TestingConfig = _config_module.TestingConfig
 env_bool = _config_module.env_bool
+RUN_STORE_BACKEND = _config_module.RUN_STORE_BACKEND
+RUN_STORE_URL = _config_module.RUN_STORE_URL
 
-__all__ = ["Config", "DevelopmentConfig", "TestingConfig", "env_bool"]
+__all__ = ["Config", "DevelopmentConfig", "TestingConfig", "env_bool", "RUN_STORE_BACKEND", "RUN_STORE_URL"]

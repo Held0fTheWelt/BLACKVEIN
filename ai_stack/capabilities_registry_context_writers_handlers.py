@@ -14,7 +14,9 @@ def build_context_pack_handler(
     assembler: "ContextPackAssembler",
 ) -> Callable[[dict[str, Any]], dict[str, Any]]:
     def context_pack_handler(payload: dict[str, Any]) -> dict[str, Any]:
-        from ai_stack.rag import RETRIEVAL_POLICY_VERSION, RetrievalDomain, RetrievalRequest
+        from ai_stack.rag_constants import RETRIEVAL_POLICY_VERSION
+        from ai_stack.rag_retrieval_dtos import RetrievalRequest
+        from ai_stack.rag_types import RetrievalDomain
 
         domain = RetrievalDomain(payload.get("domain", RetrievalDomain.RUNTIME.value))
         request = RetrievalRequest(

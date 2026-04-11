@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from ai_stack.rag import InMemoryRetrievalCorpus, RetrievalRequest
+    from ai_stack.rag_corpus import InMemoryRetrievalCorpus
+    from ai_stack.rag_retrieval_dtos import RetrievalRequest
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from ai_stack.rag import RetrievalRequest, _ScoredCandidate
+from ai_stack.rag_corpus import _ScoredCandidate
+from ai_stack.rag_retrieval_dtos import RetrievalRequest
 from ai_stack.rag_retrieval_rerank_adjustments_profile_deltas import (
     apply_module_match_and_agreement_deltas,
     apply_pool_redundancy_penalty,

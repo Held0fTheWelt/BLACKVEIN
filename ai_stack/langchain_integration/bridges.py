@@ -9,7 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
-from ai_stack.rag import RetrievalDomain, RetrievalRequest
+from ai_stack.rag_retrieval_dtos import RetrievalRequest
+from ai_stack.rag_types import RetrievalDomain
 
 
 class RuntimeTurnStructuredOutput(BaseModel):

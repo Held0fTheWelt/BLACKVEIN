@@ -15,7 +15,9 @@ from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
 from ai_stack.capabilities import CapabilityRegistry
 from ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
-from ai_stack.rag import ContextPackAssembler, ContextRetriever, RetrievalDomain, RetrievalRequest
+from ai_stack.rag import ContextPackAssembler, ContextRetriever
+from ai_stack.rag_retrieval_dtos import RetrievalRequest
+from ai_stack.rag_types import RetrievalDomain
 from ai_stack.retrieval_governance_summary import attach_retrieval_governance_summary
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 from ai_stack.runtime_turn_contracts import (

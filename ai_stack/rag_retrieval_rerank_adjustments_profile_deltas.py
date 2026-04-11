@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from ai_stack.rag import (
-    ContentClass,
-    RERANK_MODULE_MATCH_EXTRA,
+from ai_stack.rag_constants import RERANK_MODULE_MATCH_EXTRA
+from ai_stack.rag_corpus import _ScoredCandidate
+from ai_stack.rag_retrieval_dtos import RetrievalRequest
+from ai_stack.rag_types import ContentClass
+from ai_stack.rag_retrieval_lexical import (
     DOMAIN_DEFAULT_PROFILE,
-    RetrievalRequest,
-    _ScoredCandidate,
     _char_trigram_jaccard,
     _rerank_agreement_bonus,
 )

@@ -17,9 +17,14 @@ from app.i18n import (
     TRANSLATION_STATUS_OUTDATED,
     TRANSLATION_STATUS_PUBLISHED,
     TRANSLATION_STATUS_REVIEW_REQUIRED,
-    TRANSLATION_STATUSES,
 )
 from app.models import NewsArticle, NewsArticleTranslation, ForumThread, NewsArticleForumThread
+from app.services.news_service_create_guards import validate_news_create_payload
+from app.services.news_service_translation_upsert_guards import (
+    validate_upsert_translation_create_fields,
+    validate_upsert_translation_update_patch,
+)
+from app.services.news_service_update_guards import validate_news_update_patch
 
 logger = logging.getLogger(__name__)
 
@@ -296,28 +301,25 @@ def create_news(
     default_language: str | None = None,
 ):
     """Create a news article with one translation in default_language. Returns (NewsArticle, None) or (None, error_message)."""
-    default_lang = normalize_language(default_language) or get_default_language()
-    title = (title or "").strip()
-    if not title:
-        return None, "Title is required"
-    if len(title) > TITLE_MAX_LENGTH:
-        return None, f"Title must be at most {TITLE_MAX_LENGTH} characters"
-    content = (content or "").strip()
-    if not content:
-        return None, "Content is required"
-    slug_norm = _normalize_slug(slug) if slug else None
-    if not slug_norm:
-        return None, "Slug is required and must be alphanumeric with hyphens"
-    if len(slug_norm) > SLUG_MAX_LENGTH:
-        return None, f"Slug must be at most {SLUG_MAX_LENGTH} characters"
-    if _slug_exists_for_lang(slug_norm, default_lang):
-        return None, "Slug already in use"
-    if summary is not None and len((summary or "")) > SUMMARY_MAX_LENGTH:
-        return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
-    if category and len(category) > CATEGORY_MAX_LENGTH:
-        return None, f"Category must be at most {CATEGORY_MAX_LENGTH} characters"
-    if cover_image and len(cover_image) > COVER_IMAGE_MAX_LENGTH:
-        return None, f"Cover image URL must be at most {COVER_IMAGE_MAX_LENGTH} characters"
+    fields, err = validate_news_create_payload(
+        title,
+        slug,
+        content,
+        summary=summary,
+        category=category,
+        cover_image=cover_image,
+        default_language=default_language,
+        slug_exists_for_lang=lambda s, lang: _slug_exists_for_lang(s, lang),
+    )
+    if err:
+        return None, err
+    default_lang = fields["default_lang"]
+    title = fields["title"]
+    content = fields["content"]
+    slug_norm = fields["slug_norm"]
+    summary = fields["summary"]
+    category = fields["category"]
+    cover_image = fields["cover_image"]
 
     now = _utc_now()
     status = "published" if is_published else "draft"
@@ -373,44 +375,37 @@ def update_news(
     if not trans:
         return None, "Default translation not found"
 
-    if title is not None:
-        t = title.strip()
-        if not t:
-            return None, "Title cannot be empty"
-        if len(t) > TITLE_MAX_LENGTH:
-            return None, f"Title must be at most {TITLE_MAX_LENGTH} characters"
-        trans.title = t
-    if slug is not None:
-        slug_norm = _normalize_slug(slug)
-        if not slug_norm:
-            return None, "Slug must be alphanumeric with hyphens"
-        if len(slug_norm) > SLUG_MAX_LENGTH:
-            return None, f"Slug must be at most {SLUG_MAX_LENGTH} characters"
-        if _slug_exists_for_lang(slug_norm, default_lang, exclude_article_id=article.id):
-            return None, "Slug already in use"
-        trans.slug = slug_norm
-    if summary is not None:
-        s = (summary or "").strip() or None
-        if s and len(s) > SUMMARY_MAX_LENGTH:
-            return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
-        trans.summary = s
-    if content is not None:
-        c = content.strip()
-        if not c:
-            return None, "Content cannot be empty"
-        trans.content = c
-    if cover_image is not None:
-        article.cover_image = (cover_image or "").strip() or None
-        if article.cover_image and len(article.cover_image) > COVER_IMAGE_MAX_LENGTH:
-            return None, f"Cover image URL must be at most {COVER_IMAGE_MAX_LENGTH} characters"
-    if category is not None:
-        article.category = (category or "").strip() or None
-        if article.category and len(article.category) > CATEGORY_MAX_LENGTH:
-            return None, f"Category must be at most {CATEGORY_MAX_LENGTH} characters"
-    if default_language is not None:
-        lang_norm = normalize_language(default_language)
-        if lang_norm:
-            article.default_language = lang_norm
+    patch, err = validate_news_update_patch(
+        title=title,
+        slug=slug,
+        summary=summary,
+        content=content,
+        cover_image=cover_image,
+        category=category,
+        default_language=default_language,
+        article_id=article.id,
+        default_lang=default_lang,
+        slug_exists_for_lang_excluding=lambda s, lang, aid: _slug_exists_for_lang(
+            s, lang, exclude_article_id=aid
+        ),
+    )
+    if err:
+        return None, err
+
+    if "title" in patch:
+        trans.title = patch["title"]
+    if "slug" in patch:
+        trans.slug = patch["slug"]
+    if "summary" in patch:
+        trans.summary = patch["summary"]
+    if "content" in patch:
+        trans.content = patch["content"]
+    if "cover_image" in patch:
+        article.cover_image = patch["cover_image"]
+    if "category" in patch:
+        article.category = patch["category"]
+    if "default_language" in patch:
+        article.default_language = patch["default_language"]
 
     article.updated_at = _utc_now()
     # Mark non-source translations outdated when source content changes
@@ -543,29 +538,38 @@ def upsert_article_translation(
         return None, "Unsupported language"
     trans = get_article_translation(article_id, lang)
     if trans:
-        if title is not None:
-            trans.title = (title or "").strip() or trans.title
-            if len(trans.title) > TITLE_MAX_LENGTH:
-                return None, f"Title must be at most {TITLE_MAX_LENGTH} characters"
-        if slug is not None:
-            slug_norm = _normalize_slug(slug)
-            if not slug_norm:
-                return None, "Slug must be alphanumeric with hyphens"
-            if _slug_exists_for_lang(slug_norm, lang, exclude_article_id=article_id):
-                return None, "Slug already in use for this language"
-            trans.slug = slug_norm
-        if summary is not None:
-            trans.summary = (summary or "").strip() or None
-            if trans.summary and len(trans.summary) > SUMMARY_MAX_LENGTH:
-                return None, f"Summary must be at most {SUMMARY_MAX_LENGTH} characters"
-        if content is not None:
-            trans.content = (content or "").strip() or trans.content
-        if seo_title is not None:
-            trans.seo_title = (seo_title or "").strip() or None
-        if seo_description is not None:
-            trans.seo_description = (seo_description or "").strip() or None
-        if translation_status is not None and translation_status in TRANSLATION_STATUSES:
-            trans.translation_status = translation_status
+        patch, err = validate_upsert_translation_update_patch(
+            title=title,
+            slug=slug,
+            summary=summary,
+            content=content,
+            seo_title=seo_title,
+            seo_description=seo_description,
+            translation_status=translation_status,
+            existing_title=trans.title or "",
+            existing_content=trans.content or "",
+            article_id=article_id,
+            lang=lang,
+            slug_exists_excluding_article=lambda s, l, aid: _slug_exists_for_lang(
+                s, l, exclude_article_id=aid
+            ),
+        )
+        if err:
+            return None, err
+        if "title" in patch:
+            trans.title = patch["title"]
+        if "slug" in patch:
+            trans.slug = patch["slug"]
+        if "summary" in patch:
+            trans.summary = patch["summary"]
+        if "content" in patch:
+            trans.content = patch["content"]
+        if "seo_title" in patch:
+            trans.seo_title = patch["seo_title"]
+        if "seo_description" in patch:
+            trans.seo_description = patch["seo_description"]
+        if "translation_status" in patch:
+            trans.translation_status = patch["translation_status"]
         # When updating the source (default-language) translation content, mark others outdated
         if content is not None or title is not None or summary is not None or slug is not None:
             if article.default_language == lang:
@@ -575,25 +579,30 @@ def upsert_article_translation(
         db.session.refresh(trans)
         return trans, None
     # Create new translation
-    if not title or not content:
-        return None, "title and content are required for new translation"
-    slug_norm = _normalize_slug(slug) if slug else _normalize_slug(title)
-    if not slug_norm:
-        return None, "Slug is required"
-    if _slug_exists_for_lang(slug_norm, lang):
-        return None, "Slug already in use for this language"
+    fields, err = validate_upsert_translation_create_fields(
+        title=title,
+        content=content,
+        slug=slug,
+        summary=summary,
+        seo_title=seo_title,
+        seo_description=seo_description,
+        translation_status=translation_status,
+        lang=lang,
+        slug_exists_global=lambda s, l: _slug_exists_for_lang(s, l),
+    )
+    if err:
+        return None, err
     now = _utc_now()
-    status = translation_status if translation_status in TRANSLATION_STATUSES else TRANSLATION_STATUS_MACHINE_DRAFT
     trans = NewsArticleTranslation(
         article_id=article_id,
         language_code=lang,
-        title=(title or "").strip(),
-        slug=slug_norm,
-        summary=(summary or "").strip() or None,
-        content=(content or "").strip(),
-        seo_title=(seo_title or "").strip() or None,
-        seo_description=(seo_description or "").strip() or None,
-        translation_status=status,
+        title=fields["title"],
+        slug=fields["slug"],
+        summary=fields["summary"],
+        content=fields["content"],
+        seo_title=fields["seo_title"],
+        seo_description=fields["seo_description"],
+        translation_status=fields["translation_status"],
         source_language=article.default_language,
         translated_at=now,
     )

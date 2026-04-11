@@ -15,6 +15,12 @@ from app.services.writers_room_pipeline_context_preview import (
     _langchain_preview_documents_from_context_pack,
 )
 from app.services.writers_room_pipeline_manifest import _append_workflow_stage, _utc_now
+from app.services.writers_room_pipeline_packaging_issue_extraction import (
+    extract_issues_from_packaging,
+)
+from app.services.writers_room_pipeline_packaging_recommendation_bundling import (
+    bundle_recommendations_from_output,
+)
 
 
 @dataclass(frozen=True)
@@ -67,67 +73,25 @@ def run_writers_room_packaging_stage(
         else ("raw_generation_only" if generation.get("content") else "no_model_content")
     )
 
-    issues: list[dict[str, Any]] = []
-    for index, source in enumerate(source_rows[:3], start=1):
-        path = str(source.get("source_path", "") or "")
-        ib = build_writers_room_artifact_record(
-            artifact_id=f"issue_{index}",
-            artifact_class=WritersRoomArtifactClass.analysis_artifact,
-            source_module_id=module_id,
-            evidence_refs=[path] if path else [],
-            proposal_scope="retrieval_linked_issue",
-            approval_state="pending_review",
-        )
-        issues.append(
-            {
-                **ib,
-                "id": ib["artifact_id"],
-                "severity": "medium",
-                "type": "consistency",
-                "description": f"Review source {path} for canon alignment in {module_id}.",
-                "evidence_source": path,
-                "linked_source_path": path,
-                "evidence_tier": evidence_tag,
-                "confidence_kind": "retrieval_heuristic",
-                "revision_sensitivity": "high" if evidence_tag in {"strong", "moderate"} else "standard",
-                "rationale": f"Issue derived from ranked retrieval hit for {path or 'unknown'}.",
-            }
-        )
+    issues = extract_issues_from_packaging(
+        source_rows=source_rows,
+        module_id=module_id,
+        evidence_tag=evidence_tag,
+    )
 
     _append_workflow_stage(manifest_stages, stage_id="artifact_packaging")
     proposal_id = f"proposal_{uuid4().hex}"
     comment_bundle_id = f"comments_{uuid4().hex}"
 
-    recommendation_texts = [
-        "Verify scene-level continuity against retrieved evidence before publishing.",
-        "Prioritize contradictory characterization notes for human review.",
-        "Preserve recommendation-only status until admin approval.",
-    ]
-    if structured:
-        for item in structured.get("recommendations") or []:
-            if item:
-                recommendation_texts.append(str(item))
-    if generation["content"]:
-        recommendation_texts.append(generation["content"][:220])
-
     evidence_paths = [row.get("source_path", "") for row in source_rows]
     rec_refs = [p for p in evidence_paths if p][:5]
-    recommendation_artifacts: list[dict[str, Any]] = []
-    for idx, body in enumerate(recommendation_texts, start=1):
-        rid = f"rec_{proposal_id}_{idx}"
-        recommendation_artifacts.append(
-            {
-                **build_writers_room_artifact_record(
-                    artifact_id=rid,
-                    artifact_class=WritersRoomArtifactClass.analysis_artifact,
-                    source_module_id=module_id,
-                    evidence_refs=list(rec_refs),
-                    proposal_scope="writers_room_bounded_recommendation",
-                    approval_state="pending_review",
-                ),
-                "body": body,
-            }
-        )
+    recommendation_artifacts = bundle_recommendations_from_output(
+        structured=structured,
+        generation=generation,
+        proposal_id=proposal_id,
+        module_id=module_id,
+        evidence_paths=evidence_paths,
+    )
 
     review_bundle = review_bundle_tool.invoke(
         {

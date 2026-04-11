@@ -11,6 +11,17 @@ from app.extensions import db
 from app.models import Role, User
 from app.models.email_verification_token import EmailVerificationToken, PURPOSE_ACTIVATION
 from app.services.search_utils import _escape_sql_like_wildcards
+from app.services.user_service_account_guards import (
+    change_password_validate_inputs,
+    create_user_validate_inputs,
+)
+from app.services.user_service_admin_guards import (
+    ALLOWED_ASSIGN_ROLE_NAMES,
+    assign_role_build_patch,
+    ban_user_validate_actor,
+    normalize_ban_reason,
+)
+from app.services.user_service_update_guards import update_user_build_patch
 
 logger = logging.getLogger(__name__)
 
@@ -190,39 +201,22 @@ def create_user(username, password, email=None):
     Email is normalized to lowercase before storage and comparison.
     """
     from flask import current_app
+
     require_email = current_app.config.get("REGISTRATION_REQUIRE_EMAIL", False)
-
-    username = (username or "").strip()
-    if not username:
-        return None, "Username is required"
-    pw_error = validate_password(password)
-    if pw_error:
-        return None, pw_error
-    if len(username) < 2:
-        return None, "Username must be at least 2 characters"
-    if len(username) > USERNAME_MAX_LENGTH:
-        return None, f"Username must be at most {USERNAME_MAX_LENGTH} characters"
-    if not USERNAME_PATTERN.match(username):
-        return None, "Username contains invalid characters"
-    if get_user_by_username(username):
-        return None, "Username already taken"
-
-    email_val = None
-    if email is not None and isinstance(email, str):
-        email_raw = (email or "").strip().lower()
-        if email_raw:
-            is_valid, result = validate_email_format(email_raw)
-            if not is_valid:
-                return None, result
-            email_val = result
-    if require_email:
-        if not email_val:
-            return None, "Email is required"
-        if get_user_by_email(email_val):
-            return None, "Email already registered"
-    elif email_val:
-        if get_user_by_email(email_val):
-            return None, "Email already registered"
+    username, email_val, val_err = create_user_validate_inputs(
+        username,
+        password,
+        email,
+        require_email=require_email,
+        username_max_length=USERNAME_MAX_LENGTH,
+        username_pattern=USERNAME_PATTERN,
+        get_user_by_username=get_user_by_username,
+        get_user_by_email=get_user_by_email,
+        validate_password=validate_password,
+        validate_email_format=validate_email_format,
+    )
+    if val_err:
+        return None, val_err
 
     default_role = Role.query.filter_by(name=Role.NAME_USER).first()
     if not default_role:
@@ -370,20 +364,15 @@ def change_password(
     Enforces password reuse prevention: new password cannot match any of the last 3 passwords.
     Returns (user, None) or (None, error_message).
     """
-    user = get_user_by_id(user_id)
-    if not user:
-        return None, "User not found"
-    if not current_password:
-        return None, "Current password is required"
-    if not check_password_hash(user.password_hash, current_password):
-        return None, "Current password is incorrect"
-    pw_error = validate_password(new_password)
-    if pw_error:
-        return None, pw_error
-
-    # Check if new password is in recent history (last 3 passwords)
-    if user.is_password_in_history(new_password):
-        return None, "Cannot reuse one of your last 3 passwords"
+    user, err = change_password_validate_inputs(
+        get_user_by_id(user_id),
+        current_password,
+        new_password,
+        check_password_hash=check_password_hash,
+        validate_password=validate_password,
+    )
+    if err:
+        return None, err
 
     # Add current password hash to history before changing it
     user.add_to_password_history(user.password_hash)
@@ -414,62 +403,40 @@ def update_user(
     if not user:
         return None, "User not found"
 
-    if username is not None:
-        username = (username or "").strip()
-        if not username:
-            return None, "Username cannot be empty"
-        if len(username) < 2:
-            return None, "Username must be at least 2 characters"
-        if len(username) > USERNAME_MAX_LENGTH:
-            return None, f"Username must be at most {USERNAME_MAX_LENGTH} characters"
-        if not USERNAME_PATTERN.match(username):
-            return None, "Username contains invalid characters"
-        other = get_user_by_username(username)
-        if other and other.id != user.id:
-            return None, "Username already taken"
-        user.username = username
+    from flask import current_app
 
-    if email is not None:
-        email_val = None
-        if email:
-            email_raw = (email or "").strip().lower()
-            if email_raw:
-                is_valid, result = validate_email_format(email_raw)
-                if not is_valid:
-                    return None, result
-                email_val = result
-        if email_val is not None:
-            other = get_user_by_email(email_val)
-            if other and other.id != user.id:
-                return None, "Email already registered"
-        user.email = email_val
+    supported = current_app.config.get("SUPPORTED_LANGUAGES", ["de", "en"])
+    patch, err = update_user_build_patch(
+        username=username,
+        email=email,
+        role=role,
+        role_level=role_level,
+        preferred_language=preferred_language,
+        current_user_id=user.id,
+        username_max_length=USERNAME_MAX_LENGTH,
+        username_pattern=USERNAME_PATTERN,
+        get_user_by_username=get_user_by_username,
+        get_user_by_email=get_user_by_email,
+        validate_email_format=validate_email_format,
+        get_role_by_name=lambda n: Role.query.filter_by(name=n).first(),
+        supported_languages=supported,
+    )
+    if err:
+        return None, err
 
     # Password change is not supported via generic update; use change_password() instead.
 
-    if role is not None:
-        role_name = (role or "").strip().lower() or User.ROLE_USER
-        role_obj = Role.query.filter_by(name=role_name).first()
-        if not role_obj:
-            return None, "Invalid role"
-        user.role_id = role_obj.id
+    if "username" in patch:
+        user.username = patch["username"]
+    if "email" in patch:
+        user.email = patch["email"]
+    if "role_id" in patch:
+        user.role_id = patch["role_id"]
         # role_level is not changed when role changes; authority is per-user
-
-    if role_level is not None:
-        try:
-            lvl = int(role_level)
-            if lvl < 0 or lvl > 9999:
-                return None, "role_level must be between 0 and 9999"
-            user.role_level = lvl
-        except (TypeError, ValueError):
-            return None, "role_level must be an integer"
-
-    if preferred_language is not None:
-        from flask import current_app
-        supported = current_app.config.get("SUPPORTED_LANGUAGES", ["de", "en"])
-        val = (preferred_language or "").strip().lower() or None
-        if val is not None and val not in supported:
-            return None, "Unsupported language"
-        user.preferred_language = val
+    if "role_level" in patch:
+        user.role_level = patch["role_level"]
+    if "preferred_language" in patch:
+        user.preferred_language = patch["preferred_language"]
 
     db.session.commit()
     db.session.refresh(user)
@@ -501,7 +468,7 @@ def delete_user(user_id: int) -> tuple[bool, str | None]:
 
 # --- Admin: assign role, ban, unban ---
 
-ALLOWED_ROLE_NAMES = (Role.NAME_USER, Role.NAME_QA, Role.NAME_MODERATOR, Role.NAME_ADMIN)
+ALLOWED_ROLE_NAMES = ALLOWED_ASSIGN_ROLE_NAMES
 
 
 def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) -> tuple[User | None, str | None]:
@@ -513,16 +480,16 @@ def assign_role(user_id: int, role_name: str, *, actor_id: int | None = None) ->
     user = get_user_by_id(user_id)
     if not user:
         return None, "User not found"
-    name = (role_name or "").strip().lower()
-    if name not in ALLOWED_ROLE_NAMES:
-        return None, "Invalid role; allowed: user, qa, moderator, admin"
-    role_obj = Role.query.filter_by(name=name).first()
-    if not role_obj:
-        return None, "Invalid role"
-    user.role_id = role_obj.id
+    patch, err = assign_role_build_patch(
+        role_name,
+        get_role_by_name=lambda n: Role.query.filter_by(name=n).first(),
+    )
+    if err:
+        return None, err
+    user.role_id = patch["role_id"]
     db.session.commit()
     db.session.refresh(user)
-    logger.info("User role assigned: user_id=%s role=%s", user_id, name)
+    logger.info("User role assigned: user_id=%s role=%s", user_id, patch["role_name"])
     return user, None
 
 
@@ -536,13 +503,14 @@ def ban_user(user_id: int, reason: str | None = None, *, actor_id: int | None = 
     user = get_user_by_id(user_id)
     if not user:
         return None, "User not found"
-    if actor_id is not None and actor_id == user_id:
-        return None, "Cannot ban yourself"
+    actor_err = ban_user_validate_actor(user_id=user_id, actor_id=actor_id)
+    if actor_err:
+        return None, actor_err
     now = datetime.now(timezone.utc)
     user.is_banned = True
     user.banned_at = user.banned_at or now
     if reason is not None:
-        user.ban_reason = (reason or "").strip() or None
+        user.ban_reason = normalize_ban_reason(reason)
     db.session.commit()
     db.session.refresh(user)
     logger.info("User banned: user_id=%s", user_id)

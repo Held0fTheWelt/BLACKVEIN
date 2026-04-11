@@ -20,7 +20,7 @@ _MAX_COMPACT_REFS_PER_PARTITION = 48
 
 
 def _visibility_tie_break_order() -> dict[str, int]:
-    """Canonical ordering for SourceVisibilityClass (enum declaration order in rag.py)."""
+    """Canonical ordering for SourceVisibilityClass (enum declaration order in rag_types.py)."""
     return {m.value: i for i, m in enumerate(SourceVisibilityClass)}
 
 

@@ -578,6 +578,7 @@ def test_compute_guard_outcome_non_success_status():
 @pytest.mark.asyncio
 async def test_execute_turn_system_error_path(god_of_carnage_module_with_state, god_of_carnage_module, monkeypatch):
     from app.runtime import turn_executor as te
+    from app.runtime import turn_executor_validated_pipeline as vp
 
     session = god_of_carnage_module_with_state
     decision = MockDecision(
@@ -591,7 +592,7 @@ async def test_execute_turn_system_error_path(god_of_carnage_module_with_state, 
     def boom(*_a, **_kw):
         raise RuntimeError("forced")
 
-    monkeypatch.setattr(te, "validate_decision", boom)
+    monkeypatch.setattr(vp, "validate_decision", boom)
     result = await te.execute_turn(session, 1, decision, god_of_carnage_module)
     assert result.execution_status == "system_error"
     assert result.guard_outcome == GuardOutcome.STRUCTURALLY_INVALID

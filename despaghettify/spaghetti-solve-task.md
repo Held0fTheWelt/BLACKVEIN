@@ -2,7 +2,7 @@
 
 *Path:* `despaghettify/spaghetti-solve-task.md` — Overview: [README.md](README.md).
 
-**Counterpart** to [spaghetti-check-task.md](spaghetti-check-task.md): there, metrics are collected and **Latest structure scan** (including **M7**) is maintained — **without** changing code. The check maintains the **DS table** and **proposed** implementation order when trigger policy is met (**M7 >= 40%** or **any category >= 70%**); below that threshold the scan section is enough. **Here**, the implementation agent **reviews the recommended implementation order**, proposes **revisions** if needed, then **independently** implements per Despaghettify rules **wave by wave** or **task by task** (typically **one session ≈ one wave** or a clearly bounded phase slice), until the agreed list is **done** and a factual **success** message is allowed.
+**Counterpart** to [spaghetti-check-task.md](spaghetti-check-task.md): there, metrics are collected and **Latest structure scan** (including **M7**) is maintained — **without** changing code. The check maintains the **DS table** and **proposed** implementation order when trigger policy is met (**M7 >= 25%** or **any category >= 45%**); below that threshold the scan section is enough. **Here**, the implementation agent **reviews the recommended implementation order**, proposes **revisions** if needed, then **independently** implements per Despaghettify rules **wave by wave** or **task by task** (typically **one session ≈ one wave** or a clearly bounded phase slice), until the agreed list is **done** and a factual **success** message is allowed.
 
 ## Binding sources
 

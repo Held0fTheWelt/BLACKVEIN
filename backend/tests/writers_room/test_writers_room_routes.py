@@ -12,7 +12,7 @@ from ai_stack import (
     build_runtime_retriever,
     build_seed_writers_room_graph,
 )
-from ai_stack.rag import ContextRetriever
+from ai_stack.rag_context_retriever import ContextRetriever
 
 from app.services import writers_room_pipeline as writers_room_pipeline_module
 from app.services.writers_room_pipeline import _WritersRoomWorkflow

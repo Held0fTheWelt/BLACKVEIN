@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from ai_stack import CapabilityInvocationError
-from ai_stack.rag import INDEX_VERSION
+from ai_stack.rag_constants import INDEX_VERSION
 
 from app.api.v1 import improvement_routes as improvement_routes_module
 from app.services.improvement_service import (

@@ -7,7 +7,6 @@ execution for real runs.
 
 from __future__ import annotations
 
-from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
@@ -16,10 +15,8 @@ from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
-from app.runtime.validators import ValidationOutcome, validate_decision
 from app.runtime.narrative_commit import narrative_commit_for_source_gate_rejection
 from app.runtime.runtime_models import (
-    DeltaType,
     DeltaValidationStatus,
     EventLogEntry,
     ExecutionFailureReason,
@@ -34,6 +31,16 @@ from app.runtime.runtime_models import (
     TurnStatus,
 )
 from app.runtime.turn_execution_types import TurnExecutionResult
+from app.runtime.turn_executor_decision_delta import (
+    DeltaApplicationError,
+    _compute_guard_outcome,
+    apply_deltas,
+    construct_deltas,
+    extract_entity_id,
+    get_current_value,
+    infer_delta_type,
+    _set_nested_value,
+)
 
 
 # ===== Exception Classes =====
@@ -45,134 +52,9 @@ class TurnExecutionException(RuntimeError):
     pass
 
 
-class DeltaApplicationError(RuntimeError):
-    """Exception raised when delta application fails."""
-
-    pass
-
-
 # ===== Helper Functions =====
-
-
-def get_current_value(state: dict[str, Any], target_path: str) -> Any:
-    """Get the current value at a target path in the state.
-
-    Uses dot-notation for nested navigation (e.g., "characters.veronique.emotional_state").
-
-    Args:
-        state: The canonical state dict.
-        target_path: Dot-separated path to the value.
-
-    Returns:
-        Current value at the path, or None if path doesn't exist.
-
-    Example:
-        >>> state = {"characters": {"veronique": {"emotional_state": 50}}}
-        >>> get_current_value(state, "characters.veronique.emotional_state")
-        50
-    """
-    parts = target_path.split(".")
-    current = state
-    for part in parts:
-        if isinstance(current, dict) and part in current:
-            current = current[part]
-        else:
-            return None
-    return current
-
-
-def _set_nested_value(state: dict[str, Any], path: str, value: Any) -> None:
-    """Set a value at a nested path in the state dict.
-
-    Creates intermediate dicts as needed. Mutates state in place.
-
-    Args:
-        state: The state dict to modify.
-        path: Dot-separated path to the target.
-        value: Value to set.
-
-    Raises:
-        DeltaApplicationError: If path is invalid or malformed.
-
-    Example:
-        >>> state = {}
-        >>> _set_nested_value(state, "characters.veronique.emotional_state", 70)
-        >>> state["characters"]["veronique"]["emotional_state"]
-        70
-    """
-    if not path or not isinstance(path, str):
-        raise DeltaApplicationError(f"Invalid path: {path}")
-
-    parts = path.split(".")
-    if not parts:
-        raise DeltaApplicationError("Empty path")
-
-    current = state
-    for part in parts[:-1]:
-        if part not in current:
-            current[part] = {}
-        elif not isinstance(current[part], dict):
-            raise DeltaApplicationError(
-                f"Cannot traverse non-dict at {part}: {type(current[part])}"
-            )
-        current = current[part]
-
-    current[parts[-1]] = value
-
-
-def infer_delta_type(target_path: str) -> DeltaType:
-    """Infer the delta type from the target path.
-
-    Args:
-        target_path: Dot-separated path (e.g., "characters.veronique.emotional_state").
-
-    Returns:
-        Inferred DeltaType.
-
-    Example:
-        >>> infer_delta_type("characters.veronique.emotional_state")
-        DeltaType.CHARACTER_STATE
-    """
-    if not target_path or not isinstance(target_path, str):
-        return DeltaType.METADATA
-
-    parts = target_path.split(".")
-    if not parts:
-        return DeltaType.METADATA
-
-    entity_type = parts[0]
-    if entity_type == "characters":
-        return DeltaType.CHARACTER_STATE
-    elif entity_type == "relationships":
-        return DeltaType.RELATIONSHIP
-    elif entity_type == "scene":
-        return DeltaType.SCENE
-    elif entity_type == "triggers":
-        return DeltaType.TRIGGER
-    else:
-        return DeltaType.METADATA
-
-
-def extract_entity_id(target_path: str) -> str | None:
-    """Extract the entity ID from a target path.
-
-    Args:
-        target_path: Dot-separated path (e.g., "characters.veronique.emotional_state").
-
-    Returns:
-        Entity ID (e.g., "veronique"), or None if not present.
-
-    Example:
-        >>> extract_entity_id("characters.veronique.emotional_state")
-        "veronique"
-    """
-    if not target_path or not isinstance(target_path, str):
-        return None
-
-    parts = target_path.split(".")
-    if len(parts) >= 2:
-        return parts[1]
-    return None
+# Delta path helpers and construct/apply deltas live in ``turn_executor_decision_delta``
+# (re-exported above for backward compatibility).
 
 
 def _accumulate_turn_context(
@@ -317,154 +199,6 @@ def _finalize_success_turn(
 
 
 NARRATIVE_COMMIT_LOG_MAX_ENTRIES = 100
-
-
-# ===== Core Functions =====
-
-
-def construct_deltas(
-    decision: MockDecision,
-    session: SessionState,
-    validation_outcome: ValidationOutcome,
-    turn_number: int,
-) -> tuple[list[StateDelta], list[StateDelta]]:
-    """Construct accepted and rejected StateDelta objects from a mock decision.
-
-    Converts ProposedStateDelta objects into canonical StateDelta objects with
-    validation status lifecycle tracking. Separates accepted from rejected based
-    on validation_outcome.
-
-    Args:
-        decision: The MockDecision being executed.
-        session: The current SessionState (for baseline state).
-        validation_outcome: Result of decision validation.
-        turn_number: Current turn number.
-
-    Returns:
-        Tuple of (accepted_deltas, rejected_deltas).
-
-    Example:
-        >>> decision = MockDecision(
-        ...     proposed_deltas=[
-        ...         ProposedStateDelta(
-        ...             target="characters.veronique.emotional_state",
-        ...             next_value=70
-        ...         )
-        ...     ]
-        ... )
-        >>> accepted, rejected = construct_deltas(decision, session, outcome, 1)
-        >>> len(accepted)
-        1
-        >>> accepted[0].validation_status == DeltaValidationStatus.ACCEPTED
-        True
-    """
-    accepted_deltas = []
-    rejected_deltas = []
-
-    for idx, proposed in enumerate(decision.proposed_deltas):
-        # Infer delta type from target path
-        delta_type = (
-            proposed.delta_type
-            if proposed.delta_type
-            else infer_delta_type(proposed.target)
-        )
-
-        # Get current value from session state
-        previous_value = get_current_value(session.canonical_state, proposed.target)
-
-        # Create base StateDelta
-        delta = StateDelta(
-            delta_type=delta_type,
-            target_path=proposed.target,
-            target_entity=extract_entity_id(proposed.target),
-            previous_value=previous_value,
-            next_value=proposed.next_value,
-            source="ai_proposal",
-            turn_number=turn_number,
-        )
-
-        # Determine validation status
-        if idx in validation_outcome.accepted_delta_indices:
-            delta.validation_status = DeltaValidationStatus.ACCEPTED
-            accepted_deltas.append(delta)
-        else:
-            delta.validation_status = DeltaValidationStatus.REJECTED
-            rejected_deltas.append(delta)
-
-    return accepted_deltas, rejected_deltas
-
-
-def apply_deltas(
-    canonical_state: dict[str, Any], deltas: list[StateDelta]
-) -> dict[str, Any]:
-    """Apply accepted deltas to the canonical state.
-
-    Returns a new state dict without mutating the input. Uses deep copy for safety.
-
-    Args:
-        canonical_state: Current canonical state (not modified).
-        deltas: List of StateDelta objects to apply (should all be ACCEPTED).
-
-    Returns:
-        New canonical state dict with deltas applied.
-
-    Raises:
-        DeltaApplicationError: If a delta cannot be applied.
-
-    Example:
-        >>> state = {"characters": {"veronique": {"emotional_state": 50}}}
-        >>> delta = StateDelta(
-        ...     target_path="characters.veronique.emotional_state",
-        ...     next_value=70,
-        ...     validation_status=DeltaValidationStatus.ACCEPTED
-        ... )
-        >>> new_state = apply_deltas(state, [delta])
-        >>> new_state["characters"]["veronique"]["emotional_state"]
-        70
-    """
-    # Deep copy to avoid mutating input
-    new_state = deepcopy(canonical_state)
-
-    for delta in deltas:
-        if delta.validation_status != DeltaValidationStatus.ACCEPTED:
-            continue
-
-        try:
-            _set_nested_value(new_state, delta.target_path, delta.next_value)
-        except DeltaApplicationError as e:
-            raise DeltaApplicationError(
-                f"Failed to apply delta at {delta.target_path}: {e}"
-            ) from e
-
-    return new_state
-
-
-def _compute_guard_outcome(
-    accepted: list,
-    rejected: list,
-    execution_status: str,
-) -> GuardOutcome:
-    """Compute the canonical guard outcome based on delta acceptance status.
-
-    Args:
-        accepted: List of accepted deltas.
-        rejected: List of rejected deltas.
-        execution_status: Turn execution status ("success", "validation_failed", "system_error").
-
-    Returns:
-        GuardOutcome classification for the turn.
-    """
-    if execution_status != "success":
-        return GuardOutcome.STRUCTURALLY_INVALID
-    n_accepted = len(accepted)
-    n_rejected = len(rejected)
-    if n_accepted == 0 and n_rejected == 0:
-        return GuardOutcome.STRUCTURALLY_INVALID
-    if n_rejected == 0:
-        return GuardOutcome.ACCEPTED
-    if n_accepted == 0:
-        return GuardOutcome.REJECTED
-    return GuardOutcome.PARTIALLY_ACCEPTED
 
 
 def _turn_source_gate_rejection(
