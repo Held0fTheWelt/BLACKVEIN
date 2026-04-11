@@ -1,0 +1,18 @@
+{
+  "wave_id": "DS-003-commit-path-structure",
+  "date": "2026-04-12",
+  "workstream": "backend_runtime_services",
+  "pre_reference": "artifacts/workstreams/backend_runtime_services/pre/session_20260412_DS-003_commit_path_structure_pre.md",
+  "post_reference": "artifacts/workstreams/backend_runtime_services/post/session_20260412_DS-003_commit_path_structure_post.md",
+  "metrics": {
+    "update_narrative_threads_from_commit_impl_ast_lines": {"pre_estimate": 225, "post": 63}
+  },
+  "new_modules": [
+    "backend/app/runtime/narrative_threads_commit_path_utils.py",
+    "backend/app/runtime/narrative_threads_update_from_commit_phases.py"
+  ],
+  "gates": {
+    "pytest_narrative_thread_progression": "12 passed",
+    "pytest_narrative_bundle": "48 passed"
+  }
+}
