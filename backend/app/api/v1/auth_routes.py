@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from flask import current_app, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, get_jwt, jwt_required
 from app.api.v1 import api_v1_bp
+from app.config.route_constants import route_auth_config
 from app.extensions import limiter, db
 from app.models import User
 from app.services import create_user, log_activity
@@ -18,10 +19,6 @@ from app.services.user_service import (
 )
 from app.services.mail_service import send_verification_email, send_password_reset_email
 from app.utils.error_handler import log_full_error, ERROR_MESSAGES
-
-# Constant-time delay (seconds) to prevent timing-based email enumeration attacks
-# Set to 0.5s to accommodate token creation and email sending operations plus overhead
-CONSTANT_TIME_DELAY_SECONDS = 0.5
 
 
 @api_v1_bp.route("/auth/register", methods=["POST"])
@@ -101,7 +98,7 @@ def resend_verification():
     if not is_valid:
         # Apply constant-time delay for invalid emails too (defense in depth)
         elapsed = time.time() - start_time
-        delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
         if delay_needed > 0:
             time.sleep(delay_needed)
         return jsonify({"error": "Invalid email format"}), 400
@@ -111,7 +108,7 @@ def resend_verification():
     if not user:
         # Apply constant-time delay before responding (prevents timing-based email enumeration)
         elapsed = time.time() - start_time
-        delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
         if delay_needed > 0:
             time.sleep(delay_needed)
         # Return success anyway to prevent email enumeration
@@ -119,7 +116,7 @@ def resend_verification():
     if user.email_verified_at is not None:
         # Apply constant-time delay before responding
         elapsed = time.time() - start_time
-        delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
         if delay_needed > 0:
             time.sleep(delay_needed)
         # User is already verified
@@ -139,7 +136,7 @@ def resend_verification():
     )
     # Apply constant-time delay before responding
     elapsed = time.time() - start_time
-    delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+    delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
     if delay_needed > 0:
         time.sleep(delay_needed)
     return jsonify({"message": "Verification email sent"}), 200
@@ -224,7 +221,7 @@ def forgot_password():
     if not is_valid:
         # Apply constant-time delay for invalid emails too (defense in depth)
         elapsed = time.time() - start_time
-        delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
         if delay_needed > 0:
             time.sleep(delay_needed)
         return jsonify({"error": "Invalid email format"}), 400
@@ -232,7 +229,7 @@ def forgot_password():
     if not user:
         # Apply constant-time delay before responding (prevents timing-based email enumeration)
         elapsed = time.time() - start_time
-        delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
         if delay_needed > 0:
             time.sleep(delay_needed)
         # Return success anyway to prevent email enumeration
@@ -252,7 +249,7 @@ def forgot_password():
     )
     # Apply constant-time delay before responding
     elapsed = time.time() - start_time
-    delay_needed = CONSTANT_TIME_DELAY_SECONDS - elapsed
+    delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
     if delay_needed > 0:
         time.sleep(delay_needed)
     return jsonify({"message": "If the email exists, a password reset link has been sent"}), 200
