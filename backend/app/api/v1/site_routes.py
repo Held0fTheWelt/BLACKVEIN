@@ -6,6 +6,7 @@ from app.auth.permissions import require_jwt_admin
 from app.extensions import db, limiter
 from app.i18n import validate_language_code
 from app.services.slogan_service import list_slogans_for_placement, resolve_slogan_for_placement
+from app.config.route_constants import route_site_config
 
 
 def _public_site_settings():
@@ -22,29 +23,24 @@ def _public_site_settings():
     }
 
 
-_MIN_ROTATION_INTERVAL = 5
-_MAX_ROTATION_INTERVAL = 86400
-_DEFAULT_ROTATION_INTERVAL = 60
-
-
 def _coerce_rotation_interval(raw):
     """Clamp rotation interval; invalid values become default 60; min 5, max 86400."""
     if raw is None:
-        return _DEFAULT_ROTATION_INTERVAL
+        return route_site_config.default_rotation_interval
     try:
         if isinstance(raw, str):
             s = raw.strip()
             if not s or not s.lstrip("-").isdigit():
-                return _DEFAULT_ROTATION_INTERVAL
+                return route_site_config.default_rotation_interval
             n = int(s)
         else:
             n = int(raw)
     except (TypeError, ValueError):
-        return _DEFAULT_ROTATION_INTERVAL
-    if n < _MIN_ROTATION_INTERVAL:
-        return _MIN_ROTATION_INTERVAL
-    if n > _MAX_ROTATION_INTERVAL:
-        return _MAX_ROTATION_INTERVAL
+        return route_site_config.default_rotation_interval
+    if n < route_site_config.min_rotation_interval:
+        return route_site_config.min_rotation_interval
+    if n > route_site_config.max_rotation_interval:
+        return route_site_config.max_rotation_interval
     return n
 
 
