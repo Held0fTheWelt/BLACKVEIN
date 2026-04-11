@@ -1,34 +1,49 @@
 {% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link %}
 {% block title %}Auth &amp; security{% endblock %}
-{% block heading %}Auth &amp; security{% endblock %}
-{% block subheading %}How authentication and browser security boundaries are split.{% endblock %}
+{% block heading %}Authentifizierung &amp; Sicherheit{% endblock %}
+{% block subheading %}JWT für die API, Browser-Grenzen für Legacy — und was das für Clients bedeutet.{% endblock %}
 {% block body %}
-<section>
-  <h2>JWT (API)</h2>
-  <p>Access tokens are short-lived; refresh tokens are long-lived and revocable (blacklist maintenance runs in production). Algorithm and header names are configured in <code>app.config</code> (<code>JWT_*</code> keys).</p>
+<section class="info-section">
+  <h2>Kernfunktionalität</h2>
+  <p>Das Backend stellt <strong>JWT-basierte API-Auth</strong> (kurzlebige Access-Tokens, rotierbare Refresh-Tokens mit Widerruf) bereit und trennt das klar von optionalen <strong>Server-Session-Cookies</strong> für ältere Web-Routen. CORS, CSRF und Security-Header schützen die Browser-Oberfläche gemäß Konfiguration.</p>
 </section>
-<section>
-  <h2>Session cookies</h2>
-  <p>Flask server-side sessions may still be touched by legacy compatibility routes (e.g. <code>POST /logout</code> clearing session). Cookie flags: <code>HTTPONLY</code>, <code>SAMESITE=Lax</code>, and <code>SESSION_COOKIE_SECURE</code> when <code>PREFER_HTTPS</code> is enabled — see <code>app.config.Config</code>.</p>
-</section>
-<section>
-  <h2>CSRF</h2>
-  <p>Flask-WTF <code>CSRFProtect</code> is enabled application-wide; the <code>api_v1</code> blueprint is exempt so JSON API clients use JWT instead of form tokens.</p>
-</section>
-<section>
-  <h2>CORS</h2>
-  <p><code>CORS_ORIGINS</code> lists allowed browser origins for cross-origin API access. Include both player frontend and administration-tool origins when those apps run on different hosts/ports than the API.</p>
-</section>
-<section>
-  <h2>Frontend / backend / admin boundary</h2>
+<section class="info-section">
+  <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
-    <li><strong>frontend/</strong> — player experience; uses API + play service URLs from config.</li>
-    <li><strong>backend/</strong> — API + this technical HTML under <code>/backend</code>; legacy paths redirect to <code>FRONTEND_URL</code> when set.</li>
-    <li><strong>administration-tool/</strong> — management UI; proxies or calls admin API routes with its own session/secret configuration.</li>
+    <li><strong>SPA- und Mobile-Clients</strong> — Bearer-Token gegen <code>/api/v1/auth/*</code>; Refresh-Flows wie in der Referenz.</li>
+    <li><strong>Administration-tool</strong> — eigene Session/Secret-Konfiguration beim Aufruf privilegierter Admin-Endpunkte.</li>
+    <li><strong>Sicherheits-Audits</strong> — nachvollziehen, warum <code>api_v1</code> CSRF-exempt ist und welche Header gesetzt werden.</li>
   </ul>
 </section>
-<section>
-  <h2>Security headers</h2>
-  <p>Responses attach CSP, <code>X-Frame-Options: DENY</code>, nosniff, Referrer-Policy, and optional HSTS when HTTPS enforcement is on — see <code>create_app</code> <code>after_request</code> handler.</p>
+<section class="info-section">
+  <h2>Möglich / nicht möglich</h2>
+  <ul>
+    <li><strong>Möglich:</strong> Vollständige Auth- und Nutzer-/Rollen-API wie unter OpenAPI-Tags <a href="{{ url_for('info.api_explorer') }}#tag/Auth">Auth</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Users">Users</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Roles">Roles</a>.</li>
+    <li><strong>Nicht möglich:</strong> Ohne gültiges Token privilegierte Admin-Routen „aus Versehen“ im Browser-JSON-Client aufrufen — Server antwortet mit 401/403.</li>
+    <li><strong>Hinweis:</strong> Einzelne Endpunkte (Forum-Lesen, Health) können öffentlich oder optional auth sein — jeweils in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }} nachlesen.</li>
+  </ul>
+</section>
+<section class="info-section">
+  <h2>Mechanismen (Übersicht)</h2>
+  <table class="doc-table" aria-label="Auth-Mechanismen">
+    <thead><tr><th>Mechanismus</th><th>Wo</th><th>Typische Nutzer</th></tr></thead>
+    <tbody>
+      <tr><td>JWT Access (Bearer)</td><td><code>/api/v1/*</code></td><td>API-Clients, modernes Frontend</td></tr>
+      <tr><td>JWT Refresh + Widerruf</td><td><code>/api/v1/auth/refresh</code>, Blacklist</td><td>Alle JWT-Clients</td></tr>
+      <tr><td>Server-Session-Cookie</td><td>Legacy-Web-Routen (z.&nbsp;B. Logout)</td><td>Alte Browser-Flows</td></tr>
+      <tr><td>CSRF</td><td>Global aktiv; <code>api_v1</code> exempt</td><td>Formulare vs. JSON-API</td></tr>
+      <tr><td>CORS</td><td><code>CORS_ORIGINS</code></td><td>Cross-Origin-SPAs</td></tr>
+      <tr><td>Security-Header</td><td>CSP, X-Frame-Options, HSTS optional</td><td>Alle HTTP-Antworten</td></tr>
+    </tbody>
+  </table>
+  <p>Cookie-Flags und JWT-Parameter: <span class="path">app.config</span> (<code>JWT_*</code>, <code>SESSION_*</code>) im Clone.</p>
+</section>
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li>{{ docs_deep_link("REFERENCE — Authentication", "/api/REFERENCE/#authentication-endpoints") }}</li>
+    <li>{{ docs_deep_link("Service boundaries", "/technical/architecture/service-boundaries/") }}</li>
+  </ul>
 </section>
 {% endblock %}

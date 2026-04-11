@@ -10,16 +10,15 @@ Core function:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.content.module_models import ContentModule
-    from app.runtime.ai_adapter import StoryAIAdapter
-    from app.runtime.turn_executor import TurnExecutionResult
-    from app.runtime.runtime_models import SessionState
-
-from app.observability.trace import get_trace_id, ensure_trace_id
+from app.content.module_models import ContentModule
 from app.observability.audit_log import log_turn_execution
+from app.observability.trace import ensure_trace_id, get_trace_id
+from app.runtime.adapter_registry import get_adapter
+from app.runtime.ai_adapter import StoryAIAdapter
+from app.runtime.ai_turn_executor import execute_turn_with_ai
+from app.runtime.runtime_models import SessionState
+from app.runtime.turn_execution_types import TurnExecutionResult
+from app.runtime.turn_executor import MockDecision, execute_turn
 
 
 async def dispatch_turn(
@@ -60,11 +59,6 @@ async def dispatch_turn(
     Raises:
         ValueError: If execution_mode=="ai" but adapter cannot be resolved
     """
-    # Import here to avoid circular imports
-    from app.runtime.adapter_registry import get_adapter
-    from app.runtime.ai_turn_executor import execute_turn_with_ai
-    from app.runtime.turn_executor import MockDecision, execute_turn
-
     execution_mode = session.execution_mode.lower() if session.execution_mode else "mock"
 
     # Ensure trace_id is set for observability (works with/without Flask request context)

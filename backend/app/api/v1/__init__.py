@@ -58,29 +58,39 @@ def _track_api_activity(response):
     return response
 
 
-# Import after blueprint exists to register routes
-from app.api.v1 import admin_routes  # noqa: F401, E402
-from app.api.v1 import area_routes  # noqa: F401, E402
-from app.api.v1 import auth_routes  # noqa: F401, E402
-from app.api.v1 import role_routes  # noqa: F401, E402
-from app.api.v1 import system_routes  # noqa: F401, E402
-from app.api.v1 import news_routes  # noqa: F401, E402
-from app.api.v1 import user_routes  # noqa: F401, E402
-from app.api.v1 import wiki_routes  # noqa: F401, E402
-from app.api.v1 import wiki_admin_routes  # noqa: F401, E402
-from app.api.v1 import slogan_routes  # noqa: F401, E402
-from app.api.v1 import site_routes  # noqa: F401, E402
-from app.api.v1 import data_routes  # noqa: F401, E402
-from app.api.v1 import forum_routes  # noqa: F401, E402
-from app.api.v1 import analytics_routes  # noqa: F401, E402
+def _register_api_v1_blueprint_routes() -> None:
+    """Import route modules so they attach handlers to ``api_v1_bp`` (import side effects).
 
-from app.api.v1 import game_routes  # noqa: F401, E402
+    Called once at package load after ``api_v1_bp`` and request hooks exist.
+    Submodules import ``api_v1_bp`` from this package; order here should not
+    affect URL resolution unless two modules register the same path (avoided).
+    """
+    from app.api.v1 import admin_routes  # noqa: F401
+    from app.api.v1 import area_routes  # noqa: F401
+    from app.api.v1 import auth_routes  # noqa: F401
+    from app.api.v1 import role_routes  # noqa: F401
+    from app.api.v1 import system_routes  # noqa: F401
+    from app.api.v1 import news_routes  # noqa: F401
+    from app.api.v1 import user_routes  # noqa: F401
+    from app.api.v1 import wiki_routes  # noqa: F401
+    from app.api.v1 import wiki_admin_routes  # noqa: F401
+    from app.api.v1 import slogan_routes  # noqa: F401
+    from app.api.v1 import site_routes  # noqa: F401
+    from app.api.v1 import data_routes  # noqa: F401
+    from app.api.v1 import forum_routes  # noqa: F401
+    from app.api.v1 import forum_routes_notifications  # noqa: F401
+    from app.api.v1 import forum_routes_tag_discovery  # noqa: F401
+    from app.api.v1 import analytics_routes  # noqa: F401
+    from app.api.v1 import game_routes  # noqa: F401
+    from app.api.v1 import game_admin_routes  # noqa: F401
+    from app.api.v1 import session_routes  # noqa: F401
+    from app.api.v1 import writers_room_routes  # noqa: F401
+    from app.api.v1 import improvement_routes  # noqa: F401
+    from app.api.v1 import ai_stack_governance_routes  # noqa: F401
+    from app.api.v1 import system_diagnosis_routes  # noqa: F401
+    from app.api.v1 import play_service_control_routes  # noqa: F401
+    from app.api.v1 import world_engine_console_routes  # noqa: F401
+    from app.api.v1 import mcp_operations_routes  # noqa: F401
 
-from app.api.v1 import game_admin_routes  # noqa: F401, E402
-from app.api.v1 import session_routes  # noqa: F401, E402
-from app.api.v1 import writers_room_routes  # noqa: F401, E402
-from app.api.v1 import improvement_routes  # noqa: F401, E402
-from app.api.v1 import ai_stack_governance_routes  # noqa: F401, E402
-from app.api.v1 import system_diagnosis_routes  # noqa: F401, E402
-from app.api.v1 import play_service_control_routes  # noqa: F401, E402
-from app.api.v1 import mcp_operations_routes  # noqa: F401, E402
+
+_register_api_v1_blueprint_routes()

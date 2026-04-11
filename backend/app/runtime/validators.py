@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.runtime.reference_policy import ReferencePolicy
 from app.runtime.scene_legality import SceneTransitionLegality
+from app.runtime.validators_action_structure import collect_action_structure_errors
 
 
 def validate_action_type(action_type: str) -> tuple[bool, str | None]:
@@ -69,59 +70,7 @@ def validate_action_structure(
         errors.append(f"Invalid action type: {action_type}")
         return False, errors
 
-    # Validate required fields based on action type
-    if action == AIActionType.STATE_UPDATE:
-        if not action_data.get("target_path"):
-            errors.append("STATE_UPDATE requires 'target_path'")
-        if action_data.get("next_value") is None:
-            errors.append("STATE_UPDATE requires 'next_value'")
-
-    elif action == AIActionType.RELATIONSHIP_SHIFT:
-        if not action_data.get("target_path"):
-            errors.append("RELATIONSHIP_SHIFT requires 'target_path'")
-        if action_data.get("next_value") is None:
-            errors.append("RELATIONSHIP_SHIFT requires 'next_value'")
-
-    elif action == AIActionType.SCENE_TRANSITION:
-        if not action_data.get("scene_id"):
-            errors.append("SCENE_TRANSITION requires 'scene_id'")
-
-    elif action == AIActionType.TRIGGER_ASSERTION:
-        if not action_data.get("trigger_ids"):
-            errors.append("TRIGGER_ASSERTION requires 'trigger_ids'")
-        elif module is not None:
-            # Validate trigger references (W2.2.3)
-            current_scene_id = session.current_scene_id if session else None
-            for trigger_id in action_data["trigger_ids"]:
-                ref_decision = ReferencePolicy.evaluate(
-                    "trigger", trigger_id, module,
-                    session=session, current_scene_id=current_scene_id
-                )
-                if not ref_decision.allowed:
-                    errors.append(
-                        f"Trigger reference validation failed: {ref_decision.reason_message} "
-                        f"(reason: {ref_decision.reason_code})"
-                    )
-
-    elif action == AIActionType.DIALOGUE_IMPULSE:
-        if not action_data.get("character_id"):
-            errors.append("DIALOGUE_IMPULSE requires 'character_id'")
-        elif module is not None:
-            # Validate character reference (W2.2.3)
-            char_id = action_data["character_id"]
-            ref_decision = ReferencePolicy.evaluate("character", char_id, module)
-            if not ref_decision.allowed:
-                errors.append(
-                    f"Character reference validation failed: {ref_decision.reason_message} "
-                    f"(reason: {ref_decision.reason_code})"
-                )
-        if not action_data.get("impulse_text"):
-            errors.append("DIALOGUE_IMPULSE requires 'impulse_text'")
-
-    elif action == AIActionType.CONFLICT_SIGNAL:
-        if not action_data.get("intensity") and action_data.get("intensity") != 0:
-            errors.append("CONFLICT_SIGNAL requires 'intensity'")
-
+    errors.extend(collect_action_structure_errors(action, action_data, module, session))
     return len(errors) == 0, errors
 
 

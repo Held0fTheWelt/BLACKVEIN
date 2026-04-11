@@ -42,6 +42,7 @@ import hashlib
 import math
 from pathlib import Path
 import re
+from typing import Any
 
 import numpy as np
 
@@ -871,74 +872,7 @@ def _profile_policy_influence(profile_name: str, gov: SourceGovernanceView) -> s
     return "profile_policy_default"
 
 
-def _rerank_adjustments(
-    cand: _ScoredCandidate,
-    *,
-    profile_name: str,
-    request: RetrievalRequest,
-    pool: list[_ScoredCandidate],
-    use_hybrid: bool,
-    strong_authored_for_module: bool,
-) -> tuple[float, list[str]]:
-    """Additive rerank deltas; inspectable string fragments."""
-    delta = 0.0
-    parts: list[str] = []
-    cc = cand.chunk.content_class
-    mod_ex = RERANK_MODULE_MATCH_EXTRA.get(
-        profile_name,
-        RERANK_MODULE_MATCH_EXTRA[DOMAIN_DEFAULT_PROFILE[request.domain]],
-    )
-    if request.module_id and cand.module_match:
-        delta += mod_ex
-        parts.append(f"rerank_module_extra={mod_ex:.2f}")
-
-    agr = _rerank_agreement_bonus(cand.dense_sim, cand.sparse_sim, use_hybrid=use_hybrid)
-    if agr > 0:
-        delta += agr
-        parts.append(f"rerank_agreement={agr:.3f}")
-
-    if profile_name == "runtime_turn_support":
-        if cc in (ContentClass.TRANSCRIPT, ContentClass.RUNTIME_PROJECTION) and strong_authored_for_module:
-            pen = 0.95
-            delta -= pen
-            parts.append(f"runtime_clutter_penalty=-{pen:.2f}")
-        if cc == ContentClass.AUTHORED_MODULE and cand.chunk.canonical_priority >= 3:
-            b = 0.18
-            delta += b
-            parts.append(f"runtime_canonical_rerank=+{b:.2f}")
-    elif profile_name == "writers_review":
-        if cc == ContentClass.REVIEW_NOTE:
-            b = 0.32
-            delta += b
-            parts.append(f"writers_review_boost=+{b:.2f}")
-        if cc == ContentClass.TRANSCRIPT:
-            b = 0.14
-            delta += b
-            parts.append(f"writers_transcript_boost=+{b:.2f}")
-    elif profile_name == "improvement_eval":
-        if cc == ContentClass.EVALUATION_ARTIFACT:
-            b = 0.52
-            delta += b
-            parts.append(f"improvement_eval_boost=+{b:.2f}")
-        elif cc == ContentClass.REVIEW_NOTE:
-            b = 0.38
-            delta += b
-            parts.append(f"improvement_review_boost=+{b:.2f}")
-        elif cc == ContentClass.TRANSCRIPT:
-            b = 0.22
-            delta += b
-            parts.append(f"improvement_transcript_boost=+{b:.2f}")
-
-    # Redundancy: penalize near-duplicates of higher initial-scoring pool members.
-    higher = [p for p in pool if p.initial_score > cand.initial_score + 1e-9]
-    if higher:
-        best_j = max(_char_trigram_jaccard(cand.chunk.text, h.chunk.text) for h in higher[:12])
-        if best_j >= 0.87:
-            pen = 0.38 + 0.4 * (best_j - 0.87) / (1.0 - 0.87)
-            delta -= pen
-            parts.append(f"rerank_redundancy=-{pen:.2f}")
-
-    return delta, parts
+from ai_stack.rag_retrieval_rerank_adjustments import compute_rerank_adjustments as _rerank_adjustments
 
 
 def _dedup_select(
@@ -1364,6 +1298,293 @@ def _ensure_corpus_embedding_index(corpus: InMemoryRetrievalCorpus, corpus_json:
     return CorpusEmbeddingIndex(vectors=enc.vectors, model_id=EMBEDDING_MODEL_ID)
 
 
+def _build_retrieval_prefix_notes(
+    corpus: InMemoryRetrievalCorpus,
+    *,
+    hybrid_state: _RetrievalHybridEncodingState,
+) -> list[str]:
+    c = corpus
+    dense_action = c.rag_dense_index_build_action
+    dense_validity = c.rag_dense_artifact_validity
+    dense_rebuild_reason = c.rag_dense_rebuild_reason
+
+    prefix_notes: list[str] = [
+        f"retrieval_route={hybrid_state.retrieval_route}",
+        f"degradation_mode={hybrid_state.degradation_mode}",
+        f"dense_index_build_action={dense_action}",
+        f"dense_artifact_validity={dense_validity}",
+    ]
+    if dense_rebuild_reason:
+        prefix_notes.append(f"dense_rebuild_reason={dense_rebuild_reason}")
+    if hybrid_state.use_hybrid and hybrid_state.embedding_mid:
+        prefix_notes.append(f"embedding_model_id={hybrid_state.embedding_mid}")
+    if hybrid_state.query_encode_failed and hybrid_state.query_enc_codes:
+        prefix_notes.append("embedding_query_encode_failed=" + ",".join(hybrid_state.query_enc_codes))
+    elif hybrid_state.query_encode_failed:
+        prefix_notes.append("embedding_query_encode_failed")
+    return prefix_notes
+
+
+def _build_retrieval_quality_seed_notes(*, w_dense: float, w_sparse: float) -> list[str]:
+    return [
+        f"retrieval_pipeline_version={RETRIEVAL_PIPELINE_VERSION}",
+        f"hybrid_v2_weights_dense={w_dense:.2f}_sparse={w_sparse:.2f}",
+    ]
+
+
+def _rerank_retrieval_candidate_pool(
+    pool: list[_ScoredCandidate],
+    *,
+    profile_name: str,
+    request: RetrievalRequest,
+    use_hybrid: bool,
+    strong_authored_for_module: bool,
+) -> list[tuple[float, _ScoredCandidate, list[str]]]:
+    """Task 2 rerank + Task 3 policy-soft adjustments over the hard-filtered pool."""
+
+    reranked: list[tuple[float, _ScoredCandidate, list[str]]] = []
+    for cand in pool:
+        gov = governance_view_for_chunk(cand.chunk)
+        pdelta, pparts = _policy_soft_adjustments(
+            cand,
+            profile_name=profile_name,
+            request=request,
+            strong_authored_for_module=strong_authored_for_module,
+            gov=gov,
+        )
+        rdelta, rparts = _rerank_adjustments(
+            cand,
+            profile_name=profile_name,
+            request=request,
+            pool=pool,
+            use_hybrid=use_hybrid,
+            strong_authored_for_module=strong_authored_for_module,
+        )
+        policy_delta = pdelta + rdelta
+        merged_parts: list[str] = []
+        if pparts:
+            merged_parts.extend(pparts)
+        merged_parts.extend(rparts)
+        if policy_delta != 0:
+            merged_parts.insert(0, f"score_delta_task2_rerank_plus_task3_policy={policy_delta:+.3f}")
+        rerank_score = cand.initial_score + policy_delta
+        reranked.append((rerank_score, cand, merged_parts))
+
+    reranked.sort(key=lambda x: (x[0], x[1].chunk.chunk_id), reverse=True)
+    return reranked
+
+
+def _append_dedup_suppression_quality_notes(quality_notes: list[str], dup_notes: list[str]) -> None:
+    quality_notes.extend(dup_notes[:8])
+    if len(dup_notes) > 8:
+        quality_notes.append(f"dup_suppressed_more={len(dup_notes) - 8}")
+
+
+def _retrieval_hit_ranking_detail_lines(hits: list[RetrievalHit]) -> list[str]:
+    return [
+        (
+            f"{h.source_path} score={h.score:.2f} lane={h.source_evidence_lane} "
+            f"pack_role={h.pack_role} influence={h.profile_policy_influence} ({h.selection_reason})"
+        )
+        for h in hits
+    ]
+
+
+def _retrieval_result_fallback_empty_hits(
+    *,
+    request: RetrievalRequest,
+    index_version: str,
+    corpus_fingerprint: str,
+    storage_path: str,
+    prefix_notes: list[str],
+    quality_notes: list[str],
+    policy_notes: list[str],
+    retrieval_route: str,
+    embedding_model_id: str,
+    degradation_mode: str,
+    dense_index_build_action: str,
+    dense_rebuild_reason: str | None,
+    dense_artifact_validity: str,
+    embedding_reason_codes: tuple[str, ...],
+    embedding_index_version: str,
+    embedding_cache_dir_identity: str | None,
+) -> RetrievalResult:
+    notes = prefix_notes + quality_notes + policy_notes + ["no_ranked_hits_for_query"]
+    return RetrievalResult(
+        request=request,
+        status=RetrievalStatus.FALLBACK,
+        hits=[],
+        ranking_notes=notes,
+        error="no_ranked_hits",
+        index_version=index_version,
+        corpus_fingerprint=corpus_fingerprint,
+        storage_path=storage_path,
+        retrieval_route=retrieval_route,
+        embedding_model_id=embedding_model_id,
+        degradation_mode=degradation_mode,
+        dense_index_build_action=dense_index_build_action,
+        dense_rebuild_reason=dense_rebuild_reason,
+        dense_artifact_validity=dense_artifact_validity,
+        embedding_reason_codes=embedding_reason_codes,
+        embedding_index_version=embedding_index_version,
+        embedding_cache_dir_identity=embedding_cache_dir_identity,
+    )
+
+
+def _retrieval_result_ok_with_hits(
+    *,
+    request: RetrievalRequest,
+    index_version: str,
+    corpus_fingerprint: str,
+    storage_path: str,
+    hits: list[RetrievalHit],
+    prefix_notes: list[str],
+    quality_notes: list[str],
+    policy_notes: list[str],
+    retrieval_route: str,
+    embedding_model_id: str,
+    degradation_mode: str,
+    dense_index_build_action: str,
+    dense_rebuild_reason: str | None,
+    dense_artifact_validity: str,
+    embedding_reason_codes: tuple[str, ...],
+    embedding_index_version: str,
+    embedding_cache_dir_identity: str | None,
+) -> RetrievalResult:
+    detail_lines = _retrieval_hit_ranking_detail_lines(hits)
+    ranking_notes = prefix_notes + quality_notes + policy_notes + detail_lines
+    return RetrievalResult(
+        request=request,
+        status=RetrievalStatus.OK,
+        hits=hits,
+        ranking_notes=ranking_notes,
+        error=None,
+        index_version=index_version,
+        corpus_fingerprint=corpus_fingerprint,
+        storage_path=storage_path,
+        retrieval_route=retrieval_route,
+        embedding_model_id=embedding_model_id,
+        degradation_mode=degradation_mode,
+        dense_index_build_action=dense_index_build_action,
+        dense_rebuild_reason=dense_rebuild_reason,
+        dense_artifact_validity=dense_artifact_validity,
+        embedding_reason_codes=embedding_reason_codes,
+        embedding_index_version=embedding_index_version,
+        embedding_cache_dir_identity=embedding_cache_dir_identity,
+    )
+
+
+def _retrieval_result_degraded_empty_corpus(
+    *,
+    request: RetrievalRequest,
+    index_version: str,
+    corpus_fingerprint: str,
+    storage_path: str,
+    dense_index_build_action: str,
+    dense_rebuild_reason: str | None,
+    dense_artifact_validity: str,
+    embedding_reason_codes: tuple[str, ...],
+    embedding_index_version: str,
+    embedding_cache_dir_identity: str | None,
+) -> RetrievalResult:
+    return RetrievalResult(
+        request=request,
+        status=RetrievalStatus.DEGRADED,
+        hits=[],
+        ranking_notes=[
+            "retrieval_corpus_empty",
+            f"degradation_mode={RetrievalDegradationMode.CORPUS_EMPTY.value}",
+        ],
+        error="retrieval_corpus_empty",
+        index_version=index_version,
+        corpus_fingerprint=corpus_fingerprint,
+        storage_path=storage_path,
+        retrieval_route="",
+        embedding_model_id="",
+        degradation_mode=RetrievalDegradationMode.CORPUS_EMPTY.value,
+        dense_index_build_action=dense_index_build_action,
+        dense_rebuild_reason=dense_rebuild_reason,
+        dense_artifact_validity=dense_artifact_validity,
+        embedding_reason_codes=embedding_reason_codes,
+        embedding_index_version=embedding_index_version,
+        embedding_cache_dir_identity=embedding_cache_dir_identity,
+    )
+
+
+@dataclass(slots=True)
+class _RetrievalQueryProfileContext:
+    allowed_classes: set[Any]
+    query_terms: dict[str, float]
+    query_norm: float
+    profile_name: str
+    profile_boosts: dict[Any, float]
+    canonical_weight: float
+    w_dense: float
+    w_sparse: float
+
+
+def _build_retrieval_query_profile_context(request: RetrievalRequest) -> _RetrievalQueryProfileContext:
+    allowed_classes = DOMAIN_CONTENT_ACCESS[request.domain]
+    query_terms = _build_semantic_terms(request.query)
+    query_norm = math.sqrt(sum(weight * weight for weight in query_terms.values()))
+    profile_name = request.profile or DOMAIN_DEFAULT_PROFILE[request.domain]
+    profile_boosts = PROFILE_CONTENT_BOOSTS.get(
+        profile_name,
+        PROFILE_CONTENT_BOOSTS[DOMAIN_DEFAULT_PROFILE[request.domain]],
+    )
+    canonical_weight = PROFILE_CANONICAL_WEIGHT.get(
+        profile_name,
+        PROFILE_CANONICAL_WEIGHT[DOMAIN_DEFAULT_PROFILE[request.domain]],
+    )
+    w_dense, w_sparse = _profile_hybrid_weights(profile_name, request.domain)
+    return _RetrievalQueryProfileContext(
+        allowed_classes=allowed_classes,
+        query_terms=query_terms,
+        query_norm=query_norm,
+        profile_name=profile_name,
+        profile_boosts=profile_boosts,
+        canonical_weight=canonical_weight,
+        w_dense=w_dense,
+        w_sparse=w_sparse,
+    )
+
+
+def _sorted_candidates_to_hard_filtered_pool(
+    candidates: list[_ScoredCandidate],
+    *,
+    request: RetrievalRequest,
+    profile_name: str,
+) -> tuple[list[_ScoredCandidate], list[str], bool, bool, str]:
+    """Sort by initial score, cap pool, apply hard policy; return pool metadata for rerank."""
+
+    candidates.sort(key=lambda x: (x.initial_score, x.chunk.chunk_id), reverse=True)
+    pool_n = _pool_size(request.max_chunks)
+    pool = candidates[:pool_n]
+    pool, hard_policy_notes, _hard_excl = _apply_hard_policy_pool_filter(
+        pool,
+        profile_name=profile_name,
+        request=request,
+    )
+    strong_authored = _pool_has_strong_authored_for_module(pool, request.module_id)
+    published_canonical_in_pool = _pool_has_published_canonical_for_module(pool, request.module_id)
+    pool_size_note = f"rerank_pool_size={len(pool)}"
+    return pool, hard_policy_notes, strong_authored, published_canonical_in_pool, pool_size_note
+
+
+@dataclass(frozen=True, slots=True)
+class _RetrievalEncodeScorePoolPhase:
+    """Hybrid/query encoding, initial scoring, and hard-filtered rerank pool (pre-dedup)."""
+
+    qpc: _RetrievalQueryProfileContext
+    hybrid_state: _RetrievalHybridEncodingState
+    prefix_notes: list[str]
+    quality_notes: list[str]
+    pool: list[_ScoredCandidate]
+    hard_policy_notes: list[str]
+    strong_authored: bool
+    published_canonical_in_pool: bool
+
+
 class ContextRetriever:
     def __init__(
         self,
@@ -1385,108 +1606,22 @@ class ContextRetriever:
             return False
         return self._embedding_index.vectors.shape[0] == len(self.corpus.chunks)
 
-    def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
-        if request.domain not in DOMAIN_CONTENT_ACCESS:
-            raise RetrievalDomainError(f"Unknown retrieval domain: {request.domain}")
-        trace = self._corpus_trace()
-        c = self.corpus
-        emb_idx_ver = c.rag_embedding_index_version or EMBEDDING_INDEX_VERSION
-        emb_cache_id = c.rag_embedding_cache_dir_identity
-        dense_action = c.rag_dense_index_build_action
-        dense_validity = c.rag_dense_artifact_validity
-        dense_rebuild_reason = c.rag_dense_rebuild_reason
-        backend_code = c.rag_embedding_backend_primary_code
-
-        if not self.corpus.chunks:
-            return RetrievalResult(
-                request=request,
-                status=RetrievalStatus.DEGRADED,
-                hits=[],
-                ranking_notes=[
-                    "retrieval_corpus_empty",
-                    f"degradation_mode={RetrievalDegradationMode.CORPUS_EMPTY.value}",
-                ],
-                error="retrieval_corpus_empty",
-                index_version=trace[0],
-                corpus_fingerprint=trace[1],
-                storage_path=trace[2],
-                retrieval_route="",
-                embedding_model_id="",
-                degradation_mode=RetrievalDegradationMode.CORPUS_EMPTY.value,
-                dense_index_build_action=dense_action,
-                dense_rebuild_reason=dense_rebuild_reason,
-                dense_artifact_validity=dense_validity,
-                embedding_reason_codes=c.rag_dense_load_reason_codes,
-                embedding_index_version=emb_idx_ver,
-                embedding_cache_dir_identity=emb_cache_id,
-            )
-
-        use_hybrid = self._embedding_ready() and not request.use_sparse_only and not embeddings_disabled_by_env()
-        query_vec: np.ndarray | None = None
-        query_enc_codes: tuple[str, ...] = ()
-        query_encode_failed = False
-        if use_hybrid:
-            qo = encode_query_detailed(request.query)
-            query_vec = qo.vectors
-            query_enc_codes = qo.reason_codes
-            if query_vec is None:
-                use_hybrid = False
-                query_encode_failed = True
-
-        retrieval_route = "hybrid" if use_hybrid else "sparse_fallback"
-        embedding_mid = self._embedding_model_id if use_hybrid else ""
-
-        if request.use_sparse_only:
-            degradation_mode = RetrievalDegradationMode.HYBRID_OK.value
-        elif use_hybrid:
-            degradation_mode = RetrievalDegradationMode.HYBRID_OK.value
-        elif embeddings_disabled_by_env():
-            degradation_mode = RetrievalDegradationMode.SPARSE_FALLBACK_NO_BACKEND.value
-        elif query_encode_failed:
-            degradation_mode = RetrievalDegradationMode.SPARSE_FALLBACK_ENCODE_FAILURE.value
-        elif dense_validity == "uncommitted_vectors_only":
-            degradation_mode = RetrievalDegradationMode.DEGRADED_PARTIAL_PERSISTENCE.value
-        elif dense_validity == "partial_write_failure":
-            degradation_mode = RetrievalDegradationMode.DEGRADED_PARTIAL_PERSISTENCE.value
-        elif backend_code != "embedding_backend_ok":
-            degradation_mode = RetrievalDegradationMode.SPARSE_FALLBACK_NO_BACKEND.value
-        else:
-            degradation_mode = RetrievalDegradationMode.SPARSE_FALLBACK_INVALID_OR_MISSING_DENSE_INDEX.value
-
-        allowed_classes = DOMAIN_CONTENT_ACCESS[request.domain]
-        query_terms = _build_semantic_terms(request.query)
-        query_norm = math.sqrt(sum(weight * weight for weight in query_terms.values()))
-        profile_name = request.profile or DOMAIN_DEFAULT_PROFILE[request.domain]
-        profile_boosts = PROFILE_CONTENT_BOOSTS.get(
-            profile_name,
-            PROFILE_CONTENT_BOOSTS[DOMAIN_DEFAULT_PROFILE[request.domain]],
-        )
-        canonical_weight = PROFILE_CANONICAL_WEIGHT.get(
-            profile_name,
-            PROFILE_CANONICAL_WEIGHT[DOMAIN_DEFAULT_PROFILE[request.domain]],
-        )
-        w_dense, w_sparse = _profile_hybrid_weights(profile_name, request.domain)
-
-        prefix_notes: list[str] = [
-            f"retrieval_route={retrieval_route}",
-            f"degradation_mode={degradation_mode}",
-            f"dense_index_build_action={dense_action}",
-            f"dense_artifact_validity={dense_validity}",
-        ]
-        if dense_rebuild_reason:
-            prefix_notes.append(f"dense_rebuild_reason={dense_rebuild_reason}")
-        if use_hybrid and embedding_mid:
-            prefix_notes.append(f"embedding_model_id={embedding_mid}")
-        if query_encode_failed and query_enc_codes:
-            prefix_notes.append("embedding_query_encode_failed=" + ",".join(query_enc_codes))
-        elif query_encode_failed:
-            prefix_notes.append("embedding_query_encode_failed")
-
-        quality_notes: list[str] = [
-            f"retrieval_pipeline_version={RETRIEVAL_PIPELINE_VERSION}",
-            f"hybrid_v2_weights_dense={w_dense:.2f}_sparse={w_sparse:.2f}",
-        ]
-
+    def _score_initial_candidates(
+        self,
+        request: RetrievalRequest,
+        *,
+        allowed_classes: set[Any],
+        query_terms: dict[str, float],
+        query_norm: float,
+        use_hybrid: bool,
+        query_vec: np.ndarray | None,
+        profile_name: str,
+        profile_boosts: dict[Any, float],
+        canonical_weight: float,
+        w_dense: float,
+        w_sparse: float,
+    ) -> list[_ScoredCandidate]:
+        """Dense/sparse hybrid scoring over corpus chunks (initial pool, pre-policy rerank)."""
         candidates: list[_ScoredCandidate] = []
         for chunk_index, chunk in enumerate(self.corpus.chunks):
             if chunk.content_class not in allowed_classes:
@@ -1544,60 +1679,16 @@ class ContextRetriever:
                     scene_match=scene_match,
                 )
             )
+        return candidates
 
-        candidates.sort(key=lambda x: (x.initial_score, x.chunk.chunk_id), reverse=True)
-        pool_n = _pool_size(request.max_chunks)
-        pool = candidates[:pool_n]
-        pool, hard_policy_notes, _hard_excl = _apply_hard_policy_pool_filter(
-            pool,
-            profile_name=profile_name,
-            request=request,
-        )
-        quality_notes.append(f"rerank_pool_size={len(pool)}")
-        strong_authored = _pool_has_strong_authored_for_module(pool, request.module_id)
-        published_canonical_in_pool = _pool_has_published_canonical_for_module(pool, request.module_id)
-
-        policy_notes: list[str] = [f"retrieval_policy_version={RETRIEVAL_POLICY_VERSION}"]
-        policy_notes.extend(hard_policy_notes)
-
-        reranked: list[tuple[float, _ScoredCandidate, list[str]]] = []
-        for cand in pool:
-            gov = governance_view_for_chunk(cand.chunk)
-            pdelta, pparts = _policy_soft_adjustments(
-                cand,
-                profile_name=profile_name,
-                request=request,
-                strong_authored_for_module=strong_authored,
-                gov=gov,
-            )
-            rdelta, rparts = _rerank_adjustments(
-                cand,
-                profile_name=profile_name,
-                request=request,
-                pool=pool,
-                use_hybrid=use_hybrid,
-                strong_authored_for_module=strong_authored,
-            )
-            policy_delta = pdelta + rdelta
-            merged_parts: list[str] = []
-            if pparts:
-                merged_parts.extend(pparts)
-            merged_parts.extend(rparts)
-            if policy_delta != 0:
-                merged_parts.insert(0, f"score_delta_task2_rerank_plus_task3_policy={policy_delta:+.3f}")
-            rerank_score = cand.initial_score + policy_delta
-            reranked.append((rerank_score, cand, merged_parts))
-
-        reranked.sort(key=lambda x: (x[0], x[1].chunk.chunk_id), reverse=True)
-        selected_tuples, dup_notes = _dedup_select(
-            reranked,
-            max_chunks=request.max_chunks,
-            profile_name=profile_name,
-        )
-        quality_notes.extend(dup_notes[:8])
-        if len(dup_notes) > 8:
-            quality_notes.append(f"dup_suppressed_more={len(dup_notes) - 8}")
-
+    def _build_retrieval_hits_from_selection(
+        self,
+        selected_tuples: list[tuple[float, _ScoredCandidate, list[str]]],
+        *,
+        profile_name: str,
+        published_canonical_in_pool: bool,
+    ) -> list[RetrievalHit]:
+        """Map reranked/scored candidates to ``RetrievalHit`` rows (governance + policy notes)."""
         hits: list[RetrievalHit] = []
         for rerank_score, cand, rparts in selected_tuples:
             reason_core = cand.initial_reason
@@ -1633,55 +1724,160 @@ class ContextRetriever:
                     profile_policy_influence=rule,
                 )
             )
+        return hits
 
-        if not hits:
-            notes = prefix_notes + quality_notes + policy_notes + ["no_ranked_hits_for_query"]
-            return RetrievalResult(
+    def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
+        if request.domain not in DOMAIN_CONTENT_ACCESS:
+            raise RetrievalDomainError(f"Unknown retrieval domain: {request.domain}")
+        trace = self._corpus_trace()
+        c = self.corpus
+        emb_idx_ver = c.rag_embedding_index_version or EMBEDDING_INDEX_VERSION
+        emb_cache_id = c.rag_embedding_cache_dir_identity
+        dense_action = c.rag_dense_index_build_action
+        dense_validity = c.rag_dense_artifact_validity
+        dense_rebuild_reason = c.rag_dense_rebuild_reason
+
+        if not self.corpus.chunks:
+            return _retrieval_result_degraded_empty_corpus(
                 request=request,
-                status=RetrievalStatus.FALLBACK,
-                hits=[],
-                ranking_notes=notes,
-                error="no_ranked_hits",
                 index_version=trace[0],
                 corpus_fingerprint=trace[1],
                 storage_path=trace[2],
+                dense_index_build_action=dense_action,
+                dense_rebuild_reason=dense_rebuild_reason,
+                dense_artifact_validity=dense_validity,
+                embedding_reason_codes=c.rag_dense_load_reason_codes,
+                embedding_index_version=emb_idx_ver,
+                embedding_cache_dir_identity=emb_cache_id,
+            )
+
+        phase = _run_retrieval_encode_score_pool_phase(self, request)
+        qpc = phase.qpc
+        hybrid_state = phase.hybrid_state
+        use_hybrid = hybrid_state.use_hybrid
+        query_enc_codes = hybrid_state.query_enc_codes
+        query_encode_failed = hybrid_state.query_encode_failed
+        retrieval_route = hybrid_state.retrieval_route
+        embedding_mid = hybrid_state.embedding_mid
+        degradation_mode = hybrid_state.degradation_mode
+        prefix_notes = phase.prefix_notes
+        quality_notes = phase.quality_notes
+        pool = phase.pool
+        hard_policy_notes = phase.hard_policy_notes
+        strong_authored = phase.strong_authored
+        published_canonical_in_pool = phase.published_canonical_in_pool
+
+        policy_notes: list[str] = [f"retrieval_policy_version={RETRIEVAL_POLICY_VERSION}"]
+        policy_notes.extend(hard_policy_notes)
+
+        reranked = _rerank_retrieval_candidate_pool(
+            pool,
+            profile_name=qpc.profile_name,
+            request=request,
+            use_hybrid=use_hybrid,
+            strong_authored_for_module=strong_authored,
+        )
+        selected_tuples, dup_notes = _dedup_select(
+            reranked,
+            max_chunks=request.max_chunks,
+            profile_name=qpc.profile_name,
+        )
+        _append_dedup_suppression_quality_notes(quality_notes, dup_notes)
+
+        hits = self._build_retrieval_hits_from_selection(
+            selected_tuples,
+            profile_name=qpc.profile_name,
+            published_canonical_in_pool=published_canonical_in_pool,
+        )
+
+        emb_codes_fallback = query_enc_codes if query_encode_failed else c.rag_dense_load_reason_codes
+        emb_codes_ok = query_enc_codes if query_encode_failed else ()
+
+        if not hits:
+            return _retrieval_result_fallback_empty_hits(
+                request=request,
+                index_version=trace[0],
+                corpus_fingerprint=trace[1],
+                storage_path=trace[2],
+                prefix_notes=prefix_notes,
+                quality_notes=quality_notes,
+                policy_notes=policy_notes,
                 retrieval_route=retrieval_route,
                 embedding_model_id=embedding_mid,
                 degradation_mode=degradation_mode,
                 dense_index_build_action=dense_action,
                 dense_rebuild_reason=dense_rebuild_reason,
                 dense_artifact_validity=dense_validity,
-                embedding_reason_codes=query_enc_codes if query_encode_failed else c.rag_dense_load_reason_codes,
+                embedding_reason_codes=emb_codes_fallback,
                 embedding_index_version=emb_idx_ver,
                 embedding_cache_dir_identity=emb_cache_id,
             )
-        detail_lines = [
-            (
-                f"{h.source_path} score={h.score:.2f} lane={h.source_evidence_lane} "
-                f"pack_role={h.pack_role} influence={h.profile_policy_influence} ({h.selection_reason})"
-            )
-            for h in hits
-        ]
-        ranking_notes = prefix_notes + quality_notes + policy_notes + detail_lines
-        return RetrievalResult(
+        return _retrieval_result_ok_with_hits(
             request=request,
-            status=RetrievalStatus.OK,
-            hits=hits,
-            ranking_notes=ranking_notes,
-            error=None,
             index_version=trace[0],
             corpus_fingerprint=trace[1],
             storage_path=trace[2],
+            hits=hits,
+            prefix_notes=prefix_notes,
+            quality_notes=quality_notes,
+            policy_notes=policy_notes,
             retrieval_route=retrieval_route,
             embedding_model_id=embedding_mid,
             degradation_mode=degradation_mode,
             dense_index_build_action=dense_action,
             dense_rebuild_reason=dense_rebuild_reason,
             dense_artifact_validity=dense_validity,
-            embedding_reason_codes=query_enc_codes if query_encode_failed else (),
+            embedding_reason_codes=emb_codes_ok,
             embedding_index_version=emb_idx_ver,
             embedding_cache_dir_identity=emb_cache_id,
         )
+
+
+def _run_retrieval_encode_score_pool_phase(
+    retriever: ContextRetriever,
+    request: RetrievalRequest,
+) -> _RetrievalEncodeScorePoolPhase:
+    c = retriever.corpus
+    hybrid_state = _resolve_retrieval_hybrid_encoding_state(
+        c,
+        request,
+        embedding_index_ready=retriever._embedding_ready(),
+        embedding_model_id=retriever._embedding_model_id,
+    )
+    qpc = _build_retrieval_query_profile_context(request)
+    prefix_notes = _build_retrieval_prefix_notes(c, hybrid_state=hybrid_state)
+    quality_notes = _build_retrieval_quality_seed_notes(w_dense=qpc.w_dense, w_sparse=qpc.w_sparse)
+    candidates = retriever._score_initial_candidates(
+        request,
+        allowed_classes=qpc.allowed_classes,
+        query_terms=qpc.query_terms,
+        query_norm=qpc.query_norm,
+        use_hybrid=hybrid_state.use_hybrid,
+        query_vec=hybrid_state.query_vec,
+        profile_name=qpc.profile_name,
+        profile_boosts=qpc.profile_boosts,
+        canonical_weight=qpc.canonical_weight,
+        w_dense=qpc.w_dense,
+        w_sparse=qpc.w_sparse,
+    )
+    pool, hard_policy_notes, strong_authored, published_canonical_in_pool, pool_sz_note = (
+        _sorted_candidates_to_hard_filtered_pool(
+            candidates,
+            request=request,
+            profile_name=qpc.profile_name,
+        )
+    )
+    quality_notes.append(pool_sz_note)
+    return _RetrievalEncodeScorePoolPhase(
+        qpc=qpc,
+        hybrid_state=hybrid_state,
+        prefix_notes=prefix_notes,
+        quality_notes=quality_notes,
+        pool=pool,
+        hard_policy_notes=hard_policy_notes,
+        strong_authored=strong_authored,
+        published_canonical_in_pool=published_canonical_in_pool,
+    )
 
 
 class ContextPackAssembler:
@@ -1899,3 +2095,9 @@ class PersistentRagStore:
                 except OSError:
                     pass
             raise
+
+
+from ai_stack.rag_retrieval_hybrid_encoding import (
+    _RetrievalHybridEncodingState,
+    _resolve_retrieval_hybrid_encoding_state,
+)

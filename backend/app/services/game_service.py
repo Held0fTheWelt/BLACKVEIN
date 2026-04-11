@@ -185,14 +185,34 @@ def _request(
     return payload
 
 
+def get_play_service_ready(*, trace_id: str | None = None) -> dict:
+    payload = _request("GET", "/api/health/ready", internal=True, trace_id=trace_id)
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected ready payload.")
+    return payload
+
+
+def _coerce_json_object_list(payload: object, wrapped_keys: tuple[str, ...]) -> list[dict]:
+    """Normalize list endpoints: raw JSON array or common ``{key: [...]}`` wrapper shapes."""
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if isinstance(payload, dict):
+        for key in wrapped_keys:
+            inner = payload.get(key)
+            if isinstance(inner, list):
+                return [x for x in inner if isinstance(x, dict)]
+    return []
+
+
 def list_templates() -> list[dict]:
-    payload = _request("GET", "/api/templates")
-    return payload if isinstance(payload, list) else []
+    # Always use internal base URL: these calls run inside the backend process (Docker network, etc.).
+    payload = _request("GET", "/api/templates", internal=True)
+    return _coerce_json_object_list(payload, ("templates", "items"))
 
 
 def list_runs() -> list[dict]:
-    payload = _request("GET", "/api/runs")
-    return payload if isinstance(payload, list) else []
+    payload = _request("GET", "/api/runs", internal=True)
+    return _coerce_json_object_list(payload, ("runs", "items"))
 
 
 def create_run(*, template_id: str, account_id: str, display_name: str, character_id: str | None = None) -> dict:
@@ -210,6 +230,7 @@ def create_run(*, template_id: str, account_id: str, display_name: str, characte
             "character_id": character_id,
             "display_name": display_name,
         },
+        internal=True,
     )
     return _parse_create_run_v1(payload)
 
@@ -265,12 +286,12 @@ def issue_play_ticket(payload: dict, ttl_seconds: int | None = None) -> str:
 
 
 def get_run_details(run_id: str) -> dict:
-    payload = _request("GET", f"/api/runs/{run_id}")
+    payload = _request("GET", f"/api/runs/{run_id}", internal=True)
     return _parse_run_details_v1(payload, requested_run_id=run_id)
 
 
 def get_run_transcript(run_id: str) -> dict:
-    payload = _request("GET", f"/api/runs/{run_id}/transcript")
+    payload = _request("GET", f"/api/runs/{run_id}/transcript", internal=True)
     if not isinstance(payload, dict) or "entries" not in payload:
         raise GameServiceError("Play service returned an unexpected transcript payload.")
     return payload
@@ -336,4 +357,11 @@ def get_story_diagnostics(session_id: str, *, trace_id: str | None = None) -> di
     payload = _request("GET", f"/api/story/sessions/{session_id}/diagnostics", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected story-diagnostics payload.")
+    return payload
+
+
+def list_story_sessions(*, trace_id: str | None = None) -> dict:
+    payload = _request("GET", "/api/story/sessions", internal=True, trace_id=trace_id)
+    if not isinstance(payload, dict) or "items" not in payload:
+        raise GameServiceError("Play service returned an unexpected story-session list payload.")
     return payload

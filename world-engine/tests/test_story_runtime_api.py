@@ -5,6 +5,38 @@ def _headers(internal_api_key: str) -> dict[str, str]:
     return {"X-Play-Service-Key": internal_api_key}
 
 
+def test_story_sessions_list_empty_then_populated(client, internal_api_key):
+    list_empty = client.get("/api/story/sessions", headers=_headers(internal_api_key))
+    assert list_empty.status_code == 200
+    body0 = list_empty.json()
+    assert body0["total"] == 0
+    assert body0["items"] == []
+
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": {"start_scene_id": "scene_1", "scenes": []},
+        },
+    )
+    assert create_response.status_code == 200
+    session_id = create_response.json()["session_id"]
+
+    list_one = client.get("/api/story/sessions", headers=_headers(internal_api_key))
+    assert list_one.status_code == 200
+    body1 = list_one.json()
+    assert body1["total"] == 1
+    assert len(body1["items"]) == 1
+    row = body1["items"][0]
+    assert row["session_id"] == session_id
+    assert row["module_id"] == "god_of_carnage"
+    assert row["turn_counter"] == 0
+    assert row["current_scene_id"] == "scene_1"
+    assert "updated_at" in row
+    assert "created_at" in row
+
+
 def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key):
     create_response = client.post(
         "/api/story/sessions",

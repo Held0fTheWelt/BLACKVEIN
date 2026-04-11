@@ -1,29 +1,46 @@
 {% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link %}
 {% block title %}Operations{% endblock %}
-{% block heading %}Operations &amp; health{% endblock %}
-{% block subheading %}Health checks, deployment shape, and configuration pointers.{% endblock %}
+{% block heading %}Betrieb &amp; Gesundheit{% endblock %}
+{% block subheading %}Health-Checks, Umgebung, Diagnose — und wie du Incidents eingrenzt.{% endblock %}
 {% block body %}
-<section>
-  <h2>Health endpoints</h2>
+<section class="info-section">
+  <h2>Kernfunktionalität</h2>
+  <p>Der Dienst exponiert <strong>leichte Health-Endpunkte</strong> für Load-Balancer und Monitoring, nutzt strukturierte Logs mit optionaler <strong>Trace-ID</strong> (<code>X-WoS-Trace-Id</code>) und wird über Umgebungsvariablen an Compose/Bare-Metal angepasst. Admin-JSON zu Metriken, Logs und Systemdiagnose ergänzt das für Betreiber.</p>
+</section>
+<section class="info-section">
+  <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
-    <li><code>GET /health</code> — simple JSON <code>{"status": "ok"}</code> on the web blueprint (load balancers).</li>
-    <li><code>GET /api/v1/health</code> — JSON health under the versioned API (rate-limited with other v1 routes).</li>
+    <li><strong>DevOps / SRE</strong> — Health prüfen, Ports und Compose aus dem Runbook ableiten.</li>
+    <li><strong>Support</strong> — Trace-Header aus API-Antworten mitgeben, um Logs zu korrelieren.</li>
+    <li><strong>Platform-Admins</strong> — MCP-Aktivität, Analytics und Systemdiagnose über die dokumentierten Admin-Routen.</li>
   </ul>
 </section>
-<section>
-  <h2>Docker Compose vs bare metal</h2>
-  <p>Root <span class="path">docker-compose.yml</span> maps the backend container port to <strong>8000</strong> on the compose network while bare-metal Flask often uses <strong>5000</strong>. Frontends must set <code>BACKEND_API_URL</code> to reach the correct host/port (e.g. <code>http://backend:8000</code> inside compose). Details: <span class="path">docs/operations/RUNBOOK.md</span> and <span class="path">README.md</span>.</p>
-</section>
-<section>
-  <h2>Environment</h2>
-  <p>See <span class="path">backend/.env.example</span> for database, JWT secrets, <code>FRONTEND_URL</code>, CORS, mail, and play-service variables. Production requires strong <code>SECRET_KEY</code> and <code>JWT_SECRET_KEY</code> (32+ bytes) and email-verification policy as enforced in <code>create_app</code>.</p>
-</section>
-<section>
-  <h2>Diagnostics &amp; runbook</h2>
+<section class="info-section">
+  <h2>Möglich / nicht möglich</h2>
   <ul>
-    <li><span class="path">docs/operations/RUNBOOK.md</span> — startup order, ports, troubleshooting.</li>
-    <li><span class="path">docs/architecture/backend_runtime_classification.md</span> — what is and is not authoritative runtime.</li>
-    <li>Structured logging uses package loggers under <code>app</code>; trace id header <code>X-WoS-Trace-Id</code> on API responses.</li>
+    <li><strong>Möglich:</strong> <code>GET /health</code> und <code>GET /api/v1/health</code>; Diagnose- und MCP-Übersichten über Tags <a href="{{ url_for('info.api_explorer') }}#tag/System">System</a>, <a href="{{ url_for('info.api_explorer') }}#tag/MCP">MCP</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Analytics">Analytics</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Admin">Admin</a>.</li>
+    <li><strong>Nicht Ziel:</strong> Diese Seite ersetzt kein vollständiges APM-Produkt; sie verweist auf Runbooks und Admin-APIs.</li>
+  </ul>
+</section>
+<section class="info-section">
+  <h2>Health-Endpunkte</h2>
+  <ul>
+    <li><a href="/health"><code>GET /health</code></a> — einfaches JSON <code>{"status": "ok"}</code> (Web-Blueprint).</li>
+    <li><a href="/api/v1/health"><code>GET /api/v1/health</code></a> — API-Health (gleiche Rate-Limits wie andere v1-Routen).</li>
+  </ul>
+</section>
+<section class="info-section">
+  <h2>Umgebung &amp; Compose</h2>
+  <p>Docker Compose mappt Backend-Ports oft anders als lokales Flask; Frontends setzen <code>BACKEND_API_URL</code> passend. Siehe <span class="path">docs/operations/RUNBOOK.md</span> und Root-<span class="path">README.md</span>.</p>
+  <p>Variablen-Übersicht: <span class="path">backend/.env.example</span> — u.&nbsp;a. Datenbank, JWT-Secrets, <code>FRONTEND_URL</code>, CORS, Play-Service.</p>
+</section>
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li>{{ docs_deep_link("Admin — Services &amp; health", "/admin/services-and-health-checks/") }}</li>
+    <li>{{ docs_deep_link("Admin — Operations runbook", "/admin/operations-runbook/") }}</li>
+    <li><a href="{{ url_for('info.api_explorer') }}#tag/System">OpenAPI — System</a></li>
   </ul>
 </section>
 {% endblock %}

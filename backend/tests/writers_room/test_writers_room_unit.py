@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.services.writers_room_service import (
+from app.services.writers_room_pipeline import (
     _append_workflow_stage,
     _context_fingerprint,
     _langchain_preview_documents_from_context_pack,

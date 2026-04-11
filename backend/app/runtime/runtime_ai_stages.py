@@ -13,9 +13,7 @@ from typing import Any, Callable
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.runtime.ai_failure_recovery import AIFailureClass, RetryPolicy
 from app.runtime.ai_adapter import AdapterRequest, AdapterResponse, StoryAIAdapter, generate_with_timeout
-from app.runtime.adapter_registry import get_adapter
 from app.runtime.model_routing import route_model
 from app.runtime.model_routing_contracts import (
     Complexity,
@@ -27,28 +25,15 @@ from app.runtime.model_routing_contracts import (
     TaskKind,
     WorkflowPhase,
 )
-from app.runtime.model_routing_evidence import attach_stage_routing_evidence, build_routing_evidence
-from app.runtime.operator_audit import build_runtime_operator_audit, runtime_additive_orchestration_fields
+from app.runtime.model_routing_evidence import build_routing_evidence
+from app.runtime.runtime_ai_stages_sections import (
+    annotate_runtime_stage_request,
+    finalize_slm_only_staged_generation,
+    finalize_synthesis_staged_generation,
+    run_preflight_signal_ranking_gate,
+)
 from app.runtime.runtime_models import DegradedMarker, SessionState
-
-
-RUNTIME_STAGE_SCHEMA_VERSION = "1"
-RUNTIME_STAGE_META_KEY = "runtime_stage"
-RUNTIME_STAGE_SCHEMA_META_KEY = "runtime_stage_schema_version"
-
-
-class RuntimeStageId(str, Enum):
-    """Canonical Runtime pipeline stage identifiers (cross-model orchestration)."""
-
-    preflight = "preflight"
-    signal_consistency = "signal_consistency"
-    ranking = "ranking"
-    synthesis = "synthesis"
-    packaging = "packaging"
-
-
-# SLM-only path: ranking stage is traced but ``route_model`` is not invoked (binding contract).
-RANKING_SLM_ONLY_SKIP_REASON = "ranking_not_required_signal_allows_slm_only"
+from app.runtime.runtime_stage_ids import RANKING_SLM_ONLY_SKIP_REASON, RuntimeStageId
 
 
 class OrchestrationFinalPath(str, Enum):
@@ -380,81 +365,7 @@ def build_slm_only_structured_payload(
     }
 
 
-def _resolve_routed_adapter(
-    routing_decision: RoutingDecision,
-    passed_adapter: StoryAIAdapter,
-) -> tuple[StoryAIAdapter, Any]:
-    resolved = None
-    if routing_decision.selected_adapter_name:
-        resolved = get_adapter(routing_decision.selected_adapter_name)
-    execution = resolved if resolved is not None else passed_adapter
-    return execution, resolved
-
-
-def _trace_dict_for_stage(
-    *,
-    stage_id: RuntimeStageId,
-    routing_request: RoutingRequest,
-    routing_decision: RoutingDecision,
-    passed_adapter: StoryAIAdapter,
-    execution_adapter: StoryAIAdapter,
-    resolved_via_registry: bool,
-    bounded_model_call: bool,
-    skip_reason: str | None,
-    output_summary: dict[str, Any],
-    errors: list[str],
-) -> dict[str, Any]:
-    trace: dict[str, Any] = {
-        "stage_id": stage_id.value,
-        "stage_kind": "routed_model_stage",
-        "bounded_model_call": bounded_model_call,
-        "skip_reason": skip_reason,
-        "request": routing_request.model_dump(mode="json"),
-        "decision": routing_decision.model_dump(mode="json"),
-        "passed_adapter_name": passed_adapter.adapter_name,
-        "executed_adapter_name": execution_adapter.adapter_name if bounded_model_call else None,
-        "selected_adapter_name": routing_decision.selected_adapter_name,
-        "resolved_via_get_adapter": resolved_via_registry,
-        "fallback_to_passed_adapter": not resolved_via_registry,
-        "output_summary": output_summary,
-        "errors": errors,
-    }
-    attach_stage_routing_evidence(
-        trace,
-        routing_request,
-        executed_adapter_name=execution_adapter.adapter_name if bounded_model_call else None,
-        bounded_model_call=bounded_model_call,
-        skip_reason=skip_reason,
-        execution_deviation_note=None,
-    )
-    return trace
-
-
-def _trace_ranking_suppressed_for_slm_only(
-    *,
-    ranking_request: RoutingRequest,
-    passed_adapter: StoryAIAdapter,
-) -> dict[str, Any]:
-    """Ranking stage trace when ``base_needs_llm`` is false: no ``route_model``, no bounded call."""
-
-    return {
-        "stage_id": RuntimeStageId.ranking.value,
-        "stage_kind": "routed_model_stage",
-        "bounded_model_call": False,
-        "skip_reason": RANKING_SLM_ONLY_SKIP_REASON,
-        "request": ranking_request.model_dump(mode="json"),
-        "decision": None,
-        "passed_adapter_name": passed_adapter.adapter_name,
-        "executed_adapter_name": None,
-        "selected_adapter_name": None,
-        "resolved_via_get_adapter": None,
-        "fallback_to_passed_adapter": None,
-        "output_summary": {"suppressed": True, "routing_not_invoked": True},
-        "errors": [],
-    }
-
-
-def _resolve_final_path(
+def resolve_staged_orchestration_final_path(
     *,
     needs_llm: bool,
     synth_gate_reason: str,
@@ -625,24 +536,6 @@ class StagedGenerationResult:
     final_execution_adapter: StoryAIAdapter | None = None
 
 
-def _annotate_request_for_stage(
-    base: AdapterRequest,
-    stage_id: RuntimeStageId,
-    *,
-    request_role_structured_output: bool,
-) -> AdapterRequest:
-    meta = dict(base.metadata or {})
-    meta[RUNTIME_STAGE_META_KEY] = stage_id.value
-    meta[RUNTIME_STAGE_SCHEMA_META_KEY] = RUNTIME_STAGE_SCHEMA_VERSION
-    cloned = base.model_copy(
-        update={
-            "metadata": meta,
-            "request_role_structured_output": request_role_structured_output,
-        }
-    )
-    return cloned
-
-
 def run_runtime_staged_generation(
     *,
     session: SessionState,
@@ -656,442 +549,69 @@ def run_runtime_staged_generation(
 
     Each routed stage uses a distinct ``RoutingRequest`` (meaningful phase/task_kind).
     """
-    traces: list[dict[str, Any]] = []
-    packaging_notes: list[str] = []
-
-    # --- Preflight ---
-    preflight_rr = build_preflight_routing_request(session)
-    preflight_dec = route_model(preflight_rr)
-    preflight_adapter, preflight_resolved = _resolve_routed_adapter(preflight_dec, passed_adapter)
-    preflight_out: PreflightStageOutput | None = None
-    preflight_errors: list[str] = []
-    preflight_skipped = not bool(preflight_dec.selected_adapter_name)
-
-    if preflight_skipped:
-        sr = "no_eligible_adapter_for_preflight_stage"
-        traces.append(
-            _trace_dict_for_stage(
-                stage_id=RuntimeStageId.preflight,
-                routing_request=preflight_rr,
-                routing_decision=preflight_dec,
-                passed_adapter=passed_adapter,
-                execution_adapter=preflight_adapter,
-                resolved_via_registry=preflight_resolved is not None,
-                bounded_model_call=False,
-                skip_reason=sr,
-                output_summary={"skipped": True},
-                errors=[sr],
-            )
-        )
-        packaging_notes.append(sr)
-    else:
-        base_pf = build_adapter_request_fn(1)
-        enrich_request_fn(base_pf)
-        req_pf = _annotate_request_for_stage(
-            base_pf, RuntimeStageId.preflight, request_role_structured_output=False
-        )
-        resp_pf = generate_with_timeout(
-            adapter=preflight_adapter,
-            request=req_pf,
-            timeout_ms=adapter_generate_timeout_ms,
-        )
-        preflight_out, preflight_errors = parse_preflight_payload(resp_pf.structured_payload)
-        if resp_pf.error or not resp_pf.structured_payload:
-            preflight_errors = preflight_errors or ["preflight: adapter error or empty payload"]
-            preflight_out = None
-        traces.append(
-            _trace_dict_for_stage(
-                stage_id=RuntimeStageId.preflight,
-                routing_request=preflight_rr,
-                routing_decision=preflight_dec,
-                passed_adapter=passed_adapter,
-                execution_adapter=preflight_adapter,
-                resolved_via_registry=preflight_resolved is not None,
-                bounded_model_call=True,
-                skip_reason=None if not resp_pf.error else "preflight_adapter_error",
-                output_summary=(
-                    preflight_out.model_dump(mode="json") if preflight_out else {"parse_failed": True}
-                ),
-                errors=preflight_errors,
-            )
-        )
-
-    preflight_parse_ok = preflight_out is not None and not preflight_errors
-
-    # --- Signal ---
-    extra_hints = escalation_hints_from_preflight(preflight_out)
-    signal_rr = build_signal_routing_request(session, extra_hints=extra_hints)
-    signal_dec = route_model(signal_rr)
-    signal_adapter, signal_resolved = _resolve_routed_adapter(signal_dec, passed_adapter)
-    signal_out: SignalStageOutput | None = None
-    signal_errors: list[str] = []
-    signal_skipped = not bool(signal_dec.selected_adapter_name)
-
-    if signal_skipped:
-        sr = "no_eligible_adapter_for_signal_stage"
-        traces.append(
-            _trace_dict_for_stage(
-                stage_id=RuntimeStageId.signal_consistency,
-                routing_request=signal_rr,
-                routing_decision=signal_dec,
-                passed_adapter=passed_adapter,
-                execution_adapter=signal_adapter,
-                resolved_via_registry=signal_resolved is not None,
-                bounded_model_call=False,
-                skip_reason=sr,
-                output_summary={"skipped": True},
-                errors=[sr],
-            )
-        )
-        packaging_notes.append(sr)
-    else:
-        base_sg = build_adapter_request_fn(1)
-        enrich_request_fn(base_sg)
-        req_sg = _annotate_request_for_stage(
-            base_sg, RuntimeStageId.signal_consistency, request_role_structured_output=False
-        )
-        resp_sg = generate_with_timeout(
-            adapter=signal_adapter,
-            request=req_sg,
-            timeout_ms=adapter_generate_timeout_ms,
-        )
-        signal_out, signal_errors = parse_signal_payload(resp_sg.structured_payload)
-        if resp_sg.error or not resp_sg.structured_payload:
-            signal_errors = signal_errors or ["signal: adapter error or empty payload"]
-            signal_out = None
-        traces.append(
-            _trace_dict_for_stage(
-                stage_id=RuntimeStageId.signal_consistency,
-                routing_request=signal_rr,
-                routing_decision=signal_dec,
-                passed_adapter=passed_adapter,
-                execution_adapter=signal_adapter,
-                resolved_via_registry=signal_resolved is not None,
-                bounded_model_call=True,
-                skip_reason=None if not resp_sg.error else "signal_adapter_error",
-                output_summary=(
-                    signal_out.model_dump(mode="json") if signal_out else {"parse_failed": True}
-                ),
-                errors=signal_errors,
-            )
-        )
-
-    signal_parse_ok = signal_out is not None and not signal_errors
-
-    base_needs_llm, base_reason = compute_needs_llm_synthesis(
-        signal=signal_out,
-        signal_parse_ok=signal_parse_ok,
-        preflight_parse_ok=preflight_parse_ok,
-    )
-
-    ranking_rr = build_ranking_routing_request(session, extra_hints=extra_hints)
-    ranking_bounded_ran = False
-    ranking_bounded_parse_ok = False
-    ranking_out: RankingStageOutput | None = None
-    ranking_dec_for_rollup: RoutingDecision | None = None
-    ranking_exec_for_rollup: StoryAIAdapter | None = None
-    ranking_resolved_for_rollup: bool | None = None
-    ranking_no_eligible = False
-
-    if not base_needs_llm:
-        traces.append(
-            _trace_ranking_suppressed_for_slm_only(
-                ranking_request=ranking_rr,
-                passed_adapter=passed_adapter,
-            )
-        )
-        needs_llm, synth_gate_reason, ranking_effect = compute_synthesis_gate_after_ranking(
-            base_needs_llm=False,
-            base_reason=base_reason,
-            signal=signal_out,
-            signal_parse_ok=signal_parse_ok,
-            ranking_out=None,
-            ranking_parse_ok=False,
-            ranking_bounded_ran=False,
-            ranking_no_eligible_adapter=False,
-        )
-    else:
-        ranking_dec = route_model(ranking_rr)
-        ranking_adapter, ranking_resolved = _resolve_routed_adapter(ranking_dec, passed_adapter)
-        ranking_no_eligible = not bool(ranking_dec.selected_adapter_name)
-        ranking_dec_for_rollup = ranking_dec
-        ranking_exec_for_rollup = ranking_adapter
-        ranking_resolved_for_rollup = ranking_resolved is not None
-
-        if ranking_no_eligible:
-            sr_rk = "no_eligible_adapter_for_ranking_stage"
-            traces.append(
-                _trace_dict_for_stage(
-                    stage_id=RuntimeStageId.ranking,
-                    routing_request=ranking_rr,
-                    routing_decision=ranking_dec,
-                    passed_adapter=passed_adapter,
-                    execution_adapter=ranking_adapter,
-                    resolved_via_registry=ranking_resolved is not None,
-                    bounded_model_call=False,
-                    skip_reason=sr_rk,
-                    output_summary={"skipped": True},
-                    errors=[sr_rk],
-                )
-            )
-            packaging_notes.append(sr_rk)
-        else:
-            base_rk = build_adapter_request_fn(1)
-            enrich_request_fn(base_rk)
-            req_rk = _annotate_request_for_stage(
-                base_rk, RuntimeStageId.ranking, request_role_structured_output=False
-            )
-            resp_rk = generate_with_timeout(
-                adapter=ranking_adapter,
-                request=req_rk,
-                timeout_ms=adapter_generate_timeout_ms,
-            )
-            ranking_out, ranking_errors = parse_ranking_payload(resp_rk.structured_payload)
-            if resp_rk.error or not resp_rk.structured_payload:
-                ranking_errors = ranking_errors or ["ranking: adapter error or empty payload"]
-                ranking_out = None
-            ranking_bounded_ran = True
-            ranking_bounded_parse_ok = ranking_out is not None and not ranking_errors
-            traces.append(
-                _trace_dict_for_stage(
-                    stage_id=RuntimeStageId.ranking,
-                    routing_request=ranking_rr,
-                    routing_decision=ranking_dec,
-                    passed_adapter=passed_adapter,
-                    execution_adapter=ranking_adapter,
-                    resolved_via_registry=ranking_resolved is not None,
-                    bounded_model_call=True,
-                    skip_reason=None if not resp_rk.error else "ranking_adapter_error",
-                    output_summary=(
-                        ranking_out.model_dump(mode="json") if ranking_out else {"parse_failed": True}
-                    ),
-                    errors=ranking_errors,
-                )
-            )
-
-        needs_llm, synth_gate_reason, ranking_effect = compute_synthesis_gate_after_ranking(
-            base_needs_llm=True,
-            base_reason=base_reason,
-            signal=signal_out,
-            signal_parse_ok=signal_parse_ok,
-            ranking_out=ranking_out,
-            ranking_parse_ok=ranking_bounded_parse_ok,
-            ranking_bounded_ran=ranking_bounded_ran,
-            ranking_no_eligible_adapter=ranking_no_eligible,
-        )
-
-    final_path = _resolve_final_path(
-        needs_llm=needs_llm,
-        synth_gate_reason=synth_gate_reason,
-        preflight_skipped=preflight_skipped,
-        signal_skipped=signal_skipped,
-        ranking_bounded_parse_ok=ranking_bounded_parse_ok,
-        ranking_bounded_ran=ranking_bounded_ran,
-        base_reason=base_reason,
-    )
-
-    ranked_skip_synthesis = needs_llm is False and synth_gate_reason == "ranking_skip_synthesis"
-    ranking_suppressed_slm_only = not base_needs_llm
-
-    synthesis_rr: RoutingRequest | None = None
-    synthesis_dec: RoutingDecision | None = None
-    synthesis_adapter: StoryAIAdapter | None = None
-    synthesis_resolved: bool | None = None
-
-    if needs_llm:
-        synthesis_rr = build_synthesis_routing_request(session)
-        synthesis_dec = route_model(synthesis_rr)
-        synthesis_adapter, syn_resolved = _resolve_routed_adapter(synthesis_dec, passed_adapter)
-        synthesis_resolved = syn_resolved is not None
-        retry_policy = RetryPolicy()
-        resp_syn: AdapterResponse | None = None
-        syn_attempt = 1
-        while syn_attempt <= retry_policy.MAX_RETRIES:
-            if syn_attempt > 1 and mark_retry_context_fn is not None:
-                mark_retry_context_fn()
-            base_syn = build_adapter_request_fn(syn_attempt)
-            enrich_request_fn(base_syn)
-            req_syn = _annotate_request_for_stage(
-                base_syn, RuntimeStageId.synthesis, request_role_structured_output=True
-            )
-            resp_syn = generate_with_timeout(
-                adapter=synthesis_adapter,
-                request=req_syn,
-                timeout_ms=adapter_generate_timeout_ms,
-            )
-            has_error = resp_syn.error is not None
-            is_empty = not resp_syn.raw_output or not resp_syn.raw_output.strip()
-            if has_error or is_empty:
-                failure_class = AIFailureClass.ADAPTER_ERROR
-                if has_error and isinstance(resp_syn.error, str) and resp_syn.error.startswith(
-                    "adapter_generate_timeout:"
-                ):
-                    failure_class = AIFailureClass.TIMEOUT_OR_EMPTY_RESPONSE
-                if (
-                    retry_policy.is_retryable_failure(failure_class)
-                    and syn_attempt < retry_policy.MAX_RETRIES
-                ):
-                    syn_attempt += 1
-                    continue
-            break
-        assert resp_syn is not None
-        traces.append(
-            _trace_dict_for_stage(
-                stage_id=RuntimeStageId.synthesis,
-                routing_request=synthesis_rr,
-                routing_decision=synthesis_dec,
-                passed_adapter=passed_adapter,
-                execution_adapter=synthesis_adapter,
-                resolved_via_registry=synthesis_resolved,
-                bounded_model_call=True,
-                skip_reason=None if not resp_syn.error else "synthesis_adapter_error",
-                output_summary={
-                    "raw_output_len": len(resp_syn.raw_output or ""),
-                    "synthesis_attempts": syn_attempt,
-                },
-                errors=[resp_syn.error] if resp_syn.error else [],
-            )
-        )
-        traces.append(
-            {
-                "stage_id": RuntimeStageId.packaging.value,
-                "stage_kind": "packaging",
-                "orchestration_role": "passthrough_synthesis_response",
-                "bounded_model_call": False,
-                "skip_reason": None,
-                "output_summary": {"mode": "passthrough_synthesis_response"},
-                "errors": [],
-            }
-        )
-        rollup = build_legacy_model_routing_rollup(
-            synthesis_ran=True,
-            synthesis_request=synthesis_rr,
-            synthesis_decision=synthesis_dec,
-            synthesis_execution_adapter=synthesis_adapter,
-            synthesis_resolved_via_registry=synthesis_resolved,
-            passed_adapter=passed_adapter,
-            signal_request=signal_rr,
-            signal_decision=signal_dec,
-            signal_execution_adapter=signal_adapter,
-            signal_resolved=signal_resolved is not None,
-            final_path=final_path,
-            ranking_request=ranking_rr,
-            ranking_decision=ranking_dec_for_rollup,
-            ranking_execution_adapter=ranking_exec_for_rollup,
-            ranking_resolved_via_registry=ranking_resolved_for_rollup,
-            ranking_suppressed_slm_only=ranking_suppressed_slm_only,
-            ranked_skip_synthesis=False,
-            synthesis_gate_reason=synth_gate_reason,
-        )
-        summary = {
-            "stages_executed": [t["stage_id"] for t in traces],
-            "stages_skipped": [t["stage_id"] for t in traces if not t.get("bounded_model_call")],
-            "synthesis_skipped": False,
-            "synthesis_gate_reason": synth_gate_reason,
-            "final_path": final_path.value,
-            "packaging_notes": packaging_notes,
-            "staged_pipeline_preempted": None,
-            "ranking_effect": ranking_effect,
-            "ranking_bounded_model_call": ranking_bounded_ran,
-            "ranking_suppressed_for_slm_only": ranking_suppressed_slm_only,
-            "ranking_no_eligible_adapter": bool(base_needs_llm and ranking_no_eligible),
-        }
-        summary.update(runtime_additive_orchestration_fields(traces))
-        operator_audit = build_runtime_operator_audit(
-            runtime_stage_traces=traces,
-            runtime_orchestration_summary=summary,
-            model_routing_trace=rollup,
-        )
-        return StagedGenerationResult(
-            response=resp_syn,
-            runtime_stage_traces=traces,
-            runtime_orchestration_summary=summary,
-            model_routing_trace=rollup,
-            operator_audit=operator_audit,
-            synthesis_skipped=False,
-            final_path=final_path,
-            synthesis_attempt_count=syn_attempt,
-            final_execution_adapter=synthesis_adapter,
-        )
-
-    # SLM-only path: synthetic response; signal must be present (forced synthesis if not)
-    assert signal_out is not None  # guarded by needs_llm False
-    payload = build_slm_only_structured_payload(
-        preflight=preflight_out,
-        signal=signal_out,
-        ranking=ranking_out if ranked_skip_synthesis else None,
-    )
-    raw = f"[staged-runtime/slm_only] gate={synth_gate_reason}"
-    resp = AdapterResponse(
-        raw_output=raw,
-        structured_payload=payload,
-        backend_metadata={
-            "staged_runtime": True,
-            "slm_only": True,
-            "synthesis_gate_reason": synth_gate_reason,
-            "ranked_skip_synthesis": ranked_skip_synthesis,
-        },
-        error=None,
-    )
-    traces.append(
-        {
-            "stage_id": RuntimeStageId.packaging.value,
-            "stage_kind": "packaging",
-            "orchestration_role": "deterministic_slm_only_structured_payload",
-            "bounded_model_call": False,
-            "skip_reason": None,
-            "output_summary": {"mode": "deterministic_slm_only_structured_payload"},
-            "errors": [],
-        }
-    )
-    rollup = build_legacy_model_routing_rollup(
-        synthesis_ran=False,
-        synthesis_request=None,
-        synthesis_decision=None,
-        synthesis_execution_adapter=None,
-        synthesis_resolved_via_registry=None,
+    gate = run_preflight_signal_ranking_gate(
+        session=session,
         passed_adapter=passed_adapter,
-        signal_request=signal_rr,
-        signal_decision=signal_dec,
-        signal_execution_adapter=signal_adapter,
-        signal_resolved=signal_resolved is not None,
-        final_path=final_path,
-        ranking_request=ranking_rr,
-        ranking_decision=ranking_dec_for_rollup if ranked_skip_synthesis else None,
-        ranking_execution_adapter=ranking_exec_for_rollup if ranked_skip_synthesis else None,
-        ranking_resolved_via_registry=ranking_resolved_for_rollup if ranked_skip_synthesis else None,
-        ranking_suppressed_slm_only=ranking_suppressed_slm_only,
-        ranked_skip_synthesis=ranked_skip_synthesis,
-        synthesis_gate_reason=synth_gate_reason,
+        adapter_generate_timeout_ms=adapter_generate_timeout_ms,
+        build_adapter_request_fn=build_adapter_request_fn,
+        enrich_request_fn=enrich_request_fn,
+        route_model=route_model,
     )
-    summary = {
-        "stages_executed": [t["stage_id"] for t in traces],
-        "stages_skipped": [t["stage_id"] for t in traces if not t.get("bounded_model_call")],
-        "synthesis_skipped": True,
-        "synthesis_skip_reason": synth_gate_reason,
-        "synthesis_gate_reason": synth_gate_reason,
-        "final_path": final_path.value,
-        "packaging_notes": packaging_notes,
-        "staged_pipeline_preempted": None,
-        "ranking_effect": ranking_effect,
-        "ranking_bounded_model_call": ranking_bounded_ran,
-        "ranking_suppressed_for_slm_only": ranking_suppressed_slm_only,
-        "ranking_no_eligible_adapter": bool(base_needs_llm and ranking_no_eligible),
-    }
-    summary.update(runtime_additive_orchestration_fields(traces))
-    operator_audit = build_runtime_operator_audit(
-        runtime_stage_traces=traces,
-        runtime_orchestration_summary=summary,
-        model_routing_trace=rollup,
-    )
-    return StagedGenerationResult(
-        response=resp,
-        runtime_stage_traces=traces,
-        runtime_orchestration_summary=summary,
-        model_routing_trace=rollup,
-        operator_audit=operator_audit,
-        synthesis_skipped=True,
-        final_path=final_path,
-        synthesis_attempt_count=0,
-        final_execution_adapter=passed_adapter,
+
+    if gate.needs_llm:
+        return finalize_synthesis_staged_generation(
+            traces=gate.traces,
+            packaging_notes=gate.packaging_notes,
+            session=session,
+            passed_adapter=passed_adapter,
+            adapter_generate_timeout_ms=adapter_generate_timeout_ms,
+            build_adapter_request_fn=build_adapter_request_fn,
+            enrich_request_fn=enrich_request_fn,
+            annotate_request_for_stage_fn=lambda base, request_role_structured_output: annotate_runtime_stage_request(
+                base,
+                RuntimeStageId.synthesis,
+                request_role_structured_output=request_role_structured_output,
+            ),
+            mark_retry_context_fn=mark_retry_context_fn,
+            route_model=route_model,
+            signal_rr=gate.signal_rr,
+            signal_dec=gate.signal_dec,
+            signal_adapter=gate.signal_adapter,
+            signal_resolved_via=gate.signal_resolved_via,
+            ranking_rr=gate.ranking_rr,
+            ranking_dec_for_rollup=gate.ranking_dec_for_rollup,
+            ranking_exec_for_rollup=gate.ranking_exec_for_rollup,
+            ranking_resolved_for_rollup=gate.ranking_resolved_for_rollup,
+            ranking_suppressed_slm_only=gate.ranking_suppressed_slm_only,
+            synth_gate_reason=gate.synth_gate_reason,
+            final_path=gate.final_path,
+            ranking_effect=gate.ranking_effect,
+            ranking_bounded_ran=gate.ranking_bounded_ran,
+            ranking_no_eligible=gate.ranking_no_eligible,
+            base_needs_llm=gate.base_needs_llm,
+        )
+
+    return finalize_slm_only_staged_generation(
+        traces=gate.traces,
+        packaging_notes=gate.packaging_notes,
+        preflight_out=gate.preflight_out,
+        signal_out=gate.signal_out,
+        ranking_out=gate.ranking_out,
+        ranked_skip_synthesis=gate.ranked_skip_synthesis,
+        synth_gate_reason=gate.synth_gate_reason,
+        final_path=gate.final_path,
+        passed_adapter=passed_adapter,
+        signal_rr=gate.signal_rr,
+        signal_dec=gate.signal_dec,
+        signal_adapter=gate.signal_adapter,
+        signal_resolved_via=gate.signal_resolved_via,
+        ranking_rr=gate.ranking_rr,
+        ranking_dec_for_rollup=gate.ranking_dec_for_rollup,
+        ranking_exec_for_rollup=gate.ranking_exec_for_rollup,
+        ranking_resolved_for_rollup=gate.ranking_resolved_for_rollup,
+        ranking_suppressed_slm_only=gate.ranking_suppressed_slm_only,
+        ranking_effect=gate.ranking_effect,
+        ranking_bounded_ran=gate.ranking_bounded_ran,
+        ranking_no_eligible=gate.ranking_no_eligible,
+        base_needs_llm=gate.base_needs_llm,
     )

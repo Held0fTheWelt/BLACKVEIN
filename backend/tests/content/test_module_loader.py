@@ -211,6 +211,38 @@ def test_content_modules_root_points_at_repo_content_modules():
     assert root.parent.name == "content"
 
 
+def test_content_modules_root_wos_content_modules_root(monkeypatch, tmp_path):
+    modules = tmp_path / "modules"
+    modules.mkdir()
+    monkeypatch.setenv("WOS_CONTENT_MODULES_ROOT", str(modules))
+    monkeypatch.delenv("WOS_REPO_ROOT", raising=False)
+    from app.content import module_loader as ml
+
+    assert ml.content_modules_root().resolve() == modules.resolve()
+
+
+def test_content_modules_root_wos_repo_root(monkeypatch, tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "content" / "modules").mkdir(parents=True)
+    monkeypatch.delenv("WOS_CONTENT_MODULES_ROOT", raising=False)
+    monkeypatch.setenv("WOS_REPO_ROOT", str(repo))
+    from app.content import module_loader as ml
+
+    assert ml.content_modules_root().resolve() == (repo / "content" / "modules").resolve()
+
+
+def test_content_modules_root_explicit_overrides_repo_root(monkeypatch, tmp_path):
+    explicit = tmp_path / "explicit_modules"
+    explicit.mkdir()
+    repo = tmp_path / "repo"
+    (repo / "content" / "modules").mkdir(parents=True)
+    monkeypatch.setenv("WOS_CONTENT_MODULES_ROOT", str(explicit))
+    monkeypatch.setenv("WOS_REPO_ROOT", str(repo))
+    from app.content import module_loader as ml
+
+    assert ml.content_modules_root().resolve() == explicit.resolve()
+
+
 def test_load_file_empty_yaml_returns_empty_dict(tmp_path):
     path = tmp_path / "empty.yaml"
     path.write_text("", encoding="utf-8")

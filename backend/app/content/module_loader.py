@@ -8,6 +8,7 @@ collects all errors before raising exceptions.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -24,9 +25,47 @@ from .module_models import ContentModule
 
 
 def content_modules_root() -> Path:
-    """Absolute path to ``content/modules`` at the repository root (sibling of ``backend/``)."""
-    # This file: backend/app/content/module_loader.py
-    return Path(__file__).resolve().parent.parent.parent.parent / "content" / "modules"
+    """Absolute path to the directory that contains module folders (e.g. ``god_of_carnage/``).
+
+    Resolution order:
+    1. ``WOS_CONTENT_MODULES_ROOT`` — absolute path to the ``modules`` directory.
+    2. ``WOS_REPO_ROOT`` — repository root; uses ``<root>/content/modules``.
+    3. Packaged layout (Docker image): this file at ``.../app/content/module_loader.py``
+       with modules copied to ``<app-root>/content/modules`` (three parents up from
+       ``content/`` → install root, e.g. ``/app/content/modules``).
+    4. Heuristic: four parents up, then ``content/modules`` (dev checkout:
+       ``.../repo/backend/app/content/module_loader.py``).
+
+    Override env vars when the layout does not match any automatic path.
+    """
+    explicit = (os.environ.get("WOS_CONTENT_MODULES_ROOT") or "").strip()
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    repo_root = (os.environ.get("WOS_REPO_ROOT") or "").strip()
+    if repo_root:
+        return Path(repo_root).expanduser().resolve() / "content" / "modules"
+    here = Path(__file__).resolve()
+    packaged = here.parent.parent.parent / "content" / "modules"
+    if packaged.is_dir():
+        return packaged.resolve()
+    # Dev checkout: backend/app/content/module_loader.py → repo root
+    return here.parent.parent.parent.parent / "content" / "modules"
+
+
+# Game experience template IDs that map to a different ``content/modules/<dir>`` folder name.
+_CONTENT_MODULE_DIRECTORY_ALIASES: dict[str, str] = {
+    "god_of_carnage_solo": "god_of_carnage",
+}
+
+
+def resolve_content_module_directory_id(module_id: str) -> str:
+    """Return the filesystem directory name under ``content/modules/`` for a requested id.
+
+    Template ids (e.g. ``god_of_carnage_solo``) may differ from the canonical YAML module
+    folder (e.g. ``god_of_carnage``).
+    """
+    key = (module_id or "").strip()
+    return _CONTENT_MODULE_DIRECTORY_ALIASES.get(key, key)
 
 
 class ModuleFileLoader:
@@ -316,13 +355,15 @@ def load_module(
     else:
         modules_root = Path(root_path) if isinstance(root_path, str) else root_path
 
-    module_root = modules_root / module_id
+    requested_id = (module_id or "").strip()
+    directory_id = resolve_content_module_directory_id(requested_id)
+    module_root = modules_root / directory_id
 
     # Check if module directory exists before attempting to load
     if not module_root.exists():
         raise ModuleNotFoundError(
             message=f"Module not found",
-            module_id=module_id,
+            module_id=requested_id,
             file_path=str(module_root),
         )
 

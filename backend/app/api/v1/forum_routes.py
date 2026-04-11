@@ -10,6 +10,14 @@ from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
+from app.api.v1.forum_routes_helpers import (
+    _current_user_optional,
+    _parse_int,
+    _require_user,
+    _validate_category_title_length,
+    _validate_content_length,
+    _validate_title_length,
+)
 from app.utils.error_handler import log_full_error, ERROR_MESSAGES
 from app.auth.permissions import (
     current_user_is_admin,
@@ -25,12 +33,10 @@ from app.models import (
     ForumPost,
     ForumReport,
     ForumThreadSubscription,
-    Notification,
     ForumTag,
 )
 from app.services import log_activity
 from app.services.activity_log_service import list_activity_logs
-from app.services.search_utils import _escape_sql_like_wildcards
 from app.services.forum_service import (
     assign_report_to_moderator,
     bulk_update_report_status,
@@ -92,90 +98,12 @@ from app.services.forum_service import (
     user_can_view_post,
     user_can_view_thread,
     user_is_moderator,
-    _utc_now,
     bookmark_thread,
     unbookmark_thread,
     list_bookmarked_threads,
     set_thread_tags,
     list_tags_for_thread,
 )
-
-
-def _parse_int(value, default, min_val=None, max_val=None):
-    if value is None:
-        return default
-    try:
-        n = int(value)
-        if min_val is not None and n < min_val:
-            return default
-        if max_val is not None and n > max_val:
-            return max_val
-        return n
-    except (TypeError, ValueError):
-        return default
-
-
-def _current_user_optional():
-    """Return current user object or None (for optional JWT endpoints)."""
-    try:
-        return get_current_user()
-    except Exception:
-        return None
-
-
-def _validate_content_length(content, min_len=2, max_len=50000):
-    """
-    Validate content length. Returns (is_valid, error_message).
-    Enforces strict type checking to prevent bypass via non-string inputs.
-    """
-    # Type check first: must be a string
-    if not isinstance(content, str):
-        return False, "Content must be a string"
-
-    # Strip and check length
-    trimmed = content.strip()
-    if len(trimmed) < min_len:
-        return False, f"Content must be at least {min_len} characters"
-    if len(trimmed) > max_len:
-        return False, f"Content must not exceed {max_len} characters"
-    return True, None
-
-
-def _validate_title_length(title, min_len=5, max_len=500):
-    """
-    Validate title length. Returns (is_valid, error_message).
-    Enforces strict type checking to prevent bypass via non-string inputs.
-    """
-    # Type check first: must be a string
-    if not isinstance(title, str):
-        return False, "Title must be a string"
-
-    # Strip and check length
-    trimmed = title.strip()
-    if len(trimmed) < min_len:
-        return False, f"Title must be at least {min_len} characters"
-    if len(trimmed) > max_len:
-        return False, f"Title must not exceed {max_len} characters"
-    return True, None
-
-
-def _validate_category_title_length(title, min_len=5, max_len=200):
-    """
-    Validate category title length. Returns (is_valid, error_message).
-    Enforces strict type checking to prevent bypass via non-string inputs.
-    """
-    # Type check first: must be a string
-    if not isinstance(title, str):
-        return False, "Title must be a string"
-
-    # Strip and check length
-    trimmed = title.strip()
-    if len(trimmed) < min_len:
-        return False, f"Title must be at least {min_len} characters"
-    if len(trimmed) > max_len:
-        return False, f"Title must not exceed {max_len} characters"
-    return True, None
-
 
 # --- Public / community -------------------------------------------------------
 
@@ -371,146 +299,12 @@ def forum_search():
 
     Response: {items: [], total: int, page: int, per_page: int}
     """
-    from app.models import ForumThread, ForumPost, ForumCategory, ForumThreadTag  # imported lazily to avoid cycles
+    from app.api.v1.forum_thread_search_handler import run_forum_thread_search
 
-    user = _current_user_optional()
-
-    # Extract and normalize query
-    q_raw = (request.args.get("q") or "").strip()
-    page = _parse_int(request.args.get("page"), 1, min_val=1, max_val=10000)
-    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
-    category_slug = (request.args.get("category") or "").strip() or None
-    status_filter = (request.args.get("status") or "").strip() or None
-    tag_slug = (request.args.get("tag") or "").strip().lower() or None
-    include_content = (request.args.get("include_content", "").strip().lower() in ("1", "true", "yes"))
-
-    # Input validation: empty query with no other filters
-    if not q_raw and not category_slug and not status_filter and not tag_slug:
-        return jsonify(
-            {
-                "items": [],
-                "total": 0,
-                "page": page,
-                "per_page": limit,
-            }
-        ), 200
-
-    # Input validation: very short queries (1-2 chars) are too broad
-    if q_raw and len(q_raw) < 3:
-        return jsonify(
-            {
-                "error": "Search query must be at least 3 characters",
-                "items": [],
-                "total": 0,
-                "page": page,
-                "per_page": limit,
-            }
-        ), 400
-
-    # Input validation: truncate overly long search terms
-    if len(q_raw) > 500:
-        q_raw = q_raw[:500]
-
-    # Escape SQL LIKE wildcards for safety, then build pattern
-    q_escaped = _escape_sql_like_wildcards(q_raw)
-    like_pattern = f"%{q_escaped}%" if q_escaped else None
-
-    is_mod = user_is_moderator(user) if user else False
-
-    # Base query with SQL-level visibility filtering
-    q = ForumThread.query
-    if not is_mod:
-        # Regular users: exclude deleted and hidden threads at SQL level
-        q = q.filter(ForumThread.status.notin_(("deleted", "hidden")))
-    else:
-        # Moderators see everything except deleted (keep consistency with list behavior)
-        q = q.filter(ForumThread.status != "deleted")
-
-    if like_pattern:
-        q = q.filter(ForumThread.title.ilike(like_pattern, escape="\\"))
-
-    # Join category for access filtering and optional category filter
-    q = q.join(ForumCategory, ForumCategory.id == ForumThread.category_id)
-    if not is_mod:
-        # Only active, non-private categories for regular users (SQL-level)
-        q = q.filter(ForumCategory.is_active.is_(True))
-        q = q.filter(ForumCategory.is_private.is_(False))
-    if category_slug:
-        q = q.filter(ForumCategory.slug == category_slug)
-
-    # Optional status filter: validate enum
-    if status_filter:
-        if status_filter not in ("open", "locked", "archived", "hidden"):
-            return jsonify(
-                {
-                    "error": f"Invalid status filter: {status_filter}. Must be one of: open, locked, archived, hidden",
-                    "items": [],
-                    "total": 0,
-                    "page": page,
-                    "per_page": limit,
-                }
-            ), 400
-        q = q.filter(ForumThread.status == status_filter)
-
-    # Optional tag filter
-    if tag_slug:
-        from app.models import ForumTag as ForumTagModel  # local import
-        q = q.join(ForumThreadTag, ForumThreadTag.thread_id == ForumThread.id).join(
-            ForumTagModel, ForumTagModel.id == ForumThreadTag.tag_id
-        ).filter(ForumTagModel.slug == tag_slug)
-
-    # Optional post content search (requires 3+ chars for performance)
-    if include_content and like_pattern and len(q_raw) >= 3:
-        from sqlalchemy import select
-        sub = select(ForumPost.thread_id).where(
-            ForumPost.content.ilike(like_pattern, escape="\\")
-        )
-        q = q.filter(
-            db.or_(
-                ForumThread.title.ilike(like_pattern, escape="\\"),
-                ForumThread.id.in_(sub),
-            )
-        )
-
-    # SQL-level pagination (visibility already pushed into SQL)
-    q = q.order_by(
-        ForumThread.is_pinned.desc(),
-        ForumThread.last_post_at.desc().nullslast(),
-        ForumThread.id.asc(),
-    )
-    total = q.count()
-    page = max(1, page)
-    limit = max(1, min(limit, 100))
-    offset = (page - 1) * limit
-    items = q.offset(offset).limit(limit).all()
-
-    items_data = []
-    for t in items:
-        d = t.to_dict()
-        d["author_username"] = t.author.username if t.author else None
-        items_data.append(d)
-
-    return jsonify(
-        {
-            "items": items_data,
-            "total": total,
-            "page": page,
-            "per_page": limit,
-        }
-    ), 200
+    return run_forum_thread_search()
 
 
 # --- Authenticated community actions (threads, posts, likes, reports) ---------
-
-
-def _require_user():
-    """Require a logged-in, non-banned user."""
-    user = get_current_user()
-    if not user:
-        return None, (jsonify({"error": "Authorization required"}), 401)
-    if getattr(user, "is_banned", False):
-        return None, (jsonify({"error": "Account is restricted."}), 403)
-    return user, None
 
 
 @api_v1_bp.route("/forum/categories/<slug>/threads", methods=["POST"])
@@ -2442,97 +2236,4 @@ def forum_moderation_hidden_posts():
             "updated_at": p.updated_at.isoformat() if p.updated_at else None,
         })
     return jsonify({"items": items, "total": len(items)}), 200
-
-
-# --- Notifications (Foundation) -----------------------------------------------
-
-
-@api_v1_bp.route("/notifications", methods=["GET"])
-@limiter.limit("60 per minute")
-@jwt_required()
-def notifications_list():
-    """
-    List notifications for current user.
-    Query: page, limit, unread_only (boolean).
-    """
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-
-    page = _parse_int(request.args.get("page"), 1, min_val=1)
-    limit = _parse_int(request.args.get("limit"), 20, min_val=1, max_val=100)
-    unread_only = request.args.get("unread_only", "").lower() in ("1", "true", "yes")
-
-    q = Notification.query.filter_by(user_id=user.id)
-    if unread_only:
-        q = q.filter_by(is_read=False)
-    q = q.order_by(Notification.created_at.desc())
-
-    total = q.count()
-    page = max(1, page)
-    limit = max(1, min(limit, 100))
-    start = (page - 1) * limit
-    end = start + limit
-
-    items = q.offset(start).limit(limit).all()
-    items_data = []
-    for n in items:
-        d = n.to_dict()
-        if n.target_type == "forum_thread":
-            thread = get_thread_by_id(n.target_id)
-            d["thread_slug"] = thread.slug if thread and thread.deleted_at is None else None
-            d["target_post_id"] = None
-        elif n.target_type == "forum_post":
-            post = get_post_by_id(n.target_id)
-            if post and post.thread and post.thread.deleted_at is None:
-                d["thread_slug"] = post.thread.slug
-                d["target_post_id"] = post.id
-            else:
-                d["thread_slug"] = None
-                d["target_post_id"] = None
-        else:
-            d["thread_slug"] = None
-            d["target_post_id"] = None
-        items_data.append(d)
-
-    return jsonify({
-        "items": items_data,
-        "total": total,
-        "page": page,
-        "per_page": limit,
-    }), 200
-
-
-@api_v1_bp.route("/notifications/<int:notification_id>/read", methods=["PATCH", "PUT"])
-@limiter.limit("60 per minute")
-@jwt_required()
-def notification_mark_read(notification_id: int):
-    """Mark a notification as read. Only the owner can mark it."""
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-    n = Notification.query.filter_by(id=notification_id, user_id=user.id).first()
-    if not n:
-        return jsonify({"error": "Not found"}), 404
-    n.is_read = True
-    n.read_at = _utc_now()
-    db.session.commit()
-    return jsonify(n.to_dict()), 200
-
-
-@api_v1_bp.route("/notifications/read-all", methods=["POST", "PUT"])
-@limiter.limit("30 per minute")
-@jwt_required()
-def notifications_mark_all_read():
-    """Mark all notifications for the current user as read."""
-    user, err_resp = _require_user()
-    if err_resp:
-        return err_resp
-    now = _utc_now()
-    updated = Notification.query.filter_by(user_id=user.id, is_read=False).update(
-        {Notification.is_read: True, Notification.read_at: now},
-        synchronize_session=False,
-    )
-    db.session.commit()
-    return jsonify({"message": "Marked all as read", "updated": updated}), 200
 

@@ -32,7 +32,7 @@ def test_login_success_sets_session(client, monkeypatch):
             }
         )
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request_backend)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request_backend)
     response = client.post("/login", data={"username": "alice", "password": "secret"})
     assert response.status_code == 302
     assert "/dashboard" in response.headers["Location"]
@@ -50,7 +50,7 @@ def test_dashboard_with_session_renders_user(client, monkeypatch):
         assert path == "/api/v1/auth/me"
         return FakeResponse(payload={"id": 1, "username": "alice"})
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request_backend)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request_backend)
     with client.session_transaction() as sess:
         sess["access_token"] = "token-a"
         sess["refresh_token"] = "token-r"
@@ -66,7 +66,7 @@ def test_play_start_lists_templates(client, monkeypatch):
         assert path == "/api/v1/game/bootstrap"
         return FakeResponse(payload={"templates": [{"id": "god_of_carnage", "title": "God of Carnage"}]})
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request_backend)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request_backend)
     with client.session_transaction() as sess:
         sess["access_token"] = "token-a"
     response = client.get("/play")

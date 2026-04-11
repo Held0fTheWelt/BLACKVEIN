@@ -46,14 +46,14 @@
     </section>
 
     <div class="inspector-tabbar" role="tablist" aria-label="Inspector Suite sections">
-        <button type="button" class="inspector-tab active" id="inspector-tab-turn" data-panel="inspector-panel-turn" aria-selected="true">Turn Inspector</button>
-        <button type="button" class="inspector-tab" id="inspector-tab-timeline" data-panel="inspector-panel-timeline" aria-selected="false">Timeline</button>
-        <button type="button" class="inspector-tab" id="inspector-tab-comparison" data-panel="inspector-panel-comparison" aria-selected="false">Comparison</button>
-        <button type="button" class="inspector-tab" id="inspector-tab-coverage" data-panel="inspector-panel-coverage" aria-selected="false">Coverage / Health</button>
-        <button type="button" class="inspector-tab" id="inspector-tab-provenance-raw" data-panel="inspector-panel-provenance-raw" aria-selected="false">Provenance / Raw</button>
+        <button type="button" class="inspector-tab active" id="inspector-tab-turn" role="tab" tabindex="0" data-panel="inspector-panel-turn" aria-controls="inspector-panel-turn" aria-selected="true">Turn Inspector</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-timeline" role="tab" tabindex="-1" data-panel="inspector-panel-timeline" aria-controls="inspector-panel-timeline" aria-selected="false">Timeline</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-comparison" role="tab" tabindex="-1" data-panel="inspector-panel-comparison" aria-controls="inspector-panel-comparison" aria-selected="false">Comparison</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-coverage" role="tab" tabindex="-1" data-panel="inspector-panel-coverage" aria-controls="inspector-panel-coverage" aria-selected="false">Coverage / Health</button>
+        <button type="button" class="inspector-tab" id="inspector-tab-provenance-raw" role="tab" tabindex="-1" data-panel="inspector-panel-provenance-raw" aria-controls="inspector-panel-provenance-raw" aria-selected="false">Provenance / Raw</button>
     </div>
 
-    <section class="panel inspector-panel" id="inspector-panel-turn" data-inspector-panel>
+    <section class="panel inspector-panel" id="inspector-panel-turn" role="tabpanel" aria-labelledby="inspector-tab-turn" data-inspector-panel>
         <header class="panel-header">
             <h2>Turn Inspector</h2>
             <p>Canonical single-turn projection. Semantic Mermaid uses backend-declared stage presence only; graph execution flow is secondary.</p>
@@ -120,7 +120,7 @@
         </section>
     </section>
 
-    <section class="panel inspector-panel" id="inspector-panel-timeline" data-inspector-panel hidden>
+    <section class="panel inspector-panel" id="inspector-panel-timeline" role="tabpanel" aria-labelledby="inspector-tab-timeline" data-inspector-panel hidden>
         <header class="panel-header">
             <h2>Timeline</h2>
             <p>Read-only multi-turn progression view from diagnostic evidence.</p>
@@ -132,7 +132,7 @@
         </details>
     </section>
 
-    <section class="panel inspector-panel" id="inspector-panel-comparison" data-inspector-panel hidden>
+    <section class="panel inspector-panel" id="inspector-panel-comparison" role="tabpanel" aria-labelledby="inspector-tab-comparison" data-inspector-panel hidden>
         <header class="panel-header">
             <h2>Comparison</h2>
             <p>Mandatory bounded turn-to-turn comparison within one session.</p>
@@ -144,7 +144,7 @@
         </details>
     </section>
 
-    <section class="panel inspector-panel" id="inspector-panel-coverage" data-inspector-panel hidden>
+    <section class="panel inspector-panel" id="inspector-panel-coverage" role="tabpanel" aria-labelledby="inspector-tab-coverage" data-inspector-panel hidden>
         <header class="panel-header">
             <h2>Coverage / Health</h2>
             <p>Evidence-backed aggregate distributions and health frequencies.</p>
@@ -156,7 +156,7 @@
         </details>
     </section>
 
-    <section class="panel inspector-panel" id="inspector-panel-provenance-raw" data-inspector-panel hidden>
+    <section class="panel inspector-panel" id="inspector-panel-provenance-raw" role="tabpanel" aria-labelledby="inspector-tab-provenance-raw" data-inspector-panel hidden>
         <header class="panel-header">
             <h2>Provenance / Raw Explorer</h2>
             <p class="manage-lead">

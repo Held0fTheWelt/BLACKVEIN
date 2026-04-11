@@ -46,6 +46,14 @@ Exact transitions depend on module endings and HTTP/WebSocket handlers under `wo
 
 The backend calls the play service using `PLAY_SERVICE_*` environment variables (see root `docker-compose.yml` and [`docs/dev/local-development-and-test-workflow.md`](../../dev/local-development-and-test-workflow.md)). Do not duplicate runtime business logic in the backend without an ADR.
 
+## Backend volatile session registry (transitional)
+
+For **in-process** operator/MCP/test flows, the backend keeps a **process-local**, **non-durable** map `session_id → RuntimeSession` in [`backend/app/runtime/session_store.py`](../../../backend/app/runtime/session_store.py). It is **not** the World Engine session authority; entries vanish on process restart.
+
+- **API:** Use `create_session`, `get_session`, `update_session`, `delete_session`, or the `RuntimeSessionRegistry` accessor `get_runtime_session_registry()` — do not rely on a raw module-level dict.
+- **Concurrency:** The registry is an ordinary in-memory dict without locking; assume single-threaded use per worker consistent with typical Flask request handling unless you add external synchronization.
+- **Lifecycle:** Matches the backend process; `clear_registry()` exists for tests.
+
 ## Related
 
 - [`world_engine_authoritative_runtime_and_system_interactions.md`](world_engine_authoritative_runtime_and_system_interactions.md) — canonical World Engine spine (two play-service faces, integration, diagrams)

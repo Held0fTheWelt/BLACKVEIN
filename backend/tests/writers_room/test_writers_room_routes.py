@@ -14,8 +14,8 @@ from ai_stack import (
 )
 from ai_stack.rag import ContextRetriever
 
-from app.services import writers_room_service as writers_room_service_module
-from app.services.writers_room_service import _WritersRoomWorkflow
+from app.services import writers_room_pipeline as writers_room_pipeline_module
+from app.services.writers_room_pipeline import _WritersRoomWorkflow
 
 
 def _repo_root() -> Path:
@@ -103,7 +103,7 @@ def test_writers_room_unified_review_calls_context_retriever_once(client, auth_h
         return orig(self, request)
 
     monkeypatch.setattr(ContextRetriever, "retrieve", counting)
-    monkeypatch.setattr(writers_room_service_module, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     response = client.post(
         "/api/v1/writers-room/reviews",
         headers=auth_headers,
@@ -277,7 +277,7 @@ def test_proposal_package_langchain_preview_paths_materialized(client, auth_head
         "evidence_sources": [],
     }
     ctx = _context_pack_for_paths(["corp/d1_with_preview.md"])
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
@@ -309,7 +309,7 @@ def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client
         "evidence_sources": [],
     }
     alpha = _context_pack_for_paths(["corp/rev_alpha.md"], context_tag="a")
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
@@ -332,7 +332,7 @@ def test_revision_submit_preserves_prior_snapshot_and_refreshes_artifacts(client
     assert rev.status_code == 200
 
     beta = _context_pack_for_paths(["corp/rev_beta.md"], context_tag="b")
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(
         wrs,
         "_get_workflow",
@@ -417,7 +417,7 @@ def test_writers_room_retrieval_sources_materially_change_proposal_artifacts(
         "evidence_sources": [],
     }
     alpha = _context_pack_for_paths(["corp/d1_alpha_retrieval_only.md"], context_tag="alpha")
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(wrs, "_get_workflow", lambda: _build_controlled_workflow(repo, alpha, rb))
     r1 = client.post(
         "/api/v1/writers-room/reviews",
@@ -431,7 +431,7 @@ def test_writers_room_retrieval_sources_materially_change_proposal_artifacts(
     assert "corp/d1_alpha_retrieval_only.md" in d1["issues"][0]["description"]
 
     beta = _context_pack_for_paths(["corp/d1_beta_retrieval_only.md"], context_tag="beta")
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(wrs, "_get_workflow", lambda: _build_controlled_workflow(repo, beta, rb))
     r2 = client.post(
         "/api/v1/writers-room/reviews",
@@ -458,7 +458,7 @@ def test_writers_room_review_bundle_tool_output_in_review_summary(client, auth_h
         "recommendations": ["r1"],
         "evidence_sources": ["corp/d1_tool_surface.md"],
     }
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(wrs, "_get_workflow", lambda: _build_controlled_workflow(repo, ctx, bundle_a))
     ra = client.post(
         "/api/v1/writers-room/reviews",
@@ -473,7 +473,7 @@ def test_writers_room_review_bundle_tool_output_in_review_summary(client, auth_h
 
     bundle_b = dict(bundle_a)
     bundle_b["bundle_id"] = "governance_bundle_beta_002"
-    monkeypatch.setattr(wrs, "_WORKFLOW", None)
+    monkeypatch.setattr(writers_room_pipeline_module, "_WORKFLOW", None)
     monkeypatch.setattr(wrs, "_get_workflow", lambda: _build_controlled_workflow(repo, ctx, bundle_b))
     rb = client.post(
         "/api/v1/writers-room/reviews",

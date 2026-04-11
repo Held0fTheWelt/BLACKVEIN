@@ -36,6 +36,7 @@ from conftest import captured_templates
         ("/manage/inspector-workbench", "manage/inspector_workbench.html"),
         ("/manage/diagnosis", "manage/diagnosis.html"),
         ("/manage/play-service-control", "manage/play_service_control.html"),
+        ("/manage/world-engine-console", "manage/world_engine_console.html"),
         ("/manage/analytics", "manage_analytics.html"),
         ("/manage/moderator-dashboard", "manage_moderator_dashboard.html"),
     ],

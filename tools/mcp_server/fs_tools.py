@@ -1,6 +1,5 @@
 """Filesystem utilities for module and content operations."""
 
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -59,43 +58,15 @@ def search_content(
     else:
         repo_root = Path(repo_root)
 
-    search_dirs = [
-        repo_root / "content" / "modules",
-        repo_root / "content" / "direction",
-    ]
+    from tools.mcp_server.fs_tools_search_content import run_content_regex_search
 
-    max_file_size = max_file_size_mb * 1024 * 1024
-    flags = 0 if case_sensitive else re.IGNORECASE
-
-    try:
-        regex = re.compile(pattern, flags)
-    except re.error:
-        return []
-
-    results = []
-    for search_dir in search_dirs:
-        if not search_dir.exists():
-            continue
-        for file_path in search_dir.rglob("*"):
-            if not file_path.is_file():
-                continue
-            if file_path.stat().st_size > max_file_size:
-                continue
-            try:
-                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                    for line_num, line in enumerate(f, 1):
-                        if regex.search(line):
-                            results.append({
-                                "file": str(file_path.relative_to(repo_root)),
-                                "line": line_num,
-                                "text": line.rstrip(),
-                            })
-                            if len(results) >= max_hits:
-                                return results
-            except (IOError, UnicodeDecodeError):
-                continue
-
-    return results
+    return run_content_regex_search(
+        pattern,
+        repo_root,
+        case_sensitive=case_sensitive,
+        max_file_size_mb=max_file_size_mb,
+        max_hits=max_hits,
+    )
 
 
 class FileSystemTools:

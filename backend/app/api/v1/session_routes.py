@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 import json
 
 from app.api.v1 import api_v1_bp
+from flask_jwt_extended import get_jwt_identity, jwt_required
+
 from app.api.v1.auth import require_mcp_service_token
 from app.services.session_service import (
     create_session,
@@ -44,6 +46,7 @@ SESSION_START_ERROR_STATUS = {
 
 
 @api_v1_bp.route("/sessions", methods=["POST"])
+@jwt_required(optional=True)
 def create_new_session():
     """Create a new story session.
 
@@ -87,7 +90,11 @@ def create_new_session():
         return jsonify({"error": "module_id is required"}), 400
 
     try:
-        session = create_session(module_id)
+        owner_id = get_jwt_identity()
+        metadata_updates: dict[str, str] | None = None
+        if owner_id is not None:
+            metadata_updates = {"play_shell_owner_user_id": str(owner_id)}
+        session = create_session(module_id, metadata_updates=metadata_updates)
         body = session.model_dump(mode="json")
         body["warnings"] = [
             "backend_in_process_session_not_authoritative_live_runtime",
@@ -316,6 +323,119 @@ def get_session_capability_audit(session_id):
             "trace_id": trace_id,
             "audit": audit_rows[-100:],
             "total": len(audit_rows),
+        }
+    ), 200
+
+
+_PLAY_OPERATOR_DIAG_MAX = 40
+
+
+@api_v1_bp.route("/sessions/<session_id>/play-operator-bundle", methods=["GET"])
+@jwt_required()
+def get_play_operator_bundle(session_id):
+    """JWT-scoped operator snapshot for the in-process play shell (no MCP token).
+
+    Requires the session to have been created with the same JWT identity
+    (``play_shell_owner_user_id`` in session metadata).
+    """
+    owner_claim = get_jwt_identity()
+    if owner_claim is None:
+        return (
+            jsonify({"error": {"code": "UNAUTHORIZED", "message": "Authentication required"}}),
+            401,
+        )
+
+    runtime_session = get_runtime_session(session_id)
+    if not runtime_session:
+        return (
+            jsonify({"error": {"code": "NOT_FOUND", "message": "Session not found"}}),
+            404,
+        )
+
+    state = runtime_session.current_runtime_state
+    meta = state.metadata if isinstance(state.metadata, dict) else {}
+    bound_owner = meta.get("play_shell_owner_user_id")
+    if bound_owner is None:
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "OWNER_NOT_BOUND",
+                        "message": "Session has no play shell owner; create session with JWT",
+                    }
+                }
+            ),
+            403,
+        )
+    if str(bound_owner) != str(owner_claim):
+        return (
+            jsonify(
+                {
+                    "error": {
+                        "code": "FORBIDDEN",
+                        "message": "Session is bound to another user",
+                    }
+                }
+            ),
+            403,
+        )
+
+    trace_id = g.get("trace_id") or get_trace_id()
+    engine_story_session_id = meta.get("world_engine_story_session_id")
+    if not isinstance(engine_story_session_id, str) or not engine_story_session_id.strip():
+        return jsonify(
+            {
+                "session_id": session_id,
+                "trace_id": trace_id,
+                "world_engine_story_session_id": None,
+                "authoritative_state": None,
+                "diagnostics": {
+                    "diagnostics": [],
+                    "warnings": ["story_session_not_initialized_yet"],
+                },
+                "warnings": ["execute_at_least_one_turn_for_engine_binding"],
+            }
+        ), 200
+
+    try:
+        authoritative_state = get_story_state(engine_story_session_id, trace_id=trace_id)
+        diagnostics = get_story_diagnostics(engine_story_session_id, trace_id=trace_id)
+    except GameServiceError as exc:
+        return jsonify(
+            {
+                "session_id": session_id,
+                "trace_id": trace_id,
+                "world_engine_story_session_id": engine_story_session_id,
+                "bridge_error": {
+                    "failure_class": "world_engine_unreachable",
+                    "message": str(exc),
+                    "status_code": exc.status_code,
+                },
+            }
+        ), 200
+
+    diag_rows: list = []
+    turn_counter = None
+    committed_state = None
+    if isinstance(diagnostics, dict):
+        rows = diagnostics.get("diagnostics")
+        if isinstance(rows, list):
+            diag_rows = rows[-_PLAY_OPERATOR_DIAG_MAX:]
+        turn_counter = diagnostics.get("turn_counter")
+        committed_state = diagnostics.get("committed_state")
+
+    return jsonify(
+        {
+            "session_id": session_id,
+            "trace_id": trace_id,
+            "world_engine_story_session_id": engine_story_session_id,
+            "authoritative_state": authoritative_state if isinstance(authoritative_state, dict) else None,
+            "diagnostics": {
+                "diagnostics": diag_rows,
+                "turn_counter": turn_counter,
+                "committed_state": committed_state,
+            },
+            "warnings": [],
         }
     ), 200
 

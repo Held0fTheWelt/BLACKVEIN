@@ -9,6 +9,13 @@ Complete REST endpoint documentation for the Flask backend.
 
 The Flask app also exposes **non-API technical pages** at **`/backend/*`** (architecture summary, API overview, operations pointers). These are for operators/developers only; canonical player UI remains in `frontend/`.
 
+**Discoverability**
+
+- **OpenAPI (machine-readable):** [`openapi.yaml`](openapi.yaml) — Flask serves **`/backend/openapi.yaml`** on the API host; MkDocs (static) serves the same content at **`/backend/openapi.yaml`** via [`docs/backend/openapi.yaml`](../backend/openapi.yaml) (written by the same generator). Regenerate with `python backend/scripts/generate_openapi_spec.py --write` after route changes.
+- **API Explorer (searchable UI):** **`/backend/api-explorer`** (Redoc; filter by tags).
+- **Tag taxonomy:** [openapi-taxonomy.md](openapi-taxonomy.md) — maps OpenAPI tags to `/backend/*` topics and MkDocs.
+- **MkDocs:** run `python -m mkdocs serve` from the repo root; the **API** tab includes this reference plus full-text search across `docs/`.
+
 **Base URL:** `http://localhost:5000` (development) or `https://api.worldofshadows.com` (production)
 
 **Key Endpoints:**
@@ -42,7 +49,7 @@ See [REST API Reference](./REFERENCE.md#backend-api) for complete details.
 
 ## World Engine API
 
-### [World Engine Specification](./REFERENCE.md#world-engine-api)
+### World Engine API
 FastAPI-based game runtime with HTTP and WebSocket endpoints.
 
 **Base URL:** `http://localhost:5002` (development) or `https://engine.worldofshadows.com` (production)
@@ -61,7 +68,7 @@ WebSocket (Real-time)
   WS     /ws?ticket=<ticket>           - Player connection
   Messages: snapshot, join, leave, move, say, emote, etc.
 
-See [World Engine API](./REFERENCE.md#world-engine-api) for complete details.
+Endpoint inventory for the play service lives with the `world-engine/` service (FastAPI OpenAPI). This README summarizes URLs above; deep integration: [Service boundaries](../technical/architecture/service-boundaries.md) and the world-engine repo docs.
 ```
 
 ### Ticket Authentication

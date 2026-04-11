@@ -140,9 +140,9 @@ def start_session(
     # Build initial canonical state
     canonical_state = _build_initial_canonical_state(module)
 
-    # Construct SessionState
+    # Construct SessionState (canonical id from YAML; matches compile_module / disk layout)
     session = SessionState(
-        module_id=module_id,
+        module_id=module.metadata.module_id,
         module_version=module.metadata.version,
         current_scene_id=initial_scene_id,
         canonical_state=canonical_state,

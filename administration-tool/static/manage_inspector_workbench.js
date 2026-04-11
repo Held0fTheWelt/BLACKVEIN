@@ -777,6 +777,7 @@
       var active = tab.getAttribute("data-panel") === targetPanelId;
       tab.classList.toggle("active", active);
       tab.setAttribute("aria-selected", active ? "true" : "false");
+      tab.setAttribute("tabindex", active ? "0" : "-1");
     }
     for (var j = 0; j < panels.length; j++) {
       var panel = panels[j];
@@ -786,10 +787,35 @@
 
   function initTabs() {
     var tabs = document.querySelectorAll(".inspector-tab");
+    var focusByOffset = function (fromIndex, delta) {
+      if (!tabs.length) return;
+      var next = (fromIndex + delta + tabs.length) % tabs.length;
+      tabs[next].focus();
+    };
     for (var i = 0; i < tabs.length; i++) {
       tabs[i].addEventListener("click", function (event) {
         var panelId = event.currentTarget.getAttribute("data-panel");
         if (panelId) switchTab(panelId);
+      });
+      tabs[i].addEventListener("keydown", function (event) {
+        var currentIndex = Array.prototype.indexOf.call(tabs, event.currentTarget);
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          focusByOffset(currentIndex, 1);
+        } else if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          focusByOffset(currentIndex, -1);
+        } else if (event.key === "Home") {
+          event.preventDefault();
+          tabs[0].focus();
+        } else if (event.key === "End") {
+          event.preventDefault();
+          tabs[tabs.length - 1].focus();
+        } else if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          var targetId = event.currentTarget.getAttribute("data-panel");
+          if (targetId) switchTab(targetId);
+        }
       });
     }
   }

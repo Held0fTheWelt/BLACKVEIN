@@ -66,6 +66,10 @@ Code paths that **execute or host** narrative/runtime behavior **inside the back
 - **Mutation permission** is **deny-by-default**: `mutation_policy.py` whitelists story-world domains (for example character, relationship, scene, and conflict fields) and blocks protected roots such as session identity, metadata, runtime internals, and log-like subtrees. **Path syntax or entity existence alone does not grant mutation permission**; `validators.py` applies policy during delta validation.
 - **Reference integrity** (`reference_policy.py`): character, relationship, scene, and trigger references in proposals are checked against module truth (and optional session context) before acceptance.
 
+## Package map (import ergonomics)
+
+For explicit layering without moving dozens of modules: **`app.runtime.canonical`** and **`app.runtime.transitional`** lazily load the same `app.runtime.<module>` files; membership is defined in **`app.runtime.package_classification`** (enforced by `backend/tests/runtime/test_runtime_package_classification.py`). Prefer existing `from app.runtime import <module>` in mature code; use the subpackages when you want the classification visible at the import site.
+
 ## Consumer rule
 
 Any feature that needs **live** run identity, lobby, or turn execution must use **World Engine** via `game_service` (and contracts in `canonical_runtime_contract.md`), not `app.runtime.manager` or W2 session APIs alone.

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import re
 from typing import Any
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 
 from app.content.builtins import build_god_of_carnage_solo
 from app.content.compiler import compile_module
@@ -250,7 +250,49 @@ def _attach_canonical_compilation(payload: dict) -> dict:
     return result
 
 
+def _ensure_legacy_template_schema_compatibility() -> None:
+    """Patch legacy SQLite tables created before migration 040."""
+    bind = db.session.get_bind()
+    if bind is None or bind.dialect.name != "sqlite":
+        return
+
+    table_info = db.session.execute(text("PRAGMA table_info(game_experience_templates)")).all()
+    if not table_info:
+        return
+
+    column_names = {str(row[1]) for row in table_info}
+    if "content_lifecycle" not in column_names:
+        db.session.execute(
+            text(
+                "ALTER TABLE game_experience_templates "
+                "ADD COLUMN content_lifecycle VARCHAR(32) NOT NULL DEFAULT 'draft'"
+            )
+        )
+        db.session.execute(
+            text(
+                "UPDATE game_experience_templates SET content_lifecycle = 'published' "
+                "WHERE is_published = 1"
+            )
+        )
+        db.session.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_game_experience_templates_content_lifecycle "
+                "ON game_experience_templates (content_lifecycle)"
+            )
+        )
+        column_names.add("content_lifecycle")
+
+    if "governance_provenance_json" not in column_names:
+        db.session.execute(
+            text(
+                "ALTER TABLE game_experience_templates "
+                "ADD COLUMN governance_provenance_json JSON NOT NULL DEFAULT '{}'"
+            )
+        )
+
+
 def ensure_default_game_content_seeded() -> None:
+    _ensure_legacy_template_schema_compatibility()
     existing = db.session.execute(select(GameExperienceTemplate.id).limit(1)).scalar_one_or_none()
     if existing is not None:
         return

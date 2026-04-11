@@ -6,9 +6,253 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **Despaghettification — DS-REPLAY-G (2026-04-12):** Einphasige Vollverifikation der dokumentierten DS-001…010 (Spaghetti-Scan, DS-005-Import-Check, gebündelte Pytest-Suites für Backend-Runtime, ai_stack inkl. LangGraph/Capabilities, MCP-Server, Administration Tool, Builtins-Drift Backend/World-Engine). Zugehörige Session-Dateien lagen unter `docs/state/artifacts/repo_governance_rollout/post/` (im Arbeitsbaum später entfernt; Nachweis: Git-Historie). Runtime-`TYPE_CHECKING`-Stichprobe (`session_store` ohne `TYPE_CHECKING`) war in der Inputliste dokumentiert.
+- **Phase F (Despaghettification DS-009):** `create_default_capability_registry` moved from `ai_stack/capabilities.py` to `ai_stack/capabilities_default_registry.py`; lazy export via `capabilities.__getattr__`; `ai_stack` package API unchanged. *(Zugehörige Post-Artefakte unter `docs/state/artifacts/workstreams/ai_stack/post/` historisch; nicht mehr im Tree.)*
+- **Phase F (Despaghettification DS-010):** `execute_turn` in `backend/app/runtime/turn_executor.py` split into `_turn_source_gate_rejection` and `_execute_turn_validated_pipeline` (behavior-preserving). *(Zugehörige Post-Artefakte unter `docs/state/artifacts/workstreams/backend_runtime_services/post/` historisch; nicht mehr im Tree.)*
+- **State- und Despag-Dokumentation (Template-Pflege):** `WORKSTREAM_*_STATE.md` und `ROLLOUT_EXECUTION_REPORT.md` auf kurze Vorlagen ohne gebrochene `session_*`-Pfadlisten; [`docs/dev/despaghettification_implementation_input.md`](docs/dev/despaghettification_implementation_input.md) mit leerer **DS-ID → Workstream**-Tabelle und Platzhalter-**Struktur-Scan**; [`doc/tasks/spaghetti-check-task.md`](doc/tasks/spaghetti-check-task.md) ohne absoluten Cursor-Plan-Pfad.
+
+---
+
+## [0.5.7] - 2026-04-10
+
+**Summary**: Sammelstand fuer alle aktuell laufenden Arbeiten im Working Tree (Governance-Rollout, Dokumentations-Strict-Remediation, World-Engine-Console/Admin/API-Erweiterungen, Runtime/AI/Forum/Frontend-Weiterentwicklung, OpenAPI- und Testausbau).
+
+### Added
+
+- **Execution Governance State Hub** unter `docs/state/` (Governance-Vertrag, Workstream-Index, State-Dateien, Rollout-Report, Pre/Post-Artefaktordner).
+- **Dokumentations-Remediation-Artefakte** unter `docs/state/artifacts/workstreams/documentation/...` (session-basierte Pre/Post-Logs und Vergleichsartefakte).
+- **Builtins-Deduplizierungs-Artefakte** unter:
+  - `docs/state/artifacts/workstreams/backend_runtime_services/...`
+  - `docs/state/artifacts/workstreams/world_engine/...`
+- **Neue/erweiterte API- und Runtime-Flächen** (u. a. neue Dateien unter `backend/app/api/v1/`, `backend/app/runtime/`, `backend/app/services/`, `backend/scripts/`).
+- **Neue OpenAPI-/Doku-Dateien** unter `docs/api/` und `docs/dev/`.
+
+### Changed
+
+- **`mkdocs.yml`**: Strict-Build-Remediation durch Validation-Policy-Anpassung.
+- **`world-engine/app/content/builtins.py`**: von großer statischer Kopie auf delegierende Kanonik-Nutzung umgestellt.
+- **Drift-/Verifikations-Tests**:
+  - `backend/tests/test_content_builtins_drift.py`
+  - `world-engine/tests/test_builtins_drift.py`
+- **`backend/app/runtime/ai_turn_executor.py`**: P0-Refactoring in zehn Waves fortgesetzt: u. a. `_build_orchestration_log_bundle` / `_attachments_from_orchestration_bundle`, gemeinsames `log_bundle` fuer Generation-Failure und Tool-Loop-Stop-Recovery, schlankeres `execute_turn_with_ai` neben Pre-Adapter-Zustand, Erstresponse-Aufloesung, Parse-/Policy-/Erfolgspfad-Pipeline, Request-/MCP-Pipeline, Routing/Retry-Generation und Primary-Tool-Loop.
+- **Wave-2/3/4/5/6/7/8/9/10-Artefakte** fuer `ai_turn_executor` unter `docs/state/artifacts/workstreams/backend_runtime_services/` (Pre/Post-Snapshots, Test-/Collect-Exitcodes, Vergleichs-/Size-Delta-JSON).
+- **MCP-Tool-Registry (DS-002 Wave 1):** `tools/mcp_server/tools_registry.py` — `create_default_registry` nur noch duenne Fabrik; Beschreibungen/JSON-Schemas in `tools_registry_metadata.py`, Handler in `build_default_mcp_tool_handlers` (`tools_registry_handlers.py`). Governance: `docs/state/WORKSTREAM_ADMIN_TOOL_STATE.md`, Artefakte `docs/state/artifacts/workstreams/administration_tool/post/session_20260410_DS-002_wave1_*`.
+- **MCP-Tool-Registry (DS-002 Wave 2):** Handler nach Domäne aufgeteilt (`tools_registry_handlers_filesystem`, `tools_registry_handlers_backend_session`, `tools_registry_handlers_governance`, `tools_registry_handlers_research`, `tools_registry_handlers_deferred`, `tools_registry_handlers_protocol`); `tools_registry_handlers.py` nur noch Komposition. Artefakte `.../administration_tool/post/session_20260410_DS-002_wave2_*`.
+- **Changelog/Docs/Registry/Index** und weitere aktive Doku-Einstiegspunkte wurden fortlaufend aktualisiert.
+- **DS-006 (`ai_stack/langgraph_runtime`):** Aufteilung in `langgraph_runtime_state.py`, `langgraph_runtime_tracking.py`, `langgraph_runtime_seed_graphs.py`, `langgraph_runtime_executor.py`; duenne Facade `langgraph_runtime.py` mit LangGraph-Shim und `ensure_langgraph_available`; Re-Exports und Testpfade unveraendert. Governance: `docs/state/artifacts/workstreams/ai_stack/post/session_20260410_DS-006_C1_C4_*`, `WORKSTREAM_AI_STACK_STATE.md`.
+- **DS-003 (Builtins/Experience-Modelle):** Kanonik nach `story_runtime_core/experience_template_models.py` und `story_runtime_core/builtin_experience_templates.py`; `backend/app/content` und `world-engine/app/content` nur Re-Exports; World-Engine-Tests mit `pythonpath = . ..`; CI `engine-tests` installiert `story_runtime_core` editable. Governance: `session_20260410_DS-003_*` unter `backend_runtime_services` und `world_engine`, State-Dokumente aktualisiert.
+
+### Working Tree Snapshot (alle aktuellen Änderungen)
+
+_Quelle: `git status --short` zum Zeitpunkt dieses Eintrags._
+
+```text
+ M .env.example
+ M .github/workflows/ai-stack-tests.yml
+ M .github/workflows/backend-tests.yml
+ M .github/workflows/engine-tests.yml
+ M CHANGELOG.md
+ M README.md
+ M administration-tool/app.py
+ M administration-tool/static/manage.css
+ M administration-tool/static/manage_auth.js
+ M administration-tool/static/manage_inspector_workbench.js
+ M administration-tool/static/styles.css
+ M administration-tool/templates/manage/base.html
+ M administration-tool/templates/manage/dashboard.html
+ M administration-tool/templates/manage/diagnosis.html
+ M administration-tool/templates/manage/inspector_workbench.html
+ M administration-tool/templates/manage/login.html
+ M administration-tool/templates/manage/news.html
+ M administration-tool/templates/manage/play_service_control.html
+ M administration-tool/templates/manage/users.html
+ M administration-tool/templates/manage/wiki.html
+ M administration-tool/tests/test_manage_play_service_control.py
+ M administration-tool/tests/test_manage_routes.py
+ M administration-tool/tests/test_routes.py
+ M administration-tool/tests/test_routes_and_rendering.py
+ M administration-tool/tests/test_routes_contracts.py
+ M ai_stack/rag.py
+ M ai_stack/semantic_move_interpretation_goc.py
+ M backend/.env.example
+ M backend/Dockerfile
+ M backend/app/api/v1/__init__.py
+ M backend/app/api/v1/forum_routes.py
+ M backend/app/api/v1/game_routes.py
+ M backend/app/api/v1/session_routes.py
+ M backend/app/api/v1/user_routes.py
+ M backend/app/auth/feature_registry.py
+ M backend/app/auth/permissions.py
+ M backend/app/config.py
+ M backend/app/content/builtins.py
+ M backend/app/content/module_loader.py
+ M backend/app/extensions.py
+ M backend/app/info/routes.py
+ M backend/app/info/static/backend-info.css
+ M backend/app/info/templates/ai.html
+ M backend/app/info/templates/api.html
+ M backend/app/info/templates/auth.html
+ M backend/app/info/templates/base.html
+ M backend/app/info/templates/engine.html
+ M backend/app/info/templates/home.html
+ M backend/app/info/templates/ops.html
+ M backend/app/runtime/__init__.py
+ M backend/app/runtime/ai_decision.py
+ M backend/app/runtime/ai_decision_logging.py
+ M backend/app/runtime/ai_turn_executor.py
+ M backend/app/runtime/input_interpreter.py
+ M backend/app/runtime/role_structured_decision.py
+ M backend/app/runtime/session_start.py
+ M backend/app/runtime/short_term_context.py
+ M backend/app/runtime/supervisor_orchestrator.py
+ M backend/app/runtime/tool_loop.py
+ M backend/app/runtime/turn_dispatcher.py
+ M backend/app/runtime/turn_executor.py
+ M backend/app/services/forum_service.py
+ M backend/app/services/game_content_service.py
+ M backend/app/services/game_service.py
+ M backend/app/services/mcp_operations_service.py
+ M backend/app/services/session_service.py
+ M backend/app/services/writers_room_service.py
+ M backend/docs/AREA_ACCESS_CONTROL.md
+ M backend/tests/content/test_module_loader.py
+ M backend/tests/runtime/test_session_start.py
+ M backend/tests/test_areas_api.py
+ M backend/tests/test_forum_routes.py
+ M backend/tests/test_game_content_service.py
+ M backend/tests/test_game_routes.py
+ M backend/tests/test_game_service.py
+ M backend/tests/test_session_api_contracts.py
+ M backend/tests/writers_room/test_writers_room_routes.py
+ M backend/tests/writers_room/test_writers_room_unit.py
+ M docker-compose.yml
+ M docker-up.py
+ M docs/INDEX.md
+ M docs/api/README.md
+ M docs/dev/README.md
+ M docs/dev/api/openapi-and-api-explorer-strategy.md
+ M docs/dev/onboarding.md
+ M docs/easy/README.md
+ M docs/reference/documentation-registry.md
+ M docs/start-here/README.md
+ M docs/technical/ai/llm-slm-role-stratification.md
+ M docs/technical/architecture/backend-runtime-classification.md
+ M docs/technical/runtime/a1_free_input_primary_runtime_path.md
+ M frontend/app/routes.py
+ M frontend/static/play_shell.js
+ M frontend/static/style.css
+ M frontend/templates/session_shell.html
+ M frontend/tests/test_api_client.py
+ M frontend/tests/test_routes.py
+ M frontend/tests/test_routes_extended.py
+ M mkdocs.yml
+ M world-engine/app/api/http.py
+ M world-engine/app/content/builtins.py
+ M world-engine/app/main.py
+ M world-engine/app/story_runtime/manager.py
+ M world-engine/tests/conftest.py
+ M world-engine/tests/test_http_api_contracts.py
+ M world-engine/tests/test_story_runtime_api.py
+?? .state_tmp/
+?? administration-tool/static/manage_world_engine_console.js
+?? administration-tool/templates/manage/world_engine_console.html
+?? administration-tool/tests/test_manage_world_engine_console.py
+?? ai_stack/goc_semantic_priority_rules.py
+?? backend/app/api/v1/forum_routes_helpers.py
+?? backend/app/api/v1/forum_routes_notifications.py
+?? backend/app/api/v1/forum_routes_tag_discovery.py
+?? backend/app/api/v1/world_engine_console_routes.py
+?? backend/app/auth/jwt_revocation.py
+?? backend/app/info/static/api_explorer_redoc.js
+?? backend/app/info/templates/api_explorer.html
+?? backend/app/info/templates/info_sections.html
+?? backend/app/runtime/ai_turn_constants.py
+?? backend/app/runtime/ai_turn_generation.py
+?? backend/app/runtime/ai_turn_orchestration_branch.py
+?? backend/app/runtime/ai_turn_preview.py
+?? backend/app/runtime/ai_turn_primary_tool_loop.py
+?? backend/app/runtime/ai_turn_routing_builders.py
+?? backend/app/runtime/canonical/
+?? backend/app/runtime/package_classification.py
+?? backend/app/runtime/parsed_ai_decision_types.py
+?? backend/app/runtime/supervisor_orchestration_audit.py
+?? backend/app/runtime/transitional/
+?? backend/app/runtime/turn_execution_types.py
+?? backend/app/services/forum_service_permissions.py
+?? backend/app/services/writers_room_pipeline.py
+?? backend/scripts/
+?? backend/tests/runtime/test_runtime_package_classification.py
+?? backend/tests/test_content_builtins_drift.py
+?? backend/tests/test_openapi_drift.py
+?? backend/tests/test_world_engine_console_routes.py
+?? docs/api/openapi-spec.md
+?? docs/api/openapi-taxonomy.md
+?? docs/api/openapi.yaml
+?? docs/backend/openapi.yaml
+?? docs/dev/play_shell_ux.md
+?? docs/dev/world_engine_console_a11y.md
+?? docs/dev/world_engine_console_wireframes.md
+?? docs/state/
+?? frontend/app/frontend_blueprint.py
+?? frontend/app/player_backend.py
+?? frontend/app/routes_play.py
+?? frontend/static/play_live_ws.js
+?? frontend/tests/test_frontend_blueprint_routes.py
+?? world-engine/app/story_runtime/module_turn_hooks.py
+?? world-engine/app/web/templates/ops.html
+?? world-engine/tests/test_builtins_drift.py
+```
+
+---
+
+## [0.5.6] - 2026-04-10
+
+**Summary**: **World Engine console (diagnose-first)** — play service listet Story-Sessions per Internal API; Admin-Proxy unter `/api/v1/admin/world-engine/*` mit JWT und hierarchischen Features `manage.world_engine_observe` / `operate` / `author`; Management-UI `/manage/world-engine-console`; engine-nahe Liveness-Seite `/ops`; Wireframes- und A11y-Doku unter `docs/dev/`.
+
+### Added
+
+- **`world-engine/app/story_runtime/manager.py`**: `list_session_summaries()` für kompakte Session-Metadaten.
+- **`world-engine/app/api/http.py`**: `GET /api/story/sessions` (Internal Key) → `items` + `total`.
+- **`world-engine/app/web/templates/ops.html`**, **`world-engine/app/main.py`**: `GET /ops` — unauthentifizierte Health/Ready-Anzeige.
+- **`world-engine/tests/test_story_runtime_api.py`**: Session-Listen-Lifecycle; **`world-engine/tests/test_http_api_contracts.py`**: `/ops` HTML; **`world-engine/tests/conftest.py`**: `/ops` im Test-App-Stub.
+- **`backend/app/auth/feature_registry.py`**: `FEATURE_MANAGE_WORLD_ENGINE_*`, `user_can_access_world_engine_capability()` (author ⊃ operate ⊃ observe).
+- **`backend/app/auth/permissions.py`**: `require_world_engine_capability`.
+- **`backend/app/services/game_service.py`**: `get_play_service_ready()`, `list_story_sessions()`.
+- **`backend/app/api/v1/world_engine_console_routes.py`**: Proxy für Health/ready, Templates, Runs, Transkript, Terminate, Story-Liste/State/Diagnostics, Create/Turn.
+- **`backend/tests/test_world_engine_console_routes.py`**: Auth, Capability-Hierarchie, Story-Turn-Gating.
+- **`administration-tool/templates/manage/world_engine_console.html`**, **`administration-tool/static/manage_world_engine_console.js`**: Konsole mit Refresh, optionalem Polling, rollenbasierten Formularen.
+- **`administration-tool/tests/test_manage_world_engine_console.py`**: Route, Template, Mount-Points.
+- **`docs/dev/world_engine_console_wireframes.md`**, **`docs/dev/world_engine_console_a11y.md`**: Low-Fi-IA und Barrierefreiheits-Spezifikation.
+
+### Changed
+
+- **`backend/app/api/v1/__init__.py`**: Registrierung der World-Engine-Console-Routen.
+- **`backend/docs/AREA_ACCESS_CONTROL.md`**: Dokumentation der drei World-Engine-Features.
+- **`backend/tests/test_areas_api.py`**: `auth/me` enthält die neuen `allowed_features`.
+- **`backend/scripts/generate_openapi_spec.py`**: OpenAPI-Tag `WorldEngineConsole` für `/api/v1/admin/world-engine`.
+- **`docs/api/openapi.yaml`**: Regeneriert (neue Admin-Pfade).
+- **`administration-tool/app.py`**: `GET /manage/world-engine-console`.
+- **`administration-tool/templates/manage/base.html`**, **`dashboard.html`**: Nav und Dashboard-Karte mit `data-feature-any` für die drei Flags.
+- **`administration-tool/static/manage_auth.js`**: `data-feature-any` (kommagetrennt, OR) für Nav und Karten.
+- **`administration-tool/templates/manage/diagnosis.html`**, **`play_service_control.html`**: Querverweise zur World-Engine-Konsole.
+- **`administration-tool/tests/test_manage_play_service_control.py`**, **`test_manage_routes.py`**, **`test_routes.py`**, **`test_routes_and_rendering.py`**, **`test_routes_contracts.py`**: Erwartungen und Pfadlisten ergänzt.
+
+### Tests (integrity verification)
+
+- `python -m pytest world-engine/tests/test_story_runtime_api.py::test_story_sessions_list_empty_then_populated world-engine/tests/test_http_api_contracts.py::TestHealthEndpoints::test_ops_page_returns_html -q --tb=short` — green.
+- `python -m pytest backend/tests/test_world_engine_console_routes.py backend/tests/test_areas_api.py::test_auth_me_includes_allowed_features -q --tb=short` — green.
+- `python -m pytest administration-tool/tests/test_manage_world_engine_console.py administration-tool/tests/test_manage_play_service_control.py -q --tb=short` — green.
+- `python backend/scripts/generate_openapi_spec.py --write` dann `python -m pytest backend/tests/test_openapi_drift.py -q --tb=short` — green.
+
+---
+
 ## [0.5.4] - 2026-04-10
 
-**Summary**: **MCP Operations Cockpit (MVP)** — bounded operator surface in `administration-tool` at `/manage/mcp-operations` (Overview, Activity, Diagnostics, Logs, Actions) backed by real persisted telemetry and diagnostic cases; service-token ingest `POST /api/v1/operator/mcp-telemetry/ingest`; admin APIs under `/api/v1/admin/mcp/*` with feature `manage.mcp_operations`; optional MCP server push via `WOS_MCP_TELEMETRY_INGEST_URL` + `MCP_SERVICE_TOKEN`; shared static resource/prompt catalog in `ai_stack` for suite counts; Alembic `041` tables `mcp_ops_telemetry` and `mcp_diagnostic_cases`.
+**Summary**: **MCP Operations Cockpit (MVP)** — bounded operator surface in `administration-tool` at `/manage/mcp-operations` (Overview, Activity, Diagnostics, Logs, Actions) backed by real persisted telemetry and diagnostic cases; service-token ingest `POST /api/v1/operator/mcp-telemetry/ingest`; admin APIs under `/api/v1/admin/mcp/*` with feature `manage.mcp_operations`; optional MCP server push via `WOS_MCP_TELEMETRY_INGEST_URL` + `MCP_SERVICE_TOKEN`; shared static resource/prompt catalog in `ai_stack` for suite counts; Alembic `041` tables `mcp_ops_telemetry` and `mcp_diagnostic_cases`. **Backend documentation** — searchable OpenAPI inventory at `/backend/openapi.yaml`, Redoc **API Explorer** at `/backend/api-explorer`, German `/backend/*` info pages with scenario-based copy and optional `DOCS_SITE_URL` links to MkDocs; drift-checked spec generation; MkDocs **API** nav tab.
 
 ### Added
 
@@ -22,6 +266,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`administration-tool/templates/manage/mcp_operations.html`**, **`administration-tool/static/manage_mcp_operations.js`**, **`administration-tool/static/manage.css`**: tabbed cockpit UI (English copy).
 - **`administration-tool/tests/test_manage_mcp_operations.py`**: route, template, shell, nav wiring.
 - **`docs/technical/operations/mcp-operations-cockpit.md`**: English ops reference and E2E verification steps.
+- **`docs/api/openapi.yaml`**: machine-readable inventory of all Flask `/api/v1` routes (tags, stub operations); regenerate with `python backend/scripts/generate_openapi_spec.py --write`.
+- **`backend/scripts/generate_openapi_spec.py`**: `--write` / `--check` to sync spec with registered routes.
+- **`docs/api/openapi-taxonomy.md`**, **`docs/api/openapi-spec.md`**: tag map to `/backend/*` topics and publication notes.
+- **`backend/app/info/routes.py`**: `GET /backend/openapi.yaml`, `GET /backend/api-explorer`.
+- **`backend/app/info/templates/api_explorer.html`**, **`backend/app/info/static/api_explorer_redoc.js`**: Redoc UI (CSP-safe, cdnjs).
+- **`backend/app/info/templates/info_sections.html`**: Jinja macro for optional MkDocs deep links.
+- **`backend/tests/test_openapi_drift.py`**: OpenAPI drift check + smoke tests for spec and explorer routes.
 
 ### Changed
 
@@ -34,12 +285,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`tools/mcp_server/logging_utils.py`**, **`tools/mcp_server/server.py`**: per-dispatch telemetry capture and best-effort POST to backend when ingest URL + token are set.
 - **`tools/mcp_server/README.md`**: `WOS_MCP_TELEMETRY_INGEST_URL` and `MCP_SERVICE_TOKEN` for telemetry.
 - **`docs/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: §20 implementation pointer to code paths and ops doc.
+- **`backend/app/config.py`**, **`backend/.env.example`**: `DOCS_SITE_URL` for clickable links from `/backend/*` to a built MkDocs site.
+- **`backend/app/info/templates/`** (`base.html`, `home.html`, `api.html`, `engine.html`, `ai.html`, `auth.html`, `ops.html`): German copy, unified sections (capabilities, scenarios, limits, doc links), topic cards, `lang="de"`.
+- **`backend/app/info/static/backend-info.css`**: wide layout for Redoc, topic grid, doc tables.
+- **`mkdocs.yml`**: top-level **API** section (overview, `REFERENCE.md`, taxonomy, openapi-spec).
+- **`docs/api/README.md`**, **`docs/dev/README.md`**, **`docs/dev/api/openapi-and-api-explorer-strategy.md`**, **`docs/reference/documentation-registry.md`**, root **`README.md`**: discovery pointers; World Engine links corrected to `docs/api/README.md#world-engine-api` where `REFERENCE.md` had no anchor.
 
 ### Tests (integrity verification)
 
 - `python -m pytest backend/tests/test_mcp_operations_cockpit.py -q --no-cov` — green.
 - `python -m pytest administration-tool/tests/test_manage_mcp_operations.py -q --no-cov` — green.
 - `python -m pytest ai_stack/tests/test_mcp_static_catalog.py -q --no-cov` — green.
+- `python -m pytest backend/tests/test_openapi_drift.py -q --no-cov` — green.
 
 ---
 

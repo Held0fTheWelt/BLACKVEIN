@@ -16,11 +16,7 @@ Task 2A adds model-aware registration:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.runtime.ai_adapter import StoryAIAdapter
-
+from app.runtime.ai_adapter import StoryAIAdapter
 from app.runtime.model_routing_contracts import AdapterModelSpec
 
 # Global registry: maps adapter name → adapter instance

@@ -118,6 +118,15 @@ def build_test_app(tmp_path: Path, *, store_backend: str = "json", store_url: st
     app.state.ticket_manager = tickets_module.TicketManager("test-secret")
     app.include_router(http_module.router)
     app.include_router(ws_module.router)
+
+    web_root = ROOT / "app" / "web"
+
+    @app.get("/ops")
+    def _ops_console_test():
+        from fastapi.responses import FileResponse
+
+        return FileResponse(web_root / "templates" / "ops.html")
+
     return app
 
 

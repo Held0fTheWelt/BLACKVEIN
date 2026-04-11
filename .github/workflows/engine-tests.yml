@@ -5,6 +5,9 @@ on:
     branches: [ master, main, develop ]
     paths:
       - 'world-engine/**'
+      - 'backend/app/content/builtins.py'
+      - 'backend/app/content/models.py'
+      - 'story_runtime_core/**'
       - '.github/workflows/engine-tests.yml'
       - '.devcontainer/**'
       - 'run_tests.py'
@@ -12,6 +15,9 @@ on:
     branches: [ master, main, develop ]
     paths:
       - 'world-engine/**'
+      - 'backend/app/content/builtins.py'
+      - 'backend/app/content/models.py'
+      - 'story_runtime_core/**'
       - '.github/workflows/engine-tests.yml'
       - '.devcontainer/**'
       - 'run_tests.py'
@@ -40,6 +46,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -e "./story_runtime_core"
           pip install -r world-engine/requirements-dev.txt
 
       - name: Run engine fast tests
@@ -79,6 +86,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -e "./story_runtime_core"
           pip install -r world-engine/requirements-dev.txt
 
       - name: Run engine full tests

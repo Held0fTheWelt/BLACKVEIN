@@ -5,7 +5,7 @@ import os
 from functools import wraps
 
 from flask import current_app, g, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
 from flask_jwt_extended import create_access_token as _create_access_token_orig
 
 from app.models import User
@@ -27,7 +27,16 @@ def create_access_token(identity, **kwargs):
 
 
 def get_current_user():
-    """Return the User for the current JWT identity, or None. Call only after @jwt_required()."""
+    """Return the User for the current JWT identity, or None.
+
+    Prefer calling after ``@jwt_required()`` on the route. Helpers that run without that
+    decorator use ``verify_jwt_in_request(optional=True)`` first so missing JWT yields
+    ``None`` instead of raising from ``get_jwt_identity``.
+    """
+    try:
+        verify_jwt_in_request(optional=True)
+    except Exception:
+        pass
     try:
         raw = get_jwt_identity()
         if raw is None:
@@ -137,6 +146,26 @@ def require_feature(feature_id: str):
                 return jsonify({"error": "Forbidden. You do not have access to this feature."}), 403
             return f(*args, **kwargs)
         return wrapped
+    return decorator
+
+
+def require_world_engine_capability(min_capability: str):
+    """
+    Require hierarchical World-Engine console access (observe / operate / author).
+    Use after @require_jwt_moderator_or_admin (or equivalent JWT + role).
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            from app.auth.feature_registry import user_can_access_world_engine_capability
+
+            user = get_current_user()
+            if not user_can_access_world_engine_capability(user, min_capability):
+                return jsonify({"error": "Forbidden. World Engine console capability denied."}), 403
+            return f(*args, **kwargs)
+
+        return wrapped
+
     return decorator
 
 

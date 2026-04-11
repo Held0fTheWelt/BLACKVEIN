@@ -144,85 +144,98 @@ def _find_action_cues(lowered: str, original: str) -> list[str]:
     return cues
 
 
-def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
-    """Classify and extract bounded cues from operator text using deterministic rules only."""
-    raw_text = text if text is not None else ""
-    normalized_text = raw_text.strip()
-    lowered = normalized_text.lower()
-    collapsed = _normalize_for_match(normalized_text)
+def _envelope_empty_silence(raw_text: str) -> InputInterpretationEnvelope:
+    return InputInterpretationEnvelope(
+        raw_text=raw_text,
+        normalized_text="",
+        is_empty=True,
+        primary_mode=InputPrimaryMode.SILENCE,
+        secondary_modes=[],
+        spoken_text_segments=[],
+        action_cues=[],
+        reaction_cues=[],
+        ambiguity_markers=["empty_input"],
+        confidence=1.0,
+        rationale="Empty or whitespace-only input classified as silence.",
+        parser_version=PARSER_VERSION,
+    )
 
-    if not normalized_text:
-        return InputInterpretationEnvelope(
-            raw_text=raw_text,
-            normalized_text="",
-            is_empty=True,
-            primary_mode=InputPrimaryMode.SILENCE,
-            secondary_modes=[],
-            spoken_text_segments=[],
-            action_cues=[],
-            reaction_cues=[],
-            ambiguity_markers=["empty_input"],
-            confidence=1.0,
-            rationale="Empty or whitespace-only input classified as silence.",
-            parser_version=PARSER_VERSION,
-        )
 
-    tokens = _tokens_with_alnum(lowered)
-    if not tokens:
-        return InputInterpretationEnvelope(
-            raw_text=raw_text,
-            normalized_text=collapsed,
-            is_empty=False,
-            primary_mode=InputPrimaryMode.SILENCE,
-            secondary_modes=[],
-            spoken_text_segments=[],
-            action_cues=[],
-            reaction_cues=[],
-            ambiguity_markers=["punctuation_only"],
-            confidence=0.95,
-            rationale="No alphanumeric tokens; treated as silence-like input.",
-            parser_version=PARSER_VERSION,
-        )
+def _envelope_punctuation_silence(raw_text: str, collapsed: str) -> InputInterpretationEnvelope:
+    return InputInterpretationEnvelope(
+        raw_text=raw_text,
+        normalized_text=collapsed,
+        is_empty=False,
+        primary_mode=InputPrimaryMode.SILENCE,
+        secondary_modes=[],
+        spoken_text_segments=[],
+        action_cues=[],
+        reaction_cues=[],
+        ambiguity_markers=["punctuation_only"],
+        confidence=0.95,
+        rationale="No alphanumeric tokens; treated as silence-like input.",
+        parser_version=PARSER_VERSION,
+    )
 
-    if _SILENCE_EXPLICIT.match(normalized_text):
-        return InputInterpretationEnvelope(
-            raw_text=raw_text,
-            normalized_text=collapsed,
-            is_empty=False,
-            primary_mode=InputPrimaryMode.SILENCE,
-            secondary_modes=[],
-            spoken_text_segments=[],
-            action_cues=[],
-            reaction_cues=[],
-            ambiguity_markers=["explicit_silence_marker"],
-            confidence=0.9,
-            rationale="Explicit silence or ellipsis-only pattern detected.",
-            parser_version=PARSER_VERSION,
-        )
 
+def _envelope_explicit_silence(raw_text: str, collapsed: str) -> InputInterpretationEnvelope:
+    return InputInterpretationEnvelope(
+        raw_text=raw_text,
+        normalized_text=collapsed,
+        is_empty=False,
+        primary_mode=InputPrimaryMode.SILENCE,
+        secondary_modes=[],
+        spoken_text_segments=[],
+        action_cues=[],
+        reaction_cues=[],
+        ambiguity_markers=["explicit_silence_marker"],
+        confidence=0.9,
+        rationale="Explicit silence or ellipsis-only pattern detected.",
+        parser_version=PARSER_VERSION,
+    )
+
+
+def _mode_signals_from_cues(
+    lowered: str,
+    normalized_text: str,
+) -> tuple[list[str], list[str], list[str], bool, bool, bool, bool, bool]:
     spoken = _extract_spoken_segments(normalized_text)
     reaction_cues = _find_reaction_cues(lowered)
     action_cues = _find_action_cues(lowered, normalized_text)
-
     has_quotes = len(spoken) > 0
     has_speech_verb = bool(_SPEECH_LEAD_IN.search(lowered) or _SPEECH_TELL_THEM.search(lowered))
     dialogue_signal = has_quotes or has_speech_verb
-
     reaction_signal = len(reaction_cues) > 0
     action_signal = len(action_cues) > 0
+    return (
+        spoken,
+        action_cues,
+        reaction_cues,
+        has_quotes,
+        has_speech_verb,
+        dialogue_signal,
+        reaction_signal,
+        action_signal,
+    )
 
-    # Scores in [0, 1] for disambiguation (deterministic).
-    d_score = 0.0
-    if has_quotes:
-        d_score += 0.55
-    if has_speech_verb:
-        d_score += 0.45
-    d_score = min(d_score, 1.0)
 
-    r_score = min(0.35 + 0.3 * len(reaction_cues), 1.0)
-    a_score = min(0.35 + 0.25 * len(action_cues), 1.0)
+def _classify_primary_and_meta(
+    *,
+    tokens: list[str],
+    normalized_text: str,
+    has_quotes: bool,
+    has_speech_verb: bool,
+    dialogue_signal: bool,
+    reaction_signal: bool,
+    action_signal: bool,
+) -> tuple[InputPrimaryMode, list[InputPrimaryMode], list[str], float, str]:
+    ambiguity: list[str] = []
+    secondary: list[InputPrimaryMode] = []
 
-    modes_active = []
+    if len(tokens) <= 2 and len(normalized_text) <= 16:
+        ambiguity.append("short_utterance")
+
+    modes_active: list[InputPrimaryMode] = []
     if dialogue_signal:
         modes_active.append(InputPrimaryMode.DIALOGUE)
     if reaction_signal:
@@ -230,16 +243,9 @@ def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
     if action_signal:
         modes_active.append(InputPrimaryMode.ACTION)
 
-    ambiguity: list[str] = []
-    secondary: list[InputPrimaryMode] = []
-
-    # Short utterance ambiguity (e.g. "Fine.")
-    if len(tokens) <= 2 and len(normalized_text) <= 16:
-        ambiguity.append("short_utterance")
-
     if len(modes_active) >= 2:
         primary = InputPrimaryMode.MIXED
-        secondary = [m for m in modes_active]
+        secondary = list(modes_active)
         confidence = 0.72
         if ambiguity:
             confidence = min(confidence, 0.55)
@@ -247,7 +253,9 @@ def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
             f"Multiple mode signals (dialogue={dialogue_signal}, reaction={reaction_signal}, "
             f"action={action_signal}); classified as mixed."
         )
-    elif dialogue_signal:
+        return primary, secondary, ambiguity, confidence, rationale
+
+    if dialogue_signal:
         primary = InputPrimaryMode.DIALOGUE
         confidence = 0.82 if has_quotes and has_speech_verb else 0.68 if has_quotes else 0.62
         if ambiguity:
@@ -261,28 +269,82 @@ def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
             )
         else:
             rationale = "Quoted speech and/or speech-act verbs indicate dialogue."
-    elif reaction_signal and not action_signal:
-        primary = InputPrimaryMode.REACTION
-        confidence = 0.78 if not ambiguity else 0.5
-        rationale = "Reaction cues (e.g. sigh, flinch) without competing action phrasing."
-    elif action_signal and not dialogue_signal:
-        primary = InputPrimaryMode.ACTION
-        confidence = 0.78 if not ambiguity else 0.52
-        rationale = "First-person or imperative physical action cues detected."
-    elif reaction_signal and action_signal:
-        primary = InputPrimaryMode.MIXED
-        secondary = [InputPrimaryMode.REACTION, InputPrimaryMode.ACTION]
-        confidence = 0.7
-        rationale = "Both reaction and action cues present."
-    else:
-        primary = InputPrimaryMode.UNKNOWN
-        confidence = 0.35
-        ambiguity.append("no_strong_mode_pattern")
-        rationale = "No reliable dialogue, action, or reaction pattern; classified as unknown."
+        return primary, secondary, ambiguity, confidence, rationale
 
-    # Refine: single-token short without signals stays unknown
-    if primary == InputPrimaryMode.UNKNOWN and not secondary and dialogue_signal:
-        pass  # already handled above
+    if reaction_signal and not action_signal:
+        return (
+            InputPrimaryMode.REACTION,
+            [],
+            ambiguity,
+            0.78 if not ambiguity else 0.5,
+            "Reaction cues (e.g. sigh, flinch) without competing action phrasing.",
+        )
+
+    if action_signal and not dialogue_signal:
+        return (
+            InputPrimaryMode.ACTION,
+            [],
+            ambiguity,
+            0.78 if not ambiguity else 0.52,
+            "First-person or imperative physical action cues detected.",
+        )
+
+    if reaction_signal and action_signal:
+        return (
+            InputPrimaryMode.MIXED,
+            [InputPrimaryMode.REACTION, InputPrimaryMode.ACTION],
+            ambiguity,
+            0.7,
+            "Both reaction and action cues present.",
+        )
+
+    ambiguity.append("no_strong_mode_pattern")
+    return (
+        InputPrimaryMode.UNKNOWN,
+        [],
+        ambiguity,
+        0.35,
+        "No reliable dialogue, action, or reaction pattern; classified as unknown.",
+    )
+
+
+def interpret_operator_input(text: str) -> InputInterpretationEnvelope:
+    """Classify and extract bounded cues from operator text using deterministic rules only."""
+    raw_text = text if text is not None else ""
+    normalized_text = raw_text.strip()
+    lowered = normalized_text.lower()
+    collapsed = _normalize_for_match(normalized_text)
+
+    if not normalized_text:
+        return _envelope_empty_silence(raw_text)
+
+    tokens = _tokens_with_alnum(lowered)
+    if not tokens:
+        return _envelope_punctuation_silence(raw_text, collapsed)
+
+    if _SILENCE_EXPLICIT.match(normalized_text):
+        return _envelope_explicit_silence(raw_text, collapsed)
+
+    (
+        spoken,
+        action_cues,
+        reaction_cues,
+        has_quotes,
+        has_speech_verb,
+        dialogue_signal,
+        reaction_signal,
+        action_signal,
+    ) = _mode_signals_from_cues(lowered, normalized_text)
+
+    primary, secondary, ambiguity, confidence, rationale = _classify_primary_and_meta(
+        tokens=tokens,
+        normalized_text=normalized_text,
+        has_quotes=has_quotes,
+        has_speech_verb=has_speech_verb,
+        dialogue_signal=dialogue_signal,
+        reaction_signal=reaction_signal,
+        action_signal=action_signal,
+    )
 
     if not ambiguity and primary == InputPrimaryMode.UNKNOWN:
         ambiguity.append("low_signal")

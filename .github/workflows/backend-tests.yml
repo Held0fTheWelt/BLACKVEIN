@@ -5,6 +5,9 @@ on:
     branches: [ master, main, develop ]
     paths:
       - 'backend/**'
+      # Drift guard: builtins/models SSOT vs world-engine (story_runtime_core).
+      - 'world-engine/app/content/builtins.py'
+      - 'world-engine/app/content/models.py'
       # Backend tests under tests/ import ai_stack (e.g. test_goc_evidence_retrieval_governance, test_goc_semantic_parity).
       - 'ai_stack/**'
       - 'story_runtime_core/**'
@@ -20,6 +23,8 @@ on:
     branches: [ master, main, develop ]
     paths:
       - 'backend/**'
+      - 'world-engine/app/content/builtins.py'
+      - 'world-engine/app/content/models.py'
       - 'ai_stack/**'
       - 'story_runtime_core/**'
       - 'tests/requirements_hygiene/**'

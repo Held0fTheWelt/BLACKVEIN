@@ -20,6 +20,9 @@ FEATURE_MANAGE_GAME_CONTENT = "manage.game_content"
 FEATURE_MANAGE_GAME_OPERATIONS = "manage.game_operations"
 FEATURE_MANAGE_SYSTEM_DIAGNOSIS = "manage.system_diagnosis"
 FEATURE_MANAGE_PLAY_SERVICE_CONTROL = "manage.play_service_control"
+FEATURE_MANAGE_WORLD_ENGINE_OBSERVE = "manage.world_engine_observe"
+FEATURE_MANAGE_WORLD_ENGINE_OPERATE = "manage.world_engine_operate"
+FEATURE_MANAGE_WORLD_ENGINE_AUTHOR = "manage.world_engine_author"
 FEATURE_MANAGE_MCP_OPERATIONS = "manage.mcp_operations"
 FEATURE_DASHBOARD_METRICS = "dashboard.metrics"
 FEATURE_DASHBOARD_LOGS = "dashboard.logs"
@@ -41,6 +44,9 @@ FEATURE_IDS = [
     FEATURE_MANAGE_GAME_OPERATIONS,
     FEATURE_MANAGE_SYSTEM_DIAGNOSIS,
     FEATURE_MANAGE_PLAY_SERVICE_CONTROL,
+    FEATURE_MANAGE_WORLD_ENGINE_OBSERVE,
+    FEATURE_MANAGE_WORLD_ENGINE_OPERATE,
+    FEATURE_MANAGE_WORLD_ENGINE_AUTHOR,
     FEATURE_MANAGE_MCP_OPERATIONS,
     FEATURE_DASHBOARD_METRICS,
     FEATURE_DASHBOARD_LOGS,
@@ -64,6 +70,9 @@ FEATURE_REQUIRED_ROLES = {
     FEATURE_MANAGE_GAME_OPERATIONS: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
     FEATURE_MANAGE_SYSTEM_DIAGNOSIS: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
     FEATURE_MANAGE_PLAY_SERVICE_CONTROL: (User.ROLE_ADMIN,),
+    FEATURE_MANAGE_WORLD_ENGINE_OBSERVE: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
+    FEATURE_MANAGE_WORLD_ENGINE_OPERATE: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
+    FEATURE_MANAGE_WORLD_ENGINE_AUTHOR: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
     FEATURE_MANAGE_MCP_OPERATIONS: (User.ROLE_MODERATOR, User.ROLE_ADMIN),
     FEATURE_DASHBOARD_METRICS: (User.ROLE_ADMIN,),
     FEATURE_DASHBOARD_LOGS: (User.ROLE_ADMIN,),
@@ -110,6 +119,25 @@ def _user_area_ids(user: User) -> set:
     if not user or not user.areas:
         return set()
     return {a.id for a in user.areas}
+
+
+def user_can_access_world_engine_capability(user: User | None, min_capability: str) -> bool:
+    """
+    Hierarchical World-Engine console rights: author ⊃ operate ⊃ observe.
+    min_capability: "observe" | "operate" | "author"
+    """
+    if not user:
+        return False
+    has_author = user_can_access_feature(user, FEATURE_MANAGE_WORLD_ENGINE_AUTHOR)
+    has_operate = user_can_access_feature(user, FEATURE_MANAGE_WORLD_ENGINE_OPERATE)
+    has_observe = user_can_access_feature(user, FEATURE_MANAGE_WORLD_ENGINE_OBSERVE)
+    if min_capability == "author":
+        return has_author
+    if min_capability == "operate":
+        return has_author or has_operate
+    if min_capability == "observe":
+        return has_author or has_operate or has_observe
+    return False
 
 
 def user_can_access_feature(user: User, feature_id: str) -> bool:

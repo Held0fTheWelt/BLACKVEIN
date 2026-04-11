@@ -5,9 +5,14 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" crossorigin="anonymous"></script>
 {% endblock %}
 {% block content %}
-<div class="manage-wiki">
-    <h1 class="page-header">{{ t.manage_wiki | default('Wiki') }}</h1>
-    <p class="muted">Edit wiki pages and translations. Select a page, then edit content per language.</p>
+<section class="manage-wiki manage-section">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Knowledge Base</p>
+            <h1 class="page-header">{{ t.manage_wiki | default('Wiki') }}</h1>
+            <p class="manage-lead">Edit wiki pages and translations. Select a page, then edit content per language.</p>
+        </div>
+    </div>
     <div class="manage-split">
         <div class="manage-panel manage-wiki-list-panel">
             <h2>Pages</h2>
@@ -72,7 +77,7 @@
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_wiki.js') }}"></script>

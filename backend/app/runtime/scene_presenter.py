@@ -6,12 +6,11 @@ All fields derive strictly from canonical runtime sources; no invented state.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
-if TYPE_CHECKING:
-    from app.runtime.runtime_models import SessionState
+from app.runtime.runtime_models import SessionState
 
 
 class RelationshipMovement(BaseModel):
@@ -204,89 +203,9 @@ def present_conflict_panel(
            - None if context layers missing
         5. Return ConflictPanelOutput.
     """
-    # Step 1: Extract current_pressure
-    current_pressure = None
-    if session_state.context_layers and session_state.context_layers.short_term_context:
-        current_pressure = session_state.context_layers.short_term_context.conflict_pressure
-    if current_pressure is None and session_state.canonical_state:
-        conflict_state = session_state.canonical_state.get("conflict_state", {})
-        if isinstance(conflict_state, dict):
-            current_pressure = conflict_state.get("pressure")
+    from app.runtime.scene_presenter_conflict_sections import build_conflict_panel_from_session
 
-    # Step 2: Derive current_escalation_status
-    if current_pressure is None:
-        current_escalation_status = "unknown"
-    elif current_pressure <= 33:
-        current_escalation_status = "low"
-    elif current_pressure <= 66:
-        current_escalation_status = "medium"
-    else:
-        current_escalation_status = "high"
-
-    # Step 3: Derive recent_trend using priority rule
-    recent_trend = None
-    if (
-        session_state.context_layers
-        and (
-            session_state.context_layers.progression_summary
-            or session_state.context_layers.relationship_axis_context
-        )
-    ):
-        signal = None
-        source_basis = []
-
-        # Priority 1: Check guard outcomes for escalation
-        if session_state.context_layers.progression_summary:
-            outcomes = (
-                session_state.context_layers.progression_summary.most_recent_guard_outcomes
-            )
-            if outcomes:
-                rejections = outcomes.count("rejected")
-                acceptances = outcomes.count("accepted")
-                if rejections > acceptances:
-                    signal = "escalating"
-                    source_basis.append("guard_outcomes")
-
-        # Priority 2: Check relationship escalation markers
-        if session_state.context_layers.relationship_axis_context:
-            rel_ctx = session_state.context_layers.relationship_axis_context
-            if rel_ctx.has_escalation_markers:
-                if signal != "escalating":
-                    signal = "escalating"
-                source_basis.append("relationship_tension")
-            elif signal is None:
-                # Check overall stability signal (only if not escalating)
-                if rel_ctx.overall_stability_signal == "de-escalating":
-                    signal = "de-escalating"
-                    source_basis.append("stability_signal")
-                elif rel_ctx.overall_stability_signal == "stable":
-                    signal = "stable"
-                    source_basis.append("stability_signal")
-
-        # Fallback
-        if signal is None:
-            signal = "uncertain"
-
-        if source_basis or signal != "uncertain":
-            recent_trend = ConflictTrendSignal(
-                signal=signal,
-                source_basis=source_basis,
-            )
-
-    # Step 4: Derive turning_point_risk
-    turning_point_risk = None
-    if session_state.context_layers and session_state.context_layers.relationship_axis_context:
-        turning_point_risk = (
-            session_state.context_layers.relationship_axis_context.has_escalation_markers
-        )
-
-    # Step 5: Return ConflictPanelOutput
-    return ConflictPanelOutput(
-        current_pressure=current_pressure,
-        current_escalation_status=current_escalation_status,
-        recent_trend=recent_trend,
-        turning_point_risk=turning_point_risk,
-    )
+    return build_conflict_panel_from_session(session_state)
 
 
 def present_all_characters(

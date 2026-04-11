@@ -207,6 +207,26 @@ def preflight_validate_payload(payload: Dict[str, Any]) -> ImportPreflightResult
     return ImportPreflightResult(ok=ok, issues=issues, metadata=metadata)
 
 
+def _prepare_insert_rows(table: Table, rows: List[Any]) -> List[Dict[str, Any]]:
+    insert_rows: List[Dict[str, Any]] = []
+    for row in rows:
+        assert isinstance(row, dict)
+        prepared: Dict[str, Any] = {}
+        for col in table.columns:
+            if col.name in row:
+                prepared[col.name] = _parse_datetime_if_needed(col, row[col.name])
+        insert_rows.append(prepared)
+    return insert_rows
+
+
+def _execute_inserts_for_all_tables(tables_data: Dict[str, Any]) -> None:
+    for table_name, rows in tables_data.items():
+        table = _get_table(table_name)
+        if table is None or not isinstance(rows, list) or not rows:
+            continue
+        db.session.execute(table.insert(), _prepare_insert_rows(table, rows))
+
+
 def execute_import(payload: Dict[str, Any]) -> ImportPreflightResult:
     """Validate and, if safe, import the payload in a single transaction.
 
@@ -222,51 +242,19 @@ def execute_import(payload: Dict[str, Any]) -> ImportPreflightResult:
     tables_data: Dict[str, Any] = data["tables"]
 
     try:
-        # Try to start a transaction; if one is already active, use a savepoint instead
         try:
-            # Attempt to start a new transaction
             with db.session.begin():
-                for table_name, rows in tables_data.items():
-                    table = _get_table(table_name)
-                    if table is None or not isinstance(rows, list) or not rows:
-                        continue
-
-                    insert_rows: List[Dict[str, Any]] = []
-                    for row in rows:
-                        assert isinstance(row, dict)
-                        prepared: Dict[str, Any] = {}
-                        for col in table.columns:
-                            if col.name in row:
-                                prepared[col.name] = _parse_datetime_if_needed(col, row[col.name])
-                        insert_rows.append(prepared)
-
-                    db.session.execute(table.insert(), insert_rows)
+                _execute_inserts_for_all_tables(tables_data)
         except InvalidRequestError as e:
-            # If "transaction is already begun", use a savepoint
             if "transaction is already begun" in str(e).lower():
                 savepoint = db.session.begin_nested()
                 try:
-                    for table_name, rows in tables_data.items():
-                        table = _get_table(table_name)
-                        if table is None or not isinstance(rows, list) or not rows:
-                            continue
-
-                        insert_rows: List[Dict[str, Any]] = []
-                        for row in rows:
-                            assert isinstance(row, dict)
-                            prepared: Dict[str, Any] = {}
-                            for col in table.columns:
-                                if col.name in row:
-                                    prepared[col.name] = _parse_datetime_if_needed(col, row[col.name])
-                            insert_rows.append(prepared)
-
-                        db.session.execute(table.insert(), insert_rows)
+                    _execute_inserts_for_all_tables(tables_data)
                     savepoint.commit()
                 except Exception:
                     savepoint.rollback()
                     raise
             else:
-                # Re-raise if it's not the transaction issue
                 raise
     except SQLAlchemyError as exc:  # pragma: no cover - DB-level errors are rare and environment-specific
         db.session.rollback()

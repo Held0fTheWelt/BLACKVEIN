@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World Engine — Ops</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .ops-page { max-width: 56rem; margin: 0 auto; padding: 1.5rem; }
+    .ops-page pre { overflow: auto; font-size: 0.85rem; }
+    .ops-status { margin: 1rem 0; padding: 0.75rem 1rem; border-radius: 6px; border: 1px solid #334155; }
+    .ops-status.ok { border-color: #166534; background: #052e16; color: #bbf7d0; }
+    .ops-status.err { border-color: #991b1b; background: #450a0a; color: #fecaca; }
+    .ops-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <a href="/" class="subtitle" style="display:inline-block;margin:1rem;">← Play prototype</a>
+  <main id="main" class="ops-page" role="main">
+    <h1>World Engine — lightweight ops</h1>
+    <p class="subtitle">Public readiness probes only (no auth). For full console use the administration tool with JWT.</p>
+
+    <div id="ops-banner" class="ops-status" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <section aria-labelledby="ops-health-heading">
+      <h2 id="ops-health-heading">Health payloads</h2>
+      <pre id="ops-health-json" class="code-block" aria-label="Health JSON"></pre>
+      <pre id="ops-ready-json" class="code-block" aria-label="Ready JSON"></pre>
+    </section>
+
+    <div class="ops-actions">
+      <button type="button" class="btn" id="ops-refresh">Refresh</button>
+    </div>
+  </main>
+  <script>
+    (function() {
+      var banner = document.getElementById("ops-banner");
+      var h = document.getElementById("ops-health-json");
+      var r = document.getElementById("ops-ready-json");
+      function setBanner(ok, text) {
+        if (!banner) return;
+        banner.textContent = text;
+        banner.className = "ops-status " + (ok ? "ok" : "err");
+      }
+      function load() {
+        setBanner(true, "Loading…");
+        Promise.all([
+          fetch("/api/health").then(function(res) { return res.json().then(function(j) { return { res: res, j: j }; }); }),
+          fetch("/api/health/ready").then(function(res) { return res.json().then(function(j) { return { res: res, j: j }; }); })
+        ]).then(function(pair) {
+          var a = pair[0], b = pair[1];
+          if (h) h.textContent = JSON.stringify(a.j, null, 2);
+          if (r) r.textContent = JSON.stringify(b.j, null, 2);
+          var ok = a.res.ok && b.res.ok;
+          setBanner(ok, ok ? "Engine responded: health and ready OK." : "One or more probes failed (see JSON).");
+        }).catch(function() {
+          setBanner(false, "Network error or invalid JSON.");
+          if (h) h.textContent = "—";
+          if (r) r.textContent = "—";
+        });
+      }
+      document.getElementById("ops-refresh").addEventListener("click", load);
+      load();
+    })();
+  </script>
+</body>
+</html>

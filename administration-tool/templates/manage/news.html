@@ -1,8 +1,14 @@
 {% extends "manage/base.html" %}
 {% block title %}{{ t.manage_news | default('News') }}{% endblock %}
 {% block content %}
-<div class="manage-news">
-    <h1 class="page-header">{{ t.manage_news | default('News') }}</h1>
+<section class="manage-news manage-section">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Content</p>
+            <h1 class="page-header">{{ t.manage_news | default('News') }}</h1>
+            <p class="manage-lead">Create, localize, moderate, and publish editorial content with translation-aware workflows.</p>
+        </div>
+    </div>
     <div class="manage-split">
         <div class="manage-panel manage-news-list-panel">
             <h2>Articles</h2>
@@ -159,7 +165,7 @@
             </form>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_news.js') }}"></script>

@@ -6,9 +6,10 @@ Constructs and populates AIDecisionLog with role-separated diagnostics
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Optional
 
 from app.runtime.ai_decision import ParsedAIDecision
+from app.runtime.role_structured_decision import ParsedRoleAwareDecision
 from app.runtime.runtime_models import (
     AgentInvocationRecord,
     AgentResultRecord,
@@ -22,8 +23,48 @@ from app.runtime.runtime_models import (
     SupervisorPlan,
 )
 
-if TYPE_CHECKING:
-    from app.runtime.role_structured_decision import ParsedRoleAwareDecision
+def pack_ai_turn_orchestration_attachments(
+    *,
+    tool_loop_summary: dict[str, Any] | None,
+    tool_call_transcript: list[dict[str, Any]] | None,
+    last_successful_tool_sequence: int | None,
+    preview_diagnostics: dict[str, Any] | None,
+    supervisor_plan: Any,
+    subagent_invocations: Any,
+    subagent_results: Any,
+    merge_finalization: Any,
+    orchestration_budget_summary: Any,
+    orchestration_failover: Any,
+    orchestration_cache: Any,
+    tool_audit: Any,
+    model_routing_trace: dict[str, Any] | None,
+    runtime_stage_traces: list[dict[str, Any]] | None,
+    runtime_orchestration_summary: dict[str, Any] | None,
+    operator_audit: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Shared kwargs for ``construct_ai_decision_log`` on the AI-turn path (orchestration + tools)."""
+    return {
+        "tool_loop_summary": tool_loop_summary,
+        "tool_call_transcript": tool_call_transcript or None,
+        "tool_influence": (
+            {"influencing_tool_sequence": last_successful_tool_sequence}
+            if last_successful_tool_sequence
+            else None
+        ),
+        "preview_diagnostics": preview_diagnostics,
+        "supervisor_plan": supervisor_plan,
+        "subagent_invocations": subagent_invocations,
+        "subagent_results": subagent_results,
+        "merge_finalization": merge_finalization,
+        "orchestration_budget_summary": orchestration_budget_summary,
+        "orchestration_failover": orchestration_failover,
+        "orchestration_cache": orchestration_cache,
+        "tool_audit": tool_audit,
+        "model_routing_trace": model_routing_trace,
+        "runtime_stage_traces": runtime_stage_traces,
+        "runtime_orchestration_summary": runtime_orchestration_summary,
+        "operator_audit": operator_audit,
+    }
 
 
 def construct_ai_decision_log(

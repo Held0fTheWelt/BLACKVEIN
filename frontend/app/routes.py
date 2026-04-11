@@ -5,7 +5,6 @@ from typing import Any
 
 import requests
 from flask import (
-    Blueprint,
     Response,
     current_app,
     flash,
@@ -17,71 +16,12 @@ from flask import (
     url_for,
 )
 
-from .api_client import BackendApiError, request_backend, require_success
+from . import player_backend
+from .player_backend import BackendApiError
 from .auth import require_login
+from .frontend_blueprint import frontend_bp
 
-frontend_bp = Blueprint("frontend", __name__)
-
-PLAY_SHELL_RUNTIME_VIEWS_KEY = "play_shell_runtime_views"
-
-
-def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any]:
-    """Project world-engine bridge JSON into a compact, player-facing last-turn view."""
-    turn = api_payload.get("turn") if isinstance(api_payload.get("turn"), dict) else {}
-    state = api_payload.get("state") if isinstance(api_payload.get("state"), dict) else {}
-    bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
-    gm = bundle.get("gm_narration")
-    lines: list[str] = []
-    if isinstance(gm, list):
-        lines = [str(x).strip() for x in gm if str(x).strip()]
-    narration_text = "\n\n".join(lines)
-    spoken = bundle.get("spoken_lines")
-    spoken_lines: list[str] = []
-    if isinstance(spoken, list):
-        spoken_lines = [str(x).strip() for x in spoken if str(x).strip()]
-
-    committed = state.get("committed_state") if isinstance(state.get("committed_state"), dict) else {}
-    summary = (
-        committed.get("last_narrative_commit_summary")
-        if isinstance(committed.get("last_narrative_commit_summary"), dict)
-        else {}
-    )
-    consequences = committed.get("last_committed_consequences")
-    cons_list: list[str] = []
-    if isinstance(consequences, list):
-        cons_list = [str(x) for x in consequences[:12]]
-
-    val = turn.get("validation_outcome") if isinstance(turn.get("validation_outcome"), dict) else {}
-    val_status = str(val.get("status") or "").strip() or None
-
-    graph = turn.get("graph") if isinstance(turn.get("graph"), dict) else {}
-    errs = graph.get("errors")
-    err_count = len(errs) if isinstance(errs, list) else 0
-
-    interp = turn.get("interpreted_input") if isinstance(turn.get("interpreted_input"), dict) else {}
-    input_kind = str(interp.get("kind") or "").strip() or "unknown"
-
-    nc = committed.get("last_narrative_commit") if isinstance(committed.get("last_narrative_commit"), dict) else {}
-    if not nc:
-        nc = turn.get("narrative_commit") if isinstance(turn.get("narrative_commit"), dict) else {}
-
-    return {
-        "trace_id": str(api_payload.get("trace_id") or "").strip() or None,
-        "world_engine_story_session_id": str(api_payload.get("world_engine_story_session_id") or "").strip() or None,
-        "turn_number": turn.get("turn_number"),
-        "player_line": str(turn.get("raw_input") or "").strip(),
-        "interpreted_input_kind": input_kind,
-        "narration_text": narration_text,
-        "spoken_lines": spoken_lines,
-        "committed_scene_id": summary.get("committed_scene_id") or nc.get("committed_scene_id"),
-        "commit_reason_code": summary.get("commit_reason_code") or nc.get("commit_reason_code"),
-        "situation_status": summary.get("situation_status"),
-        "validation_status": val_status,
-        "graph_error_count": err_count,
-        "committed_consequences": cons_list,
-        "current_scene_id": state.get("current_scene_id"),
-        "turn_counter": state.get("turn_counter"),
-    }
+from . import routes_play  # noqa: F401, E402 — registers /play* on frontend_bp
 
 
 def _clear_auth_state() -> None:
@@ -102,8 +42,8 @@ def _user_is_admin(user: dict[str, Any] | None) -> bool:
 
 
 def _fetch_me() -> dict[str, Any]:
-    response = request_backend("GET", "/api/v1/auth/me")
-    payload = require_success(response, "Could not fetch user profile.")
+    response = player_backend.request_backend("GET", "/api/v1/auth/me")
+    payload = player_backend.require_success(response, "Could not fetch user profile.")
     session["current_user"] = payload
     session.modified = True
     return payload
@@ -127,14 +67,14 @@ def login():
         flash("Username and password are required.", "error")
         return render_template("login.html"), 400
 
-    response = request_backend(
+    response = player_backend.request_backend(
         "POST",
         "/api/v1/auth/login",
         json_data={"username": username, "password": password},
         allow_refresh=False,
     )
     try:
-        payload = require_success(response, "Login failed.")
+        payload = player_backend.require_success(response, "Login failed.")
     except BackendApiError as exc:
         flash(str(exc), "error")
         return render_template("login.html"), exc.status_code
@@ -150,7 +90,7 @@ def login():
 @frontend_bp.route("/logout", methods=["POST"])
 def logout():
     if session.get("access_token"):
-        request_backend("POST", "/api/v1/auth/logout")
+        player_backend.request_backend("POST", "/api/v1/auth/logout")
     _clear_auth_state()
     flash("You have been logged out.", "info")
     return redirect(url_for("frontend.home"))
@@ -173,14 +113,14 @@ def register():
         flash("Passwords do not match.", "error")
         return render_template("register.html"), 400
 
-    response = request_backend(
+    response = player_backend.request_backend(
         "POST",
         "/api/v1/auth/register",
         json_data={"username": username, "email": email, "password": password},
         allow_refresh=False,
     )
     try:
-        require_success(response, "Registration failed.")
+        player_backend.require_success(response, "Registration failed.")
     except BackendApiError as exc:
         flash(str(exc), "error")
         return render_template("register.html"), exc.status_code
@@ -199,14 +139,14 @@ def resend_verification():
     if request.method == "GET":
         return render_template("resend_verification.html")
     email = (request.form.get("email") or "").strip().lower()
-    response = request_backend(
+    response = player_backend.request_backend(
         "POST",
         "/api/v1/auth/resend-verification",
         json_data={"email": email},
         allow_refresh=False,
     )
     try:
-        payload = require_success(response, "Could not resend verification email.")
+        payload = player_backend.require_success(response, "Could not resend verification email.")
         flash(payload.get("message", "Verification mail request accepted."), "info")
     except BackendApiError as exc:
         flash(str(exc), "error")
@@ -219,14 +159,14 @@ def forgot_password():
     if request.method == "GET":
         return render_template("forgot_password.html")
     email = (request.form.get("email") or "").strip().lower()
-    response = request_backend(
+    response = player_backend.request_backend(
         "POST",
         "/api/v1/auth/forgot-password",
         json_data={"email": email},
         allow_refresh=False,
     )
     try:
-        payload = require_success(response, "Could not request a reset link.")
+        payload = player_backend.require_success(response, "Could not request a reset link.")
         flash(payload.get("message", "If the email exists, a reset link has been sent."), "info")
     except BackendApiError as exc:
         flash(str(exc), "error")
@@ -243,14 +183,14 @@ def reset_password(token: str):
     if password != password_confirm:
         flash("Passwords do not match.", "error")
         return render_template("reset_password.html", token=token), 400
-    response = request_backend(
+    response = player_backend.request_backend(
         "POST",
         "/api/v1/auth/reset-password",
         json_data={"token": token, "new_password": password},
         allow_refresh=False,
     )
     try:
-        payload = require_success(response, "Password reset failed.")
+        payload = player_backend.require_success(response, "Password reset failed.")
         flash(payload.get("message", "Password reset successful."), "success")
     except BackendApiError as exc:
         flash(str(exc), "error")
@@ -278,7 +218,7 @@ def dashboard():
 
 @frontend_bp.route("/news")
 def news():
-    response = request_backend("GET", "/api/v1/news", params={"page": 1, "limit": 20}, allow_refresh=False)
+    response = player_backend.request_backend("GET", "/api/v1/news", params={"page": 1, "limit": 20}, allow_refresh=False)
     items: list[dict[str, Any]] = []
     if response.ok:
         payload = response.json()
@@ -290,14 +230,14 @@ def news():
 @frontend_bp.route("/wiki/<path:slug>")
 def wiki(slug: str | None = None):
     api_path = f"/api/v1/wiki/{slug}" if slug else "/api/v1/wiki/index"
-    response = request_backend("GET", api_path, allow_refresh=False)
+    response = player_backend.request_backend("GET", api_path, allow_refresh=False)
     page = response.json() if response.ok else None
     return render_template("wiki.html", page=page, slug=slug), response.status_code if response.status_code in (200, 404) else 200
 
 
 @frontend_bp.route("/community")
 def community():
-    response = request_backend("GET", "/api/v1/forum/categories", allow_refresh=False)
+    response = player_backend.request_backend("GET", "/api/v1/forum/categories", allow_refresh=False)
     categories = []
     if response.ok:
         payload = response.json()
@@ -317,133 +257,12 @@ def game_menu():
     )
 
 
-@frontend_bp.route("/play")
-@require_login
-def play_start():
-    response = request_backend("GET", "/api/v1/game/bootstrap")
-    bootstrap = response.json() if response.ok else {}
-    return render_template("session_start.html", bootstrap=bootstrap)
-
-
-@frontend_bp.route("/play/start", methods=["POST"])
-@require_login
-def play_create():
-    template_id = (request.form.get("template_id") or "").strip()
-    if not template_id:
-        flash("Please select a template.", "error")
-        return redirect(url_for("frontend.play_start"))
-    response = request_backend("POST", "/api/v1/game/runs", json_data={"template_id": template_id})
-    try:
-        payload = require_success(response, "Could not create play run.")
-    except BackendApiError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("frontend.play_start"))
-    run_id = payload.get("run", {}).get("id")
-    if not run_id:
-        flash("Run creation returned no run id.", "error")
-        return redirect(url_for("frontend.play_start"))
-    run_modules = session.get("play_shell_run_modules", {})
-    if not isinstance(run_modules, dict):
-        run_modules = {}
-    run_modules[run_id] = template_id
-    session["play_shell_run_modules"] = run_modules
-    session.modified = True
-    return redirect(url_for("frontend.play_shell", session_id=run_id))
-
-
-@frontend_bp.route("/play/<session_id>")
-@require_login
-def play_shell(session_id: str):
-    user = _current_user() or {}
-    response = request_backend(
-        "POST",
-        "/api/v1/game/tickets",
-        json_data={"run_id": session_id, "display_name": user.get("username", "Player")},
-    )
-    ticket_payload = response.json() if response.ok else {}
-    if not response.ok:
-        flash(ticket_payload.get("error", "Could not create play ticket."), "error")
-    backend_sessions = session.get("play_shell_backend_sessions", {})
-    if not isinstance(backend_sessions, dict):
-        backend_sessions = {}
-    backend_session_id = backend_sessions.get(session_id)
-    if not backend_session_id:
-        run_modules = session.get("play_shell_run_modules", {})
-        module_id = run_modules.get(session_id) if isinstance(run_modules, dict) else None
-        if module_id:
-            backend_response = request_backend(
-                "POST",
-                "/api/v1/sessions",
-                json_data={"module_id": module_id},
-            )
-            if backend_response.ok:
-                backend_payload = backend_response.json()
-                backend_session_id = backend_payload.get("session_id")
-                if backend_session_id:
-                    backend_sessions[session_id] = backend_session_id
-                    session["play_shell_backend_sessions"] = backend_sessions
-                    session.modified = True
-                else:
-                    flash("Runtime session creation returned no session id.", "error")
-            else:
-                backend_payload = backend_response.json() if backend_response.content else {}
-                flash(backend_payload.get("error", "Could not create runtime session."), "error")
-        else:
-            flash("No module mapping found for this run. Start a new run from Play Start.", "error")
-    runtime_views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
-    if not isinstance(runtime_views, dict):
-        runtime_views = {}
-    runtime_view = runtime_views.get(session_id)
-
-    return render_template(
-        "session_shell.html",
-        session_id=session_id,
-        ticket=ticket_payload,
-        backend_session_id=backend_session_id,
-        runtime_view=runtime_view,
-    )
-
-
-@frontend_bp.route("/play/<session_id>/execute", methods=["POST"])
-@require_login
-def play_execute(session_id: str):
-    player_input = (request.form.get("player_input") or "").strip()
-    if not player_input:
-        flash("Please describe your turn in natural language (or use an explicit command).", "error")
-        return redirect(url_for("frontend.play_shell", session_id=session_id))
-    backend_sessions = session.get("play_shell_backend_sessions", {})
-    backend_session_id = backend_sessions.get(session_id) if isinstance(backend_sessions, dict) else None
-    if not backend_session_id:
-        flash("Runtime session is not ready. Re-open the play shell from Play Start.", "error")
-        return redirect(url_for("frontend.play_shell", session_id=session_id))
-    response = request_backend(
-        "POST",
-        f"/api/v1/sessions/{backend_session_id}/turns",
-        json_data={"player_input": player_input},
-    )
-    try:
-        payload = require_success(response, "Runtime turn execution failed.")
-    except BackendApiError as exc:
-        flash(str(exc), "error")
-        return redirect(url_for("frontend.play_shell", session_id=session_id))
-    if isinstance(payload, dict):
-        views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
-        if not isinstance(views, dict):
-            views = {}
-        views[session_id] = _build_play_shell_runtime_view(payload)
-        session[PLAY_SHELL_RUNTIME_VIEWS_KEY] = views
-        session.modified = True
-    interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
-    flash(f"Turn executed (interpreted as {interpreted}). Scene and narration below update from the world-engine response.", "success")
-    return redirect(url_for("frontend.play_shell", session_id=session_id))
-
-
 @frontend_bp.route("/api/v1/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_proxy(subpath: str):
     """Compatibility proxy so frontend static assets can call /api/v1/* on same origin."""
     path = f"/api/v1/{subpath}"
     payload = request.get_json(silent=True)
-    response = request_backend(
+    response = player_backend.request_backend(
         request.method,
         path,
         json_data=payload if request.method in ("POST", "PUT", "PATCH", "DELETE") else None,

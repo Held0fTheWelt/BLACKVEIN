@@ -10,8 +10,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.runtime.ai_decision import ParsedAIDecision
 from app.runtime.ai_output import DialogueImpulse, ProposedDelta
+from app.runtime.parsed_ai_decision_types import ParsedAIDecision
 from app.runtime.role_contract import (
     DirectorSection,
     InterpreterSection,

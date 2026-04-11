@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="banner">System / backend service — not the player or admin UI.</div>
-  <div class="wrap">
+  <div class="wrap{% block wrap_modifiers %}{% endblock %}">
     <header>
       <h1>{% block heading %}Backend{% endblock %}</h1>
       <p class="subtitle">{% block subheading %}{% endblock %}</p>

@@ -12,6 +12,15 @@ This package mixes three kinds of code (see ``docs/technical/architecture/backen
 
 **Authoritative live runs** execute in the **World Engine** play service; the Flask
 app talks to it via ``game_service``, not via this package as a second runtime.
+
+**Package layering (lazy imports):**
+
+- ``app.runtime.canonical`` — re-exports classification **class 1** modules by name
+  (see ``package_classification.CANONICAL_RUNTIME_MODULE_NAMES``).
+- ``app.runtime.transitional`` — re-exports **class 2** in-process execution modules
+  (``TRANSITIONAL_RUNTIME_MODULE_NAMES``).
+- ``package_classification`` — single source of truth for which root ``*.py`` belongs
+  to which layer (enforced by tests).
 """
 
 from app.runtime.scene_presenter import (

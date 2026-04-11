@@ -111,14 +111,21 @@ def _parse_event_ts(rec: dict[str, Any]) -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _normalize_record(rec: dict[str, Any]) -> dict[str, Any] | None:
-    """Map stderr-shaped record to row fields. Returns None if invalid."""
+def _mcp_record_identity_ok(rec: dict[str, Any]) -> tuple[str, str] | None:
+    """Return (record_type, trace_id) or None if the record cannot be ingested."""
     rtype = (rec.get("type") or "").strip()
     if rtype not in ("request", "response", "tool_call"):
         return None
     trace_id = (rec.get("trace_id") or "").strip()
     if not trace_id or len(trace_id) > 64:
         return None
+    return rtype, trace_id
+
+
+def _coerce_mcp_record_scalar_fields(
+    rec: dict[str, Any], rtype: str, trace_id: str
+) -> dict[str, Any | None]:
+    """Normalize tool/method/status/duration/error fields (no DB row yet)."""
     wos_suite = rec.get("wos_mcp_suite")
     if wos_suite is not None:
         wos_suite = str(wos_suite).strip()[:40] or None
@@ -176,6 +183,15 @@ def _normalize_record(rec: dict[str, Any]) -> dict[str, Any] | None:
         "payload_json": payload_json,
         "payload_truncated": truncated,
     }
+
+
+def _normalize_record(rec: dict[str, Any]) -> dict[str, Any] | None:
+    """Map stderr-shaped record to row fields. Returns None if invalid."""
+    ident = _mcp_record_identity_ok(rec)
+    if ident is None:
+        return None
+    rtype, trace_id = ident
+    return _coerce_mcp_record_scalar_fields(rec, rtype, trace_id)
 
 
 def _prune_old_telemetry() -> int:

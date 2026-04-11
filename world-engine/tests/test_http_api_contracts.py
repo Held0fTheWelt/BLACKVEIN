@@ -35,6 +35,13 @@ class TestHealthEndpoints:
         assert body["status"] == "ok"
 
     @pytest.mark.contract
+    def test_ops_page_returns_html(self, client):
+        """GET /ops serves lightweight operator diagnostics shell."""
+        response = client.get("/ops")
+        assert response.status_code == 200
+        assert "text/html" in response.headers.get("content-type", "")
+
+    @pytest.mark.contract
     def test_health_endpoint_no_auth_required(self, client):
         """GET /api/health should not require authentication."""
         response = client.get("/api/health")

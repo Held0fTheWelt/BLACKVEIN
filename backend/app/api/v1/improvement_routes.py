@@ -10,26 +10,23 @@ from flask import g, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.api.v1 import api_v1_bp
+from app.api.v1.improvement_experiment_pipeline import apply_capability_pipeline_to_improvement_package
 from app.contracts.improvement_operating_loop import ImprovementLoopStage
 from app.observability.audit_log import log_workflow_audit
 from app.observability.trace import get_trace_id
 from app.services.improvement_service import (
     ImprovementStore,
     apply_improvement_recommendation_decision,
-    build_evidence_strength_map,
     build_recommendation_package,
-    build_recommendation_rationale,
     create_variant,
-    finalize_recommendation_rationale_with_retrieval_digest,
     list_recommendation_packages,
-    recompute_semantic_compliance_validation,
     run_sandbox_experiment,
 )
-from app.services.improvement_task2a_routing import enrich_improvement_package_with_task2a_routing
+
+# Imported for stable test patch path ``app.api.v1.improvement_routes.ImprovementStore`` (pipeline calls Store.default()).
 from ai_stack import (
     CapabilityAccessDeniedError,
     CapabilityInvocationError,
-    build_retrieval_trace,
     build_runtime_retriever,
     create_default_capability_registry,
 )
@@ -215,178 +212,22 @@ def run_improvement_experiment():
     repo_root = Path(__file__).resolve().parents[4]
     _retriever, _assembler, capability_registry = _get_improvement_rag_stack(repo_root)
     try:
-        context_payload = capability_registry.invoke(
-            name="wos.context_pack.build",
-            mode="improvement",
-            actor=f"improvement:{actor_id}",
-            trace_id=trace_id,
-            payload={
-                "domain": "improvement",
-                "profile": "improvement_eval",
-                "query": f"{experiment['baseline_id']} {package['candidate']['candidate_summary']} "
-                "variant evaluation recommendation",
-                "module_id": experiment["baseline_id"],
-                "max_chunks": 5,
-            },
-        )
-        workflow_stages.append(
-            {
-                "id": "retrieval_improvement_context",
-                "loop_stage": ImprovementLoopStage.evidence_collection.value,
-                "completed_at": _utc_iso(),
-                "artifact_key": "wos.context_pack.build",
-            }
-        )
-        retrieval_inner = context_payload.get("retrieval")
-        retrieval_trace = build_retrieval_trace(retrieval_inner if isinstance(retrieval_inner, dict) else {})
-        evidence_tag = retrieval_trace["evidence_tier"]
-        transcript_suffix, transcript_meta = _transcript_tool_evidence_for_improvement(
-            repo_root=repo_root,
+        outcome = apply_capability_pipeline_to_improvement_package(
             experiment=experiment,
-            capability_registry=capability_registry,
+            package=package,
             actor_id=actor_id,
             trace_id=trace_id,
+            repo_root=repo_root,
+            capability_registry=capability_registry,
+            workflow_stages=workflow_stages,
+            utc_iso=_utc_iso,
+            transcript_tool_evidence=_transcript_tool_evidence_for_improvement,
         )
-        workflow_stages.append(
-            {
-                "id": "transcript_tool_evidence",
-                "loop_stage": ImprovementLoopStage.evidence_collection.value,
-                "completed_at": _utc_iso(),
-                "artifact_key": "wos.transcript.read",
-                "resource_id": transcript_meta.get("run_id"),
-            }
-        )
-        evidence_sources = [
-            source.get("source_path", "")
-            for source in context_payload.get("retrieval", {}).get("sources", [])
-            if isinstance(source, dict)
-        ]
-        package_response = dict(package)
-        base_summary = str(package_response["recommendation_summary"])
-        if transcript_meta.get("repetition_turn_count", 0) >= 2:
-            package_response["deterministic_recommendation_base"] = "revise_before_review"
-            package_response["recommendation_summary"] = "revise_before_review" + transcript_suffix
-        else:
-            package_response["deterministic_recommendation_base"] = base_summary
-            package_response["recommendation_summary"] = base_summary + transcript_suffix
-        package_response["transcript_evidence"] = transcript_meta
-
-        evaluation_block = package_response.get("evaluation") if isinstance(package_response.get("evaluation"), dict) else {}
-        evidence_bundle = dict(package_response.get("evidence_bundle") or {})
-        evidence_bundle["retrieval_source_paths"] = list(evidence_sources)
-        evidence_bundle["transcript_evidence"] = {
-            "run_id": transcript_meta.get("run_id"),
-            "turn_count": transcript_meta.get("turn_count"),
-            "repetition_turn_count": transcript_meta.get("repetition_turn_count"),
-            "content_length": transcript_meta.get("content_length"),
-        }
-        evidence_bundle["metrics_snapshot"] = evaluation_block.get("metrics")
-        evidence_bundle["baseline_metrics_snapshot"] = evaluation_block.get("baseline_metrics")
-        evidence_bundle["comparison_snapshot"] = evaluation_block.get("comparison")
-        package_response["evidence_bundle"] = evidence_bundle
-
-        review_bundle = capability_registry.invoke(
-            name="wos.review_bundle.build",
-            mode="improvement",
-            actor=f"improvement:{actor_id}",
-            trace_id=trace_id,
-            payload={
-                "module_id": experiment["baseline_id"],
-                "summary": (
-                    f"[evidence_tier:{evidence_tag}] [transcript:{transcript_meta.get('run_id', '')}] "
-                    f"Improvement recommendation for variant {experiment['variant_id']}."
-                ),
-                "recommendations": [package_response["recommendation_summary"]],
-                "evidence_sources": evidence_sources,
-            },
-        )
-        workflow_stages.append(
-            {
-                "id": "governance_review_bundle",
-                "loop_stage": ImprovementLoopStage.bounded_proposal_generation.value,
-                "completed_at": _utc_iso(),
-                "artifact_key": "wos.review_bundle.build",
-                "resource_id": (review_bundle.get("bundle_id") if isinstance(review_bundle, dict) else None),
-            }
-        )
-        evidence_bundle_final = dict(package_response["evidence_bundle"])
-        if isinstance(review_bundle, dict):
-            evidence_bundle_final["governance_review_bundle_id"] = review_bundle.get("bundle_id")
-            evidence_bundle_final["governance_review_bundle_status"] = review_bundle.get("status")
-
-        hit_count = len(evidence_sources)
-        if isinstance(retrieval_inner, dict) and retrieval_inner.get("hit_count") is not None:
-            try:
-                hit_count = int(retrieval_inner["hit_count"])
-            except (TypeError, ValueError):
-                hit_count = len(evidence_sources)
-
-        rationale_fresh = build_recommendation_rationale(
-            evaluation=package_response["evaluation"],
-            recommendation_summary=package_response["recommendation_summary"],
-            retrieval_hit_count=hit_count,
-            retrieval_source_paths=evidence_sources,
-            transcript_meta=transcript_meta,
-        )
-        rationale_final = finalize_recommendation_rationale_with_retrieval_digest(
-            rationale_fresh,
-            context_text=str(context_payload.get("context_text") or ""),
-            retrieval_source_paths=evidence_sources,
-            hit_count=hit_count,
-        )
-        package_response["recommendation_rationale"] = rationale_final
-        package_response["evidence_strength_map"] = build_evidence_strength_map(
-            evaluation=package_response["evaluation"],
-            retrieval_hit_count=hit_count,
-            transcript_tool_ok=bool(
-                transcript_meta.get("turn_count") is not None and not transcript_meta.get("tool_error")
-            ),
-            governance_bundle_attached=isinstance(review_bundle, dict) and bool(review_bundle.get("bundle_id")),
-        )
-        evidence_bundle_final["retrieval_context_fingerprint_sha256_16"] = rationale_final.get(
-            "retrieval_context_fingerprint_sha256_16"
-        )
-        evidence_bundle_final["recommendation_driver_categories"] = [
-            d.get("category")
-            for d in (rationale_final.get("drivers") or [])
-            if isinstance(d, dict) and d.get("category")
-        ]
-        evidence_bundle_final["retrieval_readiness"] = {
-            "evidence_tier": retrieval_trace.get("evidence_tier"),
-            "confidence_posture": retrieval_trace.get("confidence_posture"),
-            "evidence_lane_mix": retrieval_trace.get("evidence_lane_mix"),
-            "lane_anchor_counts": retrieval_trace.get("lane_anchor_counts"),
-            "retrieval_posture_summary": retrieval_trace.get("retrieval_posture_summary"),
-            "governance_influence_compact": retrieval_trace.get("governance_influence_compact"),
-            "readiness_label": retrieval_trace.get("readiness_label"),
-            "policy_outcome_hint": retrieval_trace.get("policy_outcome_hint"),
-            "retrieval_quality_hint": retrieval_trace.get("retrieval_quality_hint"),
-            "retrieval_trace_schema_version": retrieval_trace.get("retrieval_trace_schema_version"),
-        }
-
-        package_response["evidence_bundle"] = evidence_bundle_final
-        enrich_improvement_package_with_task2a_routing(
-            package_response,
-            context_text=str(context_payload.get("context_text") or ""),
-            baseline_id=experiment["baseline_id"],
-            variant_id=experiment["variant_id"],
-        )
-        workflow_stages.append(
-            {
-                "id": "semantic_compliance_validation",
-                "loop_stage": ImprovementLoopStage.semantic_compliance_validation.value,
-                "completed_at": _utc_iso(),
-                "artifact_key": "semantic_compliance_validation",
-                "resource_id": package_response.get("package_id"),
-            }
-        )
-        package_response["workflow_stages"] = workflow_stages
-        recompute_semantic_compliance_validation(package_response)
-        ImprovementStore.default().write_json(
-            "recommendations",
-            str(package_response["package_id"]),
-            package_response,
-        )
+        package_response = outcome.package_response
+        context_payload = outcome.context_payload
+        retrieval_trace = outcome.retrieval_trace
+        transcript_meta = outcome.transcript_meta
+        review_bundle = outcome.review_bundle
     except (CapabilityAccessDeniedError, CapabilityInvocationError) as exc:
         return (
             jsonify(

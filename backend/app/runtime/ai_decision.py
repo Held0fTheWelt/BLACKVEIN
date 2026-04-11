@@ -18,48 +18,8 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 
 from app.runtime.ai_adapter import AdapterResponse
-from app.runtime.ai_output import (
-    ConflictVector,
-    DialogueImpulse,
-    ProposedDelta,
-    StructuredAIStoryOutput,
-)
-
-
-class ParsedAIDecision(BaseModel):
-    """Canonical internal decision representation after parsing and normalization.
-
-    This is the authoritative form that the runtime consumes.
-    Raw output and parse source are preserved for diagnostics.
-
-    Attributes:
-        scene_interpretation: AI's interpretation of the current scene
-        detected_triggers: Recognized trigger IDs
-        proposed_deltas: Proposed state changes
-        proposed_scene_id: Proposed scene transition (None = continue)
-        rationale: AI's reasoning
-        dialogue_impulses: Optional character impulses
-        conflict_vector: Optional narrative tension
-        confidence: Optional confidence 0.0-1.0
-        raw_output: Original adapter output (for diagnostics)
-        parsed_source: Where this came from ("structured_payload")
-    """
-
-    # Required, normalized from StructuredAIStoryOutput
-    scene_interpretation: str
-    detected_triggers: list[str]
-    proposed_deltas: list[ProposedDelta]
-    proposed_scene_id: str | None
-    rationale: str
-
-    # Optional, normalized from StructuredAIStoryOutput
-    dialogue_impulses: list[DialogueImpulse] = []
-    conflict_vector: ConflictVector | None = None
-    confidence: float | None = None
-
-    # Diagnostic trace
-    raw_output: str  # Always preserved from AdapterResponse
-    parsed_source: str  # Always "structured_payload" for now
+from app.runtime.ai_output import ProposedDelta, StructuredAIStoryOutput
+from app.runtime.parsed_ai_decision_types import ParsedAIDecision
 
 
 class ParseResult(BaseModel):

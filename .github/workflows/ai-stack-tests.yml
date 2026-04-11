@@ -40,6 +40,12 @@ jobs:
           python -m pip install -e "./story_runtime_core"
           python -m pip install -e "./ai_stack[test]"
 
+      # Packaging order guard: ai_stack must import after story_runtime_core (same as local dev / Docker).
+      - name: Verify import order (story_runtime_core → ai_stack)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -c "import story_runtime_core; import ai_stack; print('ok', ai_stack.__name__)"
+
       # Full tree under ai_stack/tests (not a file allowlist); new test modules are always collected.
       - name: Run ai_stack test suite
         env:

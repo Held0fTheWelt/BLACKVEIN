@@ -1,6 +1,6 @@
 # Start here
 
-Plain-language entry to World of Shadows documentation. Read **one** path below based on your role, then use the [documentation registry](../reference/documentation-registry.md) for owners and maintenance.
+Plain-language entry to World of Shadows documentation. Read **one** path below based on your role, then use the [documentation registry](../reference/documentation-registry.md) for owners and maintenance. Longer easy-reading explainers live under [`docs/easy/`](../easy/README.md).
 
 ## Choose a path
 
@@ -11,6 +11,7 @@ Plain-language entry to World of Shadows documentation. Read **one** path below 
 | Deploying or operating the stack | [Admin documentation root](../admin/README.md) → [Setup and first run](../admin/setup-and-first-run.md) |
 | Building or debugging the system | [Developer documentation root](../dev/README.md) → [Onboarding](../dev/onboarding.md) |
 | Preparing slides or an executive brief | [Presentations](../presentations/executive-summary-world-of-shadows.md) |
+| Understanding product identity, market vs runtime asset, and differentiation | [Product identity and USPs (easy)](../easy/world_of_shadows_product_identity_and_usp_easy.md) |
 
 ## Short system story
 

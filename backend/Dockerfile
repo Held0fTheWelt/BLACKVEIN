@@ -20,9 +20,15 @@ COPY backend/app ./app
 COPY backend/run.py ./run.py
 COPY backend/migrations ./migrations
 
+# OpenAPI inventory for /backend/openapi.yaml (path resolved from app/info/routes.py → /app/docs/api/)
+COPY docs/api/openapi.yaml ./docs/api/openapi.yaml
+
 # Shared runtime packages used by backend imports
 COPY story_runtime_core ./story_runtime_core
 COPY ai_stack ./ai_stack
+
+# YAML narrative modules (session start, compiler). Matches packaged path in module_loader.
+COPY content/modules /app/content/modules
 
 RUN mkdir -p /app/instance && chown -R appuser:appuser /app
 USER appuser

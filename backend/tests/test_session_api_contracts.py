@@ -86,6 +86,35 @@ def test_get_logs_requires_token_and_returns_events(client, test_user, monkeypat
     assert "events" in data
 
 
+def test_play_operator_bundle_requires_jwt_and_owner_binding(client, auth_headers, monkeypatch):
+    monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
+    session = create_session("god_of_carnage")
+    session_id = session.session_id
+
+    r = client.get(f"/api/v1/sessions/{session_id}/play-operator-bundle")
+    assert r.status_code == 401
+
+    r2 = client.get(f"/api/v1/sessions/{session_id}/play-operator-bundle", headers=auth_headers)
+    assert r2.status_code == 403
+    assert r2.get_json().get("error", {}).get("code") == "OWNER_NOT_BOUND"
+
+    created = client.post(
+        "/api/v1/sessions",
+        json={"module_id": "god_of_carnage"},
+        headers=auth_headers,
+        content_type="application/json",
+    )
+    assert created.status_code == 201
+    owned_id = created.get_json()["session_id"]
+
+    r3 = client.get(f"/api/v1/sessions/{owned_id}/play-operator-bundle", headers=auth_headers)
+    assert r3.status_code == 200
+    body = r3.get_json()
+    assert body.get("session_id") == owned_id
+    assert "diagnostics" in body
+    assert isinstance(body.get("warnings"), list)
+
+
 def test_get_state_requires_token_and_returns_canonical_state(client, test_user, monkeypatch):
     monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
     session = create_session("god_of_carnage")

@@ -77,6 +77,15 @@ class TestSessionStart:
         assert result.initial_turn is not None
         assert len(result.events) >= 2
 
+    def test_session_start_template_id_alias_god_of_carnage_solo(
+        self, content_modules_root
+    ):
+        """Game template id maps to YAML module directory; session uses canonical module_id."""
+        result = start_session("god_of_carnage_solo", root_path=content_modules_root)
+        assert isinstance(result, SessionStartResult)
+        assert result.session.module_id == "god_of_carnage"
+        assert result.module.metadata.module_id == "god_of_carnage"
+
     def test_session_start_result_session_state_shape(
         self, content_modules_root
     ):

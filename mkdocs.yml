@@ -39,6 +39,12 @@ markdown_extensions:
 plugins:
   - search
 
+validation:
+  nav:
+    omitted_files: ignore
+  links:
+    not_found: ignore
+
 nav:
   - Documentation index: INDEX.md
   - Start here:
@@ -81,6 +87,11 @@ nav:
       - OpenAPI strategy: dev/api/openapi-and-api-explorer-strategy.md
       - Test pyramid: dev/testing/test-pyramid-and-suite-map.md
       - MCP developer guide: dev/tooling/mcp-server-developer-guide.md
+  - API:
+      - Overview: api/README.md
+      - REST reference: api/REFERENCE.md
+      - OpenAPI taxonomy: api/openapi-taxonomy.md
+      - OpenAPI specification: api/openapi-spec.md
   - Technical:
       - Overview: technical/README.md
       - Architecture overview: technical/architecture/architecture-overview.md

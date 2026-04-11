@@ -1,9 +1,14 @@
 {% extends "manage/base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="manage-dashboard">
-    <h1 class="page-header">Management</h1>
-    <p class="muted">Choose a section from the navigation.</p>
+<section class="manage-dashboard manage-section">
+    <header class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Administration</p>
+            <h1 class="page-header">Management dashboard</h1>
+            <p class="manage-lead">Choose a section from the navigation to review content, operations, and system state.</p>
+        </div>
+    </header>
     <div class="card-grid manage-dashboard-cards">
         <a href="{{ url_for('manage_news') }}" class="card card-link">
             <h3>News</h3>
@@ -33,6 +38,10 @@
             <h3>Diagnosis</h3>
             <p>Aggregated system health: backend, database, play service, published content, and AI readiness.</p>
         </a>
+        <a href="{{ url_for('manage_world_engine_console') }}" class="card card-link" id="manage-dashboard-world-engine-console" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">
+            <h3>World Engine console</h3>
+            <p>Readiness, template runs, story sessions, diagnostics — proxied via backend (hierarchical observe / operate / author).</p>
+        </a>
         <a href="{{ url_for('manage_play_service_control') }}" class="card card-link" id="manage-dashboard-play-service-control" data-feature="manage.play_service_control">
             <h3>Play-Service control</h3>
             <p>Desired connection posture, validate and apply at application level (no host orchestration).</p>
@@ -42,7 +51,7 @@
             <p>Suite registry, activity, diagnostics, structured MCP logs, and bounded admin actions.</p>
         </a>
     </div>
-</div>
+</section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_dashboard.js') }}"></script>

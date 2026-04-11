@@ -123,15 +123,25 @@
         }
         var allowed = user && user.allowed_features ? user.allowed_features : [];
         var hasFeature = function(fid) { return allowed.indexOf(fid) >= 0; };
-        [].forEach.call(document.querySelectorAll(".manage-nav-link[data-feature]"), function(link) {
-            var fid = link.getAttribute("data-feature");
-            link.style.display = fid && hasFeature(fid) ? "" : "none";
-        });
-        [].forEach.call(document.querySelectorAll("[data-feature]"), function(el) {
-            if (!el.classList.contains("manage-nav-link") && !el.classList.contains("card-link")) return;
+        var hasAnyFeature = function(csv) {
+            if (!csv || typeof csv !== "string") return false;
+            return csv.split(",").map(function(s) { return s.trim(); }).filter(Boolean).some(function(fid) {
+                return allowed.indexOf(fid) >= 0;
+            });
+        };
+        var linkShows = function(el) {
+            var anyAttr = el.getAttribute("data-feature-any");
             var fid = el.getAttribute("data-feature");
-            if (!fid) return;
-            el.style.display = hasFeature(fid) ? "" : "none";
+            if (anyAttr) return hasAnyFeature(anyAttr);
+            if (fid) return hasFeature(fid);
+            return true;
+        };
+        [].forEach.call(document.querySelectorAll(".manage-nav-link[data-feature], .manage-nav-link[data-feature-any]"), function(link) {
+            link.style.display = linkShows(link) ? "" : "none";
+        });
+        [].forEach.call(document.querySelectorAll("[data-feature], [data-feature-any]"), function(el) {
+            if (!el.classList.contains("manage-nav-link") && !el.classList.contains("card-link")) return;
+            el.style.display = linkShows(el) ? "" : "none";
         });
         var usersCard = document.getElementById("manage-dashboard-users");
         if (usersCard) usersCard.style.display = hasFeature("manage.users") ? "" : "none";

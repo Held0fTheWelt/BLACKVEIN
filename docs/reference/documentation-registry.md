@@ -6,6 +6,12 @@ Canonical map of **audience-first** documentation, plus **ownership placeholders
 
 See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 artifact presence and `docs/` Markdown counts (note: counts change after consolidations).
 
+## Execution governance
+
+- Canonical state hub: [../state/README.md](../state/README.md)
+- Repository-wide governance contract: [../state/EXECUTION_GOVERNANCE.md](../state/EXECUTION_GOVERNANCE.md)
+- Workstream continuity index: [../state/WORKSTREAM_INDEX.md](../state/WORKSTREAM_INDEX.md)
+
 ## Start here (all audiences)
 
 | Document | Owner (placeholder) | Update cadence |
@@ -17,6 +23,18 @@ See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 a
 | [god-of-carnage-as-an-experience.md](../start-here/god-of-carnage-as-an-experience.md) | Product + narrative lead | When slice scope or player story changes |
 | [how-ai-fits-the-platform.md](../start-here/how-ai-fits-the-platform.md) | AI/runtime lead | When AI stack or authority boundaries change |
 | [glossary.md](../start-here/glossary.md) (short) | Docs lead | When onboarding terms change |
+
+## Easy reading (`docs/easy/`)
+
+| Document | Owner (placeholder) | Update cadence |
+|----------|---------------------|----------------|
+| [easy/README.md](../easy/README.md) | Docs + product | When the easy-doc set changes |
+| [what_world_of_shadows_is_and_why_it_works_this_way.md](../easy/what_world_of_shadows_is_and_why_it_works_this_way.md) | Product + engineering | When whole-system story changes |
+| [world_of_shadows_product_identity_and_usp_easy.md](../easy/world_of_shadows_product_identity_and_usp_easy.md) | Product leadership | When positioning, IP, or audience framing changes |
+| [ai_stack_system_explainer_easy.md](../easy/ai_stack_system_explainer_easy.md) | AI/runtime lead | When AI stack public explanation changes |
+| [world_engine_runbook_easy.md](../easy/world_engine_runbook_easy.md) | Runtime lead | When play-runtime onboarding story changes |
+| [getting_started_with_world_of_shadows.md](../easy/getting_started_with_world_of_shadows.md) | Product/docs | When first-run guidance changes |
+| [PROMPT_WOS_PRODUCT_AUDIENCE_AND_USP_EXPLAINER_EASY.md](../easy/PROMPT_WOS_PRODUCT_AUDIENCE_AND_USP_EXPLAINER_EASY.md) | Product + docs | When regeneration criteria for the product explainer change |
 
 ## User
 
@@ -61,6 +79,16 @@ See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 a
 | [api/openapi-and-api-explorer-strategy.md](../dev/api/openapi-and-api-explorer-strategy.md) | Backend lead | When API doc strategy changes |
 | [testing/test-pyramid-and-suite-map.md](../dev/testing/test-pyramid-and-suite-map.md) | QA or engineering lead | When major suite layout changes |
 | [tooling/mcp-server-developer-guide.md](../dev/tooling/mcp-server-developer-guide.md) | Tooling owner | When MCP tools or env change |
+
+## API (HTTP reference)
+
+| Document | Owner (placeholder) | Update cadence |
+|----------|---------------------|----------------|
+| [api/README.md](../api/README.md) | Backend + docs | When API discovery entry points change |
+| [api/REFERENCE.md](../api/REFERENCE.md) | Backend lead | When REST contracts or examples change |
+| [api/openapi.yaml](../api/openapi.yaml) | Backend lead | Regenerate via `backend/scripts/generate_openapi_spec.py` when `/api/v1` routes change |
+| [api/openapi-taxonomy.md](../api/openapi-taxonomy.md) | Backend + docs | When OpenAPI tags or `/backend/*` mapping changes |
+| [api/openapi-spec.md](../api/openapi-spec.md) | Backend + docs | When OpenAPI publication story changes |
 
 ## Technical (system documentation)
 

@@ -454,6 +454,42 @@ def _legacy_keyword_scene_candidates(
     return candidates, implied, heuristic_trace
 
 
+def _goc_primary_responder_from_context(
+    *,
+    text: str,
+    hint: str | None,
+    yaml_slice: dict[str, Any] | None,
+    prior_classes: list[str],
+    current_scene_id: str,
+    scene_fn: str,
+    implied: dict[str, str],
+) -> tuple[str, str]:
+    if hint and (
+        hint.endswith("_reille") or hint.endswith("longstreet") or hint.endswith("vallon")
+    ):
+        return hint, "semantic_target_actor_hint"
+    if "annette" in text:
+        return "annette_reille", "named_in_player_move"
+    if "alain" in text:
+        return "alain_reille", "named_in_player_move"
+    if "michel" in text or "michael" in text:
+        return "michel_longstreet", "named_in_player_move"
+    if "veronique" in text or "penelope" in text:
+        return "veronique_vallon", "named_in_player_move"
+
+    actor, reason = _yaml_default_responder(
+        yaml_slice=yaml_slice,
+        prior_classes=prior_classes,
+        scene_id=current_scene_id,
+        selected_scene_function=scene_fn,
+    )
+    if scene_fn == "redirect_blame" and "dignity_injury" in prior_classes:
+        return "veronique_vallon", "pressure_identity_bias:dignity_injury_host_reaction"
+    if scene_fn == "scene_pivot" and "alliance_shift" in implied.values():
+        return "michel_longstreet", "pressure_identity_bias:alliance_shift_reposition"
+    return actor, reason
+
+
 def build_responder_and_function(
     *,
     player_input: str,
@@ -516,36 +552,15 @@ def build_responder_and_function(
     if semantic_move_record and isinstance(semantic_move_record.get("target_actor_hint"), str):
         hint = semantic_move_record["target_actor_hint"]
 
-    if hint and (
-        hint.endswith("_reille") or hint.endswith("longstreet") or hint.endswith("vallon")
-    ):
-        actor = hint
-        reason = "semantic_target_actor_hint"
-    elif "annette" in text:
-        actor = "annette_reille"
-        reason = "named_in_player_move"
-    elif "alain" in text:
-        actor = "alain_reille"
-        reason = "named_in_player_move"
-    elif "michel" in text or "michael" in text:
-        actor = "michel_longstreet"
-        reason = "named_in_player_move"
-    elif "veronique" in text or "penelope" in text:
-        actor = "veronique_vallon"
-        reason = "named_in_player_move"
-    else:
-        actor, reason = _yaml_default_responder(
-            yaml_slice=yaml_slice,
-            prior_classes=prior_classes,
-            scene_id=current_scene_id,
-            selected_scene_function=scene_fn,
-        )
-        if scene_fn == "redirect_blame" and "dignity_injury" in prior_classes:
-            actor = "veronique_vallon"
-            reason = "pressure_identity_bias:dignity_injury_host_reaction"
-        elif scene_fn == "scene_pivot" and "alliance_shift" in implied.values():
-            actor = "michel_longstreet"
-            reason = "pressure_identity_bias:alliance_shift_reposition"
+    actor, reason = _goc_primary_responder_from_context(
+        text=text,
+        hint=hint,
+        yaml_slice=yaml_slice,
+        prior_classes=prior_classes,
+        current_scene_id=current_scene_id,
+        scene_fn=scene_fn,
+        implied=implied,
+    )
 
     responders = [{"actor_id": actor, "reason": reason}]
 

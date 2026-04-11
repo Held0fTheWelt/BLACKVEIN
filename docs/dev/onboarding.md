@@ -29,6 +29,10 @@ Welcome. This page orients **new contributors** in a few minutes; deep system tr
 - [Runtime authority and state flow](../technical/runtime/runtime-authority-and-state-flow.md)
 - Developer seam notes: [Runtime authority and session lifecycle](architecture/runtime-authority-and-session-lifecycle.md), [AI stack, RAG, LangGraph, and GoC seams](architecture/ai-stack-rag-langgraph-and-goc-seams.md)
 
+## Flask extensions (globals)
+
+- Canonical list and init order: module docstring on `backend/app/extensions.py` (what `db`, `jwt`, `limiter`, `migrate`, `mail` are for and how `create_app` wires them).
+
 ## Tests
 
 - [Test strategy and suite layout (technical)](../technical/reference/test-strategy-and-suite-layout.md)

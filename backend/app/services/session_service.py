@@ -12,11 +12,13 @@ Exposed operations:
 
 from __future__ import annotations
 
+from typing import Any
+
 from app.runtime.session_start import start_session
 from app.runtime.runtime_models import SessionState
 
 
-def create_session(module_id: str) -> SessionState:
+def create_session(module_id: str, *, metadata_updates: dict[str, Any] | None = None) -> SessionState:
     """Bootstrap in-process ``SessionState`` from a content module (deprecated transitional).
 
     **Not** creation of a World Engine run. Steps: load module, seed initial scene/state,
@@ -33,6 +35,10 @@ def create_session(module_id: str) -> SessionState:
     """
     result = start_session(module_id)
     session_state = result.session
+    if metadata_updates:
+        merged = dict(session_state.metadata)
+        merged.update(metadata_updates)
+        session_state.metadata = merged
 
     from app.runtime.session_store import create_session as register_session
 

@@ -1,4 +1,26 @@
-"""Flask extensions; init_app(app) called from create_app."""
+"""Flask extensions; ``init_app(app)`` is invoked from ``create_app`` in ``app.factory_app``.
+
+Inventory (what each global is for; use these names instead of ad-hoc duplicates elsewhere):
+
+=================== =============================================================
+Global              Role
+=================== =============================================================
+``db``              SQLAlchemy ORM; models import ``db`` and ``db.Model`` only.
+``jwt``             Flask-JWT-Extended; callbacks for revocation live in
+                    ``app.auth.jwt_revocation`` (registered from ``init_app``).
+``limiter``         ``LimiterProxy``: production ``Flask-Limiter`` or
+                    ``TestLimiter`` when ``app.config['TESTING']``.
+``migrate``         Flask-Migrate (CLI); bound only when not testing.
+``mail``            Flask-Mail for outbound email.
+
+Init order inside ``init_app`` here: ``db`` → ``jwt`` → ``limiter`` → ``mail`` →
+(optional) ``migrate`` → CORS from ``app.config['CORS_ORIGINS']`` → JWT revocation
+handlers. After ``init_extensions(app)``, ``create_app`` (``factory_app``) sets
+``limiter.default_limits`` from config; ``factory_http_shell`` registers extra JWT loaders on ``jwt``.
+
+Token models (e.g. refresh/blacklist) depend on ``db`` only; revocation avoids a
+static import cycle from this module by registering handlers inside ``init_app``.
+"""
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
@@ -7,6 +29,15 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_mail import Mail
 from functools import wraps
+
+# Rate-limit strings like "5 per hour" → window length (shared by TestLimiter + LimiterProxy).
+_RATE_LIMIT_PERIOD_TO_SECONDS: dict[str, int] = {
+    "second": 1,
+    "minute": 60,
+    "hour": 3600,
+    "day": 86400,
+}
+_DEFAULT_RATE_LIMIT_WINDOW_SECONDS = 3600
 
 db = SQLAlchemy()
 jwt = JWTManager()
@@ -43,14 +74,9 @@ class TestLimiter:
         max_requests = int(parts[0])
         period_str = parts[-1]
 
-        # Convert period to seconds
-        periods = {
-            'second': 1,
-            'minute': 60,
-            'hour': 3600,
-            'day': 86400,
-        }
-        period_seconds = periods.get(period_str, 3600)  # default to hour
+        period_seconds = _RATE_LIMIT_PERIOD_TO_SECONDS.get(
+            period_str, _DEFAULT_RATE_LIMIT_WINDOW_SECONDS
+        )
 
         def decorator(f):
             @wraps(f)
@@ -157,8 +183,9 @@ class LimiterProxy:
                     if match:
                         max_requests = int(match.group(1))
                         period_str = match.group(2)
-                        periods = {'second': 1, 'minute': 60, 'hour': 3600, 'day': 86400}
-                        period_seconds = periods.get(period_str, 3600)
+                        period_seconds = _RATE_LIMIT_PERIOD_TO_SECONDS.get(
+                            period_str, _DEFAULT_RATE_LIMIT_WINDOW_SECONDS
+                        )
 
                         current_time = datetime.now(timezone.utc).timestamp()
                         if key not in test_limiter.request_times:
@@ -215,35 +242,9 @@ def init_app(app):
         )
 
     # Register JWT callback for token revocation checking
-    @jwt.token_in_blocklist_loader
-    def check_if_token_revoked(jwt_header, jwt_payload):
-        """Check if token is blacklisted (logout/revocation) or refresh token is revoked."""
-        jti = jwt_payload.get("jti")
-        if jti:
-            from app.models.token_blacklist import TokenBlacklist
-            from app.models.refresh_token import RefreshToken
+    from app.auth.jwt_revocation import register_jwt_revocation_handlers
 
-            # Check access token blacklist
-            if TokenBlacklist.is_blacklisted(jti):
-                return True
-
-            # For refresh tokens, check if explicitly revoked
-            token_type = jwt_payload.get("type")
-            if token_type == "refresh":
-                user_id = jwt_payload.get("sub")
-                if user_id:
-                    # Check if token was explicitly revoked
-                    # Only reject if token exists in DB and is marked as revoked
-                    token_obj = (
-                        db.session.query(RefreshToken)
-                        .filter(RefreshToken.jti == jti)
-                        .first()
-                    )
-                    if token_obj and token_obj.revoked_at is not None:
-                        # Token is revoked
-                        return True
-
-        return False
+    register_jwt_revocation_handlers(jwt, db)
 
     # Register JWT callback for real-time ban enforcement
     @jwt.token_verification_loader

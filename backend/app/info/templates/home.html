@@ -1,55 +1,104 @@
 {% extends "base.html" %}
 {% block title %}Backend home{% endblock %}
 {% block heading %}Better Tomorrow backend{% endblock %}
-{% block subheading %}API, auth, policy, and play bootstrap — plus this technical information area.{% endblock %}
+{% block subheading %}Geschäfts- und Integrations-Schicht: REST unter <code>/api/v1</code>, Auth, Persistenz — plus diese technische Infoseite (nicht das Spieler- oder Admin-UI).{% endblock %}
 {% block body %}
 <section>
-  <h2>Service overview</h2>
-  <p>This Flask application is the <strong>business and integration layer</strong>: REST API under <code>/api/v1</code>, JWT/session auth, persistence, moderation, game-content authoring APIs, and HTTP bridging to the world-engine play service. It does <strong>not</strong> host canonical player HTML or admin management pages.</p>
+  <h2>Serviceüberblick</h2>
+  <p>Diese Flask-Anwendung ist die <strong>Business- und Integrationsschicht</strong>: versionierte REST-API, JWT/Session-Politik, Moderation, Game-Content-APIs und HTTP-Anbindung an den World-Engine-Play-Service. Sie hostet <strong>kein</strong> kanonisches Spieler-HTML und kein Verwaltungs-UI.</p>
 </section>
 <section>
-  <h2>Architecture (this repo)</h2>
+  <h2>Architektur (dieses Repo)</h2>
   <ul>
-    <li><strong>frontend/</strong> — canonical player/public UI (login, dashboard, play shell in the browser).</li>
-    <li><strong>administration-tool/</strong> — canonical admin/management UI (separate origin in production).</li>
-    <li><strong>backend/</strong> (this service) — API, auth, policy, optional legacy path redirects to <code>FRONTEND_URL</code>, and these <code>/backend/*</code> info pages.</li>
-    <li><strong>world-engine/</strong> (play service) — authoritative live run state, lobby, and WebSocket runtime.</li>
+    <li><strong>frontend/</strong> — kanonische Spieler-/Public-UI (Login, Dashboard, Play-Shell).</li>
+    <li><strong>administration-tool/</strong> — kanonisches Admin-/Redaktions-UI (eigener Ursprung in Produktion).</li>
+    <li><strong>backend/</strong> (dieser Dienst) — API, Auth, Policy, Legacy-Redirects zu <code>FRONTEND_URL</code>, technische Seiten unter <code>/backend/*</code>.</li>
+    <li><strong>world-engine/</strong> — autoritative Live-Run-Zustände, Lobby, WebSocket-Laufzeit.</li>
   </ul>
 </section>
 <section>
-  <h2>Quick links</h2>
+  <h2>Themen &amp; Interaktionsmöglichkeiten</h2>
+  <p>Wähle eine Karte, um zu verstehen, <strong>was</strong> du mit dem Backend machen kannst, <strong>für wen</strong> das gedacht ist und <strong>wo</strong> die Details stehen.</p>
+  <ul class="topic-grid" aria-label="Backend-Themen">
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.api_overview') }}"><strong>API</strong>
+          <p class="topic-card-desc">Alle REST-Bereiche unter <code>/api/v1</code>, Auth-Stile, Rate-Limits — Einstieg vor dem Explorer.</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.api_explorer') }}"><strong>API Explorer</strong>
+          <p class="topic-card-desc">Durchsuchbare OpenAPI-Ansicht (Redoc), Tags filtern, Spec unter <code>/backend/openapi.yaml</code>.</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.engine_integration') }}"><strong>Engine</strong>
+          <p class="topic-card-desc">Tickets, Runs, Join-Context: wie das Backend den Play-Service anstößt (ohne Live-State zu besitzen).</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.ai_integration') }}"><strong>AI</strong>
+          <p class="topic-card-desc">Runtime-Adapter, Writers-Room, Improvement — wo Vorschläge entstehen vs. wo autoritative Narration läuft.</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.auth_security') }}"><strong>Auth</strong>
+          <p class="topic-card-desc">JWT, Cookies, CORS, CSRF-Grenzen zwischen Browser-Clients und JSON-API.</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        <a href="{{ url_for('info.operations_health') }}"><strong>Ops</strong>
+          <p class="topic-card-desc">Health-Checks, Umgebung, Runbooks, Trace-Header für Support.</p></a>
+      </div>
+    </li>
+    <li>
+      <div class="topic-card">
+        {% if docs_site_url %}
+        <a href="{{ docs_site_url }}/api/REFERENCE/"><strong>Dokumentation (MkDocs)</strong>
+          <p class="topic-card-desc">Volltextsuche über die gesamte API-Referenz und angrenzende Guides.</p></a>
+        {% else %}
+        <span class="topic-card"><strong>Dokumentation (MkDocs)</strong>
+          <p class="topic-card-desc">Lokal: <code>python -m mkdocs serve</code>. Setze <code>DOCS_SITE_URL</code> für einen Link von hier auf die gebaute Site.</p></span>
+        {% endif %}
+      </div>
+    </li>
+  </ul>
+</section>
+<section>
+  <h2>Schnellzugriff</h2>
   <ul class="card-list">
-    <li><a href="{{ url_for('info.api_overview') }}">API overview</a> — route groups and auth style.</li>
-    <li><a href="{{ url_for('info.engine_integration') }}">Engine integration</a> — tickets, runs, join context.</li>
-    <li><a href="{{ url_for('info.ai_integration') }}">AI integration</a> — where adapters run vs runtime authority.</li>
-    <li><a href="{{ url_for('info.auth_security') }}">Auth &amp; security</a> — JWT, session, CSRF, CORS.</li>
-    <li><a href="{{ url_for('info.operations_health') }}">Operations</a> — health endpoints and runbook.</li>
-    <li><a href="/health">GET /health</a> — process liveness (JSON).</li>
-    <li><a href="/api/v1/health">GET /api/v1/health</a> — API health (JSON).</li>
+    <li><a href="/health">GET /health</a> — Prozess-Liveness (JSON).</li>
+    <li><a href="/api/v1/health">GET /api/v1/health</a> — API-Health (JSON, rate-limited wie andere v1-Routen).</li>
+    <li><a href="{{ url_for('info.openapi_spec') }}">GET /backend/openapi.yaml</a> — OpenAPI-Inventar (Drift-geprüft).</li>
   </ul>
-  <h3>Documentation (clone)</h3>
+  <h3>Repository-Pfade (Clone)</h3>
   <ul>
-    <li><span class="path">docs/api/REFERENCE.md</span> — consolidated REST reference.</li>
-    <li><span class="path">docs/operations/RUNBOOK.md</span> — compose, ports, operations.</li>
-    <li><span class="path">docs/architecture/backend_runtime_classification.md</span> — backend vs world-engine authority.</li>
-    <li><span class="path">docs/architecture/ServerArchitecture.md</span> — service boundaries.</li>
+    <li><span class="path">docs/api/REFERENCE.md</span> — ausführliche REST-Beispiele.</li>
+    <li><span class="path">docs/api/openapi.yaml</span> — maschinenlesbare Route-Liste.</li>
+    <li><span class="path">docs/api/openapi-taxonomy.md</span> — Tags &amp; Zuordnung zu diesen Seiten.</li>
+    <li><span class="path">docs/operations/RUNBOOK.md</span> — Compose, Ports, Betrieb.</li>
   </ul>
-  <h3>External UIs (when configured)</h3>
+  <h3>Externe UIs (wenn konfiguriert)</h3>
   <ul>
     {% if frontend_url %}
-      <li><a href="{{ frontend_url }}/" rel="noopener noreferrer">Player frontend</a> — <code>FRONTEND_URL</code></li>
+      <li><a href="{{ frontend_url }}/" rel="noopener noreferrer">Player-Frontend</a> — <code>FRONTEND_URL</code></li>
     {% else %}
-      <li class="muted">Player frontend: set <code>FRONTEND_URL</code> for a clickable link (legacy redirects use it too).</li>
+      <li class="muted">Player-Frontend: <code>FRONTEND_URL</code> setzen für einen klickbaren Link.</li>
     {% endif %}
     {% if admin_tool_url %}
       <li><a href="{{ admin_tool_url }}/" rel="noopener noreferrer">Administration tool</a> — <code>ADMINISTRATION_TOOL_URL</code></li>
     {% else %}
-      <li class="muted">Administration tool: optional <code>ADMINISTRATION_TOOL_URL</code> for a clickable link.</li>
+      <li class="muted">Administration tool: optional <code>ADMINISTRATION_TOOL_URL</code>.</li>
     {% endif %}
     {% if play_service_public_url %}
-      <li><a href="{{ play_service_public_url }}" rel="noopener noreferrer">Play service (public base)</a> — <code>PLAY_SERVICE_PUBLIC_URL</code></li>
+      <li><a href="{{ play_service_public_url }}" rel="noopener noreferrer">Play-Service (öffentliche Basis-URL)</a> — <code>PLAY_SERVICE_PUBLIC_URL</code></li>
     {% else %}
-      <li class="muted">Play service URL: set <code>PLAY_SERVICE_PUBLIC_URL</code> / <code>PLAY_SERVICE_INTERNAL_URL</code> for integration.</li>
+      <li class="muted">Play-Service: <code>PLAY_SERVICE_PUBLIC_URL</code> / <code>PLAY_SERVICE_INTERNAL_URL</code> für Integration.</li>
     {% endif %}
   </ul>
 </section>

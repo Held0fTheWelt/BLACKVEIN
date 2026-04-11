@@ -260,6 +260,12 @@ def get_transcript(run_id: str, manager: RuntimeManager = Depends(get_manager)) 
     }
 
 
+@router.get("/story/sessions", dependencies=[Depends(_require_internal_api_key)])
+def list_story_sessions(manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
+    items = manager.list_session_summaries()
+    return {"items": items, "total": len(items)}
+
+
 @router.post("/story/sessions", dependencies=[Depends(_require_internal_api_key)])
 def create_story_session(payload: CreateStorySessionRequest, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
     session = manager.create_session(module_id=payload.module_id, runtime_projection=payload.runtime_projection)

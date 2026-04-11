@@ -16,12 +16,8 @@ from pydantic import BaseModel, Field
 
 from app.content.module_models import ContentModule
 from app.runtime.event_log import RuntimeEventLog
-from app.runtime.scene_legality import SceneTransitionLegality
 from app.runtime.validators import ValidationOutcome, validate_decision
-from app.runtime.narrative_commit import (
-    narrative_commit_for_source_gate_rejection,
-    resolve_narrative_commit,
-)
+from app.runtime.narrative_commit import narrative_commit_for_source_gate_rejection
 from app.runtime.runtime_models import (
     DeltaType,
     DeltaValidationStatus,
@@ -37,59 +33,7 @@ from app.runtime.runtime_models import (
     StateDelta,
     TurnStatus,
 )
-
-
-# ===== Imported Model Classes =====
-#
-# ProposedStateDelta, MockDecision imported from runtime_models
-
-
-class TurnExecutionResult(BaseModel):
-    """Result of executing a complete turn.
-
-    Captures everything that happened: validation outcome, accepted/rejected deltas,
-    updated state, execution timing, and audit events.
-
-    Attributes:
-        turn_number: Monotonically increasing turn counter.
-        session_id: Parent session identifier.
-        execution_status: Status of turn execution (success/failure).
-        decision: The MockDecision that was executed.
-        validation_outcome: ValidationOutcome from decision validation.
-        validation_errors: List of validation errors encountered.
-        accepted_deltas: StateDelta objects that passed validation and were applied.
-        rejected_deltas: StateDelta objects that failed validation.
-        updated_canonical_state: Full canonical state after applying deltas.
-        updated_scene_id: Scene ID after execution (if changed, via canonical legality check).
-        updated_ending_id: Ending ID if an ending was triggered (via canonical legality check).
-        guard_outcome: Canonical guard classification (accepted, partially_accepted, rejected, structurally_invalid).
-        failure_reason: Explicit classification of any failure (generation, parsing, validation, or none).
-        started_at: Timestamp when turn execution began.
-        completed_at: Timestamp when turn execution completed.
-        duration_ms: Execution time in milliseconds.
-        events: Audit events created during execution.
-        narrative_commit: Bounded authoritative narrative outcome for this turn (in-process
-            runtime); None on system_error.
-    """
-
-    turn_number: int
-    session_id: str
-    execution_status: str  # "success", "validation_failed", or "system_error"
-    decision: MockDecision
-    validation_outcome: ValidationOutcome | None = None
-    validation_errors: list[str] = Field(default_factory=list)
-    accepted_deltas: list[StateDelta] = Field(default_factory=list)
-    rejected_deltas: list[StateDelta] = Field(default_factory=list)
-    updated_canonical_state: dict[str, Any] = Field(default_factory=dict)
-    updated_scene_id: str | None = None
-    updated_ending_id: str | None = None
-    guard_outcome: GuardOutcome = GuardOutcome.STRUCTURALLY_INVALID
-    failure_reason: ExecutionFailureReason = ExecutionFailureReason.NONE
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: datetime | None = None
-    duration_ms: float = 0.0
-    events: list[EventLogEntry] = Field(default_factory=list)
-    narrative_commit: NarrativeCommitRecord | None = None
+from app.runtime.turn_execution_types import TurnExecutionResult
 
 
 # ===== Exception Classes =====
@@ -523,6 +467,117 @@ def _compute_guard_outcome(
     return GuardOutcome.PARTIALLY_ACCEPTED
 
 
+def _turn_source_gate_rejection(
+    *,
+    session: SessionState,
+    current_turn: int,
+    mock_decision: MockDecision,
+    event_log: RuntimeEventLog,
+    started_at: datetime,
+    prior_scene_id: str | None,
+) -> TurnExecutionResult:
+    completed_at = datetime.now(timezone.utc)
+    duration_ms = (completed_at - started_at).total_seconds() * 1000
+
+    gate_rejection_error = (
+        f"Proposals rejected: source is {mock_decision.proposal_source.value}, "
+        "only RESPONDER_DERIVED allowed"
+    )
+
+    event_log.log(
+        "source_gate_rejected",
+        gate_rejection_error,
+        payload={
+            "proposal_source": mock_decision.proposal_source.value,
+            "enforce_responder_only": True,
+        },
+    )
+
+    rejected_deltas: list[StateDelta] = []
+    for proposed in mock_decision.proposed_deltas:
+        delta_type = (
+            proposed.delta_type
+            if proposed.delta_type
+            else infer_delta_type(proposed.target)
+        )
+        previous_value = get_current_value(session.canonical_state, proposed.target)
+        delta = StateDelta(
+            delta_type=delta_type,
+            target_path=proposed.target,
+            target_entity=extract_entity_id(proposed.target),
+            previous_value=previous_value,
+            next_value=proposed.next_value,
+            source="source_gate_rejected",
+            turn_number=current_turn,
+            validation_status=DeltaValidationStatus.REJECTED,
+        )
+        rejected_deltas.append(delta)
+
+    narrative_commit = narrative_commit_for_source_gate_rejection(
+        turn_number=current_turn,
+        prior_scene_id=prior_scene_id or session.current_scene_id,
+        decision=mock_decision,
+        guard_outcome=GuardOutcome.REJECTED,
+        rejected_deltas=rejected_deltas,
+    )
+
+    event_log.log(
+        "turn_completed",
+        f"Turn {current_turn} completed: source gate rejected proposals",
+        payload={
+            "turn_number": current_turn,
+            "accepted_delta_count": 0,
+            "rejected_delta_count": len(rejected_deltas),
+            "guard_outcome": GuardOutcome.REJECTED.value,
+            "detected_triggers": mock_decision.detected_triggers,
+            "duration_ms": duration_ms,
+        },
+    )
+
+    return TurnExecutionResult(
+        turn_number=current_turn,
+        session_id=session.session_id,
+        execution_status="success",
+        decision=mock_decision,
+        validation_outcome=None,
+        validation_errors=[gate_rejection_error],
+        accepted_deltas=[],
+        rejected_deltas=rejected_deltas,
+        updated_canonical_state=session.canonical_state,
+        updated_scene_id=prior_scene_id,
+        updated_ending_id=None,
+        guard_outcome=GuardOutcome.REJECTED,
+        failure_reason=ExecutionFailureReason.NONE,
+        narrative_commit=narrative_commit,
+        started_at=started_at,
+        completed_at=completed_at,
+        duration_ms=duration_ms,
+        events=event_log.flush(),
+    )
+
+
+def _execute_turn_validated_pipeline(
+    session: SessionState,
+    current_turn: int,
+    mock_decision: MockDecision,
+    module: ContentModule,
+    event_log: RuntimeEventLog,
+    started_at: datetime,
+    prior_scene_id: str | None,
+) -> TurnExecutionResult:
+    from app.runtime.turn_executor_validated_pipeline import run_validated_turn_pipeline
+
+    return run_validated_turn_pipeline(
+        session,
+        current_turn,
+        mock_decision,
+        module,
+        event_log,
+        started_at,
+        prior_scene_id,
+    )
+
+
 async def execute_turn(
     session: SessionState,
     current_turn: int,
@@ -563,240 +618,28 @@ async def execute_turn(
     )
 
     try:
-        # Enforce responder-only proposal gate if enabled (W2.4.5)
         if enforce_responder_only and mock_decision.proposal_source != ProposalSource.RESPONDER_DERIVED:
-            completed_at = datetime.now(timezone.utc)
-            duration_ms = (completed_at - started_at).total_seconds() * 1000
-
-            gate_rejection_error = f"Proposals rejected: source is {mock_decision.proposal_source.value}, only RESPONDER_DERIVED allowed"
-
-            event_log.log(
-                "source_gate_rejected",
-                gate_rejection_error,
-                payload={
-                    "proposal_source": mock_decision.proposal_source.value,
-                    "enforce_responder_only": enforce_responder_only,
-                },
-            )
-
-            # Convert ProposedStateDelta to StateDelta for rejected_deltas
-            rejected_deltas = []
-            for proposed in mock_decision.proposed_deltas:
-                delta_type = (
-                    proposed.delta_type
-                    if proposed.delta_type
-                    else infer_delta_type(proposed.target)
-                )
-                previous_value = get_current_value(session.canonical_state, proposed.target)
-                delta = StateDelta(
-                    delta_type=delta_type,
-                    target_path=proposed.target,
-                    target_entity=extract_entity_id(proposed.target),
-                    previous_value=previous_value,
-                    next_value=proposed.next_value,
-                    source="source_gate_rejected",
-                    turn_number=current_turn,
-                    validation_status=DeltaValidationStatus.REJECTED,
-                )
-                rejected_deltas.append(delta)
-
-            narrative_commit = narrative_commit_for_source_gate_rejection(
-                turn_number=current_turn,
-                prior_scene_id=prior_scene_id or session.current_scene_id,
-                decision=mock_decision,
-                guard_outcome=GuardOutcome.REJECTED,
-                rejected_deltas=rejected_deltas,
-            )
-
-            event_log.log(
-                "turn_completed",
-                f"Turn {current_turn} completed: source gate rejected proposals",
-                payload={
-                    "turn_number": current_turn,
-                    "accepted_delta_count": 0,
-                    "rejected_delta_count": len(rejected_deltas),
-                    "guard_outcome": GuardOutcome.REJECTED.value,
-                    "detected_triggers": mock_decision.detected_triggers,
-                    "duration_ms": duration_ms,
-                },
-            )
-
-            gate_result = TurnExecutionResult(
-                turn_number=current_turn,
-                session_id=session.session_id,
-                execution_status="success",
-                decision=mock_decision,
-                validation_outcome=None,
-                validation_errors=[gate_rejection_error],
-                accepted_deltas=[],
-                rejected_deltas=rejected_deltas,
-                updated_canonical_state=session.canonical_state,
-                updated_scene_id=prior_scene_id,
-                updated_ending_id=None,
-                guard_outcome=GuardOutcome.REJECTED,
-                failure_reason=ExecutionFailureReason.NONE,
-                narrative_commit=narrative_commit,
+            gate_result = _turn_source_gate_rejection(
+                session=session,
+                current_turn=current_turn,
+                mock_decision=mock_decision,
+                event_log=event_log,
                 started_at=started_at,
-                completed_at=completed_at,
-                duration_ms=duration_ms,
-                events=event_log.flush(),
+                prior_scene_id=prior_scene_id,
             )
             _finalize_success_turn(session, module, gate_result, prior_scene_id=prior_scene_id)
             return gate_result
-        # Step 1: Validate decision
-        validation_outcome = validate_decision(mock_decision, session, module)
 
-        event_log.log(
-            "decision_validated",
-            f"Decision validated: {validation_outcome.status} "
-            f"({len(validation_outcome.accepted_delta_indices)} accepted, "
-            f"{len(validation_outcome.rejected_delta_indices)} rejected)",
-            payload={
-                "status": validation_outcome.status,
-                "is_valid": validation_outcome.is_valid,
-                "accepted_delta_count": len(validation_outcome.accepted_delta_indices),
-                "rejected_delta_count": len(validation_outcome.rejected_delta_indices),
-                "errors": validation_outcome.errors,
-            },
+        result = _execute_turn_validated_pipeline(
+            session,
+            current_turn,
+            mock_decision,
+            module,
+            event_log,
+            started_at,
+            prior_scene_id,
         )
-
-        # Step 2: Construct deltas
-        accepted_deltas, rejected_deltas = construct_deltas(
-            mock_decision, session, validation_outcome, current_turn
-        )
-
-        # Create delta payload with full accepted delta content
-        accepted_delta_payloads = [
-            {
-                "id": d.id,
-                "delta_type": d.delta_type,
-                "target_path": d.target_path,
-                "target_entity": d.target_entity,
-                "previous_value": d.previous_value,
-                "next_value": d.next_value,
-                "source": d.source,
-            }
-            for d in accepted_deltas
-        ]
-
-        event_log.log(
-            "deltas_generated",
-            f"Deltas generated: {len(accepted_deltas)} accepted, {len(rejected_deltas)} rejected",
-            payload={
-                "accepted_count": len(accepted_deltas),
-                "rejected_count": len(rejected_deltas),
-                "accepted_deltas": accepted_delta_payloads,
-                "rejected_delta_ids": [d.id for d in rejected_deltas],
-            },
-        )
-
-        # Step 3: Apply accepted deltas
-        updated_state = apply_deltas(session.canonical_state, accepted_deltas)
-
-        event_log.log(
-            "deltas_applied",
-            f"{len(accepted_deltas)} delta(s) applied to canonical state",
-            payload={
-                "applied_count": len(accepted_deltas),
-                "delta_ids": [d.id for d in accepted_deltas],
-            },
-        )
-
-        # Step 4–5: Narrative commit (post-delta): ending before explicit proposed transition
-        guard_outcome_value = _compute_guard_outcome(accepted_deltas, rejected_deltas, "success")
-        narrative_commit = resolve_narrative_commit(
-            turn_number=current_turn,
-            prior_scene_id=prior_scene_id or session.current_scene_id,
-            post_delta_canonical_state=updated_state,
-            session_template=session,
-            decision=mock_decision,
-            module=module,
-            guard_outcome=guard_outcome_value,
-            accepted_deltas=accepted_deltas,
-            rejected_deltas=rejected_deltas,
-        )
-        updated_scene_id = narrative_commit.committed_scene_id
-        updated_ending_id = narrative_commit.committed_ending_id
-
-        if narrative_commit.situation_status == "ending_reached" and updated_ending_id:
-            event_log.log(
-                "ending_triggered",
-                f"Ending triggered: {updated_ending_id}",
-                payload={"ending_id": updated_ending_id},
-            )
-        elif narrative_commit.situation_status == "transitioned":
-            event_log.log(
-                "scene_changed",
-                f"Scene transitioned to {updated_scene_id}",
-                payload={
-                    "from_scene": prior_scene_id,
-                    "to_scene": updated_scene_id,
-                },
-            )
-        elif mock_decision.proposed_scene_id:
-            post_delta_session = session.model_copy(deep=True)
-            post_delta_session.canonical_state = deepcopy(updated_state)
-            post_delta_session.current_scene_id = prior_scene_id or session.current_scene_id
-            td = SceneTransitionLegality.check_transition_legal(
-                prior_scene_id or session.current_scene_id,
-                mock_decision.proposed_scene_id,
-                module,
-                session=post_delta_session,
-                detected_triggers=mock_decision.detected_triggers,
-            )
-            if not td.allowed:
-                event_log.log(
-                    "scene_transition_blocked",
-                    (
-                        f"Scene transition to {mock_decision.proposed_scene_id} "
-                        f"blocked: {td.reason}"
-                    ),
-                    payload={
-                        "from_scene": prior_scene_id,
-                        "proposed_scene": mock_decision.proposed_scene_id,
-                        "reason": td.reason,
-                    },
-                )
-
-        # Step 6: Finalize
-        completed_at = datetime.now(timezone.utc)
-        duration_ms = (completed_at - started_at).total_seconds() * 1000
-
-        event_log.log(
-            "turn_completed",
-            f"Turn {current_turn} completed: {len(accepted_deltas)} accepted, {len(rejected_deltas)} rejected",
-            payload={
-                "turn_number": current_turn,
-                "accepted_delta_count": len(accepted_deltas),
-                "rejected_delta_count": len(rejected_deltas),
-                "guard_outcome": guard_outcome_value.value,
-                "detected_triggers": mock_decision.detected_triggers,
-                "duration_ms": duration_ms,
-            },
-        )
-
-        result = TurnExecutionResult(
-            turn_number=current_turn,
-            session_id=session.session_id,
-            execution_status="success",
-            decision=mock_decision,
-            validation_outcome=validation_outcome,
-            validation_errors=validation_outcome.errors,
-            accepted_deltas=accepted_deltas,
-            rejected_deltas=rejected_deltas,
-            updated_canonical_state=updated_state,
-            updated_scene_id=updated_scene_id,
-            updated_ending_id=updated_ending_id,
-            guard_outcome=guard_outcome_value,
-            narrative_commit=narrative_commit,
-            started_at=started_at,
-            completed_at=completed_at,
-            duration_ms=duration_ms,
-            events=event_log.flush(),
-        )
-
         _finalize_success_turn(session, module, result, prior_scene_id=prior_scene_id)
-
         return result
 
     except Exception as e:

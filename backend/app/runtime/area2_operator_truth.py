@@ -14,6 +14,9 @@ from app.runtime.area2_startup_profiles import resolve_startup_profile
 from app.runtime.model_inventory_contract import InventorySurface
 from app.runtime.model_inventory_report import validate_surface_coverage
 from app.runtime.model_routing_contracts import RouteReasonCode
+from app.runtime.area2_no_eligible_operator_meaning import (
+    build_no_eligible_operator_meaning_payload,
+)
 from app.runtime.operator_audit import (
     RUNTIME_RANKING_ORCHESTRATION_SUMMARY_KEYS,
     primary_concern_code,
@@ -347,47 +350,11 @@ def _no_eligible_operator_meaning(
     discipline: dict[str, Any],
     stages_nea: list[str],
 ) -> dict[str, Any]:
-    worst = "not_applicable"
-    if isinstance(discipline, dict):
-        w = discipline.get("rollup_worst_case")
-        if isinstance(w, str) and w:
-            worst = w
-
-    token = "no_no_eligible_operator_concern_on_compact_view"
-    if operational_state is Area2OperationalState.test_isolated:
-        token = "operational_test_isolated_empty_registry_expected"
-    elif operational_state is Area2OperationalState.misconfigured:
-        token = "operational_misconfigured_registry_or_inventory"
-    elif operational_state is Area2OperationalState.intentionally_degraded:
-        token = "operational_bootstrap_disabled_intentional"
-    elif stages_nea:
-        if worst == "true_no_eligible_adapter":
-            token = "routing_true_no_eligible_adapter_on_stage"
-        elif worst == "intentional_degraded_route":
-            token = "routing_no_eligible_with_task2e_degrade"
-        elif worst == "bounded_executor_mismatch":
-            token = "routing_bounded_executor_mismatch"
-        elif worst == "test_isolated_empty_registry":
-            token = "routing_no_eligible_test_isolated_discipline"
-        elif worst == "missing_registration_or_specs":
-            token = "routing_no_eligible_missing_specs"
-        else:
-            token = "routing_no_eligible_on_stage_other_discipline"
-    elif worst != "not_applicable":
-        token = "routing_discipline_signal_without_staged_no_eligible_list"
-
-    applicable = (
-        operational_state is not Area2OperationalState.healthy
-        or bool(stages_nea)
-        or (worst != "not_applicable")
+    return build_no_eligible_operator_meaning_payload(
+        operational_state=operational_state,
+        discipline=discipline,
+        stages_nea=stages_nea,
     )
-
-    return {
-        "applicable": applicable,
-        "operator_meaning_token": token,
-        "discipline_worst_case": worst if worst != "not_applicable" else None,
-        "stages_reporting_no_eligible_adapter": list(stages_nea),
-    }
 
 
 def _build_compact_operator_comparison(

@@ -18,6 +18,11 @@ from ai_stack import (
 from app.config import APP_VERSION
 from app.observability.audit_log import log_story_runtime_failure, log_story_turn_event
 from app.story_runtime.commit_models import resolve_narrative_commit
+from app.story_runtime.module_turn_hooks import (
+    goc_append_continuity_impacts,
+    goc_host_experience_template,
+    goc_prior_continuity_for_graph,
+)
 from app.story_runtime.narrative_threads import (
     NARRATIVE_COMMIT_HISTORY_TAIL,
     StoryNarrativeThreadSet,
@@ -102,19 +107,13 @@ class StoryRuntimeManager:
         prior_scene_id = session.current_scene_id
         history_tail = session.history[-(NARRATIVE_COMMIT_HISTORY_TAIL - 1) :]
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
-        host_experience_template: dict[str, Any] | None = None
-        if session.module_id == "god_of_carnage":
-            rp = session.runtime_projection
-            if isinstance(rp, dict):
-                tid = rp.get("experience_template_id") or rp.get("seed_template_id")
-                tit = rp.get("experience_template_title")
-                if tid is not None or tit is not None:
-                    host_experience_template = {
-                        "template_id": str(tid) if tid is not None else None,
-                        "title": str(tit) if tit is not None else None,
-                    }
+        host_experience_template = (
+            goc_host_experience_template(session.runtime_projection)
+            if session.module_id == "god_of_carnage"
+            else None
+        )
         try:
-            prior_ci = session.prior_continuity_impacts if session.module_id == "god_of_carnage" else None
+            prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
             graph_state = self.turn_graph.run(
                 session_id=session.session_id,
                 module_id=session.module_id,
@@ -137,13 +136,7 @@ class StoryRuntimeManager:
             )
             raise
 
-        if session.module_id == "god_of_carnage":
-            ci = graph_state.get("continuity_impacts")
-            if isinstance(ci, list):
-                for item in ci:
-                    if isinstance(item, dict):
-                        session.prior_continuity_impacts.append(item)
-                session.prior_continuity_impacts = session.prior_continuity_impacts[-12:]
+        goc_append_continuity_impacts(session.module_id, session.prior_continuity_impacts, graph_state)
 
         graph_diag = graph_state.get("graph_diagnostics", {}) if isinstance(graph_state.get("graph_diagnostics"), dict) else {}
         errors = graph_diag.get("errors", []) if isinstance(graph_diag.get("errors"), list) else []
@@ -220,6 +213,23 @@ class StoryRuntimeManager:
         if session is None:
             raise KeyError(session_id)
         return session
+
+    def list_session_summaries(self) -> list[dict[str, Any]]:
+        """Lightweight rows for admin/ops consoles (no full history or diagnostics)."""
+        rows: list[dict[str, Any]] = []
+        for sid, session in self.sessions.items():
+            rows.append(
+                {
+                    "session_id": sid,
+                    "module_id": session.module_id,
+                    "turn_counter": session.turn_counter,
+                    "current_scene_id": session.current_scene_id,
+                    "updated_at": session.updated_at.isoformat(),
+                    "created_at": session.created_at.isoformat(),
+                }
+            )
+        rows.sort(key=lambda r: r.get("updated_at") or "", reverse=True)
+        return rows
 
     def get_state(self, session_id: str) -> dict[str, Any]:
         session = self.get_session(session_id)

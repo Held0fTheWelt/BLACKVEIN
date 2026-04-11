@@ -444,3 +444,160 @@ body {
     overflow: auto;
 }
 .forum-modal-title { margin: 0 0 1rem 0; font-size: 1.25rem; }
+
+/* ---------------------------------------------
+   2026 UI modernization layer (additive)
+   Keeps existing structure/behavior intact
+---------------------------------------------- */
+:root {
+    --bg: #0b0d12;
+    --surface: #121723;
+    --surface-soft: #171d2b;
+    --surface-elevated: #1c2434;
+    --border: #2a3348;
+    --border-strong: #3a4a68;
+    --text: #eff3ff;
+    --text-muted: #a6b0c8;
+    --primary: #7f63d9;
+    --primary-hover: #9479ef;
+    --danger: #e35a72;
+    --success: #5dbb87;
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --shadow-1: 0 6px 16px rgba(4, 8, 18, 0.22);
+    --shadow-2: 0 16px 38px rgba(4, 8, 18, 0.34);
+}
+
+body {
+    background:
+        radial-gradient(circle at 0% -20%, rgba(127, 99, 217, 0.18), transparent 48%),
+        radial-gradient(circle at 100% -30%, rgba(34, 154, 214, 0.10), transparent 44%),
+        var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+    letter-spacing: 0.01em;
+}
+
+.btn {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) var(--surface-soft);
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.2;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: transform 0.12s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.btn:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn:focus-visible {
+    outline: 2px solid rgba(148, 121, 239, 0.95);
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    background: linear-gradient(180deg, #967df0, #7f63d9);
+    border-color: #866ade;
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(127, 99, 217, 0.34);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(180deg, #a089f5, #8b6fe4);
+    border-color: #9b80ee;
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+    box-shadow: none;
+}
+
+.btn-ghost:hover {
+    background: rgba(148, 121, 239, 0.12);
+    color: var(--text);
+}
+
+.btn-danger {
+    background: linear-gradient(180deg, #ef6f87, #de5871);
+    border-color: #de5871;
+    color: #fff;
+}
+
+.card {
+    border-color: var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)) var(--surface);
+    box-shadow: var(--shadow-1);
+}
+
+.card-link {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+
+.card-link:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-2);
+    transform: translateY(-1px);
+}
+
+.news-input,
+.news-select,
+.forum-input,
+.forum-textarea,
+.forum-search-input,
+.forum-edit-textarea {
+    border-radius: var(--radius-sm);
+    border-color: var(--border);
+    background: var(--surface-soft);
+    color: var(--text);
+}
+
+.news-input:focus-visible,
+.news-select:focus-visible,
+.forum-input:focus-visible,
+.forum-textarea:focus-visible,
+.forum-search-input:focus-visible,
+.forum-edit-textarea:focus-visible {
+    outline: 2px solid rgba(148, 121, 239, 0.85);
+    outline-offset: 1px;
+    border-color: var(--primary);
+}
+
+.news-item,
+.forum-thread-row,
+.forum-post {
+    background: var(--surface-soft);
+    border-color: var(--border);
+    border-radius: var(--radius);
+}
+
+@media (max-width: 900px) {
+    .container {
+        padding: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}

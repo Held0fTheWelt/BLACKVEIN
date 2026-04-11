@@ -197,6 +197,9 @@ def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(clie
     data = response.get_json()
     assert data["play_service"]["configured"] is False
     assert data["play_service"]["public_url"] == "https://play.example.com"
+    # Builtin fallback so the play launcher dropdown is not empty without world-engine
+    template_ids = {t["id"] for t in data["templates"]}
+    assert "god_of_carnage_solo" in template_ids
 
 
 def test_game_content_endpoints_seed_and_publish(client, moderator_headers):

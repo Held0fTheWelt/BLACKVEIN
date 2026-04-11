@@ -1,6 +1,8 @@
 """Extended route coverage for player/public frontend."""
 from __future__ import annotations
 
+import json
+
 from app.api_client import BackendApiError
 
 
@@ -36,7 +38,7 @@ def test_login_post_empty_fields(client):
 
 def test_login_post_backend_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=401, payload={"error": "bad creds"}),
     )
     r = client.post("/login", data={"username": "a", "password": "b"})
@@ -50,7 +52,7 @@ def test_logout_post_with_token_calls_backend(client, monkeypatch):
         calls.append((method, path))
         return FakeResponse()
 
-    monkeypatch.setattr("app.routes.request_backend", rec)
+    monkeypatch.setattr("app.player_backend.request_backend", rec)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
     r = client.post("/logout", follow_redirects=False)
@@ -62,7 +64,7 @@ def test_logout_post_without_token(client, monkeypatch):
     def boom(*a, **k):
         raise AssertionError("should not call backend")
 
-    monkeypatch.setattr("app.routes.request_backend", boom)
+    monkeypatch.setattr("app.player_backend.request_backend", boom)
     r = client.post("/logout", follow_redirects=False)
     assert r.status_code == 302
 
@@ -87,7 +89,7 @@ def test_register_post_password_mismatch(client):
 
 def test_register_post_success(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={}),
     )
     r = client.post(
@@ -106,7 +108,7 @@ def test_register_post_success(client, monkeypatch):
 
 def test_register_post_api_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=409, payload={"error": "taken"}),
     )
     r = client.post(
@@ -133,7 +135,7 @@ def test_resend_verification_get(client):
 
 def test_resend_verification_post_success(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"message": "sent"}),
     )
     r = client.post("/resend-verification", data={"email": "a@b.com"}, follow_redirects=False)
@@ -143,7 +145,7 @@ def test_resend_verification_post_success(client, monkeypatch):
 
 def test_resend_verification_post_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=400, payload={"error": "no"}),
     )
     r = client.post("/resend-verification", data={"email": "a@b.com"})
@@ -157,7 +159,7 @@ def test_forgot_password_get(client):
 
 def test_forgot_password_post_success(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"message": "check mail"}),
     )
     r = client.post("/forgot-password", data={"email": "a@b.com"}, follow_redirects=False)
@@ -166,7 +168,7 @@ def test_forgot_password_post_success(client, monkeypatch):
 
 def test_forgot_password_post_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=503, payload={"error": "fail"}),
     )
     r = client.post("/forgot-password", data={"email": "a@b.com"})
@@ -188,7 +190,7 @@ def test_reset_password_post_mismatch(client):
 
 def test_reset_password_post_success(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"message": "ok"}),
     )
     r = client.post(
@@ -202,7 +204,7 @@ def test_reset_password_post_success(client, monkeypatch):
 
 def test_reset_password_post_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=400, payload={"error": "bad token"}),
     )
     r = client.post(
@@ -216,7 +218,7 @@ def test_dashboard_unauthorized_clears_session(client, monkeypatch):
     def fail(*a, **k):
         raise BackendApiError("nope", status_code=401)
 
-    monkeypatch.setattr("app.routes.request_backend", fail)
+    monkeypatch.setattr("app.player_backend.request_backend", fail)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"id": 1}
@@ -231,7 +233,7 @@ def test_dashboard_backend_error_non_401_shows_flash_and_fallback_user(client, m
     def fail(*a, **k):
         raise BackendApiError("offline", status_code=503)
 
-    monkeypatch.setattr("app.routes.request_backend", fail)
+    monkeypatch.setattr("app.player_backend.request_backend", fail)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"username": "bob"}
@@ -242,7 +244,7 @@ def test_dashboard_backend_error_non_401_shows_flash_and_fallback_user(client, m
 
 def test_news_ok_and_empty(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"items": [{"title": "N1"}]}),
     )
     r = client.get("/news")
@@ -250,7 +252,7 @@ def test_news_ok_and_empty(client, monkeypatch):
     assert b"N1" in r.data
 
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=500, payload={}),
     )
     r2 = client.get("/news")
@@ -259,21 +261,21 @@ def test_news_ok_and_empty(client, monkeypatch):
 
 def test_wiki_index_and_slug_and_status_codes(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda m, p, **k: FakeResponse(payload={"title": "Idx"}) if p.endswith("index") else FakeResponse(),
     )
     r = client.get("/wiki")
     assert r.status_code == 200
 
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda m, p, **k: FakeResponse(status_code=404, payload={}),
     )
     r404 = client.get("/wiki/missing")
     assert r404.status_code == 404
 
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda m, p, **k: FakeResponse(status_code=502, payload={}),
     )
     r502 = client.get("/wiki/broken")
@@ -282,14 +284,14 @@ def test_wiki_index_and_slug_and_status_codes(client, monkeypatch):
 
 def test_community_ok_and_fail(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"items": [{"title": "Cat", "description": "d"}]}),
     )
     r = client.get("/community")
     assert b"Cat" in r.data
 
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=503),
     )
     r2 = client.get("/community")
@@ -321,7 +323,7 @@ def test_play_create_missing_template(client):
 
 def test_play_create_api_error(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=400, payload={"error": "no"}),
     )
     with client.session_transaction() as sess:
@@ -333,7 +335,7 @@ def test_play_create_api_error(client, monkeypatch):
 
 def test_play_create_no_run_id(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"run": {}}),
     )
     with client.session_transaction() as sess:
@@ -345,7 +347,7 @@ def test_play_create_no_run_id(client, monkeypatch):
 
 def test_play_create_success(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(payload={"run": {"id": "run-99"}}),
     )
     with client.session_transaction() as sess:
@@ -357,6 +359,24 @@ def test_play_create_success(client, monkeypatch):
         assert sess.get("play_shell_run_modules", {}).get("run-99") == "t1"
 
 
+def test_play_create_god_of_carnage_solo_maps_to_content_module(client, monkeypatch):
+    """Play catalog uses template_id god_of_carnage_solo; in-process session needs YAML module id."""
+    monkeypatch.setattr(
+        "app.player_backend.request_backend",
+        lambda *a, **k: FakeResponse(payload={"run": {"id": "run-goc"}}),
+    )
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.post(
+        "/play/start",
+        data={"template_id": "god_of_carnage_solo"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    with client.session_transaction() as sess:
+        assert sess.get("play_shell_run_modules", {}).get("run-goc") == "god_of_carnage"
+
+
 def test_play_shell_ticket_ok_and_error(client, monkeypatch):
     def fake_request(method, path, **kwargs):
         if path == "/api/v1/game/tickets":
@@ -365,20 +385,23 @@ def test_play_shell_ticket_ok_and_error(client, monkeypatch):
             return FakeResponse(payload={"session_id": "backend-session-1"})
         raise AssertionError(f"unexpected backend call: {method} {path}")
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"username": "u1"}
         sess["play_shell_run_modules"] = {"s1": "god_of_carnage"}
     r = client.get("/play/s1")
     assert r.status_code == 200
-    assert b"Natural language is the primary input path" in r.data
-    assert b"name=\"player_input\"" in r.data
+    assert b'id="play-story-window"' in r.data
+    assert b'id="play-input-dock"' in r.data
+    assert b'name="player_input"' in r.data
+    assert b"Geschichte" in r.data
+    assert b"Dein Zug" in r.data
     with client.session_transaction() as sess:
         assert sess.get("play_shell_backend_sessions", {}).get("s1") == "backend-session-1"
 
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: FakeResponse(status_code=400, payload={"error": "nope"}),
     )
     r2 = client.get("/play/s2")
@@ -402,7 +425,7 @@ def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
             )
         raise AssertionError(f"unexpected backend call: {method} {path}")
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
     r = client.post("/play/sid/execute", data={"player_input": ""}, follow_redirects=False)
@@ -453,7 +476,7 @@ def test_play_execute_surfaces_world_engine_narration_on_shell(client, monkeypat
             )
         raise AssertionError(f"unexpected backend call: {method} {path}")
 
-    monkeypatch.setattr("app.routes.request_backend", fake_request)
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"username": "u1"}
@@ -475,13 +498,93 @@ def test_play_execute_surfaces_world_engine_narration_on_shell(client, monkeypat
 
 def test_play_execute_rejects_missing_backend_session_binding(client, monkeypatch):
     monkeypatch.setattr(
-        "app.routes.request_backend",
+        "app.player_backend.request_backend",
         lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not call backend")),
     )
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
     response = client.post("/play/sid/execute", data={"player_input": "I stay silent."}, follow_redirects=False)
     assert response.status_code == 302
+
+
+def test_play_execute_json_returns_ok_and_bundles(client, monkeypatch):
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/sessions/backend-session-1/turns":
+            return FakeResponse(
+                payload={
+                    "trace_id": "tr-json",
+                    "turn": {
+                        "turn_number": 1,
+                        "raw_input": kwargs["json_data"]["player_input"],
+                        "interpreted_input": {"kind": "ooc"},
+                    },
+                    "state": {"current_scene_id": "a"},
+                    "diagnostics": {"diagnostics": [{"x": 1}]},
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
+    r = client.post(
+        "/play/sid/execute",
+        data=json.dumps({"player_input": "wave"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data["ok"] is True
+    assert data["runtime_view"]["trace_id"] == "tr-json"
+    assert data["operator_bundle"]["trace_id"] == "tr-json"
+
+
+def test_play_shell_transcript_shows_two_turns_after_json_executes(client, monkeypatch):
+    turn_state = {"n": 0}
+
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/game/tickets":
+            return FakeResponse(payload={"ticket": "t"})
+        if path == "/api/v1/sessions":
+            return FakeResponse(payload={"session_id": "backend-session-1"})
+        if path == "/api/v1/sessions/backend-session-1/turns":
+            turn_state["n"] += 1
+            n = turn_state["n"]
+            return FakeResponse(
+                payload={
+                    "trace_id": f"tr-{n}",
+                    "turn": {
+                        "turn_number": n,
+                        "raw_input": kwargs["json_data"]["player_input"],
+                        "interpreted_input": {"kind": "speech"},
+                        "visible_output_bundle": {"gm_narration": [f"Line {n}"]},
+                    },
+                    "state": {"current_scene_id": "sc"},
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        sess["current_user"] = {"username": "u1"}
+        sess["play_shell_run_modules"] = {"sid": "god_of_carnage"}
+        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
+    client.post(
+        "/play/sid/execute",
+        data=json.dumps({"player_input": "one"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    client.post(
+        "/play/sid/execute",
+        data=json.dumps({"player_input": "two"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    r = client.get("/play/sid")
+    assert r.status_code == 200
+    assert b"Line 1" in r.data
+    assert b"Line 2" in r.data
 
 
 def test_api_proxy_get_and_post(client, monkeypatch):

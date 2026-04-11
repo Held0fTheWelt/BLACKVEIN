@@ -225,6 +225,17 @@ class TestGameServiceClient:
             assert list_templates() == []
             assert list_runs() == []
 
+            monkeypatch.setattr(
+                "app.services.game_service._request",
+                lambda method, path, **kwargs: (
+                    {"templates": [{"id": "wrapped-tpl", "title": "W", "kind": "solo_story"}]}
+                    if path == "/api/templates"
+                    else {"runs": [{"id": "wrapped-run"}]}
+                ),
+            )
+            assert list_templates() == [{"id": "wrapped-tpl", "title": "W", "kind": "solo_story"}]
+            assert list_runs() == [{"id": "wrapped-run"}]
+
             _detail_v1 = {
                 "run": {"id": "run-1", "status": "lobby"},
                 "template_source": "builtin",

@@ -195,7 +195,7 @@ def test_handle_request_exception_api_path_json(client, monkeypatch):
     def boom(*a, **k):
         raise requests.RequestException("down")
 
-    monkeypatch.setattr("app.routes.request_backend", boom)
+    monkeypatch.setattr("app.player_backend.request_backend", boom)
     r = client.get("/api/v1/news")
     assert r.status_code == 503
     assert r.is_json
@@ -206,7 +206,7 @@ def test_handle_request_exception_html_redirect(client, monkeypatch):
     def boom(*a, **k):
         raise requests.RequestException("down")
 
-    monkeypatch.setattr("app.routes.request_backend", boom)
+    monkeypatch.setattr("app.player_backend.request_backend", boom)
     r = client.get("/news", follow_redirects=False)
     assert r.status_code == 302
     assert r.headers["Location"].endswith("/")
@@ -216,7 +216,7 @@ def test_handle_backend_error_api_json(client, monkeypatch):
     def fail(*a, **k):
         raise BackendApiError("be", status_code=409, payload={"code": 1})
 
-    monkeypatch.setattr("app.routes.request_backend", fail)
+    monkeypatch.setattr("app.player_backend.request_backend", fail)
     r = client.get("/api/v1/foo/bar")
     assert r.status_code == 409
     body = r.get_json()
@@ -228,6 +228,6 @@ def test_handle_backend_error_html_redirect(client, monkeypatch):
     def fail(*a, **k):
         raise BackendApiError("be", status_code=500)
 
-    monkeypatch.setattr("app.routes.request_backend", fail)
+    monkeypatch.setattr("app.player_backend.request_backend", fail)
     r = client.get("/news", follow_redirects=False)
     assert r.status_code == 302

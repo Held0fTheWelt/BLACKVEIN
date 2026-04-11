@@ -41,3 +41,9 @@ app.mount("/static", StaticFiles(directory=WEB_ROOT / "static"), name="static")
 @app.get("/")
 def index() -> FileResponse:
     return FileResponse(WEB_ROOT / "templates" / "index.html")
+
+
+@app.get("/ops")
+def ops_console() -> FileResponse:
+    """Minimal unauthenticated readiness view for operators (see UX plan: engine-near diagnosis)."""
+    return FileResponse(WEB_ROOT / "templates" / "ops.html")

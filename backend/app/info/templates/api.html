@@ -1,34 +1,59 @@
 {% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link %}
 {% block title %}API overview{% endblock %}
-{% block heading %}API overview{% endblock %}
-{% block subheading %}Major <code>/api/v1</code> areas and how clients authenticate.{% endblock %}
+{% block heading %}REST-API{% endblock %}
+{% block subheading %}Versionierte JSON-Schnittstelle unter <code>/api/v1</code> — Domänen, Auth und wo du Details findest.{% endblock %}
 {% block body %}
-<section>
-  <h2>Base URL</h2>
-  <p>All versioned REST endpoints live under <code>/api/v1</code>. There is no bundled OpenAPI/Swagger UI in this service; see <span class="path">docs/api/REFERENCE.md</span> in the repository.</p>
+<section class="info-section">
+  <h2>Kernfunktionalität</h2>
+  <p>Das Backend bündelt <strong>geschäftsnahe Operationen</strong> (Nutzer, Forum, News, Wiki, Spielstart, Admin-JSON, Diagnose) hinter einer einheitlichen Basis-URL. Antworten sind überwiegend JSON; Pagination und Standard-Fehlerformate sind in der Referenz beschrieben.</p>
 </section>
-<section>
-  <h2>Major areas (implemented)</h2>
+<section class="info-section">
+  <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
-    <li><strong>Auth</strong> — <code>/api/v1/auth/*</code> (login, refresh, logout, registration flows as exposed by the API).</li>
-    <li><strong>Users &amp; roles</strong> — <code>/api/v1/users/*</code>, <code>/api/v1/roles/*</code>.</li>
-    <li><strong>Site &amp; content</strong> — news, wiki, slogans, forum, analytics, areas — see REFERENCE.md for exact paths.</li>
-    <li><strong>Game / play bootstrap</strong> — <code>/api/v1/game/*</code> (templates, runs, characters, tickets, transcripts) — bridges to the play service where noted in code.</li>
-    <li><strong>Admin JSON APIs</strong> — <code>/api/v1/admin/*</code>, <code>/api/v1/game-admin/*</code>, wiki admin, data export — for trusted clients (admin tool or automation), not player HTML.</li>
-    <li><strong>Sessions (non-authoritative)</strong> — <code>/api/v1/sessions/*</code> — in-process operator/MCP bridge; responses document that live play is in the world-engine.</li>
+    <li><strong>Frontend- und Mobile-Clients</strong> — öffentliche und eingeloggte Flows über JWT.</li>
+    <li><strong>Administration-tool &amp; Automation</strong> — privilegierte Endpunkte unter <code>/api/v1/admin/*</code>, <code>game-admin</code>, Daten-Export/Import.</li>
+    <li><strong>Integratoren &amp; QA</strong> — schneller Überblick im <a href="{{ url_for('info.api_explorer') }}">API Explorer</a>, dann Tiefgang in der Referenz.</li>
   </ul>
 </section>
-<section>
-  <h2>Authentication style</h2>
-  <p>Primary API authentication is <strong>JWT</strong> (<code>Authorization: Bearer &lt;access_token&gt;</code>) via Flask-JWT-Extended. Refresh tokens rotate according to <span class="path">docs/api/REFERENCE.md</span>. Some routes additionally use service tokens (e.g. MCP / automation) as documented per endpoint.</p>
-  <p>Legacy browser <strong>Flask sessions</strong> may still exist for compatibility routes under <code>/logout</code> etc.; canonical new clients should use JWT against the API.</p>
+<section class="info-section">
+  <h2>Möglich / nicht möglich</h2>
+  <ul>
+    <li><strong>Möglich:</strong> Alles, was unter <code>/api/v1/...</code> in <a href="{{ url_for('info.openapi_spec') }}">OpenAPI</a> und in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }} aufgelistet ist — inkl. Spiel-Bootstrap und Forum.</li>
+    <li><strong>Nicht möglich:</strong> Autoritative <strong>Live-Spielzustände</strong> über diese API allein; der laufende Run sitzt im <strong>world-engine</strong>-Dienst (siehe <a href="{{ url_for('info.engine_integration') }}">Engine</a>).</li>
+    <li><strong>Nicht Ziel:</strong> Diese Seiten ersetzen keine Spieler-UI; sie erklären die Backend-Fähigkeiten für Betreiber und Entwickler.</li>
+  </ul>
 </section>
-<section>
-  <h2>CSRF</h2>
-  <p><code>api_v1</code> blueprint is CSRF-exempt; browser forms posting to legacy web routes are not the canonical API path. Frontends that use cookies + same-site policies should still follow their own CSRF strategy for any cookie-backed endpoints.</p>
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li>{{ docs_deep_link("MkDocs — API-Übersicht &amp; Suche", "/api/") }}</li>
+    <li>{{ docs_deep_link("REST-Referenz (Beispiele)", "/api/REFERENCE/") }}</li>
+    <li>{{ docs_deep_link("OpenAPI-Taxonomie (Tags)", "/api/openapi-taxonomy/") }}</li>
+    <li><a href="{{ url_for('info.api_explorer') }}">API Explorer (Redoc)</a> — gleiche Tags wie in der Spec.</li>
+  </ul>
 </section>
-<section>
-  <h2>Postman / collections</h2>
-  <p>No Postman collection is shipped inside <code>backend/</code>. If your team maintains one, link it from your internal docs; machine-readable detail remains <span class="path">docs/api/REFERENCE.md</span>.</p>
+<section class="info-section">
+  <h2>Domänen-Cluster (OpenAPI-Tags)</h2>
+  <p>Im Explorer springst du über die Seitenleiste oder diese Anker:</p>
+  <table class="doc-table" aria-label="API-Tags">
+    <thead><tr><th>Tag</th><th>Explorer</th><th>Schwerpunkt</th></tr></thead>
+    <tbody>
+      <tr><td>Auth</td><td><a href="{{ url_for('info.api_explorer') }}#tag/Auth">#tag/Auth</a></td><td>Login, Tokens, Registrierung</td></tr>
+      <tr><td>Users / Roles</td><td><a href="{{ url_for('info.api_explorer') }}#tag/Users">#tag/Users</a>, <a href="{{ url_for('info.api_explorer') }}#tag/Roles">#tag/Roles</a></td><td>Profile, Rollen</td></tr>
+      <tr><td>Forum</td><td><a href="{{ url_for('info.api_explorer') }}#tag/Forum">#tag/Forum</a></td><td>Threads, Posts, Moderation, Notifications</td></tr>
+      <tr><td>SiteContent</td><td><a href="{{ url_for('info.api_explorer') }}#tag/SiteContent">#tag/SiteContent</a></td><td>News, Wiki, Site, Slogans</td></tr>
+      <tr><td>GameBootstrap / GameAdmin</td><td><a href="{{ url_for('info.api_explorer') }}#tag/GameBootstrap">#tag/GameBootstrap</a>, <a href="{{ url_for('info.api_explorer') }}#tag/GameAdmin">#tag/GameAdmin</a></td><td>Spielstart, Tickets, Content-Publishing</td></tr>
+      <tr><td>SessionsBridge</td><td><a href="{{ url_for('info.api_explorer') }}#tag/SessionsBridge">#tag/SessionsBridge</a></td><td>In-Prozess-Session — nicht Live-Engine</td></tr>
+      <tr><td>WritersRoom / Improvement / AIStackGovernance</td><td><a href="{{ url_for('info.api_explorer') }}#tag/WritersRoom">#tag/WritersRoom</a> …</td><td>AI-/Content-Pipelines</td></tr>
+      <tr><td>Admin / Analytics / MCP / System</td><td><a href="{{ url_for('info.api_explorer') }}#tag/Admin">#tag/Admin</a> …</td><td>Betrieb, Metriken, MCP, Health</td></tr>
+      <tr><td>Areas</td><td><a href="{{ url_for('info.api_explorer') }}#tag/Areas">#tag/Areas</a></td><td>Feature- &amp; Navigations-Areas</td></tr>
+    </tbody>
+  </table>
+</section>
+<section class="info-section">
+  <h2>Authentifizierung &amp; Grenzen</h2>
+  <p>Primär <strong>JWT</strong> (<code>Authorization: Bearer …</code>) über Flask-JWT-Extended. Das <code>api_v1</code>-Blueprint ist <strong>CSRF-exempt</strong> — Browser-Clients nutzen Bearer, nicht Form-CSRF. Öffentliche Endpunkte (z.&nbsp;B. Login, Register, <code>GET /api/v1/health</code>) sind in der OpenAPI mit <code>security: []</code> markiert.</p>
+  <p>Rate-Limits: Standard aus Konfiguration (z.&nbsp;B. 100/min); Details und Header in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }}.</p>
 </section>
 {% endblock %}

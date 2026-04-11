@@ -12,10 +12,11 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="manage-body">
+    <a class="skip-link" href="#main">Skip to main content</a>
     <header class="manage-header">
         <div class="manage-header-inner">
             <a href="{{ url_for('manage_index') }}" class="manage-logo">{{ t.nav_manage | default('Manage') }}</a>
-            <nav class="manage-nav" aria-label="Management">
+            <nav class="manage-nav" aria-label="Management" id="manage-nav">
                 <a href="{{ url_for('manage_news') }}" class="manage-nav-link" data-page="news" id="manage-nav-news" data-feature="manage.news">{{ t.manage_news | default('News') }}</a>
                 <a href="{{ url_for('manage_users') }}" class="manage-nav-link" data-page="users" id="manage-nav-users" data-feature="manage.users">{{ t.manage_users | default('Users') }}</a>
                 <a href="{{ url_for('manage_roles') }}" class="manage-nav-link" data-page="roles" id="manage-nav-roles" data-feature="manage.roles">Roles</a>
@@ -25,6 +26,7 @@
                 <a href="{{ url_for('manage_game_content') }}" class="manage-nav-link" data-page="game-content" id="manage-nav-game-content" data-feature="manage.game_content">Game Content</a>
                 <a href="{{ url_for('manage_game_operations') }}" class="manage-nav-link" data-page="game-operations" id="manage-nav-game-operations" data-feature="manage.game_operations">Game Ops</a>
                 <a href="{{ url_for('manage_diagnosis') }}" class="manage-nav-link" data-page="diagnosis" id="manage-nav-diagnosis" data-feature="manage.system_diagnosis">Diagnosis</a>
+                <a href="{{ url_for('manage_world_engine_console') }}" class="manage-nav-link" data-page="world-engine-console" id="manage-nav-world-engine-console" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">World Engine</a>
                 <a href="{{ url_for('manage_play_service_control') }}" class="manage-nav-link" data-page="play-service-control" id="manage-nav-play-service-control" data-feature="manage.play_service_control">Play-Service</a>
                 <a href="{{ url_for('manage_mcp_operations') }}" class="manage-nav-link" data-page="mcp-operations" id="manage-nav-mcp-operations" data-feature="manage.mcp_operations">MCP Operations</a>
                 <a href="{{ url_for('manage_inspector_workbench') }}" class="manage-nav-link" data-page="inspector-workbench" id="manage-nav-inspector-workbench" data-feature="manage.game_operations">Inspector Suite</a>
@@ -46,6 +48,20 @@
     </script>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="{{ url_for('static', filename='manage_auth.js') }}"></script>
+    <script>
+        (function markCurrentManageNav() {
+            const pathname = window.location.pathname.replace(/\/+$/, "");
+            const navLinks = document.querySelectorAll(".manage-nav-link");
+            navLinks.forEach((link) => {
+                const href = (link.getAttribute("href") || "").replace(/\/+$/, "");
+                if (!href) return;
+                if (href === pathname) {
+                    link.classList.add("is-current");
+                    link.setAttribute("aria-current", "page");
+                }
+            });
+        })();
+    </script>
     {% block extra_scripts %}
     {# Page-specific scripts MUST be in extra_scripts so they run after ManageAuth is available. #}
     {% endblock %}

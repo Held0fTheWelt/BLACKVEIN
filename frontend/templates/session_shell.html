@@ -1,82 +1,133 @@
 {% extends "base.html" %}
 {% block title %}Play Session{% endblock %}
 {% block content %}
-{% if runtime_view %}
-<section class="panel play-runtime-panel">
-  <h2>Last committed turn (world-engine)</h2>
-  <p class="runtime-meta">
-    {% if runtime_view.turn_number is not none %}Turn {{ runtime_view.turn_number }}{% endif %}
-    {% if runtime_view.trace_id %}· trace <code>{{ runtime_view.trace_id }}</code>{% endif %}
-    {% if runtime_view.interpreted_input_kind %}· input kind <strong>{{ runtime_view.interpreted_input_kind }}</strong>{% endif %}
-  </p>
-  {% if runtime_view.player_line %}
-  <p class="runtime-player-line"><strong>You:</strong> {{ runtime_view.player_line }}</p>
-  {% endif %}
-  <div class="runtime-scene-strip runtime-meta">
-    {% if runtime_view.current_scene_id %}Scene now: <code>{{ runtime_view.current_scene_id }}</code>{% endif %}
-    {% if runtime_view.committed_scene_id %}· committed scene: <code>{{ runtime_view.committed_scene_id }}</code>{% endif %}
-    {% if runtime_view.commit_reason_code %}· commit: <code>{{ runtime_view.commit_reason_code }}</code>{% endif %}
-    {% if runtime_view.validation_status %}· validation: <strong>{{ runtime_view.validation_status }}</strong>{% endif %}
-    {% if runtime_view.graph_error_count %}· graph errors: <strong class="runtime-warn">{{ runtime_view.graph_error_count }}</strong>{% endif %}
+<div class="play-shell" data-session-id="{{ session_id }}" data-backend-session-id="{{ backend_session_id or '' }}">
+  <nav class="play-shell-tabs" role="tablist" aria-label="Play shell">
+    <button type="button" class="play-tab play-tab--active" id="tab-play" role="tab" aria-selected="true" aria-controls="panel-play" data-target="panel-play">Play</button>
+    <button type="button" class="play-tab" id="tab-operator" role="tab" aria-selected="false" aria-controls="panel-operator" data-target="panel-operator">Operator</button>
+  </nav>
+
+  <div id="panel-play" class="play-panel play-panel--active play-panel--game" role="tabpanel" aria-labelledby="tab-play">
+    <section class="panel panel--compact play-shell-meta">
+      <h1 class="play-shell-title">Spielsession <span class="mono">{{ session_id }}</span></h1>
+      {% if backend_session_id %}
+        <p class="runtime-meta">Technische Session: <code>{{ backend_session_id }}</code></p>
+      {% else %}
+        <p class="runtime-meta runtime-warn">Laufzeit-Session noch nicht bereit — Seite neu laden oder von „Play“ neu starten.</p>
+      {% endif %}
+    </section>
+
+    <div class="play-game-surface">
+      <section id="play-story-window" class="play-story-window" aria-labelledby="play-story-heading">
+        <div class="play-story-window__chrome">
+          <h2 id="play-story-heading" class="play-story-window__header">Geschichte</h2>
+          <p class="play-story-window__hint runtime-meta">Hier erscheint die Antwort auf deinen Zug (Erzähltext, Dialog, Folgen). Ohne Zug siehst du nur den Hinweis im Kasten darunter.</p>
+        </div>
+        <div id="turn-transcript" class="play-story-window__body play-transcript" aria-live="polite" aria-relevant="additions">
+        {% if turn_log %}
+          {% for entry in turn_log %}
+          <article class="play-turn-card" data-turn-index="{{ loop.index0 }}">
+            <header class="play-turn-card__meta runtime-meta">
+              {% if entry.turn_number is not none %}Zug {{ entry.turn_number }}{% endif %}
+              {% if entry.trace_id %}· <code>{{ entry.trace_id }}</code>{% endif %}
+              {% if entry.interpreted_input_kind %}· <strong>{{ entry.interpreted_input_kind }}</strong>{% endif %}
+            </header>
+            {% if entry.player_line %}
+            <p class="runtime-player-line"><strong>Du:</strong> {{ entry.player_line }}</p>
+            {% endif %}
+            <div class="runtime-scene-strip runtime-meta">
+              {% if entry.current_scene_id %}Szene: <code>{{ entry.current_scene_id }}</code>{% endif %}
+              {% if entry.committed_scene_id %}· festgeschrieben: <code>{{ entry.committed_scene_id }}</code>{% endif %}
+              {% if entry.validation_status %}· Prüfung: <strong>{{ entry.validation_status }}</strong>{% endif %}
+              {% if entry.graph_error_count %}· Graph-Fehler: <strong class="runtime-warn">{{ entry.graph_error_count }}</strong>{% endif %}
+            </div>
+            <div class="play-story-output">
+            {% if entry.narration_text %}
+              <div class="play-story-text play-turn-card__narration">{{ entry.narration_text }}</div>
+            {% else %}
+              <p class="play-story-missing">Für diesen Zug liefert die Engine keinen erzählenden Text (<code>gm_narration</code> leer). Der Lauf kann trotzdem weitergegangen sein — Details siehe Operator-Tab.</p>
+            {% endif %}
+            </div>
+            {% if entry.spoken_lines %}
+            <h3 class="play-dialogue-label">Gesprochen</h3>
+            <ul class="runtime-spoken play-dialogue-list">
+              {% for line in entry.spoken_lines %}
+              <li>{{ line }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            {% if entry.committed_consequences %}
+            <h3 class="play-dialogue-label">Folgen</h3>
+            <ul class="runtime-consequences">
+              {% for c in entry.committed_consequences %}
+              <li>{{ c }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </article>
+          {% endfor %}
+        {% else %}
+          <p id="transcript-empty" class="play-story-placeholder">Noch keine Züge. Schreib unten, was deine Figur tut oder sagt, und tippe auf <strong>Zug ausführen</strong> — dann erscheint die Antwort hier.</p>
+        {% endif %}
+        </div>
+      </section>
+
+      <section id="play-input-dock" class="play-input-dock" aria-labelledby="play-input-heading">
+        <h2 id="play-input-heading" class="play-input-dock__title">Dein Zug</h2>
+        <p class="play-input-dock__hint">Freitext (Hauptpfad). Slash-Befehle sind weiterhin möglich, wenn dein Modul sie kennt.</p>
+        <form id="play-execute-form" method="post" action="{{ url_for('frontend.play_execute', session_id=session_id) }}">
+          <label class="play-input-label" for="player-input">Was passiert?</label>
+          <textarea id="player-input" class="play-input-textarea" name="player_input" rows="5" required placeholder="Zum Beispiel: Ich trete an den Tisch und sage leise: Das reicht."></textarea>
+          <div class="play-composer-actions">
+            <button type="submit" class="play-primary-btn" id="execute-turn-btn">Zug ausführen</button>
+            <span id="execute-status" class="play-execute-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+    </div>
   </div>
-  <h3 class="runtime-narration-heading">Narration</h3>
-  {% if runtime_view.narration_text %}
-  <div class="play-narration">{{ runtime_view.narration_text }}</div>
-  {% else %}
-  <p class="runtime-meta">No <code>gm_narration</code> lines were present in this turn bundle. Expand diagnostics or retry when the model path is healthy.</p>
-  {% endif %}
-  {% if runtime_view.spoken_lines %}
-  <h3 class="runtime-narration-heading">Spoken lines</h3>
-  <ul class="runtime-spoken">
-    {% for line in runtime_view.spoken_lines %}
-    <li>{{ line }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-  {% if runtime_view.committed_consequences %}
-  <h3 class="runtime-narration-heading">Committed consequences (carry-forward)</h3>
-  <ul class="runtime-consequences">
-    {% for c in runtime_view.committed_consequences %}
-    <li>{{ c }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-  <details class="runtime-diagnostics">
-    <summary>Operator: raw projection (same fields as API bridge)</summary>
-    <pre class="runtime-diagnostics-pre">{{ runtime_view | tojson(indent=2) }}</pre>
-  </details>
-</section>
-{% endif %}
 
-<section class="panel">
-  <h1>Play session {{ session_id }}</h1>
-  {% if backend_session_id %}
-    <p>Runtime session: <strong>{{ backend_session_id }}</strong></p>
-  {% else %}
-    <p>Runtime session: <strong>not ready</strong></p>
-  {% endif %}
-  {% if ticket and ticket.get("ticket") %}
-    <p>Participant: <strong>{{ ticket.get("participant_id") }}</strong></p>
-    <p>Role: <strong>{{ ticket.get("role_id") }}</strong></p>
-    <p>WebSocket base: <code id="ws-base">{{ ticket.get("ws_base_url") }}</code></p>
-    <p>Ticket: <code id="play-ticket">{{ ticket.get("ticket") }}</code></p>
-    <div id="socket-status">Not connected</div>
-    <button id="connect-btn" type="button">Connect WebSocket</button>
-  {% else %}
-    <p>No ticket available for this run.</p>
-  {% endif %}
-</section>
+  <div id="panel-operator" class="play-panel" role="tabpanel" aria-labelledby="tab-operator" hidden>
+    <section class="panel operator-banner">
+      <h2>Operator</h2>
+      <p class="subtitle">Last turn bridge payload (truncated for session storage). Separate from the <strong>Live room</strong> WebSocket below — that path uses the world-engine <em>runtime manager</em>, not the same contract as story turns.</p>
+    </section>
 
-<section class="panel">
-  <h2>Execute runtime turn</h2>
-  <p>Natural language is the primary input path. Explicit commands are still supported as special forms.</p>
-  <form method="post" action="{{ url_for('frontend.play_execute', session_id=session_id) }}">
-    <label>Action
-      <textarea name="player_input" rows="4" required placeholder="Describe what your character does."></textarea>
-    </label>
-    <button type="submit">Execute turn</button>
-  </form>
-</section>
+    <section class="panel">
+      <h3>Last turn (stored)</h3>
+      <div class="operator-actions">
+        <button type="button" id="copy-trace-btn" class="secondary">Copy last trace id</button>
+        <button type="button" id="copy-operator-json-btn" class="secondary">Copy operator JSON</button>
+        {% if backend_session_id %}
+        <button type="button" id="refresh-operator-bundle-btn" class="secondary">Refresh from API</button>
+        {% endif %}
+      </div>
+      <p id="refresh-operator-status" class="runtime-meta" role="status"></p>
+      <pre id="operator-raw-pre" class="runtime-diagnostics-pre play-operator-pre">{% if operator_bundle %}{{ operator_bundle | tojson(indent=2) }}{% else %}{}{% endif %}</pre>
+    </section>
 
-<script src="{{ url_for('static', filename='play_shell.js') }}"></script>
+    <section class="panel play-live-ws-panel">
+      <h3>Live room (world-engine WebSocket)</h3>
+      <p class="runtime-meta operator-disclaimer">This connection uses <code>/ws?ticket=…</code> and the template runtime snapshot model. It is <strong>not</strong> the same execution path as <em>Execute runtime turn</em> above.</p>
+      {% if ticket and ticket.get("ticket") %}
+        <p class="runtime-meta">Participant: <strong>{{ ticket.get("participant_id") }}</strong> · Role: <strong>{{ ticket.get("role_id") }}</strong></p>
+        <p class="runtime-meta">WebSocket base: <code id="ws-base">{{ ticket.get("ws_base_url") }}</code></p>
+        <p class="runtime-meta">Ticket: <code id="play-ticket">{{ ticket.get("ticket") }}</code></p>
+        <label class="play-ws-autoconnect">
+          <input type="checkbox" id="ws-autoconnect" />
+          Auto-connect on load
+        </label>
+        <div id="socket-status" class="runtime-meta">Not connected</div>
+        <button id="connect-btn" type="button">Connect WebSocket</button>
+        <div id="live-ws-snapshot-root" class="live-ws-snapshot" aria-live="polite"></div>
+      {% else %}
+        <p>No ticket available for this run.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<script type="application/json" id="play-shell-bootstrap">{{ play_bootstrap_json | safe }}</script>
+<script src="{{ url_for('static', filename='play_live_ws.js') }}" defer></script>
+<script src="{{ url_for('static', filename='play_shell.js') }}" defer></script>
 {% endblock %}

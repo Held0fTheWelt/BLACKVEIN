@@ -1,26 +1,40 @@
 {% extends "base.html" %}
+{% from "info_sections.html" import docs_deep_link %}
 {% block title %}AI integration{% endblock %}
-{% block heading %}AI integration{% endblock %}
-{% block subheading %}Adapters, proposals, and why the backend is not the narrative runtime.{% endblock %}
+{% block heading %}AI &amp; Orchestrierung{% endblock %}
+{% block subheading %}Wo intelligente Schichten laufen — und wie sich <strong>Vorschläge</strong> von <strong>autoritativem Spielstand</strong> unterscheiden.{% endblock %}
 {% block body %}
-<section>
-  <h2>Where AI code lives</h2>
-  <p>Rich AI orchestration (e.g. <code>StoryAIAdapter</code>, <code>ai_turn_executor</code>, <code>supervisor_orchestrator</code>, tool loops) lives under <code>app.runtime</code>. These components operate on <strong>in-process</strong> <code>SessionState</code> for tests, tooling, and the non-authoritative <code>/api/v1/sessions</code> bridge — not as a second live engine.</p>
+<section class="info-section">
+  <h2>Kernfunktionalität</h2>
+  <p>Schwere AI-Orchestrierung (Adapter, Tool-Loops, Supervisor) lebt unter <code>app.runtime</code> und dient Tests, Operator-Tools und der <strong>Sessions-Brücke</strong> unter <code>/api/v1/sessions</code>. Separat gibt es <strong>Writers-Room</strong>- und <strong>Improvement</strong>-HTTP-APIs sowie <strong>AI-Stack-Governance</strong> für Inspector und Evidence — jeweils mit klarer Policy in der Anwendungsschicht.</p>
 </section>
-<section>
-  <h2>Proposal vs authority</h2>
-  <p>AI layers produce <strong>proposals</strong> (structured decisions, narration drafts) that must pass validation / policy in code. For <strong>live</strong> play, the world-engine is the component that owns committed runtime state and websocket delivery; the backend must not be mistaken for that authority.</p>
-</section>
-<section>
-  <h2>Automation webhooks (n8n)</h2>
-  <p>Optional <code>N8N_WEBHOOK_URL</code> / <code>N8N_WEBHOOK_SECRET</code> support signed outbound hooks (e.g. wiki translation triggers in <code>app.n8n_trigger</code>). <code>N8N_SERVICE_TOKEN</code> can gate inbound-style automation to selected admin endpoints. This is operational integration, not game runtime.</p>
-</section>
-<section>
-  <h2>Boundary summary</h2>
+<section class="info-section">
+  <h2>Für wen / Nutzungsszenarien</h2>
   <ul>
-    <li><strong>Backend</strong> — business rules, persistence, ticket issuance, HTTP to play service.</li>
-    <li><strong>World-engine</strong> — authoritative run execution and live player connection semantics.</li>
-    <li><strong>In-process AI path</strong> — shared libraries and simulation/testing; labeled non-authoritative in architecture docs.</li>
+    <li><strong>Content- &amp; AI-Teams</strong> — Writers-Room-Reviews, Improvement-Experimente über die dokumentierten Endpunkte.</li>
+    <li><strong>Plattform-Engineering</strong> — Governance- und Inspector-Routen für Diagnose und Release-Readiness.</li>
+    <li><strong>Tooling / MCP</strong> — Sessions-API als kontrollierte Brücke; nicht mit produktivem Engine-State verwechseln.</li>
   </ul>
+</section>
+<section class="info-section">
+  <h2>Möglich / nicht möglich</h2>
+  <ul>
+    <li><strong>Möglich:</strong> HTTP-Zugriff auf <code>WritersRoom</code>, <code>Improvement</code>, <code>AIStackGovernance</code>, <code>SessionsBridge</code> wie in <a href="{{ url_for('info.openapi_spec') }}">OpenAPI</a>; narrative Feinheiten in {{ docs_deep_link("REFERENCE.md", "/api/REFERENCE/") }}.</li>
+    <li><strong>Nicht möglich:</strong> Das Backend als <strong>einzige Quelle</strong> für committed Live-Narration im laufenden Spiel ersetzen — dafür ist der <strong>world-engine</strong> zuständig, sobald Tickets/WebSockets im Spiel sind.</li>
+    <li><strong>Automation:</strong> Optionale n8n-Webhooks und Service-Tokens sind Betriebs-Integration, kein Ersatz für Engine-Regeln.</li>
+  </ul>
+</section>
+<section class="info-section">
+  <h2>Direkt zu Details</h2>
+  <ul>
+    <li>{{ docs_deep_link("Dev — AI stack &amp; GoC seams", "/dev/architecture/ai-stack-rag-langgraph-and-goc-seams/") }}</li>
+    <li><a href="{{ url_for('info.api_explorer') }}#tag/WritersRoom">OpenAPI — WritersRoom</a> · <a href="{{ url_for('info.api_explorer') }}#tag/Improvement">Improvement</a> · <a href="{{ url_for('info.api_explorer') }}#tag/AIStackGovernance">AIStackGovernance</a> · <a href="{{ url_for('info.api_explorer') }}#tag/SessionsBridge">SessionsBridge</a></li>
+  </ul>
+</section>
+<section class="info-section">
+  <h2>Grenzen (Merksatz)</h2>
+  <p><strong>Backend</strong> — Geschäftsregeln, Persistenz, Ticket-Ausgabe, HTTP zum Play-Service.<br>
+  <strong>World-engine</strong> — autoritative Ausführung und Live-Player-Semantik.<br>
+  <strong>In-Prozess-AI</strong> — geteilte Bibliotheken für Simulation, Tests und dokumentierte Brücken — explizit nicht als zweite Live-Engine missverstehen.</p>
 </section>
 {% endblock %}

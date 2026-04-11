@@ -7,7 +7,7 @@
             <p class="manage-eyebrow">Operations</p>
             <h1>Play-Service control</h1>
             <p class="manage-lead">Diagnosis shows <strong>observed</strong> health; this page edits <strong>desired</strong> posture and applies it in-process only (no shell, Docker CLI, or systemd). Secrets stay in the environment; only presence is shown.</p>
-            <p class="muted"><a href="{{ url_for('manage_diagnosis') }}">Open system diagnosis</a> for aggregated checks.</p>
+            <p class="muted"><a href="{{ url_for('manage_diagnosis') }}">Open system diagnosis</a> for aggregated checks. <a href="{{ url_for('manage_world_engine_console') }}">World Engine console</a> for runs and story sessions.</p>
         </div>
         <div class="manage-actions-row">
             <button type="button" class="btn" id="manage-psc-refresh">Refresh observed</button>

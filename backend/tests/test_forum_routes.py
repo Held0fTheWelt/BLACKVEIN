@@ -1258,23 +1258,23 @@ def test_forum_search_invalid_status_returns_400(client):
 
 
 def test_require_user_returns_401_without_user(app, monkeypatch):
-    from app.api.v1 import forum_routes as fr
+    from app.api.v1 import forum_routes_helpers as frh
 
-    monkeypatch.setattr(fr, "get_current_user", lambda: None)
+    monkeypatch.setattr(frh, "get_current_user", lambda: None)
     with app.test_request_context():
-        user, resp = fr._require_user()
+        user, resp = frh._require_user()
     assert user is None
     assert resp[1] == 401
 
 
 def test_require_user_returns_403_when_banned(app, monkeypatch):
-    from app.api.v1 import forum_routes as fr
+    from app.api.v1 import forum_routes_helpers as frh
 
     banned = User()
     banned.is_banned = True
-    monkeypatch.setattr(fr, "get_current_user", lambda: banned)
+    monkeypatch.setattr(frh, "get_current_user", lambda: banned)
     with app.test_request_context():
-        user, resp = fr._require_user()
+        user, resp = frh._require_user()
     assert user is None
     assert resp[1] == 403
 

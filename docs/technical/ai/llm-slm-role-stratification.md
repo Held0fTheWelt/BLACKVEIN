@@ -133,6 +133,28 @@ Some Python modules still use **internal delivery-era filenames** (`area2_*`, `i
 
 ---
 
+## Area 2 gate traceability (executable doc contracts)
+
+The following identifiers are listed **explicitly** so `backend/tests/runtime/` doc-contract tests stay aligned with archived gate tables and [`area2_validation_commands.py`](../../backend/app/runtime/area2_validation_commands.py). They do not change routing policy.
+
+**Convergence (routing/registry operational truth):** G-CONV-01, G-CONV-02, G-CONV-03, G-CONV-04, G-CONV-05, G-CONV-06, G-CONV-07, G-CONV-08 — tables [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.md), [`area2_evolution_closure_report.md`](../../archive/architecture-legacy/area2_evolution_closure_report.md). **Authority map (code):** `area2_routing_authority` in [`backend/app/runtime/area2_routing_authority.py`](../../backend/app/runtime/area2_routing_authority.py).
+
+**Practical convergence (Workstream A):** G-A-01, G-A-02, G-A-03, G-A-04, G-A-05, G-A-06, G-A-07 — [`area2_workstream_a_gates.md`](../../archive/architecture-legacy/area2_workstream_a_gates.md), [`area2_practical_convergence_closure_report.md`](../../archive/architecture-legacy/area2_practical_convergence_closure_report.md).
+
+**Reproducibility (Workstream B):** G-B-01, G-B-02, G-B-03, G-B-04, G-B-05, G-B-06, G-B-07 — [`area2_workstream_b_gates.md`](../../archive/architecture-legacy/area2_workstream_b_gates.md), [`area2_reproducibility_closure_report.md`](../../archive/architecture-legacy/area2_reproducibility_closure_report.md). **Command tuples:** `area2_validation_commands` (`AREA2_DUAL_CLOSURE_PYTEST_MODULES`, `area2_dual_closure_pytest_invocation`).
+
+**Task 2 registry/routing closure:** G-T2-01, G-T2-02, G-T2-03, G-T2-04, G-T2-05, G-T2-06, G-T2-07, G-T2-08 — [`area2_task2_closure_gates.md`](../../archive/architecture-legacy/area2_task2_closure_gates.md), [`area2_registry_routing_convergence_closure_report.md`](../../archive/architecture-legacy/area2_registry_routing_convergence_closure_report.md), [`area2_convergence_gates.md`](../../archive/architecture-legacy/area2_convergence_gates.md), [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md).
+
+**Task 3 operator comparison:** G-T3-01, G-T3-02, G-T3-03, G-T3-04, G-T3-05, G-T3-06, G-T3-07, G-T3-08 — `compact_operator_comparison` grammar version **`area2_operator_comparison_v1`**; tables [`area2_task3_closure_gates.md`](../../archive/architecture-legacy/area2_task3_closure_gates.md), [`area2_operator_comparison_closure_report.md`](../../archive/architecture-legacy/area2_operator_comparison_closure_report.md).
+
+**Task 4 validation hardening:** G-T4-01, G-T4-02, G-T4-03, G-T4-04, G-T4-05, G-T4-06, G-T4-07, G-T4-08 — [`area2_task4_closure_gates.md`](../../archive/architecture-legacy/area2_task4_closure_gates.md), [`area2_validation_hardening_closure_report.md`](../../archive/architecture-legacy/area2_validation_hardening_closure_report.md). **Setup:** [`docs/testing-setup.md`](../../testing-setup.md) (Task 4 section embeds `area2_task4_full_closure_pytest_invocation()` from `area2_validation_commands`).
+
+**Final operational closure:** G-FINAL-01, G-FINAL-02, G-FINAL-03, G-FINAL-04, G-FINAL-05, G-FINAL-06, G-FINAL-07, G-FINAL-08 — [`area2_final_closure_gates.md`](../../archive/architecture-legacy/area2_final_closure_gates.md), [`area2_final_operational_closure_report.md`](../../archive/architecture-legacy/area2_final_operational_closure_report.md).
+
+**Dual workstream rollup:** G-A-01 … G-A-07 and G-B-01 … G-B-07 cross-reference — [`area2_dual_workstream_closure_report.md`](../../archive/architecture-legacy/area2_dual_workstream_closure_report.md).
+
+---
+
 ## Related
 
 - [LangGraph.md](../integration/LangGraph.md) — world-engine turn graph routing (separate call path).

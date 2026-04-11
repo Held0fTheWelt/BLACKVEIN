@@ -1,0 +1,93 @@
+{% extends "manage/base.html" %}
+{% block title %}World Engine console{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="world-engine-console">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Operations</p>
+            <h1>World Engine console</h1>
+            <p class="manage-lead">Diagnose-first view over the play service: readiness, template runs, and story sessions (proxied via backend JWT — no engine API key in the browser).</p>
+            <p class="muted">
+                <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> (desired URL / apply) ·
+                <a href="{{ url_for('manage_diagnosis') }}">System diagnosis</a> ·
+                <a href="{{ url_for('manage_game_operations') }}">Game operations</a>
+            </p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="wec-refresh">Refresh</button>
+            <label class="form-label" style="display:inline-flex;align-items:center;gap:0.35rem;margin:0;">
+                <input type="checkbox" id="wec-poll" />
+                Poll every 5s
+            </label>
+        </div>
+    </div>
+
+    <p id="wec-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+
+    <div class="manage-psc-grid">
+        <section class="panel manage-psc-panel">
+            <header class="panel-header"><h2>Readiness</h2></header>
+            <pre id="wec-ready" class="manage-psc-json muted" aria-label="Ready JSON"></pre>
+        </section>
+        <section class="panel manage-psc-panel">
+            <header class="panel-header"><h2>Capabilities</h2></header>
+            <p class="muted" id="wec-caps">—</p>
+        </section>
+    </div>
+
+    <div class="manage-grid two-col" style="margin-top:1rem;">
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Template runs</h2>
+                <p class="muted">From <code>GET /api/runs</code> on the engine.</p>
+            </header>
+            <div id="wec-runs" class="stacked-list" role="list"></div>
+        </section>
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Story sessions</h2>
+                <p class="muted">From <code>GET /api/story/sessions</code> (internal).</p>
+            </header>
+            <div id="wec-sessions" class="stacked-list" role="list"></div>
+        </section>
+    </div>
+
+    <div class="manage-grid two-col" style="margin-top:1rem;">
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Run detail</h2>
+            </header>
+            <pre id="wec-run-detail" class="code-block" aria-label="Run detail JSON">Select a run.</pre>
+            <div class="manage-actions-row" id="wec-run-actions" style="display:none;">
+                <button type="button" class="btn btn-danger" id="wec-terminate-run">Terminate run</button>
+            </div>
+        </section>
+        <section class="panel">
+            <header class="panel-header">
+                <h2>Story session</h2>
+            </header>
+            <pre id="wec-story-state" class="code-block" aria-label="Story state JSON">Select a story session.</pre>
+            <pre id="wec-story-diag" class="code-block muted" style="max-height:12rem;overflow:auto;" aria-label="Diagnostics excerpt"></pre>
+            <form id="wec-turn-form" style="display:none;margin-top:0.75rem;">
+                <label class="form-label">Turn input (author)
+                    <textarea id="wec-turn-input" class="form-input" rows="2" required></textarea>
+                </label>
+                <button type="submit" class="btn btn-primary">Execute turn</button>
+            </form>
+            <form id="wec-create-session-form" style="display:none;margin-top:0.75rem;">
+                <p class="muted">Create session (author)</p>
+                <label class="form-label">module_id
+                    <input type="text" id="wec-new-module" class="form-input" value="god_of_carnage" />
+                </label>
+                <label class="form-label">start_scene_id
+                    <input type="text" id="wec-new-scene" class="form-input" value="scene_1" />
+                </label>
+                <button type="submit" class="btn">Create story session</button>
+            </form>
+        </section>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_world_engine_console.js') }}"></script>
+{% endblock %}

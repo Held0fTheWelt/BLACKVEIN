@@ -179,14 +179,36 @@ def _serialize_template_catalog(templates: list[dict[str, Any]]) -> list[dict[st
     return grouped
 
 
+def _builtin_play_template_dicts() -> list[dict[str, Any]]:
+    """Fallback catalog for the play launcher when the world-engine list is empty or play is not configured."""
+    from app.content.builtins import load_builtin_templates
+
+    out: list[dict[str, Any]] = []
+    for tmpl in load_builtin_templates().values():
+        d = tmpl.model_dump(mode="json")
+        out.append({"id": d["id"], "title": d["title"], "kind": d["kind"]})
+    return out
+
+
 @api_v1_bp.route("/game/bootstrap", methods=["GET"])
 @limiter.limit("60 per minute")
 def game_bootstrap():
     try:
         user = _require_game_user()
         play_service = _play_service_bootstrap()
-        templates = list_play_templates() if play_service["configured"] else []
-        runs = list_play_runs() if play_service["configured"] else []
+        templates: list[dict[str, Any]] = []
+        runs: list[dict[str, Any]] = []
+        if play_service["configured"]:
+            try:
+                templates = list_play_templates()
+            except GameServiceError:
+                templates = []
+            try:
+                runs = list_play_runs()
+            except GameServiceError:
+                runs = []
+        if not templates:
+            templates = _builtin_play_template_dicts()
         characters = [character.to_dict() for character in list_characters_for_user(user.id)]
         save_slots = [slot.to_dict() for slot in list_save_slots_for_user(user.id)]
         return jsonify(
@@ -212,7 +234,13 @@ def game_bootstrap():
 def game_templates():
     try:
         _require_game_user()
-        return jsonify({"templates": _serialize_template_catalog(list_play_templates())})
+        try:
+            raw = list_play_templates()
+        except GameServiceError:
+            raw = []
+        if not raw:
+            raw = _builtin_play_template_dicts()
+        return jsonify({"templates": _serialize_template_catalog(raw)})
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
 

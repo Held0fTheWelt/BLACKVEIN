@@ -9,6 +9,16 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 - **How the system works (plain language):** [`docs/start-here/how-world-of-shadows-works.md`](start-here/how-world-of-shadows-works.md)
 - **Glossary (short):** [`docs/start-here/glossary.md`](start-here/glossary.md) — full definitions: [`docs/reference/glossary.md`](reference/glossary.md)
 - **Doc registry (owners, cadence):** [`docs/reference/documentation-registry.md`](reference/documentation-registry.md)
+- **Execution governance state hub:** [`docs/state/README.md`](state/README.md)
+
+## Easy reading (longer plain language)
+
+- **Index:** [`docs/easy/README.md`](easy/README.md)
+- **Whole-system explainer:** [`docs/easy/what_world_of_shadows_is_and_why_it_works_this_way.md`](easy/what_world_of_shadows_is_and_why_it_works_this_way.md)
+- **Product identity (market vs runtime asset, USPs):** [`docs/easy/world_of_shadows_product_identity_and_usp_easy.md`](easy/world_of_shadows_product_identity_and_usp_easy.md)
+- **AI stack (easy):** [`docs/easy/ai_stack_system_explainer_easy.md`](easy/ai_stack_system_explainer_easy.md)
+- **World Engine runbook (easy):** [`docs/easy/world_engine_runbook_easy.md`](easy/world_engine_runbook_easy.md)
+- **Getting started (easy):** [`docs/easy/getting_started_with_world_of_shadows.md`](easy/getting_started_with_world_of_shadows.md)
 
 ## By role
 

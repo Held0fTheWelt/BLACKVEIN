@@ -4,21 +4,25 @@ Maps ``session_id`` → in-process ``SessionState`` for operator/MCP routes and 
 **Not** authoritative for live play (World Engine owns runs). **Not** a durable or
 global registry — data is lost on restart. Rationale: bridge until engine-only
 execution and persistence subsume these endpoints.
+
+**Threading/async:** The registry is a plain dict on a process-local singleton; no
+locks. Only use from the same event loop / request worker as other Flask/async
+session routes; not safe for concurrent mutation across threads without external
+synchronization.
+
+All session entries are accessed through ``RuntimeSessionRegistry``; do not bypass
+the registry with a raw module-level dict.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from types import MappingProxyType
 
-if TYPE_CHECKING:
-    from app.content.module_models import ContentModule
-    from app.runtime.runtime_models import SessionState
-
-
-# Module-level in-memory registry
-_runtime_sessions: dict[str, RuntimeSession] = {}
+from app.content.module_models import ContentModule
+from app.runtime.runtime_models import SessionState
 
 
 @dataclass
@@ -40,6 +44,47 @@ class RuntimeSession:
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class RuntimeSessionRegistry:
+    """Process-local in-memory store for :class:`RuntimeSession` records."""
+
+    __slots__ = ("_sessions",)
+
+    def __init__(self) -> None:
+        self._sessions: dict[str, RuntimeSession] = {}
+
+    def get(self, session_id: str) -> RuntimeSession | None:
+        return self._sessions.get(session_id)
+
+    def put(self, session_id: str, session: RuntimeSession) -> None:
+        """Register ``session`` under ``session_id``. Raises if ``session_id`` already exists."""
+        if session_id in self._sessions:
+            raise ValueError(f"Session '{session_id}' is already registered")
+        self._sessions[session_id] = session
+
+    def delete(self, session_id: str) -> bool:
+        if session_id in self._sessions:
+            del self._sessions[session_id]
+            return True
+        return False
+
+    def snapshot_readonly(self) -> Mapping[str, RuntimeSession]:
+        """Shallow copy of id → session as a read-only mapping (keys fixed at call time)."""
+        return MappingProxyType(dict(self._sessions))
+
+    def clear(self) -> None:
+        """Drop all entries (primarily for tests)."""
+        self._sessions = {}
+
+
+# Process-local singleton used by facade functions below.
+_runtime_registry = RuntimeSessionRegistry()
+
+
+def get_runtime_session_registry() -> RuntimeSessionRegistry:
+    """Return the process-local session registry (for diagnostics or advanced callers)."""
+    return _runtime_registry
+
+
 def create_session(session_id: str, initial_state: SessionState, module: ContentModule) -> RuntimeSession:
     """Create and register a new runtime session.
 
@@ -51,16 +96,13 @@ def create_session(session_id: str, initial_state: SessionState, module: Content
     Returns:
         RuntimeSession registered in the in-memory store
     """
-    if session_id in _runtime_sessions:
-        raise ValueError(f"Session '{session_id}' is already registered")
-
     runtime_session = RuntimeSession(
         session_id=session_id,
         current_runtime_state=initial_state,
         module=module,
         turn_counter=0,
     )
-    _runtime_sessions[session_id] = runtime_session
+    _runtime_registry.put(session_id, runtime_session)
     return runtime_session
 
 
@@ -73,7 +115,7 @@ def get_session(session_id: str) -> RuntimeSession | None:
     Returns:
         RuntimeSession if found, None otherwise
     """
-    return _runtime_sessions.get(session_id)
+    return _runtime_registry.get(session_id)
 
 
 def update_session(session_id: str, updated_state: SessionState) -> RuntimeSession | None:
@@ -88,7 +130,7 @@ def update_session(session_id: str, updated_state: SessionState) -> RuntimeSessi
     Returns:
         Updated RuntimeSession if found, None otherwise
     """
-    session = _runtime_sessions.get(session_id)
+    session = _runtime_registry.get(session_id)
     if not session:
         return None
 
@@ -106,13 +148,9 @@ def delete_session(session_id: str) -> bool:
     Returns:
         True if session was deleted, False if not found
     """
-    if session_id in _runtime_sessions:
-        del _runtime_sessions[session_id]
-        return True
-    return False
+    return _runtime_registry.delete(session_id)
 
 
 def clear_registry() -> None:
     """Clear all sessions from the registry. Used for testing."""
-    global _runtime_sessions
-    _runtime_sessions = {}
+    _runtime_registry.clear()

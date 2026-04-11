@@ -7,12 +7,6 @@ from typing import Any, Optional
 
 from .errors import (
     JsonRpcError,
-    TOOL_NOT_FOUND,
-    RATE_LIMITED,
-    PERMISSION_DENIED,
-    INVALID_PARAMS,
-    METHOD_NOT_FOUND,
-    INTERNAL_ERROR,
     ToolNotFoundError,
     RateLimitedError,
     PermissionDeniedError,
@@ -38,6 +32,8 @@ from .logging_utils import (
     log_tool_call,
 )
 from .rate_limiter import RateLimiter
+from .rpc_error_response import exception_to_jsonrpc_response
+from .rpc_method_router import route_mcp_method
 from .resource_prompt_support import (
     McpResourceReader,
     get_prompt_messages,
@@ -170,72 +166,21 @@ class McpServer:
         log_request(trace_id, method, params)
 
         try:
-            # Check rate limit
             if not self.rate_limiter.is_allowed(trace_id):
                 raise RateLimitedError("Rate limit exceeded (30 calls/min)")
-
-            # Dispatch
-            if method == "initialize":
-                result = self.handle_initialize(params)
-            elif method == "tools/list":
-                result = self.handle_tools_list(params)
-            elif method == "tools/call":
-                result = self.handle_tools_call(params, trace_id)
-            elif method == "resources/list":
-                result = self.handle_resources_list(params)
-            elif method == "resources/read":
-                result = self.handle_resources_read(params, trace_id)
-            elif method == "prompts/list":
-                result = self.handle_prompts_list(params)
-            elif method == "prompts/get":
-                result = self.handle_prompts_get(params)
-            else:
-                raise ValueError(f"Unknown method: {method}")
-
+            result = route_mcp_method(self, method, params, trace_id)
             duration_ms = (time.time() - start) * 1000
             log_response(trace_id, method, "success", duration_ms)
-
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": result,
-            }
-
-        except ToolNotFoundError as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "TOOL_NOT_FOUND")
-            error = JsonRpcError(TOOL_NOT_FOUND, str(e), {"tool_name": str(params.get("name"))})
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
-
-        except RateLimitedError as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "RATE_LIMITED")
-            error = JsonRpcError(RATE_LIMITED, str(e))
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
-
-        except PermissionDeniedError as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "PERMISSION_DENIED")
-            error = JsonRpcError(PERMISSION_DENIED, str(e))
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
-
-        except InvalidInputError as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "INVALID_INPUT")
-            error = JsonRpcError(INVALID_PARAMS, str(e))
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
-
-        except ValueError as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "METHOD_NOT_FOUND")
-            error = JsonRpcError(METHOD_NOT_FOUND, str(e))
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
-
+            return {"jsonrpc": "2.0", "id": request_id, "result": result}
         except Exception as e:
-            duration_ms = (time.time() - start) * 1000
-            log_response(trace_id, method, "error", duration_ms, "INTERNAL_ERROR")
-            error = JsonRpcError(INTERNAL_ERROR, f"Internal error: {str(e)}")
-            return {"jsonrpc": "2.0", "id": request_id, "error": error.to_dict()}
+            return exception_to_jsonrpc_response(
+                e,
+                request_id=request_id,
+                method=method,
+                trace_id=trace_id,
+                start=start,
+                params=params,
+            )
         finally:
             batch = end_telemetry_capture(_cap_tok)
             flush_telemetry_to_backend(batch)

@@ -38,3 +38,9 @@ Ensure that free natural player input is executed as a real runtime turn, not qu
 
 - Backend session binding currently uses the chosen run template id as the module identifier for backend session creation.
 - This keeps runtime execution real and authoritative, but cross-service run metadata normalization can still be improved in later milestones.
+
+## Play shell UX (frontend)
+
+- **Play** tab: chronological transcript from successful turns (Flask session, capped) and the primary **Execute runtime turn** composer. XHR + `Accept: application/json` updates the transcript without a full page reload.
+- **Operator** tab: last truncated turn bridge payload, copy helpers, optional **Refresh** via `GET /api/v1/sessions/<id>/play-operator-bundle` (JWT; session must have been created with the same JWT so `play_shell_owner_user_id` is set).
+- **Live room** WebSocket remains a separate world-engine runtime-manager path; see `docs/dev/play_shell_ux.md`.

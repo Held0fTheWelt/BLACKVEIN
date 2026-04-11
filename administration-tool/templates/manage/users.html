@@ -1,9 +1,14 @@
 {% extends "manage/base.html" %}
 {% block title %}Users{% endblock %}
 {% block content %}
-<div class="manage-users">
-    <h1 class="page-header">User administration</h1>
-    <p class="muted">Admin only. Passwords are not shown or editable here.</p>
+<section class="manage-users manage-section">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Access Management</p>
+            <h1 class="page-header">User administration</h1>
+            <p class="manage-lead">Admin only. Passwords are not shown or editable here.</p>
+        </div>
+    </div>
     <div class="manage-split">
         <div class="manage-panel manage-users-list-panel">
             <h2>Users</h2>
@@ -106,7 +111,7 @@
             </form>
         </div>
     </div>
-</div>
+</section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_users.js') }}"></script>

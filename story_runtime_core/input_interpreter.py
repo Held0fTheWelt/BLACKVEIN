@@ -74,11 +74,9 @@ def _delivery_for_nl(
     return RuntimeDeliveryHint.EMOTE
 
 
-def interpret_player_input(raw_text: str) -> PlayerInputInterpretation:
-    text = (raw_text or "").strip()
-    lowered = text.lower()
-    tokens = _tokens(lowered)
-
+def _interpret_player_empty_or_noise(
+    raw_text: str, text: str, tokens: list[str]
+) -> PlayerInputInterpretation | None:
     if not text:
         return PlayerInputInterpretation(
             raw_text=raw_text,
@@ -101,7 +99,10 @@ def interpret_player_input(raw_text: str) -> PlayerInputInterpretation:
             selected_handling_path="nl_runtime",
             runtime_delivery_hint=RuntimeDeliveryHint.NARRATIVE_BODY,
         )
+    return None
 
+
+def _interpret_meta_or_command(raw_text: str, text: str, lowered: str) -> PlayerInputInterpretation | None:
     if lowered.startswith(META_PREFIXES):
         return PlayerInputInterpretation(
             raw_text=raw_text,
@@ -112,7 +113,6 @@ def interpret_player_input(raw_text: str) -> PlayerInputInterpretation:
             selected_handling_path="meta",
             runtime_delivery_hint=None,
         )
-
     if text.startswith(COMMAND_PREFIXES):
         parts = text[1:].split()
         command = parts[0].lower() if parts else ""
@@ -128,62 +128,64 @@ def interpret_player_input(raw_text: str) -> PlayerInputInterpretation:
             selected_handling_path="command",
             runtime_delivery_hint=None,
         )
+    return None
 
+
+def _classify_nl_kind_intent_ambiguity(
+    tokens: list[str], lowered: str
+) -> tuple[InterpretedInputKind, float, str | None, str | None]:
     has_action = _has_action_signal(tokens)
     has_speech = _has_speech_signal(lowered)
     has_reaction = _has_reaction_signal(tokens)
     has_withhold = _has_withhold_signal(lowered)
 
-    # Order: withhold/silence beats generic ambiguity when the text clearly describes non-dialogue play.
     if has_withhold and not has_speech:
-        kind = InterpretedInputKind.INTENT_ONLY
-        confidence = 0.71
-        intent = "withheld_response_or_silence"
-        ambiguity = None
-    elif has_action and has_reaction and not has_speech:
-        # e.g. "go there huh" — action and interjection without quoted speech; do not pretend clean "action" only.
-        kind = InterpretedInputKind.MIXED
-        confidence = 0.54
-        intent = "action_with_reaction"
-        ambiguity = "conflicting_action_reaction"
-    elif has_action and has_speech:
-        kind = InterpretedInputKind.MIXED
-        confidence = 0.82
-        intent = "speak_and_act"
-        ambiguity = None
-    elif has_action:
-        kind = InterpretedInputKind.ACTION
-        confidence = 0.78
-        intent = "player_action"
-        ambiguity = None
-    elif has_reaction:
-        kind = InterpretedInputKind.REACTION
-        confidence = 0.74
-        intent = "player_reaction"
-        ambiguity = None
-    elif has_speech:
-        kind = InterpretedInputKind.SPEECH
-        confidence = 0.76
-        intent = "dialogue"
-        ambiguity = None
-    elif len(tokens) <= 2:
-        kind = InterpretedInputKind.INTENT_ONLY
-        confidence = 0.62
-        intent = "high_level_intent"
-        ambiguity = None
-    else:
-        kind = InterpretedInputKind.AMBIGUOUS
-        confidence = 0.45
-        intent = "uncertain"
-        ambiguity = "unable_to_classify_with_high_confidence"
+        return InterpretedInputKind.INTENT_ONLY, 0.71, "withheld_response_or_silence", None
+    if has_action and has_reaction and not has_speech:
+        return (
+            InterpretedInputKind.MIXED,
+            0.54,
+            "action_with_reaction",
+            "conflicting_action_reaction",
+        )
+    if has_action and has_speech:
+        return InterpretedInputKind.MIXED, 0.82, "speak_and_act", None
+    if has_action:
+        return InterpretedInputKind.ACTION, 0.78, "player_action", None
+    if has_reaction:
+        return InterpretedInputKind.REACTION, 0.74, "player_reaction", None
+    if has_speech:
+        return InterpretedInputKind.SPEECH, 0.76, "dialogue", None
+    if len(tokens) <= 2:
+        return InterpretedInputKind.INTENT_ONLY, 0.62, "high_level_intent", None
+    return (
+        InterpretedInputKind.AMBIGUOUS,
+        0.45,
+        "uncertain",
+        "unable_to_classify_with_high_confidence",
+    )
 
+
+def interpret_player_input(raw_text: str) -> PlayerInputInterpretation:
+    text = (raw_text or "").strip()
+    lowered = text.lower()
+    tokens = _tokens(lowered)
+
+    early = _interpret_player_empty_or_noise(raw_text, text, tokens)
+    if early is not None:
+        return early
+
+    meta_cmd = _interpret_meta_or_command(raw_text, text, lowered)
+    if meta_cmd is not None:
+        return meta_cmd
+
+    kind, confidence, intent, ambiguity = _classify_nl_kind_intent_ambiguity(tokens, lowered)
     hint = _delivery_for_nl(
         kind=kind,
         confidence=confidence,
         ambiguity=ambiguity,
         lowered=lowered,
     )
-
     return PlayerInputInterpretation(
         raw_text=raw_text,
         normalized_text=text,

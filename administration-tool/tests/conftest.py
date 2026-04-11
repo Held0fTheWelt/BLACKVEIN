@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -44,6 +45,7 @@ def load_frontend_module(
         raise RuntimeError("Could not load administration-tool app module")
 
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
 
     # Fix the app's root_path to point to the administration-tool directory
@@ -80,7 +82,6 @@ def app_factory(monkeypatch):
     Allows tests to create apps with arbitrary test_config without
     module reloading. New tests should prefer this fixture.
     """
-    import sys
     import importlib.util
 
     # Load the app module fresh if not already loaded

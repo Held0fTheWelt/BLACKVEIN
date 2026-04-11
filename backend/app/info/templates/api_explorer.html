@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block wrap_modifiers %} wrap-wide{% endblock %}
+{% block title %}API Explorer{% endblock %}
+{% block heading %}API Explorer{% endblock %}
+{% block subheading %}Durchsuchbare OpenAPI-Ansicht aller <code>/api/v1</code>-Routen — Schemas und Tags; Beispiele und Feintuning in der Referenz.{% endblock %}
+{% block body %}
+<section>
+  <h2>Hinweise</h2>
+  <ul>
+    <li>Die Spec wird aus dem Repository unter <a href="{{ url_for('info.openapi_spec') }}"><code>/backend/openapi.yaml</code></a> ausgeliefert (Drift-geprüft gegen Flask).</li>
+    <li>Menschliche Request-/Response-Beispiele: {% if docs_site_url %}<a href="{{ docs_site_url }}/api/REFERENCE/">MkDocs — API-Referenz</a>{% else %}MkDocs-Build (<code>python -m mkdocs serve</code>) — setze <code>DOCS_SITE_URL</code> für klickbare Links.{% endif %}</li>
+    <li>World-Engine-HTTP (Play-Service) ist <strong>nicht</strong> in dieser Spec; siehe Referenz-Abschnitt World Engine.</li>
+  </ul>
+</section>
+<div id="redoc-container" class="redoc-wrap" data-spec-url="{{ url_for('info.openapi_spec') }}"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/redoc/2.1.3/bundles/redoc.standalone.min.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('info.static', filename='api_explorer_redoc.js') }}"></script>
+{% endblock %}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
@@ -96,6 +97,46 @@ class TestGameContentService:
             assert rows[0].template_id == "god_of_carnage_solo"
             assert "canonical_compilation" in (rows[0].payload_json or {})
             assert rows[0].content_lifecycle == CONTENT_LIFECYCLE_PUBLISHED
+
+    def test_seed_recovers_legacy_table_without_governance_columns(self, app):
+        with app.app_context():
+            db.session.execute(text("DROP TABLE IF EXISTS game_experience_templates"))
+            db.session.execute(
+                text(
+                    """
+                    CREATE TABLE game_experience_templates (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        template_id VARCHAR(120) NOT NULL UNIQUE,
+                        slug VARCHAR(140) NOT NULL UNIQUE,
+                        title VARCHAR(200) NOT NULL,
+                        kind VARCHAR(40) NOT NULL,
+                        summary TEXT,
+                        style_profile VARCHAR(80) NOT NULL DEFAULT 'retro_pulp',
+                        tags_json JSON NOT NULL,
+                        payload_json JSON NOT NULL,
+                        source VARCHAR(40) NOT NULL DEFAULT 'authored',
+                        version INTEGER NOT NULL DEFAULT 1,
+                        is_published BOOLEAN NOT NULL DEFAULT 0,
+                        published_at DATETIME,
+                        created_by_user_id INTEGER,
+                        updated_by_user_id INTEGER,
+                        created_at DATETIME NOT NULL,
+                        updated_at DATETIME NOT NULL
+                    )
+                    """
+                )
+            )
+            db.session.commit()
+
+            payloads = list_published_experience_payloads()
+            assert any(row.get("id") == "god_of_carnage_solo" for row in payloads)
+
+            cols = {
+                row[1]
+                for row in db.session.execute(text("PRAGMA table_info(game_experience_templates)")).all()
+            }
+            assert "content_lifecycle" in cols
+            assert "governance_provenance_json" in cols
 
     def test_create_update_publish_and_list_experience(self, app, authored_payload):
         with app.app_context():

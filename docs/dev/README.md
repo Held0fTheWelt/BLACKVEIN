@@ -19,9 +19,14 @@ Entry point for **contributors**: workflows, layout, and links into **technical*
 
 Authoritative architecture and integration detail: [`docs/technical/README.md`](../technical/README.md).
 
+## Code structure (de-spaghettification)
+
+- Task input list and coordination (German, **living** document — not part of the frozen 2026 doc archive): [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md)  
+  Anchors to [`docs/archive/documentation-consolidation-2026/`](../archive/documentation-consolidation-2026/) for **topic** consolidation; this file tracks **code** structure work items (`DS-*`) without editing those archive artifacts.
+
 ## Additional references
 
-- API hub: [`docs/api/`](../api/)
+- API hub: [`docs/api/`](../api/) — MkDocs **API** tab (search + `REFERENCE.md`, OpenAPI taxonomy, spec); live **API Explorer** at `/backend/api-explorer` when the backend runs
 - Testing policy: [`docs/testing/`](../testing/)
 - Slice contracts: [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md), [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md)
 - Glossary: [`docs/reference/glossary.md`](../reference/glossary.md) · ADRs: [`docs/governance/README.md`](../governance/README.md)

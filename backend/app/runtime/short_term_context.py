@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from app.runtime.turn_executor import TurnExecutionResult
+from app.runtime.turn_execution_types import TurnExecutionResult
 
 # Task 1C: bounded narrative fields derived from narrative_commit (JSON-safe).
 _MAX_CANONICAL_CONSEQUENCES = 24

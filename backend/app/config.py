@@ -108,6 +108,12 @@ class Config:
     # Optional: administration-tool base URL for operator links (e.g. backend /backend home page).
     ADMINISTRATION_TOOL_URL = os.environ.get("ADMINISTRATION_TOOL_URL", "").strip() or None
 
+    # Optional: built MkDocs site (or GitHub Pages) for clickable links from /backend/* info pages.
+    DOCS_SITE_URL = os.environ.get("DOCS_SITE_URL", "").strip().rstrip("/") or None
+
+    # Optional: absolute path to openapi.yaml (Docker / minimal images). If unset, resolved from app/info/routes.py.
+    OPENAPI_SPEC_PATH = os.environ.get("OPENAPI_SPEC_PATH", "").strip() or None
+
     # Supported languages: whitelisted codes only (ISO 639-1)
     SUPPORTED_LANGUAGES = ["en", "fr", "de", "es", "it", "pt", "ru", "zh", "ja", "ko"]
     DEFAULT_LANGUAGE = "de"

@@ -11,6 +11,7 @@ import unicodedata
 from typing import Any
 
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_semantic_priority_rules import resolve_goc_move_from_rules
 from ai_stack.semantic_move_contract import (
     SEMANTIC_MOVE_TYPES,
     InterpretationTraceItem,
@@ -197,126 +198,13 @@ def interpret_goc_semantic_move(
     }
     trace.append(InterpretationTraceItem(step_id="score_feature_vector", detail_code="features_computed"))
 
-    off_scope_keywords = (
-        "mars",
-        "spaceship",
-        "lighthouse",
-        "dragon",
-        "bitcoin",
-        "stock market",
-        "weather forecast",
-        "football match",
-        "tax return",
-        "election campaign",
-        "recipe blog",
+    move_type, family, direct, tactic, risk = resolve_goc_move_from_rules(
+        features=features,
+        combined=combined,
+        intent_s=intent_s,
+        interpreted_move=mv,
+        trace=trace,
     )
-    off_scope = any(k in combined for k in off_scope_keywords) and "carnage" not in combined
-
-    move_type: str
-    family: str
-    direct: str
-    tactic: str | None
-    risk: str
-
-    # Explicit priority stack (first matching rule wins after off_scope and silence-withdrawal).
-    if off_scope:
-        move_type = "off_scope_containment"
-        family = "neutral"
-        direct = "ambiguous"
-        tactic = "slice_boundary"
-        risk = "low"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:off_scope_containment"))
-    elif features["syn_pause"] or (features["syn_silence"] and not features["syn_repair"]):
-        move_type = "silence_withdrawal"
-        family = "withdraw"
-        direct = "ambiguous"
-        tactic = "withhold_response"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:silence_or_pause"))
-    elif features["syn_alliance"]:
-        move_type = "alliance_reposition"
-        family = "alliance"
-        direct = "direct" if features["question_end"] else "indirect"
-        tactic = "faction_shift"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:alliance_synset"))
-    elif features["syn_expose"]:
-        move_type = "humiliating_exposure"
-        family = "expose"
-        direct = "direct" if features["syn_accusation"] else "indirect"
-        tactic = "dignity_strike"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:exposure_synset"))
-    elif features["syn_repair"] and features["syn_reveal"]:
-        move_type = "competing_repair_and_reveal"
-        family = "repair"
-        direct = "ambiguous"
-        tactic = "repair_truth_compete"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:repair_reveal_compete"))
-    elif features["syn_repair"] and features["syn_probe"]:
-        move_type = "repair_attempt"
-        family = "repair"
-        direct = "ambiguous"
-        tactic = "repair_under_inquiry"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:repair_plus_probe"))
-    elif features["syn_repair"]:
-        move_type = "repair_attempt"
-        family = "repair"
-        direct = "direct"
-        tactic = "stabilize"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:repair_synset"))
-    elif features["syn_deflect"]:
-        move_type = "evasive_deflection"
-        family = "deflect"
-        direct = "indirect"
-        tactic = "avoid_accountability"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:deflect_synset"))
-    elif features["syn_accusation"]:
-        move_type = "direct_accusation"
-        family = "attack"
-        direct = "direct"
-        tactic = "blame_assignment"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:accusation_synset"))
-    elif features["syn_reveal"]:
-        move_type = "reveal_surface"
-        family = "reveal"
-        direct = "direct"
-        tactic = "truth_surface"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:reveal_synset"))
-    elif features["syn_escalate"]:
-        move_type = "escalation_threat"
-        family = "escalate"
-        direct = "direct"
-        tactic = "heat_increase"
-        risk = "high"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:escalate_synset"))
-    elif features["syn_probe"] or bool(features["question_end"]) or "question" in str(mv.get("move_class", "")).lower():
-        move_type = "probe_inquiry"
-        family = "probe"
-        direct = "indirect"
-        tactic = "motive_inquiry"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:probe_or_question_shape"))
-    elif "cynic" in intent_s or "provok" in combined:
-        move_type = "indirect_provocation"
-        family = "attack"
-        direct = "indirect"
-        tactic = "social_needle"
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:intent_provocation_cue"))
-    else:
-        move_type = "establish_situational_pressure"
-        family = "neutral"
-        direct = "ambiguous"
-        tactic = None
-        risk = "moderate"
-        trace.append(InterpretationTraceItem(step_id="apply_priority_rules", detail_code="rule:default_situational"))
 
     assert move_type in SEMANTIC_MOVE_TYPES, move_type
 

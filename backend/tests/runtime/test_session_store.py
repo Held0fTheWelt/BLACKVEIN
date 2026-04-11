@@ -10,7 +10,15 @@ Tests verify:
 
 import pytest
 from datetime import datetime, timezone
-from app.runtime.session_store import RuntimeSession, create_session, get_session, update_session, delete_session, clear_registry
+from app.runtime.session_store import (
+    RuntimeSession,
+    clear_registry,
+    create_session,
+    delete_session,
+    get_runtime_session_registry,
+    get_session,
+    update_session,
+)
 from app.runtime.runtime_models import SessionState, SessionStatus
 
 
@@ -197,3 +205,23 @@ class TestSessionStoreRegistry:
         create_session("sess_dup", session_state, MockModule())
         with pytest.raises(ValueError, match="already registered"):
             create_session("sess_dup", session_state, MockModule())
+
+    def test_snapshot_readonly_is_fixed_size_mapping(self):
+        """snapshot_readonly reflects entries at call time; registry.put still raises on duplicate."""
+        class MockModule:
+            module_id = "god_of_carnage"
+
+        session_state = SessionState(
+            session_id="snap_1",
+            module_id="god_of_carnage",
+            module_version="1.0.0",
+            current_scene_id="start",
+            status=SessionStatus.ACTIVE,
+        )
+        create_session("snap_1", session_state, MockModule())
+        reg = get_runtime_session_registry()
+        snap = reg.snapshot_readonly()
+        assert "snap_1" in snap
+        assert len(snap) == 1
+        with pytest.raises(TypeError):
+            snap["snap_1"] = snap["snap_1"]  # type: ignore[index]

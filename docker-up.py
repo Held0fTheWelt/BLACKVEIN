@@ -2,10 +2,24 @@
 """
 Run Docker Compose for this repository: bring the stack up with image rebuilds, stop, etc.
 
+This is the supported entry point if you prefer Python over typing ``docker compose``;
+it always uses the **repository root** as the Compose working directory (same as
+``docker compose -f docker-compose.yml`` from the repo root).
+
+**Before first ``up``:** copy ``.env.example`` → ``.env`` in the repo root and set at least
+``SECRET_KEY``. ``docker-compose.yml`` loads ``env_file: .env`` for the backend.
+
+**Typical URLs after ``python docker-up.py`` (or ``python docker-up.py up``):**
+  - Player frontend: http://localhost:5002
+  - Backend API:     http://localhost:8000
+  - Play service:    http://localhost:8001  (world-engine; browser / WebSocket base)
+
+The backend image includes ``content/modules``; compose sets ``WOS_CONTENT_MODULES_ROOT``
+and play-service INTERNAL vs PUBLIC URLs for container vs browser access.
+
 Default (no subcommand): ``docker compose up -d --build`` - images are built and containers
-are recreated/started (typical local rebuild workflow). Compose runs with the repository
-root as the working directory; build contexts in ``docker-compose.yml`` are repo-root
-(``backend/`` and ``world-engine`` Dockerfiles expect context ``.``).
+are recreated/started (typical local rebuild workflow). Build contexts in
+``docker-compose.yml`` are repo-root (backend and world-engine Dockerfiles expect ``.``).
 
 Subcommands:
   up, start   ``up -d``; by default with ``--build`` (same as running without COMMAND).
@@ -74,7 +88,26 @@ def _compose_prefix(args: argparse.Namespace) -> list[str]:
     return cmd
 
 
+def _warn_if_missing_dotenv(compose_args: list[str]) -> None:
+    """Compose references env_file: .env; warn early when starting or building the stack."""
+    if not compose_args:
+        return
+    head = compose_args[0]
+    if head not in ("up", "build"):
+        return
+    env_path = REPO_ROOT / ".env"
+    if env_path.is_file():
+        return
+    print(
+        "Warning: .env not found in repository root. Copy .env.example to .env and set "
+        "SECRET_KEY (required by backend). docker compose may still run but services can fail.\n"
+        f"  Expected: {env_path}",
+        file=sys.stderr,
+    )
+
+
 def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
+    _warn_if_missing_dotenv(compose_args)
     cmd = _compose_prefix(args) + compose_args
     if args.dry_run:
         print(" ".join(shlex_quote(a) for a in cmd))

@@ -190,47 +190,15 @@ def _resolve_action_id(phrase: str, available_actions: list[dict[str, Any]] | No
     return None
 
 
-def interpret_runtime_input(
-    text: str,
+def _collect_runtime_command_candidates(
+    normalized: str,
+    lowered: str,
+    plan: InterpretedCommandPlan,
     *,
-    available_actions: list[dict[str, Any]] | None = None,
-    visible_targets: list[str] | None = None,
-    reachable_rooms: list[dict[str, str]] | None = None,
-) -> InterpretedCommandPlan:
-    raw = text or ""
-    normalized = " ".join(raw.split())
-    lowered = normalized.lower()
-    tokens = _tokens_with_alpha(normalized)
-
-    plan = InterpretedCommandPlan(
-        raw_text=raw,
-        normalized_text=normalized,
-        primary_mode=InputPrimaryMode.unknown,
-        parser_version=PARSER_VERSION,
-    )
-
-    if not normalized.strip():
-        plan.primary_mode = InputPrimaryMode.silence
-        plan.confidence = 0.0
-        plan.rationale = "Empty input."
-        plan.ambiguity_markers.append("empty")
-        return plan
-
-    if _SILENCE_DOTS.match(normalized) or not tokens:
-        plan.primary_mode = InputPrimaryMode.silence
-        plan.confidence = 0.1
-        plan.rationale = "No lexical content or ellipsis-only silence."
-        plan.ambiguity_markers.append("silence_or_punctuation")
-        return plan
-
-    if _WITHHOLD.search(lowered) or _REACTION_BODY.search(lowered) or _REACTION_LEAD.match(normalized):
-        plan.reaction_cues.append("nonverbal_or_withhold")
-        plan.primary_mode = InputPrimaryMode.reaction
-
-    if '"' in normalized or _SPEECH_LEAD.match(normalized) or _TELL_ASK_LEAD.match(normalized):
-        plan.spoken_text_segments.append(extract_spoken_text_for_say(normalized))
-        plan.primary_mode = InputPrimaryMode.dialogue if plan.primary_mode == InputPrimaryMode.unknown else InputPrimaryMode.mixed
-
+    available_actions: list[dict[str, Any]] | None,
+    visible_targets: list[str] | None,
+    reachable_rooms: list[dict[str, str]] | None,
+) -> list[InterpretedCommandCandidate]:
     candidates: list[InterpretedCommandCandidate] = []
 
     if '"' in normalized:
@@ -309,7 +277,6 @@ def interpret_runtime_input(
         else:
             plan.ambiguity_markers.append("use_action_unresolved")
 
-    # Reaction / emote: physical narration without strong dialogue signal
     has_say_candidate = any(c.action == "say" for c in candidates)
     if (
         not has_say_candidate
@@ -331,6 +298,59 @@ def interpret_runtime_input(
                 reason="Reaction or nonverbal narration.",
             )
         )
+
+    return candidates
+
+
+def interpret_runtime_input(
+    text: str,
+    *,
+    available_actions: list[dict[str, Any]] | None = None,
+    visible_targets: list[str] | None = None,
+    reachable_rooms: list[dict[str, str]] | None = None,
+) -> InterpretedCommandPlan:
+    raw = text or ""
+    normalized = " ".join(raw.split())
+    lowered = normalized.lower()
+    tokens = _tokens_with_alpha(normalized)
+
+    plan = InterpretedCommandPlan(
+        raw_text=raw,
+        normalized_text=normalized,
+        primary_mode=InputPrimaryMode.unknown,
+        parser_version=PARSER_VERSION,
+    )
+
+    if not normalized.strip():
+        plan.primary_mode = InputPrimaryMode.silence
+        plan.confidence = 0.0
+        plan.rationale = "Empty input."
+        plan.ambiguity_markers.append("empty")
+        return plan
+
+    if _SILENCE_DOTS.match(normalized) or not tokens:
+        plan.primary_mode = InputPrimaryMode.silence
+        plan.confidence = 0.1
+        plan.rationale = "No lexical content or ellipsis-only silence."
+        plan.ambiguity_markers.append("silence_or_punctuation")
+        return plan
+
+    if _WITHHOLD.search(lowered) or _REACTION_BODY.search(lowered) or _REACTION_LEAD.match(normalized):
+        plan.reaction_cues.append("nonverbal_or_withhold")
+        plan.primary_mode = InputPrimaryMode.reaction
+
+    if '"' in normalized or _SPEECH_LEAD.match(normalized) or _TELL_ASK_LEAD.match(normalized):
+        plan.spoken_text_segments.append(extract_spoken_text_for_say(normalized))
+        plan.primary_mode = InputPrimaryMode.dialogue if plan.primary_mode == InputPrimaryMode.unknown else InputPrimaryMode.mixed
+
+    candidates = _collect_runtime_command_candidates(
+        normalized,
+        lowered,
+        plan,
+        available_actions=available_actions,
+        visible_targets=visible_targets,
+        reachable_rooms=reachable_rooms,
+    )
 
     # Short ambiguous utterance: do not add emote/say
     if len(tokens) <= 2 and len(normalized) < 16 and not candidates and '"' not in normalized:

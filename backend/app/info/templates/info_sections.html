@@ -1,0 +1,8 @@
+{# Reusable sections for /backend/* info pages (German copy, consistent structure). #}
+{% macro docs_deep_link(label, path_suffix) -%}
+  {% if docs_site_url %}
+    <a href="{{ docs_site_url }}{{ path_suffix }}">{{ label }}</a>
+  {% else %}
+    <span class="muted">{{ label }} (MkDocs: <code>python -m mkdocs serve</code> — setze <code>DOCS_SITE_URL</code> für direkte Links)</span>
+  {%- endif %}
+{%- endmacro %}

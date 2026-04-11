@@ -179,6 +179,7 @@ Configure `BACKEND_API_URL` or `BACKEND_BASE_URL` if the backend is not on `http
 - Owns API endpoints, authN/authZ, policy enforcement, persistence, and service integration
 - Exposes game/bootstrap/ticket APIs for frontend and play-service orchestration
 - Serves a small **technical HTML area** at `/backend/*` (architecture, API, ops — not player/admin UI); **`/` redirects to `/backend`**
+- Publishes **OpenAPI** at `/backend/openapi.yaml` (generated, drift-tested) and a **Redoc API Explorer** at `/backend/api-explorer`
 - Legacy `backend/app/web/*` paths (except `/` and `/health`) remain compatibility redirects to `FRONTEND_URL`, not canonical player UI hosting
 
 ### `world-engine/`

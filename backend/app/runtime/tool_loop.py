@@ -10,9 +10,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from app.content.module_models import ContentModule
 from app.runtime.decision_policy import AIActionType
 from app.runtime.preview_delta import preview_delta_dry_run
 from app.runtime.preview_models import PreviewDeltaRequest
+from app.runtime.runtime_models import SessionState
 
 
 class ToolCallStatus:
@@ -102,8 +104,8 @@ class ToolLoopSummary(BaseModel):
 class HostToolContext:
     """Bounded host context exposed to in-process tools."""
 
-    session: Any
-    module: Any
+    session: SessionState
+    module: ContentModule
     current_turn: int
     recent_events: list[dict[str, Any]]
 

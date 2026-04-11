@@ -38,3 +38,7 @@ backend/var/writers_room/
 /site/
 # Local documentation bundle (not source of truth)
 docs.zip
+/.state_tmp
+# Do not use blanket **/pre or **/post here: they hide `docs/state/artifacts/**/pre|post/`,
+# which are required evidence paths per docs/state/EXECUTION_GOVERNANCE.md.
+# Ephemeral MkDocs/session copies of those trees live under /.state_tmp (ignored above).
