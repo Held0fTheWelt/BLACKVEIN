@@ -18,21 +18,8 @@ from sqlalchemy.exc import SQLAlchemyError, InvalidRequestError
 from sqlalchemy.sql.schema import Column, Table
 
 from app.extensions import db
+from app.services.data_import_types import ImportIssue, ImportPreflightResult  # noqa: F401
 from app.services.data_import_preflight import run_preflight_validate_payload as _run_preflight_validate_payload_impl
-
-
-@dataclass
-class ImportIssue:
-    code: str
-    message: str
-    table: Optional[str] = None
-
-
-@dataclass
-class ImportPreflightResult:
-    ok: bool
-    issues: List[ImportIssue]
-    metadata: Dict[str, Any]
 
 
 class ImportError(Exception):

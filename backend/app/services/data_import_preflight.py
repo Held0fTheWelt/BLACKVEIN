@@ -159,7 +159,7 @@ def run_preflight_validate_payload(
     required_columns: Callable[[Table], List[Column]],
 ) -> Any:
     """Validate structure and compatibility of a payload without writing to DB (implementation)."""
-    from app.services.data_import_service import ImportIssue, ImportPreflightResult
+    from app.services.data_import_types import ImportIssue, ImportPreflightResult
 
     issues: List[Any] = []
 
