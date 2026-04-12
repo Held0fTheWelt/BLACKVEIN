@@ -12,3 +12,7 @@ def utc_now() -> datetime:
 def utc_now_iso() -> str:
     """Return current UTC datetime as ISO 8601 string."""
     return datetime.now(timezone.utc).isoformat()
+
+
+# Alias for callers using _utc_iso name
+_utc_iso = utc_now_iso

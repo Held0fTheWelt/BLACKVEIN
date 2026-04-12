@@ -10,20 +10,7 @@ from sqlalchemy import and_, func
 from app.extensions import db
 from app.models import ActivityLog, ForumPost, ForumReport, ForumThread
 from app.utils.time_utils import utc_now as _utc_now
-
-
-def _parse_date(date_str: Optional[str]) -> Optional[datetime]:
-    if not date_str or not date_str.strip():
-        return None
-    try:
-        dt = datetime.strptime(date_str.strip()[:10], "%Y-%m-%d")
-        return dt.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
-
-
-def _date_to_end_of_day(date_dt: datetime) -> datetime:
-    return (date_dt + timedelta(days=1)).replace(tzinfo=timezone.utc)
+from app.services._analytics_utils import _parse_date, _date_to_end_of_day
 
 
 def timeline_range_and_dates(

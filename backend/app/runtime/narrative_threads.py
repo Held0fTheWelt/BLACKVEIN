@@ -14,6 +14,7 @@ from app.runtime.relationship_context import RelationshipAxisContext
 from app.runtime.runtime_models import NarrativeCommitRecord, SessionState
 from app.runtime.session_history import SessionHistory
 from app.runtime.narrative_state_transfer_dto import NarrativeCommitEvent
+from app.runtime._string_utils import _cap_str
 
 # Re-export ThreadStatus type alias for backwards compatibility
 ThreadStatus = Literal["active", "holding", "escalating", "de_escalating", "resolved"]
@@ -51,15 +52,6 @@ _DE_ESCALATION_SEGMENTS = frozenset(
         "forgiveness",
     }
 )
-
-
-def _cap_str(s: str | None, max_len: int) -> str | None:
-    if s is None:
-        return None
-    t = str(s).strip()
-    if len(t) <= max_len:
-        return t
-    return t[: max_len - 1] + "…"
 
 
 def hydrate_narrative_threads_layer(session: SessionState) -> None:

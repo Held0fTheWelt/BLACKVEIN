@@ -9,21 +9,13 @@ import re
 from typing import Any, Callable
 
 from app.i18n import get_default_language, normalize_language
+from app.services.news_service import _normalize_slug
 
 TITLE_MAX_LENGTH = 255
 SLUG_MAX_LENGTH = 255
 SUMMARY_MAX_LENGTH = 500
 CATEGORY_MAX_LENGTH = 64
 COVER_IMAGE_MAX_LENGTH = 512
-
-
-def _normalize_slug(slug: str) -> str | None:
-    if not slug or not isinstance(slug, str):
-        return None
-    s = slug.strip().lower()
-    s = re.sub(r"[^a-z0-9\s-]", "", s)
-    s = re.sub(r"[-\s]+", "-", s).strip("-")
-    return s if s else None
 
 
 def normalize_news_slug(slug: str) -> str | None:

@@ -23,6 +23,7 @@ from app.services.improvement_service import (
     run_sandbox_experiment,
 )
 from app.config.route_constants import route_status_codes, route_pagination_config
+from app.utils.time_utils import _utc_iso
 
 # Imported for stable test patch path ``app.api.v1.improvement_routes.ImprovementStore`` (pipeline calls Store.default()).
 from ai_stack import (
@@ -59,10 +60,6 @@ def _get_improvement_rag_stack(repo_root: Path) -> tuple[Any, Any, Any]:
         )
         _improvement_rag_stack = (repo_root, retriever, assembler, capability_registry)
         return retriever, assembler, capability_registry
-
-
-def _utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _transcript_tool_evidence_for_improvement(

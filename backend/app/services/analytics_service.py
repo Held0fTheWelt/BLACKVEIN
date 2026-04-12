@@ -12,22 +12,7 @@ from app.models import (
 from app.services.analytics_service_content import build_analytics_content_payload
 from app.services.analytics_service_timeline import build_analytics_timeline_payload
 from app.utils.time_utils import utc_now as _utc_now
-
-
-def _parse_date(date_str: Optional[str]) -> Optional[datetime]:
-    """Parse YYYY-MM-DD string to UTC datetime at start of day."""
-    if not date_str or not date_str.strip():
-        return None
-    try:
-        dt = datetime.strptime(date_str.strip()[:10], "%Y-%m-%d")
-        return dt.replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
-
-
-def _date_to_end_of_day(date_dt: datetime) -> datetime:
-    """Convert date to end of day (start of next day, exclusive)."""
-    return (date_dt + timedelta(days=1)).replace(tzinfo=timezone.utc)
+from app.services._analytics_utils import _parse_date, _date_to_end_of_day
 
 
 def get_analytics_summary(date_from: Optional[str] = None, date_to: Optional[str] = None) -> Dict[str, Any]:

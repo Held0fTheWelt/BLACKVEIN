@@ -12,20 +12,12 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.runtime.turn_execution_types import TurnExecutionResult
+from app.runtime._string_utils import _cap_str
 
 # Task 1C: bounded narrative fields derived from narrative_commit (JSON-safe).
 _MAX_CANONICAL_CONSEQUENCES = 24
 _MAX_CONSEQUENCE_STRING_LEN = 256
 _MAX_AUTHORITATIVE_REASON_LEN = 500
-
-
-def _cap_str(value: str | None, max_len: int) -> str | None:
-    if value is None:
-        return None
-    s = str(value).strip()
-    if len(s) <= max_len:
-        return s
-    return s[: max_len - 1] + "…"
 
 
 def _cap_consequence_list(items: list[str] | None) -> list[str]:
