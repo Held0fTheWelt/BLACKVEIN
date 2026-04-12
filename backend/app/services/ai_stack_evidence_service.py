@@ -11,6 +11,11 @@ from ai_stack import build_retrieval_trace
 
 from app.runtime.session_store import get_session as get_runtime_session
 from app.services.improvement_service import list_recommendation_packages
+from app.services.ai_stack_evidence_internals import (  # noqa: F401
+    _improvement_evidence_strength_map,
+    _retrieval_tier_strong_enough_for_governance,
+    _writers_room_retrieval_trace_tier,
+)
 
 # Capabilities whose invocation materially affects workflow outputs (context, transcript, governance bundle).
 _MATERIAL_CAPABILITY_NAMES: frozenset[str] = frozenset(
@@ -147,8 +152,6 @@ def _improvement_package_recency_timestamp(package: dict[str, Any]) -> float:
         return 0.0
 
 
-def _retrieval_tier_strong_enough_for_governance(tier: Any) -> bool:
-    return tier in ("moderate", "strong")
 
 
 def _build_cross_layer_classifiers(
@@ -304,20 +307,6 @@ def _latest_improvement_package() -> dict[str, Any] | None:
     return max(packages, key=_improvement_package_recency_timestamp)
 
 
-def _writers_room_retrieval_trace_tier(writers_room_review: dict[str, Any] | None) -> Any:
-    if not writers_room_review:
-        return None
-    rt = writers_room_review.get("retrieval_trace")
-    if not isinstance(rt, dict):
-        return None
-    return rt.get("evidence_tier")
-
-
-def _improvement_evidence_strength_map(package: dict[str, Any] | None) -> dict[str, Any] | None:
-    if not package:
-        return None
-    m = package.get("evidence_strength_map")
-    return m if isinstance(m, dict) else None
 
 
 def build_release_readiness_report(*, trace_id: str) -> dict[str, Any]:

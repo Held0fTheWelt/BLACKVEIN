@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.services.ai_stack_evidence_service import (
+from app.services.ai_stack_evidence_internals import (
     _improvement_evidence_strength_map,
     _retrieval_tier_strong_enough_for_governance,
     _writers_room_retrieval_trace_tier,
