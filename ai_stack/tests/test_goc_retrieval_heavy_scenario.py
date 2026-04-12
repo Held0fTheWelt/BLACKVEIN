@@ -7,6 +7,8 @@ on a multi-file corpus so the audit anchor is explicit.
 
 from __future__ import annotations
 
+pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+
 import json
 from pathlib import Path
 
@@ -24,7 +26,7 @@ from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPip
 from ai_stack.goc_gate_evaluation import gate_turn_integrity
 from ai_stack.goc_turn_seams import build_roadmap_dramatic_turn_record
 from ai_stack.goc_g9_roadmap_scenarios import ROADMAP_SCENARIO_ID_RETRIEVAL_HEAVY
-from ai_stack.goc_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml
+from ai_stack.goc_yaml_authority import load_goc_canonical_module_yaml
 
 HOST_OK = {"template_id": "god_of_carnage_solo", "title": "God of Carnage"}
 
@@ -46,15 +48,6 @@ class _JsonAdapter(BaseModelAdapter):
             success=True,
             metadata={"adapter": self._narrative, "retrieval_context_attached": bool(retrieval_context)},
         )
-
-
-@pytest.fixture(autouse=True)
-def _clear_goc_caches() -> None:
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
-    yield
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
 
 
 def test_roadmap_scenario_retrieval_heavy_governance_visible(tmp_path: Path) -> None:

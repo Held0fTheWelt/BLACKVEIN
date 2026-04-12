@@ -453,10 +453,10 @@ class TestErrorPageContract:
         """Contract: Proxy 502 errors include security headers."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_rtc_001(request, timeout=0):
             raise URLError("Network unreachable")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_rtc_001)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -478,10 +478,10 @@ class TestErrorPageContract:
         """Contract: Proxy timeout returns 502 Bad Gateway."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_rtc_002(request, timeout=0):
             raise URLError("Connection timed out")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_rtc_002)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -492,7 +492,7 @@ class TestErrorPageContract:
         """Contract: HTTP errors from backend pass through with original status."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_rtc_003(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=404,
@@ -501,7 +501,7 @@ class TestErrorPageContract:
                 fp=BytesIO(b'{"error":"Not found"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_rtc_003)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/users/999")
@@ -513,7 +513,7 @@ class TestErrorPageContract:
         """Contract: Proxy 500 errors from backend include security headers."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_rtc_004(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=500,
@@ -522,7 +522,7 @@ class TestErrorPageContract:
                 fp=BytesIO(b'{"error":"Internal server error"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_rtc_004)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/data")
@@ -595,7 +595,7 @@ class TestResponseContentTypes:
         """Contract: Proxy forwards Content-Type from backend."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_rtc_005(request, timeout=0):
             from tests.test_routes_contracts import DummyUpstreamResponse
 
             return DummyUpstreamResponse(
@@ -604,7 +604,7 @@ class TestResponseContentTypes:
                 content_type="application/json",
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_rtc_005)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")

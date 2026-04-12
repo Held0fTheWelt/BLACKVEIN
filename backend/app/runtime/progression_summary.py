@@ -16,12 +16,21 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.runtime.progression_summary_derive_constants import (
+    CONSEQUENCE_FREQUENCY_MAX_KEYS,
+    MOST_RECENT_GUARD_OUTCOMES_TAIL,
+    RECENT_CANONICAL_CONSEQUENCES_CAP,
+    RECENT_SCENE_IDS_CAP,
+    RECENT_SITUATION_STATUSES_CAP,
+    SAME_SCENE_DEVELOPING_MIN_PROGRESSION,
+    SAME_SCENE_RESOLVING_MIN_PROGRESSION,
+    SESSION_PHASE_EARLY_BELOW_TURNS,
+    SESSION_PHASE_MIDDLE_BELOW_TURNS,
+    STALLED_TURNS_FOR_STALLED_LABEL,
+    TOP_TRIGGER_FREQUENCY_CAP,
+    UNIQUE_TRIGGERS_LIST_CAP,
+)
 from app.runtime.session_history import HistoryEntry, SessionHistory
-
-# Task 1C: caps and deterministic ordering (binding precision layer §2).
-_RECENT_SITUATION_STATUSES_CAP = 8
-_RECENT_CANONICAL_CONSEQUENCES_CAP = 15
-_CONSEQUENCE_FREQUENCY_MAX_KEYS = 25
 
 _STATE_CHANGED_PREFIX = "state_changed:"
 
@@ -61,7 +70,7 @@ def _recent_canonical_consequences_ordered(entries: list[HistoryEntry]) -> list[
         if c not in seen:
             seen.add(c)
             newest_first_unique.append(c)
-    return newest_first_unique[:_RECENT_CANONICAL_CONSEQUENCES_CAP]
+    return newest_first_unique[:RECENT_CANONICAL_CONSEQUENCES_CAP]
 
 
 def _consequence_frequency_bounded(entries: list[HistoryEntry]) -> dict[str, int]:
@@ -71,7 +80,7 @@ def _consequence_frequency_bounded(entries: list[HistoryEntry]) -> dict[str, int
         for c in e.canonical_consequences:
             counts[c] = counts.get(c, 0) + 1
     ordered = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
-    return dict(ordered[:_CONSEQUENCE_FREQUENCY_MAX_KEYS])
+    return dict(ordered[:CONSEQUENCE_FREQUENCY_MAX_KEYS])
 
 
 def _same_scene_progression_count(entries: list[HistoryEntry], current_scene: str) -> int:
@@ -109,7 +118,7 @@ def _stalled_turn_count(entries: list[HistoryEntry]) -> int:
 
 
 def _recent_situation_statuses(entries: list[HistoryEntry]) -> list[str]:
-    tail = entries[-_RECENT_SITUATION_STATUSES_CAP:]
+    tail = entries[-RECENT_SITUATION_STATUSES_CAP:]
     return [e.situation_status for e in tail if e.situation_status]
 
 
@@ -125,11 +134,11 @@ def _progression_momentum(
         return "ended"
     if last.scene_changed or last.situation_status == "transitioned":
         return "relocating"
-    if stalled_turn_count >= 2:
+    if stalled_turn_count >= STALLED_TURNS_FOR_STALLED_LABEL:
         return "stalled"
-    if same_scene_progression_count >= 3 and stalled_turn_count == 0:
+    if same_scene_progression_count >= SAME_SCENE_RESOLVING_MIN_PROGRESSION and stalled_turn_count == 0:
         return "resolving"
-    if same_scene_progression_count >= 2:
+    if same_scene_progression_count >= SAME_SCENE_DEVELOPING_MIN_PROGRESSION:
         return "developing"
     return "holding"
 
@@ -233,7 +242,7 @@ def derive_progression_summary(history: SessionHistory) -> ProgressionSummary:
         if entry.scene_id not in seen_scenes:
             recent_scenes.insert(0, entry.scene_id)
             seen_scenes.add(entry.scene_id)
-            if len(recent_scenes) >= 10:
+            if len(recent_scenes) >= RECENT_SCENE_IDS_CAP:
                 break
 
     trigger_frequency_map: dict[str, int] = {}
@@ -241,11 +250,11 @@ def derive_progression_summary(history: SessionHistory) -> ProgressionSummary:
         for trigger in entry.detected_triggers:
             trigger_frequency_map[trigger] = trigger_frequency_map.get(trigger, 0) + 1
 
-    all_unique_triggers = sorted(trigger_frequency_map.keys())[:50]
+    all_unique_triggers = sorted(trigger_frequency_map.keys())[:UNIQUE_TRIGGERS_LIST_CAP]
     top_triggers = sorted(
         trigger_frequency_map.items(),
         key=lambda x: (-x[1], x[0]),
-    )[:10]
+    )[:TOP_TRIGGER_FREQUENCY_CAP]
     trigger_frequency_dict = dict(top_triggers)
 
     outcome_distribution: dict[str, int] = {}
@@ -254,7 +263,7 @@ def derive_progression_summary(history: SessionHistory) -> ProgressionSummary:
         outcome_distribution[entry.guard_outcome] = outcome_distribution.get(entry.guard_outcome, 0) + 1
         recent_outcomes.append(entry.guard_outcome)
 
-    recent_outcomes = recent_outcomes[-5:]
+    recent_outcomes = recent_outcomes[-MOST_RECENT_GUARD_OUTCOMES_TAIL:]
 
     endings = history.get_endings_reached()
     ending_reached = len(endings) > 0
@@ -262,9 +271,9 @@ def derive_progression_summary(history: SessionHistory) -> ProgressionSummary:
 
     if ending_reached:
         session_phase = "ended"
-    elif total_turns < 15:
+    elif total_turns < SESSION_PHASE_EARLY_BELOW_TURNS:
         session_phase = "early"
-    elif total_turns < 50:
+    elif total_turns < SESSION_PHASE_MIDDLE_BELOW_TURNS:
         session_phase = "middle"
     else:
         session_phase = "late"

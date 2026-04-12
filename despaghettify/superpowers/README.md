@@ -18,7 +18,7 @@ You can still **@‑mention** a skill path (for example `despaghettify/superpowe
 | [`despaghettify-check`](despaghettify-check/SKILL.md) | **Router** → [`../spaghetti-setup.md`](../spaghetti-setup.md) (numeric policy) **+** [`../spaghetti-check-task.md`](../spaghetti-check-task.md) (scan procedure). |
 | [`despaghettify-solve`](despaghettify-solve/SKILL.md) | **Router** → [`../spaghetti-solve-task.md`](../spaghetti-solve-task.md). |
 | [`despaghettify-add-task`](despaghettify-add-task/SKILL.md) | **Router** → [`../spaghetti-add-task-to-meet-trigger.md`](../spaghetti-add-task-to-meet-trigger.md). |
-| [`despaghettify-autonomous-agent`](despaghettify-autonomous-agent/SKILL.md) | **Router** → [`../spaghetti-autonomous-agent-task.md`](../spaghetti-autonomous-agent-task.md) (solve **open** **DS-*** backlog **before** first full **check**, then check → solve loop). |
+| [`despaghettify-autonomous-agent`](despaghettify-autonomous-agent/SKILL.md) | **Router** → [`../spaghetti-autonomous-agent-task.md`](../spaghetti-autonomous-agent-task.md) (Step 0: slice → check `--out` → `backlog-implement`; after row closed → `backlog-solve`; then main check → solve loop). |
 | [`despaghettify-clean`](despaghettify-clean/SKILL.md) | **Router** → [`../spaghetti-clean-task.md`](../spaghetti-clean-task.md) (workstream artefact wipe + optional ephemeral cleanup). |
 | [`despaghettify-reset`](despaghettify-reset/SKILL.md) | **Router** → [`../spaghetti-reset-task.md`](../spaghetti-reset-task.md) (clean + EMPTY template + one check). |
 

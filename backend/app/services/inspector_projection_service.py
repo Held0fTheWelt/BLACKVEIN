@@ -13,7 +13,6 @@ from app.contracts.inspector_turn_projection import (
     INSPECTOR_COMPARISON_PROJECTION_SCHEMA_VERSION,
     INSPECTOR_PROVENANCE_RAW_PROJECTION_SCHEMA_VERSION,
     INSPECTOR_TIMELINE_PROJECTION_SCHEMA_VERSION,
-    build_inspector_view_projection_root,
     make_supported_section,
     make_unavailable_section,
 )
@@ -24,41 +23,8 @@ from app.services.inspector_projection_comparison import (
     session_has_candidate_matrix,
 )
 from app.services.inspector_projection_provenance_raw_entries import build_provenance_entries
+from app.services.inspector_projection_shared import _build_root, _diagnostics_rows
 from app.services.inspector_projection_turn_view import extract_turn_view
-
-
-def _diagnostics_rows(bundle: dict[str, Any]) -> list[dict[str, Any]]:
-    diagnostics = bundle.get("world_engine_diagnostics")
-    if not isinstance(diagnostics, dict):
-        return []
-    rows = diagnostics.get("diagnostics")
-    if not isinstance(rows, list):
-        return []
-    return [row for row in rows if isinstance(row, dict)]
-
-
-def _build_root(
-    *,
-    bundle: dict[str, Any],
-    session_id: str,
-    schema_version: str,
-    projection_status: str,
-    section_key: str,
-    section: dict[str, Any],
-) -> dict[str, Any]:
-    return build_inspector_view_projection_root(
-        schema_version=schema_version,
-        trace_id=bundle.get("trace_id"),
-        backend_session_id=str(bundle.get("backend_session_id") or session_id),
-        world_engine_story_session_id=bundle.get("world_engine_story_session_id"),
-        projection_status=projection_status,
-        section_key=section_key,
-        section=section,
-        warnings=list(bundle.get("degraded_path_signals") or []),
-        raw_evidence_refs={
-            "source": "world_engine_diagnostics_session_bridge",
-        },
-    )
 
 
 def build_inspector_timeline_projection(*, session_id: str, trace_id: str) -> dict[str, Any]:

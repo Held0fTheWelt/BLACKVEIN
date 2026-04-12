@@ -278,7 +278,7 @@ class TestProxyErrorResponseContract:
         """Contract: Upstream 404 from backend passes through."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_001(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=404,
@@ -287,7 +287,7 @@ class TestProxyErrorResponseContract:
                 fp=BytesIO(b'{"error":"Not found"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_001)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/users/999")
@@ -298,7 +298,7 @@ class TestProxyErrorResponseContract:
         """Contract: Upstream 500 from backend passes through."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_002(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=500,
@@ -307,7 +307,7 @@ class TestProxyErrorResponseContract:
                 fp=BytesIO(b'{"error":"Internal error"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_002)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/data")
@@ -320,10 +320,10 @@ class TestProxyErrorResponseContract:
         """Contract: Network errors return 502 Bad Gateway."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_003(request, timeout=0):
             raise URLError("Network unreachable")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_003)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -334,10 +334,10 @@ class TestProxyErrorResponseContract:
         """Contract: Proxy timeout returns 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_004(request, timeout=0):
             raise URLError("Connection timed out")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_004)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -450,10 +450,10 @@ class TestBackendUnavailableGracefulHandling:
         """Contract: Proxy network errors are handled safely."""
         module = load_frontend_module(monkeypatch, backend_url="https://unreachable.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_005(request, timeout=0):
             raise URLError("Connection refused")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_005)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -465,10 +465,10 @@ class TestBackendUnavailableGracefulHandling:
         """Contract: Proxy timeout is handled safely."""
         module = load_frontend_module(monkeypatch, backend_url="https://slow.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_006(request, timeout=0):
             raise URLError("Timeout")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_006)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -488,10 +488,10 @@ class TestProxyErrorMessageSafety:
         """Contract: Proxy network error message is safe."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.test")
 
-        def fake_urlopen(request, timeout: int = 0):
+        def _urlopen_stub_errpg_007(request, timeout=0):
             raise URLError("Connection refused")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_errpg_007)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")

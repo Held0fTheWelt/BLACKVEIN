@@ -39,14 +39,14 @@ class TestN8nTrigger:
     def test_trigger_webhook_signs_and_posts_payload(self, app, monkeypatch):
         captured = {}
 
-        def fake_urlopen(request, timeout=10):
+        def _urlopen_stub_n8n_001(request, timeout=0):
             captured["url"] = request.full_url
             captured["headers"] = dict(request.header_items())
             captured["body"] = request.data
             captured["timeout"] = timeout
             return _DummyResponse(status=202)
 
-        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("urllib.request.urlopen", _urlopen_stub_n8n_001)
 
         with app.app_context():
             app.config["N8N_WEBHOOK_URL"] = "https://n8n.example/webhook"

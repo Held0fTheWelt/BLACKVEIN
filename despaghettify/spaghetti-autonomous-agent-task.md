@@ -2,7 +2,7 @@
 
 *Path:* `despaghettify/spaghetti-autonomous-agent-task.md` — Hub overview: [README.md](README.md).
 
-**Purpose:** If [despaghettification_implementation_input.md](despaghettification_implementation_input.md) still has **open backlog** **DS-*** rows at session start (**Step 0**), **close them first** with [spaghetti-solve-task.md](spaghetti-solve-task.md) (**one DS-ID per invocation**) **before** the **main cycle** begins. **Main cycle:** run a **full** [spaghetti-check-task.md](spaghetti-check-task.md) pass, then **autonomously** close **open** **DS-*** rows using **solve**, then **check** again; **repeat** until **success conditions** hold **or** a **hard stop** from **in-scope** work fires. Failures that are **clearly outside** the current DS scope or **pre-existing** in the repo **must not** abort this loop by themselves (see **Error scope**).
+**Purpose:** If [despaghettification_implementation_input.md](despaghettification_implementation_input.md) still has **open backlog** **DS-*** rows at session start (**Step 0**), **drain them first** with [spaghetti-solve-task.md](spaghetti-solve-task.md) (**one DS-ID per invocation**) **before** the **main cycle** begins — **without** faking closure in the state machine: after **each** slice run **`check --out …`**, then **`autonomous-advance --kind backlog-implement --ds DS-0xx --check-json <repo-relative path>`** while the row stays **open**; **only after** the row is **closed** in the input list, **`autonomous-advance --kind backlog-solve --ds DS-0xx`** (that command **exit 2** while the row is still open). **Main cycle:** run a **full** [spaghetti-check-task.md](spaghetti-check-task.md) pass, then **autonomously** close **open** **DS-*** rows using **solve**, then **check** again; **repeat** until **success conditions** hold **or** a **hard stop** from **in-scope** work fires. Failures that are **clearly outside** the current DS scope or **pre-existing** in the repo **must not** abort this loop by themselves (see **Error scope**).
 
 **Language:** English (hub policy).
 
@@ -23,11 +23,12 @@ Use the automation entry point from repo root: `python -m despaghettify.tools �
 
 1. **Start session:** `python -m despaghettify.tools autonomous-init` before **Step 0**. If a session file already exists, exit **2** — use `autonomous-init --force` only when intentionally resetting. State path: `despaghettify/state/artifacts/autonomous_loop/autonomous_state.json` (typically **gitignored** with the rest of `despaghettify/state/`). JSON schema: [`despaghettify/tools/schemas/autonomous_state.schema.json`](tools/schemas/autonomous_state.schema.json).
 2. **After each macro step**, record a **legal** transition (or you cannot prove ordering on resume):
-   - After a **backlog** **DS-*** is **closed** in the input list: `python -m despaghettify.tools autonomous-advance --kind backlog-solve --ds DS-0xx`
+   - **While** a backlog **DS-*** row is **still open** but you finished an **implementation slice** and ran hub **`check --out …`**: `python -m despaghettify.tools autonomous-advance --kind backlog-implement --ds DS-0xx --check-json <relative-path>` — records evidence **without** claiming DS closure; repeat until the row’s goal is met, then close the row in Markdown.
+   - **Only after** that **DS-*** row is **closed** in the input list: `python -m despaghettify.tools autonomous-advance --kind backlog-solve --ds DS-0xx` (proves backlog item drained for the state machine).
    - When **no** open backlog **DS-*** remain and you are about to run the **first** full main-cycle check: `python -m despaghettify.tools autonomous-advance --kind main-check --check-json <relative-path>` (path from `check --out …`)
    - After each **main-cycle** **DS-*** closure: `autonomous-advance --kind main-solve --ds DS-0xx`
    - After each **main-cycle** check: `autonomous-advance --kind main-check [--check-json path]`
-3. **`autonomous-advance` exit 2** = illegal transition **or** the **DS-*** row is **still open** when recording a solve → **HARD_STOP** the autonomous task immediately.
+3. **`autonomous-advance` exit 2** = illegal transition **or** recording **`backlog-solve`** while the **DS-*** row is **still open** → **HARD_STOP** the autonomous task immediately. (**`backlog-implement`** is allowed while the row is open.)
 4. **Between waves (recommended):** `python -m despaghettify.tools autonomous-verify` — exit **0** ok, **1** advisory (anti-stall signal from last two check JSONs), **2** hard failure (`HEAD` mismatch vs state, dirty worktree unless `--allow-dirty`, malformed state).
 5. **Machine trigger line:** keep [`spaghetti-setup.json`](spaghetti-setup.json) aligned with [`spaghetti-setup.md`](spaghetti-setup.md); run `python -m despaghettify.tools trigger-eval --check-json <path>` after each `check --out`. Optional: `python -m despaghettify.tools check --with-metrics --out …` embeds **`metrics_bundle`** (heuristic **v1**) in the same JSON.
 
@@ -71,9 +72,11 @@ Use a **session log** (bullet list in the reply or a scratch file under `despagh
 1. **Detect backlog:** Enumerate all **open backlog** **DS-*** ids (see definition above). Optional: `python -m despaghettify.tools open-ds` from repo root — reconcile with the Markdown table.
 2. **If none** → skip Step 0 entirely; go to **Step 1**.
 3. **If any** → **do not** run the main-cycle **Step 1** full spaghetti-check until Step 0 is **finished** (backlog empty **or** hard stop). For each backlog id, in **Pick next DS-ID** order (§ *Recommended implementation order* first, then numeric tie-break, same dependency rules as **Step 3**):
-   - Run [spaghetti-solve-task.md](spaghetti-solve-task.md) as `run spaghetti-solve-task DS-0xx` until that id is **CLOSED** in the input list **or** a **hard stop** fires → on hard stop, **abort entire autonomous task** (same as **Step 4**).
+   - Run [spaghetti-solve-task.md](spaghetti-solve-task.md) as `run spaghetti-solve-task DS-0xx` — implement in **sub-waves** until the **DS row’s stated goal** is satisfied; **do not** strike / **CLOSE** the row in the input list **before** that goal is met (premature closure is a process failure).
+   - After **each** measurable slice: `check --out …` then **`autonomous-advance --kind backlog-implement --ds DS-0xx --check-json …`** (see **Machine guards**).
+   - When the goal is met and governance allows closure: **close** the **DS-*** row in the input list, then **`autonomous-advance --kind backlog-solve --ds DS-0xx`**.
    - After each successful DS closure, **re-scan** the input list for remaining open backlog ids.
-4. **Between** backlog solves: **no** full [spaghetti-check-task.md](spaghetti-check-task.md) pass is required unless you need fresh metrics for dependency decisions; **solve-task** gates and governance remain mandatory.
+4. **Between** backlog **implement** slices: **no** full [spaghetti-check-task.md](spaghetti-check-task.md) pass is required unless you need fresh metrics for dependency decisions; **solve-task** gates and governance remain mandatory.
 5. When **no** open backlog **DS-*** remain → **Step 1** (main cycle starts here).
 
 **Rationale:** The input list is the **contract** for in-flight work; draining it avoids running a “fresh” check→plan loop while **listed** waves are still incomplete.
@@ -158,7 +161,7 @@ See [superpowers/references/CLI.md](superpowers/references/CLI.md).
 Short Markdown:
 
 1. **Outcome:** `SUCCESS` | `HARD_STOP` | `ADVISORY_STOP`.
-2. **Backlog (Step 0):** count of **solve** runs and **DS-*** ids closed before the first main-cycle **check**; `none` if Step 0 was skipped.
+2. **Backlog (Step 0):** counts of **`backlog-implement`** and **`backlog-solve`** advances, **solve-task** runs, and **DS-*** ids closed before the first main-cycle **check**; `none` if Step 0 was skipped.
 3. **Main cycle:** count of **check** runs and **solve** runs after Step 0 (DS-ids listed in order).
 4. **Final scan:** one line — trigger fired? yes/no; **M7** and any **C*** still above bar (per **setup**).
 5. **Open DS:** none, or list remaining ids.

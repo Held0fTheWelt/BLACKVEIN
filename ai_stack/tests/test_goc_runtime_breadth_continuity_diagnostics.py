@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+
 import json
 from pathlib import Path
 
@@ -21,7 +23,7 @@ from ai_stack.goc_gate_evaluation import (
     gate_dramatic_quality,
     gate_turn_integrity,
 )
-from ai_stack.goc_yaml_authority import cached_goc_yaml_title, clear_goc_yaml_slice_cache, load_goc_canonical_module_yaml
+from ai_stack.goc_yaml_authority import load_goc_canonical_module_yaml
 
 
 HOST_OK = {"template_id": "god_of_carnage_solo", "title": "God of Carnage"}
@@ -62,15 +64,6 @@ class JsonAdapter(BaseModelAdapter):
             success=True,
             metadata={"adapter": self.adapter_name},
         )
-
-
-@pytest.fixture(autouse=True)
-def _clear_goc_caches() -> None:
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
-    yield
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
 
 
 def _assert_non_preview_core(result: dict) -> None:

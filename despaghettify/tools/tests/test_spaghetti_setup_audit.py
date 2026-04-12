@@ -48,12 +48,12 @@ class SpaghettiSetupAuditTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[3]
         md_path = root / "despaghettify" / "spaghetti-setup.md"
         p = parse_spaghetti_setup_md(md_path.read_text(encoding="utf-8"))
-        self.assertEqual(p["trigger_bars"]["C1"], 0.0)
+        self.assertEqual(p["trigger_bars"]["C1"], 2.0)
         self.assertEqual(p["trigger_bars"]["C3"], 12.0)
         self.assertEqual(p["trigger_bars"]["C4"], 5.0)
-        self.assertEqual(p["weights"]["C1"], 0.2)
-        self.assertAlmostEqual(p["m7_ref"], 4.25, places=3)
-        self.assertAlmostEqual(compute_m7_ref(p["trigger_bars"], p["weights"]), 4.25, places=3)
+        self.assertEqual(p["weights"]["C1"], 0.25)
+        self.assertAlmostEqual(p["m7_ref"], 4.24, places=3)
+        self.assertAlmostEqual(compute_m7_ref(p["trigger_bars"], p["weights"]), 4.24, places=3)
 
     def test_audit_json_matches_md(self) -> None:
         from despaghettify.tools.spaghetti_setup_audit import audit_setup

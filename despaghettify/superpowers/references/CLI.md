@@ -40,6 +40,7 @@ Session file (local): `despaghettify/state/artifacts/autonomous_loop/autonomous_
 python -m despaghettify.tools autonomous-init
 python -m despaghettify.tools autonomous-init --force
 python -m despaghettify.tools autonomous-status
+python -m despaghettify.tools autonomous-advance --kind backlog-implement --ds DS-016 --check-json despaghettify/reports/last_check.json
 python -m despaghettify.tools autonomous-advance --kind backlog-solve --ds DS-016
 python -m despaghettify.tools autonomous-advance --kind main-check --check-json .state_tmp/despag_check_report.json
 python -m despaghettify.tools autonomous-advance --kind main-solve --ds DS-020
@@ -49,7 +50,7 @@ python -m despaghettify.tools autonomous-verify --allow-dirty --setup-json despa
 
 **Exit codes — `autonomous-init`:** `0` created; `2` session already exists (use `--force`).
 
-**`autonomous-advance`:** `0` recorded; `2` illegal transition or **DS-*** still open when recording a solve.
+**`autonomous-advance`:** `0` recorded; `2` illegal transition or `backlog-solve` while the **DS-*** row is still open (`backlog-implement` is for open rows and requires `--check-json`).
 
 **`autonomous-verify`:** `0` ok; `1` advisory (anti-stall heuristic); `2` hard failure (invalid state, `HEAD` mismatch vs recorded `head_sha_expected`, dirty worktree unless `--allow-dirty`).
 

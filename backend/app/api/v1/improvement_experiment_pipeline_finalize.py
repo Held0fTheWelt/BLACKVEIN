@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from app.api.v1.improvement_experiment_pipeline import ImprovementExperimentCapabilityOutcome
+from app.api.v1.improvement_experiment_pipeline_types import ImprovementExperimentCapabilityOutcome
 from app.api.v1.improvement_experiment_pipeline_finalize_phases import (
     apply_rationale_strength_and_final_evidence_bundle,
     enrich_validate_and_store_package,

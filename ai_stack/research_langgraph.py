@@ -6,29 +6,21 @@ from pathlib import Path
 from typing import Any
 
 from ai_stack.canon_improvement_engine import derive_canon_improvements
-from ai_stack.research_aspect_extraction import extract_and_store_aspects
 from ai_stack.research_contract import ExplorationBudget, ResearchRunRecord, ResearchStatus, utc_now_iso
 from ai_stack.research_exploration import run_bounded_exploration
-from ai_stack.research_ingestion import ingest_resource, normalize_resource
+from ai_stack.research_langgraph_run_pipeline_phases import (
+    canon_relevance_hint,
+    improvement_lead_candidate_payloads,
+    review_safe_flag,
+    run_pipeline_aspects,
+    run_pipeline_intake,
+)
 from ai_stack.research_store import ResearchStore
-from ai_stack.research_validation import evaluate_candidate_from_exploration_node, verify_and_promote_claims
 
-
-def _review_safe_flag(*, claims: list[dict[str, Any]], exploration_summary: dict[str, Any]) -> bool:
-    if any(str(claim.get("contradiction_status", "")) == "hard_conflict" for claim in claims):
-        return False
-    if any(not claim.get("evidence_anchor_ids") for claim in claims):
-        return False
-    abort_reason = str(exploration_summary.get("abort_reason", ""))
-    unsafe_abort_reasons = {"token_budget_exhausted", "llm_budget_exhausted", "time_budget_exhausted"}
-    if abort_reason in unsafe_abort_reasons:
-        return False
-    return True
-
-
-def _canon_relevance_hint(node: dict[str, Any]) -> bool:
-    hypothesis = str(node.get("hypothesis", "")).lower()
-    return "improvement_probe" in hypothesis or "tension_probe" in hypothesis
+# Backwards-compatible names for tests and direct imports.
+_canon_relevance_hint = canon_relevance_hint
+_review_safe_flag = review_safe_flag
+from ai_stack.research_validation import verify_and_promote_claims
 
 
 def build_review_bundle(
@@ -52,7 +44,7 @@ def build_review_bundle(
     for claim in claims:
         key = str(claim.get("status", "unknown"))
         status_summary[key] = status_summary.get(key, 0) + 1
-    review_safe = _review_safe_flag(claims=claims, exploration_summary=exploration_summary)
+    review_safe = review_safe_flag(claims=claims, exploration_summary=exploration_summary)
     perspective_summary: dict[str, int] = {}
     for aspect in aspects:
         perspective = str(aspect.get("perspective", "unknown"))
@@ -114,30 +106,10 @@ def run_research_pipeline(
     budget = ExplorationBudget.from_payload(budget_payload)
     run_identifier = run_id or store.next_id("run")
 
-    intake_sources: list[dict[str, Any]] = []
-    all_segments: list[dict[str, Any]] = []
-    all_anchors: list[dict[str, Any]] = []
-    for source_input in source_inputs:
-        normalized = normalize_resource(
-            work_id=work_id,
-            source_type=str(source_input.get("source_type", "note")),
-            title=str(source_input.get("title", "untitled")),
-            raw_text=str(source_input.get("raw_text", "")),
-            provenance=dict(source_input.get("provenance", {})),
-            visibility=str(source_input.get("visibility", "internal")),
-            copyright_posture=source_input.get("copyright_posture"),
-            metadata=dict(source_input.get("metadata", {})),
-        )
-        intake = ingest_resource(store=store, normalized_source=normalized)
-        intake_sources.append(intake["source"])
-        all_segments.extend(intake["segments"])
-        all_anchors.extend(intake["anchors"])
-
-    aspects: list[dict[str, Any]] = []
-    for source in intake_sources:
-        source_id = str(source["source_id"])
-        source_segments = [s for s in all_segments if s.get("source_id") == source_id and s.get("segment_ref")]
-        aspects.extend(extract_and_store_aspects(store=store, source_id=source_id, segments=source_segments))
+    intake_sources, all_segments, all_anchors = run_pipeline_intake(
+        store=store, work_id=work_id, source_inputs=source_inputs
+    )
+    aspects = run_pipeline_aspects(store=store, intake_sources=intake_sources, all_segments=all_segments)
 
     exploration_result = run_bounded_exploration(seed_aspects=aspects, budget=budget)
     for node in exploration_result.nodes:
@@ -145,21 +117,7 @@ def run_research_pipeline(
     for edge in exploration_result.edges:
         store.upsert_exploration_edge(edge)
 
-    candidate_payloads: list[dict[str, Any]] = []
-    for node in exploration_result.nodes:
-        is_candidate, reason = evaluate_candidate_from_exploration_node(node)
-        if not is_candidate:
-            continue
-        candidate_payloads.append(
-            {
-                "claim_type": "improvement_lead",
-                "statement": node.get("hypothesis"),
-                "evidence_anchor_ids": list(node.get("evidence_anchor_ids", [])),
-                "perspective": node.get("perspective"),
-                "notes": reason,
-                "canon_relevance_hint": _canon_relevance_hint(node),
-            }
-        )
+    candidate_payloads = improvement_lead_candidate_payloads(list(exploration_result.nodes))
 
     verified = verify_and_promote_claims(
         store=store,

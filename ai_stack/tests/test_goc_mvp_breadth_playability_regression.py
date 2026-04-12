@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -82,15 +84,6 @@ class TurnStep:
     player_input: str
     adapter: BaseModelAdapter
     trace_id: str
-
-
-@pytest.fixture(autouse=True)
-def _clear_goc_caches() -> None:
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
-    yield
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
 
 
 def _assert_credible_non_preview_turn(result: dict[str, Any]) -> None:

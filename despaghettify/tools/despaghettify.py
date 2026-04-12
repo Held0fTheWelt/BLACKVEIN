@@ -516,8 +516,8 @@ def cmd_autonomous_advance(args: argparse.Namespace) -> int:
     from despaghettify.tools import autonomous_loop as al  # noqa: PLC0415
 
     kind = args.kind.strip().lower().replace("-", "_")
-    if kind not in ("backlog_solve", "main_check", "main_solve"):
-        print("kind must be backlog-solve | main-check | main-solve", file=sys.stderr)
+    if kind not in ("backlog_implement", "backlog_solve", "main_check", "main_solve"):
+        print("kind must be backlog-implement | backlog-solve | main-check | main-solve", file=sys.stderr)
         return 2
     res = al.advance(
         kind,  # type: ignore[arg-type]
@@ -667,15 +667,19 @@ def main() -> int:
 
     p_aa = sub.add_parser(
         "autonomous-advance",
-        help="Legal transition for autonomous loop (exit 2 on rule violation). Kinds: backlog-solve, main-check, main-solve.",
+        help="Legal transition for autonomous loop (exit 2 on rule violation). Kinds: backlog-implement, backlog-solve, main-check, main-solve.",
     )
     p_aa.add_argument(
         "--kind",
         required=True,
-        help="backlog-solve | main-check | main-solve",
+        help="backlog-implement | backlog-solve | main-check | main-solve",
     )
-    p_aa.add_argument("--ds", default="", help="Required for solve kinds, e.g. DS-016")
-    p_aa.add_argument("--check-json", default="", help="Optional path relative to repo for main-check.")
+    p_aa.add_argument("--ds", default="", help="Required for backlog-* and main-solve, e.g. DS-016")
+    p_aa.add_argument(
+        "--check-json",
+        default="",
+        help="Required for backlog-implement; optional for main-check (repo-relative path to hub check JSON).",
+    )
     p_aa.set_defaults(func=cmd_autonomous_advance)
 
     p_as = sub.add_parser("autonomous-status", help="Print JSON session status and next hints.")

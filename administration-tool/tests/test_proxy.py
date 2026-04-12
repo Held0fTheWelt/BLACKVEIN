@@ -49,7 +49,7 @@ def test_proxy_forwards_query_headers_and_body(monkeypatch):
     module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
     recorded: dict[str, object] = {}
 
-    def fake_urlopen(request, timeout: int = 0):
+    def _urlopen_stub_proxy_001(request, timeout=0):
         recorded["url"] = request.full_url
         recorded["method"] = request.get_method()
         recorded["headers"] = dict(request.header_items())
@@ -57,7 +57,7 @@ def test_proxy_forwards_query_headers_and_body(monkeypatch):
         recorded["timeout"] = timeout
         return DummyUpstreamResponse(b'{"ok": true}', status=201)
 
-    monkeypatch.setattr(module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module, "urlopen", _urlopen_stub_proxy_001)
     client = module.app.test_client()
 
     response = client.post(
@@ -85,7 +85,7 @@ def test_proxy_forwards_query_headers_and_body(monkeypatch):
 def test_proxy_surfaces_http_errors(monkeypatch):
     module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-    def fake_urlopen(request, timeout: int = 0):
+    def _urlopen_stub_proxy_002(request, timeout=0):
         raise HTTPError(
             url=request.full_url,
             code=418,
@@ -94,7 +94,7 @@ def test_proxy_surfaces_http_errors(monkeypatch):
             fp=BytesIO(b'{"error":"teapot"}'),
         )
 
-    monkeypatch.setattr(module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module, "urlopen", _urlopen_stub_proxy_002)
     client = module.app.test_client()
 
     response = client.get("/_proxy/api/v1/news")
@@ -108,10 +108,10 @@ def test_proxy_surfaces_http_errors(monkeypatch):
 def test_proxy_turns_network_errors_into_502(monkeypatch):
     module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-    def fake_urlopen(request, timeout: int = 0):
+    def _urlopen_stub_proxy_003(request, timeout=0):
         raise URLError("offline")
 
-    monkeypatch.setattr(module, "urlopen", fake_urlopen)
+    monkeypatch.setattr(module, "urlopen", _urlopen_stub_proxy_003)
     client = module.app.test_client()
 
     response = client.get("/_proxy/api/v1/news")

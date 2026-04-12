@@ -16,12 +16,11 @@ from app.services.ai_stack_evidence_service import build_session_evidence_bundle
 from app.services.inspector_projection_coverage_health_distribution import (
     build_coverage_health_supported_inner,
 )
+from app.services.inspector_projection_shared import _build_root, _diagnostics_rows
 
 
 def build_inspector_coverage_health_projection(*, session_id: str, trace_id: str) -> dict[str, Any]:
     """Return evidence-backed coverage/health aggregates."""
-    from app.services.inspector_projection_service import _build_root, _diagnostics_rows
-
     bundle = build_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
     if bundle.get("error") == "backend_session_not_found":
         return bundle

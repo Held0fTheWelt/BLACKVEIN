@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+
 import json
 from pathlib import Path
 
@@ -16,11 +18,7 @@ pytest.importorskip(
 )
 from ai_stack.goc_frozen_vocab import DIRECTOR_IMMUTABLE_FIELDS, GOC_MODULE_ID
 from ai_stack.goc_turn_seams import build_operator_canonical_turn_record, strip_director_overwrites_from_structured_output
-from ai_stack.goc_yaml_authority import (
-    cached_goc_yaml_title,
-    clear_goc_yaml_slice_cache,
-    detect_builtin_yaml_title_conflict,
-)
+from ai_stack.goc_yaml_authority import cached_goc_yaml_title, detect_builtin_yaml_title_conflict
 from ai_stack.langgraph_runtime import RuntimeTurnGraphExecutor
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.scene_director_goc import goc_scene_assessment_has_minimal_fields
@@ -84,15 +82,6 @@ def _executor(tmp_path: Path, *, openai: BaseModelAdapter | None = None) -> Runt
         retriever=ContextRetriever(corpus),
         assembler=ContextPackAssembler(),
     )
-
-
-@pytest.fixture(autouse=True)
-def _clear_goc_caches() -> None:
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
-    yield
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
 
 
 def test_build_operator_canonical_turn_record_shape(tmp_path: Path) -> None:

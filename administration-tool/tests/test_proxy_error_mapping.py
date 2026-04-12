@@ -37,11 +37,11 @@ class TestProxyTimeoutError:
         """Verify URLError with socket timeout reason is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_001(request, timeout=0):
             # socket.timeout wrapped in URLError
             raise URLError(socket.timeout("Connection timed out"))
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_001)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -54,10 +54,10 @@ class TestProxyTimeoutError:
         """Verify URLError with timeout reason is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_002(request, timeout=0):
             raise URLError("_ssl.c:1000: The handshake operation timed out")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_002)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -73,10 +73,10 @@ class TestProxyNetworkErrors:
         """Verify URLError with connection refused is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_003(request, timeout=0):
             raise URLError("[Errno 111] Connection refused")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_003)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -89,10 +89,10 @@ class TestProxyNetworkErrors:
         """Verify URLError with DNS resolution failure is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_004(request, timeout=0):
             raise URLError("nodename nor servname provided, or not known")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_004)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -104,10 +104,10 @@ class TestProxyNetworkErrors:
         """Verify URLError with network unreachable is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_005(request, timeout=0):
             raise URLError("[Errno 101] Network is unreachable")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_005)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -123,7 +123,7 @@ class TestProxyBackendAuthErrors:
         """Verify backend 401 Unauthorized is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_006(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=401,
@@ -132,7 +132,7 @@ class TestProxyBackendAuthErrors:
                 fp=BytesIO(b'{"error": "Unauthorized"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_006)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/protected")
@@ -145,7 +145,7 @@ class TestProxyBackendAuthErrors:
         """Verify backend 403 Forbidden is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_007(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=403,
@@ -154,7 +154,7 @@ class TestProxyBackendAuthErrors:
                 fp=BytesIO(b'{"error": "Access denied"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_007)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/restricted")
@@ -171,7 +171,7 @@ class TestProxyBackendNotFoundErrors:
         """Verify backend 404 Not Found is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_008(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=404,
@@ -180,7 +180,7 @@ class TestProxyBackendNotFoundErrors:
                 fp=BytesIO(b'{"error": "Resource not found"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_008)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/nonexistent")
@@ -197,7 +197,7 @@ class TestProxyBackendRateLimitErrors:
         """Verify backend 429 Too Many Requests is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_009(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=429,
@@ -206,7 +206,7 @@ class TestProxyBackendRateLimitErrors:
                 fp=BytesIO(b'{"error": "Rate limit exceeded"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_009)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -223,7 +223,7 @@ class TestProxyBackendServerErrors:
         """Verify backend 500 Internal Server Error is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_010(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=500,
@@ -232,7 +232,7 @@ class TestProxyBackendServerErrors:
                 fp=BytesIO(b'{"error": "Internal server error"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_010)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -245,7 +245,7 @@ class TestProxyBackendServerErrors:
         """Verify backend 503 Service Unavailable is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_011(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=503,
@@ -254,7 +254,7 @@ class TestProxyBackendServerErrors:
                 fp=BytesIO(b'{"error": "Service unavailable"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_011)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -267,7 +267,7 @@ class TestProxyBackendServerErrors:
         """Verify backend 502 Bad Gateway is forwarded as-is."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_012(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=502,
@@ -276,7 +276,7 @@ class TestProxyBackendServerErrors:
                 fp=BytesIO(b'{"error": "Bad gateway"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_012)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -295,7 +295,7 @@ class TestProxyErrorResponseBodies:
 
         error_body = b'{"error": "Validation failed", "details": {"field": "email"}}'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_013(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=400,
@@ -304,7 +304,7 @@ class TestProxyErrorResponseBodies:
                 fp=BytesIO(error_body),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_013)
         client = module.app.test_client()
 
         response = client.post("/_proxy/api/v1/users", data=b'{"invalid": "data"}')
@@ -319,7 +319,7 @@ class TestProxyErrorResponseBodies:
 
         error_body = b"Bad Request: Missing required field"
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_014(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=400,
@@ -328,7 +328,7 @@ class TestProxyErrorResponseBodies:
                 fp=BytesIO(error_body),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_014)
         client = module.app.test_client()
 
         response = client.post("/_proxy/api/v1/users", data=b'{}')
@@ -343,7 +343,7 @@ class TestProxyErrorResponseBodies:
 
         error_body = b'<html><body><h1>500 Internal Server Error</h1></body></html>'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_015(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=500,
@@ -352,7 +352,7 @@ class TestProxyErrorResponseBodies:
                 fp=BytesIO(error_body),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_015)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -365,7 +365,7 @@ class TestProxyErrorResponseBodies:
         """Verify empty error body is preserved from backend."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_016(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=401,
@@ -374,7 +374,7 @@ class TestProxyErrorResponseBodies:
                 fp=BytesIO(b''),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_016)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/protected")
@@ -398,7 +398,7 @@ class TestProxyErrorContentTypeHeaders:
         """Verify Content-Type header is preserved in error responses."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_017(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=status_code,
@@ -407,7 +407,7 @@ class TestProxyErrorContentTypeHeaders:
                 fp=BytesIO(b'{"error": "test"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_017)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")
@@ -442,7 +442,7 @@ class TestProxyErrorMappingComprehensive:
         """Verify all common HTTP error codes are forwarded correctly."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_018(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=status_code,
@@ -451,7 +451,7 @@ class TestProxyErrorMappingComprehensive:
                 fp=BytesIO(b'{"error": "test"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_018)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")
@@ -468,7 +468,7 @@ class TestProxyErrorMappingWithMethods:
         """Verify error codes are forwarded correctly for all HTTP methods."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_019(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=400,
@@ -477,7 +477,7 @@ class TestProxyErrorMappingWithMethods:
                 fp=BytesIO(b'{"error": "Invalid request"}'),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_019)
         client = module.app.test_client()
 
         response = client.open(
@@ -502,7 +502,7 @@ class TestProxyMalformedResponses:
         # Invalid UTF-8 sequence
         invalid_body = b'\x80\x81\x82\x83'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_020(request, timeout=0):
             raise HTTPError(
                 url=request.full_url,
                 code=500,
@@ -511,7 +511,7 @@ class TestProxyMalformedResponses:
                 fp=BytesIO(invalid_body),
             )
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_020)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")
@@ -528,10 +528,10 @@ class TestProxyMalformedResponses:
         # 1MB response
         large_body = b'{"data": "' + (b'x' * (1024 * 1024 - 20)) + b'"}'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_021(request, timeout=0):
             return DummyUpstreamResponse(large_body, status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_021)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/large-data")
@@ -548,10 +548,10 @@ class TestProxyNetworkErrorVariations:
         """Verify generic URLError is mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_022(request, timeout=0):
             raise URLError("Unknown network error")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_022)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")
@@ -563,10 +563,10 @@ class TestProxyNetworkErrorVariations:
         """Verify SSL errors are mapped to 502."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_pem_023(request, timeout=0):
             raise URLError("SSL: CERTIFICATE_VERIFY_FAILED")
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_pem_023)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")

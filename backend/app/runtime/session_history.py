@@ -15,20 +15,21 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.runtime.session_history_constants import (
+    MAX_HISTORY_CONSEQUENCES_PER_ENTRY,
+    MAX_HISTORY_REASON_CHAR_LIMIT,
+    SESSION_HISTORY_DEFAULT_MAX_ENTRIES,
+)
 from app.runtime.short_term_context import ShortTermTurnContext
-
-# Task 1C: tighter caps for long-lived history rows (JSON-safe, compact).
-_MAX_HISTORY_CONSEQUENCES = 16
-_MAX_HISTORY_REASON_LEN = 200
 
 
 def _cap_history_reason(value: str | None) -> str | None:
     if value is None:
         return None
     s = str(value).strip()
-    if len(s) <= _MAX_HISTORY_REASON_LEN:
+    if len(s) <= MAX_HISTORY_REASON_CHAR_LIMIT:
         return s
-    return s[: _MAX_HISTORY_REASON_LEN - 1] + "…"
+    return s[: MAX_HISTORY_REASON_CHAR_LIMIT - 1] + "…"
 
 
 class HistoryEntry(BaseModel):
@@ -82,7 +83,7 @@ class HistoryEntry(BaseModel):
 
         Extracts the most relevant information for long-term session tracking.
         """
-        consequences = list(context.canonical_consequences or [])[:_MAX_HISTORY_CONSEQUENCES]
+        consequences = list(context.canonical_consequences or [])[:MAX_HISTORY_CONSEQUENCES_PER_ENTRY]
         return cls(
             turn_number=context.turn_number,
             scene_id=context.scene_id,
@@ -115,7 +116,7 @@ class SessionHistory(BaseModel):
     """
 
     entries: list[HistoryEntry] = Field(default_factory=list)
-    max_size: int = 100
+    max_size: int = SESSION_HISTORY_DEFAULT_MAX_ENTRIES
 
     def add_entry(self, entry: HistoryEntry) -> None:
         """Add a new history entry, trimming oldest if needed.

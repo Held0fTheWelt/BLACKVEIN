@@ -37,11 +37,11 @@ class TestProxyAllowedPaths:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_001(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"data": "ok"}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_001)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -61,10 +61,10 @@ class TestProxyAllowedPaths:
         """Verify various /api/* paths are allowed."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_002(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_002)
         client = module.app.test_client()
 
         response = client.get(api_path)
@@ -126,10 +126,10 @@ class TestProxyForbiddenPaths:
         """Verify /_proxy/api/v1/admin-accounts is allowed (doesn't start with admin)."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_003(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_003)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/admin-accounts")
@@ -147,11 +147,11 @@ class TestProxyHttpMethods:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_004(request, timeout=0):
             recorded["method"] = request.get_method()
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_004)
         client = module.app.test_client()
 
         response = client.open("/_proxy/api/v1/news", method=method)
@@ -165,11 +165,11 @@ class TestProxyHttpMethods:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         call_count = {"count": 0}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_005(request, timeout=0):
             call_count["count"] += 1
             return DummyUpstreamResponse(b'', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_005)
         client = module.app.test_client()
 
         response = client.options("/_proxy/api/v1/news")
@@ -188,11 +188,11 @@ class TestProxyQueryParameters:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_006(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"data": "ok"}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_006)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news?draft=true")
@@ -212,11 +212,11 @@ class TestProxyQueryParameters:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_007(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_007)
         client = module.app.test_client()
 
         response = client.get(f"/_proxy/api/v1/search{query_string}")
@@ -235,11 +235,11 @@ class TestProxyRequestBody:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_008(request, timeout=0):
             recorded["body"] = request.data
             return DummyUpstreamResponse(b'{"ok": true}', status=201)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_008)
         client = module.app.test_client()
 
         test_body = b'{"title": "New News"}'
@@ -259,11 +259,11 @@ class TestProxyRequestBody:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_009(request, timeout=0):
             recorded["body"] = request.data
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_009)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -281,10 +281,10 @@ class TestProxyResponseStatus:
         """Verify response status codes are forwarded correctly."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_010(request, timeout=0):
             return DummyUpstreamResponse(b'{"status": "test"}', status=status_code)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_010)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/test")
@@ -302,10 +302,10 @@ class TestProxyResponseBody:
 
         response_body = b'{"id": 1, "title": "Test", "content": "Hello World"}'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_011(request, timeout=0):
             return DummyUpstreamResponse(response_body, status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_011)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -321,10 +321,10 @@ class TestProxyResponseBody:
         response_json = {"id": 1, "name": "John", "email": "john@example.com", "active": True}
         response_body = b'{"id": 1, "name": "John", "email": "john@example.com", "active": true}'
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_012(request, timeout=0):
             return DummyUpstreamResponse(response_body, status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_012)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/users/1")
@@ -337,10 +337,10 @@ class TestProxyResponseBody:
         """Verify empty response body is preserved."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_013(request, timeout=0):
             return DummyUpstreamResponse(b'', status=204)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_013)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -363,10 +363,10 @@ class TestProxyContentTypeHeader:
         """Verify Content-Type header is preserved from backend."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_014(request, timeout=0):
             return DummyUpstreamResponse(b'response', status=200, content_type=content_type)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_014)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -379,12 +379,12 @@ class TestProxyContentTypeHeader:
         """Verify default Content-Type is application/json when not provided."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_015(request, timeout=0):
             resp = DummyUpstreamResponse(b'{}', status=200)
             resp.headers = {}  # No Content-Type
             return resp
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_015)
         client = module.app.test_client()
 
         response = client.get("/_proxy/api/v1/news")
@@ -412,11 +412,11 @@ class TestProxyNegativeCases:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_016(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_016)
         client = module.app.test_client()
 
         # Flask decodes URL-encoded paths before routing, so the space is decoded
@@ -432,11 +432,11 @@ class TestProxyNegativeCases:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_017(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_017)
         client = module.app.test_client()
 
         long_path = "/_proxy/api/v1/" + "/".join([f"segment{i}" for i in range(10)])
@@ -455,11 +455,11 @@ class TestProxyHeaderForwarding:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_018(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_018)
         client = module.app.test_client()
 
         auth_token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
@@ -477,11 +477,11 @@ class TestProxyHeaderForwarding:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_019(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_019)
         client = module.app.test_client()
 
         response = client.get(
@@ -498,11 +498,11 @@ class TestProxyHeaderForwarding:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_020(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_020)
         client = module.app.test_client()
 
         response = client.get(
@@ -519,11 +519,11 @@ class TestProxyHeaderForwarding:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_021(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_021)
         client = module.app.test_client()
 
         response = client.get(
@@ -546,11 +546,11 @@ class TestProxyApprovedHeaders:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_022(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_022)
         client = module.app.test_client()
 
         user_agent = "Mozilla/5.0 (X11; Linux x86_64)"
@@ -570,11 +570,11 @@ class TestProxyApprovedHeaders:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_023(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_023)
         client = module.app.test_client()
 
         response = client.get(
@@ -591,11 +591,11 @@ class TestProxyApprovedHeaders:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_024(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_024)
         client = module.app.test_client()
 
         response = client.get(
@@ -613,11 +613,11 @@ class TestProxyApprovedHeaders:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_025(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_025)
         client = module.app.test_client()
 
         response = client.get(
@@ -635,11 +635,11 @@ class TestProxyApprovedHeaders:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_026(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_026)
         client = module.app.test_client()
 
         response = client.get(
@@ -666,12 +666,12 @@ class TestProxyPathAbuse:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_027(request, timeout=0):
             recorded["url"] = request.full_url
             # Backend would reject these, but proxy should normalize them safely
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_027)
         client = module.app.test_client()
 
         # Flask normalizes paths before routing, so these should either be blocked or forwarded safely
@@ -686,10 +686,10 @@ class TestProxyPathAbuse:
         """Verify admin paths are blocked even with URL encoding."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_028(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_028)
         client = module.app.test_client()
 
         # %61 = 'a', %64 = 'd', %6d = 'm', %69 = 'i', %6e = 'n'
@@ -705,11 +705,11 @@ class TestProxyPathAbuse:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_029(request, timeout=0):
             recorded["url"] = request.full_url
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_029)
         client = module.app.test_client()
 
         # Null bytes in URLs are forwarded to backend as-is (backend validates)
@@ -731,11 +731,11 @@ class TestProxyHeaderInjection:
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
         recorded = {}
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_030(request, timeout=0):
             recorded["headers"] = dict(request.header_items())
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_030)
         client = module.app.test_client()
 
         # Try to inject a header via newline
@@ -758,10 +758,10 @@ class TestProxyHeaderInjection:
         """Verify oversized headers don't cause issues."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_031(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_031)
         client = module.app.test_client()
 
         # Very large header value (16KB)
@@ -793,10 +793,10 @@ class TestProxyAdditionalForbiddenPaths:
         """Verify paths starting with underscore (internal/system) are blocked or forwarded safely."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_032(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_032)
         client = module.app.test_client()
 
         response = client.get(forbidden_path)
@@ -822,10 +822,10 @@ class TestProxyAllowedPathVariations:
         """Verify various API paths are forwarded correctly."""
         module = load_frontend_module(monkeypatch, backend_url="https://api.example.test")
 
-        def fake_urlopen(request, timeout=0):
+        def _urlopen_stub_tpc_033(request, timeout=0):
             return DummyUpstreamResponse(b'{"ok": true}', status=200)
 
-        monkeypatch.setattr(module, "urlopen", fake_urlopen)
+        monkeypatch.setattr(module, "urlopen", _urlopen_stub_tpc_033)
         client = module.app.test_client()
 
         response = client.get(allowed_path)

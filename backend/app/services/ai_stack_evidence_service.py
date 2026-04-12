@@ -283,10 +283,43 @@ def _writers_room_governance_signals(review: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def assemble_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[str, Any]:
+    """Build governance session evidence bundle (same contract as historical ``session_bundle`` module)."""
+    from app.services.ai_stack_evidence_session_bundle_sections import (
+        apply_diagnostics_execution_truth_and_retrieval,
+        apply_world_engine_bridge,
+        apply_writers_room_and_improvement_signals,
+        session_bundle_base_scaffold,
+        session_bundle_not_found,
+    )
+
+    import sys
+
+    runtime_session = get_runtime_session(session_id)
+    if not runtime_session:
+        return session_bundle_not_found(trace_id=trace_id, session_id=session_id)
+
+    state = runtime_session.current_runtime_state
+    metadata = state.metadata if isinstance(state.metadata, dict) else {}
+    engine_id = metadata.get("world_engine_story_session_id")
+
+    bundle = session_bundle_base_scaffold(
+        trace_id=trace_id,
+        session_id=session_id,
+        state=state,
+        engine_id=engine_id,
+    )
+
+    apply_world_engine_bridge(bundle, engine_id=engine_id, trace_id=trace_id)
+    ev_mod = sys.modules[__name__]
+    apply_diagnostics_execution_truth_and_retrieval(bundle, ev_mod)
+    apply_writers_room_and_improvement_signals(bundle, ev_mod)
+
+    return bundle
+
+
 def build_session_evidence_bundle(*, session_id: str, trace_id: str) -> dict[str, Any]:
     """Return inspectable evidence for a backend runtime session (may include World-Engine story host data)."""
-    from app.services.ai_stack_evidence_session_bundle import assemble_session_evidence_bundle
-
     return assemble_session_evidence_bundle(session_id=session_id, trace_id=trace_id)
 
 

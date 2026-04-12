@@ -52,6 +52,20 @@ class AutonomousLoopTests(unittest.TestCase):
             r = al.advance("backlog_solve", ds="DS-099", check_json=None)
             self.assertFalse(r.ok)
             self.assertEqual(r.exit_code, 2)
+            slice_json = self._tmp / "slice_check.json"
+            slice_json.write_text(
+                json.dumps({"kind": "despaghettify_check", "ast": {"total_functions": 2}}),
+                encoding="utf-8",
+            )
+            rel_slice = slice_json.relative_to(al.ROOT).as_posix()
+            r_impl = al.advance("backlog_implement", ds="DS-099", check_json=rel_slice)
+            self.assertTrue(r_impl.ok, r_impl.message)
+            st_mid = al.load_state()
+            assert st_mid is not None
+            self.assertEqual(st_mid["last_kind"], "backlog_implement")
+            r_impl_bad = al.advance("backlog_implement", ds="DS-099", check_json=None)
+            self.assertFalse(r_impl_bad.ok)
+            self.assertEqual(r_impl_bad.exit_code, 2)
             # Close DS in markdown (no bold open row)
             self._input.write_text(_minimal_input(None), encoding="utf-8")
             r2 = al.advance("backlog_solve", ds="DS-099", check_json=None)

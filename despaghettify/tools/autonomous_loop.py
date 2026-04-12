@@ -122,7 +122,7 @@ def save_state(data: dict[str, Any]) -> None:
     STATE_FILE.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-AdvanceKind = Literal["backlog_solve", "main_check", "main_solve"]
+AdvanceKind = Literal["backlog_implement", "backlog_solve", "main_check", "main_solve"]
 
 
 @dataclass
@@ -141,7 +141,7 @@ def _validate_state_shape(s: dict[str, Any]) -> str | None:
             return f"missing field {k}"
     if s["phase"] not in ("backlog", "main"):
         return "invalid phase"
-    if s["last_kind"] not in ("init", "backlog_solve", "main_check", "main_solve"):
+    if s["last_kind"] not in ("init", "backlog_implement", "backlog_solve", "main_check", "main_solve"):
         return "invalid last_kind"
     return None
 
@@ -218,6 +218,52 @@ def advance(
         save_state(state)
         return AdvanceResult(True, 0, f"recorded backlog_solve for {ds_norm}", state)
 
+    if kind == "backlog_implement":
+        if phase != "backlog":
+            return AdvanceResult(False, 2, "backlog_implement only allowed in backlog phase", None)
+        if not ds or ds_numeric_id(ds) < 0:
+            return AdvanceResult(False, 2, "backlog_implement requires --ds DS-nnn", None)
+        ds_norm = ds.strip()
+        if not open_now or not open_ds_row_still_open(open_now, ds_norm):
+            return AdvanceResult(
+                False,
+                2,
+                f"{ds_norm} not listed as open in Information input list; use backlog-solve after closing the row",
+                None,
+            )
+        if not check_json or not check_json.strip():
+            return AdvanceResult(False, 2, "backlog_implement requires --check-json (repo-relative path)", None)
+        rel = check_json.strip().replace("\\", "/")
+        abs_path = (ROOT / rel).resolve()
+        try:
+            abs_path.relative_to(ROOT.resolve())
+        except ValueError:
+            return AdvanceResult(False, 2, "check_json must stay under repository root", None)
+        if not abs_path.is_file():
+            return AdvanceResult(False, 2, f"check_json not found: {rel}", None)
+        try:
+            payload = json.loads(abs_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            return AdvanceResult(False, 2, f"invalid check_json: {e}", None)
+        if payload.get("kind") != "despaghettify_check" and "ast" not in payload:
+            return AdvanceResult(
+                False,
+                2,
+                "check_json must be hub check output (kind despaghettify_check or top-level ast)",
+                None,
+            )
+        paths = state.setdefault("recent_check_json_paths", [])
+        paths.append(rel)
+        state["recent_check_json_paths"] = paths[-8:]
+        _append_event(state, "backlog_implement", ds_norm, rel)
+        state["last_kind"] = "backlog_implement"
+        state["last_open_ds_snapshot"] = list(open_now)
+        head = _git_head()
+        if head:
+            state["head_sha_expected"] = head
+        save_state(state)
+        return AdvanceResult(True, 0, f"recorded backlog_implement for {ds_norm} ({rel})", state)
+
     if kind == "main_check":
         if phase == "backlog" and open_now:
             return AdvanceResult(False, 2, "main_check not allowed while backlog DS rows remain", None)
@@ -274,7 +320,11 @@ def status_json() -> dict[str, Any]:
     else:
         if state["phase"] == "backlog":
             if open_now:
-                next_hints.append("allowed: autonomous-advance --kind backlog-solve --ds DS-… (after closing)")
+                next_hints.append(
+                    "allowed: autonomous-advance --kind backlog-implement --ds DS-… --check-json <path> "
+                    "(after an implementation slice; DS row stays open until goal met)"
+                )
+                next_hints.append("allowed: autonomous-advance --kind backlog-solve --ds DS-… (only after closing the row in the input list)")
             else:
                 next_hints.append("allowed: autonomous-advance --kind main-check [--check-json path]")
         else:
@@ -287,7 +337,9 @@ def status_json() -> dict[str, Any]:
             elif state["last_kind"] == "main_solve":
                 next_hints.append("allowed: autonomous-advance --kind main-check [--check-json path]")
             elif state["last_kind"] == "init" and state.get("open_ds_at_init"):
-                next_hints.append("allowed: autonomous-advance --kind backlog-solve --ds DS-… (after closing each row)")
+                next_hints.append(
+                    "allowed: backlog-implement (slice + --check-json) while row open; backlog-solve only after row closed"
+                )
     return {
         "active": True,
         "state_path": str(STATE_FILE.relative_to(ROOT)),
@@ -339,7 +391,7 @@ def verify(
 
     open_now = collect_open_ds_ids()
     snap = state.get("last_open_ds_snapshot") or []
-    if sorted(open_now) != sorted(snap) and state.get("last_kind") not in ("init",):
+    if sorted(open_now) != sorted(snap) and state.get("last_kind") not in ("init", "backlog_implement"):
         msgs.append(f"info: open_ds changed since snapshot (now={open_now}, snapshot={snap})")
 
     stall_advisory = False

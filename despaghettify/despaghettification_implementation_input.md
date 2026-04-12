@@ -34,8 +34,11 @@ This document is **not** a replacement for [`state/EXECUTION_GOVERNANCE.md`](../
 
 | ID | Primary workstream (`artifacts/workstreams/…`) | Also involved (own pre/post only for real scope) |
 |----|--------------------------------------------------|-----------------------------------------------------|
-| DS-001 | `backend_runtime_services` | May touch `ai_stack` / `world-engine` imports only if a cycle spans packages — coordinate scope. |
-| DS-002 | `backend_runtime_services` | Duplicate-name proxy spans all ROOTS; secondaries (`ai_stack`, `world_engine`) only if renames leave those trees. |
+| **DS-001** | `backend_runtime_services` | — |
+| **DS-002** | `backend_runtime_services` | `ai_stack` (call sites only) |
+| **DS-003** | `ai_stack` | — |
+| **DS-004** | `backend_runtime_services` | `administration_tool` (if admin surfaces share constants) |
+| **DS-005** | `backend_runtime_services` | `world_engine`, `ai_stack` (hot files in hint) |
 
 **Fill in:** For each active **DS-*** one row (or a group sharing the same primary workstream); slugs as in [`WORKSTREAM_INDEX.md`](../state/WORKSTREAM_INDEX.md): `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine`, `documentation`. Repo-wide cross-check without product code: optional `artifacts/repo_governance_rollout/pre|post/` (e.g. **DS-REPLAY-G**).
 
@@ -77,35 +80,35 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 
 | Field | **Trigger v2** (0–100; advisory) | **Anteil %** (vs. bars / `M7_ref`; **M7** row = `m7_anteil_pct_gewichtet`) |
 |-------|-------------------------------------|-------------------------------------|
-| **As of (date & time)** | — | **2026-04-12 12:47:09 (UTC)** |
+| **As of (date & time)** | — | **2026-04-12 16:43:43 (UTC)** |
 | Spaghetti scan command | — | `python despaghettify/tools/spaghetti_ast_scan.py` (ROOTS = *measurement scope*) |
 | Measurement scope (ROOTS) | — | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` |
-| **M7** — gewichtete 7-Kategorien-Summe | **36.30** | **6.29** |
-| C1: Circular dependencies | **6.09** | **10.77** |
-| C2: Nesting depth | **0.00** | **1.27** |
-| C3: Long functions + complexity | **65.44** | **0.77** |
-| C4: Multi-responsibility modules | **67.10** | **6.18** |
-| C5: Magic numbers + global state | **36.91** | **1.11** |
-| C6: Missing abstractions / duplication | **26.57** | **14.99** |
-| C7: Confusing control flow | **42.54** | **5.65** |
-| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | — | **4404** / **272** / **34** / **0** |
-| Extra check builtins | — | **`check` embed:** **0** `def build_god_of_carnage_solo` hits across `**/builtins.py`; factory remains on `goc_solo_builtin_template` (same UTC pass). |
-| Extra check runtime | — | **`ds005` exit 0**; **0** hits for `TYPE_CHECKING` / “avoid circular” / “circular dependency” grep under `backend/app/runtime` (same pass). |
-| **Open hotspots** | — | **Policy:** **C1** share **10.77%** **>** bar **0%** (`backend/app` import SCC v1 — **35** / **325** graph files). **C6** share **14.99%** **>** bar **0%** (duplicate callable **names** across files — proxy). **C7** share **5.65%** **>** bar **3%**. **Composite:** `M7_anteil` **6.29** **≥** `M7_ref` **4.25** (composite fire). **Advisory:** **Trigger v2** is high on **C3**/**C4** (long / broad callables) without crossing **Anteil** bars — track if tails grow. Longest measured body this pass: **`legacy_keyword_scene_candidates`** (`ai_stack/scene_director_goc_legacy_keyword_candidates.py`). |
+| **M7** — gewichtete 7-Kategorien-Summe | **34.21** | **4.55** |
+| C1: Circular dependencies | **6.02** | **5.31** |
+| C2: Nesting depth | **0.00** | **1.28** |
+| C3: Long functions + complexity | **63.21** | **0.73** |
+| C4: Multi-responsibility modules | **67.37** | **6.22** |
+| C5: Magic numbers + global state | **37.05** | **1.10** |
+| C6: Missing abstractions / duplication | **25.38** | **12.47** |
+| C7: Confusing control flow | **41.09** | **5.70** |
+| **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | — | **4372** / **272** / **32** / **0** |
+| Extra check builtins | — | **0** matches for `def build_god_of_carnage_solo` in `**/builtins.py` (2026-04-12) |
+| Extra check runtime | — | **`ds005_runtime_import_check.py`** exit **0**; grep `TYPE_CHECKING` / `avoid circular` / `circular dependency` under `backend/app/runtime`: **0** hits (spot check) |
+| **Open hotspots** | — | **Anteil policy fires (strict `>` vs bars; composite `M7_anteil` vs `M7_ref`):** **C1** **5.31%** > bar **2%**; **C4** **6.22%** > **5%**; **C5** **1.10%** > **0%**; **C6** **12.47%** > **0%**; **C7** **5.70%** > **3%**; **M7_anteil** **4.55** ≥ **`M7_ref`** **4.24**. **Scan story:** **4372** functions; **32** over **100** lines (examples: `progression_summary`, `area2_operator_truth`, `forum_service`, `run_bounded_exploration_expand_loop`, `update_narrative_threads_impl`); **`nesting≥6`:** **0**. **Advisory:** **C3** Trigger v2 **63.21** (length/complexity pressure) while Anteil is below bar — track alongside long-function hotspots. |
 
 ### Score *M7* — inputs, weights, and calculation
 
 | Symbol | Meaning | **Trigger v2** (0–100) | **Anteil %** |
 |--------|---------|------------------------|--------------|
-| **M7** | Gewichtete Summe | **36.30** | **6.29** |
-| **C1** | Circular dependencies | **6.09** | **10.77** |
-| **C2** | Nesting depth | **0.00** | **1.27** |
-| **C3** | Long functions + complexity | **65.44** | **0.77** |
-| **C4** | Multi-responsibility modules | **67.10** | **6.18** |
-| **C5** | Magic numbers + global state | **36.91** | **1.11** |
-| **C6** | Missing abstractions / duplication | **26.57** | **14.99** |
-| **C7** | Confusing control flow | **42.54** | **5.65** |
-| **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | — | **4404** / **272** / **34** / **0** |
+| **M7** | Gewichtete Summe | **34.21** | **4.55** |
+| **C1** | Circular dependencies | **6.02** | **5.31** |
+| **C2** | Nesting depth | **0.00** | **1.28** |
+| **C3** | Long functions + complexity | **63.21** | **0.73** |
+| **C4** | Multi-responsibility modules | **67.37** | **6.22** |
+| **C5** | Magic numbers + global state | **37.05** | **1.10** |
+| **C6** | Missing abstractions / duplication | **25.38** | **12.47** |
+| **C7** | Confusing control flow | **41.09** | **5.70** |
+| **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | — | **4372** / **272** / **32** / **0** |
 
 **Formeln:** **Trigger:** `M7_trigger = Σ weight_i × trigger_v2(Ci)` aus **`metrics_bundle.m7`** / **`score`**. **Anteil:** `M7_anteil = Σ weight_i × anteil_pct(Ci)` aus **`score.m7_anteil_pct_gewichtet`**. **Weights:** [spaghetti-setup.md](../spaghetti-setup.md) § *M7 category weights*.
 
@@ -130,8 +133,11 @@ Each row: **ID**, **pattern** (lead with **C1..C7** from [spaghetti-setup.md](..
 
 | ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
 |----|---------|--------------------|-------------------------|----------------------------|----------------|
-| DS-001 | **C1 ·** import SCC load (`backend.app` v1) | `backend/app` import graph (non-trivial SCC membership) | Re-run `python -m despaghettify.tools check --with-metrics`; watch **`c1_files_in_cycles`** vs **`c1_import_graph_files`**. | Prefer cycle-cutting facades / DTO modules at SCC borders; reduce mutual `app.*` edges before large runtime edits. | Touches shared runtime import seams — avoid parallel uncoordinated refactors across the same SCC. |
-| DS-002 | **C6 ·** duplicate callable names (cross-file proxy) | Helpers and services under ROOTS (name appears in **>1** file) | Use AST scan leaderboards + ripgrouped name search; rename or consolidate in small batches. | Namespace-private helpers, module-level renames, or thin adapter modules to dedupe public names. | Rename waves collide with open import work — sequence after **DS-001** unless analysis proves disjoint file sets. |
+| **DS-001** | **C1 ·** Runtime import / cycle pressure | `backend/app/runtime` (turn executor, supervisor, validators) | Anteil **5.31%** vs bar **2%**; keep **`ds005`** green while trimming edges | Prefer small protocol/DTO modules and explicit seams before large moves | Do not parallel two owners on the same hot runtime files |
+| **DS-002** | **C4 ·** Multi-responsibility hotspots | `backend/app/runtime`, `backend/app/services` (see AST top-12) | Anteil **6.22%** vs bar **5%**; very long functions in progression + services | Split orchestration vs IO; narrow public surfaces per module | Collides with **DS-001** if same modules — follow phase order |
+| **DS-003** | **C6 ·** Duplication / missing shared abstractions | `ai_stack/tests`, `ai_stack/research_*`, shared helpers | Anteil **12.47%** vs bar **0%**; long test/workflow bodies in scan | Extract shared fixtures/builders; dedupe repeated setup | Mostly `ai_stack` — avoid cross-package refactors without contract first |
+| **DS-004** | **C5 ·** Magic numbers + global-ish state | `backend/app/services`, configuration edges | Anteil **1.10%** vs bar **0%** | Named constants, settings objects, fewer module-level singletons | Touches services also targeted by **DS-002** — sequence after or slice carefully |
+| **DS-005** | **C7 ·** Confusing control flow | `ai_stack/goc_turn_seams.py`, `backend/app/runtime/relationship_context_derive.py` | Anteil **5.70%** vs bar **3%**; **C3** Trigger v2 high on same hotspots (advisory) | Guard clauses, smaller branches, extract decision tables | Cross-package — align owners if runtime + `ai_stack` in one PR |
 
 **New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); **pattern** starts with **C1..C7** per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; briefly justify the topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
 
@@ -141,14 +147,20 @@ Prioritised **phases**, **order**, and **dependencies** — aligned with § **in
 
 | Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
 |------------------|----------|-------------|----------------------|----------------------------|
-| 1 | DS-001 | Shrink or dissolve `backend/app` import SCCs (v1) before broad runtime churn | backend_runtime_services | Gates: `python despaghettify/tools/ds005_runtime_import_check.py` (expect **0**); `pytest backend/tests/runtime/` (focused). |
-| 2 | DS-002 | Reduce duplicate-name pressure across measured roots without behaviour drift | backend_runtime_services | Soft-dep: prefer after **DS-001** when hotspots overlap; gates: broader `pytest backend/tests/` after each rename batch. |
+| 1 | DS-001 | Stabilise runtime import seams before large service edits | `backend_runtime_services` | **Gates:** `python despaghettify/tools/ds005_runtime_import_check.py`; targeted `pytest` under `backend/app/runtime` |
+| 2 | DS-002 | Shrink multi-responsibility runtime/service modules | `backend_runtime_services` | **After** phase 1 where paths overlap; `pytest` runtime + selected `backend/app/services` |
+| 3 | DS-004 | Reduce magic numbers / opaque globals in touched services | `backend_runtime_services` | Prefer after phase 2 slices on overlapping files; narrow blast radius |
+| 4 | DS-003 | Deduplicate long `ai_stack` tests / exploration helpers | `ai_stack` | `pytest ai_stack`; independent of backend once runtime seams calm |
+| 5 | DS-005 | Clarify control flow on cross-package hot paths | `backend_runtime_services` | **Gates:** `ds005` again; mix of `pytest` paths covering `ai_stack` + runtime callees |
 
 ```mermaid
 flowchart TB
-  P1["1 · DS-001 · import cycles"]
-  P2["2 · DS-002 · duplicate names"]
-  P1 --> P2
+  P1["1 · DS-001 · runtime C1 seams"]
+  P2["2 · DS-002 · C4 services/runtime"]
+  P3["3 · DS-004 · C5 constants"]
+  P4["4 · DS-003 · C6 ai_stack dedupe"]
+  P5["5 · DS-005 · C7 control flow"]
+  P1 --> P2 --> P3 --> P4 --> P5
 ```
 
 **Fill in:** one phase row per open **DS-*** (or an explicit merge noted in **note**). Order by **risk**: stabilise **runtime / import seams** (`backend_runtime_services` under `app.runtime`, `ds005`-touched paths) before very large **service orchestration** waves; **`ai_stack`**-only (or other packages) typically **later** unless the scan shows a hard blocker. **Parallel:** when two DS waves are independent (different primary workstream, no hard import coupling), use parallel phase bands (e.g. `3a`/`3b`) and document in **note** — do not invent a linear order by default. **Workstream (primary)** must match [WORKSTREAM_INDEX.md](../state/WORKSTREAM_INDEX.md) for pre/post paths. **note** column: concrete **gates** (`pytest …`, `ds005`). **Mermaid:** mandatory diagram **under** the table once phase rows are real (omit while the table is only `—`); **one line per node**, `["phase · DS-ID · short hook"]`, fork/join for parallel bands — [spaghetti-check-task.md](../spaghetti-check-task.md) §3. Full rules: same doc § *Maintaining the input list* → **Recommended implementation order** → *How to build a suitable phase table*. Coordination § *Maintaining this file*: when priority changes or new **DS-*** appear, update this section **and** the Mermaid block.
@@ -161,7 +173,6 @@ Implementers may **briefly** record visible progress (for reviewers and the next
 
 | date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
 |------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
-| 2026-04-12 | DS-001 | **Closed (inconclusive):** W01–W04 complete. Identified 35 files in C1 cycles (10.77%); created context_types DTO module; removed spurious imports. C1 unchanged because cycles are logic-coupled (orchestrator interdependencies), not just import-coupled. Tests green (31/31 narrative). Recommendation: follow-up DS-001b with facade layers (Level 2 refactoring) to reduce C1 to <8%. | `session_20260412_DS-001_wave_plan.md/.json`, `session_20260412_DS-001_w01_cycle_analysis.txt`, `ds001_check_baseline.json`, `ds001_w02_check.json`, `ds001_w03_check.json` | `session_20260412_DS-001_w04_closure.txt` | WORKSTREAM_BACKEND_RUNTIME_AND_SERVICES_STATE.md | `2cda407` (W01), `1e42d71` (W02), `0edd444` (W03), `[W04 below]` |
 | 2026-04-12 | — | `spaghetti-reset-task` + one **`spaghetti-check`**: workstreams wiped, EMPTY → live input, metrics from `check --with-metrics` (same timestamps as § *Latest structure scan*). | — | — | — | Evidence: `despaghettify/reports/reset_check_with_metrics.json`, `despaghettify/reports/reset_ast_scan_capture.txt` |
 
 **New rows:** chronologically (**newest first** recommended); **DS-ID(s)**, gates/tests run, pre/post paths as in [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md); for scan/docs-only updates note briefly. Longer history: Git, PRs, `WORKSTREAM_*_STATE.md`.

@@ -117,6 +117,7 @@ _ALL_RUNTIME_ROOT_MODULES: frozenset[str] = frozenset(
         "scene_presenter_conflict_helpers",
         "scene_presenter_conflict_sections",
         "session_history",
+        "session_history_constants",
         "session_persistence",
         "session_start",
         "session_store",

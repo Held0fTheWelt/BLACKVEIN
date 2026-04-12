@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+pytest_plugins = ("ai_stack.tests.goc_yaml_cache_fixtures",)
+
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -85,15 +87,6 @@ class TurnStep:
     adapter: BaseModelAdapter
     trace_id: str
     graph_fallback_adapter: BaseModelAdapter | None = None
-
-
-@pytest.fixture(autouse=True)
-def _clear_goc_caches() -> None:
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
-    yield
-    cached_goc_yaml_title.cache_clear()
-    clear_goc_yaml_slice_cache()
 
 
 def _run_chain(tmp_path: Path, *, session_id: str, steps: list[TurnStep]) -> list[dict[str, Any]]:

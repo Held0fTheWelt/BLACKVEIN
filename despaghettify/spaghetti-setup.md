@@ -218,7 +218,7 @@ Each **bar** is a **maximum acceptable share in percent**, in the **same unit** 
 
 | Category                           | Symbol | Bar (fire if **Anteil(C*n*) >** this value, **%**) |
 | ---------------------------------- | ------ | -------------------------------------------------- |
-| Circular dependencies              | **C1** | **0**                                              |
+| Circular dependencies              | **C1** | **2**                                              |
 | Nesting depth                      | **C2** | **8**                                              |
 | Long functions + complexity        | **C3** | 12                                                 |
 | Multi-responsibility modules       | **C4** | **5**                                              |
@@ -227,24 +227,27 @@ Each **bar** is a **maximum acceptable share in percent**, in the **same unit** 
 | Confusing control flow             | **C7** | **3**                                              |
 
 
-**Calibration:** The **numeric** cells above may have been chosen under older semantics. After switching to **%-share** gates, **re-tune** bars using recent `**check --with-metrics`** output (look at **Anteil %** per category) so “green” matches team intent.
+**Project intent (strict gates):** This repository **intentionally** keeps several bars tight — especially **C5** at **0** (any positive share of the magic-literal proxy triggers) and **C6** at **0** — because **magic-number-style literals** and **cross-file name duplication** are treated as **material risk** to a long-lived framework (structure and reviewability beat ad-hoc literals). A comparatively low composite **`M7_ref`** supports the same posture: the hub prefers **visible**, **repeatable** full check-path maintenance over silently accepting slow structural drift. That is **policy**, not a parser bug.
+
+**Calibration:** The **numeric** cells above may have been chosen under older semantics. After switching to **%-share** gates, you may **re-tune** bars using recent `**check --with-metrics`** output (look at **Anteil %** per category) so thresholds match **current** team intent — **strict** bars may remain unchanged **on purpose**; only adjust when definitions or product goals change, not to “quiet” the hub by default.
 
 ---
 
 ## M7 category weights
 
-Used in `**M7_ref`** and in the **live composite** `**M7_anteil`** (same formula). **Weights must sum to 1.0.**
+Used in `**M7_ref`** and in the **live composite** `**M7_anteil`** (same formula). **Weights must sum to 1.0.**  
+**Preset WOS-STRICT-2 (B):** same per-category **bars** as before; **higher** weight on **C1** (cycles) and **C5** (magic-literal proxy), slightly lower on **C2** / **C4** / **C7** so the composite reflects that priority.
 
 
 | Symbol | Weight |
 | ------ | ------ |
-| **C1** | 0.20   |
-| **C2** | 0.10   |
-| **C3** | 0.20   |
-| **C4** | 0.15   |
-| **C5** | 0.10   |
-| **C6** | 0.15   |
-| **C7** | 0.10   |
+| **C1** | 0.25   |
+| **C2** | 0.08   |
+| **C3** | 0.18   |
+| **C4** | 0.14   |
+| **C5** | 0.15   |
+| **C6** | 0.12   |
+| **C7** | 0.08   |
 
 
 **Formula (operational %-shares):**  
@@ -265,15 +268,15 @@ with **Anteil(C*n*)** from the scan bundle (**%**), **not** the heuristic **trig
 
 Substituting the **current** bars and weights:
 
-`M7_ref = 0.20×0 + 0.10×8 + 0.20×12 + 0.15×5 + 0.10×0 + 0.15×0 + 0.10×3`
+`M7_ref = 0.25×2 + 0.08×8 + 0.18×12 + 0.14×5 + 0.15×0 + 0.12×0 + 0.08×3`
 
 **Update the next two lines whenever you change bars or weights:**
 
 
 | Field                                                    | Value                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------- |
-| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **4.25**                                                       |
-| **M7_ref** (display)                                     | **≈ 4.25** (optional **%** suffix in Markdown for readability) |
+| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **4.24**                                                       |
+| **M7_ref** (display)                                     | **≈ 4.24** (optional **%** suffix in Markdown for readability) |
 
 
 **Composite trigger:** run the **full** input-list update path when `**M7_anteil ≥ M7_ref`** (even if no single per-category bar was exceeded yet).

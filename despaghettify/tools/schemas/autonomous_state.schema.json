@@ -10,7 +10,7 @@
     "phase": { "type": "string", "enum": ["backlog", "main"] },
     "last_kind": {
       "type": "string",
-      "enum": ["init", "backlog_solve", "main_check", "main_solve"]
+      "enum": ["init", "backlog_implement", "backlog_solve", "main_check", "main_solve"]
     },
     "open_ds_at_init": {
       "type": "array",

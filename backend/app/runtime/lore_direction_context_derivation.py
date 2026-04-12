@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.content.module_models import ContentModule, RelationshipAxis
-from app.runtime.lore_direction_context import ModuleGuidanceUnit
+from app.runtime.lore_direction_context_types import ModuleGuidanceUnit
 from app.runtime.narrative_threads import NarrativeThreadSet
 from app.runtime.progression_summary import ProgressionSummary
 from app.runtime.relationship_context import RelationshipAxisContext
