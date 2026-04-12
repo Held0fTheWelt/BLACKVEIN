@@ -22,5 +22,18 @@ TestingConfig = _config_module.TestingConfig
 env_bool = _config_module.env_bool
 RUN_STORE_BACKEND = _config_module.RUN_STORE_BACKEND
 RUN_STORE_URL = _config_module.RUN_STORE_URL
+_parse_cors_origins = _config_module._parse_cors_origins
+_validate_service_url = _config_module._validate_service_url
+PLAY_SERVICE_INTERNAL_API_KEY = _config_module.PLAY_SERVICE_INTERNAL_API_KEY
 
-__all__ = ["Config", "DevelopmentConfig", "TestingConfig", "env_bool", "RUN_STORE_BACKEND", "RUN_STORE_URL"]
+__all__ = [
+    "Config",
+    "DevelopmentConfig",
+    "TestingConfig",
+    "env_bool",
+    "RUN_STORE_BACKEND",
+    "RUN_STORE_URL",
+    "_parse_cors_origins",
+    "_validate_service_url",
+    "PLAY_SERVICE_INTERNAL_API_KEY",
+]

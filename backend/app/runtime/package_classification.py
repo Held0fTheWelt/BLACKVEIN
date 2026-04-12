@@ -35,6 +35,7 @@ TRANSITIONAL_RUNTIME_MODULE_NAMES: frozenset[str] = frozenset(
 # Explicit union = all runtime root modules (maintain when adding files).
 _ALL_RUNTIME_ROOT_MODULES: frozenset[str] = frozenset(
     {
+        "_string_utils",
         "adapter_registry",
         "agent_registry",
         "ai_adapter",
@@ -79,6 +80,7 @@ _ALL_RUNTIME_ROOT_MODULES: frozenset[str] = frozenset(
         "input_interpreter",
         "lore_direction_context",
         "lore_direction_context_derivation",
+        "lore_direction_context_types",
         "manager",
         "model_inventory_contract",
         "model_inventory_report",
@@ -102,6 +104,7 @@ _ALL_RUNTIME_ROOT_MODULES: frozenset[str] = frozenset(
         "preview_delta",
         "preview_models",
         "progression_summary",
+        "progression_summary_derive_constants",
         "reference_policy",
         "relationship_context",
         "relationship_context_derive",
