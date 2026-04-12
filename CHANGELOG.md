@@ -10,6 +10,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+**Summary:** Hardened the **multi-component test orchestrator** and **testing docs** around honest runner semantics: **`--suite all`** no longer double-runs **writers_room** / **improvement** (they stay inside the **backend** tree), **`--quick`** skips pre-run **collect-only** stats by default ( **`--stats`** to force), **`show_test_stats`** fails the run on non-zero collection, and **`--continue-on-failure`** overrides quick-mode orchestrator stop-after-first-failing-suite. **Coverage** roots for **`pytest-cov`** are centralized as named path constants in [`tests/run_tests.py`](tests/run_tests.py). **Operator-facing** guidance: rewritten [`tests/TESTING.md`](tests/TESTING.md), new [`docs/testing/COVERAGE_SEMANTICS.md`](docs/testing/COVERAGE_SEMANTICS.md), and links from [`docs/testing/INDEX.md`](docs/testing/INDEX.md). **Optional production-near lanes:** manual Compose workflow [`.github/workflows/compose-smoke.yml`](.github/workflows/compose-smoke.yml) plus [`tests/smoke/compose_smoke/`](tests/smoke/compose_smoke/); **Playwright** scaffold under [`tests/e2e/`](tests/e2e/) with **`.gitignore`** entries for local **Node** artefacts. **Backend** tests: replaced several **`assert True`** scope stubs with minimal API-surface checks, strengthened **migration/schema** FK consistency, renamed misleading “concurrent” sequential reads and added **threaded parallel GET** coverage; **world-engine** contract tests assert richer health JSON where trivial. **CI:** [`.github/workflows/ai-stack-tests.yml`](.github/workflows/ai-stack-tests.yml) now **imports `ai_stack.langgraph_runtime`** so graph-heavy tests cannot pass CI when that stack is missing.
+
+### Added
+
+- **Testing docs — coverage meaning:** [`docs/testing/COVERAGE_SEMANTICS.md`](docs/testing/COVERAGE_SEMANTICS.md) — what **`pytest-cov`** measures per suite vs production risk.
+- **Optional Compose smoke (manual CI):** [`.github/workflows/compose-smoke.yml`](.github/workflows/compose-smoke.yml); [`tests/smoke/compose_smoke/README.md`](tests/smoke/compose_smoke/README.md) and [`tests/smoke/compose_smoke/smoke_curl.sh`](tests/smoke/compose_smoke/smoke_curl.sh).
+- **Playwright E2E scaffold (not run by `run_tests.py`):** [`tests/e2e/`](tests/e2e/) — `package.json`, `playwright.config.ts`, `specs/health.spec.ts`, [`tests/e2e/README.md`](tests/e2e/README.md).
+
+### Changed
+
+- **Postmanify hub:** new suite **`'fy'-suites/postmanify/`** with **`postmanify`** CLI (`plan`, `generate`) to refresh **`postman/WorldOfShadows_Complete_OpenAPI.postman_collection.json`** and per-tag **`postman/suites/`** from `docs/api/openapi.yaml`, plus Cursor skill **`postmanify-sync`**; root **`pyproject.toml`** now depends on **PyYAML** and exposes the **`postmanify`** script. `AGENTS.md`, **`'fy'-suites/README.md`**, and **`postman/README.md`** document the workflow.
+- **Despaghettify hub layout:** moved the full hub tree from root `despaghettify/` to `'fy'-suites/despaghettify/` (see `'fy'-suites/README.md`); `pyproject.toml` discovers the **`despaghettify`** package from that directory; the hub CLI module was renamed to `hub_cli.py` under the hub `tools/` tree to avoid import shadowing. `AGENTS.md`, `CONTRIBUTING.md`, `docs/dev/contributing.md`, `.github/workflows/despaghettify-skills-validate.yml`, and hub Markdown were updated for repo-relative paths and deeper relative links from `superpowers/references/`.
+- **Test orchestrator:** [`tests/run_tests.py`](tests/run_tests.py) — **`ALL_SUITE_SEQUENCE`** for **`--suite all`** (six suites, no duplicate writers_room/improvement runs); **`show_test_stats`** returns success/failure from subprocess **exit codes**; **`--quick`** / **`--stats`** / **`--continue-on-failure`**; orchestrator stops after first failing suite in quick mode unless **`--continue-on-failure`**; module docstring, **`--help`**, and epilog aligned with **`python tests/run_tests.py`** from repo root.
+- **Testing guide:** [`tests/TESTING.md`](tests/TESTING.md) — canonical eight suites, **`all`** order and dedupe policy, **`--scope`** matrix, quick/stats behaviour, coverage table and **`pytest-cov`** notes.
+- **Testing index:** [`docs/testing/INDEX.md`](docs/testing/INDEX.md) — links to **COVERAGE_SEMANTICS** and **`tests/TESTING.md`**.
+- **World Engine — contract / perf test honesty:** [`world-engine/tests/test_api_contracts.py`](world-engine/tests/test_api_contracts.py) (health JSON shape); [`world-engine/tests/test_performance_contracts.py`](world-engine/tests/test_performance_contracts.py) (docstring: in-process timings only).
+- **Backend — tests:** [`backend/tests/test_cross_service_data_consistency.py`](backend/tests/test_cross_service_data_consistency.py) (rename sequential multi-role class; **`TestParallelUserReadThreads`**); [`backend/tests/test_database_upgrades.py`](backend/tests/test_database_upgrades.py) (**`foreign_keys`** in schema helper + FK target assertions); placeholder **`assert True`** tests replaced in **`test_turn_dispatcher`**, **`test_adapter_registry`**, **`test_ai_failure_handling`**, **`test_ai_turn_executor`**.
+- **AI Stack CI:** [`.github/workflows/ai-stack-tests.yml`](.github/workflows/ai-stack-tests.yml) — explicit **`import ai_stack.langgraph_runtime`** step before **pytest**.
+- **Root `.gitignore`:** ignore **`tests/e2e/node_modules/`**, **`tests/e2e/playwright-report/`**, **`tests/e2e/test-results/`**.
+
+### Fixed
+
+- **Backend pytest collection:** renamed **`backend/tests/test_game_service.py`** to **[`backend/tests/test_play_service_client.py`](backend/tests/test_play_service_client.py)** so its module name no longer collides with **`backend/tests/services/test_game_service.py`** (both files previously mapped to the **`test_game_service`** module id). That duplicate caused **`ERROR collecting tests/test_game_service.py`** and exit code **2** on full-tree **`pytest --collect-only`**.
+
+### Removed
+
+- **Legacy Postman collections:** removed **`postman/WorldOfShadows_API.postman_collection.json`**, **`WorldOfShadows_Complete.postman_collection.json`**, **`WorldOfShadows_Smoke.postman_collection.json`**, and the duplicate **`postman/generated/WorldOfShadows_OpenAPI.postman_collection.json`** in favour of the OpenAPI-driven **`postman/WorldOfShadows_Complete_OpenAPI.postman_collection.json`** and **`postman/suites/`**; hub and API docs now describe that single layout.
+
+### Fixed (coverage follow-up)
+
+- **Coverage parity (P8):** [`administration-tool/pytest.ini`](administration-tool/pytest.ini) and [`world-engine/pytest.ini`](world-engine/pytest.ini) now default the same **`pytest-cov`** roots and **80%** gate as [`tests/run_tests.py`](tests/run_tests.py); [`database/pytest.ini`](database/pytest.ini) uses the same **`--cov=app`** root as the orchestrator’s **database** suite but **omits** **`--cov-fail-under`** (schema tests only exercise a slice of **`backend/app`**). [`tests/run_tests.py`](tests/run_tests.py) no longer passes **`--cov-fail-under`** for the **database** suite. **`pytest-cov`** added to [`administration-tool/requirements-dev.txt`](administration-tool/requirements-dev.txt) and [`world-engine/requirements-dev.txt`](world-engine/requirements-dev.txt). [`docs/testing/COVERAGE_SEMANTICS.md`](docs/testing/COVERAGE_SEMANTICS.md) expanded with sync table and copy-paste commands; [`tests/TESTING.md`](tests/TESTING.md) database row updated.
+- **Administration-tool coverage:** replaced multiple **`--cov=module`** flags with **`--cov=.`** and a new [`administration-tool/.coveragerc`](administration-tool/.coveragerc) so **Coverage.py 7.x** no longer emits **module-not-imported** / **module-not-measured** warnings; [`tests/run_tests.py`](tests/run_tests.py) suite **administration** uses the same pattern.
+
 ---
 
 ## [0.6.3] - 2026-04-13

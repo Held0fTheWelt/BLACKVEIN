@@ -1,4 +1,8 @@
-"""Tests for app.services.game_service (play service HTTP client and tickets)."""
+"""Tests for ``app.services.game_service`` (play-service HTTP client and tickets).
+
+Kept at ``tests/test_play_service_client.py`` so the module name does not collide with
+``tests/services/test_game_service.py`` during full-suite collection.
+"""
 
 from __future__ import annotations
 
