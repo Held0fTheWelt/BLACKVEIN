@@ -12,6 +12,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.3] - 2026-04-13
+
+**Summary:** Tightened the cross-component test runner at [`tests/run_tests.py`](tests/run_tests.py): **environment checks** now probe the same stacks each suite needs (Flask / SQLAlchemy for backend-shaped trees, FastAPI for the world-engine tree, editable **story_runtime_core** and **ai_stack** for the AI stack suite) so a bare **pytest** install in the runner interpreter cannot falsely pass before collection fails. **`--scope`** maps to **pytest markers** for **administration-tool** and **world-engine** as well as backend, writers-room, and improvement suites (with clear behaviour when a marker is not registered, for example **e2e** on admin or engine). **Coverage** uses explicit **`--cov=`** package or path targets instead of **`--cov=.`** for engine, administration, database, and ai_stack runs. [`database/pytest.ini`](database/pytest.ini) no longer embeds default **`--cov`** flags in **`addopts`**, avoiding duplicate or misleading coverage when invoking pytest from that tree.
+
+### Added
+
+- **Test coverage improvement plan (working document):** [`docs/superpowers/plans/2026-04-13-test-coverage-improvement.md`](docs/superpowers/plans/2026-04-13-test-coverage-improvement.md) — tiered plan for raising suite coverage; intended for agentic execution against existing **pytest** fixtures.
+
+### Changed
+
+- **Multi-component test runner:** [`tests/run_tests.py`](tests/run_tests.py) — **`check_environment(suites)`** runs subprocess import probes per selected suite; **`--scope`** drives **`-m`** for administration, engine, backend, writers_room, and improvement; **`show_test_stats`** honours the same scope for **collect-only**; **`pytest-cov`** arguments use **`_cov_sources_for_suite()`** / **`_append_cov_flags()`** with explicit module lists for **administration-tool** and filesystem paths for **backend**, **frontend**, **engine**, **database**, and **ai_stack** trees.
+
+### Removed
+
+- **Database pytest default coverage flags:** [`database/pytest.ini`](database/pytest.ini) — dropped **`--cov=.`** and related report options from **`addopts`** (no committed **`.coveragerc`** in that tree); use **`tests/run_tests.py`** or pass **`--cov`** explicitly when you want coverage from **`database/tests`**.
+
+---
+
 ## [0.6.2] - 2026-04-12
 
 **Summary:** **Despaghettify** hub and tooling after **`[0.6.1]`**: file-backed **autonomous** session **CLI** (`autonomous-init`, **`backlog-implement`** slice checkpoints, **`backlog-solve`** only after closing a **DS-*** row, `main-check` / `main-solve`), **`metrics_bundle`** heuristic **v2** with literal **Anteil** rates, German **`plain_language_de`** lines, and **Metrik A**; **WOS-STRICT-2** trigger weights and a tighter **C1** bar with regenerated **`spaghetti-setup.json`**; **clean** / **reset** task docs, **Mermaid** phase rules, **add-task-to-meet-trigger** playbook, **wave plan** emit/validate and CI smoke paths; **Cursor** skill copy workflow and path validation. **Structure** input list repopulated from **`spaghetti-reset-task`** (**DS-001..DS-005**). Backend and **AI stack** companion modules (improvement experiment pipeline types, lore/progression/session helpers, **LangGraph** research phases, **GoC** keyword constants and YAML fixtures, inspector projection shared logic). **Administration-tool** and **GoC** test suites refactored; **N8N** webhook tests expanded. **Removed** local workstream session files under **`backend_runtime_services`** when running the hub clean/reset recipe (recover from **Git** or **CI** if you still need those filenames). **Technical audit resolution (same release):** reusable governance pack under **`docs/governance/audit_resolution/`** (master prompt, case input, living state, closure checklist, **Part L1** frozen hygiene criteria, findings **F-L1a** / **F-L1b**); **Accepted ADR-0002** (Appendix A session surface inventory + retirement decision gate) and **Accepted ADR-0003** (canonical GoC scene identity in code with CI single-source guard); **M2** supported test-invocation matrix, root **`Makefile`**, and **`scripts/run_*`** helpers; World Engine **durable story sessions** (JSON store, reload on start, optional **`content_provenance`**, per-session **threading** lock for turns); **aligned** backend compiler plus World Engine **narrative commit** scene row keys (**`id`** and **`scene_id`**).
