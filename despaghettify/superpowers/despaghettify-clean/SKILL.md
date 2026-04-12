@@ -1,6 +1,6 @@
 ---
 name: despaghettify-clean
-description: Routes agents to the Despaghettify workstream artefact wipe — all pre/post session files under state/artifacts/workstreams, optional ephemeral cleanup. Triggers on spaghetti clean, wipe despaghettify artefacts, clear workstream pre post, hub clean before reset.
+description: Routes agents to the Despaghettify artefact wipe — workstreams pre/post, autonomous_loop session state, optional spaghetti_check_last.json, optional ephemeral cleanup. Triggers on spaghetti clean, wipe despaghettify artefacts, hub clean before reset.
 ---
 
 # Despaghettify clean (router)
@@ -9,6 +9,6 @@ description: Routes agents to the Despaghettify workstream artefact wipe — all
 
 `despaghettify/spaghetti-clean-task.md`
 
-Read that file **in full** and execute it. This task **deletes governance evidence** under `artifacts/workstreams/**`; do not run if those files are the sole copy of required closure proof.
+Read that file **in full** and execute it. This task **deletes governance evidence** under `artifacts/workstreams/**` and **autonomous macro-loop state** under `artifacts/autonomous_loop/`; do not run if those files are the sole copy of required closure proof.
 
 Binding index: `despaghettify/state/WORKSTREAM_INDEX.md`.

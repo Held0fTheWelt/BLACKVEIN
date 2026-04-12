@@ -1,6 +1,6 @@
 # Spaghetti reset task (clean slate + one check pass)
 
-**Purpose:** Run **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** first (wipe **all** [`state/artifacts/workstreams/`](state/artifacts/workstreams/) session trees and recreate empty `pre|post` per slug), remove **ephemeral / local** artefacts from the working tree (caches and scratch as below), reset [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) to the **canonical empty template**, then run **[`spaghetti-check-task.md`](spaghetti-check-task.md)** **once** to repopulate § *Latest structure scan* (and, if the trigger policy is met, the DS table and recommended order).
+**Purpose:** Run **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** first (wipe **all** [`state/artifacts/workstreams/`](state/artifacts/workstreams/) session trees and recreate empty `pre|post` per slug; **Step 1b** clears [`state/artifacts/autonomous_loop/`](state/artifacts/autonomous_loop/) and optional `spaghetti_check_last.json`), remove **ephemeral / local** artefacts from the working tree (caches and scratch as below), reset [`despaghettification_implementation_input.md`](despaghettification_implementation_input.md) to the **canonical empty template**, then run **[`spaghetti-check-task.md`](spaghetti-check-task.md)** **once** to repopulate § *Latest structure scan* (and, if the trigger policy is met, the DS table and recommended order).
 
 **Order (this task only):** **Reset first, check second.** Steps **1–2** only clean and restore placeholders — they do **not** run the AST scan or fill **C1..C7** / **M7**. Step **3** is the **first and only** analysis pass after the reset: run [`spaghetti-check-task.md`](spaghetti-check-task.md) once; that pass updates the input list from the EMPTY baseline.
 
@@ -12,14 +12,15 @@
 
 - Prefer **repository root** as cwd for the shell steps below (paths are relative to it). The hub CLI (`python -m despaghettify.tools …`) and `despaghettify/tools/spaghetti_ast_scan.py` resolve repo layout from their locations where applicable.
 - **Workstream wipe is intentional:** this reset **starts** with [`spaghetti-clean-task.md`](spaghetti-clean-task.md) **Step 1**, which **deletes all files** under `despaghettify/state/artifacts/workstreams/**` and recreates empty `pre/` / `post/` folders. Do **not** run a full reset if you must keep local-only session artefacts with no backup.
-- Other paths under `despaghettify/state/artifacts/` (e.g. `repo_governance_rollout/`) are **not** removed by the clean task unless you extend locally by team policy.
+- **Autonomous loop state** (`despaghettify/state/artifacts/autonomous_loop/`, including `autonomous_state.json`) is removed by clean **Step 1b** — same irreversibility warning as workstream session files.
+- **`artifacts/repo_governance_rollout/`** and any other `artifacts/` trees **not** named in [`spaghetti-clean-task.md`](spaghetti-clean-task.md) remain untouched unless team policy extends the clean.
 - If you use `git clean`, **never** use `-x` or `-fd` without reviewing what would be removed; this task uses **explicit paths** only.
 
 ---
 
 ## Step 0 — Spaghetti clean (workstreams + optional same-pass ephemeral cleanup)
 
-Execute **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** in full at minimum **Step 1** (wipe and recreate `artifacts/workstreams/`). **Recommended:** also run **Step 2** of that document here so one pass covers workstreams **and** the ephemeral dirs below (then **skip** duplicating 1a–1c in Step 1 of this document if you already ran clean Step 2).
+Execute **[`spaghetti-clean-task.md`](spaghetti-clean-task.md)** in full at minimum **Step 1** (workstreams) **and Step 1b** (`autonomous_loop/` + optional `spaghetti_check_last.json`). **Recommended:** also run **Step 2** of that document here so one pass covers workstreams, autonomous state, **and** the ephemeral dirs below (then **skip** duplicating 1a–1c in Step 1 of this document if you already ran clean Step 2).
 
 If you **only** run clean **Step 1** (workstreams) and omit clean **Step 2**, continue with **Step 1** below for caches and hub scratch.
 
@@ -144,7 +145,7 @@ Execute the full procedure from that document **in order**, at minimum:
 
 ## Completion checklist
 
-- [ ] **Step 0** completed: [`spaghetti-clean-task.md`](spaghetti-clean-task.md) **Step 1** (all `artifacts/workstreams/` session content removed; empty `pre|post` per slug recreated).
+- [ ] **Step 0** completed: [`spaghetti-clean-task.md`](spaghetti-clean-task.md) **Step 1** (all `artifacts/workstreams/` session content removed; empty `pre|post` per slug recreated) **and Step 1b** (`artifacts/autonomous_loop/` empty; `spaghetti_check_last.json` removed if present).
 - [ ] Step **1a–1c** (or clean task **Step 2**) completed: repo caches, wave-adjacent `var/` trees (where present), hub scratch files under `despaghettify/` (excluding `state/` and `templates/`).
 - [ ] `despaghettification_implementation_input.md` matches the **EMPTY** template before the check (byte-for-byte optional: diff against `templates/…EMPTY.md`).
 - [ ] One full **spaghetti-check** pass completed; scan section filled (**C1..C7** / **M7** as **%**; **AST telemetry** in main table **and** row under **C7** in § *Score M7* per `spaghetti-check-task.md` §1); DS/phases updated only per trigger policy (numeric bars / **`M7_ref`** in [`spaghetti-setup.md`](spaghetti-setup.md)); if DS rows were filled, **§ *Recommended implementation order*** is a **complete** phase table (no `—` placeholders) **and** includes the **mandatory Mermaid** block per `spaghetti-check-task.md` §3.

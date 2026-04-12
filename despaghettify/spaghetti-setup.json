@@ -2,13 +2,13 @@
   "schema_version": 1,
   "description": "Mirror of spaghetti-setup.md. trigger_bars and m7_ref apply to operational anteil_pct (real %), not to ast_heuristic_v2 trigger scores.",
   "trigger_bars": {
-    "C1": 5,
+    "C1": 0,
     "C2": 8,
     "C3": 25,
     "C4": 20,
-    "C5": 12,
-    "C6": 14,
-    "C7": 10
+    "C5": 0,
+    "C6": 0,
+    "C7": 3
   },
   "weights": {
     "C1": 0.2,
@@ -19,5 +19,5 @@
     "C6": 0.15,
     "C7": 0.1
   },
-  "m7_ref": 14.1
+  "m7_ref": 9.1
 }

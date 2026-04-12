@@ -1,15 +1,17 @@
 """Read **spaghetti-setup.md** (canonical policy digits) and compare mirrors / scans.
 
-``spaghetti-setup.json`` is a machine mirror — this tool reports drift vs Markdown.
+``spaghetti-setup.json`` is a machine mirror — ``setup-audit`` reports drift vs Markdown.
+``setup-sync`` writes the JSON mirror from the Markdown tables (after consistency checks).
 ``check --with-metrics`` JSON is optional for live **Anteil %** vs bars from **MD**.
 
-Does **not** write ``spaghetti-setup.md``; edit policy only there, then sync JSON.
+Does **not** write ``spaghetti-setup.md``; edit policy there, then ``setup-sync`` or hand-edit JSON.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +74,80 @@ def parse_spaghetti_setup_md(md_text: str) -> dict[str, Any]:
 
 def compute_m7_ref(bars: dict[str, float], weights: dict[str, float]) -> float:
     return sum(float(weights[k]) * float(bars[k]) for k in (f"C{i}" for i in range(1, 8)))
+
+
+SETUP_JSON_SCHEMA_VERSION = 1
+SETUP_JSON_DESCRIPTION = (
+    "Mirror of spaghetti-setup.md. trigger_bars and m7_ref apply to operational anteil_pct "
+    "(real %), not to ast_heuristic_v2 trigger scores."
+)
+
+
+def build_setup_json_document(parsed_md: dict[str, Any]) -> dict[str, Any]:
+    """Machine mirror object from ``parse_spaghetti_setup_md`` result (ordered keys for diffs)."""
+    bars_in = parsed_md["trigger_bars"]
+    weights_in = parsed_md["weights"]
+    trigger_bars: dict[str, int | float] = {}
+    weights: dict[str, float] = {}
+    for i in range(1, 8):
+        k = f"C{i}"
+        b = float(bars_in[k])
+        trigger_bars[k] = int(b) if b == int(b) else b
+        weights[k] = float(weights_in[k])
+    m7 = float(parsed_md["m7_ref"])
+    m7_out = int(m7) if m7 == int(m7) else round(m7, 4)
+    return {
+        "schema_version": SETUP_JSON_SCHEMA_VERSION,
+        "description": SETUP_JSON_DESCRIPTION,
+        "trigger_bars": trigger_bars,
+        "weights": weights,
+        "m7_ref": m7_out,
+    }
+
+
+def validate_md_m7_ref_consistency(parsed_md: dict[str, Any], *, tol: float = 1e-4) -> str | None:
+    """Return error message if ``M7_ref`` in the md table disagrees with bars×weights; else ``None``."""
+    recomputed = compute_m7_ref(parsed_md["trigger_bars"], parsed_md["weights"])
+    tab = float(parsed_md["m7_ref"])
+    if abs(recomputed - tab) > tol:
+        return (
+            f"M7_ref in markdown table ({tab}) != recomputed Σ(weight×bar) ({recomputed:.6f}); "
+            "fix the Composite reference row or the bars/weights tables."
+        )
+    return None
+
+
+def sync_setup_json_from_md(
+    *,
+    md_path: Path,
+    json_path: Path,
+    dry_run: bool = False,
+    tol: float = 1e-4,
+) -> tuple[int, list[str], dict[str, Any]]:
+    """Write ``json_path`` from ``md_path`` tables.
+
+    Returns ``(exit_code, messages, document)`` — exit **0** on success, **2** if md invalid or inconsistent.
+    """
+    msgs: list[str] = []
+    try:
+        md_text = md_path.read_text(encoding="utf-8")
+        parsed = parse_spaghetti_setup_md(md_text)
+    except (OSError, UnicodeError, ValueError) as e:
+        return 2, [str(e)], {}
+
+    err = validate_md_m7_ref_consistency(parsed, tol=tol)
+    if err:
+        return 2, [err], {}
+
+    doc = build_setup_json_document(parsed)
+    text = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
+    if dry_run:
+        return 0, [], doc
+
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(text, encoding="utf-8")
+    msgs.append(f"wrote {json_path.as_posix()} from {md_path.as_posix()}")
+    return 0, msgs, doc
 
 
 def load_setup_json(path: Path) -> dict[str, Any]:
@@ -178,8 +254,44 @@ def cmd_setup_audit(args: argparse.Namespace) -> int:
     return 1 if rep["drift_issues"] else 0
 
 
+def cmd_setup_sync(args: argparse.Namespace) -> int:
+    root = _repo_root()
+    md = Path(args.setup_md.strip())
+    sj = Path(args.setup_json.strip())
+    if not md.is_absolute():
+        md = root / md
+    if not sj.is_absolute():
+        sj = root / sj
+    dry = bool(getattr(args, "dry_run", False))
+    code, msgs, doc = sync_setup_json_from_md(md_path=md, json_path=sj, dry_run=dry)
+    if code != 0:
+        for m in msgs:
+            print(m, file=sys.stderr)
+        return code
+    if dry:
+        print(
+            f"# dry-run: would write {sj.as_posix()} from {md.as_posix()}",
+            file=sys.stderr,
+        )
+        print(json.dumps(doc, indent=2, ensure_ascii=False))
+        return 0
+    for m in msgs:
+        print(m)
+    return 0
+
+
 def main_cli() -> int:
-    p = argparse.ArgumentParser(description="Audit spaghetti-setup.md vs JSON mirror (+ optional check JSON).")
+    p = argparse.ArgumentParser(description="Audit or sync spaghetti-setup.md ↔ JSON mirror.")
+    p.add_argument(
+        "--sync",
+        action="store_true",
+        help="Write spaghetti-setup.json from Markdown tables (default: audit only).",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="With --sync: print JSON to stdout, do not write (stderr shows target path).",
+    )
     p.add_argument(
         "--setup-md",
         default="despaghettify/spaghetti-setup.md",
@@ -193,10 +305,16 @@ def main_cli() -> int:
     p.add_argument(
         "--check-json",
         default="",
-        help="Optional path to check --with-metrics JSON for Anteil vs md bars.",
+        help="Audit only: optional path to check --with-metrics JSON for Anteil vs md bars.",
     )
-    p.add_argument("--json", action="store_true", help="Emit machine JSON report on stdout.")
-    return cmd_setup_audit(p.parse_args())
+    p.add_argument("--json", action="store_true", help="Audit only: emit machine JSON report on stdout.")
+    args = p.parse_args()
+    if args.sync and (args.check_json.strip() or args.json):
+        print("--sync is incompatible with --check-json / --json (use audit mode without --sync).", file=sys.stderr)
+        return 2
+    if args.sync:
+        return cmd_setup_sync(args)
+    return cmd_setup_audit(args)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+﻿Total functions: 4404
+>50 lines: 272 >100 lines: 34 nesting>=6: 0
+Top 12 longest:
+   123L depth~3 ai_stack/scene_director_goc_legacy_keyword_candidates.py:legacy_keyword_scene_candidates
+   118L depth~2 ai_stack/research_langgraph.py:run_research_pipeline
+   118L depth~1 ai_stack/tests/test_research_store_extended.py:test_full_workflow_with_all_entities
+   116L depth~3 backend/app/runtime/progression_summary.py:derive_progression_summary
+   116L depth~4 ai_stack/research_exploration_bounded_expand_loop.py:run_bounded_exploration_expand_loop
+   114L depth~3 backend/app/runtime/area2_operator_truth.py:build_area2_operator_truth
+   114L depth~1 world-engine/app/story_runtime/narrative_threads_update.py:update_narrative_threads_impl
+   114L depth~2 ai_stack/goc_turn_seams.py:build_roadmap_dramatic_turn_record
+   113L depth~0 backend/app/runtime/runtime_ai_stages_sections.py:finalize_synthesis_staged_generation
+   113L depth~0 ai_stack/tests/test_research_store_extended.py:populated_store
+   112L depth~4 backend/app/runtime/relationship_context_derive.py:build_relationship_axis_context_from_maps
+   112L depth~2 backend/app/services/forum_service.py:suggest_related_threads_for_query
+Top 6 nesting:
+ai_turn_executor.py lines: 78
+execute_turn_with_ai: 39 lines depth~ 0

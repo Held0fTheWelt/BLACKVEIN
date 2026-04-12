@@ -65,9 +65,22 @@ python -m despaghettify.tools setup-audit --json
 
 **Exit:** `0` if md and json match; `1` if drift (update **json** after editing **md**).
 
+## `setup-sync`
+
+Writes [`../../spaghetti-setup.json`](../../spaghetti-setup.json) from the numeric tables in [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (bars, weights, `M7_ref`). Refuses to write if the **M7_ref** cell in Markdown disagrees with Σ(weight×bar) (exit **2**). After editing **md**, run **`setup-sync`** then **`setup-audit`** to confirm.
+
+```bash
+python -m despaghettify.tools setup-sync
+python -m despaghettify.tools setup-sync --dry-run
+```
+
+**Exit:** `0` on success; `2` if Markdown is invalid or `M7_ref` is inconsistent with bars×weights.
+
+**Standalone:** `python -m despaghettify.tools.spaghetti_setup_audit --sync` (same flags as hub: `--setup-md`, `--setup-json`, `--dry-run`).
+
 ## `metrics-emit` / `trigger-eval`
 
-Machine line for trigger policy (**`anteil_pct`** vs bars in setup) + [`../../spaghetti-setup.json`](../../spaghetti-setup.json) — mirror must match [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (use **`setup-audit`** after edits).
+Machine line for trigger policy (**`anteil_pct`** vs bars in setup) + [`../../spaghetti-setup.json`](../../spaghetti-setup.json) — mirror must match [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (use **`setup-sync`** or **`setup-audit`** after edits).
 
 ```bash
 python -m despaghettify.tools check --out .state_tmp/despag_check_report.json

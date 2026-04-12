@@ -12,7 +12,7 @@ After ``pip install -e .`` from repo root (optional ``pyproject.toml`` hub packa
 Script path (always valid):
   python despaghettify/tools/despaghettify.py check
 
-Also: despaghettify/tools/wave_plan_emit.py (Markdown ↔ wave_plan.json); autonomous loop (`autonomous-init`, `autonomous-advance`, `autonomous-status`, `autonomous-verify`); `metrics-emit`, `trigger-eval`. See despaghettify/superpowers/references/CLI.md and despaghettify/README.md.
+Also: despaghettify/tools/wave_plan_emit.py (Markdown ↔ wave_plan.json); autonomous loop (`autonomous-init`, `autonomous-advance`, `autonomous-status`, `autonomous-verify`); `setup-sync`, `metrics-emit`, `trigger-eval`. See despaghettify/superpowers/references/CLI.md and despaghettify/README.md.
 """
 from __future__ import annotations
 
@@ -582,6 +582,13 @@ def cmd_setup_audit(args: argparse.Namespace) -> int:
     return ssa.cmd_setup_audit(args)
 
 
+def cmd_setup_sync(args: argparse.Namespace) -> int:
+    _ensure_repo_root()
+    from despaghettify.tools import spaghetti_setup_audit as ssa  # noqa: PLC0415
+
+    return ssa.cmd_setup_sync(args)
+
+
 def cmd_trigger_eval(args: argparse.Namespace) -> int:
     _ensure_repo_root()
     from despaghettify.tools.metrics_bundle import emit_metrics_bundle  # noqa: PLC0415
@@ -737,6 +744,27 @@ def main() -> int:
     )
     p_sa.add_argument("--json", action="store_true", help="Emit JSON report on stdout.")
     p_sa.set_defaults(func=cmd_setup_audit)
+
+    p_sy = sub.add_parser(
+        "setup-sync",
+        help="Write spaghetti-setup.json from spaghetti-setup.md (canonical tables → machine mirror).",
+    )
+    p_sy.add_argument(
+        "--setup-md",
+        default="despaghettify/spaghetti-setup.md",
+        help="Canonical policy Markdown (repo-relative ok).",
+    )
+    p_sy.add_argument(
+        "--setup-json",
+        default="despaghettify/spaghetti-setup.json",
+        help="JSON path to write (repo-relative ok).",
+    )
+    p_sy.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print JSON to stdout only; stderr shows target path (no write).",
+    )
+    p_sy.set_defaults(func=cmd_setup_sync)
 
     args = parser.parse_args()
     return int(args.func(args))

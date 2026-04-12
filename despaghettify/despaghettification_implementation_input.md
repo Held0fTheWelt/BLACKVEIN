@@ -34,11 +34,8 @@ This document is **not** a replacement for [`state/EXECUTION_GOVERNANCE.md`](../
 
 | ID | Primary workstream (`artifacts/workstreams/…`) | Also involved (own pre/post only for real scope) |
 |----|--------------------------------------------------|-----------------------------------------------------|
-| DS-001 | backend_runtime_services | ai_stack (shared cycle edges) |
-| DS-002 | backend_runtime_services | ai_stack, world_engine |
-| DS-003 | ai_stack | — |
-| DS-004 | backend_runtime_services | world_engine |
-| DS-005 | backend_runtime_services | — |
+| DS-001 | `backend_runtime_services` | May touch `ai_stack` / `world-engine` imports only if a cycle spans packages — coordinate scope. |
+| DS-002 | `backend_runtime_services` | Duplicate-name proxy spans all ROOTS; secondaries (`ai_stack`, `world_engine`) only if renames leave those trees. |
 
 **Fill in:** For each active **DS-*** one row (or a group sharing the same primary workstream); slugs as in [`WORKSTREAM_INDEX.md`](../state/WORKSTREAM_INDEX.md): `backend_runtime_services`, `ai_stack`, `administration_tool`, `world_engine`, `documentation`. Repo-wide cross-check without product code: optional `artifacts/repo_governance_rollout/pre|post/` (e.g. **DS-REPLAY-G**).
 
@@ -76,14 +73,14 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 
 ## Latest structure scan (orientation, no warranty)
 
-**Purpose:** A **fillable** overview after measurable runs — update **date and time**, **`metrics_bundle.score`** (**Trigger v2** + **Anteil %** je Kategorie und **M7**-Zeilen), **AST telemetry**, optional **extra checks**, and **open hotspots** per [spaghetti-check-task.md](../spaghetti-check-task.md). **Numeric** thresholds (**bars**, **weights**, **`M7_ref`**) are canonical in [spaghetti-setup.md](../spaghetti-setup.md). The spaghetti check maintains the **information input list** and **recommended implementation order** when the **trigger policy** in § *Trigger policy for check task updates* fires (per **setup**); otherwise this scan section (including M7 and category breakdown) is enough. **Rankings:** `python despaghettify/tools/spaghetti_ast_scan.py` only (repo root). **Open hotspots:** [spaghetti-solve-task.md](../spaghetti-solve-task.md) clears or narrows items when waves resolve them; on every spaghetti-check run, **prune** so solved items are not listed.
+**Purpose:** A **fillable** overview after measurable runs — update **date and time**, **`metrics_bundle.score`** (**Trigger v2** + **Anteil %**), **AST telemetry**, optional **extra checks**, and **open hotspots** per [spaghetti-check-task.md](../spaghetti-check-task.md). **Numeric** thresholds (**bars**, **weights**, **`M7_ref`**) are canonical in [spaghetti-setup.md](../spaghetti-setup.md). The spaghetti check maintains the **information input list** and **recommended implementation order** when the **trigger policy** in § *Trigger policy for check task updates* fires (per **setup**); otherwise this scan section (including M7 and category breakdown) is enough. **Rankings:** `python despaghettify/tools/spaghetti_ast_scan.py` only (repo root). **Open hotspots:** [spaghetti-solve-task.md](../spaghetti-solve-task.md) clears or narrows items when waves resolve them; on every spaghetti-check run, **prune** so solved items are not listed.
 
-| Field | **Trigger v2** (0–100; Heuristik, **kein** Balkenvergleich) | **Anteil %** (Messung: `metrics_bundle.score.*.anteil_pct`; Balken / `M7_ref`; **M7**-Zeile rechts = `m7_anteil_pct_gewichtet`) |
+| Field | **Trigger v2** (0–100; advisory) | **Anteil %** (vs. bars / `M7_ref`; **M7** row = `m7_anteil_pct_gewichtet`) |
 |-------|-------------------------------------|-------------------------------------|
-| **As of (date & time)** | — | **2026-04-12 11:16:06 (UTC)** — `check --with-metrics` → `despaghettify/reports/reset_check.json`; `spaghetti_ast_scan.py` → `despaghettify/reports/reset_ast_scan.txt` |
+| **As of (date & time)** | — | **2026-04-12 12:47:09 (UTC)** |
 | Spaghetti scan command | — | `python despaghettify/tools/spaghetti_ast_scan.py` (ROOTS = *measurement scope*) |
 | Measurement scope (ROOTS) | — | `backend/app`, `world-engine/app`, `ai_stack`, `story_runtime_core`, `tools/mcp_server`, `administration-tool` |
-| **M7** — gewichtete 7-Kategorien-Summe | **36.30** | **6.29** *(gewichtetes Mittel der sieben `anteil_pct`; **nicht** mit Balken verglichen)* |
+| **M7** — gewichtete 7-Kategorien-Summe | **36.30** | **6.29** |
 | C1: Circular dependencies | **6.09** | **10.77** |
 | C2: Nesting depth | **0.00** | **1.27** |
 | C3: Long functions + complexity | **65.44** | **0.77** |
@@ -92,15 +89,15 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 | C6: Missing abstractions / duplication | **26.57** | **14.99** |
 | C7: Confusing control flow | **42.54** | **5.65** |
 | **AST telemetry N / L₅₀ / L₁₀₀ / D₆** | — | **4404** / **272** / **34** / **0** |
-| Extra check builtins | — | **0** defs `build_god_of_carnage_solo` in `**/builtins.py`; template `story_runtime_core/goc_solo_builtin_template.py` has def — **2026-04-12** |
-| Extra check runtime | — | Runtime grep **0** hits; `ds005` **exit 0** (**12** `import_ok`) |
-| **Open hotspots** | — | **Policy (Anteil vs. Balken):** **C1** 10.77 % > 5; **C6** 14.99 % > 14; **M7_anteil** **6.29** < **M7_ref** **14.1** (kein Komposit-Feuer). **C3/C4/C5/C7** unter Balken. **Lesart:** **Trigger v2** z. B. **C3** 65.44 / **C4** 67.10 nur heuristisch. **Inhalt:** Zyklen 35/325 `backend/app`; L₁₀₀-Spitze u. a. `legacy_keyword_scene_candidates` 123L; L₅₀ 272/4404; Magic-int-Proxy (49); Duplikatnamen-Proxy; Kontrollfluss-Proxy ~5.65 % Anteil. |
+| Extra check builtins | — | **`check` embed:** **0** `def build_god_of_carnage_solo` hits across `**/builtins.py`; factory remains on `goc_solo_builtin_template` (same UTC pass). |
+| Extra check runtime | — | **`ds005` exit 0**; **0** hits for `TYPE_CHECKING` / “avoid circular” / “circular dependency” grep under `backend/app/runtime` (same pass). |
+| **Open hotspots** | — | **Policy:** **C1** share **10.77%** **>** bar **0%** (`backend/app` import SCC v1 — **35** / **325** graph files). **C6** share **14.99%** **>** bar **0%** (duplicate callable **names** across files — proxy). **C7** share **5.65%** **>** bar **3%**. **Composite:** `M7_anteil` **6.29** **<** `M7_ref` **9.1** (no composite fire). **Advisory:** **Trigger v2** is high on **C3**/**C4** (long / broad callables) without crossing **Anteil** bars — track if tails grow. Longest measured body this pass: **`legacy_keyword_scene_candidates`** (`ai_stack/scene_director_goc_legacy_keyword_candidates.py`). |
 
 ### Score *M7* — inputs, weights, and calculation
 
 | Symbol | Meaning | **Trigger v2** (0–100) | **Anteil %** |
 |--------|---------|------------------------|--------------|
-| **M7** | Gewichtete Summe (siehe unten) | **36.30** | **6.29** |
+| **M7** | Gewichtete Summe | **36.30** | **6.29** |
 | **C1** | Circular dependencies | **6.09** | **10.77** |
 | **C2** | Nesting depth | **0.00** | **1.27** |
 | **C3** | Long functions + complexity | **65.44** | **0.77** |
@@ -110,22 +107,22 @@ For every relevant **DS-*** / despaghettification **wave**, update this file in 
 | **C7** | Confusing control flow | **42.54** | **5.65** |
 | **AST telemetry** | N / L₅₀ / L₁₀₀ / D₆ | — | **4404** / **272** / **34** / **0** |
 
-**Formeln:** **Trigger (heuristisch):** `M7_trigger = Σ weight_i × trigger_v2(Ci)` aus **`metrics_bundle.m7`** / **`category_scores`** — **ohne** Balkenvergleich. **Anteil (Policy):** `M7_anteil = Σ weight_i × anteil_pct(Ci)` aus **`metric_a.m7`** / **`score.m7_anteil_pct_gewichtet`** — **Balken** und **`M7_ref`** gelten nur hier (**`literal_rates.condition_shares_pct`**). **Weights** in [spaghetti-setup.md](../spaghetti-setup.md) § *M7 category weights*.
+**Formeln:** **Trigger:** `M7_trigger = Σ weight_i × trigger_v2(Ci)` aus **`metrics_bundle.m7`** / **`score`**. **Anteil:** `M7_anteil = Σ weight_i × anteil_pct(Ci)` aus **`score.m7_anteil_pct_gewichtet`**. **Weights:** [spaghetti-setup.md](../spaghetti-setup.md) § *M7 category weights*.
 
-**Evaluation:** Beim Scan **`metrics_bundle.score`** aus **`check --with-metrics`** übernehmen: **Trigger v2** und **Anteil %** (zwei Nachkommastellen). **Balken** und **`M7_ref`** gelten nur für **Anteil %** / **`metric_a.m7`** (`M7_anteil`). **AST telemetry** nur aus **`spaghetti_ast_scan`**.
+**Evaluation:** From **`check --with-metrics`**: fill **`metrics_bundle.score`** (both columns); **AST** from **`spaghetti_ast_scan`**. **Bars** apply to **Anteil %** / **`metric_a.m7`** only (see [spaghetti-check-task.md](../spaghetti-check-task.md) §1).
 
 **Trigger policy for check task updates:**
 
-Update § *Information input list*, § *Recommended implementation order*, und § *DS-ID → primary workstream* (für neue IDs), wenn **`metrics_bundle.trigger_policy_fires`** wahr ist — d. h. **Anteil(C*n*) > bar*n*** (strikt **`>`**) für irgendein **n** laut [spaghetti-setup.md](../spaghetti-setup.md) **oder** **`M7_anteil ≥ M7_ref`** (`metric_a.m7` vs. `m7_ref`). **Trigger v2** (`m7` / `category_scores`) ist **nicht** Bestandteil dieser Policy.
+Update § *Information input list*, § *Recommended implementation order*, and § *DS-ID → primary workstream* when **`metrics_bundle.trigger_policy_fires`** is true — i.e. **Anteil(C*n*) > bar*n*** or **`M7_anteil ≥ M7_ref`** per [spaghetti-setup.md](../spaghetti-setup.md).
 
 | Condition | Rule |
 |-----------|------|
-| **Per-category** | **Anteil(C*n*)** (`score.categories.Cn.anteil_pct`) **>** **bar*n*** laut [spaghetti-setup.md](../spaghetti-setup.md) § *Per-category trigger bars*. |
-| **Composite** | **`M7_anteil` ≥ `M7_ref`** (`metric_a.m7` bzw. `score.m7_anteil_pct_gewichtet`) per [spaghetti-setup.md](../spaghetti-setup.md) § *Composite reference (**M7_ref**)*. |
+| **Per-category** | **Anteil(C*n*)** **>** **bar*n*** per [spaghetti-setup.md](../spaghetti-setup.md) § *Per-category trigger bars*. |
+| **Composite** | **`M7_anteil` ≥ `M7_ref`** (`metric_a.m7`). |
 
-**Otherwise** (kein per-category-Überschuss **und** **`M7_anteil` < `M7_ref`**): update **only** § *Latest structure scan*.
+**Otherwise** (no per-category exceedance **and** **`M7_anteil` < `M7_ref`**): update **only** § *Latest structure scan*.
 
-*Note:* Maschinenquelle **`check --with-metrics`**, Feld **`trigger_policy_basis`:** `anteil_pct`. **Heuristik**-Spalten nur zur Einordnung; Gates aus **`trigger_policy_fires`**. Keine Handkorrektur.
+*Note:* **`trigger_policy_basis`:** `anteil_pct`. **Trigger v2** is advisory. No hand edits.
 
 ## Information input list (extensible)
 
@@ -133,11 +130,8 @@ Each row: **ID**, **pattern** (lead with **C1..C7** from [spaghetti-setup.md](..
 
 | ID | pattern | location (typical) | hint / measurement idea | direction (solution sketch) | collision hint |
 |----|---------|--------------------|-------------------------|----------------------------|----------------|
-| DS-001 | **C1 ·** Import SCC pressure | `backend/app/**` (graph 325 files, 35 in cycles) | Recompute after refactors; Tarjan SCC via `check --with-metrics` | Prefer DTO / protocol seams and targeted lazy edges over silent cycles | Touches runtime import graph; align before large `app.runtime` moves |
-| DS-002 | **C3 ·** **C4 ·** Long / wide callable surface | `backend/app`, `ai_stack`, `world-engine/app` hotspots | L₁₀₀=34, L₅₀=272; scan top12 (`legacy_keyword_scene_candidates`, `run_research_pipeline`, `derive_progression_summary`, …) | Split longest callables; keep modules single-purpose | Many owners possible; sequence after DS-001 when cycles share files |
-| DS-003 | **C5 ·** Magic-int literal proxy | Cross-ROOTS | 49 callables with ≥5 non-trivial int literals (heuristic) | Named constants / enums; narrow hot files first | Low blast radius once hotspots enumerated |
-| DS-004 | **C6 ·** Duplicate-name proxy | Repo-wide name collisions | 660 duplicate-name hits (weak proxy) | Rename / namespace helpers; reduce accidental reuse | Churn risk if done before DS-002 stabilises paths |
-| DS-005 | **C7 ·** Control-flow / size proxy | `backend/app/runtime`, `ai_stack` | 249 callables with nest≥3 or >80 AST lines | Early returns, smaller helpers, shallower branches | Coordinate with DS-002 when same files surface |
+| DS-001 | **C1 ·** import SCC load (`backend.app` v1) | `backend/app` import graph (non-trivial SCC membership) | Re-run `python -m despaghettify.tools check --with-metrics`; watch **`c1_files_in_cycles`** vs **`c1_import_graph_files`**. | Prefer cycle-cutting facades / DTO modules at SCC borders; reduce mutual `app.*` edges before large runtime edits. | Touches shared runtime import seams — avoid parallel uncoordinated refactors across the same SCC. |
+| DS-002 | **C6 ·** duplicate callable names (cross-file proxy) | Helpers and services under ROOTS (name appears in **>1** file) | Use AST scan leaderboards + ripgrouped name search; rename or consolidate in small batches. | Namespace-private helpers, module-level renames, or thin adapter modules to dedupe public names. | Rename waves collide with open import work — sequence after **DS-001** unless analysis proves disjoint file sets. |
 
 **New rows:** consecutive **DS-001**, **DS-002**, … (or your ID scheme); **pattern** starts with **C1..C7** per [spaghetti-check-task.md](../spaghetti-check-task.md) §2; briefly justify the topic. Per § *DS-ID → primary workstream* pick `artifacts/workstreams/<slug>/pre|post/` paths.
 
@@ -147,20 +141,14 @@ Prioritised **phases**, **order**, and **dependencies** — aligned with § **in
 
 | Priority / phase | DS-ID(s) | short logic | workstream (primary) | note (dependencies, gates) |
 |------------------|----------|-------------|----------------------|----------------------------|
-| 1 | DS-001 | Map and relieve `backend/app` import cycles | backend_runtime_services | `ds005`; targeted `pytest` on touched runtime bags |
-| 2 | DS-002 | Shrink L₅₀ / L₁₀₀ leaders from scan | backend_runtime_services | Prefer after DS-001 when shared modules; `pytest` selective suites |
-| 3 | DS-003 | Reduce magic-int-heavy callables | ai_stack | `pytest ai_stack/tests` once hotspots chosen |
-| 4 | DS-004 | Tackle duplicate-name collisions | backend_runtime_services | Run after DS-002 when paths settle; broad `pytest collect` watch |
-| 5 | DS-005 | Improve control-flow / readability proxies | backend_runtime_services | `pytest backend/tests` subsets touching runtime |
+| 1 | DS-001 | Shrink or dissolve `backend/app` import SCCs (v1) before broad runtime churn | backend_runtime_services | Gates: `python despaghettify/tools/ds005_runtime_import_check.py` (expect **0**); `pytest backend/tests/runtime/` (focused). |
+| 2 | DS-002 | Reduce duplicate-name pressure across measured roots without behaviour drift | backend_runtime_services | Soft-dep: prefer after **DS-001** when hotspots overlap; gates: broader `pytest backend/tests/` after each rename batch. |
 
 ```mermaid
-flowchart TD
+flowchart TB
   P1["1 · DS-001 · import cycles"]
-  P2["2 · DS-002 · long callables"]
-  P3["3 · DS-003 · magic ints"]
-  P4["4 · DS-004 · duplicate names"]
-  P5["5 · DS-005 · control flow proxy"]
-  P1 --> P2 --> P3 --> P4 --> P5
+  P2["2 · DS-002 · duplicate names"]
+  P1 --> P2
 ```
 
 **Fill in:** one phase row per open **DS-*** (or an explicit merge noted in **note**). Order by **risk**: stabilise **runtime / import seams** (`backend_runtime_services` under `app.runtime`, `ds005`-touched paths) before very large **service orchestration** waves; **`ai_stack`**-only (or other packages) typically **later** unless the scan shows a hard blocker. **Parallel:** when two DS waves are independent (different primary workstream, no hard import coupling), use parallel phase bands (e.g. `3a`/`3b`) and document in **note** — do not invent a linear order by default. **Workstream (primary)** must match [WORKSTREAM_INDEX.md](../state/WORKSTREAM_INDEX.md) for pre/post paths. **note** column: concrete **gates** (`pytest …`, `ds005`). **Mermaid:** mandatory diagram **under** the table once phase rows are real (omit while the table is only `—`); **one line per node**, `["phase · DS-ID · short hook"]`, fork/join for parallel bands — [spaghetti-check-task.md](../spaghetti-check-task.md) §3. Full rules: same doc § *Maintaining the input list* → **Recommended implementation order** → *How to build a suitable phase table*. Coordination § *Maintaining this file*: when priority changes or new **DS-*** appear, update this section **and** the Mermaid block.
@@ -173,7 +161,7 @@ Implementers may **briefly** record visible progress (for reviewers and the next
 
 | date | ID(s) | short description | pre artefacts (rel. to `despaghettify/state/`) | post artefacts (rel. to `despaghettify/state/`) | state doc(s) updated | PR / commit |
 |------|-------|-------------------|----------------------------------------|----------------------------------------|----------------------|-------------|
-| 2026-04-12 | — | Spaghetti reset + clean + one `check --with-metrics` pass; input list rebuilt from EMPTY then filled from `despaghettify/reports/reset_check.json` | — | — | — | maintenance only |
+| 2026-04-12 | — | `spaghetti-reset-task` + one **`spaghetti-check`**: workstreams wiped, EMPTY → live input, metrics from `check --with-metrics` (same timestamps as § *Latest structure scan*). | — | — | — | Evidence: `despaghettify/reports/reset_check_with_metrics.json`, `despaghettify/reports/reset_ast_scan_capture.txt` |
 | — | — | — | — | — | — | — |
 
 **New rows:** chronologically (**newest first** recommended); **DS-ID(s)**, gates/tests run, pre/post paths as in [`EXECUTION_GOVERNANCE.md`](../state/EXECUTION_GOVERNANCE.md); for scan/docs-only updates note briefly. Longer history: Git, PRs, `WORKSTREAM_*_STATE.md`.

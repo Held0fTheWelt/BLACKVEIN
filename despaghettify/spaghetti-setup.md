@@ -178,15 +178,15 @@ with **Anteil(C*n*)** from the scan bundle (**%**), **not** the heuristic **trig
 
 Substituting the **current** bars and weights:
 
-`M7_ref = 0.20×5 + 0.10×8 + 0.20×25 + 0.15×20 + 0.10×12 + 0.15×14 + 0.10×10`
+`M7_ref = 0.20×0 + 0.10×8 + 0.20×25 + 0.15×20 + 0.10×0 + 0.15×0 + 0.10×3`
 
 **Update the next two lines whenever you change bars or weights:**
 
 
 | Field                                                    | Value                                                          |
 | -------------------------------------------------------- | -------------------------------------------------------------- |
-| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **14.1**                                                       |
-| **M7_ref** (display)                                     | **≈ 14.1** (optional **%** suffix in Markdown for readability) |
+| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **9.1**                                                        |
+| **M7_ref** (display)                                     | **≈ 9.1** (optional **%** suffix in Markdown for readability) |
 
 
 **Composite trigger:** run the **full** input-list update path when `**M7_anteil ≥ M7_ref`** (even if no single per-category bar was exceeded yet).
@@ -214,6 +214,6 @@ The `**ast_heuristic_v2`** values `**category_scores**` / `**m7**` (0–100, sat
 2. Align `[despaghettification_implementation_input.md](despaghettification_implementation_input.md)`: § *Score M7* **Formula** (weights), § *Trigger policy for check task updates* (threshold prose and **M7_ref**), and any narrative that cites old semantics.
 3. Align `[templates/despaghettification_implementation_input.EMPTY.md](templates/despaghettification_implementation_input.EMPTY.md)` the same way.
 4. Skim `[spaghetti-check-task.md](spaghetti-check-task.md)` **Threshold** — it must **not** reintroduce a second set of numbers; only `[spaghetti-setup.md](spaghetti-setup.md)` is canonical for digits.
-5. Update `[spaghetti-setup.json](spaghetti-setup.json)` so CLI tools (`trigger-eval`, `metrics-emit`, `check --with-metrics`) stay aligned with this file (`m7_ref` must match the recomputed value).
+5. Update `[spaghetti-setup.json](spaghetti-setup.json)` so CLI tools (`trigger-eval`, `metrics-emit`, `check --with-metrics`) stay aligned with this file (`m7_ref` must match the recomputed value). **Or** run `**python -m despaghettify.tools setup-sync**` (writes the JSON mirror from **this** file’s tables; fails if `M7_ref` ≠ Σ w×bar).
 6. Run `**python -m despaghettify.tools setup-audit`** (optional `**--check-json path/to/check.json**`) — reads **this** Markdown as canonical, compares the JSON mirror, and (with a check bundle) prints **Anteil %** vs bars from **md**; exit **1** if md/json drift.
 
