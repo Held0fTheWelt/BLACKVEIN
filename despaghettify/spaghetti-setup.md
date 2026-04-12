@@ -2,7 +2,7 @@
 
 *Path:* `despaghettify/spaghetti-setup.md` — Hub overview: [README.md](README.md).
 
-**Purpose:** **Single editable source** for the **numeric** parts of the despaghettify **trigger policy**: per-category **bars** (operational **%-share ceilings**, strict `**>*`*), **M7** category **weights**, and the derived **composite reference** `**M7_ref`**. **How** to run scans, maintain *Open hotspots*, DS rows, Mermaid, and gates stays in `[spaghetti-check-task.md](spaghetti-check-task.md)`; this file is **only** the knobs you retune as structure policy evolves.
+**Purpose:** **Single editable source** for the **numeric** parts of the despaghettify **trigger policy**: per-category **bars** (operational **%-share ceilings**, strict `**>`**), **M7** category **weights**, and the derived **composite reference** `**M7_ref`**. **How** to run scans, maintain *Open hotspots*, DS rows, Mermaid, and gates stays in `[spaghetti-check-task.md](spaghetti-check-task.md)`; this file is **only** the knobs you retune as structure policy evolves.
 
 **Language:** English (hub policy).
 
@@ -39,8 +39,8 @@ So: **policy thresholds** = **this** `spaghetti-setup.md`; **heuristic metric sh
 
 **Evaluation rules (machine, implemented):**
 
-1. **Per-category:** for each **n ∈ {1…7}**, fire if `**Anteil(Cn) > bar_n*`* (strict **>**; floats from JSON vs bundle).
-2. **Composite:** fire if `**M7_anteil ≥ M7_ref`** with `**M7_anteil = Σ w_i × Anteil(Ci)**` (same **weights** as in this file).
+1. **Per-category:** for each **n ∈ {1…7}**, fire if `**Anteil(Cn) > bar_n`** (strict **>**; floats from JSON vs bundle).
+2. **Composite:** fire if `**M7_anteil ≥ M7_ref`** with `**M7_anteil = Σ w_i × Anteil(Ci)*`* (same **weights** as in this file).
 3. `**trigger_policy_fires`** = per-category **or** composite.
 
 **Boundary:** Changing **what** is measured (numerators, denominators, ROOTS) is a **code + task-doc** change, not a tweak in this file. Changing **how strict** policy is = edit **bars / weights** here (then JSON + `setup-audit`).
@@ -102,7 +102,7 @@ These are the **only** values compared to **§ Per-category trigger bars**. All 
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Same number shown as “%” for both heuristic and real share | **Two columns** in the input list: **Trigger v2** (0–100, no bar) vs **Anteil %** (measured %, bars apply).    |
 | Bars compared to wrong scale                               | **Bars + `M7_ref`** apply **only** to **Anteil %** / `M7_anteil`.                                              |
-| Where to edit policy digits                                | `**spaghetti-setup.md`** canonical; `**spaghetti-setup.json**` mirror; validate with `**setup-audit**`.        |
+| Where to edit policy digits                                | `**spaghetti-setup.md`** canonical; `**spaghetti-setup.json`** mirror; validate with `**setup-audit**`.        |
 | What `M7` in JSON means                                    | `**metrics_bundle.m7**` = heuristic weighted sum; `**metric_a.m7**` = `**M7_anteil**` (gated vs `**M7_ref**`). |
 
 
@@ -133,8 +133,8 @@ Each **bar** is a **maximum acceptable share in percent**, in the **same unit** 
 | ---------------------------------- | ------ | -------------------------------------------------- |
 | Circular dependencies              | **C1** | **0**                                              |
 | Nesting depth                      | **C2** | **8**                                              |
-| Long functions + complexity        | **C3** | **25**                                             |
-| Multi-responsibility modules       | **C4** | **20**                                             |
+| Long functions + complexity        | **C3** | 12                                                 |
+| Multi-responsibility modules       | **C4** | **5**                                              |
 | Magic numbers + global state       | **C5** | **0**                                              |
 | Missing abstractions / duplication | **C6** | **0**                                              |
 | Confusing control flow             | **C7** | **3**                                              |
@@ -166,7 +166,7 @@ with **Anteil(C*n*)** from the scan bundle (**%**), **not** the heuristic **trig
 
 **Terminology (avoid mixing two different numbers):**
 
-- **Live `M7_anteil`** — the weighted sum of **current** **Anteil %** values (`**metric_a.m7`** / `**score.m7_anteil_pct_gewichtet**`). It **changes every run** and is **not** stored in this file.
+- **Live `M7_anteil`** — the weighted sum of **current** **Anteil %** values (`**metric_a.m7`** / `**score.m7_anteil_pct_gewichtet`**). It **changes every run** and is **not** stored in this file.
 - `**M7_ref`** — the **single fixed reference** when **each** **Anteil(C*n*)** equals its **bar** from § *Per-category trigger bars* (not live scan values). It **only** changes when you **retune bars or weights** here, then recompute.
 - **Heuristic `m7` / `category_scores` (trigger v2)** — **not** compared to these bars; see § *Heuristic trigger scale* for how to use them.
 
@@ -174,7 +174,7 @@ with **Anteil(C*n*)** from the scan bundle (**%**), **not** the heuristic **trig
 
 ## Composite reference (**M7_ref**)
 
-**Definition:** `**M7_ref`** is `**M7_anteil**` when **each** of **Anteil(C1)…Anteil(C7)** is set to **exactly** its **bar** from § *Per-category trigger bars* (not live scan values).
+**Definition:** `**M7_ref`** is `**M7_anteil`** when **each** of **Anteil(C1)…Anteil(C7)** is set to **exactly** its **bar** from § *Per-category trigger bars* (not live scan values).
 
 Substituting the **current** bars and weights:
 
@@ -183,9 +183,9 @@ Substituting the **current** bars and weights:
 **Update the next two lines whenever you change bars or weights:**
 
 
-| Field                                                    | Value                                                          |
-| -------------------------------------------------------- | -------------------------------------------------------------- |
-| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **9.1**                                                        |
+| Field                                                    | Value                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **9.1**                                                       |
 | **M7_ref** (display)                                     | **≈ 9.1** (optional **%** suffix in Markdown for readability) |
 
 
@@ -197,7 +197,7 @@ Substituting the **current** bars and weights:
 
 ## Heuristic trigger scale (advisory modes)
 
-The `**ast_heuristic_v2`** values `**category_scores**` / `**m7**` (0–100, saturating curves) are **useful signals** but **not** gated by this file’s bars. Pick a **mode** for how the team uses them (can evolve without changing `metrics_bundle`):
+The `**ast_heuristic_v2`** values `**category_scores`** / `**m7**` (0–100, saturating curves) are **useful signals** but **not** gated by this file’s bars. Pick a **mode** for how the team uses them (can evolve without changing `metrics_bundle`):
 
 1. **Informative (default)** — show **Trigger v2** beside **Anteil %** in the scan tables; interpret hotspots and prioritisation qualitatively; **all** formal gates use **Anteil** + `**M7_ref`** only.
 2. **Dual thresholds (heavy maintenance)** — maintain a **second** numeric table (trigger-scale bars) in addition to %-share bars; wire a separate policy in tooling if you ever need both. Not implemented in the hub CLI today.
@@ -214,6 +214,6 @@ The `**ast_heuristic_v2`** values `**category_scores**` / `**m7**` (0–100, sat
 2. Align `[despaghettification_implementation_input.md](despaghettification_implementation_input.md)`: § *Score M7* **Formula** (weights), § *Trigger policy for check task updates* (threshold prose and **M7_ref**), and any narrative that cites old semantics.
 3. Align `[templates/despaghettification_implementation_input.EMPTY.md](templates/despaghettification_implementation_input.EMPTY.md)` the same way.
 4. Skim `[spaghetti-check-task.md](spaghetti-check-task.md)` **Threshold** — it must **not** reintroduce a second set of numbers; only `[spaghetti-setup.md](spaghetti-setup.md)` is canonical for digits.
-5. Update `[spaghetti-setup.json](spaghetti-setup.json)` so CLI tools (`trigger-eval`, `metrics-emit`, `check --with-metrics`) stay aligned with this file (`m7_ref` must match the recomputed value). **Or** run `**python -m despaghettify.tools setup-sync**` (writes the JSON mirror from **this** file’s tables; fails if `M7_ref` ≠ Σ w×bar).
-6. Run `**python -m despaghettify.tools setup-audit`** (optional `**--check-json path/to/check.json**`) — reads **this** Markdown as canonical, compares the JSON mirror, and (with a check bundle) prints **Anteil %** vs bars from **md**; exit **1** if md/json drift.
+5. Update `[spaghetti-setup.json](spaghetti-setup.json)` so CLI tools (`trigger-eval`, `metrics-emit`, `check --with-metrics`) stay aligned with this file (`m7_ref` must match the recomputed value). **Or** run `**python -m despaghettify.tools setup-sync`** (writes the JSON mirror from **this** file’s tables; fails if `M7_ref` ≠ Σ w×bar).
+6. Run `**python -m despaghettify.tools setup-audit`** (optional `**--check-json path/to/check.json`**) — reads **this** Markdown as canonical, compares the JSON mirror, and (with a check bundle) prints **Anteil %** vs bars from **md**; exit **1** if md/json drift.
 
