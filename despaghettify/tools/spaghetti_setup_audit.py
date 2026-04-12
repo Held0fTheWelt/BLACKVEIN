@@ -1,10 +1,16 @@
-"""Read **spaghetti-setup.md** (canonical policy digits) and compare mirrors / scans.
+"""Policy contract: **spaghetti-setup.md** is the only human-edited source of truth.
 
-``spaghetti-setup.json`` is a machine mirror — ``setup-audit`` reports drift vs Markdown.
-``setup-sync`` writes the JSON mirror from the Markdown tables (after consistency checks).
-``check --with-metrics`` JSON is optional for live **Anteil %** vs bars from **MD**.
+**Derived artifact:** ``spaghetti-setup.json`` must be produced **only** by
+``setup-sync`` (MD → JSON). It is **not** a second authority; do not hand-edit it.
 
-Does **not** write ``spaghetti-setup.md``; edit policy there, then ``setup-sync`` or hand-edit JSON.
+**``setup-audit``** checks whether on-disk JSON still equals the **projection**
+from the current Markdown (directional: stale / wrong derived file vs canon).
+
+**``setup-sync``** rewrites JSON from MD after validating ``M7_ref`` vs Σ(weight×bar).
+
+**``check --with-metrics``** optionally embeds ``metrics_bundle`` using the derived JSON.
+
+This module does **not** write ``spaghetti-setup.md``.
 """
 from __future__ import annotations
 
@@ -18,6 +24,16 @@ from typing import Any
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+# Middle / first column: ``**C3**`` or inline-code `` `C3` `` (cosmetic must not break parse).
+_C_MARK = r"(?:(?:\*\*C(\d)\*\*)|(?:`C(\d)`))"
+_RE_BAR_ROW = re.compile(r"^\|[^|]+\|\s*" + _C_MARK + r"\s*\|\s*([^|]+?)\s*\|")
+_RE_WEIGHT_ROW = re.compile(r"^\|\s*" + _C_MARK + r"\s*\|\s*([^|]+?)\s*\|")
+
+
+def _c_index_from_row_match(m: re.Match[str]) -> str:
+    d = m.group(1) or m.group(2)
+    return f"C{d}"
 
 
 def _md_section(md_text: str, heading_prefix: str) -> str:
@@ -40,34 +56,80 @@ def parse_spaghetti_setup_md(md_text: str) -> dict[str, Any]:
 
     bars_sec = _md_section(md_text, "Per-category trigger bars")
     for line in bars_sec.splitlines():
-        m_bar = re.match(r"^\|[^|]+\|\s*\*\*C(\d)\*\*\s*\|\s*\*\*([\d.]+)\*\*", line.strip())
-        if m_bar:
-            bars[f"C{m_bar.group(1)}"] = float(m_bar.group(2))
+        stripped = line.strip()
+        m_bar = _RE_BAR_ROW.match(stripped)
+        if not m_bar:
+            continue
+        ck = _c_index_from_row_match(m_bar)
+        raw_val = m_bar.group(3).strip().replace("*", "").strip()
+        if not raw_val:
+            continue
+        try:
+            val = float(raw_val)
+        except ValueError as e:
+            raise ValueError(
+                f"missing or non-numeric trigger bar for {ck} in § 'Per-category trigger bars': "
+                f"{raw_val!r} (row: {stripped!r})"
+            ) from e
+        if ck in bars:
+            raise ValueError(
+                f"duplicate trigger bar row for {ck} in § 'Per-category trigger bars' "
+                f"(second row: {stripped!r})"
+            )
+        bars[ck] = val
 
     w_sec = _md_section(md_text, "M7 category weights")
     for line in w_sec.splitlines():
-        m_w = re.match(r"^\|\s*\*\*C(\d)\*\*\s*\|\s*([\d.]+)\s*\|", line.strip())
-        if m_w:
-            weights[f"C{m_w.group(1)}"] = float(m_w.group(2))
+        stripped = line.strip()
+        m_w = _RE_WEIGHT_ROW.match(stripped)
+        if not m_w:
+            continue
+        ck = _c_index_from_row_match(m_w)
+        raw_w = m_w.group(3).strip().replace("*", "").strip()
+        if not raw_w:
+            continue
+        try:
+            val = float(raw_w)
+        except ValueError as e:
+            raise ValueError(
+                f"weight for {ck} is not numeric in § 'M7 category weights': {raw_w!r} "
+                f"(row: {stripped!r})"
+            ) from e
+        if ck in weights:
+            raise ValueError(
+                f"duplicate weight row for {ck} in § 'M7 category weights' (second row: {stripped!r})"
+            )
+        weights[ck] = val
 
     ref_sec = _md_section(md_text, "Composite reference")
     for line in ref_sec.splitlines():
+        stripped = line.strip()
         m_ref = re.match(
-            r"^\|\s*\*\*M7_ref\*\*[^|]*\|\s*\*\*([\d.]+)\*\*\s*\|",
-            line.strip(),
+            r"^\|\s*\*\*M7_ref\*\*[^|]*\|\s*(?:\*\*([\d.]+)\*\*|([\d.]+))\s*\|",
+            stripped,
         )
         if m_ref:
-            m7_ref = float(m_ref.group(1))
+            cell = m_ref.group(1) or m_ref.group(2)
+            m7_ref = float(cell.strip())
             break
 
     missing_b = [f"C{i}" for i in range(1, 8) if f"C{i}" not in bars]
     missing_w = [f"C{i}" for i in range(1, 8) if f"C{i}" not in weights]
     if missing_b:
-        raise ValueError(f"spaghetti-setup.md: missing bars for {missing_b}")
+        raise ValueError(
+            f"spaghetti-setup.md: missing bars for {missing_b}. In § 'Per-category trigger bars', "
+            "each data row must be: | … | **Cn** | <number> | (number plain or **bold**)."
+        )
     if missing_w:
-        raise ValueError(f"spaghetti-setup.md: missing weights for {missing_w}")
+        raise ValueError(
+            f"spaghetti-setup.md: missing weights for {missing_w}. In § 'M7 category weights', "
+            "each data row must be: | **Cn** | <number> | (number plain or **bold**)."
+        )
     if m7_ref is None:
-        raise ValueError("spaghetti-setup.md: could not parse M7_ref from composite table")
+        raise ValueError(
+            "spaghetti-setup.md: could not parse **M7_ref** in § 'Composite reference' "
+            "(table row: | **M7_ref** … | <number> |)."
+        )
 
     return {"trigger_bars": bars, "weights": weights, "m7_ref": m7_ref}
 
@@ -78,8 +140,10 @@ def compute_m7_ref(bars: dict[str, float], weights: dict[str, float]) -> float:
 
 SETUP_JSON_SCHEMA_VERSION = 1
 SETUP_JSON_DESCRIPTION = (
-    "Mirror of spaghetti-setup.md. trigger_bars and m7_ref apply to operational anteil_pct "
-    "(real %), not to ast_heuristic_v2 trigger scores."
+    "DERIVED ONLY — regenerate with: python -m despaghettify.tools setup-sync. "
+    "Do not edit by hand; spaghetti-setup.md is the sole source of truth. "
+    "trigger_bars and m7_ref apply to operational anteil_pct (real %), not to "
+    "ast_heuristic_v2 trigger scores."
 )
 
 
@@ -111,8 +175,8 @@ def validate_md_m7_ref_consistency(parsed_md: dict[str, Any], *, tol: float = 1e
     tab = float(parsed_md["m7_ref"])
     if abs(recomputed - tab) > tol:
         return (
-            f"M7_ref in markdown table ({tab}) != recomputed Σ(weight×bar) ({recomputed:.6f}); "
-            "fix the Composite reference row or the bars/weights tables."
+            f"M7_ref in composite table is {tab} but recomputed Σ(weight_i×bar_i) is {recomputed:.6f}; "
+            "fix § Composite reference and/or § Per-category trigger bars / § M7 category weights."
         )
     return None
 
@@ -161,58 +225,158 @@ def audit_setup(
     check_json_path: Path | None,
     tol: float = 1e-4,
 ) -> dict[str, Any]:
-    md = parse_spaghetti_setup_md(md_path.read_text(encoding="utf-8"))
-    js = load_setup_json(json_path)
-    js_bars = {f"C{i}": float(js["trigger_bars"][f"C{i}"]) for i in range(1, 8)}
-    js_w = {f"C{i}": float(js["weights"][f"C{i}"]) for i in range(1, 8)}
-    js_ref = float(js["m7_ref"])
+    """Return audit report with ``audit_status`` / ``audit_exit_code`` (directional MD → JSON)."""
 
-    md_ref_computed = compute_m7_ref(md["trigger_bars"], md["weights"])
-    issues: list[str] = []
+    def _finish(
+        *,
+        audit_status: str,
+        audit_exit_code: int,
+        parsed_md: dict[str, Any] | None,
+        md_ref_recomputed: float | None,
+        md_parse_errors: list[str],
+        md_internal_issues: list[str],
+        json_freshness_issues: list[str],
+    ) -> dict[str, Any]:
+        drift = [*md_parse_errors, *md_internal_issues, *json_freshness_issues]
+        derived_ok = audit_status == "PASS"
+        rep: dict[str, Any] = {
+            "policy_model": "md_canonical_json_derived",
+            "canonical": "spaghetti-setup.md",
+            "md_path": md_path.as_posix(),
+            "json_path": json_path.as_posix(),
+            "audit_status": audit_status,
+            "audit_exit_code": audit_exit_code,
+            "md_parse_ok": parsed_md is not None,
+            "md_internally_consistent": parsed_md is not None and len(md_internal_issues) == 0,
+            "json_matches_md_projection": parsed_md is not None and len(json_freshness_issues) == 0,
+            "parsed_md": parsed_md,
+            "m7_ref_recomputed_from_md": md_ref_recomputed,
+            "derived_json_matches_md": derived_ok,
+            "json_mirror_ok": derived_ok,
+            "md_parse_errors": md_parse_errors,
+            "md_internal_issues": md_internal_issues,
+            "json_freshness_issues": json_freshness_issues,
+            "drift_issues": drift,
+            "scan": None,
+        }
+        if parsed_md is None:
+            return rep
+        md = parsed_md
+        md_ref_c = md_ref_recomputed if md_ref_recomputed is not None else compute_m7_ref(
+            md["trigger_bars"], md["weights"]
+        )
+        rep["m7_ref_recomputed_from_md"] = round(md_ref_c, 4)
+        if check_json_path and check_json_path.is_file():
+            chk = json.loads(check_json_path.read_text(encoding="utf-8"))
+            mb = (chk.get("metrics_bundle") or {}) if isinstance(chk, dict) else {}
+            score = mb.get("score") or {}
+            cats = score.get("categories") or {}
+            anteil = {k: float(cats[k]["anteil_pct"]) for k in cats if k.startswith("C")}
+            m7a = float(score.get("m7_anteil_pct_gewichtet") or mb.get("metric_a", {}).get("m7", 0.0))
+            fires = {k: anteil[k] > md["trigger_bars"][k] for k in anteil}
+            comp = m7a >= md["m7_ref"]
+            rep["scan"] = {
+                "anteil_pct": anteil,
+                "m7_anteil_pct_gewichtet": m7a,
+                "per_category_would_fire_vs_md_bars": fires,
+                "composite_would_fire_vs_md_m7_ref": comp,
+                "trigger_policy_would_fire": any(fires.values()) or comp,
+            }
+        return rep
 
-    def _cmp(name: str, a: float, b: float) -> None:
-        if abs(a - b) > tol:
-            issues.append(f"{name}: md={a} json={b}")
-
-    for k in (f"C{i}" for i in range(1, 8)):
-        _cmp(f"bar {k}", md["trigger_bars"][k], js_bars[k])
-        _cmp(f"weight {k}", md["weights"][k], js_w[k])
-    _cmp("m7_ref", md["m7_ref"], js_ref)
-
-    md_internal_ok = abs(md_ref_computed - md["m7_ref"]) <= tol
-    if not md_internal_ok:
-        issues.append(
-            f"M7_ref in md ({md['m7_ref']}) != recomputed from md bars×weights ({md_ref_computed:.4f})"
+    try:
+        md_text = md_path.read_text(encoding="utf-8")
+    except OSError as e:
+        return _finish(
+            audit_status="FAIL_MD_INVALID",
+            audit_exit_code=3,
+            parsed_md=None,
+            md_ref_recomputed=None,
+            md_parse_errors=[f"cannot read spaghetti-setup.md: {e}"],
+            md_internal_issues=[],
+            json_freshness_issues=[],
         )
 
-    scan: dict[str, Any] | None = None
-    if check_json_path and check_json_path.is_file():
-        chk = json.loads(check_json_path.read_text(encoding="utf-8"))
-        mb = (chk.get("metrics_bundle") or {}) if isinstance(chk, dict) else {}
-        score = mb.get("score") or {}
-        cats = score.get("categories") or {}
-        anteil = {k: float(cats[k]["anteil_pct"]) for k in cats if k.startswith("C")}
-        m7a = float(score.get("m7_anteil_pct_gewichtet") or mb.get("metric_a", {}).get("m7", 0.0))
-        fires = {k: anteil[k] > md["trigger_bars"][k] for k in anteil}
-        comp = m7a >= md["m7_ref"]
-        scan = {
-            "anteil_pct": anteil,
-            "m7_anteil_pct_gewichtet": m7a,
-            "per_category_would_fire_vs_md_bars": fires,
-            "composite_would_fire_vs_md_m7_ref": comp,
-            "trigger_policy_would_fire": any(fires.values()) or comp,
-        }
+    try:
+        md = parse_spaghetti_setup_md(md_text)
+    except ValueError as e:
+        return _finish(
+            audit_status="FAIL_MD_INVALID",
+            audit_exit_code=3,
+            parsed_md=None,
+            md_ref_recomputed=None,
+            md_parse_errors=[str(e)],
+            md_internal_issues=[],
+            json_freshness_issues=[],
+        )
 
-    return {
-        "canonical": "spaghetti-setup.md",
-        "md_path": md_path.as_posix(),
-        "json_path": json_path.as_posix(),
-        "parsed_md": md,
-        "m7_ref_recomputed_from_md": round(md_ref_computed, 4),
-        "json_mirror_ok": len(issues) == 0,
-        "drift_issues": issues,
-        "scan": scan,
-    }
+    md_ref_computed = compute_m7_ref(md["trigger_bars"], md["weights"])
+    md_internal_issues: list[str] = []
+    inc_msg = validate_md_m7_ref_consistency(md, tol=tol)
+    if inc_msg:
+        md_internal_issues.append(inc_msg)
+
+    json_freshness_issues: list[str] = []
+    try:
+        js = load_setup_json(json_path)
+        js_bars = {f"C{i}": float(js["trigger_bars"][f"C{i}"]) for i in range(1, 8)}
+        js_w = {f"C{i}": float(js["weights"][f"C{i}"]) for i in range(1, 8)}
+        js_ref = float(js["m7_ref"])
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+        json_freshness_issues.append(
+            f"cannot read or parse derived spaghetti-setup.json ({json_path}): {e} → run setup-sync"
+        )
+        js_bars = js_w = {}
+        js_ref = float("nan")
+
+    def _cmp_json(name: str, expected_from_md: float, in_json: float) -> None:
+        if json_freshness_issues and "cannot read" in json_freshness_issues[0]:
+            return
+        if in_json != in_json:  # NaN
+            json_freshness_issues.append(
+                f"FAIL_JSON_STALE — {name}: missing or invalid value in JSON → run setup-sync"
+            )
+            return
+        if abs(expected_from_md - in_json) > tol:
+            json_freshness_issues.append(
+                f"FAIL_JSON_STALE — {name}: expected from MD={expected_from_md}, on-disk JSON={in_json} "
+                f"→ run: python -m despaghettify.tools setup-sync"
+            )
+
+    for k in (f"C{i}" for i in range(1, 8)):
+        _cmp_json(f"trigger bar {k}", md["trigger_bars"][k], js_bars.get(k, float("nan")))
+        _cmp_json(f"weight {k}", md["weights"][k], js_w.get(k, float("nan")))
+    _cmp_json("m7_ref", md["m7_ref"], js_ref)
+
+    if md_internal_issues:
+        return _finish(
+            audit_status="FAIL_MD_INCONSISTENT",
+            audit_exit_code=2,
+            parsed_md=md,
+            md_ref_recomputed=md_ref_computed,
+            md_parse_errors=[],
+            md_internal_issues=md_internal_issues,
+            json_freshness_issues=json_freshness_issues,
+        )
+    if json_freshness_issues:
+        return _finish(
+            audit_status="FAIL_JSON_STALE",
+            audit_exit_code=1,
+            parsed_md=md,
+            md_ref_recomputed=md_ref_computed,
+            md_parse_errors=[],
+            md_internal_issues=[],
+            json_freshness_issues=json_freshness_issues,
+        )
+    return _finish(
+        audit_status="PASS",
+        audit_exit_code=0,
+        parsed_md=md,
+        md_ref_recomputed=md_ref_computed,
+        md_parse_errors=[],
+        md_internal_issues=[],
+        json_freshness_issues=[],
+    )
 
 
 def cmd_setup_audit(args: argparse.Namespace) -> int:
@@ -231,16 +395,25 @@ def cmd_setup_audit(args: argparse.Namespace) -> int:
     if getattr(args, "json", False):
         print(json.dumps(rep, indent=2))
     else:
-        print("Canonical policy:", rep["canonical"], rep["md_path"])
-        print("M7_ref (from md table):", rep["parsed_md"]["m7_ref"])
-        print("M7_ref recomputed (bars x weights):", rep["m7_ref_recomputed_from_md"])
+        print("Canon (human input):", rep["canonical"], rep["md_path"])
+        print("Derived artifact:", rep["json_path"])
+        if rep.get("parsed_md"):
+            print("M7_ref (from MD table):", rep["parsed_md"]["m7_ref"])
+            print("M7_ref recomputed from MD bars×weights:", rep["m7_ref_recomputed_from_md"])
+        print("Audit status:", rep.get("audit_status", "?"))
         if rep["drift_issues"]:
-            print("DRIFT (fix spaghetti-setup.json to match md):")
+            print("Issues:")
             for x in rep["drift_issues"]:
                 print(" ", x)
+            if rep.get("audit_status") == "FAIL_JSON_STALE":
+                print("Remediation: run: python -m despaghettify.tools setup-sync")
+            elif rep.get("audit_status") == "FAIL_MD_INCONSISTENT":
+                print("Remediation: fix § Composite reference or bar/weight tables in MD, then setup-sync.")
+            elif rep.get("audit_status") == "FAIL_MD_INVALID":
+                print("Remediation: fix Markdown tables (see messages above).")
         else:
-            print("JSON mirror: OK (matches md bars/weights/m7_ref).")
-        if rep.get("scan"):
+            print("Audit: PASS — derived JSON matches MD projection.")
+        if rep.get("scan") and rep.get("parsed_md"):
             s = rep["scan"]
             print("Scan vs md bars (Anteil %):")
             for k in sorted(s["anteil_pct"]):
@@ -251,7 +424,7 @@ def cmd_setup_audit(args: argparse.Namespace) -> int:
             print("  M7_anteil:", round(s["m7_anteil_pct_gewichtet"], 4), "m7_ref(md):", rep["parsed_md"]["m7_ref"])
             print("  composite fire:", s["composite_would_fire_vs_md_m7_ref"])
             print("  any policy fire:", s["trigger_policy_would_fire"])
-    return 1 if rep["drift_issues"] else 0
+    return int(rep.get("audit_exit_code", 1 if rep["drift_issues"] else 0))
 
 
 def cmd_setup_sync(args: argparse.Namespace) -> int:
@@ -281,7 +454,9 @@ def cmd_setup_sync(args: argparse.Namespace) -> int:
 
 
 def main_cli() -> int:
-    p = argparse.ArgumentParser(description="Audit or sync spaghetti-setup.md ↔ JSON mirror.")
+    p = argparse.ArgumentParser(
+        description="MD = canon; JSON = derived. Audit checks JSON vs MD projection; --sync writes JSON from MD.",
+    )
     p.add_argument(
         "--sync",
         action="store_true",
@@ -300,7 +475,7 @@ def main_cli() -> int:
     p.add_argument(
         "--setup-json",
         default="despaghettify/spaghetti-setup.json",
-        help="Machine mirror JSON (repo-relative ok).",
+        help="Derived JSON path (repo-relative ok); do not hand-edit.",
     )
     p.add_argument(
         "--check-json",

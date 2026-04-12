@@ -725,39 +725,39 @@ def main() -> int:
 
     p_sa = sub.add_parser(
         "setup-audit",
-        help="Compare spaghetti-setup.md (canonical) to spaghetti-setup.json; optional check JSON vs md bars.",
+        help="Verify derived spaghetti-setup.json matches projection from canonical spaghetti-setup.md.",
     )
     p_sa.add_argument(
         "--setup-md",
         default="despaghettify/spaghetti-setup.md",
-        help="Canonical policy Markdown (repo-relative ok).",
+        help="Canonical policy Markdown — sole source of truth (repo-relative ok).",
     )
     p_sa.add_argument(
         "--setup-json",
         default="despaghettify/spaghetti-setup.json",
-        help="Machine mirror JSON (repo-relative ok).",
+        help="Derived JSON only (repo-relative ok); regenerate with setup-sync, do not hand-edit.",
     )
     p_sa.add_argument(
         "--check-json",
         default="",
-        help="Optional check --with-metrics JSON: show Anteil % vs bars from md.",
+        help="Optional check --with-metrics JSON: Anteil % vs bars from MD canon.",
     )
     p_sa.add_argument("--json", action="store_true", help="Emit JSON report on stdout.")
     p_sa.set_defaults(func=cmd_setup_audit)
 
     p_sy = sub.add_parser(
         "setup-sync",
-        help="Write spaghetti-setup.json from spaghetti-setup.md (canonical tables → machine mirror).",
+        help="Regenerate derived spaghetti-setup.json from canonical spaghetti-setup.md (MD → JSON only).",
     )
     p_sy.add_argument(
         "--setup-md",
         default="despaghettify/spaghetti-setup.md",
-        help="Canonical policy Markdown (repo-relative ok).",
+        help="Canonical policy Markdown — sole source of truth (repo-relative ok).",
     )
     p_sy.add_argument(
         "--setup-json",
         default="despaghettify/spaghetti-setup.json",
-        help="JSON path to write (repo-relative ok).",
+        help="Derived JSON output path (repo-relative ok); overwrites prior projection.",
     )
     p_sy.add_argument(
         "--dry-run",

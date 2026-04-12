@@ -11,6 +11,6 @@ description: Routes agents to the Despaghettify autonomous loop — drain open D
 
 Read that file **in full** and execute it. Each **check** pass must follow `despaghettify/spaghetti-check-task.md` (after reading numeric policy in `despaghettify/spaghetti-setup.md`). Each **solve** pass must follow `despaghettify/spaghetti-solve-task.md` for **one** **DS-*** at a time.
 
-**Machine guards (must):** `autonomous-init` at session start; after each documented macro step `autonomous-advance` (exit **2** → **HARD_STOP**); run `autonomous-verify` between waves as in the task doc. Keep `despaghettify/spaghetti-setup.json` aligned with `spaghetti-setup.md` for `trigger-eval` / `check --with-metrics`.
+**Machine guards (must):** `autonomous-init` at session start; after each documented macro step `autonomous-advance` (exit **2** → **HARD_STOP**); run `autonomous-verify` between waves as in the task doc. Regenerate **`despaghettify/spaghetti-setup.json`** with **`setup-sync`** after edits to **`spaghetti-setup.md`** (JSON is derived only, not hand-maintained).
 
 Optional CLI: `python -m despaghettify.tools check` | `open-ds` | `solve-preflight --ds DS-0xx` — see [`../references/CLI.md`](../references/CLI.md).

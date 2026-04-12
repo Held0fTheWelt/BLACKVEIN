@@ -55,7 +55,7 @@ python -m despaghettify.tools autonomous-verify --allow-dirty --setup-json despa
 
 ## `setup-audit`
 
-Reads **[`../../spaghetti-setup.md`](../../spaghetti-setup.md)** as the **canonical** policy (bars, weights, `M7_ref`), compares [`../../spaghetti-setup.json`](../../spaghetti-setup.json), and optionally prints **Anteil %** vs md bars from a **`check --with-metrics`** JSON.
+**Directional check:** **[`../../spaghetti-setup.md`](../../spaghetti-setup.md)** is the **only** policy source; [`../../spaghetti-setup.json`](../../spaghetti-setup.json) must equal what **`setup-sync`** would emit from that Markdown. The audit answers: *Is the derived JSON still current?* — not “are two peers in agreement.” Optionally compares a **`check --with-metrics`** JSON (**Anteil %** vs bars from MD).
 
 ```bash
 python -m despaghettify.tools setup-audit
@@ -63,11 +63,11 @@ python -m despaghettify.tools setup-audit --check-json despaghettify/reports/res
 python -m despaghettify.tools setup-audit --json
 ```
 
-**Exit:** `0` if md and json match; `1` if drift (update **json** after editing **md**).
+**Exit codes:** `0` = `PASS` (JSON matches MD projection). `1` = `FAIL_JSON_STALE`. `2` = `FAIL_MD_INCONSISTENT` (**`M7_ref`** ≠ Σ(weight×bar) in MD). `3` = `FAIL_MD_INVALID` (MD unreadable / parse error). Machine report: `--json` includes `audit_status` and `audit_exit_code`.
 
 ## `setup-sync`
 
-Writes [`../../spaghetti-setup.json`](../../spaghetti-setup.json) from the numeric tables in [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (bars, weights, `M7_ref`). Refuses to write if the **M7_ref** cell in Markdown disagrees with Σ(weight×bar) (exit **2**). After editing **md**, run **`setup-sync`** then **`setup-audit`** to confirm.
+**MD → JSON only:** overwrites [`../../spaghetti-setup.json`](../../spaghetti-setup.json) from the numeric tables in [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (bars, weights, `M7_ref`). Refuses to write if the **M7_ref** cell in Markdown disagrees with Σ(weight×bar) (exit **2**). Do **not** hand-edit the JSON. After editing **md**, run **`setup-sync`** then **`setup-audit`**.
 
 ```bash
 python -m despaghettify.tools setup-sync
@@ -80,7 +80,7 @@ python -m despaghettify.tools setup-sync --dry-run
 
 ## `metrics-emit` / `trigger-eval`
 
-Machine line for trigger policy (**`anteil_pct`** vs bars in setup) + [`../../spaghetti-setup.json`](../../spaghetti-setup.json) — mirror must match [`../../spaghetti-setup.md`](../../spaghetti-setup.md) (use **`setup-sync`** or **`setup-audit`** after edits).
+Machine line for trigger policy (**`anteil_pct`** vs bars) reads the **derived** [`../../spaghetti-setup.json`](../../spaghetti-setup.json) (projection of [`../../spaghetti-setup.md`](../../spaghetti-setup.md)); regenerate with **`setup-sync`**, verify with **`setup-audit`**.
 
 ```bash
 python -m despaghettify.tools check --out .state_tmp/despag_check_report.json

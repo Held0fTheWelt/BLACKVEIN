@@ -1,6 +1,7 @@
 """Tests for spaghetti_setup_audit (canonical md vs json mirror)."""
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -48,9 +49,11 @@ class SpaghettiSetupAuditTests(unittest.TestCase):
         md_path = root / "despaghettify" / "spaghetti-setup.md"
         p = parse_spaghetti_setup_md(md_path.read_text(encoding="utf-8"))
         self.assertEqual(p["trigger_bars"]["C1"], 0.0)
+        self.assertEqual(p["trigger_bars"]["C3"], 12.0)
+        self.assertEqual(p["trigger_bars"]["C4"], 5.0)
         self.assertEqual(p["weights"]["C1"], 0.2)
-        self.assertAlmostEqual(p["m7_ref"], 9.1, places=3)
-        self.assertAlmostEqual(compute_m7_ref(p["trigger_bars"], p["weights"]), 9.1, places=3)
+        self.assertAlmostEqual(p["m7_ref"], 4.25, places=3)
+        self.assertAlmostEqual(compute_m7_ref(p["trigger_bars"], p["weights"]), 4.25, places=3)
 
     def test_audit_json_matches_md(self) -> None:
         from despaghettify.tools.spaghetti_setup_audit import audit_setup
@@ -61,7 +64,80 @@ class SpaghettiSetupAuditTests(unittest.TestCase):
             json_path=root / "despaghettify" / "spaghetti-setup.json",
             check_json_path=None,
         )
+        self.assertTrue(rep["derived_json_matches_md"], rep["drift_issues"])
         self.assertTrue(rep["json_mirror_ok"], rep["drift_issues"])
+        self.assertEqual(rep["audit_status"], "PASS")
+        self.assertEqual(rep["audit_exit_code"], 0)
+
+    def test_parse_accepts_plain_and_bold_and_backtick_c(self) -> None:
+        from despaghettify.tools.spaghetti_setup_audit import parse_spaghetti_setup_md
+
+        md = _FIXTURE_MD.replace("| c | **C3** | **10** |", "| c | `C3` | 12.0 |")
+        p = parse_spaghetti_setup_md(md)
+        self.assertEqual(p["trigger_bars"]["C3"], 12.0)
+
+    def test_parse_rejects_duplicate_bar(self) -> None:
+        from despaghettify.tools.spaghetti_setup_audit import parse_spaghetti_setup_md
+
+        dup_row = "\n| dup | **C1** | 1 |\n"
+        insert_at = _FIXTURE_MD.find("## M7 category weights")
+        self.assertGreater(insert_at, 0)
+        md = _FIXTURE_MD[:insert_at] + dup_row + _FIXTURE_MD[insert_at:]
+        with self.assertRaises(ValueError) as ctx:
+            parse_spaghetti_setup_md(md)
+        self.assertIn("duplicate", str(ctx.exception).lower())
+
+    def test_parse_rejects_non_numeric_bar(self) -> None:
+        from despaghettify.tools.spaghetti_setup_audit import parse_spaghetti_setup_md
+
+        bad = _FIXTURE_MD.replace("| a | **C1** | **10** |", "| a | **C1** | high |")
+        with self.assertRaises(ValueError) as ctx:
+            parse_spaghetti_setup_md(bad)
+        self.assertIn("non-numeric", str(ctx.exception).lower())
+
+    def test_audit_fail_json_stale(self) -> None:
+        from despaghettify.tools import spaghetti_setup_audit as ssa
+
+        with tempfile.TemporaryDirectory() as td:
+            tdir = Path(td)
+            md_p = tdir / "spaghetti-setup.md"
+            js_p = tdir / "spaghetti-setup.json"
+            md_p.write_text(_FIXTURE_MD, encoding="utf-8")
+            ssa.sync_setup_json_from_md(md_path=md_p, json_path=js_p, dry_run=False)
+            doc = ssa.load_setup_json(js_p)
+            doc["trigger_bars"]["C1"] = 999
+            js_p.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+            rep = ssa.audit_setup(md_path=md_p, json_path=js_p, check_json_path=None)
+            self.assertEqual(rep["audit_status"], "FAIL_JSON_STALE")
+            self.assertEqual(rep["audit_exit_code"], 1)
+
+    def test_audit_fail_md_inconsistent(self) -> None:
+        from despaghettify.tools import spaghetti_setup_audit as ssa
+
+        bad = _FIXTURE_MD.replace("| **M7_ref** | **10** |", "| **M7_ref** | **99** |")
+        with tempfile.TemporaryDirectory() as td:
+            tdir = Path(td)
+            md_p = tdir / "spaghetti-setup.md"
+            js_p = tdir / "spaghetti-setup.json"
+            md_p.write_text(_FIXTURE_MD, encoding="utf-8")
+            ssa.sync_setup_json_from_md(md_path=md_p, json_path=js_p, dry_run=False)
+            md_p.write_text(bad, encoding="utf-8")
+            rep = ssa.audit_setup(md_path=md_p, json_path=js_p, check_json_path=None)
+            self.assertEqual(rep["audit_status"], "FAIL_MD_INCONSISTENT")
+            self.assertEqual(rep["audit_exit_code"], 2)
+
+    def test_sync_dry_run_matches_written_json(self) -> None:
+        from despaghettify.tools import spaghetti_setup_audit as ssa
+
+        with tempfile.TemporaryDirectory() as td:
+            tdir = Path(td)
+            md_p = tdir / "spaghetti-setup.md"
+            js_p = tdir / "out.json"
+            md_p.write_text(_FIXTURE_MD, encoding="utf-8")
+            _c, _m, doc_dry = ssa.sync_setup_json_from_md(md_path=md_p, json_path=js_p, dry_run=True)
+            ssa.sync_setup_json_from_md(md_path=md_p, json_path=js_p, dry_run=False)
+            doc_disk = ssa.load_setup_json(js_p)
+            self.assertEqual(doc_dry, doc_disk)
 
     def test_sync_writes_json_matching_fixture_md(self) -> None:
         from despaghettify.tools.spaghetti_setup_audit import audit_setup, sync_setup_json_from_md
@@ -75,6 +151,7 @@ class SpaghettiSetupAuditTests(unittest.TestCase):
             self.assertEqual(code, 0, msgs)
             self.assertEqual(doc["m7_ref"], 10)
             rep = audit_setup(md_path=md_p, json_path=js_p, check_json_path=None)
+            self.assertTrue(rep["derived_json_matches_md"], rep["drift_issues"])
             self.assertTrue(rep["json_mirror_ok"], rep["drift_issues"])
 
     def test_sync_rejects_inconsistent_m7_ref(self) -> None:

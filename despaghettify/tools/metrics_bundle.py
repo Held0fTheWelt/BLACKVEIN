@@ -7,7 +7,7 @@
 ``composite_trigger_fires`` vergleichen **``condition_shares_pct``**
 (``metric_a.category_scores`` / ``score.*.anteil_pct``) und
 ``metric_a.m7`` (**``m7_anteil_pct_gewichtet``**) mit ``trigger_bars`` /
-``M7_ref`` aus ``spaghetti-setup.json`` (**echte %-Anteile**, siehe Setup-Doku).
+``M7_ref`` aus der **abgeleiteten** ``spaghetti-setup.json`` (Projektion der MD-Policy; **echte %-Anteile**, siehe ``spaghetti-setup.md``).
 
 **v2 vs v1:** Category scores use **saturating curves** ``100*(1-exp(-…))`` with a
 numeric **ceiling below 100** so routine repos never show misleading **100%**
@@ -55,13 +55,18 @@ def _exp_pressure(intensity: float) -> float:
 
 def ast_heuristic_category_scores(ast: dict[str, Any]) -> dict[str, float]:
     """Map collect_ast_stats() shape to C1..C7 on 0..100 scale (v2 heuristics)."""
-    n = max(int(ast.get("total_functions") or 0), 1)
+    n_raw = int(ast.get("total_functions") or 0)
     long100 = int(ast.get("count_over_100_lines") or 0)
     long50 = int(ast.get("count_over_50_lines") or 0)
     d6 = int(ast.get("count_nesting_ge_6") or 0)
 
-    ratio50 = long50 / float(n)
-    ratio100 = long100 / float(n)
+    if n_raw <= 0:
+        # No function corpus: avoid fake denominators or a non-zero C1 floor.
+        return {"C1": 0.0, "C2": 0.0, "C3": 0.0, "C4": 0.0, "C5": 0.0, "C6": 0.0, "C7": 0.0}
+
+    n = float(n_raw)
+    ratio50 = long50 / n
+    ratio100 = long100 / n
 
     # C3: very long functions — count-based pressure (similar mid-range to v1).
     c3 = _exp_pressure(long100 / 32.0)
@@ -71,7 +76,7 @@ def ast_heuristic_category_scores(ast: dict[str, Any]) -> dict[str, float]:
     c4 = _exp_pressure(18.0 * ratio50)
     # C6: "heavy tail" share — >100-line callables vs size (decoupled from C4).
     c6 = _exp_pressure(40.0 * ratio100)
-    # C1: weak proxy until cycle metric exists.
+    # C1: weak proxy until cycle metric exists (only when n_raw > 0).
     c1 = min(_SCORE_CAP, 5.0 + (long100 / 250.0) * 8.0)
     c5 = min(_SCORE_CAP, c4 * 0.55)
     c7 = min(_SCORE_CAP, max(c2, c3) * 0.65)
@@ -84,7 +89,7 @@ def weighted_m7(scores: dict[str, float], weights: dict[str, float]) -> float:
 
 def condition_shares_pct(ast: dict[str, Any]) -> dict[str, float]:
     """Seven operational **true %** shares (0..100). C1 = file % under ``backend/app``; C2–C7 = function %."""
-    n = max(int(ast.get("total_functions") or 0), 1)
+    n_raw = int(ast.get("total_functions") or 0)
     c1 = float(ast.get("c1_files_in_import_cycles_pct") or 0.0)
     ng4 = int(ast.get("count_nesting_ge_4") or 0)
     long100 = int(ast.get("count_over_100_lines") or 0)
@@ -94,7 +99,9 @@ def condition_shares_pct(ast: dict[str, Any]) -> dict[str, float]:
     ctrl = int(ast.get("count_functions_control_flow_heavy") or 0)
 
     def pct(count: int) -> float:
-        return round(100.0 * float(count) / float(n), 4)
+        if n_raw <= 0:
+            return 0.0
+        return round(100.0 * float(count) / float(n_raw), 4)
 
     return {
         "C1": round(c1, 4),
@@ -109,18 +116,21 @@ def condition_shares_pct(ast: dict[str, Any]) -> dict[str, float]:
 
 def literal_rates_from_ast(ast: dict[str, Any]) -> dict[str, Any]:
     """Legacy density keys plus ``condition_shares_pct`` (seven true shares)."""
-    n = max(int(ast.get("total_functions") or 0), 1)
+    n_raw = int(ast.get("total_functions") or 0)
     long100 = int(ast.get("count_over_100_lines") or 0)
     long50 = int(ast.get("count_over_50_lines") or 0)
     d6 = int(ast.get("count_nesting_ge_6") or 0)
-    fn = float(n)
-    over_100 = 100.0 * long100 / fn
-    over_50 = 100.0 * long50 / fn
-    nest_ge_6 = 100.0 * d6 / fn
+    if n_raw <= 0:
+        over_100 = over_50 = nest_ge_6 = 0.0
+    else:
+        fn = float(n_raw)
+        over_100 = 100.0 * long100 / fn
+        over_50 = 100.0 * long50 / fn
+        nest_ge_6 = 100.0 * d6 / fn
     over_100_among_over_50 = (100.0 * long100 / float(long50)) if long50 else 0.0
     cond = condition_shares_pct(ast)
     return {
-        "total_functions_measured": n,
+        "total_functions_measured": n_raw,
         "total_python_files_measured": int(ast.get("total_python_files") or 0),
         "functions_over_100_lines_pct": round(over_100, 4),
         "functions_over_50_lines_pct": round(over_50, 4),
@@ -156,7 +166,7 @@ def score_trigger_vs_anteil(
             "``trigger_v2`` = Heuristik v2 (0…100, saturierend); **kein** Balkenvergleich, "
             "nur beratend. ``anteil_pct`` = operationaler Mess-Anteil in % "
             "(``literal_rates.condition_shares_pct``); **Balken** / ``M7_ref`` aus "
-            "``spaghetti-setup`` gelten **nur** hier. **C1** = %% der Dateien unter "
+            "``spaghetti-setup`` gelten **nur** hier. **C1** = Prozent der Dateien unter "
             "``backend/app`` im Importgraph; **C2–C7** = Prozent der gemessenen Funktionen. "
             "``m7_trigger_v2`` / ``m7_anteil_pct_gewichtet``: gleiche ``weights``."
         ),

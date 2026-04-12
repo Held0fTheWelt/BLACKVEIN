@@ -144,7 +144,7 @@ Invoke (the in-repo script resolves **repo root** from `__file__`; **CWD** need 
 python despaghettify/tools/spaghetti_ast_scan.py
 ```
 
-The same AST logic (plus `ds005` and greps) is available as JSON via `python -m despaghettify.tools check` (see [`superpowers/references/CLI.md`](superpowers/references/CLI.md)). For **C1..C7** and **M7** Richtwerte in Markdown, run **`python -m despaghettify.tools check --with-metrics`** so the payload includes **`metrics_bundle`** (requires **`despaghettify/spaghetti-setup.json`**).
+The same AST logic (plus `ds005` and greps) is available as JSON via `python -m despaghettify.tools check` (see [`superpowers/references/CLI.md`](superpowers/references/CLI.md)). For **C1..C7** and **M7** Richtwerte in Markdown, run **`python -m despaghettify.tools check --with-metrics`** so the payload includes **`metrics_bundle`** (requires **`despaghettify/spaghetti-setup.json`**, the **derived** policy file from **`spaghetti-setup.md`** via **`setup-sync`**).
 
 ## Extra checks (fixed)
 

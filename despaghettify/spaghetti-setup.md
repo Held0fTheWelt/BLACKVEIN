@@ -4,6 +4,13 @@
 
 **Purpose:** **Single editable source** for the **numeric** parts of the despaghettify **trigger policy**: per-category **bars** (operational **%-share ceilings**, strict `**>`**), **M7** category **weights**, and the derived **composite reference** `**M7_ref`**. **How** to run scans, maintain *Open hotspots*, DS rows, Mermaid, and gates stays in `[spaghetti-check-task.md](spaghetti-check-task.md)`; this file is **only** the knobs you retune as structure policy evolves.
 
+**Canonical contract (non-negotiable):**
+
+1. **`spaghetti-setup.md`** — **only** human-edited policy input (bars, weights, `M7_ref`, and any future knobs you add here). Not bidirectional with JSON.
+2. **`spaghetti-setup.json`** — **derived artifact** only: regenerate with `python -m despaghettify.tools setup-sync`. **Do not** treat it as a second source of truth or maintain it by hand.
+3. **`setup-audit`** — asks: *Does on-disk JSON still match the projection from this Markdown?* If not, the JSON is **stale or wrong** (or Markdown is internally inconsistent), not “two equal truths disagree.”
+4. **Parser** — tolerates normal Markdown table styling (e.g. bar cell `12` or `**12**`); semantic structure is the contract, not cosmetic bold.
+
 **Language:** English (hub policy).
 
 **Authority:** Values in **this file** are what **“the system”** means for:
@@ -19,11 +26,91 @@
 
 | What you want to edit                                                                              | Canonical location                                                                                                                              |
 | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Per-category bars**, **weights**, `**M7_ref`** (gates on **Anteil %**)                           | **This file** + mirror `[spaghetti-setup.json](spaghetti-setup.json)`                                                                           |
+| **Per-category bars**, **weights**, `**M7_ref`** (gates on **Anteil %**)                           | **This file** only — then `**setup-sync**` → `[spaghetti-setup.json](spaghetti-setup.json)` (machine projection, not co-equal truth)           |
 | **Curve / saturation** for **Trigger v2** (`category_scores` / `m7`, 0–100, **no** bar table here) | Code: `[despaghettify/tools/metrics_bundle.py](tools/metrics_bundle.py)` — `ast_heuristic_category_scores` / `_exp_pressure`; change with tests |
 
 
 So: **policy thresholds** = **this** `spaghetti-setup.md`; **heuristic metric shape** = `**metrics_bundle.py`**. Both are “trigger-related” but only the first is edited in this Markdown file.
+
+---
+
+## Normative specification (machine contract)
+
+This section is **normative** for tooling in `despaghettify/tools/spaghetti_setup_audit.py` and the **`setup-sync`** / **`setup-audit`** CLIs. Prose elsewhere in this file does not override these rules.
+
+### 1. Purpose and authority
+
+This Markdown file is the **only** human-edited canonical source for **numeric** trigger policy: **`trigger_bars` C1..C7**, **`weights` C1..C7**, and **`m7_ref`**.
+
+**Out of scope here:** heuristic curve implementation, AST scan logic, changing operational definitions of metrics, ROOTS/scope of measurement, and procedural task text (those live in code + task docs).
+
+### 2. Truth model
+
+| Role | Artifact |
+|------|----------|
+| **Source of truth** | `spaghetti-setup.md` |
+| **Derived artifact** | `spaghetti-setup.json` |
+| **Consumers** | `metrics_bundle.py`, `check --with-metrics`, audit/diagnostics |
+| **Validation** | Always interpret policy from **Markdown first**; JSON must be a lossless projection |
+
+`spaghetti-setup.json` is **never** a co-equal second truth; it is only a machine-readable projection.
+
+### 3. Direction
+
+Only **Markdown → JSON**. Manual edits to JSON are forbidden. **Sync** always regenerates JSON from MD. **Audit** always asks: *Is on-disk JSON still a correct derivation of the current MD?* On mismatch, **fix MD if it is internally wrong; otherwise JSON is stale** — not “two authorities disagree.”
+
+### 4. Semantic configuration
+
+- **`trigger_bars`:** C1..C7 → number; compared to real **`anteil_pct`**; per-category fire iff **strict `>`**.
+- **`weights`:** C1..C7 → number; define the weighted composite **`M7_anteil`**.
+- **`m7_ref`:** number; composite fire iff **`M7_anteil ≥ m7_ref`**; must satisfy **`m7_ref = Σ weight_i × bar_i`** (tolerance in code).
+
+**Invalid MD:** missing C row, non-numeric cell, **`m7_ref`** inconsistent with bars×weights, **duplicate** row for the same Cn, unknown category (e.g. C8).
+
+### 5. Parser contract
+
+Cosmetic Markdown must not break parsing: e.g. **`12`** vs `12`, **`C3`** vs `` `C3` ``, extra whitespace, blank lines, ragged table alignment — all tolerated for **semantic** table rows under the stable headings **Per-category trigger bars**, **M7 category weights**, **Composite reference**.
+
+**Hard failures:** missing mandatory category, non-numeric value, duplicate Cn, ambiguous row, broken structure.
+
+**Parser output** is a **normalized** dict (no Markdown formatting residue): `trigger_bars`, `weights`, `m7_ref`.
+
+### 6. Sync contract (`setup-sync`)
+
+Load MD → parse → validate **`m7_ref`** vs Σ(weight×bar) → if invalid, **abort with clear error and write nothing** → else emit JSON with **stable key order** and **deterministic** `json.dumps` formatting.
+
+### 7. Audit contract (`setup-audit`)
+
+Separate outcomes (also exposed as **`audit_status`** / **`audit_exit_code`** in machine JSON):
+
+| Code | Status | Meaning |
+|------|--------|---------|
+| **0** | `PASS` | MD parses; MD internally consistent; JSON matches MD projection |
+| **1** | `FAIL_JSON_STALE` | MD OK; derived JSON wrong, missing, or unreadable |
+| **2** | `FAIL_MD_INCONSISTENT` | MD parses but **`m7_ref`** ≠ Σ(weight×bar) (and optional JSON drift) |
+| **3** | `FAIL_MD_INVALID` | MD unreadable or unparseable |
+
+### 8. UX
+
+Errors must be **actionable** (which section, which row pattern, what was expected). No silent “best effort” if policy is broken.
+
+### 9. Markdown structure
+
+Stable **§ headings** (semantic anchors): **Per-category trigger bars**, **M7 category weights**, **Composite reference**. Free prose, examples, and formatting are allowed **around** those tables; do not fork numeric policy into other files.
+
+### 10. Downstream
+
+- **`metrics_bundle.py`** may read JSON **only** under the assumption it was produced from this MD (`setup-sync`).
+- **Task docs** may **reference** this file; they must **not** redefine bars/weights/`m7_ref`.
+- **`despaghettification_implementation_input.md`** may mirror formulas in prose but is **not** an authority for digits.
+
+### 11. Tests
+
+Required coverage lives in **`despaghettify/tools/tests/test_spaghetti_setup_audit.py`** (parser edges, consistency, sync determinism, audit outcomes). Extend tests when the parser contract grows.
+
+### 12. One-line project rule
+
+**`spaghetti-setup.md` is the sole human-editable canonical trigger-policy input; `spaghetti-setup.json` is a derived machine mirror only; all audit and sync behavior is directional Markdown → JSON; Markdown formatting differences must not invalidate a semantically correct configuration.**
 
 ---
 
@@ -32,7 +119,7 @@ So: **policy thresholds** = **this** `spaghetti-setup.md`; **heuristic metric sh
 
 | Layer                                   | Role                                                                                                                                    | Source of truth                                                                                                                                                                                                                                                                      | Consumed by                                                                                                                            |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **A — Policy (gates)**                  | **Bars** (%-ceilings), **weights**, `**M7_ref`**. Defines *when* the full spaghetti-check update path runs (DS table, phases, Mermaid). | **This file** + `[spaghetti-setup.json](spaghetti-setup.json)` mirror                                                                                                                                                                                                                | `metrics_bundle.build_metrics_bundle` (`per_category_trigger_fires`, `composite_trigger_fires`, `trigger_policy_basis` = `anteil_pct`) |
+| **A — Policy (gates)**                  | **Bars** (%-ceilings), **weights**, `**M7_ref`**. Defines *when* the full spaghetti-check update path runs (DS table, phases, Mermaid). | **This file** (canon); `[spaghetti-setup.json](spaghetti-setup.json)` = **derived** copy for CLIs (`setup-sync`)                                                                                                                                                                      | `metrics_bundle.build_metrics_bundle` (`per_category_trigger_fires`, `composite_trigger_fires`, `trigger_policy_basis` = `anteil_pct`) |
 | **B — Measurement (operational %)**     | Seven **Anteil %** values: reproducible counts from AST + import graph (see § *Conditions — operational definitions*).                  | Code: `[despaghettify/tools/spaghetti_ast_scan.py](tools/spaghetti_ast_scan.py)` (`collect_ast_stats`), `[despaghettify/tools/import_cycle_share.py](tools/import_cycle_share.py)` (C1), `[despaghettify/tools/metrics_bundle.py](tools/metrics_bundle.py)` (`condition_shares_pct`) | `check --with-metrics`, `setup-audit`, input list **Anteil %** column                                                                  |
 | **C — Advisory heuristic (Trigger v2)** | Saturating 0–100 **scores** for narrative / dashboards; **not** compared to bars in this file.                                          | Code: `ast_heuristic_category_scores` in `[metrics_bundle.py](tools/metrics_bundle.py)`                                                                                                                                                                                              | `metrics_bundle.category_scores`, `score.trigger_v2`; human interpretation only                                                        |
 
@@ -102,7 +189,7 @@ These are the **only** values compared to **§ Per-category trigger bars**. All 
 | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Same number shown as “%” for both heuristic and real share | **Two columns** in the input list: **Trigger v2** (0–100, no bar) vs **Anteil %** (measured %, bars apply).    |
 | Bars compared to wrong scale                               | **Bars + `M7_ref`** apply **only** to **Anteil %** / `M7_anteil`.                                              |
-| Where to edit policy digits                                | `**spaghetti-setup.md`** canonical; `**spaghetti-setup.json`** mirror; validate with `**setup-audit**`.        |
+| Where to edit policy digits                                | `**spaghetti-setup.md`** only; `**setup-sync**` → JSON; validate with `**setup-audit**` (derived vs canon).     |
 | What `M7` in JSON means                                    | `**metrics_bundle.m7**` = heuristic weighted sum; `**metric_a.m7**` = `**M7_anteil**` (gated vs `**M7_ref**`). |
 
 
@@ -111,7 +198,7 @@ These are the **only** values compared to **§ Per-category trigger bars**. All 
 ## Configuration matrix — user vs system
 
 
-| Item                                                | **User-configurable** (this file + JSON)              | **System-fixed** (code / scan contract)     |
+| Item                                                | **User-configurable** (this Markdown only)            | **System-fixed** (code / scan contract)     |
 | --------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
 | Per-category **bars**                               | Yes                                                   | —                                           |
 | **Weights**                                         | Yes (must sum to 1.0)                                 | —                                           |
@@ -178,15 +265,15 @@ with **Anteil(C*n*)** from the scan bundle (**%**), **not** the heuristic **trig
 
 Substituting the **current** bars and weights:
 
-`M7_ref = 0.20×0 + 0.10×8 + 0.20×25 + 0.15×20 + 0.10×0 + 0.15×0 + 0.10×3`
+`M7_ref = 0.20×0 + 0.10×8 + 0.20×12 + 0.15×5 + 0.10×0 + 0.15×0 + 0.10×3`
 
 **Update the next two lines whenever you change bars or weights:**
 
 
-| Field                                                    | Value                                                         |
-| -------------------------------------------------------- | ------------------------------------------------------------- |
-| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **9.1**                                                       |
-| **M7_ref** (display)                                     | **≈ 9.1** (optional **%** suffix in Markdown for readability) |
+| Field                                                    | Value                                                          |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| **M7_ref** (same unit as **Anteil %** / `**M7_anteil`**) | **4.25**                                                       |
+| **M7_ref** (display)                                     | **≈ 4.25** (optional **%** suffix in Markdown for readability) |
 
 
 **Composite trigger:** run the **full** input-list update path when `**M7_anteil ≥ M7_ref`** (even if no single per-category bar was exceeded yet).
@@ -214,6 +301,6 @@ The `**ast_heuristic_v2`** values `**category_scores`** / `**m7**` (0–100, sat
 2. Align `[despaghettification_implementation_input.md](despaghettification_implementation_input.md)`: § *Score M7* **Formula** (weights), § *Trigger policy for check task updates* (threshold prose and **M7_ref**), and any narrative that cites old semantics.
 3. Align `[templates/despaghettification_implementation_input.EMPTY.md](templates/despaghettification_implementation_input.EMPTY.md)` the same way.
 4. Skim `[spaghetti-check-task.md](spaghetti-check-task.md)` **Threshold** — it must **not** reintroduce a second set of numbers; only `[spaghetti-setup.md](spaghetti-setup.md)` is canonical for digits.
-5. Update `[spaghetti-setup.json](spaghetti-setup.json)` so CLI tools (`trigger-eval`, `metrics-emit`, `check --with-metrics`) stay aligned with this file (`m7_ref` must match the recomputed value). **Or** run `**python -m despaghettify.tools setup-sync`** (writes the JSON mirror from **this** file’s tables; fails if `M7_ref` ≠ Σ w×bar).
-6. Run `**python -m despaghettify.tools setup-audit`** (optional `**--check-json path/to/check.json`**) — reads **this** Markdown as canonical, compares the JSON mirror, and (with a check bundle) prints **Anteil %** vs bars from **md**; exit **1** if md/json drift.
+5. Run `**python -m despaghettify.tools setup-sync**` to regenerate the derived `[spaghetti-setup.json](spaghetti-setup.json)` (required after bar/weight/`M7_ref` edits; fails if `M7_ref` ≠ Σ w×bar in **this** file).
+6. Run `**python -m despaghettify.tools setup-audit`** (optional `**--check-json path/to/check.json`**) — confirms on-disk JSON still matches the **projection** from **this** Markdown; with a check bundle, prints **Anteil %** vs bars from MD; exit **1** if derived JSON is **stale** vs MD.
 
