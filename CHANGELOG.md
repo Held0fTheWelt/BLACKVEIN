@@ -19,24 +19,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Backend runtime readiness endpoint:** `GET /api/v1/admin/ai/runtime-readiness` in [`backend/app/api/v1/operational_governance_routes.py`](backend/app/api/v1/operational_governance_routes.py), backed by deterministic readiness evaluation in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py).
+- **First-class provider contract metadata and OpenRouter support:** runtime/provider contracts in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py), new provider enum value `openrouter` in [`backend/app/models/governance_enums.py`](backend/app/models/governance_enums.py), and provider base URL defaults in [`backend/app/config.py`](backend/app/config.py).
 - **World-engine control-center aggregation service:** [`backend/app/services/world_engine_control_center_service.py`](backend/app/services/world_engine_control_center_service.py) to unify desired/observed play-service posture, connectivity/readiness, active runs/sessions, operator-safe controls, and normalized blockers/warnings.
 - **World-engine control-center backend API:** `GET /api/v1/admin/world-engine/control-center` in [`backend/app/api/v1/world_engine_console_routes.py`](backend/app/api/v1/world_engine_console_routes.py).
 - **Canonical World-Engine Control Center page:** route and template/JS surface at `/manage/world-engine-control-center` via [`administration-tool/route_registration_manage_sections.py`](administration-tool/route_registration_manage_sections.py), [`administration-tool/templates/manage/world_engine_control_center.html`](administration-tool/templates/manage/world_engine_control_center.html), and [`administration-tool/static/manage_world_engine_control_center.js`](administration-tool/static/manage_world_engine_control_center.js).
 - **Canonical AI Runtime Governance route alias:** `/manage/ai-runtime-governance` in [`administration-tool/route_registration_manage_sections.py`](administration-tool/route_registration_manage_sections.py) as the primary Phase 1 entrypoint.
-- **New tests for control-center and routing surfaces:** [`backend/tests/test_world_engine_control_center.py`](backend/tests/test_world_engine_control_center.py) and [`administration-tool/tests/test_manage_world_engine_control_center.py`](administration-tool/tests/test_manage_world_engine_control_center.py).
+- **`docker-up` env/bootstrap lifecycle commands:** `init-env`, `ensure-env`, and `reset` in [`docker-up.py`](docker-up.py), with local `.env` creation/update, stable secret generation, and compose preflight reconciliation.
+- **New tests for control-center, routing, and secret crypto robustness:** [`backend/tests/test_world_engine_control_center.py`](backend/tests/test_world_engine_control_center.py), [`administration-tool/tests/test_manage_world_engine_control_center.py`](administration-tool/tests/test_manage_world_engine_control_center.py), and [`backend/tests/test_governance_secret_crypto_service.py`](backend/tests/test_governance_secret_crypto_service.py).
 
 ### Changed
 
 - **Provider/model/route governance listings now carry operator-ready eligibility context:** `list_models()` and `list_routes()` in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py) now include runtime eligibility and normalized blocker fields rather than plain record echoes.
+- **Provider health checks are now provider-aware and persisted with diagnostics:** `test_provider_connection()` in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py) now probes real provider health endpoints, records latency/error code/message, and normalizes `reachable`/`authenticated`/`usable` output.
 - **Operational governance admin UI is now a real CRUD control plane:** [`administration-tool/templates/manage/operational_governance.html`](administration-tool/templates/manage/operational_governance.html) and [`administration-tool/static/manage_operational_governance.js`](administration-tool/static/manage_operational_governance.js) now expose create/edit flows for providers, models, and routes, plus runtime-readiness and blocker visibility.
+- **Admin auth error rendering now surfaces governance payloads cleanly:** [`administration-tool/static/manage_auth.js`](administration-tool/static/manage_auth.js) now exposes `formatApiErrorMessage()` so pages display normalized backend error codes/messages/details.
 - **Manage navigation now reflects canonical operator flow:** [`administration-tool/templates/manage/base.html`](administration-tool/templates/manage/base.html) adds first-class entries for **AI Runtime Governance** and **World-Engine Control Center** while preserving deep-dive pages.
 - **Diagnosis and World Engine console page framing updated:** [`administration-tool/templates/manage/diagnosis.html`](administration-tool/templates/manage/diagnosis.html) and [`administration-tool/templates/manage/world_engine_console.html`](administration-tool/templates/manage/world_engine_console.html) now position the Control Center as canonical and existing pages as detail views.
 - **Phase 1 operator docs updated:** [`docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md`](docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md) now documents AI runtime governance flow, readiness interpretation, world-engine control-center usage, and explicit out-of-phase items.
+- **Environment and compose defaults align with governed providers:** [`.env.example`](.env.example), [`docker-compose.yml`](docker-compose.yml), and [`docker-up.py`](docker-up.py) now route provider URLs/API keys and platform secrets through `.env` rather than hardcoded local placeholders.
 - **Operational governance and admin tests expanded:** [`backend/tests/test_operational_governance_mvp.py`](backend/tests/test_operational_governance_mvp.py) and [`administration-tool/tests/test_manage_operational_governance.py`](administration-tool/tests/test_manage_operational_governance.py) include new Phase 1 surface checks.
+
+### Fixed
+
+- **Governance KEK decoding is now robust across base64 variants:** [`backend/app/services/governance_secret_crypto_service.py`](backend/app/services/governance_secret_crypto_service.py) accepts unpadded and URL-safe base64 encodings, and emits regeneration guidance (`init-env --force`) when invalid.
 
 ### Tests (integrity verification)
 
 - `python -m pytest backend/tests/test_operational_governance_mvp.py backend/tests/test_world_engine_control_center.py` (from repo root) — passed.
+- `python -m pytest backend/tests/test_governance_secret_crypto_service.py` (from repo root) — passed.
 - `python -m pytest administration-tool/tests/test_manage_operational_governance.py administration-tool/tests/test_manage_world_engine_control_center.py administration-tool/tests/test_manage_world_engine_console.py administration-tool/tests/test_manage_play_service_control.py` (from repo root) — passed.
 
 ---

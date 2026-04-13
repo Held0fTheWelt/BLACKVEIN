@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import base64
 
+import app.services.governance_runtime_service as governance_runtime_service
+
 def _with_kek(monkeypatch):
     monkeypatch.setenv("SECRETS_KEK", base64.b64encode(b"a" * 32).decode("utf-8"))
 
@@ -88,11 +90,135 @@ def test_runtime_mode_validation_blocks_ai_without_real_provider(client, admin_h
     assert payload["error"]["code"] == "generation_mode_invalid"
 
 
+def test_provider_contract_exposes_first_class_openrouter_metadata(client, admin_headers):
+    create_response = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={"provider_type": "openrouter", "display_name": "OpenRouter Main", "is_enabled": True},
+    )
+    assert create_response.status_code == 200
+
+    list_response = client.get("/api/v1/admin/ai/providers", headers=admin_headers)
+    assert list_response.status_code == 200
+    providers = list_response.get_json()["data"]["providers"]
+    row = next(p for p in providers if p["provider_type"] == "openrouter")
+    assert row["auth_mode"] == "bearer_api_key"
+    assert "Authorization" in row["required_headers"]
+    assert row["stage_support"] == "template"
+    assert row["supports_model_discovery"] is True
+
+
+def test_ollama_health_check_reports_normalized_status(client, admin_headers, monkeypatch):
+    class _StubResp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(governance_runtime_service, "urlopen", lambda req, timeout=0: _StubResp())
+    create_response = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={"provider_type": "ollama", "display_name": "Local Ollama", "base_url": "http://localhost:11434/api", "is_enabled": True},
+    )
+    assert create_response.status_code == 200
+    provider_id = create_response.get_json()["data"]["provider_id"]
+
+    test_response = client.post(f"/api/v1/admin/ai/providers/{provider_id}/test-connection", headers=admin_headers, json={})
+    assert test_response.status_code == 200
+    payload = test_response.get_json()["data"]
+    assert payload["health_status"] == "healthy"
+    assert payload["reachable"] is True
+    assert payload["authenticated"] is True
+    assert payload["usable"] is True
+
+
 def test_internal_runtime_config_requires_token(client):
     response = client.get("/api/v1/internal/runtime-config")
     assert response.status_code == 403
     payload = response.get_json()
     assert payload["ok"] is False
+
+
+def test_model_route_crud_and_runtime_readiness(client, admin_headers, monkeypatch):
+    _with_kek(monkeypatch)
+    provider_response = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={
+            "provider_type": "openai",
+            "display_name": "Primary OpenAI",
+            "base_url": "https://api.openai.com/v1",
+            "is_enabled": True,
+        },
+    )
+    assert provider_response.status_code == 200
+    provider_id = provider_response.get_json()["data"]["provider_id"]
+
+    client.post(
+        f"/api/v1/admin/ai/providers/{provider_id}/credential",
+        headers=admin_headers,
+        json={"api_key": "sk-phase1-test"},
+    )
+
+    class _StubResp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    monkeypatch.setattr(governance_runtime_service, "urlopen", lambda req, timeout=0: _StubResp())
+    health_response = client.post(
+        f"/api/v1/admin/ai/providers/{provider_id}/test-connection",
+        headers=admin_headers,
+        json={},
+    )
+    assert health_response.status_code == 200
+
+    model_response = client.post(
+        "/api/v1/admin/ai/models",
+        headers=admin_headers,
+        json={
+            "provider_id": provider_id,
+            "model_name": "gpt-4o-mini",
+            "display_name": "GPT 4o Mini",
+            "model_role": "llm",
+            "supports_structured_output": True,
+            "is_enabled": True,
+            "timeout_seconds": 30,
+        },
+    )
+    assert model_response.status_code == 200
+    model_id = model_response.get_json()["data"]["model_id"]
+
+    route_response = client.post(
+        "/api/v1/admin/ai/routes",
+        headers=admin_headers,
+        json={
+            "task_kind": "narrative_live_generation",
+            "workflow_scope": "global",
+            "preferred_model_id": model_id,
+            "fallback_model_id": model_id,
+            "is_enabled": True,
+            "use_mock_when_provider_unavailable": False,
+        },
+    )
+    assert route_response.status_code == 200
+
+    readiness_response = client.get("/api/v1/admin/ai/runtime-readiness", headers=admin_headers)
+    assert readiness_response.status_code == 200
+    readiness = readiness_response.get_json()["data"]
+    assert readiness["ai_only_valid"] is True
+    assert readiness["mock_only_required"] is False
+    assert readiness["enabled_non_mock_provider_present"] is True
+    assert readiness["enabled_non_mock_model_present"] is True
+    assert readiness["enabled_ai_route_present"] is True
 
 
 def test_cost_budget_and_usage_endpoints(client, admin_headers):

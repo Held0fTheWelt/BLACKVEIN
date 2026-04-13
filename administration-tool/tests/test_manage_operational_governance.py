@@ -10,6 +10,11 @@ def test_manage_operational_governance_returns_200(client):
     assert response.status_code == 200
 
 
+def test_manage_ai_runtime_governance_alias_returns_200(client):
+    response = client.get("/manage/ai-runtime-governance")
+    assert response.status_code == 200
+
+
 def test_manage_operational_governance_template(app, client):
     with captured_templates(app) as templates:
         response = client.get("/manage/operational-governance")
@@ -22,3 +27,5 @@ def test_manage_base_includes_operational_governance_nav(client):
     html = response.get_data(as_text=True)
     assert "manage-nav-operational-governance" in html
     assert "/manage/operational-governance" in html
+    assert "manage-nav-ai-runtime-governance" in html
+    assert "/manage/ai-runtime-governance" in html

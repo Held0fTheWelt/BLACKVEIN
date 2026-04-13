@@ -6,10 +6,31 @@ This is the supported entry point if you prefer Python over typing ``docker comp
 it always uses the **repository root** as the Compose working directory (same as
 ``docker compose -f docker-compose.yml`` from the repo root).
 
-**Before first ``up``:** copy ``.env.example`` → ``.env`` in the repo root and set at least
-``SECRET_KEY``. ``docker-compose.yml`` loads ``env_file: .env`` for the backend.
+**Local environment & secrets:**
 
-**Typical URLs after ``python docker-up.py`` (or ``python docker-up.py up``):**
+The stack requires stable local secrets to be initialized in ``.env`` (repo root).
+Use the ``init-env`` subcommand to set up a new environment with generated secrets:
+
+  python docker-up.py init-env
+
+This creates ``.env`` from ``.env.example`` with auto-generated platform secrets
+(SECRET_KEY, JWT_SECRET_KEY, SECRETS_KEK, PLAY_SERVICE_SHARED_SECRET, etc.).
+Existing values are preserved; only missing secrets are generated.
+
+After ``init-env``, edit ``.env`` keys as needed:
+
+  - ``OPENAI_API_KEY`` for OpenAI
+  - ``OPENROUTER_API_KEY`` for OpenRouter
+  - ``ANTHROPIC_API_KEY`` for Anthropic
+
+Ollama does not require an API key by default.
+
+For normal startup, the default behavior ensures ``.env`` is ready:
+
+  python docker-up.py                    # Default: up -d --build with env check
+  python docker-up.py up --no-build      # Start with rebuild disabled
+
+**Typical URLs after startup:**
   - Player frontend: http://localhost:5002
   - Backend API:     http://localhost:8000
   - Play service:    http://localhost:8001  (world-engine; browser / WebSocket base)
@@ -22,16 +43,21 @@ are recreated/started (typical local rebuild workflow). Build contexts in
 ``docker-compose.yml`` are repo-root (backend and world-engine Dockerfiles expect ``.``).
 
 Subcommands:
-  up, start   ``up -d``; by default with ``--build`` (same as running without COMMAND).
-  build       ``build`` only (optional ``--no-cache`` / ``--pull``).
-  restart     ``restart`` (no build, processes only).
-  stop        ``stop``
-  down        ``down`` (optional ``--volumes``)
+  init-env        Initialize local ``.env`` with auto-generated stable secrets.
+  ensure-env      Alias for ``init-env``.
+  up, start       ``up -d``; by default with ``--build`` (same as running without COMMAND).
+  build           ``build`` only (optional ``--no-cache`` / ``--pull``).
+  restart         ``restart`` (no build, processes only).
+  stop            ``stop``
+  down            ``down`` (optional ``--volumes``)
+  reset           Remove local Docker state (containers, images, volumes); preserve ``.env``.
 
 Flags:
-  --no-build  Omit ``--build`` on default/up (faster when images are current).
-  -f FILE     Compose file; may be given multiple times. Relative paths are resolved
-              from the repository root (not the shell cwd).
+  --no-build      Omit ``--build`` on default/up (faster when images are current).
+  --force         For ``init-env``: regenerate all secrets (overwrite existing).
+                  For ``reset``: remove state without confirmation.
+  -f FILE         Compose file; may be given multiple times. Relative paths are resolved
+                  from the repository root (not the shell cwd).
 
 Requires ``docker compose`` (v2) or legacy ``docker-compose``.
 """
@@ -39,6 +65,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -48,6 +76,138 @@ from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_COMPOSE = REPO_ROOT / "docker-compose.yml"
+ENV_FILE = REPO_ROOT / ".env"
+ENV_EXAMPLE = REPO_ROOT / ".env.example"
+
+# Stable platform secrets that must be locally generated if missing
+REQUIRED_SECRETS = {
+    "SECRET_KEY": 32,  # (bytes for generation)
+    "JWT_SECRET_KEY": 32,
+    "SECRETS_KEK": 32,
+    "PLAY_SERVICE_SHARED_SECRET": 24,
+    "PLAY_SERVICE_INTERNAL_API_KEY": 24,
+    "FRONTEND_SECRET_KEY": 24,
+}
+
+# Keys that have default/fallback values and don't need generation
+OPTIONAL_WITH_DEFAULTS = {
+    "OPENAI_BASE_URL": "https://api.openai.com/v1",
+    "OLLAMA_BASE_URL": "http://localhost:11434/api",
+    "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
+    "ANTHROPIC_BASE_URL": "https://api.anthropic.com",
+    "ANTHROPIC_VERSION": "2023-06-01",
+}
+
+OPTIONAL_SECRET_KEYS = (
+    "OPENAI_API_KEY",
+    "OPENROUTER_API_KEY",
+    "ANTHROPIC_API_KEY",
+)
+
+
+def _generate_secret(num_bytes: int) -> str:
+    """Generate a strong random secret (URL-safe base64)."""
+    return secrets.token_urlsafe(num_bytes)
+
+
+def _read_env_file(path: Path) -> dict[str, str]:
+    """Parse .env file into a dictionary. Preserves order and ignores comments."""
+    env_dict = {}
+    if not path.is_file():
+        return env_dict
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, _, value = line.partition("=")
+                    env_dict[key.strip()] = value.strip()
+    except Exception as e:
+        print(f"Warning: Could not read {path}: {e}", file=sys.stderr)
+    return env_dict
+
+
+def _write_env_file(path: Path, env_dict: dict[str, str], example_path: Path | None = None) -> None:
+    """Write .env file, preserving structure from example if available."""
+    content = ""
+
+    # If example exists, use its structure and fill in values
+    if example_path and example_path.is_file():
+        try:
+            with open(example_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    # Preserve comments and blank lines
+                    if line.strip().startswith("#") or not line.strip():
+                        content += line
+                    elif "=" in line:
+                        key, _, _ = line.partition("=")
+                        key = key.strip()
+                        if key in env_dict:
+                            content += f"{key}={env_dict[key]}\n"
+                        else:
+                            # Preserve lines not in env_dict as-is
+                            content += line
+                    else:
+                        content += line
+        except Exception as e:
+            print(f"Warning: Could not read example file {example_path}: {e}", file=sys.stderr)
+            # Fall back to simple dict output
+            for key, value in env_dict.items():
+                content += f"{key}={value}\n"
+    else:
+        # No example file, just write the dict
+        for key, value in env_dict.items():
+            content += f"{key}={value}\n"
+
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except Exception as e:
+        print(f"Error: Could not write {path}: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _ensure_env_secrets(force: bool = False) -> bool:
+    """
+    Ensure .env exists with all required stable secrets.
+
+    Returns True if .env was created or updated, False if already complete.
+
+    If force=True, regenerate all secrets even if they exist.
+    If force=False (default), preserve existing values and only generate missing ones.
+    """
+    # Read existing .env if present
+    existing_env = _read_env_file(ENV_FILE) if ENV_FILE.is_file() else {}
+
+    # Determine which secrets to generate
+    env_to_write = existing_env.copy()
+    updated = False
+
+    for key, num_bytes in REQUIRED_SECRETS.items():
+        if force or key not in env_to_write or not env_to_write[key].strip():
+            env_to_write[key] = _generate_secret(num_bytes)
+            updated = True
+
+    # Ensure optional defaults are present
+    for key, default_value in OPTIONAL_WITH_DEFAULTS.items():
+        if key not in env_to_write or not env_to_write[key].strip():
+            env_to_write[key] = default_value
+            updated = True
+
+    # Ensure known provider API key slots exist but stay blank by default
+    for key in OPTIONAL_SECRET_KEYS:
+        if key not in env_to_write:
+            env_to_write[key] = ""
+            updated = True
+
+    # Write the updated env file
+    if updated or not ENV_FILE.is_file():
+        _write_env_file(ENV_FILE, env_to_write, ENV_EXAMPLE)
+        return True
+
+    return False
 
 
 def _resolve_compose_path(path_str: str) -> Path:
@@ -91,26 +251,37 @@ def _compose_prefix(args: argparse.Namespace) -> list[str]:
     return cmd
 
 
-def _warn_if_missing_dotenv(compose_args: list[str]) -> None:
-    """Compose references env_file: .env; warn early when starting or building the stack."""
+def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
+    """Ensure .env exists with required secrets before running compose commands that need it."""
     if not compose_args:
         return
     head = compose_args[0]
     if head not in ("up", "build"):
         return
-    env_path = REPO_ROOT / ".env"
-    if env_path.is_file():
-        return
-    print(
-        "Warning: .env not found in repository root. Copy .env.example to .env and set "
-        "SECRET_KEY (required by backend). docker compose may still run but services can fail.\n"
-        f"  Expected: {env_path}",
-        file=sys.stderr,
-    )
+
+    if not ENV_FILE.is_file():
+        print(f"Setting up local environment file: {ENV_FILE}", file=sys.stderr)
+        created = _ensure_env_secrets()
+        if created:
+            print(
+                f"\n✓ Created {ENV_FILE} with auto-generated stable secrets.\n"
+                f"  IMPORTANT: Set provider keys in {ENV_FILE} (OPENAI_API_KEY / OPENROUTER_API_KEY / ANTHROPIC_API_KEY) as needed.\n"
+                f"  Other secrets are already generated and should not be changed.\n",
+                file=sys.stderr,
+            )
+    else:
+        # Ensure existing .env has all required secrets
+        updated = _ensure_env_secrets()
+        if updated:
+            print(
+                f"\n✓ Updated {ENV_FILE} with missing stable secrets.\n"
+                f"  Review {ENV_FILE} to ensure provider API keys are set where needed.\n",
+                file=sys.stderr,
+            )
 
 
 def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
-    _warn_if_missing_dotenv(compose_args)
+    _ensure_dotenv_before_compose(compose_args)
     cmd = _compose_prefix(args) + compose_args
     if args.dry_run:
         print(" ".join(shlex_quote(a) for a in cmd))
@@ -221,6 +392,64 @@ def cmd_down(args: argparse.Namespace, services: list[str]) -> int:
     return _run(args, down_args)
 
 
+def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
+    """Initialize or update local .env with stable secrets."""
+    force = getattr(args, "force", False)
+
+    if ENV_FILE.is_file() and not force:
+        existing = _read_env_file(ENV_FILE)
+        missing = [k for k in REQUIRED_SECRETS if k not in existing or not existing[k].strip()]
+        if not missing:
+            print(f"✓ {ENV_FILE} already exists with all required secrets.")
+            print(f"  To regenerate secrets, use: python docker-up.py init-env --force")
+            return 0
+
+    created = _ensure_env_secrets(force=force)
+    if created or force:
+        print(f"\n{'✓ Created' if not ENV_FILE.is_file() else '✓ Updated'} {ENV_FILE}")
+        print(f"\nNext steps:")
+        print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic)")
+        print(f"  2. Run: python docker-up.py up")
+        print(f"\nOther secrets (SECRET_KEY, JWT_SECRET_KEY, etc.) are auto-generated and should not be changed.")
+        return 0
+
+    return 0
+
+
+def cmd_ensure_env(args: argparse.Namespace, services: list[str]) -> int:
+    """Alias for init-env."""
+    return cmd_init_env(args, services)
+
+
+def cmd_reset(args: argparse.Namespace, services: list[str]) -> int:
+    """Reset local Docker state: remove containers, images, and volumes. Preserve .env."""
+    if not getattr(args, "force", False):
+        print(
+            "This will remove:\n"
+            "  - All containers in this Docker Compose project\n"
+            "  - Images built locally (not base images)\n"
+            "  - Named volumes (if --volumes used)\n"
+            "\n"
+            ".env will be PRESERVED so secrets and settings survive the reset.\n"
+            "\n"
+            "Proceed? Use --force to confirm:",
+            file=sys.stderr,
+        )
+        return 1
+
+    print("Resetting local Docker state...", file=sys.stderr)
+    cmd = _compose_prefix(args) + ["down", "--rmi", "local"]
+    if getattr(args, "volumes", False):
+        cmd.append("--volumes")
+
+    print("$", " ".join(cmd), flush=True)
+    exit_code = subprocess.call(cmd, cwd=REPO_ROOT)
+    if exit_code == 0:
+        print(f"\n✓ Reset complete. .env preserved.", file=sys.stderr)
+        print(f"  To restart: python docker-up.py up", file=sys.stderr)
+    return exit_code
+
+
 def main() -> None:
     # Shared flags so ``--dry-run`` works before or after the subcommand (e.g. ``up --dry-run``).
     common = argparse.ArgumentParser(add_help=False)
@@ -304,6 +533,43 @@ def main() -> None:
     p_down = sub.add_parser("down", help="Tear down stack (remove network).", parents=[common])
     p_down.add_argument("services", nargs="*", help="Ignored for down (compatibility).")
     p_down.set_defaults(_handler=cmd_down)
+
+    p_init_env = sub.add_parser(
+        "init-env",
+        help="Initialize/ensure local .env with auto-generated stable secrets.",
+        parents=[common],
+    )
+    p_init_env.add_argument(
+        "--force",
+        action="store_true",
+        help="Regenerate all secrets, overwriting existing values.",
+    )
+    p_init_env.set_defaults(_handler=cmd_init_env)
+
+    p_ensure_env = sub.add_parser(
+        "ensure-env",
+        help="Alias for init-env.",
+        parents=[common],
+    )
+    p_ensure_env.add_argument("--force", action="store_true")
+    p_ensure_env.set_defaults(_handler=cmd_ensure_env)
+
+    p_reset = sub.add_parser(
+        "reset",
+        help="Remove local Docker state; preserve .env.",
+        parents=[common],
+    )
+    p_reset.add_argument(
+        "--force",
+        action="store_true",
+        help="Proceed without confirmation.",
+    )
+    p_reset.add_argument(
+        "--volumes",
+        action="store_true",
+        help="Also remove named volumes.",
+    )
+    p_reset.set_defaults(_handler=cmd_reset)
 
     args = parser.parse_args()
     handler = getattr(args, "_handler", None)

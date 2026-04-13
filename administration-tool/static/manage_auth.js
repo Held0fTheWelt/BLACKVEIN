@@ -49,6 +49,55 @@
     }
 
     /**
+     * Turn API / governance error payloads into a single readable line for banners and alerts.
+     * Backend governance uses { ok: false, error: { code, message, details } }.
+     */
+    function formatApiErrorMessage(body, httpStatus) {
+        var status = typeof httpStatus === "number" ? httpStatus : 0;
+        if (!body || typeof body !== "object") {
+            return status ? ("Request failed (HTTP " + status + ")") : "Request failed";
+        }
+        if (typeof body.message === "string" && body.message.trim()) {
+            return body.message.trim();
+        }
+        var err = body.error;
+        if (typeof err === "string" && err.trim()) {
+            return err.trim();
+        }
+        if (err && typeof err === "object") {
+            var code = err.code ? String(err.code) : "";
+            var msg = err.message ? String(err.message) : "";
+            var line = "";
+            if (code && msg) {
+                line = "[" + code + "] " + msg;
+            } else if (msg) {
+                line = msg;
+            } else if (code) {
+                line = "Error: " + code;
+            }
+            var det = err.details;
+            if (det && typeof det === "object") {
+                try {
+                    var keys = Object.keys(det);
+                    if (keys.length) {
+                        var extra = JSON.stringify(det);
+                        if (extra.length > 220) {
+                            extra = extra.slice(0, 217) + "...";
+                        }
+                        line = (line || "Request rejected") + " — " + extra;
+                    }
+                } catch (e2) {
+                    /* ignore */
+                }
+            }
+            if (line) {
+                return line;
+            }
+        }
+        return status ? ("Request failed (HTTP " + status + ")") : "Request failed";
+    }
+
+    /**
      * Fetch with Authorization: Bearer <token>. Returns Promise that resolves to parsed JSON
      * or rejects with { status: number, message: string }. On 401, clears token and redirects to /manage/login.
      */
@@ -79,8 +128,8 @@
                     var next = res.ok
                         ? res.json().then(function(data) { resolve(data); }).catch(function() { reject({ status: res.status, message: "Invalid response" }); })
                         : res.json().catch(function() { return {}; }).then(function(body) {
-                            var msg = (body && body.error) ? body.error : "Request failed: " + res.status;
-                            reject({ status: res.status, message: msg });
+                            var msg = formatApiErrorMessage(body, res.status);
+                            reject({ status: res.status, message: msg, body: body });
                         });
                     return next;
                 })
@@ -173,6 +222,7 @@
         getToken: getToken,
         setToken: setToken,
         clearToken: clearToken,
+        formatApiErrorMessage: formatApiErrorMessage,
         apiFetchWithAuth: apiFetchWithAuth,
         getMe: getMe,
         ensureAuth: ensureAuth,

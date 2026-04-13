@@ -184,6 +184,11 @@ def register_manage_data_ops_and_platform_pages(app: Flask) -> None:
         """World Engine diagnostic and operator console (backend JWT proxy to play service)."""
         return render_template("manage/world_engine_console.html")
 
+    @app.route("/manage/world-engine-control-center")
+    def manage_world_engine_control_center():
+        """Canonical World-Engine Control Center (aggregated posture + safe controls)."""
+        return render_template("manage/world_engine_control_center.html")
+
     @app.route("/manage/mcp-operations")
     def manage_mcp_operations():
         """MCP operations cockpit: overview, activity, diagnostics, logs, actions (backend admin APIs via proxy)."""
@@ -191,6 +196,11 @@ def register_manage_data_ops_and_platform_pages(app: Flask) -> None:
 
 
 def register_manage_operational_governance_pages(app: Flask) -> None:
+    @app.route("/manage/ai-runtime-governance")
+    def manage_ai_runtime_governance():
+        """Canonical AI Runtime Governance control plane."""
+        return render_template("manage/operational_governance.html", active_section="overview")
+
     @app.route("/manage/operational-governance")
     def manage_operational_governance():
         """Operational settings and AI runtime governance dashboard."""

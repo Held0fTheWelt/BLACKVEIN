@@ -35,19 +35,33 @@ def _load_kek() -> bytes:
             500,
             {"env_var": "SECRETS_KEK"},
         )
-    try:
-        kek = base64.b64decode(raw_value)
-    except Exception as exc:  # pragma: no cover - defensive
+    padded = raw_value + ("=" * ((4 - (len(raw_value) % 4)) % 4))
+    decode_candidates = (
+        lambda value: base64.b64decode(value, validate=True),
+        lambda value: base64.urlsafe_b64decode(value),
+    )
+    last_exc: Exception | None = None
+    kek: bytes | None = None
+    for decoder in decode_candidates:
+        try:
+            kek = decoder(padded)
+            break
+        except Exception as exc:  # pragma: no cover - defensive
+            last_exc = exc
+            continue
+    if kek is None:
         raise governance_error(
             "bootstrap_secret_write_failed",
-            "SECRETS_KEK is not valid base64.",
+            "SECRETS_KEK is not valid base64 (expected a base64-encoded 32-byte key). "
+            "Run `python docker-up.py init-env --force` to regenerate local secrets.",
             500,
-            {"error": str(exc)},
-        ) from exc
+            {"error": str(last_exc) if last_exc else "decode_error"},
+        ) from last_exc
     if len(kek) != 32:
         raise governance_error(
             "bootstrap_secret_write_failed",
-            "SECRETS_KEK must decode to 32 bytes.",
+            "SECRETS_KEK must decode to exactly 32 bytes. "
+            "Run `python docker-up.py init-env --force` to regenerate local secrets.",
             500,
             {"decoded_length": len(kek)},
         )

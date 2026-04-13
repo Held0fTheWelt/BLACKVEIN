@@ -5,8 +5,8 @@
     <div class="manage-section-header">
         <div>
             <p class="manage-eyebrow">Operations</p>
-            <h1>Operational Settings &amp; AI Runtime Governance</h1>
-            <p class="manage-lead">Admin control plane for bootstrap, providers, models, routes, runtime modes, resolved config, and costs.</p>
+            <h1>AI Runtime Governance</h1>
+            <p class="manage-lead">Canonical operator surface for governed providers, models, task routes, runtime modes, and explicit readiness blockers.</p>
         </div>
         <div class="manage-actions-row">
             <button type="button" class="btn" id="manage-og-refresh">Refresh</button>
@@ -16,52 +16,109 @@
     <p id="manage-og-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
     <p id="manage-og-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
 
-    <div class="manage-psc-grid">
-        <section class="panel manage-psc-panel">
-            <header class="panel-header"><h2>Bootstrap</h2></header>
-            <label class="form-label">Preset
-                <select id="manage-og-preset" class="form-input">
-                    <option value="safe_local">safe_local</option>
-                    <option value="balanced">balanced</option>
-                    <option value="quality_first">quality_first</option>
-                    <option value="cost_aware">cost_aware</option>
-                </select>
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>Provider governance</h2></header>
+            <label class="form-label">Edit provider
+                <select id="manage-og-provider-select" class="form-input"></select>
             </label>
-            <label class="form-label">Admin E-Mail
-                <input type="email" id="manage-og-admin-email" class="form-input" value="operator@example.com" />
-            </label>
-            <div class="manage-actions-row">
-                <button type="button" class="btn btn-primary" id="manage-og-bootstrap-init">Initialize bootstrap</button>
-                <button type="button" class="btn" id="manage-og-bootstrap-reload">Reload resolved config</button>
-            </div>
-
-            <header class="panel-header"><h2>Provider quick actions</h2></header>
             <label class="form-label">Provider type
                 <select id="manage-og-provider-type" class="form-input">
                     <option value="mock">mock</option>
                     <option value="ollama">ollama</option>
                     <option value="openai">openai</option>
+                    <option value="openrouter">openrouter</option>
                     <option value="anthropic">anthropic</option>
                     <option value="custom_http">custom_http</option>
                 </select>
             </label>
             <label class="form-label">Display name
-                <input type="text" id="manage-og-provider-display" class="form-input" value="Mock Provider" />
+                <input type="text" id="manage-og-provider-display" class="form-input" />
             </label>
             <label class="form-label">Base URL
-                <input type="url" id="manage-og-provider-base-url" class="form-input" value="" />
+                <input type="url" id="manage-og-provider-base-url" class="form-input" />
             </label>
+            <label class="form-label"><input type="checkbox" id="manage-og-provider-enabled" checked /> Enabled</label>
             <label class="form-label">Credential API key (write-only)
                 <input type="password" id="manage-og-provider-api-key" class="form-input" autocomplete="new-password" />
             </label>
             <div class="manage-actions-row">
                 <button type="button" class="btn" id="manage-og-provider-create">Create provider</button>
-                <button type="button" class="btn" id="manage-og-provider-test">Test provider</button>
+                <button type="button" class="btn btn-primary" id="manage-og-provider-update">Update provider</button>
+                <button type="button" class="btn" id="manage-og-provider-test">Test provider health</button>
             </div>
+            <pre id="manage-og-providers-json" class="manage-psc-json muted"></pre>
         </section>
 
-        <section class="panel manage-psc-panel">
-            <header class="panel-header"><h2>Runtime Modes</h2></header>
+        <section class="panel">
+            <header class="panel-header"><h2>Model governance</h2></header>
+            <label class="form-label">Edit model
+                <select id="manage-og-model-select" class="form-input"></select>
+            </label>
+            <label class="form-label">Provider
+                <select id="manage-og-model-provider" class="form-input"></select>
+            </label>
+            <label class="form-label">Model name
+                <input type="text" id="manage-og-model-name" class="form-input" />
+            </label>
+            <label class="form-label">Display name
+                <input type="text" id="manage-og-model-display" class="form-input" />
+            </label>
+            <label class="form-label">Model role
+                <select id="manage-og-model-role" class="form-input">
+                    <option value="llm">llm</option>
+                    <option value="slm">slm</option>
+                    <option value="mock">mock</option>
+                </select>
+            </label>
+            <label class="form-label">Timeout (seconds)
+                <input type="number" id="manage-og-model-timeout" class="form-input" min="1" max="300" value="30" />
+            </label>
+            <label class="form-label"><input type="checkbox" id="manage-og-model-structured" /> Structured output capable</label>
+            <label class="form-label"><input type="checkbox" id="manage-og-model-enabled" checked /> Enabled</label>
+            <div class="manage-actions-row">
+                <button type="button" class="btn" id="manage-og-model-create">Create model</button>
+                <button type="button" class="btn btn-primary" id="manage-og-model-update">Update model</button>
+            </div>
+            <pre id="manage-og-models-json" class="manage-psc-json muted"></pre>
+        </section>
+    </div>
+
+    <div class="manage-grid two-col" style="margin-top:1rem;">
+        <section class="panel">
+            <header class="panel-header"><h2>Route governance</h2></header>
+            <label class="form-label">Edit route
+                <select id="manage-og-route-select" class="form-input"></select>
+            </label>
+            <label class="form-label">Task kind
+                <input type="text" id="manage-og-route-task-kind" class="form-input" />
+            </label>
+            <label class="form-label">Workflow scope
+                <input type="text" id="manage-og-route-workflow-scope" class="form-input" value="global" />
+            </label>
+            <label class="form-label">Preferred model
+                <select id="manage-og-route-preferred-model" class="form-input"></select>
+            </label>
+            <label class="form-label">Fallback model
+                <select id="manage-og-route-fallback-model" class="form-input"></select>
+            </label>
+            <label class="form-label">Mock model
+                <select id="manage-og-route-mock-model" class="form-input"></select>
+            </label>
+            <label class="form-label"><input type="checkbox" id="manage-og-route-enabled" checked /> Enabled</label>
+            <label class="form-label"><input type="checkbox" id="manage-og-route-use-mock" checked /> Use mock when provider unavailable</label>
+            <div class="manage-actions-row">
+                <button type="button" class="btn" id="manage-og-route-create">Create route</button>
+                <button type="button" class="btn btn-primary" id="manage-og-route-update">Update route</button>
+            </div>
+            <pre id="manage-og-routes-json" class="manage-psc-json muted"></pre>
+        </section>
+
+        <section class="panel">
+            <header class="panel-header"><h2>Runtime readiness and blockers</h2></header>
+            <p class="muted">Shows why <code>mock_only</code> may be required and whether <code>ai_only</code> is currently valid.</p>
+            <pre id="manage-og-readiness-json" class="manage-psc-json muted"></pre>
+            <header class="panel-header"><h2>Runtime modes</h2></header>
             <label class="form-label">Generation mode
                 <select id="manage-og-generation-mode" class="form-input">
                     <option value="mock_only">mock_only</option>
@@ -84,7 +141,7 @@
                     <option value="strict_rule_engine">strict_rule_engine</option>
                 </select>
             </label>
-            <label class="form-label">Provider selection
+            <label class="form-label">Provider selection mode
                 <select id="manage-og-provider-selection" class="form-input">
                     <option value="local_only">local_only</option>
                     <option value="remote_allowed">remote_allowed</option>
@@ -103,9 +160,8 @@
             </label>
             <div class="manage-actions-row">
                 <button type="button" class="btn btn-primary" id="manage-og-save-modes">Save modes</button>
+                <button type="button" class="btn" id="manage-og-bootstrap-reload">Reload resolved config</button>
             </div>
-
-            <header class="panel-header"><h3>Resolved Config</h3></header>
             <pre id="manage-og-runtime-config" class="manage-psc-json muted"></pre>
         </section>
     </div>

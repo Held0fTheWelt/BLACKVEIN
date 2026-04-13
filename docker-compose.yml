@@ -1,9 +1,14 @@
 # World of Shadows - local stack (docker compose up)
 #
-# Prerequisite: copy .env.example → .env at repo root and set SECRET_KEY (and mail if needed).
+# Prerequisite: Initialize .env with secrets using: python docker-up.py init-env
+# Then set OPENAI_API_KEY in .env if you plan to use AI features.
 #
 # Services: backend (API), frontend (player UI), administration-tool, play-service (world-engine).
 # Backend ships content/modules in the image; WOS_CONTENT_MODULES_ROOT points at that path.
+#
+# Secrets: Platform stable secrets (SECRET_KEY, JWT_SECRET_KEY, PLAY_SERVICE_SHARED_SECRET, etc.)
+# are stored in .env (repo root) and injected by docker-compose.yml.
+# The .env file is not committed; local secrets survive docker reset.
 #
 # Database: the backend image entrypoint runs `flask db upgrade` once before Gunicorn. The bind mount
 # ./backend/instance:/app/instance persists SQLite (default wos.db); after pulling new migrations,
@@ -27,9 +32,18 @@ services:
       # Backend → world-engine (Docker DNS). Browser-facing URLs use PUBLIC (host port).
       - PLAY_SERVICE_INTERNAL_URL=http://play-service:8000
       - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
-      - PLAY_SERVICE_SHARED_SECRET=local-dev-shared-secret
-      - PLAY_SERVICE_INTERNAL_API_KEY=local-dev-internal-key
-      - JWT_SECRET_KEY=local-dev-jwt-secret-32-bytes-minimum-value
+      # Stable secrets from .env (do not edit these hardcoded values; manage in .env instead)
+      - PLAY_SERVICE_SHARED_SECRET=${PLAY_SERVICE_SHARED_SECRET}
+      - PLAY_SERVICE_INTERNAL_API_KEY=${PLAY_SERVICE_INTERNAL_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}
+      - ANTHROPIC_VERSION=${ANTHROPIC_VERSION}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       play-service:
         condition: service_healthy
@@ -40,13 +54,15 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5002:5002"
+    env_file: .env
     depends_on:
       - backend
     environment:
       # Server-side requests from the container must use the compose service name, not localhost.
       - BACKEND_API_URL=http://backend:8000
       - FRONTEND_PORT=5002
-      - FRONTEND_SECRET_KEY=local-dev-frontend-secret
+      # Stable secret from .env (do not edit hardcoded value; manage in .env instead)
+      - FRONTEND_SECRET_KEY=${FRONTEND_SECRET_KEY}
       # Browser WebSocket / public play URL (host port maps play-service 8000 → 8001)
       - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
 
@@ -64,10 +80,12 @@ services:
     build:
       context: .
       dockerfile: world-engine/Dockerfile
+    env_file: .env
     environment:
       - APP_TITLE=World of Shadows Play Service
-      - PLAY_SERVICE_SECRET=local-dev-shared-secret
-      - PLAY_SERVICE_INTERNAL_API_KEY=local-dev-internal-key
+      # Stable secrets from .env (do not edit hardcoded values; manage in .env instead)
+      - PLAY_SERVICE_SECRET=${PLAY_SERVICE_SHARED_SECRET}
+      - PLAY_SERVICE_INTERNAL_API_KEY=${PLAY_SERVICE_INTERNAL_API_KEY}
       - RUN_STORE_BACKEND=json
     ports:
       - "8001:8000"

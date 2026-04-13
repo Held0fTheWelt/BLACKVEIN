@@ -62,6 +62,7 @@ class AIProviderType(str, Enum):
 
     openai = "openai"
     ollama = "ollama"
+    openrouter = "openrouter"
     anthropic = "anthropic"
     custom_http = "custom_http"
     mock = "mock"

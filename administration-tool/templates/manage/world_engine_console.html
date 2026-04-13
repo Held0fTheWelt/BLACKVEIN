@@ -6,8 +6,9 @@
         <div>
             <p class="manage-eyebrow">Operations</p>
             <h1>World Engine console</h1>
-            <p class="manage-lead">Diagnose-first view over the play service: readiness, template runs, and story sessions (proxied via backend JWT — no engine API key in the browser).</p>
+            <p class="manage-lead">Deep-dive console for play service runs and story sessions (proxied via backend JWT — no engine API key in the browser). For canonical control-plane posture, use the Control Center.</p>
             <p class="muted">
+                <a href="{{ url_for('manage_world_engine_control_center') }}">World-Engine Control Center</a> ·
                 <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> (desired URL / apply) ·
                 <a href="{{ url_for('manage_diagnosis') }}">System diagnosis</a> ·
                 <a href="{{ url_for('manage_game_operations') }}">Game operations</a>

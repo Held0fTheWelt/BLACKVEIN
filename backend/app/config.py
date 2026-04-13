@@ -139,6 +139,13 @@ class Config:
     INTERNAL_RUNTIME_CONFIG_TOKEN = os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip() or None
     BOOTSTRAP_RECOVERY_TOKEN = os.environ.get("BOOTSTRAP_RECOVERY_TOKEN", "").strip() or None
 
+    # Provider defaults and API contract constants (governance/runtime)
+    OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").strip()
+    OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/api").strip()
+    OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip()
+    ANTHROPIC_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").strip()
+    ANTHROPIC_VERSION = os.environ.get("ANTHROPIC_VERSION", "2023-06-01").strip()
+
     # Game ticket TTL with bounds validation (5 min to 24 hours).
     _ttl_raw = os.environ.get("GAME_TICKET_TTL_SECONDS", "300")
     try:

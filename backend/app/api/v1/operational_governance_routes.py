@@ -14,6 +14,7 @@ from app.services.governance_runtime_service import (
     create_model,
     create_provider,
     create_route,
+    evaluate_runtime_readiness,
     enforce_budget_guard,
     get_bootstrap_status,
     get_runtime_modes,
@@ -206,6 +207,13 @@ def admin_ai_route_create():
 @require_jwt_admin
 def admin_ai_route_update(route_id: str):
     return _handle("route_update", lambda: {"route_id": update_route(route_id, _body(), _actor_identifier()).route_id, "updated": True})
+
+
+@api_v1_bp.route("/admin/ai/runtime-readiness", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_admin
+def admin_ai_runtime_readiness():
+    return _handle("runtime_readiness", evaluate_runtime_readiness)
 
 
 @api_v1_bp.route("/admin/runtime/modes", methods=["GET"])

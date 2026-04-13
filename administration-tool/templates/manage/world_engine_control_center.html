@@ -1,0 +1,63 @@
+{% extends "manage/base.html" %}
+{% block title %}World-Engine Control Center{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="world-engine-control-center">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Operations</p>
+            <h1>World-Engine Control Center</h1>
+            <p class="manage-lead">Canonical operator entrypoint for play-service posture, backend connectivity, active sessions/runs, and safe runtime controls.</p>
+            <p class="muted">
+                <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> ·
+                <a href="{{ url_for('manage_diagnosis') }}">System diagnosis</a> ·
+                <a href="{{ url_for('manage_world_engine_console') }}">World Engine console</a> ·
+                <a href="{{ url_for('manage_game_operations') }}">Game operations</a>
+            </p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="wecc-refresh">Refresh</button>
+            <button type="button" class="btn" id="wecc-test">Test desired config</button>
+            <button type="button" class="btn btn-primary" id="wecc-apply">Apply desired config</button>
+        </div>
+    </div>
+
+    <p id="wecc-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="wecc-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>Desired play-service posture</h2></header>
+            <pre id="wecc-desired" class="code-block"></pre>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>Observed play-service posture</h2></header>
+            <pre id="wecc-observed" class="code-block"></pre>
+        </section>
+    </div>
+
+    <div class="manage-grid two-col" style="margin-top: 1rem;">
+        <section class="panel">
+            <header class="panel-header"><h2>Connectivity and readiness</h2></header>
+            <pre id="wecc-connectivity" class="code-block"></pre>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>Active runtime summary</h2></header>
+            <pre id="wecc-summary" class="code-block"></pre>
+        </section>
+    </div>
+
+    <div class="manage-grid two-col" style="margin-top: 1rem;">
+        <section class="panel">
+            <header class="panel-header"><h2>Top blockers</h2></header>
+            <pre id="wecc-blockers" class="code-block"></pre>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>Warnings</h2></header>
+            <pre id="wecc-warnings" class="code-block"></pre>
+        </section>
+    </div>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_world_engine_control_center.js') }}"></script>
+{% endblock %}

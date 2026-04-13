@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import g, jsonify, request
+from flask import current_app, g, jsonify, request
 
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin, require_world_engine_capability
@@ -21,6 +21,7 @@ from app.services.game_service import (
     list_templates,
     terminate_run,
 )
+from app.services.world_engine_control_center_service import build_world_engine_control_center_snapshot
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 
@@ -44,6 +45,15 @@ def world_engine_console_health():
     except GameServiceError as exc:
         return _gs_err(exc)
     return jsonify(out), route_status_codes.ok
+
+
+@api_v1_bp.route("/admin/world-engine/control-center", methods=["GET"])
+@limiter.limit("60 per minute")
+@require_jwt_moderator_or_admin
+@require_world_engine_capability("observe")
+def world_engine_control_center_snapshot():
+    app = current_app._get_current_object()
+    return jsonify(build_world_engine_control_center_snapshot(app, trace_id=_trace())), route_status_codes.ok
 
 
 @api_v1_bp.route("/admin/world-engine/templates", methods=["GET"])
