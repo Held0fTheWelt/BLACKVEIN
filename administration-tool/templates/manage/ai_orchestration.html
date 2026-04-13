@@ -1,0 +1,67 @@
+{% extends "manage/base.html" %}
+{% block title %}AI Orchestration{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="ai-orchestration">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <h1>AI Orchestration</h1>
+            <p class="manage-lead">LangGraph and LangChain runtime observability with bounded operational controls only.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="manage-orch-refresh">Reload orchestration status</button>
+        </div>
+    </div>
+
+    <p id="manage-orch-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="manage-orch-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>LangGraph runtime visibility</h2></header>
+            <ul id="manage-orch-langgraph-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Recent execution summary</h3>
+            <ul id="manage-orch-exec-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>LangChain integration visibility</h2></header>
+            <ul id="manage-orch-langchain-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1rem;">
+        <header class="panel-header"><h2>Bounded orchestration controls</h2></header>
+        <label class="form-label">Runtime profile
+            <select id="manage-orch-setting-runtime-profile" class="form-input">
+                <option value="safe_local">safe_local</option>
+                <option value="balanced">balanced</option>
+                <option value="cost_aware">cost_aware</option>
+                <option value="quality_first">quality_first</option>
+                <option value="custom">custom</option>
+            </select>
+        </label>
+        <label class="form-label">Runtime diagnostics verbosity
+            <select id="manage-orch-setting-verbosity" class="form-input">
+                <option value="operator">operator</option>
+                <option value="detailed">detailed</option>
+                <option value="debug">debug</option>
+            </select>
+        </label>
+        <label class="form-label">Max retry attempts
+            <input type="number" id="manage-orch-setting-max-retry" class="form-input" min="0" max="5" value="1" />
+        </label>
+        <label class="form-label"><input type="checkbox" id="manage-orch-setting-corrective" /> Enable corrective feedback</label>
+        <div class="manage-actions-row">
+            <button type="button" class="btn btn-primary" id="manage-orch-save-settings">Save orchestration settings</button>
+        </div>
+    </section>
+
+    <details class="panel" style="margin-top:1rem;">
+        <summary class="muted">Technical audit: full orchestration payload</summary>
+        <pre id="manage-orch-json" class="manage-psc-json muted"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_ai_orchestration.js') }}"></script>
+{% endblock %}

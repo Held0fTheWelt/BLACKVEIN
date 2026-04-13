@@ -1,0 +1,117 @@
+{% extends "manage/base.html" %}
+{% block title %}Runtime Settings{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="runtime-settings">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <h1>Runtime Settings</h1>
+            <p class="manage-lead">Preset-first controls with bounded advanced settings, effective config visibility, and audit-friendly change tracking.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="manage-rs-refresh">Reload runtime settings</button>
+            <button type="button" class="btn" id="manage-rs-reset-overrides">Clear overrides to active preset</button>
+            <button type="button" class="btn" id="manage-rs-apply-safe-local">Apply safe_local preset</button>
+        </div>
+    </div>
+
+    <p id="manage-rs-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="manage-rs-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <section class="panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Runtime presets</h2></header>
+        <p class="muted">Operators can apply canonical presets only. Free-form preset authoring is intentionally out of scope.</p>
+        <div id="manage-rs-presets"></div>
+    </section>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>Bounded advanced settings</h2></header>
+            <label class="form-label">Generation execution mode
+                <select id="manage-rs-generation-mode" class="form-input">
+                    <option value="mock_only">mock_only</option>
+                    <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
+                    <option value="routed_llm_slm">routed_llm_slm</option>
+                    <option value="ai_only">ai_only</option>
+                </select>
+            </label>
+            <label class="form-label">Validation execution mode
+                <select id="manage-rs-validation-mode" class="form-input">
+                    <option value="schema_only">schema_only</option>
+                    <option value="schema_plus_semantic">schema_plus_semantic</option>
+                </select>
+            </label>
+            <label class="form-label">Provider selection mode
+                <select id="manage-rs-provider-mode" class="form-input">
+                    <option value="local_only">local_only</option>
+                    <option value="restricted_by_route">restricted_by_route</option>
+                    <option value="remote_preferred">remote_preferred</option>
+                    <option value="remote_allowed">remote_allowed</option>
+                </select>
+            </label>
+            <label class="form-label">Runtime profile
+                <select id="manage-rs-runtime-profile" class="form-input">
+                    <option value="safe_local">safe_local</option>
+                    <option value="balanced">balanced</option>
+                    <option value="cost_aware">cost_aware</option>
+                    <option value="quality_first">quality_first</option>
+                    <option value="custom">custom</option>
+                </select>
+            </label>
+            <label class="form-label">Retrieval mode
+                <select id="manage-rs-retrieval-mode" class="form-input">
+                    <option value="disabled">disabled</option>
+                    <option value="sparse_only">sparse_only</option>
+                    <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
+                </select>
+            </label>
+            <label class="form-label">Retrieval profile
+                <input type="text" id="manage-rs-retrieval-profile" class="form-input" value="runtime_turn_support" />
+            </label>
+            <label class="form-label">Retrieval top-k
+                <input type="number" id="manage-rs-retrieval-topk" class="form-input" min="1" max="12" value="4" />
+            </label>
+            <label class="form-label">Retrieval minimum score
+                <input type="number" id="manage-rs-retrieval-min-score" class="form-input" min="0" max="1" step="0.01" />
+            </label>
+            <label class="form-label">Runtime diagnostics verbosity
+                <select id="manage-rs-verbosity" class="form-input">
+                    <option value="operator">operator</option>
+                    <option value="detailed">detailed</option>
+                    <option value="debug">debug</option>
+                </select>
+            </label>
+            <label class="form-label">Max retry attempts
+                <input type="number" id="manage-rs-max-retry" class="form-input" min="0" max="5" value="1" />
+            </label>
+            <label class="form-label"><input type="checkbox" id="manage-rs-embeddings" /> Embeddings enabled posture</label>
+            <label class="form-label"><input type="checkbox" id="manage-rs-corrective" /> Enable corrective feedback</label>
+            <div class="manage-actions-row">
+                <button type="button" class="btn btn-primary" id="manage-rs-save-settings">Save advanced settings</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <header class="panel-header"><h2>Effective runtime config</h2></header>
+            <ul id="manage-rs-effective-summary" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Guardrail warnings</h3>
+            <ul id="manage-rs-guardrail-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Overrides and value sources</h3>
+            <ul id="manage-rs-source-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1rem;">
+        <header class="panel-header"><h2>Recent settings changes</h2></header>
+        <ul id="manage-rs-change-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+    </section>
+
+    <details class="panel" style="margin-top:1rem;">
+        <summary class="muted">Technical audit: full runtime settings payload</summary>
+        <pre id="manage-rs-json" class="manage-psc-json muted"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_runtime_settings.js') }}"></script>
+{% endblock %}

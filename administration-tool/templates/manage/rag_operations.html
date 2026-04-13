@@ -1,0 +1,95 @@
+{% extends "manage/base.html" %}
+{% block title %}RAG Operations{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="rag-operations">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <h1>RAG Operations</h1>
+            <p class="manage-lead">Retrieval observability and operator-safe controls for corpus/index posture, embedding availability, and query probing.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="manage-rag-refresh">Reload RAG status</button>
+        </div>
+    </div>
+
+    <p id="manage-rag-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="manage-rag-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>RAG runtime status</h2></header>
+            <ul id="manage-rag-status-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Degraded / fallback reasons</h3>
+            <ul id="manage-rag-degraded-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>Bounded RAG settings</h2></header>
+            <label class="form-label">Retrieval mode
+                <select id="manage-rag-setting-mode" class="form-input">
+                    <option value="disabled">disabled</option>
+                    <option value="sparse_only">sparse_only</option>
+                    <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
+                </select>
+            </label>
+            <label class="form-label">Retrieval profile
+                <input type="text" id="manage-rag-setting-profile" class="form-input" value="runtime_turn_support" />
+            </label>
+            <label class="form-label">Top-k
+                <input type="number" id="manage-rag-setting-topk" class="form-input" min="1" max="12" value="4" />
+            </label>
+            <label class="form-label">Minimum score threshold
+                <input type="number" id="manage-rag-setting-min-score" class="form-input" min="0" max="1" step="0.01" />
+            </label>
+            <label class="form-label"><input type="checkbox" id="manage-rag-setting-embeddings" /> Embeddings enabled posture</label>
+            <div class="manage-actions-row">
+                <button type="button" class="btn btn-primary" id="manage-rag-save-settings">Save RAG settings</button>
+            </div>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1rem;">
+        <header class="panel-header"><h2>Retrieval query probe</h2></header>
+        <label class="form-label">Query
+            <input type="text" id="manage-rag-probe-query" class="form-input" placeholder="Enter retrieval query for probe" />
+        </label>
+        <div class="manage-grid two-col">
+            <label class="form-label">Domain
+                <select id="manage-rag-probe-domain" class="form-input">
+                    <option value="runtime">runtime</option>
+                    <option value="writers_room">writers_room</option>
+                    <option value="improvement">improvement</option>
+                    <option value="research">research</option>
+                </select>
+            </label>
+            <label class="form-label">Max chunks
+                <input type="number" id="manage-rag-probe-max-chunks" class="form-input" min="1" max="12" value="4" />
+            </label>
+        </div>
+        <label class="form-label"><input type="checkbox" id="manage-rag-probe-sparse-only" /> Force sparse-only for this probe</label>
+        <div class="manage-actions-row">
+            <button type="button" class="btn btn-primary" id="manage-rag-run-probe">Run retrieval probe</button>
+        </div>
+        <ul id="manage-rag-probe-summary" class="muted" style="margin:0.75rem 0 0 1.25rem;"></ul>
+        <ol id="manage-rag-probe-results" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ol>
+    </section>
+
+    <section class="panel" style="margin-top:1rem;">
+        <header class="panel-header"><h2>Safe RAG actions</h2></header>
+        <p class="muted">Actions are bounded and backed by repository/runtime behavior.</p>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" data-rag-action="refresh_corpus">Refresh corpus</button>
+            <button type="button" class="btn" data-rag-action="rebuild_dense_index">Rebuild dense index</button>
+            <button type="button" class="btn" data-rag-action="reload_runtime_retriever">Reload runtime retriever</button>
+        </div>
+    </section>
+
+    <details class="panel" style="margin-top:1rem;">
+        <summary class="muted">Technical audit: full RAG payload</summary>
+        <pre id="manage-rag-json" class="manage-psc-json muted"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_rag_operations.js') }}"></script>
+{% endblock %}

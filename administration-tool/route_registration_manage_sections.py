@@ -235,3 +235,23 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
     def manage_operational_governance_costs():
         """Cost, usage, and budget controls."""
         return render_template("manage/operational_governance.html", active_section="costs")
+
+    @app.route("/manage/runtime-dashboard")
+    def manage_runtime_dashboard():
+        """Unified AI/runtime dashboard with blocker-first operator summary."""
+        return render_template("manage/runtime_dashboard.html")
+
+    @app.route("/manage/rag-operations")
+    def manage_rag_operations():
+        """RAG operations console for retrieval diagnostics and safe actions."""
+        return render_template("manage/rag_operations.html")
+
+    @app.route("/manage/ai-orchestration")
+    def manage_ai_orchestration():
+        """AI orchestration console for LangGraph and LangChain runtime visibility."""
+        return render_template("manage/ai_orchestration.html")
+
+    @app.route("/manage/runtime-settings")
+    def manage_runtime_settings():
+        """Controlled presets and bounded advanced runtime settings."""
+        return render_template("manage/runtime_settings.html")

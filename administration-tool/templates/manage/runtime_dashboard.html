@@ -1,0 +1,48 @@
+{% extends "manage/base.html" %}
+{% block title %}Runtime Dashboard{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="runtime-dashboard">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <h1>Runtime Dashboard</h1>
+            <p class="manage-lead">Unified blocker-first dashboard across AI Runtime Governance, World-Engine Control Center, RAG Operations, and AI Orchestration. This page is read-heavy and routes you to canonical fix surfaces.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="manage-rd-refresh">Reload dashboard</button>
+        </div>
+    </div>
+
+    <p id="manage-rd-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="manage-rd-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <section class="panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Current operability summary</h2></header>
+        <ul id="manage-rd-summary-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+    </section>
+
+    <div class="manage-grid two-col">
+        <section class="panel">
+            <header class="panel-header"><h2>Top blockers</h2></header>
+            <ul id="manage-rd-blockers" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        </section>
+        <section class="panel">
+            <header class="panel-header"><h2>Minimum next actions</h2></header>
+            <ol id="manage-rd-next-actions" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ol>
+        </section>
+    </div>
+
+    <section class="panel" style="margin-top:1rem;">
+        <header class="panel-header"><h2>Canonical fix surfaces</h2></header>
+        <ul id="manage-rd-links" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+    </section>
+
+    <details class="panel" style="margin-top:1rem;">
+        <summary class="muted">Technical audit: full dashboard payload</summary>
+        <pre id="manage-rd-json" class="manage-psc-json muted"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_runtime_dashboard.js') }}"></script>
+{% endblock %}
