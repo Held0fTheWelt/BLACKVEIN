@@ -28,3 +28,13 @@ def test_world_engine_control_center_snapshot(client, moderator_headers, monkeyp
     assert payload["status"]["control_plane_ok"] is True
     assert payload["active_runtime"]["run_count"] == 0
     assert payload["operator_controls"][0]["id"] == "refresh"
+
+
+def test_world_engine_control_center_live_payload_includes_operator_summary(client, moderator_headers):
+    """Integration shape check (no stub): snapshot must expose a narrative operator_summary."""
+    response = client.get("/api/v1/admin/world-engine/control-center", headers=moderator_headers)
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "operator_summary" in payload
+    assert payload["operator_summary"].get("headline")
+    assert isinstance(payload["operator_summary"].get("sub_lines"), list)

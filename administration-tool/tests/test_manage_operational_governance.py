@@ -29,3 +29,12 @@ def test_manage_base_includes_operational_governance_nav(client):
     assert "/manage/operational-governance" in html
     assert "manage-nav-ai-runtime-governance" in html
     assert "/manage/ai-runtime-governance" in html
+    assert 'data-feature="manage.ai_runtime_governance"' in html
+
+
+def test_manage_ai_runtime_governance_renders_readiness_overview(client):
+    response = client.get("/manage/ai-runtime-governance")
+    html = response.get_data(as_text=True)
+    assert "manage-og-readiness-headline" in html
+    assert "manage-og-readiness-blockers" in html
+    assert "Runtime readiness overview" in html

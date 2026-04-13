@@ -44,6 +44,9 @@ def test_manage_dashboard_includes_play_service_card(client):
     assert "manage.world_engine_observe" in html
     assert "manage-dashboard-play-service-control" in html
     assert 'data-feature="manage.play_service_control"' in html
+    assert "manage-dashboard-ai-runtime-governance" in html
+    assert "manage-dashboard-world-engine-control-center" in html
+    assert 'data-feature="manage.ai_runtime_governance"' in html
 
 
 def test_manage_diagnosis_links_to_play_service_control(client):

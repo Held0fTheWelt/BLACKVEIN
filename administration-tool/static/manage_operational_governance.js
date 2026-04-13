@@ -8,6 +8,14 @@
     routes: [],
   };
 
+  /** Unwrap governance envelope `{ ok, data }` when present. */
+  function govPayload(res) {
+    if (res && res.data !== undefined && Object.prototype.hasOwnProperty.call(res, "ok")) {
+      return res.data || {};
+    }
+    return res || {};
+  }
+
   function show(kind, msg) {
     var errEl = document.getElementById("manage-og-banner");
     var okEl = document.getElementById("manage-og-success");
@@ -87,51 +95,114 @@
     if (node) node.checked = !!val;
   }
 
+  function providerOptionLabel(p) {
+    var on = p.is_enabled ? "on" : "off";
+    var elig = p.eligible_for_runtime_assignment ? "eligible" : "blocked";
+    return p.provider_id + " — " + p.provider_type + " — " + on + " — " + (p.health_status || "?") + " — " + elig;
+  }
+
+  function modelOptionLabel(m) {
+    var on = m.is_enabled ? "on" : "off";
+    var ok = m.runtime_eligible ? "ready" : "blocked";
+    return m.model_id + " — " + m.provider_id + " — " + on + " — " + ok;
+  }
+
+  function routeOptionLabel(r) {
+    var on = r.is_enabled ? "on" : "off";
+    var ai = r.ai_path_ready ? "ai-ok" : "ai-blocked";
+    return r.route_id + " — " + (r.task_kind || "?") + " — " + on + " — " + ai;
+  }
+
+  function renderReadinessPanel(data) {
+    var head = document.getElementById("manage-og-readiness-headline");
+    var sev = document.getElementById("manage-og-readiness-severity");
+    var ulB = document.getElementById("manage-og-readiness-blockers");
+    var olN = document.getElementById("manage-og-readiness-next");
+    if (head) {
+      head.textContent = data.readiness_headline || (data.ai_only_valid
+        ? "AI-only generation is currently valid for governed routes."
+        : "mock_only remains the safe default until the blockers below are resolved.");
+    }
+    if (sev) {
+      var s = data.readiness_severity || "";
+      if (s) {
+        sev.style.display = "";
+        var extra = data.mock_only_required ? " mock_only is expected until AI path preconditions pass." : "";
+        sev.textContent = "State: " + s + "." + extra;
+      } else {
+        sev.style.display = "none";
+        sev.textContent = "";
+      }
+    }
+    if (ulB) {
+      ulB.innerHTML = "";
+      var blockers = data.blockers || [];
+      var cap = 18;
+      for (var i = 0; i < blockers.length && i < cap; i++) {
+        var b = blockers[i];
+        var li = document.createElement("li");
+        var line = (b.message || b.code || "").trim();
+        if (b.suggested_action) {
+          line += " Action: " + String(b.suggested_action).replace(/\*\*/g, "");
+        }
+        li.textContent = line;
+        ulB.appendChild(li);
+      }
+      if (blockers.length > cap) {
+        var more = document.createElement("li");
+        more.textContent = "… and " + (blockers.length - cap) + " more (expand raw JSON below).";
+        ulB.appendChild(more);
+      }
+      if (!blockers.length) {
+        var none = document.createElement("li");
+        none.textContent = "No blocking issues reported — verify inventory and health tests before switching modes.";
+        ulB.appendChild(none);
+      }
+    }
+    if (olN) {
+      olN.innerHTML = "";
+      (data.next_actions || []).forEach(function (na) {
+        var li = document.createElement("li");
+        li.textContent = na;
+        olN.appendChild(li);
+      });
+    }
+  }
+
   function loadProviders() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/providers").then(function (res) {
-      state.providers = (res.data || {}).providers || [];
-      setSelectOptions("manage-og-provider-select", state.providers, "provider_id", function (p) {
-        return p.provider_id + " (" + p.provider_type + ")";
-      }, true);
-      setSelectOptions("manage-og-model-provider", state.providers, "provider_id", function (p) {
-        return p.provider_id + " (" + p.health_status + ")";
-      }, false);
+      var inner = govPayload(res);
+      state.providers = inner.providers || [];
+      setSelectOptions("manage-og-provider-select", state.providers, "provider_id", providerOptionLabel, true);
+      setSelectOptions("manage-og-model-provider", state.providers, "provider_id", providerOptionLabel, false);
       setJson("manage-og-providers-json", { providers: state.providers });
     });
   }
 
   function loadModels() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/models").then(function (res) {
-      state.models = (res.data || {}).models || [];
-      setSelectOptions("manage-og-model-select", state.models, "model_id", function (m) {
-        return m.model_id + " -> " + m.provider_id;
-      }, true);
-      setSelectOptions("manage-og-route-preferred-model", state.models, "model_id", function (m) {
-        return m.model_id + " (" + m.model_role + ")";
-      }, true);
-      setSelectOptions("manage-og-route-fallback-model", state.models, "model_id", function (m) {
-        return m.model_id + " (" + m.model_role + ")";
-      }, true);
-      setSelectOptions("manage-og-route-mock-model", state.models, "model_id", function (m) {
-        return m.model_id + " (" + m.model_role + ")";
-      }, true);
+      var inner = govPayload(res);
+      state.models = inner.models || [];
+      setSelectOptions("manage-og-model-select", state.models, "model_id", modelOptionLabel, true);
+      setSelectOptions("manage-og-route-preferred-model", state.models, "model_id", modelOptionLabel, true);
+      setSelectOptions("manage-og-route-fallback-model", state.models, "model_id", modelOptionLabel, true);
+      setSelectOptions("manage-og-route-mock-model", state.models, "model_id", modelOptionLabel, true);
       setJson("manage-og-models-json", { models: state.models });
     });
   }
 
   function loadRoutes() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/routes").then(function (res) {
-      state.routes = (res.data || {}).routes || [];
-      setSelectOptions("manage-og-route-select", state.routes, "route_id", function (r) {
-        return r.route_id + " [" + r.task_kind + "]";
-      }, true);
+      var inner = govPayload(res);
+      state.routes = inner.routes || [];
+      setSelectOptions("manage-og-route-select", state.routes, "route_id", routeOptionLabel, true);
       setJson("manage-og-routes-json", { routes: state.routes });
     });
   }
 
   function loadModes() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/runtime/modes").then(function (res) {
-      var data = res.data || {};
+      var data = govPayload(res);
       setValue("manage-og-generation-mode", data.generation_execution_mode);
       setValue("manage-og-retrieval-mode", data.retrieval_execution_mode);
       setValue("manage-og-validation-mode", data.validation_execution_mode);
@@ -142,13 +213,15 @@
 
   function loadResolved() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/runtime/resolved-config").then(function (res) {
-      setJson("manage-og-runtime-config", res.data || {});
+      setJson("manage-og-runtime-config", govPayload(res) || {});
     });
   }
 
   function loadReadiness() {
     return window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/runtime-readiness").then(function (res) {
-      setJson("manage-og-readiness-json", res.data || {});
+      var data = govPayload(res);
+      renderReadinessPanel(data);
+      setJson("manage-og-readiness-json", data || {});
     });
   }
 
@@ -186,6 +259,18 @@
         setValue("manage-og-provider-display", row.display_name);
         setValue("manage-og-provider-base-url", row.base_url || "");
         setChecked("manage-og-provider-enabled", !!row.is_enabled);
+        var pmeta = document.getElementById("manage-og-provider-meta");
+        if (pmeta) {
+          var pb = [];
+          pb.push(row.is_enabled ? "Enabled" : "Disabled");
+          pb.push("Health: " + (row.health_status || "unknown"));
+          pb.push(row.eligible_for_runtime_assignment ? "Eligible for runtime assignment" : "Not eligible for assignment");
+          if (row.limitations && row.limitations.length) {
+            pb.push("Limitations: " + row.limitations.join(", "));
+          }
+          if (row.stage_support) pb.push("Stage: " + row.stage_support);
+          pmeta.textContent = pb.join(" · ");
+        }
       });
     }
 
@@ -201,6 +286,17 @@
         setValue("manage-og-model-timeout", row.timeout_seconds || 30);
         setChecked("manage-og-model-structured", !!row.structured_output_capable);
         setChecked("manage-og-model-enabled", !!row.is_enabled);
+        var mmeta = document.getElementById("manage-og-model-meta");
+        if (mmeta) {
+          var mb = [];
+          mb.push(row.is_enabled ? "Enabled" : "Disabled");
+          mb.push(row.runtime_eligible ? "Runtime-eligible" : "Not runtime-eligible");
+          if (row.provider_runtime_eligible === false) mb.push("Provider not runtime-eligible");
+          if (row.readiness_blockers && row.readiness_blockers.length) {
+            mb.push("Blockers: " + row.readiness_blockers.join(", "));
+          }
+          mmeta.textContent = mb.join(" · ");
+        }
       });
     }
 
@@ -216,6 +312,17 @@
         setValue("manage-og-route-mock-model", row.mock_model_id || "");
         setChecked("manage-og-route-enabled", !!row.is_enabled);
         setChecked("manage-og-route-use-mock", !!row.use_mock_when_provider_unavailable);
+        var rmeta = document.getElementById("manage-og-route-meta");
+        if (rmeta) {
+          var rb = [];
+          rb.push(row.is_enabled ? "Enabled" : "Disabled");
+          rb.push(row.ai_path_ready ? "AI path ready" : "AI path blocked");
+          rb.push(row.runtime_eligible ? "Route runtime-eligible" : "Route not runtime-eligible");
+          if (row.readiness_blockers && row.readiness_blockers.length) {
+            rb.push("Blockers: " + row.readiness_blockers.join(", "));
+          }
+          rmeta.textContent = rb.join(" · ");
+        }
       });
     }
   }

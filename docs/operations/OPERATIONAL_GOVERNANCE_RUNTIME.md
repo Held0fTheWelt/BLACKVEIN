@@ -2,6 +2,11 @@
 
 Phase 1 establishes operator-usable administration surfaces for the minimum viable AI runtime path and world-engine control posture.
 
+## Access control
+
+- **AI Runtime Governance** (`/manage/ai-runtime-governance` and `/manage/operational-governance*`) requires the **`manage.ai_runtime_governance`** feature (admin-only by default). This matches the backend admin governance APIs, which are gated with the same feature identifier plus JWT.
+- **World-Engine Control Center** reuses the hierarchical **`manage.world_engine_*`** capabilities (observe as minimum) because it shares the same play-service proxy surface as the console.
+
 ## Canonical behavior
 
 - Bootstrap/trust-anchor state is persisted in backend tables and surfaced via:

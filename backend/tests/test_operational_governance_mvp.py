@@ -90,6 +90,24 @@ def test_runtime_mode_validation_blocks_ai_without_real_provider(client, admin_h
     assert payload["error"]["code"] == "generation_mode_invalid"
 
 
+def test_runtime_readiness_payload_includes_actionable_fields(client, admin_headers):
+    response = client.get("/api/v1/admin/ai/runtime-readiness", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.get_json()["data"]
+    assert data.get("readiness_headline")
+    assert data.get("readiness_severity") in {"ok", "blocked", "degraded"}
+    assert isinstance(data.get("blockers"), list)
+    for row in data["blockers"]:
+        assert row.get("suggested_action"), f"missing suggested_action on {row!r}"
+
+
+def test_moderator_denied_ai_runtime_governance_api(client, moderator_headers):
+    response = client.get("/api/v1/admin/ai/providers", headers=moderator_headers)
+    assert response.status_code == 403
+    payload = response.get_json()
+    assert "feature" in (payload.get("error") or "").lower()
+
+
 def test_provider_contract_exposes_first_class_openrouter_metadata(client, admin_headers):
     create_response = client.post(
         "/api/v1/admin/ai/providers",

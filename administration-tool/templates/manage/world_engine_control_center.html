@@ -6,11 +6,11 @@
         <div>
             <p class="manage-eyebrow">Operations</p>
             <h1>World-Engine Control Center</h1>
-            <p class="manage-lead">Canonical operator entrypoint for play-service posture, backend connectivity, active sessions/runs, and safe runtime controls.</p>
+            <p class="manage-lead">Canonical operator entrypoint for play-service posture, backend connectivity, active sessions/runs, and safe runtime controls. Use this page first; drill down only when you need per-run or per-session detail.</p>
             <p class="muted">
-                <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> ·
+                <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> (desired URL / validate / apply) ·
                 <a href="{{ url_for('manage_diagnosis') }}">System diagnosis</a> ·
-                <a href="{{ url_for('manage_world_engine_console') }}">World Engine console</a> ·
+                <a href="{{ url_for('manage_world_engine_console') }}">World Engine console</a> (runs / sessions detail) ·
                 <a href="{{ url_for('manage_game_operations') }}">Game operations</a>
             </p>
         </div>
@@ -23,6 +23,16 @@
 
     <p id="wecc-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
     <p id="wecc-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <section class="panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Operator summary</h2></header>
+        <p id="wecc-headline" class="manage-lead" style="margin-top:0;"></p>
+        <ul id="wecc-sub-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+        <p id="wecc-deep-dive" class="muted" style="margin-top:0.5rem;"></p>
+        <h3 class="manage-eyebrow">Backend-declared safe controls</h3>
+        <p class="muted" style="margin:0;">The buttons above cover refresh, test, and apply. Additional controls may require parameters (for example a run id) — use the World Engine console for those.</p>
+        <ul id="wecc-operator-controls" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+    </section>
 
     <div class="manage-grid two-col">
         <section class="panel">

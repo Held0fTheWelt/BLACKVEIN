@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from flask import current_app, request
+from flask_jwt_extended import jwt_required
 
 from app.api.v1 import api_v1_bp
-from app.auth.permissions import get_current_user, require_jwt_admin
+from app.auth.feature_registry import FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE
+from app.auth.permissions import get_current_user, require_feature
 from app.extensions import limiter
 from app.governance.envelopes import fail, fail_from_error, ok
 from app.governance.errors import GovernanceError, governance_error
@@ -71,7 +73,8 @@ def _handle(action: str, callback):
 
 @api_v1_bp.route("/admin/bootstrap/status", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_bootstrap_status():
     return _handle("bootstrap_status", lambda: get_bootstrap_status())
 
@@ -95,35 +98,40 @@ def bootstrap_public_status():
 
 @api_v1_bp.route("/admin/bootstrap/presets", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_bootstrap_presets():
     return _handle("bootstrap_presets", lambda: {"presets": list_bootstrap_presets()})
 
 
 @api_v1_bp.route("/admin/bootstrap/initialize", methods=["POST"])
 @limiter.limit("10 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_bootstrap_initialize():
     return _handle("bootstrap_initialize", lambda: initialize_bootstrap(_body(), _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/bootstrap/reopen", methods=["POST"])
 @limiter.limit("10 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_bootstrap_reopen():
     return _handle("bootstrap_reopen", lambda: reopen_bootstrap(_body(), _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/ai/providers", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_providers_list():
     return _handle("provider_list", lambda: {"providers": list_providers()})
 
 
 @api_v1_bp.route("/admin/ai/providers", methods=["POST"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_provider_create():
     def _do():
         row = create_provider(_body(), _actor_identifier())
@@ -135,7 +143,8 @@ def admin_ai_provider_create():
 
 @api_v1_bp.route("/admin/ai/providers/<provider_id>", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_provider_update(provider_id: str):
     return _handle(
         "provider_update",
@@ -148,98 +157,112 @@ def admin_ai_provider_update(provider_id: str):
 
 @api_v1_bp.route("/admin/ai/providers/<provider_id>/credential", methods=["POST"])
 @limiter.limit("20 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_provider_credential_write(provider_id: str):
     return _handle("provider_credential_write", lambda: write_provider_credential(provider_id, _body(), _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/ai/providers/<provider_id>/rotate-credential", methods=["POST"])
 @limiter.limit("20 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_provider_credential_rotate(provider_id: str):
     return _handle("provider_credential_rotate", lambda: write_provider_credential(provider_id, _body(), _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/ai/providers/<provider_id>/test-connection", methods=["POST"])
 @limiter.limit("20 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_provider_test_connection(provider_id: str):
     return _handle("provider_test_connection", lambda: test_provider_connection(provider_id, _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/ai/models", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_models_list():
     return _handle("model_list", lambda: {"models": list_models()})
 
 
 @api_v1_bp.route("/admin/ai/models", methods=["POST"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_model_create():
     return _handle("model_create", lambda: {"model_id": create_model(_body(), _actor_identifier()).model_id, "created": True})
 
 
 @api_v1_bp.route("/admin/ai/models/<model_id>", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_model_update(model_id: str):
     return _handle("model_update", lambda: {"model_id": update_model(model_id, _body(), _actor_identifier()).model_id, "updated": True})
 
 
 @api_v1_bp.route("/admin/ai/routes", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_routes_list():
     return _handle("route_list", lambda: {"routes": list_routes()})
 
 
 @api_v1_bp.route("/admin/ai/routes", methods=["POST"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_route_create():
     return _handle("route_create", lambda: {"route_id": create_route(_body(), _actor_identifier()).route_id, "created": True})
 
 
 @api_v1_bp.route("/admin/ai/routes/<route_id>", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_route_update(route_id: str):
     return _handle("route_update", lambda: {"route_id": update_route(route_id, _body(), _actor_identifier()).route_id, "updated": True})
 
 
 @api_v1_bp.route("/admin/ai/runtime-readiness", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_runtime_readiness():
     return _handle("runtime_readiness", evaluate_runtime_readiness)
 
 
 @api_v1_bp.route("/admin/runtime/modes", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_runtime_modes_get():
     return _handle("runtime_modes_get", get_runtime_modes)
 
 
 @api_v1_bp.route("/admin/runtime/modes", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_runtime_modes_patch():
     return _handle("runtime_modes_patch", lambda: update_runtime_modes(_body(), _actor_identifier()))
 
 
 @api_v1_bp.route("/admin/runtime/resolved-config", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_runtime_resolved_config_get():
     return _handle("runtime_resolved_config_get", lambda: build_resolved_runtime_config(persist_snapshot=False, actor=_actor_identifier()))
 
 
 @api_v1_bp.route("/admin/runtime/reload-resolved-config", methods=["POST"])
 @limiter.limit("20 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_runtime_resolved_config_reload():
     return _handle("runtime_resolved_config_reload", lambda: build_resolved_runtime_config(persist_snapshot=True, actor=_actor_identifier()))
 
@@ -259,77 +282,88 @@ def _settings_patch(scope: str):
 
 @api_v1_bp.route("/admin/settings/backend", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_backend_get():
     return _settings_get("backend")
 
 
 @api_v1_bp.route("/admin/settings/backend", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_backend_patch():
     return _settings_patch("backend")
 
 
 @api_v1_bp.route("/admin/settings/world-engine", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_world_engine_get():
     return _settings_get("world_engine")
 
 
 @api_v1_bp.route("/admin/settings/world-engine", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_world_engine_patch():
     return _settings_patch("world_engine")
 
 
 @api_v1_bp.route("/admin/settings/retrieval", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_retrieval_get():
     return _settings_get("retrieval")
 
 
 @api_v1_bp.route("/admin/settings/retrieval", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_retrieval_patch():
     return _settings_patch("retrieval")
 
 
 @api_v1_bp.route("/admin/settings/notifications", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_notifications_get():
     return _settings_get("notifications")
 
 
 @api_v1_bp.route("/admin/settings/notifications", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_notifications_patch():
     return _settings_patch("notifications")
 
 
 @api_v1_bp.route("/admin/settings/costs", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_costs_get():
     return _settings_get("costs")
 
 
 @api_v1_bp.route("/admin/settings/costs", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_settings_costs_patch():
     return _settings_patch("costs")
 
 
 @api_v1_bp.route("/admin/costs/usage-events", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_usage_events():
     limit = min(int(request.args.get("limit", "200")), 1000)
     return _handle("costs_usage_events", lambda: {"items": list_usage_events(limit=limit)})
@@ -337,7 +371,8 @@ def admin_costs_usage_events():
 
 @api_v1_bp.route("/admin/costs/usage-events", methods=["POST"])
 @limiter.limit("120 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_usage_events_ingest():
     def _do():
         body = _body()
@@ -349,7 +384,8 @@ def admin_costs_usage_events_ingest():
 
 @api_v1_bp.route("/admin/costs/rollups", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_rollups():
     limit = min(int(request.args.get("limit", "200")), 1000)
     return _handle("costs_rollups", lambda: {"items": list_rollups(limit=limit)})
@@ -357,21 +393,24 @@ def admin_costs_rollups():
 
 @api_v1_bp.route("/admin/costs/rollups/rebuild", methods=["POST"])
 @limiter.limit("20 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_rollups_rebuild():
     return _handle("costs_rollups_rebuild", lambda: {"items": rebuild_rollups(_actor_identifier())})
 
 
 @api_v1_bp.route("/admin/costs/budgets", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_budgets():
     return _handle("costs_budgets", lambda: {"items": list_budgets()})
 
 
 @api_v1_bp.route("/admin/costs/budgets", methods=["POST"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_budgets_create():
     return _handle(
         "costs_budget_create",
@@ -381,7 +420,8 @@ def admin_costs_budgets_create():
 
 @api_v1_bp.route("/admin/costs/budgets/<budget_policy_id>", methods=["PATCH"])
 @limiter.limit("30 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_costs_budgets_patch(budget_policy_id: str):
     return _handle(
         "costs_budget_patch",
@@ -391,7 +431,8 @@ def admin_costs_budgets_patch(budget_policy_id: str):
 
 @api_v1_bp.route("/admin/audit/governance", methods=["GET"])
 @limiter.limit("60 per minute")
-@require_jwt_admin
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_governance_audit():
     limit = min(int(request.args.get("limit", "300")), 1000)
     return _handle("governance_audit", lambda: {"items": list_audit_events(limit=limit)})

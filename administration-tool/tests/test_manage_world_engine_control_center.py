@@ -24,6 +24,8 @@ def test_manage_world_engine_control_center_contains_mount_points(client):
     assert "wecc-observed" in html
     assert "wecc-connectivity" in html
     assert "wecc-summary" in html
+    assert "wecc-headline" in html
+    assert "wecc-operator-controls" in html
     assert "manage_world_engine_control_center.js" in html
 
 

@@ -1,12 +1,12 @@
 {% extends "manage/base.html" %}
-{% block title %}Operational Governance{% endblock %}
+{% block title %}AI Runtime Governance{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="operational-governance" data-active-section="{{ active_section | default('overview') }}">
     <div class="manage-section-header">
         <div>
             <p class="manage-eyebrow">Operations</p>
             <h1>AI Runtime Governance</h1>
-            <p class="manage-lead">Canonical operator surface for governed providers, models, task routes, runtime modes, and explicit readiness blockers.</p>
+            <p class="manage-lead">Canonical <strong>admin-only</strong> surface for governed providers, models, task routes, runtime modes, and readiness. For play-service posture and connectivity, use <a href="{{ url_for('manage_world_engine_control_center') }}">World-Engine Control Center</a>.</p>
         </div>
         <div class="manage-actions-row">
             <button type="button" class="btn" id="manage-og-refresh">Refresh</button>
@@ -15,6 +15,26 @@
 
     <p id="manage-og-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
     <p id="manage-og-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <section class="panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Runtime readiness overview</h2></header>
+        <p id="manage-og-readiness-headline" class="manage-lead" style="margin-top:0;"></p>
+        <p class="muted" id="manage-og-readiness-severity" style="display:none;"></p>
+        <div class="manage-grid two-col">
+            <div>
+                <h3 class="manage-eyebrow">Top blockers</h3>
+                <ul id="manage-og-readiness-blockers" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            </div>
+            <div>
+                <h3 class="manage-eyebrow">Recommended next steps</h3>
+                <ol id="manage-og-readiness-next" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ol>
+            </div>
+        </div>
+        <details style="margin-top:0.75rem;">
+            <summary class="muted">Technical detail: raw readiness JSON</summary>
+            <pre id="manage-og-readiness-json" class="manage-psc-json muted"></pre>
+        </details>
+    </section>
 
     <div class="manage-grid two-col">
         <section class="panel">
@@ -42,12 +62,16 @@
             <label class="form-label">Credential API key (write-only)
                 <input type="password" id="manage-og-provider-api-key" class="form-input" autocomplete="new-password" />
             </label>
+            <p id="manage-og-provider-meta" class="muted" style="min-height:1.25rem;"></p>
             <div class="manage-actions-row">
                 <button type="button" class="btn" id="manage-og-provider-create">Create provider</button>
                 <button type="button" class="btn btn-primary" id="manage-og-provider-update">Update provider</button>
                 <button type="button" class="btn" id="manage-og-provider-test">Test provider health</button>
             </div>
-            <pre id="manage-og-providers-json" class="manage-psc-json muted"></pre>
+            <details>
+                <summary class="muted">Raw provider inventory</summary>
+                <pre id="manage-og-providers-json" class="manage-psc-json muted"></pre>
+            </details>
         </section>
 
         <section class="panel">
@@ -76,11 +100,15 @@
             </label>
             <label class="form-label"><input type="checkbox" id="manage-og-model-structured" /> Structured output capable</label>
             <label class="form-label"><input type="checkbox" id="manage-og-model-enabled" checked /> Enabled</label>
+            <p id="manage-og-model-meta" class="muted" style="min-height:1.25rem;"></p>
             <div class="manage-actions-row">
                 <button type="button" class="btn" id="manage-og-model-create">Create model</button>
                 <button type="button" class="btn btn-primary" id="manage-og-model-update">Update model</button>
             </div>
-            <pre id="manage-og-models-json" class="manage-psc-json muted"></pre>
+            <details>
+                <summary class="muted">Raw model inventory</summary>
+                <pre id="manage-og-models-json" class="manage-psc-json muted"></pre>
+            </details>
         </section>
     </div>
 
@@ -107,17 +135,18 @@
             </label>
             <label class="form-label"><input type="checkbox" id="manage-og-route-enabled" checked /> Enabled</label>
             <label class="form-label"><input type="checkbox" id="manage-og-route-use-mock" checked /> Use mock when provider unavailable</label>
+            <p id="manage-og-route-meta" class="muted" style="min-height:1.25rem;"></p>
             <div class="manage-actions-row">
                 <button type="button" class="btn" id="manage-og-route-create">Create route</button>
                 <button type="button" class="btn btn-primary" id="manage-og-route-update">Update route</button>
             </div>
-            <pre id="manage-og-routes-json" class="manage-psc-json muted"></pre>
+            <details>
+                <summary class="muted">Raw route inventory</summary>
+                <pre id="manage-og-routes-json" class="manage-psc-json muted"></pre>
+            </details>
         </section>
 
         <section class="panel">
-            <header class="panel-header"><h2>Runtime readiness and blockers</h2></header>
-            <p class="muted">Shows why <code>mock_only</code> may be required and whether <code>ai_only</code> is currently valid.</p>
-            <pre id="manage-og-readiness-json" class="manage-psc-json muted"></pre>
             <header class="panel-header"><h2>Runtime modes</h2></header>
             <label class="form-label">Generation mode
                 <select id="manage-og-generation-mode" class="form-input">
@@ -162,7 +191,10 @@
                 <button type="button" class="btn btn-primary" id="manage-og-save-modes">Save modes</button>
                 <button type="button" class="btn" id="manage-og-bootstrap-reload">Reload resolved config</button>
             </div>
-            <pre id="manage-og-runtime-config" class="manage-psc-json muted"></pre>
+            <details>
+                <summary class="muted">Resolved runtime config (JSON)</summary>
+                <pre id="manage-og-runtime-config" class="manage-psc-json muted"></pre>
+            </details>
         </section>
     </div>
 </section>

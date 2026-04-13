@@ -38,6 +38,14 @@
             <h3>Diagnosis</h3>
             <p>Aggregated system health: backend, database, play service, published content, and AI readiness.</p>
         </a>
+        <a href="{{ url_for('manage_ai_runtime_governance') }}" class="card card-link" id="manage-dashboard-ai-runtime-governance" data-feature="manage.ai_runtime_governance">
+            <h3>AI Runtime Governance</h3>
+            <p>Providers, models, routes, runtime modes, and deterministic readiness — admin APIs only (JWT + feature gate).</p>
+        </a>
+        <a href="{{ url_for('manage_world_engine_control_center') }}" class="card card-link" id="manage-dashboard-world-engine-control-center" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">
+            <h3>World-Engine Control Center</h3>
+            <p>Desired vs observed play-service posture, connectivity, blockers, and safe controls — start here before deep console work.</p>
+        </a>
         <a href="{{ url_for('manage_world_engine_console') }}" class="card card-link" id="manage-dashboard-world-engine-console" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">
             <h3>World Engine console</h3>
             <p>Readiness, template runs, story sessions, diagnostics — proxied via backend (hierarchical observe / operate / author).</p>

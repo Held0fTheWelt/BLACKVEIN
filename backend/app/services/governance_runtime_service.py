@@ -1056,6 +1056,43 @@ def list_routes() -> list[dict]:
     return out
 
 
+def _readiness_suggested_action(*, code: str, entity_id: str | None, limitation: str | None = None) -> str:
+    """Return a concrete operator-facing remediation line for readiness blockers."""
+    if code == "enabled_non_mock_provider_missing":
+        return (
+            "Create or enable a non-mock provider (openai, ollama, openrouter, or anthropic), set base URL when prompted, "
+            "store the API key for cloud providers, then run **Test provider health** on this page."
+        )
+    if code == "enabled_non_mock_model_missing":
+        return (
+            "Under **Model governance**, create at least one enabled model bound to an eligible non-mock provider, "
+            "then attach it to a route."
+        )
+    if code == "enabled_ai_route_missing":
+        return (
+            "Under **Route governance**, enable a route whose preferred or fallback model points at a non-mock model on a healthy provider."
+        )
+    if code.startswith("provider_") and entity_id:
+        lim = limitation or code.removeprefix("provider_")
+        if lim == "credential_missing":
+            return (
+                f"Open provider `{entity_id}`: paste the API key in the credential field, save, then run **Test provider health**."
+            )
+        if lim.startswith("health_"):
+            return (
+                f"Fix base URL and credentials for `{entity_id}`, then run **Test provider health** until status is healthy."
+            )
+        if lim == "no_enabled_models":
+            return f"Create or enable at least one model for provider `{entity_id}`."
+        return f"Review provider `{entity_id}` in **Provider governance** and clear limitation `{lim}`."
+    if code.startswith("route_") and entity_id:
+        return (
+            f"Edit route `{entity_id}`: ensure preferred/fallback models reference enabled models on healthy providers, "
+            "or enable a valid mock fallback when **Use mock when provider unavailable** is checked."
+        )
+    return "Review **Runtime readiness** details and the raw inventory below."
+
+
 def evaluate_runtime_readiness() -> dict:
     """Deterministic readiness and blocker report for operator runtime decisions."""
     provider_rows = list_providers()
@@ -1080,6 +1117,7 @@ def evaluate_runtime_readiness() -> dict:
                 "entity_type": "provider",
                 "entity_id": None,
                 "message": "No enabled non-mock provider is currently eligible for runtime assignment.",
+                "suggested_action": _readiness_suggested_action(code="enabled_non_mock_provider_missing", entity_id=None),
             }
         )
     if not enabled_non_mock_model:
@@ -1089,6 +1127,7 @@ def evaluate_runtime_readiness() -> dict:
                 "entity_type": "model",
                 "entity_id": None,
                 "message": "No enabled model is attached to an eligible non-mock provider.",
+                "suggested_action": _readiness_suggested_action(code="enabled_non_mock_model_missing", entity_id=None),
             }
         )
     if not enabled_ai_route:
@@ -1098,27 +1137,34 @@ def evaluate_runtime_readiness() -> dict:
                 "entity_type": "route",
                 "entity_id": None,
                 "message": "No enabled route currently resolves to an eligible preferred or fallback non-mock model.",
+                "suggested_action": _readiness_suggested_action(code="enabled_ai_route_missing", entity_id=None),
             }
         )
 
     for provider in provider_rows:
         for limitation in provider.get("limitations") or []:
+            code = f"provider_{limitation}"
             blockers.append(
                 {
-                    "code": f"provider_{limitation}",
+                    "code": code,
                     "entity_type": "provider",
                     "entity_id": provider["provider_id"],
-                    "message": f"Provider '{provider['provider_id']}' has limitation '{limitation}'.",
+                    "message": f"Provider '{provider['provider_id']}' is not ready for AI routes: {limitation}.",
+                    "suggested_action": _readiness_suggested_action(
+                        code=code, entity_id=provider["provider_id"], limitation=limitation
+                    ),
                 }
             )
     for route in route_rows:
         for route_blocker in route.get("readiness_blockers") or []:
+            code = f"route_{route_blocker}"
             blockers.append(
                 {
-                    "code": f"route_{route_blocker}",
+                    "code": code,
                     "entity_type": "route",
                     "entity_id": route["route_id"],
-                    "message": f"Route '{route['route_id']}' has blocker '{route_blocker}'.",
+                    "message": f"Route '{route['route_id']}' cannot run as configured: {route_blocker}.",
+                    "suggested_action": _readiness_suggested_action(code=code, entity_id=route["route_id"]),
                 }
             )
 
@@ -1134,9 +1180,21 @@ def evaluate_runtime_readiness() -> dict:
     if ai_only_valid:
         next_actions.append("Switch generation_execution_mode to ai_only when desired.")
 
+    if ai_only_valid:
+        readiness_headline = "AI-only generation is currently valid for governed routes."
+        readiness_severity = "ok"
+    elif mock_only_required:
+        readiness_headline = "Stay on mock_only (or hybrid with mock fallback) until the blockers below are cleared."
+        readiness_severity = "blocked" if len([b for b in blockers if b["entity_id"] is None]) else "degraded"
+    else:
+        readiness_headline = "Review readiness signals before enabling ai_only."
+        readiness_severity = "degraded"
+
     return {
         "mock_only_required": mock_only_required,
         "ai_only_valid": ai_only_valid,
+        "readiness_headline": readiness_headline,
+        "readiness_severity": readiness_severity,
         "enabled_non_mock_provider_present": enabled_non_mock_provider,
         "enabled_non_mock_model_present": enabled_non_mock_model,
         "enabled_ai_route_present": enabled_ai_route,

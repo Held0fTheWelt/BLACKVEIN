@@ -29,7 +29,8 @@ Used in API and permission checks:
 - `manage.areas`, `manage.feature_areas`
 - `manage.system_diagnosis` (aggregated operator diagnosis API and `/manage/diagnosis` UI; moderator+ by default)
 - `manage.play_service_control` (Play-Service **desired** state, test/apply admin APIs, `/manage/play-service-control` UI; **admin-only** by default)
-- `manage.world_engine_observe`, `manage.world_engine_operate`, `manage.world_engine_author` — hierarchical World Engine console (`/manage/world-engine-console`); **author ⊃ operate ⊃ observe** for API checks (`user_can_access_world_engine_capability`). Moderator+ by default for each; assign via Feature access to split read vs terminate vs story turn/create.
+- `manage.ai_runtime_governance` — operational bootstrap plus AI providers/models/routes, runtime modes, resolved config, costs/audit admin APIs, and `/manage/ai-runtime-governance` / `/manage/operational-governance*` UI (**admin-only** by default; matches `@require_feature` on those routes).
+- `manage.world_engine_observe`, `manage.world_engine_operate`, `manage.world_engine_author` — hierarchical World Engine console (`/manage/world-engine-console`) and **World-Engine Control Center** overview (`/manage/world-engine-control-center`); **author ⊃ operate ⊃ observe** for API checks (`user_can_access_world_engine_capability`). Moderator+ by default for each; assign via Feature access to split read vs terminate vs story turn/create.
 - `dashboard.metrics`, `dashboard.logs`, `dashboard.settings`, `dashboard.user_settings`
 
 ## API
