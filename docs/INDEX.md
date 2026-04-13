@@ -9,7 +9,7 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 - **How the system works (plain language):** [`docs/start-here/how-world-of-shadows-works.md`](start-here/how-world-of-shadows-works.md)
 - **Glossary (short):** [`docs/start-here/glossary.md`](start-here/glossary.md) — full definitions: [`docs/reference/glossary.md`](reference/glossary.md)
 - **Doc registry (owners, cadence):** [`docs/reference/documentation-registry.md`](reference/documentation-registry.md)
-- **Execution governance state hub:** [`despaghettify/state/README.md`](../despaghettify/state/README.md)
+- **Execution governance state hub:** [`'fy'-suites/despaghettify/state/README.md`](../'fy'-suites/despaghettify/state/README.md)
 
 ## Easy reading (longer plain language)
 

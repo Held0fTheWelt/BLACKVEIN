@@ -1,7 +1,8 @@
-"""Deprecated shim — forwards to ``despaghettify/tools/spaghetti_ast_scan.py``.
+"""Deprecated shim — forwards to the canonical script under ``'fy'-suites/despaghettify/tools/``.
 
-Prefer: ``python -m despaghettify.tools`` (hub CLI) or run the canonical script under
-``'fy'-suites/despaghettify/tools/``. This file will be removed after downstream callers migrate.
+Prefer: ``python -m despaghettify.tools`` (hub CLI) or run
+``python "./'fy'-suites/despaghettify/tools/spaghetti_ast_scan.py"`` from the repo root.
+This file will be removed after downstream callers migrate.
 """
 from __future__ import annotations
 
@@ -18,7 +19,10 @@ warnings.warn(
 )
 
 _root = Path(__file__).resolve().parent.parent
-_nested = _root / "'fy'-suites" / "despaghettify" / "tools" / "spaghetti_ast_scan.py"
-_legacy = _root / "despaghettify" / "tools" / "spaghetti_ast_scan.py"
-_TARGET = _nested if _nested.is_file() else _legacy
-runpy.run_path(str(_TARGET), run_name="__main__")
+_target = _root / "'fy'-suites" / "despaghettify" / "tools" / "spaghetti_ast_scan.py"
+if not _target.is_file():
+    raise SystemExit(
+        f"Missing canonical script: {_target.relative_to(_root)} — restore 'fy'-suites/despaghettify or use "
+        "`python -m despaghettify.tools check` from the repo root."
+    )
+runpy.run_path(str(_target), run_name="__main__")

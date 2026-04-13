@@ -3,7 +3,7 @@
 
 Scans ``<hub>/superpowers/**/*.md`` for:
   - Markdown link targets `](path)` (skips http(s), mailto, bare fragments)
-  - Inline repo paths in backticks: ``'fy'-suites/despaghettify/...``, legacy ``despaghettify/...``, or ``tools/...`` with a file suffix
+  - Inline repo paths in backticks: ``'fy'-suites/despaghettify/...``, hub-relative alias ``despaghettify/...``, or ``tools/...`` with a file suffix
 
 Run from repository root:
   python "./'fy'-suites/despaghettify/tools/validate_despag_skill_paths.py"
@@ -30,7 +30,7 @@ SCAN_ROOT = despag_hub_dir(ROOT) / "superpowers"
 
 
 def _resolve_repo_relpath(raw: str) -> Path:
-    """Map legacy ``despaghettify/…`` backticks to ``'fy'-suites/despaghettify/…`` when needed."""
+    """Resolve ``despaghettify/…`` backticks to ``'fy'-suites/despaghettify/…`` when the repo-root path is absent."""
     p = (ROOT / raw).resolve()
     if p.exists():
         return p

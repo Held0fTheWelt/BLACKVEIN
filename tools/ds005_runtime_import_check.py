@@ -1,4 +1,4 @@
-"""Deprecated shim — forwards to ``despaghettify/tools/ds005_runtime_import_check.py``.
+"""Deprecated shim — forwards to the canonical script under ``'fy'-suites/despaghettify/tools/``.
 
 Prefer: ``python "./'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py"`` or invoke via the hub
 ``python -m despaghettify.tools check``. This file will be removed after downstream callers migrate.
@@ -18,7 +18,10 @@ warnings.warn(
 )
 
 _root = Path(__file__).resolve().parent.parent
-_nested = _root / "'fy'-suites" / "despaghettify" / "tools" / "ds005_runtime_import_check.py"
-_legacy = _root / "despaghettify" / "tools" / "ds005_runtime_import_check.py"
-_TARGET = _nested if _nested.is_file() else _legacy
-runpy.run_path(str(_TARGET), run_name="__main__")
+_target = _root / "'fy'-suites" / "despaghettify" / "tools" / "ds005_runtime_import_check.py"
+if not _target.is_file():
+    raise SystemExit(
+        f"Missing canonical script: {_target.relative_to(_root)} — restore 'fy'-suites/despaghettify or use "
+        "`python -m despaghettify.tools check` from the repo root."
+    )
+runpy.run_path(str(_target), run_name="__main__")

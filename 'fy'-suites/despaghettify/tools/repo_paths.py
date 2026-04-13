@@ -1,4 +1,4 @@
-"""Resolve monorepo root and Despaghettify hub directory (under ``'fy'-suites`` when nested)."""
+"""Resolve monorepo root and Despaghettify hub directory (always under ``'fy'-suites/despaghettify``)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -20,8 +20,7 @@ def repo_root(*, start: Path | None = None) -> Path:
         except OSError:
             continue
         nested = ancestor / FY_SUITES_DIRNAME / "despaghettify" / "spaghetti-setup.md"
-        legacy = ancestor / "despaghettify" / "spaghetti-setup.md"
-        if nested.is_file() or legacy.is_file():
+        if nested.is_file():
             return ancestor
     msg = f"Could not resolve repository root from {p}"
     raise RuntimeError(msg)
@@ -33,10 +32,7 @@ def despag_hub_dir(repo: Path | None = None) -> Path:
     nested = r / FY_SUITES_DIRNAME / "despaghettify"
     if (nested / "spaghetti-setup.md").is_file():
         return nested
-    legacy = r / "despaghettify"
-    if (legacy / "spaghetti-setup.md").is_file():
-        return legacy
-    msg = f"Despaghettify hub not found under {r}"
+    msg = f"Despaghettify hub not found under {r / FY_SUITES_DIRNAME / 'despaghettify'}"
     raise RuntimeError(msg)
 
 

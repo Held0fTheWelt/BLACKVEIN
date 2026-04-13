@@ -21,7 +21,7 @@ Authoritative architecture and integration detail: [`docs/technical/README.md`](
 
 ## Code structure (despaghettification)
 
-- **Living** task input list and coordination (English, under `despaghettify/` — not part of the frozen 2026 doc archive): [`despaghettify/despaghettification_implementation_input.md`](../../despaghettify/despaghettification_implementation_input.md) (see [`despaghettify/README.md`](../../despaghettify/README.md))  
+- **Living** task input list and coordination (English, under `'fy'-suites/despaghettify/` — not part of the frozen 2026 doc archive): [`despaghettification_implementation_input.md`](../../'fy'-suites/despaghettify/despaghettification_implementation_input.md) (see [`README.md`](../../'fy'-suites/despaghettify/README.md))  
   Links to [`docs/archive/documentation-consolidation-2026/`](../archive/documentation-consolidation-2026/) for **topic** consolidation; that input list tracks **code** structure work items (`DS-*`) without editing those archive artefacts.
 
 ## Additional references

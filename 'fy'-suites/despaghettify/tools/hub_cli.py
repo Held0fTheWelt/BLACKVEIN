@@ -57,7 +57,7 @@ _GATE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 def _ensure_repo_root() -> None:
     if not HUB.is_dir():
         print(
-            "Despaghettify hub directory not found (expected under 'fy'-suites/despaghettify/ or legacy despaghettify/). "
+            "Despaghettify hub directory not found (expected under 'fy'-suites/despaghettify/). "
             "Use ``pip install -e .`` from repo root or set PYTHONPATH to the parent of the ``despaghettify`` package; "
             "see 'fy'-suites/despaghettify/README.md.",
             file=sys.stderr,
