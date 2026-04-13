@@ -16,4 +16,14 @@ Then trim large arrays and copy to `*.sample.json`. Ephemeral `_tmp_*.json` unde
 
 Live machine exports during day-to-day work belong under `reports/` (gitignored `*.json` at that path).
 
-**Packaging hygiene:** do not ship `__pycache__` or `*.pyc` inside suite ZIPs; the repository root [`.gitignore`](../../.gitignore) already ignores them — use `git archive` or `pytest` from a clean tree before publishing extracts.
+**Packaging hygiene:** do not ship `__pycache__` or `*.pyc` inside suite ZIPs.
+
+- **Preferred:** `git archive` from the repo root so ignored paths (see root [`.gitignore`](../../.gitignore) and this suite’s [`.gitignore`](../.gitignore)) never enter the bundle.
+- **Manual folder ZIP (PowerShell):** from the **repository root**, strip bytecode under the hub, then archive:
+
+  ```powershell
+  $suite = Join-Path $PWD "'fy'-suites" | Join-Path -ChildPath "contractify"
+  Get-ChildItem -LiteralPath $suite -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+  ```
+
+  Repeat after local `pytest` if you need a pristine tree before zipping.

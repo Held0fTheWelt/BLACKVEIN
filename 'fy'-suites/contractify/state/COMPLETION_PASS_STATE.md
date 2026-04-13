@@ -20,7 +20,11 @@
 
 ## Intentionally deferred
 
-- Deep OpenAPI ↔ FastAPI route parity, semantic doc↔code alignment, rich supersession graph mining, CI workflow for `validate_contractify_skill_paths.py`.
+- **Conflict depth:** normative doc ↔ implementation contradiction detection, test-assertion-derived conflict classes, richer supersession graph resolution, stronger multi-anchor disambiguation beyond current table patterns.
+- **Versioning depth:** breaking vs non-breaking distinction, explicit migration workflows, version mismatch reporting across more anchor/projection families than OpenAPI + ADR headers.
+- **Evidence layout:** full-fidelity `reports/*.json` stays local/gitignored by policy; committed **shape** samples live under `examples/` (see `reports/README.md`).
+- **ZIP hygiene:** local `.gitignore` under the hub + `git archive`; `tools/tests/test_git_tracked_hygiene.py` asserts no tracked `__pycache__` / `.pyc` under `'fy'-suites/contractify`.
+- Deep OpenAPI ↔ FastAPI route parity; CI workflow for `validate_contractify_skill_paths.py`.
 - Automatic “breaking change” classification beyond explicit document markers.
 
 ## Next slices (recommended)

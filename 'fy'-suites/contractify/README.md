@@ -18,6 +18,10 @@
 - Not OpenAPI authoring — use product/API workflows; Contractify **reads** OpenAPI as anchor.
 - Not structural refactors — use **despaghettify** after Contractify shows tangled truth.
 
+## Maturity (known boundaries)
+
+Phase-1 tooling is **deliberately shallow** in places: conflicts are real but not semantic (no normative↔implementation contradiction mining, no test-derived conflict classes, no rich supersession graph). Versioning reads **declared** OpenAPI and ADR header signals only — no automatic breaking-change taxonomy or cross-family migration workflows. Use **CG-*** backlog rows and human review for anything that needs semantic judgement. For **ZIP / copy exports**, strip `__pycache__` / `*.pyc` or use `git archive`; see [`examples/README.md`](examples/README.md) and [`reports/README.md`](reports/README.md).
+
 ## Core truth model
 
 | Term | Meaning |
@@ -100,7 +104,7 @@ python -m contractify.tools discover --max-contracts 25 --out "'fy'-suites/contr
 | [`state/PREWORK_REPOSITORY_CONTRACT_REALITY.md`](state/PREWORK_REPOSITORY_CONTRACT_REALITY.md) | Human snapshot of pre-suite reality |
 | [`state/COMPLETION_PASS_STATE.md`](state/COMPLETION_PASS_STATE.md) | Completion / hardening pass record |
 | [`examples/`](examples/) | Committed JSON **shape** samples + [`examples/README.md`](examples/README.md) |
-| [`reports/`](reports/) | JSON exports (local `*.json` gitignored) |
+| [`reports/`](reports/) | JSON exports (local `*.json` gitignored) + [`reports/README.md`](reports/README.md) |
 
 ## Cursor skills
 
