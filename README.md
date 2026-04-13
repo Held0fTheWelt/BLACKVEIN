@@ -277,6 +277,8 @@ Use the root compose file:
 docker compose up --build
 ```
 
+The **backend** container runs **`flask db upgrade`** automatically on each start (before Gunicorn), so the SQLite file under `backend/instance/` (mounted into the container) stays aligned with the image’s migration chain—no separate manual `flask db upgrade` is required for the Docker stack after you rebuild the backend image when migrations change.
+
 Compose exposes:
 
 - backend on **`:8000`** (not 5000)
@@ -292,7 +294,7 @@ Inside containers, `frontend` and `administration-tool` use `BACKEND_API_URL=htt
 | --- | --- |
 | `setup-test-environment.sh` / `setup-test-environment.bat` | Installs backend test deps and editable `story_runtime_core` + `ai_stack[test]` |
 | `run-smoke-tests.sh` / `run-smoke-tests.bat` | Canonical smoke pytest entry |
-| `docker-up.py` (repo root) | Docker Compose helper (rebuild-oriented local stacks) |
+| `docker-up.py` (repo root) | Docker Compose helper (rebuild-oriented local stacks); backend runs `flask db upgrade` on each container start |
 | `tests/run_tests.py` | Legacy multi-suite runner (`backend`, `administration`, `engine`, …) |
 
 ## Testing

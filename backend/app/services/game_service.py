@@ -365,3 +365,126 @@ def list_story_sessions(*, trace_id: str | None = None) -> dict:
     if not isinstance(payload, dict) or "items" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session list payload.")
     return payload
+
+
+def _parse_narrative_ok_data(payload: object, *, kind: str) -> dict:
+    """Validate world-engine narrative governance envelope and return ``data`` object."""
+    if not isinstance(payload, dict):
+        raise GameServiceError(f"Play service returned an unexpected {kind} payload.")
+    if payload.get("ok") is not True:
+        raise GameServiceError(f"Play service returned a non-ok {kind} payload.")
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        raise GameServiceError(f"Play service returned an unexpected {kind} data payload.")
+    return data
+
+
+def reload_active_narrative_package(*, module_id: str, expected_active_version: str, trace_id: str | None = None) -> dict:
+    """Request world-engine active package reload for one narrative module."""
+    payload = _request(
+        "POST",
+        "/api/internal/narrative/packages/reload-active",
+        json_payload={"module_id": module_id, "expected_active_version": expected_active_version},
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_reload_active")
+
+
+def load_narrative_preview_package(
+    *,
+    module_id: str,
+    preview_id: str,
+    isolation_mode: str = "session_namespace",
+    trace_id: str | None = None,
+) -> dict:
+    """Load one preview package into world-engine isolated preview runtime."""
+    payload = _request(
+        "POST",
+        "/api/internal/narrative/packages/load-preview",
+        json_payload={"module_id": module_id, "preview_id": preview_id, "isolation_mode": isolation_mode},
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_load_preview")
+
+
+def unload_narrative_preview_package(*, module_id: str, preview_id: str, trace_id: str | None = None) -> dict:
+    """Unload one preview package from world-engine isolated preview runtime."""
+    payload = _request(
+        "POST",
+        "/api/internal/narrative/packages/unload-preview",
+        json_payload={"module_id": module_id, "preview_id": preview_id},
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_unload_preview")
+
+
+def start_narrative_preview_session(
+    *,
+    module_id: str,
+    preview_id: str,
+    session_seed: str,
+    isolation_mode: str = "session_namespace",
+    trace_id: str | None = None,
+) -> dict:
+    """Start one world-engine isolated preview session."""
+    payload = _request(
+        "POST",
+        "/api/internal/narrative/preview/start-session",
+        json_payload={
+            "module_id": module_id,
+            "preview_id": preview_id,
+            "session_seed": session_seed,
+            "isolation_mode": isolation_mode,
+        },
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_preview_start_session")
+
+
+def end_narrative_preview_session(*, preview_session_id: str, trace_id: str | None = None) -> dict:
+    """End one world-engine isolated preview session."""
+    payload = _request(
+        "POST",
+        "/api/internal/narrative/preview/end-session",
+        json_payload={"preview_session_id": preview_session_id},
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_preview_end_session")
+
+
+def get_narrative_runtime_state(*, module_id: str, trace_id: str | None = None) -> dict:
+    """Fetch world-engine narrative runtime state for one module."""
+    payload = _request(
+        "GET",
+        f"/api/internal/narrative/runtime/state?module_id={module_id}",
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_runtime_state")
+
+
+def get_narrative_runtime_validator_config(*, trace_id: str | None = None) -> dict:
+    """Fetch world-engine narrative validator runtime configuration."""
+    payload = _request(
+        "GET",
+        "/api/internal/narrative/runtime/validator-config",
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_runtime_validator_config")
+
+
+def get_narrative_runtime_health(*, trace_id: str | None = None) -> dict:
+    """Fetch world-engine narrative runtime health summary and recent events."""
+    payload = _request(
+        "GET",
+        "/api/internal/narrative/runtime/health",
+        internal=True,
+        trace_id=trace_id,
+    )
+    return _parse_narrative_ok_data(payload, kind="narrative_runtime_health")

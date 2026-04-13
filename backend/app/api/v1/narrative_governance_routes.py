@@ -28,19 +28,27 @@ from app.services.narrative_governance_service import (
     acknowledge_notification,
     apply_revision_bundle_to_draft,
     build_preview,
+    complete_evaluation_run,
     detect_conflicts_for_module,
     fallback_events,
     ingest_runtime_health_event,
+    load_preview_into_runtime,
     list_notification_feed,
     list_packages,
     list_revision_candidates,
+    runtime_diagnostics,
     package_history,
+    promote_preview_to_active,
     record_evaluation_run,
     resolve_conflict,
     resolve_validation_feedback_for_retry,
     rollback_to_version,
     runtime_health_summary,
+    start_preview_runtime_session,
+    sync_runtime_health_from_world_engine,
     transition_revision,
+    unload_preview_from_runtime,
+    end_preview_runtime_session,
     upsert_evaluation_coverage,
     upsert_notification_rule,
 )
@@ -172,6 +180,102 @@ def admin_narrative_runtime_health_events_ingest():
     return _ok({"event": event}, status_code=201)
 
 
+@api_v1_bp.route("/admin/narrative/runtime/health/sync", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_health_sync():
+    payload = request.get_json(silent=True) or {}
+    module_id = str(payload.get("module_id") or "god_of_carnage")
+    try:
+        result = sync_runtime_health_from_world_engine(module_id)
+    except NarrativeGovernanceError as exc:
+        return _error(503, exc.code, str(exc), {"module_id": module_id})
+    return _ok(result)
+
+
+@api_v1_bp.route("/admin/narrative/runtime/diagnostics", methods=["GET"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_diagnostics():
+    module_id = request.args.get("module_id", "god_of_carnage")
+    try:
+        return _ok(runtime_diagnostics(module_id))
+    except NarrativeGovernanceError as exc:
+        return _error(503, exc.code, str(exc), {"module_id": module_id})
+
+
+@api_v1_bp.route("/admin/narrative/runtime/previews/load", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_load_preview():
+    payload = request.get_json(silent=True) or {}
+    module_id = str(payload.get("module_id") or "").strip()
+    preview_id = str(payload.get("preview_id") or "").strip()
+    if not module_id or not preview_id:
+        return _error(404, "preview_not_found", "module_id and preview_id are required.")
+    try:
+        result = load_preview_into_runtime(
+            module_id=module_id,
+            preview_id=preview_id,
+            isolation_mode=str(payload.get("isolation_mode") or "session_namespace"),
+        )
+    except NarrativeGovernanceError as exc:
+        status_code = 409 if exc.code == "preview_session_isolation_unavailable" else 404
+        return _error(status_code, exc.code, str(exc), {"module_id": module_id, "preview_id": preview_id})
+    return _ok(result)
+
+
+@api_v1_bp.route("/admin/narrative/runtime/previews/unload", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_unload_preview():
+    payload = request.get_json(silent=True) or {}
+    module_id = str(payload.get("module_id") or "").strip()
+    preview_id = str(payload.get("preview_id") or "").strip()
+    if not module_id or not preview_id:
+        return _error(404, "preview_not_loaded", "module_id and preview_id are required.")
+    try:
+        result = unload_preview_from_runtime(module_id=module_id, preview_id=preview_id)
+    except NarrativeGovernanceError as exc:
+        return _error(404, exc.code, str(exc), {"module_id": module_id, "preview_id": preview_id})
+    return _ok(result)
+
+
+@api_v1_bp.route("/admin/narrative/runtime/previews/start-session", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_start_preview_session():
+    payload = request.get_json(silent=True) or {}
+    module_id = str(payload.get("module_id") or "").strip()
+    preview_id = str(payload.get("preview_id") or "").strip()
+    session_seed = str(payload.get("session_seed") or "").strip()
+    if not module_id or not preview_id or not session_seed:
+        return _error(
+            422,
+            "preview_session_isolation_unavailable",
+            "module_id, preview_id and session_seed are required.",
+        )
+    try:
+        result = start_preview_runtime_session(
+            module_id=module_id,
+            preview_id=preview_id,
+            session_seed=session_seed,
+            isolation_mode=str(payload.get("isolation_mode") or "session_namespace"),
+        )
+    except NarrativeGovernanceError as exc:
+        return _error(409, exc.code, str(exc), {"module_id": module_id, "preview_id": preview_id})
+    return _ok(result)
+
+
+@api_v1_bp.route("/admin/narrative/runtime/previews/end-session", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_runtime_end_preview_session():
+    payload = request.get_json(silent=True) or {}
+    preview_session_id = str(payload.get("preview_session_id") or "").strip()
+    if not preview_session_id:
+        return _error(404, "preview_session_not_found", "preview_session_id is required.")
+    try:
+        result = end_preview_runtime_session(preview_session_id=preview_session_id)
+    except NarrativeGovernanceError as exc:
+        return _error(404, exc.code, str(exc), {"preview_session_id": preview_session_id})
+    return _ok(result)
+
+
 @api_v1_bp.route("/admin/narrative/packages", methods=["GET"])
 @require_jwt_moderator_or_admin
 def admin_narrative_packages():
@@ -220,9 +324,10 @@ def admin_narrative_package_build_preview(module_id: str):
             source_revision=str(payload.get("source_revision") or "unspecified"),
             reason=str(payload.get("reason") or ""),
             actor_id=str(payload.get("requested_by") or "system"),
+            preview_id=str(payload.get("preview_id")) if payload.get("preview_id") else None,
         )
     except NarrativeGovernanceError as exc:
-        code = 409 if exc.code == "package_artifacts_missing" else 422
+        code = 409 if exc.code in {"package_artifacts_missing", "preview_build_blocked"} else 422
         return _error(code, exc.code, str(exc), {"module_id": module_id})
     return _ok(
         {
@@ -232,6 +337,35 @@ def admin_narrative_package_build_preview(module_id: str):
             "validation_status": result.validation_status,
         }
     )
+
+
+@api_v1_bp.route("/admin/narrative/packages/<module_id>/promote-preview", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_package_promote_preview(module_id: str):
+    payload = request.get_json(silent=True) or {}
+    preview_id = str(payload.get("preview_id") or "").strip()
+    if not preview_id:
+        return _error(404, "preview_not_found", "preview_id is required.")
+    try:
+        result = promote_preview_to_active(
+            module_id=module_id,
+            preview_id=preview_id,
+            approved_by=str(payload.get("approved_by") or "operator"),
+            notes=str(payload.get("notes") or ""),
+        )
+    except NarrativeGovernanceError as exc:
+        if exc.code == "preview_not_found":
+            status_code = 404
+        elif exc.code in {
+            "promotion_blocked_not_ready",
+            "unresolved_revision_conflicts",
+            "world_engine_reload_refused",
+        }:
+            status_code = 409 if exc.code != "world_engine_reload_refused" else 503
+        else:
+            status_code = 422
+        return _error(status_code, exc.code, str(exc), {"module_id": module_id, "preview_id": preview_id})
+    return _ok(result)
 
 
 @api_v1_bp.route("/admin/narrative/packages/<module_id>/rollback-to/<package_version>", methods=["POST"])
@@ -246,7 +380,12 @@ def admin_narrative_package_rollback(module_id: str, package_version: str):
             reason=str(payload.get("reason") or ""),
         )
     except NarrativeGovernanceError as exc:
-        status_code = 409 if exc.code.startswith("rollback_blocked") else 404
+        if exc.code.startswith("rollback_blocked"):
+            status_code = 409
+        elif exc.code == "world_engine_reload_refused":
+            status_code = 503
+        else:
+            status_code = 404
         return _error(status_code, exc.code, str(exc), {"module_id": module_id, "package_version": package_version})
     return _ok(result)
 
@@ -282,7 +421,12 @@ def admin_narrative_revision_transition(revision_id: str):
             notes=str(payload.get("notes") or ""),
         )
     except NarrativeGovernanceError as exc:
-        status_code = 404 if exc.code == "revision_not_found" else 409
+        if exc.code == "revision_not_found":
+            status_code = 404
+        elif exc.code == "transition_role_not_allowed":
+            status_code = 403
+        else:
+            status_code = 409
         return _error(status_code, exc.code, str(exc), {"revision_id": revision_id})
     return _ok(result)
 
@@ -343,7 +487,12 @@ def admin_narrative_revision_conflict_resolve(conflict_id: str):
             notes=str(payload.get("notes") or ""),
         )
     except NarrativeGovernanceError as exc:
-        status_code = 404 if exc.code == "revision_conflict_not_found" else 422
+        if exc.code == "revision_conflict_not_found":
+            status_code = 404
+        elif exc.code == "invalid_conflict_resolution_strategy":
+            status_code = 409
+        else:
+            status_code = 422
         return _error(status_code, exc.code, str(exc), {"conflict_id": conflict_id})
     return _ok(result)
 
@@ -394,6 +543,24 @@ def admin_narrative_evaluations_coverage(run_id: str):
     if not rows:
         return _error(404, "evaluation_run_not_found", "Evaluation run coverage not found.", {"run_id": run_id})
     return _ok({"rows": [item.to_dict() for item in rows]})
+
+
+@api_v1_bp.route("/admin/narrative/evaluations/<run_id>/complete", methods=["POST"])
+@require_jwt_moderator_or_admin
+def admin_narrative_evaluations_complete(run_id: str):
+    payload = request.get_json(silent=True) or {}
+    try:
+        row = complete_evaluation_run(
+            run_id=run_id,
+            status=str(payload.get("status") or "completed"),
+            scores={str(key): float(value) for key, value in dict(payload.get("scores") or {}).items()},
+            promotion_readiness=dict(payload.get("promotion_readiness") or {}),
+        )
+    except (ValueError, NarrativeGovernanceError) as exc:
+        status_code = 404 if isinstance(exc, NarrativeGovernanceError) and exc.code == "evaluation_run_not_found" else 422
+        code = exc.code if isinstance(exc, NarrativeGovernanceError) else "evaluation_coverage_invalid"
+        return _error(status_code, code, str(exc), {"run_id": run_id})
+    return _ok(row)
 
 
 @api_v1_bp.route("/admin/narrative/evaluations/<run_id>/coverage", methods=["POST"])

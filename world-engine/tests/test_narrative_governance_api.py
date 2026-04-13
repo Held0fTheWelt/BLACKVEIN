@@ -74,3 +74,59 @@ def test_internal_narrative_validate_and_recover_uses_safe_fallback(client):
     assert body["ok"] is True
     assert body["data"]["mode"] in {"corrective_retry", "safe_fallback"}
     assert "validation_feedback" in body["data"]
+
+
+def test_internal_narrative_reload_active_endpoint(client):
+    response = client.post(
+        "/api/internal/narrative/packages/reload-active",
+        json={"module_id": "god_of_carnage", "expected_active_version": "2.1.3"},
+        headers=_internal_headers(),
+    )
+    assert response.status_code in {200, 404}
+    if response.status_code == 200:
+        body = response.json()
+        assert body["ok"] is True
+        assert body["data"]["reload_status"] == "accepted"
+
+
+def test_internal_narrative_preview_load_unload_and_session_endpoints(client):
+    load_response = client.post(
+        "/api/internal/narrative/packages/load-preview",
+        json={"module_id": "god_of_carnage", "preview_id": "preview_0008", "isolation_mode": "session_namespace"},
+        headers=_internal_headers(),
+    )
+    assert load_response.status_code in {200, 404}
+    if load_response.status_code == 200:
+        session_response = client.post(
+            "/api/internal/narrative/preview/start-session",
+            json={
+                "module_id": "god_of_carnage",
+                "preview_id": "preview_0008",
+                "session_seed": "sim_001",
+                "isolation_mode": "session_namespace",
+            },
+            headers=_internal_headers(),
+        )
+        assert session_response.status_code == 200
+        payload = session_response.json()
+        session_id = payload["data"]["preview_session_id"]
+        end_response = client.post(
+            "/api/internal/narrative/preview/end-session",
+            json={"preview_session_id": session_id},
+            headers=_internal_headers(),
+        )
+        assert end_response.status_code == 200
+        unload_response = client.post(
+            "/api/internal/narrative/packages/unload-preview",
+            json={"module_id": "god_of_carnage", "preview_id": "preview_0008"},
+            headers=_internal_headers(),
+        )
+        assert unload_response.status_code == 200
+
+
+def test_internal_narrative_runtime_health_endpoint(client):
+    response = client.get("/api/internal/narrative/runtime/health", headers=_internal_headers())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True
+    assert "safe_fallback_rate" in body["data"]

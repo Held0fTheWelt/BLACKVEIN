@@ -18,6 +18,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Backend application code
 COPY backend/app ./app
 COPY backend/run.py ./run.py
+COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY backend/migrations ./migrations
 
 # OpenAPI inventory for /backend/openapi.yaml (path resolved from app/info/routes.py → /app/docs/api/)
@@ -30,7 +31,8 @@ COPY ai_stack ./ai_stack
 # YAML narrative modules (session start, compiler). Matches packaged path in module_loader.
 COPY content/modules /app/content/modules
 
-RUN mkdir -p /app/instance && chown -R appuser:appuser /app
+RUN mkdir -p /app/instance && chmod +x /app/docker-entrypoint.sh && chown -R appuser:appuser /app
 USER appuser
 EXPOSE 8000
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "run:app"]

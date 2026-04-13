@@ -4,6 +4,10 @@
 #
 # Services: backend (API), frontend (player UI), administration-tool, play-service (world-engine).
 # Backend ships content/modules in the image; WOS_CONTENT_MODULES_ROOT points at that path.
+#
+# Database: the backend image entrypoint runs `flask db upgrade` once before Gunicorn. The bind mount
+# ./backend/instance:/app/instance persists SQLite (default wos.db); after pulling new migrations,
+# rebuild/restart the backend container so the schema upgrades on startup.
 
 services:
   backend:
