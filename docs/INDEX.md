@@ -50,12 +50,12 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 
 - [`docs/presentations/`](presentations/)
 
-## Narrow normative exceptions (repo root)
+## GoC normative contracts (MVP bundle)
 
-- [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](CANONICAL_TURN_CONTRACT_GOC.md)
-- [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](VERTICAL_SLICE_CONTRACT_GOC.md)
-- [`docs/GATE_SCORING_POLICY_GOC.md`](GATE_SCORING_POLICY_GOC.md)
-- MVP roadmap series: [`docs/ROADMAP_MVP_*.md`](.)
+- [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
+- [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
+- [`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md)
+- MVP bundles: [`docs/MVPs/`](MVPs/) (each MVP in its own folder; roadmaps and contracts linked from there)
 
 ## Consolidation artifacts
 

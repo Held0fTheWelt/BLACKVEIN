@@ -1,6 +1,6 @@
 # MVP operator review sheet (WOS_VSL pilot)
 
-Use this for **Experiment 2 — Operator failure classification** and diagnosability metrics ([ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md) §10.2–10.3).
+Use this for **Experiment 2 — Operator failure classification** and diagnosability metrics ([ROADMAP_MVP_WOS_VSL.md](../MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL.md) §10.2–10.3).
 
 ## Session metadata
 

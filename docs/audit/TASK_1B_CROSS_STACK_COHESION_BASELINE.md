@@ -29,7 +29,7 @@ Without those gates, **silent breakage** is likely because the same logical arti
 | Area | Paths |
 |------|--------|
 | Task 1A baseline | `docs/audit/TASK_1A_REPOSITORY_BASELINE.md` |
-| Authority / contracts | `docs/architecture/runtime_authority_decision.md`, `docs/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md` |
+| Authority / contracts | `docs/architecture/runtime_authority_decision.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` |
 | Canonical GoC module (tracked) | `content/modules/god_of_carnage/*` (11 files: `module.yaml`, `characters.yaml`, `scenes.yaml`, `triggers.yaml`, `transitions.yaml`, `endings.yaml`, `relationships.yaml`, `escalation_axes.yaml`, `direction/*`) |
 | Backend module pipeline | `backend/app/content/module_service.py`, `backend/app/content/module_loader.py` |
 | AI / RAG / GoC coupling | `ai_stack/goc_yaml_authority.py`, `ai_stack/goc_frozen_vocab.py`, `ai_stack/goc_gate_evaluation.py`, `ai_stack/rag.py`, `ai_stack/tests/test_goc_*.py`, `ai_stack/tests/test_langgraph_runtime.py`, `ai_stack/tests/test_langchain_integration.py`, `ai_stack/tests/test_rag.py` |
@@ -57,7 +57,7 @@ Without those gates, **silent breakage** is likely because the same logical arti
 
 - **Declared-vs-actual workflow seams:** Docs declare world-engine as authoritative runtime host and backend as publishing/governance (`docs/architecture/runtime_authority_decision.md`); backend still hosts transitional paths and admin/session APIs that must align with compose wiring (`docker-compose.yml` `PLAY_SERVICE_*` variables). Publishing flow (draft vs published retrieval lanes) is normative in RAG docs and **path-based** in `ai_stack/rag.py`.
 
-- **Contract-alignment hotspots:** `docs/CANONICAL_TURN_CONTRACT_GOC.md` and `docs/VERTICAL_SLICE_CONTRACT_GOC.md` bind semantics for seams, validation, and slice YAML; `ai_stack/goc_yaml_authority.py` explicitly cites `VERTICAL_SLICE_CONTRACT_GOC.md` §6.1. Alignment must be verified **per seam** against producer and consumer code, not assumed from document tone.
+- **Contract-alignment hotspots:** `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` and `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` bind semantics for seams, validation, and slice YAML; `ai_stack/goc_yaml_authority.py` explicitly cites `VERTICAL_SLICE_CONTRACT_GOC.md` §6.1. Alignment must be verified **per seam** against producer and consumer code, not assumed from document tone.
 
 - **Authority-boundary ambiguity:** AI output non-authoritative vs runtime commit authority is stated in `runtime_authority_decision.md`; the **exact** handoff points (commit models, supervisor, preview vs commit) require code-level mapping in later tasks—this baseline **does not** complete that mapping.
 
@@ -125,7 +125,7 @@ Without those gates, **silent breakage** is likely because the same logical arti
 | RAG_lane | `ai_stack/rag.py` published vs modules lane logic and `module_id` filters |
 | Runtime_graph | `world-engine/app/story_runtime/manager.py` (`RuntimeTurnGraphExecutor`, `build_runtime_retriever`); `ai_stack` LangGraph/runtime tests |
 | MCP_tool | `tools/mcp_server/fs_tools.py`, `tools/mcp_server/config.py` |
-| Normative_doc | `docs/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/GATE_SCORING_POLICY_GOC.md` |
+| Normative_doc | `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md` |
 | Fixture_frozen | `tests/goc_gates/*`, `docs/goc_evidence_templates/*`, `outgoing/**/frozen_scenarios/*goc*.json` (sample inspected) |
 
 **Representative P0 rows (detail)**
@@ -193,8 +193,8 @@ Without those gates, **silent breakage** is likely because the same logical arti
 
 | Surface | Drift | Reason | Pri | Downstream |
 |---------|-------|--------|-----|------------|
-| `docs/CANONICAL_TURN_CONTRACT_GOC.md` seams vs `ai_stack`/`world-engine` producers | contract | Normative table vs code entrypoints | False closure claims | P0 | Producer/consumer matrix |
-| `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §6 vs `goc_yaml_authority.py` | contract | Explicit doc reference in code | Doc/code skew breaks gates | P0 | Slice verification |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` seams vs `ai_stack`/`world-engine` producers | contract | Normative table vs code entrypoints | False closure claims | P0 | Producer/consumer matrix |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §6 vs `goc_yaml_authority.py` | contract | Explicit doc reference in code | Doc/code skew breaks gates | P0 | Slice verification |
 | `schemas/*.schema.json` vs `backend`/`content` validators | contract | Multiple validation layers | Inconsistent module shape acceptance | P1 | Schema ownership |
 
 ### 5.7 Authority-boundary ambiguity hotspots
@@ -237,7 +237,7 @@ Without those gates, **silent breakage** is likely because the same logical arti
 
 - **RAG / retrieval (`ai_stack/rag.py`):** Path-based lane detection for `content/modules/` vs `content/published/`; consumers are runtime retrieval in world-engine. Ambiguity: if published tree layout differs from doc examples, **silent** lane misclassification is possible.
 
-- **Normative contracts (`docs/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md`):** Primary consumers are implementers and gate programs; authority is **documentary** until each seam is mapped to code. Drift risk: high—contracts can run ahead of or behind code.
+- **Normative contracts (`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`):** Primary consumers are implementers and gate programs; authority is **documentary** until each seam is mapped to code. Drift risk: high—contracts can run ahead of or behind code.
 
 - **JSON schemas (`schemas/`):** Consumers are validators and tooling; evolution ownership across services is **unclear** without a single declared owner file.
 

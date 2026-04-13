@@ -34,7 +34,7 @@ Including the PDF is **optional**; scoring must remain **anchored to the scenari
 Typical allowlist (same spirit as `docs/plans/PLAN_G9B_REAL_INDEPENDENT_EVALUATOR_B.md`):
 
 - `content/modules/god_of_carnage/` — module YAML / prompts / direction.  
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md` — turn and field semantics.
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` — turn and field semantics.
 
 **Not** an open-ended “clone the repo and browse” unless the engagement says so.
 

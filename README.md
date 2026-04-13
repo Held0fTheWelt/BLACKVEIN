@@ -2,7 +2,7 @@
 
 World of Shadows is a multi-service narrative game platform: player-facing web apps, an API layer, an authoritative play runtime, and a shared **AI stack** (RAG, LangGraph turn orchestration, guarded capabilities, MCP-oriented tooling) used by the world-engine and related workflows.
 
-The product direction for the **MVP vertical slice** is a **guided interactive drama runtime** (scene-led, truth-aligned turns)—not a generic chatbot or prose toy. See **[docs/ROADMAP_MVP_VSL.md](docs/ROADMAP_MVP_VSL.md)** for the target state and **[docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md](docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md)** for how Phase 0 freeze rules attach to that slice.
+The product direction for the **MVP vertical slice** is a **guided interactive drama runtime** (scene-led, truth-aligned turns)—not a generic chatbot or prose toy. See **[docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md)** for the target state and **[docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md)** for how Phase 0 freeze rules attach to that slice.
 
 ## Table of contents
 
@@ -91,10 +91,10 @@ The **God of Carnage** module under `content/modules/god_of_carnage/` is the bin
 
 | Topic | Document |
 | --- | --- |
-| Slice boundaries, YAML authority, vocabulary | [docs/VERTICAL_SLICE_CONTRACT_GOC.md](docs/VERTICAL_SLICE_CONTRACT_GOC.md) |
-| Turn schema, director nodes, proposal/validation/commit seams | [docs/CANONICAL_TURN_CONTRACT_GOC.md](docs/CANONICAL_TURN_CONTRACT_GOC.md) |
-| Gate families, preview discipline, operator questions | [docs/GATE_SCORING_POLICY_GOC.md](docs/GATE_SCORING_POLICY_GOC.md) |
-| Phase 0 freeze closure | [docs/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md](docs/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md) |
+| Slice boundaries, YAML authority, vocabulary | [docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) |
+| Turn schema, director nodes, proposal/validation/commit seams | [docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) |
+| Gate families, preview discipline, operator questions | [docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md) |
+| Phase 0 freeze closure | [docs/MVPs/MVP_VSL_And_GoC_Contracts/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md) |
 
 Phase reports (Phase 2–4 breadth, experience, reliability) are produced under `tests/reports/` during local runs; that directory may be gitignored—generate reports after running the suites described in [Testing](#testing).
 
@@ -416,11 +416,11 @@ Workflows under `.github/workflows/`:
 
 **Product / slice / freeze**
 
-- [docs/ROADMAP_MVP_VSL.md](docs/ROADMAP_MVP_VSL.md)
-- [docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md](docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md)
-- [docs/VERTICAL_SLICE_CONTRACT_GOC.md](docs/VERTICAL_SLICE_CONTRACT_GOC.md)
-- [docs/CANONICAL_TURN_CONTRACT_GOC.md](docs/CANONICAL_TURN_CONTRACT_GOC.md)
-- [docs/GATE_SCORING_POLICY_GOC.md](docs/GATE_SCORING_POLICY_GOC.md)
+- [docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md)
+- [docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md)
+- [docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
+- [docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
+- [docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md](docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md)
 
 **Repository cleanup baseline (classification gate)**
 

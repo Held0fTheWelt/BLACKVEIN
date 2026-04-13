@@ -1,6 +1,6 @@
 # CANONICAL_TURN_CONTRACT_GOC.md
 
-Canonical **starter turn contract** for the MVP vertical slice **God of Carnage**. Normative process: `docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md`; product phases: `docs/ROADMAP_MVP_VSL.md` §8. **Slice boundaries, Reality Anchor, current-vs-target bridge, asset inventory, and slice-level vocabulary** are normative in `docs/VERTICAL_SLICE_CONTRACT_GOC.md` — this document references them, does not redefine them.
+Canonical **starter turn contract** for the MVP vertical slice **God of Carnage**. Normative process: `docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md`; product phases: `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md` §8. **Slice boundaries, Reality Anchor, current-vs-target bridge, asset inventory, and slice-level vocabulary** are normative in `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` — this document references them, does not redefine them.
 
 ---
 
@@ -32,11 +32,11 @@ The following matches the implemented GoC slice; non-GoC modules use `waived` va
 - **Proposal** produces **candidate** dramatic material only (`proposed_state_effects`, generation text). It **never** authorizes world truth.
 - **Validation** consumes `proposed_state_effects` and scene/policy context; emits `validation_outcome`; **no** direct player-facing copy from this seam.
 - **Commit** authorizes canonical consequences; writes `committed_result`; **sole** source for “what holds in the world” for dramatically relevant facts.
-- **Visible render** materializes `visible_output_bundle` **only** in line with `committed_result` and visibility markers (vocabulary: `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §5).
+- **Visible render** materializes `visible_output_bundle` **only** in line with `committed_result` and visibility markers (vocabulary: `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §5).
 
 ### 2.3 Semantic closure (binding)
 
-- **Proposal vs validation:** If `validation_outcome` is absent, any productive claim that the engine “validated” the turn is **false**; see `docs/GATE_SCORING_POLICY_GOC.md` §6 for severity and `experiment_preview` rules.
+- **Proposal vs validation:** If `validation_outcome` is absent, any productive claim that the engine “validated” the turn is **false**; see `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md` §6 for severity and `experiment_preview` rules.
 - **Validation vs commit:** If `committed_result` is absent, no new **committed** dramatic facts may be asserted to the player; visible copy must stay in proposal/staging modes per visibility classes and failure policy.
 - **Commit vs visible:** Player-visible factual statements must **trace** to `committed_result` (or to visibility classes that explicitly allow non-factual staging without factual commitment).
 - **Single writer per seam:** Each seam has one owning stage in the graph contract; skipping a seam without an explicit marker is a **governance and gate** issue, not an informal shortcut.
@@ -65,7 +65,7 @@ The following are **selected and recorded before** the proposal-generation model
 
 - `selected_responder_set`
 - `selected_scene_function` (subject to §3.5 when multiple intentions compete)
-- `pacing_mode` (vocabulary: `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §5)
+- `pacing_mode` (vocabulary: `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §5)
 - `silence_brevity_decision` (including `mode` from the same §5 mini-vocabulary)
 - Visibility shaping and fallback-shaping inputs that constrain proposal/render
 
@@ -187,7 +187,7 @@ Optional keys (director enrichment, same object): `canonical_setting`, `narrativ
 
 ## 6. Controlled vocabulary (turn reference)
 
-Canonical values for **scene function**, **pacing**, **silence/brevity**, **continuity class**, **visibility class**, and **failure class** are identical to `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §5 — no divergent definitions.
+Canonical values for **scene function**, **pacing**, **silence/brevity**, **continuity class**, **visibility class**, and **failure class** are identical to `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §5 — no divergent definitions.
 
 Additional reference for this document:
 
@@ -198,7 +198,7 @@ Additional reference for this document:
 
 ### 6.1 Terminology rule: scene function vs transition pattern (binding)
 
-- **`selected_scene_function`** takes values **only** from the **scene function** vocabulary in `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §5.
+- **`selected_scene_function`** takes values **only** from the **scene function** vocabulary in `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §5.
 - **`transition_pattern`** takes values **only** from `{ hard, soft, carry_forward, diagnostics_only }`.
 - **It is forbidden** to use a scene-function label as a transition pattern, or a transition-pattern label as a scene function. Tables and diagnostics must use **separate columns/fields** for each.
 
@@ -273,5 +273,5 @@ FREEZE §14: distinguish **hard** / **soft** / **continuity carry-forward** / **
 
 ## 9. Cross-references
 
-- Slice, Reality Anchor, bridge, vocabulary basis, assets, dry-run: **`docs/VERTICAL_SLICE_CONTRACT_GOC.md`**
-- Gates, cadence, diagnostic modes, failure mapping, escalation, tabletop: **`docs/GATE_SCORING_POLICY_GOC.md`**
+- Slice, Reality Anchor, bridge, vocabulary basis, assets, dry-run: **`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`**
+- Gates, cadence, diagnostic modes, failure mapping, escalation, tabletop: **`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`**

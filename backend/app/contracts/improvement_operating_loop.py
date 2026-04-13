@@ -1,4 +1,4 @@
-"""Improvement operating loop stages (``docs/ROADMAP_MVP_GoC.md`` §6.8, gate G8)."""
+"""Improvement operating loop stages (``docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`` §6.8, gate G8)."""
 
 from __future__ import annotations
 

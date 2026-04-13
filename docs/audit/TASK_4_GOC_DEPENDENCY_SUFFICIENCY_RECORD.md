@@ -33,7 +33,7 @@ Result:
 | RAG lane rules | `ai_stack/rag.py` (`content/modules` vs `content/published`) | runtime retrieval path and RAG tests | lane misclassification without obvious hard failure | mapped, not fully closed |
 | Runtime graph/orchestration | `world-engine/app/story_runtime/manager.py`, `ai_stack/langgraph_runtime.py` | live turn orchestration | seam drift between runtime and ai_stack semantics | mapped, not fully closed |
 | MCP/tooling assumptions | `tools/mcp_server/config.py`, `fs_tools.py`, `tools_registry.py` | MCP tests and tool callers | divergent filesystem/API truth | mapped, not fully closed |
-| Normative docs/gates | `docs/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/audit/gate_summary_matrix.md` | implementers/operators/audits | false closure claims and wrong authority assumptions | mapped, not fully closed |
+| Normative docs/gates | `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/audit/gate_summary_matrix.md` | implementers/operators/audits | false closure claims and wrong authority assumptions | mapped, not fully closed |
 | Fixtures/frozen evidence | `tests/goc_gates/fixtures/*`, `docs/goc_evidence_templates/*`, `outgoing/**` | gates, evaluator package flow, scripts | broken evaluation flow or stale evidence references | mapped, not fully closed |
 
 ## Coverage evidence notes

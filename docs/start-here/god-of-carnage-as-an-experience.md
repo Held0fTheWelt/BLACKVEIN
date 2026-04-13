@@ -6,16 +6,16 @@
 
 - **Free language input** interpreted in the context of the **current scene** and module state.
 - **Scene-grounded** responses: the system selects dramatic parameters (responders, scene function, pacing) consistent with authored YAML and slice vocabulary.
-- **Visible output** that reflects **validated** outcomes: proposals from models pass through **validation** and **commit** seams before they become committed narrative state (developer detail: `docs/CANONICAL_TURN_CONTRACT_GOC.md`).
+- **Visible output** that reflects **validated** outcomes: proposals from models pass through **validation** and **commit** seams before they become committed narrative state (developer detail: `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`).
 
 ## Where the story comes from
 
 - **Canonical source:** the module tree `content/modules/god_of_carnage/` (YAML: scenes, characters, triggers, transitions, endings, etc.).
-- **Builtins / templates** in code may exist for bootstrapping demos but **must not silently override** YAML truth for this slice; see `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §6.
+- **Builtins / templates** in code may exist for bootstrapping demos but **must not silently override** YAML truth for this slice; see `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §6.
 
 ## What “slice” means for scope
 
-The vertical slice contract defines **in scope** and **out of scope** behavior (multi-module improvisation, unconstrained roleplay, etc.). For product and freeze language, see `docs/VERTICAL_SLICE_CONTRACT_GOC.md` and `docs/ROADMAP_MVP_VSL.md` as referenced there.
+The vertical slice contract defines **in scope** and **out of scope** behavior (multi-module improvisation, unconstrained roleplay, etc.). For product and freeze language, see `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` and `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md` as referenced there.
 
 ## Repository reality (honest status)
 

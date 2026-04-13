@@ -1,6 +1,6 @@
 # Gate Summary Matrix (GoC Baseline Audit)
 
-Dual-status model per `docs/ROADMAP_MVP_GoC.md` §11.1 and `docs/GoC_Gate_Baseline_Audit_Plan.md`: each gate has **structural_status** and **closure_level_status**. This matrix summarizes the baseline captured in per-gate reports under `docs/audit/`.
+Dual-status model per `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §11.1 and `docs/GoC_Gate_Baseline_Audit_Plan.md`: each gate has **structural_status** and **closure_level_status**. This matrix summarizes the baseline captured in per-gate reports under `docs/audit/`.
 
 | Gate | structural_status | closure_level_status | evidence_quality | Per-gate report |
 |------|-------------------|----------------------|------------------|-----------------|

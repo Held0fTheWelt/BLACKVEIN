@@ -16,7 +16,7 @@ Conceptual model (authored shapes and invariants): [`canonical_authored_content_
 
 ## God of Carnage binding
 
-For GoC, **YAML is primary**; builtins must not silently override YAML. See [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../../VERTICAL_SLICE_CONTRACT_GOC.md).
+For GoC, **YAML is primary**; builtins must not silently override YAML. See [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md).
 
 ## Writers’ Room workflow (backend-first)
 

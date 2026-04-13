@@ -31,7 +31,7 @@ The **AI stack** is not only “the turn graph.” It includes:
 
 ## Graph shape (God of Carnage — runtime)
 
-Normative ordering and state fields: [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../../VERTICAL_SLICE_CONTRACT_GOC.md). High level:
+Normative ordering and state fields: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md). High level:
 
 ```mermaid
 flowchart LR
@@ -49,7 +49,7 @@ flowchart LR
 
 ## Proposal vs commit
 
-`validate_seam` / `commit_seam` enforce separation between **proposal** and **committed** effects. See [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md).
+`validate_seam` / `commit_seam` enforce separation between **proposal** and **committed** effects. See [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ## Model routing (deep dive)
 

@@ -42,7 +42,7 @@ Detailed guidance: [02_SCORING_INSTRUCTIONS_CRITERIA.md](02_SCORING_INSTRUCTIONS
 
 - The **six** frozen scenario JSON files listed in [03_FROZEN_SOURCE_MANIFEST.md](03_FROZEN_SOURCE_MANIFEST.md).  
 - Optional dramatic grounding **only if** the package owner included it in your handoff: e.g. `resources/Script-God-Of-Carnage-Script-by-Yazmina-Reza.pdf`.  
-- Optional canonical repo references **only if** explicitly included or authorized in your handoff (e.g. `content/modules/god_of_carnage/`, `docs/CANONICAL_TURN_CONTRACT_GOC.md`). Do **not** treat the whole repository as automatically in scope.
+- Optional canonical repo references **only if** explicitly included or authorized in your handoff (e.g. `content/modules/god_of_carnage/`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`). Do **not** treat the whole repository as automatically in scope.
 
 ## What you must not do
 

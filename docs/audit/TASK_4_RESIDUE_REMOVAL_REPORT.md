@@ -22,11 +22,11 @@ A surface is residue/residue-candidate only when at least 2 of 3 are satisfied.
 | `docs/reports/PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` (formerly root `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md`) | yes | yes | yes | **executed:** under `docs/reports/` | P1 | historical process note; path corrected to tracked location |
 | `backend/fixtures/improvement_experiment_runs/improvement_experiment_*.json` (formerly `backend/world-engine/app/var/runs/`) | partial | yes | yes | **executed:** relocated to fixtures | P1 | placement ambiguity resolved; samples are explicit fixtures |
 | `docs/reports/*` (subset) | partial | partial | yes | mixed; case-by-case demote | P1 | some reports remain active evidence, others historical |
-| `docs/research_mvp_gate_closure.md` | yes | yes | yes | residue-candidate demote/archive | P1 | superseded by newer audit/control surfaces |
-| `docs/research_mvp_implementation_summary.md` | yes | yes | yes | residue-candidate demote/archive | P1 | superseded process narrative |
-| `docs/ROADMAP_MVP_REPOSITORY_SURFACE_TRUTH_AND_STRUCTURE_CLEANUP.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | planning history with partial durable-truth overlap |
-| `docs/ROADMAP_MVP_RESEARCH_AND_CANON_IMPROVEMENT_SYSTEM.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | process-heavy roadmap history |
-| `docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | process-heavy roadmap history |
+| `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_gate_closure.md` | yes | yes | yes | residue-candidate demote/archive | P1 | superseded by newer audit/control surfaces |
+| `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_implementation_summary.md` | yes | yes | yes | residue-candidate demote/archive | P1 | superseded process narrative |
+| `docs/MVPs/MVP_Repository_Surface_Truth_And_Structure_Cleanup/ROADMAP_MVP_REPOSITORY_SURFACE_TRUTH_AND_STRUCTURE_CLEANUP.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | planning history with partial durable-truth overlap |
+| `docs/MVPs/MVP_Research_And_Canon_Improvement_System/ROADMAP_MVP_RESEARCH_AND_CANON_IMPROVEMENT_SYSTEM.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | process-heavy roadmap history |
+| `docs/MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md` | partial | yes | yes | residue-candidate demote after extraction | P1 | process-heavy roadmap history |
 | `docs/testing/README.md` | no | partial | partial | keep, targeted cleanup | P1 | still active mixed-audience entrypoint pending split completion |
 | `tests/reports/*` tracked subset | no | partial | yes | keep with explicit local-vs-tracked policy | P1 | still referenced by gate/audit surfaces; policy controls needed |
 

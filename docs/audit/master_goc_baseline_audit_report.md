@@ -5,7 +5,7 @@
 
 ## 1. Authority and scope
 
-- Requirements: `docs/ROADMAP_MVP_GoC.md`  
+- Requirements: `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`  
 - Method: `docs/GoC_Gate_Baseline_Audit_Plan.md`  
 - Executed baseline inputs: Task 1–3 outputs under `docs/audit/` (per-gate reports G1–G9B), plus G10 and aggregation artifacts from the Phase 5–6 assembly.
 

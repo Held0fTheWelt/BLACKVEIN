@@ -1,6 +1,6 @@
 {
   "schema": "goc_g9b_evaluator_b_declaration_v1",
-  "roadmap_reference": "docs/ROADMAP_MVP_GoC.md section 6.10",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
   "audit_run_id": "g9_level_a_fullsix_20260410",
   "evaluator_b_id": "REPLACE_WITH_STABLE_ID_EG_ORGNAME_YYYYMMDD",
   "scoring_pass_label": "evaluator_b_external_independent_raw_matrix",
@@ -25,7 +25,7 @@
     "supplementary_repo_sources_used": [],
     "supplementary_repo_sources_allowed_but_not_used": [
       "content/modules/god_of_carnage/",
-      "docs/CANONICAL_TURN_CONTRACT_GOC.md"
+      "docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md"
     ]
   },
   "score_delta_record_ref": "",

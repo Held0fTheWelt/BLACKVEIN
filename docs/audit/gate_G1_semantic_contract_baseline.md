@@ -8,7 +8,7 @@
 
 ## Repository Inspection Targets
 
-- `docs/ROADMAP_MVP_GoC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`
 - `ai_stack/goc_frozen_vocab.py`
 - `ai_stack/mcp_canonical_surface.py`
 - `ai_stack/goc_turn_seams.py`

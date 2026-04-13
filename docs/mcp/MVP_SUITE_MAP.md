@@ -2,7 +2,7 @@
 
 **Conceptual model (tools, resources, prompts, suites, authority):** [MCP integration reference](../technical/integration/MCP.md) — read that first; this page is the **operator quick map** (tool and URI tables only).
 
-**Roadmap cross-reference:** [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md) — suite expectations and pilot misrouting metrics are spelled out there (sections on MCP suites and review methodology).
+**Roadmap cross-reference:** [ROADMAP_MVP_WOS_VSL.md](../MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL.md) — suite expectations and pilot misrouting metrics are spelled out there (sections on MCP suites and review methodology).
 
 Canonical tool names and suite membership are defined in code: `ai_stack/mcp_canonical_surface.py` (`CANONICAL_MCP_TOOL_DESCRIPTORS`). Pilot reviewers classify misrouting against the tables below.
 
@@ -90,4 +90,4 @@ See [tools/mcp_server/README.md](../../tools/mcp_server/README.md) for command e
 
 An interaction is **misrouted** if the suite used is not the **primary owner** in the tables above for that workflow (e.g. using `wos-ai` only to fetch session diagnostics — should be `wos-runtime-read` or `wos-admin` per intent).
 
-Formula (manual): `misrouted_interactions / reviewed_interactions` — see roadmap MCP review section in [ROADMAP_MVP_WOS_VSL.md](../ROADMAP_MVP_WOS_VSL.md).
+Formula (manual): `misrouted_interactions / reviewed_interactions` — see roadmap MCP review section in [ROADMAP_MVP_WOS_VSL.md](../MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL.md).

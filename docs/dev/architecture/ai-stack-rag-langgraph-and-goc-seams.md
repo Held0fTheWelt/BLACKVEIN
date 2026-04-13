@@ -19,6 +19,6 @@
 | Research / canon improvement | `ai_stack/research_langgraph.py`, `research_store.py`, `canon_improvement_engine.py` |
 | MCP operator server | `tools/mcp_server/server.py`, `ai_stack/mcp_canonical_surface.py` |
 
-**Normative slice contracts:** [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../../VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md).
+**Normative slice contracts:** [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 Plain-language counterpart: [`docs/start-here/how-ai-fits-the-platform.md`](../../start-here/how-ai-fits-the-platform.md).

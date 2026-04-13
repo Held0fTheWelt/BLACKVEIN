@@ -10,7 +10,7 @@
 
 ## Repository Inspection Targets
 
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 - `ai_stack/goc_turn_seams.py`
 - `ai_stack/runtime_turn_contracts.py`
 - `ai_stack/langgraph_runtime.py`

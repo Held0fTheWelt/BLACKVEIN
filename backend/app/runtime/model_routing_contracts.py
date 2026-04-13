@@ -195,7 +195,7 @@ class RoutingDecision(BaseModel):
     model_config = {"frozen": True}
 
 
-# --- Roadmap G2 names (docs/ROADMAP_MVP_GoC.md §6.2): aliases only, no parallel schema ---
+# --- Roadmap G2 names (docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md §6.2): aliases only, no parallel schema ---
 ModelCapabilityRecord = AdapterModelSpec
 RoutingPolicyRecord = RoutingRequest
 # Observation dicts are assembled by ``app.runtime.model_routing_evidence.build_routing_evidence``.

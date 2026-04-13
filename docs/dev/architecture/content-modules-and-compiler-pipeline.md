@@ -23,7 +23,7 @@ The canonical model defines three compiled projections:
 
 ## GoC binding
 
-For God of Carnage, **YAML is primary**; builtins such as `god_of_carnage_solo` are **secondary** and must not silently override YAML (`docs/VERTICAL_SLICE_CONTRACT_GOC.md` §6).
+For God of Carnage, **YAML is primary**; builtins such as `god_of_carnage_solo` are **secondary** and must not silently override YAML (`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §6).
 
 ## Duplicate-truth risk (writers-room)
 

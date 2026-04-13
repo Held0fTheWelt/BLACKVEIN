@@ -116,8 +116,8 @@ nav:
       - ADR 0001 Runtime authority: governance/adr-0001-runtime-authority-in-world-engine.md
       - ADR template: governance/adr-template.md
   - Contracts (GoC):
-      - Canonical turn contract: CANONICAL_TURN_CONTRACT_GOC.md
-      - Vertical slice contract: VERTICAL_SLICE_CONTRACT_GOC.md
+      - Canonical turn contract: MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md
+      - Vertical slice contract: MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md
 
 extra:
   generator: false

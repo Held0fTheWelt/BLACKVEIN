@@ -10,6 +10,6 @@
 | `docs/user/getting-started-player.md` | **Renamed** → `getting-started.md` | Mandatory filename alignment |
 | `docs/dev/contributing-and-repo-layout.md` | **Renamed** → `contributing.md` | Mandatory filename alignment |
 | `docs/dev/local-development.md` | **Renamed** → `local-development-and-test-workflow.md` | Mandatory filename alignment |
-| `docs/CANONICAL_TURN_CONTRACT_GOC.md` | **Retained** at repo `docs/` root | Narrow normative exception |
-| `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/GATE_SCORING_POLICY_GOC.md`, `docs/ROADMAP_MVP_*.md` | **Retained** at `docs/` root | MVP / slice exception (not generalized to other task docs) |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` | **Retained** under `docs/MVPs/MVP_VSL_And_GoC_Contracts/` | Narrow normative exception |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`, `docs/MVPs/**/ROADMAP_MVP_*.md` | **Retained** under `docs/MVPs/**` | MVP bundles (one folder per MVP) |
 | `docs/audit/TASK_*` | **Retained** in place | Historical evidence; explicitly excluded from audience onboarding in `INDEX.md` |

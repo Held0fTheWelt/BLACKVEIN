@@ -29,8 +29,8 @@
 
 ## For operators and developers
 
-- Slice definition: `docs/VERTICAL_SLICE_CONTRACT_GOC.md`
-- Turn semantics: `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+- Slice definition: `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`
+- Turn semantics: `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 - Experience overview: [God of Carnage as an experience](../start-here/god-of-carnage-as-an-experience.md)
 
 ## Related

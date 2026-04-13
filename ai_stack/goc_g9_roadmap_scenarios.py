@@ -2,7 +2,7 @@
 Frozen roadmap §6.9 experience-acceptance scenario set (G9).
 
 Single non-substitutable ordering: six scenarios exactly as in
-docs/ROADMAP_MVP_GoC.md §6.9. Templates and validators should align with
+docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md §6.9. Templates and validators should align with
 these ids — do not introduce parallel scenario vocab.
 """
 

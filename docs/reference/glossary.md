@@ -10,7 +10,7 @@ Authoritative short definitions for documentation across World of Shadows. Prefe
 Multi-service narrative game platform: player and admin web apps, platform API, authoritative play runtime, shared AI stack (retrieval, orchestration, tooling). The root README also uses the line **Better Tomorrow (World of Shadows)**; use **World of Shadows** as the primary public documentation name unless product leadership standardizes otherwise.
 
 **God of Carnage (GoC)**  
-The first MVP **vertical slice**: a guided interactive drama experience backed by the canonical module under `content/modules/god_of_carnage/`. Bound by `docs/VERTICAL_SLICE_CONTRACT_GOC.md` and related contracts.
+The first MVP **vertical slice**: a guided interactive drama experience backed by the canonical module under `content/modules/god_of_carnage/`. Bound by `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` and related contracts.
 
 **Vertical slice**  
 A deliberately narrow product and engineering cut (here: GoC) that binds content, runtime behavior, and validation gates without claiming the full multi-module product.
@@ -41,7 +41,7 @@ YAML-first authored content under `content/modules/<module_id>/` loaded into `Co
 String identifier for a content module (for GoC, `god_of_carnage` is the slice binding).
 
 **AI proposal vs commit**  
-Model output is **non-authoritative** until validated and **committed** by runtime rules. The graph may produce proposals; committed state follows validation and commit seams (see `docs/CANONICAL_TURN_CONTRACT_GOC.md` for normative detail).
+Model output is **non-authoritative** until validated and **committed** by runtime rules. The graph may produce proposals; committed state follows validation and commit seams (see `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` for normative detail).
 
 **Preview (experiment preview)**  
 Diagnostics or non-committed views of model or graph output used for review; must not be treated as committed player truth. Operational docs should point engineers to seam and contract docs for exact behavior.
@@ -50,7 +50,7 @@ Diagnostics or non-committed views of model or graph output used for review; mus
 Retrieval of grounded context packs for prompts, implemented in `ai_stack/rag.py`, with path- and module-sensitive behavior (e.g. `content/modules/` vs `content/published/` semantics).
 
 **LangGraph (GoC runtime graph)**  
-`RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` orchestrates the GoC slice turn pipeline (interpret → retrieve → canonical resolve → director → model → validate → commit → render → package). See `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the normative node list.
+`RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py` orchestrates the GoC slice turn pipeline (interpret → retrieve → canonical resolve → director → model → validate → commit → render → package). See `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the normative node list.
 
 **LangChain**  
 Adapter invocation bridge for structured runtime output under `ai_stack/langchain_integration/`.

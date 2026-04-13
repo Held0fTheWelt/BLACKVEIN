@@ -1,8 +1,8 @@
 """Frozen controlled vocabulary for the God of Carnage MVP vertical slice.
 
-Authoritative definitions: docs/VERTICAL_SLICE_CONTRACT_GOC.md §5,
-docs/CANONICAL_TURN_CONTRACT_GOC.md §6–§7,
-docs/GATE_SCORING_POLICY_GOC.md §1 and §7.
+Authoritative definitions: docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md §5,
+docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md §6–§7,
+docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md §1 and §7.
 """
 
 from __future__ import annotations

@@ -13,8 +13,8 @@ Welcome. This page orients **new contributors** in a few minutes; deep system tr
 ## God of Carnage slice
 
 - Player-visible summary: [`docs/start-here/god-of-carnage-as-an-experience.md`](../start-here/god-of-carnage-as-an-experience.md)
-- Turn contract: [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md)
-- Vertical slice checklist: [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md)
+- Turn contract: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
+- Vertical slice checklist: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
 
 ## AI stack quick links
 

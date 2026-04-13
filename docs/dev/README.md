@@ -28,7 +28,7 @@ Authoritative architecture and integration detail: [`docs/technical/README.md`](
 
 - API hub: [`docs/api/`](../api/) — MkDocs **API** tab (search + `REFERENCE.md`, OpenAPI taxonomy, spec); live **API Explorer** at `/backend/api-explorer` when the backend runs
 - Testing policy: [`docs/testing/`](../testing/)
-- Slice contracts: [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md), [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md)
+- Slice contracts: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
 - Glossary: [`docs/reference/glossary.md`](../reference/glossary.md) · ADRs: [`docs/governance/README.md`](../governance/README.md)
 
 ## Exclusions

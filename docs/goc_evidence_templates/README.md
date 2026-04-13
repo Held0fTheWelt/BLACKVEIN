@@ -6,7 +6,7 @@ imply gate closure until scores are real, frozen, and attached to a baseline run
 ## Sequencing
 
 1. **G9 first:** complete and freeze the six-scenario matrix (`g9_experience_score_matrix`) for the audit run.
-2. **G9B second:** archive **raw** per-evaluator artifacts, then (Level B only) delta records, then optional reconciliation. G9B must not use a different scenario set than G9 (`docs/ROADMAP_MVP_GoC.md` §11.2A).
+2. **G9B second:** archive **raw** per-evaluator artifacts, then (Level B only) delta records, then optional reconciliation. G9B must not use a different scenario set than G9 (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §11.2A).
 
 **Level B bar (G9B `closure_level_status`):** `level_b_capable` is **not** automatic when two files exist. The evidence package must demonstrate **actual** independence in **process**, **authorship**, and **score generation** (separate creation of scores and rationales before reconciliation; no post-hoc alignment before deltas). If Evaluator B is present but the independence declaration is weak or contradictory, set `g9b_level_b_attempt_record.level_b_attempt_status` to `failed_insufficient_independence` (or `incomplete` when B is still missing) and keep G9B at **`level_a_capable`**. Use `g9b_level_b_attempt_record` + `g9b_evaluator_independence_declaration` to make status explicit.
 
@@ -54,7 +54,7 @@ Template presence in the repository is **scaffolding only**. It is **not** G9 or
 
 For gate closure work on shared semantics, routing separation, dramatic turn records, and scene-direction boundaries, authoritative specs and code anchors are:
 
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md` (including §8.1 `goc_uninitialized_field_envelope_v1` for uninitialized G3 fields)
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` (including §8.1 `goc_uninitialized_field_envelope_v1` for uninitialized G3 fields)
 - `ai_stack/goc_roadmap_semantic_surface.py`, `ai_stack/goc_field_initialization_envelope.py`, `ai_stack/scene_direction_subdecision_matrix.py`
 - `ai_stack/goc_g9_roadmap_scenarios.py` (frozen §6.9 scenario ids and `failure_oriented` defaults)
 - `docs/audit/canonical_to_repo_mapping_table.md` (canonical-name → repo path)

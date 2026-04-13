@@ -1,6 +1,6 @@
 # Closure-Level Classification Summary (Global Baseline)
 
-This document aggregates **closure-level** interpretation across the GoC gate baseline. It is **not** a closure completion statement. Rules: `docs/GoC_Gate_Baseline_Audit_Plan.md` §7A, §8–9; `docs/ROADMAP_MVP_GoC.md` §2, §11.
+This document aggregates **closure-level** interpretation across the GoC gate baseline. It is **not** a closure completion statement. Rules: `docs/GoC_Gate_Baseline_Audit_Plan.md` §7A, §8–9; `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §2, §11.
 
 ## Dual dimensions
 
@@ -41,7 +41,7 @@ Reason: Level B requires G9 quality thresholds, G9B **independence** evidence (e
 
 ### Gates where Level B is `n/a` by design
 
-Structural gates G1–G6 (and operationally G7–G8 for **independence** semantics) do not, by themselves, confer Level B; global aggregation through G9, G9B, and G10 governs Level B wording (`docs/ROADMAP_MVP_GoC.md` §11.2B pattern).
+Structural gates G1–G6 (and operationally G7–G8 for **independence** semantics) do not, by themselves, confer Level B; global aggregation through G9, G9B, and G10 governs Level B wording (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §11.2B pattern).
 
 ## Explicit blockers to closure-level advancement
 

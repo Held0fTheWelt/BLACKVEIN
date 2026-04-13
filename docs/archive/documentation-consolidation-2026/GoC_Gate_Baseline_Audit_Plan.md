@@ -2,7 +2,7 @@
 
 ## 1. Executive audit intent
 
-This document defines **how** to run a baseline audit of the current repository against `docs/ROADMAP_MVP_GoC.md`.
+This document defines **how** to run a baseline audit of the current repository against `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`.
 
 Baseline means: a repository-state snapshot that determines, per gate, what is currently evidenced, what is missing, and what is not yet auditable without additional mapping or execution setup.
 
@@ -40,7 +40,7 @@ Audit execution should follow these phases:
 Execution ordering rules:
 
 - Structural gates are audited before evaluative gates.
-- G9 evidence must exist before concluding G9B (`docs/ROADMAP_MVP_GoC.md`, section 11.2A).
+- G9 evidence must exist before concluding G9B (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`, section 11.2A).
 - G10 is concluded only after all prerequisite gate evidence is assembled.
 
 Method selection rules:
@@ -59,7 +59,7 @@ Level support rules:
 
 The roadmap explicitly names and governs the audit terms used here:
 
-- `canonical-to-repo mapping` (`docs/ROADMAP_MVP_GoC.md`, Terminology note and section 10)
+- `canonical-to-repo mapping` (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`, Terminology note and section 10)
 - `dual-status reporting` (section 11.1)
 - `qualitative gate handling` (sections 5 and 11.3)
 - `closure-level classification` (section 2 and section 11)
@@ -131,7 +131,7 @@ Canonical semantic vocabulary ownership, import usage, and redefinition preventi
 
 #### C. Repository inspection targets
 
-- `docs/ROADMAP_MVP_GoC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`
 - `ai_stack/goc_frozen_vocab.py`
 - `ai_stack/mcp_canonical_surface.py`
 - `ai_stack/goc_turn_seams.py`
@@ -263,7 +263,7 @@ Turn record schema/field completeness and projection discipline (no parallel tru
 
 #### C. Repository inspection targets
 
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 - `ai_stack/goc_turn_seams.py`
 - `ai_stack/runtime_turn_contracts.py`
 - `ai_stack/langgraph_runtime.py`
@@ -330,7 +330,7 @@ Scene-direction subdecision matrix coverage, seam ownership, and forbidden-behav
 - `ai_stack/scene_director_goc.py`
 - `ai_stack/goc_turn_seams.py`
 - `ai_stack/langgraph_runtime.py`
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 - `ai_stack/tests/test_goc_phase1_runtime_gate.py`
 - `ai_stack/tests/test_goc_phase2_scenarios.py`
 
@@ -652,8 +652,8 @@ Scenario execution evidence, score sheets, threshold compliance, and quality rat
 
 #### C. Repository inspection targets
 
-- `docs/ROADMAP_MVP_GoC.md` (sections 6.9 and 8)
-- `docs/GATE_SCORING_POLICY_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` (sections 6.9 and 8)
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`
 - `ai_stack/tests/test_goc_phase2_scenarios.py`
 - `ai_stack/tests/test_goc_phase3_experience_richness.py`
 - `ai_stack/tests/test_goc_phase5_final_mvp_closure.py`
@@ -721,8 +721,8 @@ Evaluator mode declaration, raw score separation, delta preservation, and reconc
 
 #### C. Repository inspection targets
 
-- `docs/ROADMAP_MVP_GoC.md` (sections 2, 6.10, 11.2A, 11.2B)
-- `docs/GATE_SCORING_POLICY_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` (sections 2, 6.10, 11.2A, 11.2B)
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`
 - G9 scenario/score artifacts produced in same audit run
 - evaluator score sheets and reconciliation sheets (expected in audit artifact set; location finalizes in Phase 0)
 
@@ -862,17 +862,17 @@ Every G10 baseline report must include an `evidence_quality` field with value `h
 
 | Required artifact (roadmap section 13) | Gates | Audit phase(s) | Repository inspection targets |
 |---|---|---|---|
-| `shared_semantic_contract.*` | G1, G4, G7, G8 | 0, 1 | `ai_stack/goc_frozen_vocab.py`, `docs/ROADMAP_MVP_GoC.md` |
+| `shared_semantic_contract.*` | G1, G4, G7, G8 | 0, 1 | `ai_stack/goc_frozen_vocab.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` |
 | `module_package_contract.*` | G1, G5, G10 | 0, 1, 5 | `content/modules/god_of_carnage/`, `docs/architecture/god_of_carnage_module_contract.md` |
 | `capability_contract.*` | G2, G10 | 0, 1 | `ai_stack/capabilities.py`, `backend/app/runtime/model_inventory_contract.py` |
 | `routing_policy_contract.*` | G2, G6, G10 | 0, 1 | `backend/app/runtime/model_routing_contracts.py`, `backend/app/runtime/decision_policy.py` |
 | `routing_observation_contract.*` | G2, G3, G10 | 0, 1 | `backend/app/runtime/model_routing_evidence.py`, `backend/app/services/ai_stack_evidence_service.py` |
-| `dramatic_turn_record_contract.*` | G3, G4, G5, G9, G10 | 0, 1, 3, 5 | `docs/CANONICAL_TURN_CONTRACT_GOC.md`, `ai_stack/goc_turn_seams.py` |
-| `scene_direction_subdecision_matrix.*` | G4, G10 | 0, 1, 5 | `ai_stack/scene_director_goc.py`, `docs/CANONICAL_TURN_CONTRACT_GOC.md` |
+| `dramatic_turn_record_contract.*` | G3, G4, G5, G9, G10 | 0, 1, 3, 5 | `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`, `ai_stack/goc_turn_seams.py` |
+| `scene_direction_subdecision_matrix.*` | G4, G10 | 0, 1, 5 | `ai_stack/scene_director_goc.py`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` |
 | `retrieval_governance_contract.*` | G5, G9, G10 | 0, 1, 3, 5 | `ai_stack/rag.py`, `docs/rag_task3_source_governance.md` |
 | `writers_room_operating_contract.*` | G7, G10 | 0, 2, 5 | `writers-room/`, `backend/app/services/writers_room_service.py` |
 | `improvement_operating_contract.*` | G8, G10 | 0, 2, 5 | `backend/app/services/improvement_service.py`, `backend/app/api/v1/improvement_routes.py` |
-| `experience_acceptance_matrix.*` | G9, G9B, G10 | 3, 4, 5 | `docs/GATE_SCORING_POLICY_GOC.md`, `tests/reports/GOC_PHASE*_REPORT.md` |
+| `experience_acceptance_matrix.*` | G9, G9B, G10 | 3, 4, 5 | `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`, `tests/reports/GOC_PHASE*_REPORT.md` |
 | `gate_results_report.*` | G1-G10, G9B | 6 | All per-gate outputs from this plan |
 | `final_closure_report.*` | G10, global Level A/B classification | 6 | Master baseline report + closure-level summary |
 

@@ -20,7 +20,7 @@ Active **system** documentation for World of Shadows: architecture, runtime auth
 
 ## Normative contracts (slice / module)
 
-High-change contracts remain discoverable from [`docs/dev/contracts/normative-contracts-index.md`](../dev/contracts/normative-contracts-index.md). GoC turn semantics: [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md).
+High-change contracts remain discoverable from [`docs/dev/contracts/normative-contracts-index.md`](../dev/contracts/normative-contracts-index.md). GoC turn semantics: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ## Legacy location
 

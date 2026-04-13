@@ -74,4 +74,4 @@ Limits: max **64 KB** body, max **200** records per request; rows are pruned by 
 
 ## Normative product spec
 
-See [ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md](../../ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md).
+See [ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md](../../MVPs/MVP_MCP_Operations_Cockpit_WoS/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md).

@@ -16,7 +16,7 @@ Task 1A is **not** the place for **deep cross-stack cohesion analysis** or **dee
 
 The **still-unfinished canonical turn-contract surface** is a **protected exception** for generic cleanup framing in Task 1A:
 
-- [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md)
+- [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - Its **associated ten gates (G1–G10)** where they are part of the **unfinished canonical-turn-contract completion chain**—concretely, the tracked baseline pairings under `docs/audit/` for **`gate_G1` … `gate_G10`** (e.g. `gate_G1_semantic_contract_baseline.md` through `gate_G10_end_to_end_closure_baseline.md`) **when** they are exercised as that chain (not as unrelated audit scrap).
 
 **Task 1A must still inventory and classify** this surface (claims, paths, shorthand, readability diagnosis). It **must not** treat remaining shorthand, gate structure, or **temporary readability deficits** on this surface as **normal cleanup residue** for **generic** de-abstraction, generic audience-taxonomy enforcement, or “default Task 2 readability” backlog items.
@@ -37,7 +37,7 @@ The **still-unfinished canonical turn-contract surface** is a **protected except
 
 **Observed top-level entries (names only):** `.claude`, `.cursor`, `.devcontainer`, `.dockerignore`, `.env`, `.env.example`, `.git`, `.github`, `.gitignore`, `.idea`, `.mcp.json`, `.venv`, `.worktrees`, `.wos`, `CHANGELOG.md`, `DEVELOPMENT_SETUP.md`, `PYTHONANYWHERE_SETUP.md`, `README.md`, `Task.md`, `WorldOfShadows.code-workspace`, `docker-compose.yml`, `docker-up.py`, `favicon.svg`, `run-smoke-tests.bat`, `run-smoke-tests.sh`, `setup-test-environment.bat`, `setup-test-environment.sh`, `start-world-engine.ps1`, `_tmp_goc_dbg`, `administration-tool`, `ai_stack`, `audits`, `backend`, `content`, `data-tool`, `database`, `docker`, `docs`, `frontend`, `outgoing`, `postman`, `promo`, `resources`, `schemas`, `scripts`, `story_runtime_core`, `tests`, `tools`, `world-engine`, `writers-room`. *(Refresh: root `PATCH_NOTES_FLASK_PLAY_INTEGRATION.md` relocated to [`docs/reports/PATCH_NOTES_FLASK_PLAY_INTEGRATION.md`](../reports/PATCH_NOTES_FLASK_PLAY_INTEGRATION.md).)*
 
-**Primary directories/files inspected for this baseline:** [`.gitignore`](../../.gitignore); [`README.md`](../../README.md); [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md); [`docs/audit/gate_summary_matrix.md`](gate_summary_matrix.md); [`docs/rag_task3_source_governance.md`](../rag_task3_source_governance.md); [`docs/architecture/runtime_authority_decision.md`](../architecture/runtime_authority_decision.md); [`tests/goc_gates/test_g9_threshold_validator.py`](../../tests/goc_gates/test_g9_threshold_validator.py); [`backend/tests/test_authorization_boundaries.py`](../../backend/tests/test_authorization_boundaries.py) (split from former `test_coverage_expansion.py`); `git ls-files` scopes for `docs/`, `tests/`, `outgoing/`, `audits/`, `docs/plans/`, `docs/architecture/`; samples for `docs/**/*.md`, `**/test*.py`, `schemas/`.
+**Primary directories/files inspected for this baseline:** [`.gitignore`](../../.gitignore); [`README.md`](../../README.md); [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md); [`docs/audit/gate_summary_matrix.md`](gate_summary_matrix.md); [`docs/rag_task3_source_governance.md`](../rag_task3_source_governance.md); [`docs/architecture/runtime_authority_decision.md`](../architecture/runtime_authority_decision.md); [`tests/goc_gates/test_g9_threshold_validator.py`](../../tests/goc_gates/test_g9_threshold_validator.py); [`backend/tests/test_authorization_boundaries.py`](../../backend/tests/test_authorization_boundaries.py) (split from former `test_coverage_expansion.py`); `git ls-files` scopes for `docs/`, `tests/`, `outgoing/`, `audits/`, `docs/plans/`, `docs/architecture/`; samples for `docs/**/*.md`, `**/test*.py`, `schemas/`.
 
 **Measured tracked counts (refresh):** `git ls-files docs/` → **215** paths; `git ls-files tests/` → **18** paths (repo-root `tests/` tree only—package suites live under `backend/tests/`, `world-engine/tests/`, etc.).
 
@@ -45,7 +45,7 @@ The **still-unfinished canonical turn-contract surface** is a **protected except
 
 ### 2.1 In scope (Task 1A — inventory and classification only)
 
-Baseline work includes, for **tracked** files only (unless a tracked asset depends on gitignored material): (1) repository access verification; (2) active technical documentation surface inventory; (3) candidate obsolete process/history docs in active-visible areas; (4) technical-claim candidates for later truth-check; (5) abstract/shorthand documentation patterns; (6) audience-placement issues; (7) opaque or historically named test modules and mixed-purpose suites; (8) suite sidecars and adjunct files; (9) path/category ambiguity; (10) misplaced tracked files; (11) classification framework and source-of-truth *candidate* map (surface-level); (12) tracked-surface hygiene indicators; **(13) documentation readability hotspots in active tracked documents**—including documents that are **difficult to understand for reasons other than gate/phase/task shorthand** (e.g. nested terminology, unclear ownership, missing orienting prose, tables without introduction, normative density without reader guidance, “insider timeline” assumptions); **(14) explicit identification of protected exceptions** intentionally **excluded from generic readability enforcement**—with [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) and its **associated unfinished G1–G10 completion chain** (see §1 *Protected in-progress exception*) as the **primary** protected exception, each recorded per §5.11.
+Baseline work includes, for **tracked** files only (unless a tracked asset depends on gitignored material): (1) repository access verification; (2) active technical documentation surface inventory; (3) candidate obsolete process/history docs in active-visible areas; (4) technical-claim candidates for later truth-check; (5) abstract/shorthand documentation patterns; (6) audience-placement issues; (7) opaque or historically named test modules and mixed-purpose suites; (8) suite sidecars and adjunct files; (9) path/category ambiguity; (10) misplaced tracked files; (11) classification framework and source-of-truth *candidate* map (surface-level); (12) tracked-surface hygiene indicators; **(13) documentation readability hotspots in active tracked documents**—including documents that are **difficult to understand for reasons other than gate/phase/task shorthand** (e.g. nested terminology, unclear ownership, missing orienting prose, tables without introduction, normative density without reader guidance, “insider timeline” assumptions); **(14) explicit identification of protected exceptions** intentionally **excluded from generic readability enforcement**—with [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) and its **associated unfinished G1–G10 completion chain** (see §1 *Protected in-progress exception*) as the **primary** protected exception, each recorded per §5.11.
 
 **Explicit non-scope for Task 1A:** rewriting, reordering, de-abstracting, or “fixing” readability in prose (that is **Task 2+**). Task 1A only records **that** a document is hard to read and **why**, with `R*`, `X*`, and dimension tags—not prescriptive edit plans.
 
@@ -102,7 +102,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 **Protected-exception classes** (orthogonal to `R*`; default `X0`):
 
 - `X0_no_exception` — normal rules apply; generic readability and de-abstraction enforcement may target this doc when classified.
-- `X1_protected_canonical_in_progress_surface` — **narrow** exception: [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) plus the **G1–G10** audit baselines under `docs/audit/` that are part of the **unfinished canonical-turn-contract completion chain**. **Must not** be cited as precedent to exempt unrelated shorthand-heavy docs.
+- `X1_protected_canonical_in_progress_surface` — **narrow** exception: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) plus the **G1–G10** audit baselines under `docs/audit/` that are part of the **unfinished canonical-turn-contract completion chain**. **Must not** be cited as precedent to exempt unrelated shorthand-heavy docs.
 
 **Documentation-audience classes:** `U_dev_contributor`, `U_ops_deploy`, `U_security_auditor`, `U_product_roadmap`, `U_external_evaluator`, `U_mixed_untagged` (default until split).
 
@@ -127,13 +127,13 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 | Path | Current class | Reason | Pri | Downstream |
 |------|---------------|--------|-----|------------|
 | [`README.md`](../../README.md) | D0 + T0 mix | Onboarding + service role claims | P0 | Doc de-abstraction, audience split |
-| [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | D2 | Normative seam model | P0 | Claim audit vs `ai_stack` seams |
-| [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md) | D2 | Slice boundaries referenced by contract | P0 | Same |
-| [`docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../FREEZE_OPERATIONALIZATION_MVP_VSL.md) | D3 | Freeze rules | P0 | Governance cleanup |
-| [`docs/ROADMAP_MVP_VSL.md`](../ROADMAP_MVP_VSL.md) | D3 | Target state | P0 | Roadmap vs changelog alignment |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | D2 | Normative seam model | P0 | Claim audit vs `ai_stack` seams |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) | D2 | Slice boundaries referenced by contract | P0 | Same |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md) | D3 | Freeze rules | P0 | Governance cleanup |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md`](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md) | D3 | Target state | P0 | Roadmap vs changelog alignment |
 | [`docs/architecture/runtime_authority_decision.md`](../architecture/runtime_authority_decision.md) | D1 | Authority split | P0 | Path taxonomy education |
 | [`docs/audit/gate_summary_matrix.md`](gate_summary_matrix.md) | D5 + T4 | Aggregates gate status + **evidence paths** | P0 | **Tracked vs ignored evidence** resolution |
-| [`docs/GATE_SCORING_POLICY_GOC.md`](../GATE_SCORING_POLICY_GOC.md) | D2/D5 | Scoring/diagnostics policy | P1 | Test/doc alignment |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md) | D2/D5 | Scoring/diagnostics policy | P1 | Test/doc alignment |
 | [`docs/rag_task3_source_governance.md`](../rag_task3_source_governance.md) | D2 + T0 refs | Retrieval governance + pointer to `ai_stack/rag.py` | P1 | RAG doc set normalization |
 | [`docs/rag_task4_readiness_and_trace.md`](../rag_task4_readiness_and_trace.md) | D4/D8 | RAG harness readiness | P1 | Testing docs |
 | [`docs/mcp/00_M0_scope.md`](../mcp/00_M0_scope.md) etc. | D1/D4 | MCP program | P1 | MCP doc tree |
@@ -144,7 +144,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 
 *Summary of remainder:* ~200 additional tracked `docs/**` files (architecture deep dives, per-gate `docs/audit/gate_*.md`, `docs/plans/*.md`, `docs/archive/superpowers-legacy-execution-2026/**` (formerly `docs/superpowers/**`), `docs/reports/**`)—classify in bulk using §4 before moves/edits.
 
-**Tie-break record (reproducibility for §5.1):** Per Task 1A concreteness, **all P0** rows in this class are listed (**7** rows). Among **remaining** candidates, ordering uses **TB1** downstream-task risk → **TB2** ownership/role/category ambiguity → **TB3** active-surface visibility → **TB4** breadth of affected paths → **TB5** alphabetical path. **Applied to the P1 block (table order top-to-bottom):** `docs/rag_task3_source_governance.md` (**TB1**); `docs/GATE_SCORING_POLICY_GOC.md` (**TB1**); `docs/rag_task4_readiness_and_trace.md` (**TB1**); `docs/mcp/00_M0_scope.md` (stands in for `docs/mcp/*`, **TB3**); `docs/testing/QUALITY_BASELINE.md` (**TB3**); [`CHANGELOG.md`](../../CHANGELOG.md) (**TB1** lower than RAG/gate/MCP/testing entrypoints; **TB5** among peers). **Reviewer check:** extend the P1 set only with **per-row TB note** (which criterion broke ties).
+**Tie-break record (reproducibility for §5.1):** Per Task 1A concreteness, **all P0** rows in this class are listed (**7** rows). Among **remaining** candidates, ordering uses **TB1** downstream-task risk → **TB2** ownership/role/category ambiguity → **TB3** active-surface visibility → **TB4** breadth of affected paths → **TB5** alphabetical path. **Applied to the P1 block (table order top-to-bottom):** `docs/rag_task3_source_governance.md` (**TB1**); `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md` (**TB1**); `docs/rag_task4_readiness_and_trace.md` (**TB1**); `docs/mcp/00_M0_scope.md` (stands in for `docs/mcp/*`, **TB3**); `docs/testing/QUALITY_BASELINE.md` (**TB3**); [`CHANGELOG.md`](../../CHANGELOG.md) (**TB1** lower than RAG/gate/MCP/testing entrypoints; **TB5** among peers). **Reviewer check:** extend the P1 set only with **per-row TB note** (which criterion broke ties).
 
 ### 5.2 Candidate obsolete / process-heavy docs (active-visible)
 
@@ -166,7 +166,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 | [`docs/audit/gate_G*.md`](.) | A1/A2 | Gate IDs assume program context | P0 | Default: gloss or “audit program” index — **unless** row is in **`X1`** scope (see callout above) |
 | [`docs/architecture/area2_*.md`](../architecture/) | A3 | Area2 workstream shorthand | P1 | Rename or add stable titles |
 | [`docs/archive/superpowers-legacy-execution-2026/plans/*`](../archive/superpowers-legacy-execution-2026/plans/) | A3 | Week/workstream IDs | P2 | Audience tagging |
-| [`docs/GATE_SCORING_POLICY_GOC.md`](../GATE_SCORING_POLICY_GOC.md) | A1 | Gate/scoring vocabulary | P1 | De-abstraction |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md) | A1 | Gate/scoring vocabulary | P1 | De-abstraction |
 
 *Additional long tail:* filenames containing `g9`, `g10`, `mcp_m`, `w3-` across `docs/`—batch-tag as `A1`/`A3` during inventory sweep.
 
@@ -189,10 +189,10 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 | [`README.md`](../../README.md) | “Services and packages” table | Each listed directory has stated role (e.g. `world-engine` authoritative play runtime) | Defines mental model for all cleanup | P0 | Verify against code entrypoints |
 | [`README.md`](../../README.md) | “Architecture and request flow” | Runtime authority for live play in **`world-engine`** | Conflicts cause wrong edits | P0 | Align with deployment docs |
 | [`README.md`](../../README.md) | “Repository structure” | `tests/` described as smoke + `run_tests.py` | Test layout expectations | P1 | Runner docs vs reality |
-| [`CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | §2.1 table | **Commit** seam may alter truth; **Validation** may not emit player copy | Contract for narrative stack | P0 | Code seam audit (later task) |
-| [`CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | §2.2 bullets | **Commit** is sole source for “what holds in the world” for dramatic facts | Authority claim | P0 | Same |
-| [`CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | §2.3 | **Single writer per seam**; skipping seams is governance issue | Test/gate expectations | P1 | Gate test mapping |
-| [`CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | §2.1 + §2.2 | Non-GoC modules use **waived** validation and preview-class visibility | Module behavior scope | P1 | Module matrix |
+| [`CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | §2.1 table | **Commit** seam may alter truth; **Validation** may not emit player copy | Contract for narrative stack | P0 | Code seam audit (later task) |
+| [`CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | §2.2 bullets | **Commit** is sole source for “what holds in the world” for dramatic facts | Authority claim | P0 | Same |
+| [`CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | §2.3 | **Single writer per seam**; skipping seams is governance issue | Test/gate expectations | P1 | Gate test mapping |
+| [`CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | §2.1 + §2.2 | Non-GoC modules use **waived** validation and preview-class visibility | Module behavior scope | P1 | Module matrix |
 | [`gate_summary_matrix.md`](gate_summary_matrix.md) | Notes § | G1–G8 promotion evidence in `tests/reports/evidence/all_gates_closure_20260409/` | **Evidence path** | P0 | **Reconcile with `/tests/reports` ignore** |
 | [`gate_summary_matrix.md`](gate_summary_matrix.md) | Table | All listed gates `structural_status` green / `level_a_capable` | Audit baseline | P1 | Truth-check vs current CI |
 | [`rag_task3_source_governance.md`](../rag_task3_source_governance.md) | “Observability” | `retrieval_policy_version` = `task3_source_governance_v1` from `RETRIEVAL_POLICY_VERSION` in **`ai_stack/rag.py`** | Version identity | P0 | Code-doc sync (path cited) |
@@ -262,9 +262,9 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 
 | Path | Why it is hard to read | Intended audience (inferable) | Dimensions | `R*` | Pri | Downstream |
 |------|------------------------|-------------------------------|------------|------|-----|------------|
-| [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | Dense normative structure/terminology; **`R5`/`X1`** — not generic Task 2 queue | Core implementers / narrative runtime owners | structure, terminology, density, shorthand, missing_context | **R5** + **`X1`** | P0 | Claim audit §5.5; editorial closure via **completion program** (§1, §5.11) |
-| [`docs/GATE_SCORING_POLICY_GOC.md`](../GATE_SCORING_POLICY_GOC.md) | Gate/diagnostic vocabulary tied to scoring; easy to misread severity without full audit context | Gate owners / AI runtime auditors | shorthand, terminology, missing_context | R1/R3 | P0 | Task 2: bridge from policy to examples; align with tests |
-| [`docs/FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../FREEZE_OPERATIONALIZATION_MVP_VSL.md) | Operational rules cross-link heavily; hard to skim without roadmap freeze mental model | Contributors enforcing MVP VSL | structure, density, missing_context | R1/R2 | P0 | Task 2: reader paths (“if you are X, read Y first”) |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | Dense normative structure/terminology; **`R5`/`X1`** — not generic Task 2 queue | Core implementers / narrative runtime owners | structure, terminology, density, shorthand, missing_context | **R5** + **`X1`** | P0 | Claim audit §5.5; editorial closure via **completion program** (§1, §5.11) |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md) | Gate/diagnostic vocabulary tied to scoring; easy to misread severity without full audit context | Gate owners / AI runtime auditors | shorthand, terminology, missing_context | R1/R3 | P0 | Task 2: bridge from policy to examples; align with tests |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md) | Operational rules cross-link heavily; hard to skim without roadmap freeze mental model | Contributors enforcing MVP VSL | structure, density, missing_context | R1/R2 | P0 | Task 2: reader paths (“if you are X, read Y first”) |
 | [`docs/audit/gate_summary_matrix.md`](gate_summary_matrix.md) | Matrix assumes gate program; notes reference evidence paths that may not exist on clone | Audit readers / release owners | shorthand, structure, missing_context | R1 | P0 | Task 2: evidence-path hygiene; optional gloss row |
 | [`docs/rag_task3_source_governance.md`](../rag_task3_source_governance.md) | Correct but packs lanes/profiles/observability in few pages; table-first | RAG / retrieval implementers | terminology, density | R1 | P1 | Task 2: expand one worked example; keep normative brevity |
 | [`CHANGELOG.md`](../../CHANGELOG.md) | Very long; high entry cost for “what matters now” | Maintainers / release readers | structure, density | R2 | P1 | Task 2: index/top summary policy (separate from 1A) |
@@ -280,7 +280,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 
 | Protected surface | Owner program (doc pointer) |
 |-------------------|----------------------------|
-| [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) | Roadmap / gate program: e.g. `docs/ROADMAP_MVP_VSL.md`, `docs/ROADMAP_MVP_GoC.md`, `docs/plans/*` as applicable |
+| [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | Roadmap / gate program: e.g. `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`, `docs/plans/*` as applicable |
 | `docs/audit/gate_G1` … `gate_G10` baselines (in-chain only; not G9B unless new `X*`) | Same completion program as canonical turn contract |
 
 ---
@@ -314,7 +314,7 @@ Baseline work includes, for **tracked** files only (unless a tracked asset depen
 8. **No misplaced-file move** without `M_*` destination-role classification.
 9. **No claim correction** without repository evidence (code path, test, or tracked artifact) or explicit narrowing rationale recorded in the change log for the doc workstream.
 10. **Task 1A vs Task 2:** Task 1A **does not** rewrite documents. It **only** inventories readability (`R*`, `X*`, dimensions in §5.10) and classifies. Task 2 (or later doc workstreams) consumes that inventory to produce **concrete** restructuring, de-abstraction, and editorial changes.
-11. **No generic readability-enforcement or de-abstraction cleanup** may be applied to [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) or its **associated unfinished G1–G10 chain** **merely because** they contain shorthand, gate structure, or in-progress canonical framing—those paths use **`R5`/`X1`** and the **owning completion program**.
+11. **No generic readability-enforcement or de-abstraction cleanup** may be applied to [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) or its **associated unfinished G1–G10 chain** **merely because** they contain shorthand, gate structure, or in-progress canonical framing—those paths use **`R5`/`X1`** and the **owning completion program**.
 12. **Anti-generalization:** The **`X1`** exception is **narrow** and **must be recorded** in §5.11; it **must not** justify retaining unrelated shorthand-heavy or process-heavy documentation without normal `A*`/`R*` classification and cleanup queueing.
 
 ---
@@ -367,7 +367,7 @@ Task 1A is **insufficient** if it:
 **Readability and protected surface (retained)**
 
 - **Fails to inventory general readability hotspots** beyond shorthand (§2.1 item 13 / §5.10 dimensions: structure, terminology, density, missing context).
-- **Fails to record** the protected in-progress exception for [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) and the **G1–G10 in-chain** surface in **§1** + **§5.11** + **§4** `R5`/`X1` such that reason, scope, owner pointer, and non-generalization are recoverable by a reader.
+- **Fails to record** the protected in-progress exception for [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) and the **G1–G10 in-chain** surface in **§1** + **§5.11** + **§4** `R5`/`X1` such that reason, scope, owner pointer, and non-generalization are recoverable by a reader.
 
 ---
 

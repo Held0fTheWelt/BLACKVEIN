@@ -1,6 +1,6 @@
 {
   "schema": "goc_g9b_raw_score_sheet_v1",
-  "roadmap_reference": "docs/ROADMAP_MVP_GoC.md section 6.10",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
   "audit_run_id": "g9_level_a_fullsix_20260410",
   "evaluator_id": "evaluator_b_claude_system_20260409",
   "frozen_g9_matrix_file_ref": "./g9_experience_score_matrix_evaluator_b.json",

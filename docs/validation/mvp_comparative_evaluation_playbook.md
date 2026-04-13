@@ -1,6 +1,6 @@
 # MVP comparative evaluation playbook (God of Carnage)
 
-Operational pack for **Phase 2 — Earliest differentiation test** in `docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`: same evaluator goal, two arms, shared feedback against assumptions **H1–H3**.
+Operational pack for **Phase 2 — Earliest differentiation test** in `docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`: same evaluator goal, two arms, shared feedback against assumptions **H1–H3**.
 
 ## Arms
 
@@ -65,6 +65,6 @@ Frozen opening brief and Arm B system instructions: `scripts/data/mvp_goc_baseli
 
 ## References
 
-- Roadmap: `docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md` §9–§11.
+- Roadmap: `docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md` §9–§11.
 - Primary runtime path (Arm A): `docs/technical/runtime/a1_free_input_primary_runtime_path.md`.
 - Baseline CLI: `scripts/mvp_generic_llm_baseline_chat.py`.

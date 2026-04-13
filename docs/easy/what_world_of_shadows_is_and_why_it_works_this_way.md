@@ -30,7 +30,7 @@ Facts here follow this order:
 
 **In plain words:** It is built for **guided interactive drama**—scene-led play where “what just became true in the story” is **decided by rules and the runtime**, not only by whatever a language model said in the moment.
 
-**Anchors:** [`README.md`](../../README.md) (product framing and service table), [`docs/ROADMAP_MVP_VSL.md`](../ROADMAP_MVP_VSL.md) (MVP vertical slice direction).
+**Anchors:** [`README.md`](../../README.md) (product framing and service table), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md`](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md) (MVP vertical slice direction).
 
 ---
 
@@ -75,7 +75,7 @@ The platform separates:
 - **Checks** (contracts, validation seams),
 - **Commits** (what the session officially records after rules agree).
 
-That pattern is spelled out for the God of Carnage path in contract docs such as [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) and implemented around `resolve_narrative_commit` in the story runtime (`world-engine/app/story_runtime/manager.py`, `world-engine/app/story_runtime/commit_models.py`).
+That pattern is spelled out for the God of Carnage path in contract docs such as [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) and implemented around `resolve_narrative_commit` in the story runtime (`world-engine/app/story_runtime/manager.py`, `world-engine/app/story_runtime/commit_models.py`).
 
 ### Why this matters
 
@@ -472,7 +472,7 @@ Most players will never read `ai_stack/` or MCP docs. They still **feel** the ar
 
 ### What this means in the actual system
 
-Player-visible routes live in `frontend/`; live session behavior is owned by `world-engine/`; AI proposes inside graph stages documented in [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md) for the GoC slice.
+Player-visible routes live in `frontend/`; live session behavior is owned by `world-engine/`; AI proposes inside graph stages documented in [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) for the GoC slice.
 
 ### Why this matters
 

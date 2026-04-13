@@ -16,7 +16,7 @@
 
 ## Engineering reality (honest status)
 
-- **Implemented:** LangGraph-based turn graph for GoC, RAG hooks, validation/commit seams — see `docs/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the code-facing anchor table.
+- **Implemented:** LangGraph-based turn graph for GoC, RAG hooks, validation/commit seams — see `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` §3 for the code-facing anchor table.
 - **Governance:** extensive **contracts** and **quality gates** protect slice semantics.
 - **Structural normalization:** Task 4 **control closure** is **complete**, but **physical GoC namespace movement / renamespace** remains **NO-GO** until `docs/audit/TASK_4_GOC_DEPENDENCY_SUFFICIENCY_RECORD.md` lifts the dependency gate (`docs/audit/TASK_4_FINAL_CLEANUP_CLOSURE_REPORT.md`). **Do not** claim renamespace completion in external comms.
 
@@ -27,7 +27,7 @@
 
 ## Roadmap relationship
 
-- `docs/ROADMAP_MVP_VSL.md` and related roadmap files describe **targets**; stakeholder decks must label **aspirational** vs **delivered** to avoid over-claiming.
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md` and related roadmap files describe **targets**; stakeholder decks must label **aspirational** vs **delivered** to avoid over-claiming.
 
 ## Suggested slides
 

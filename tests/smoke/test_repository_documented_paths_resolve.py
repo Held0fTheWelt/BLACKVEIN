@@ -18,7 +18,7 @@ def _must_exist(rel: str) -> Path:
 @pytest.mark.parametrize(
     "rel",
     [
-        # docs/research_mvp_gate_closure.md — research + MCP parity command targets
+        # docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_gate_closure.md — research + MCP parity command targets
         "ai_stack/tests/test_research_intake_golden.py",
         "ai_stack/tests/test_research_aspect_golden.py",
         "ai_stack/tests/test_research_exploration_golden.py",
@@ -47,7 +47,7 @@ def _must_exist(rel: str) -> Path:
         # MCP closure report command targets
         "tools/mcp_server/tests/test_rpc.py",
         "backend/tests/runtime/test_mcp_enrichment.py",
-        # docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLAN.md — current planner tests
+        # docs/MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md — current planner tests
         "ai_stack/tests/test_semantic_planner_contracts.py",
         "ai_stack/tests/test_character_mind_goc.py",
         "ai_stack/tests/test_social_state_goc.py",

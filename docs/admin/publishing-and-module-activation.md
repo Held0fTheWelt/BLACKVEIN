@@ -9,7 +9,7 @@ Technical detail (for engineers): [`docs/technical/content/writers-room-and-publ
 
 ## God of Carnage
 
-GoC treats **module YAML as primary**; builtins must not silently override YAML. Contract: [`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md).
+GoC treats **module YAML as primary**; builtins must not silently override YAML. Contract: [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md).
 
 ## Writers’ Room and governance
 

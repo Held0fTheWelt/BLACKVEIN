@@ -54,7 +54,7 @@
 
 ## Residual blockers / deferred items
 
-- **W4 sequential gate spec** remains **historical program text** only. Promoting gate-completion claims would require reconciling against current `docs/ROADMAP_MVP_*.md` and test/persistence reality — **explicitly out of scope** for this pass.
+- **W4 sequential gate spec** remains **historical program text** only. Promoting gate-completion claims would require reconciling against current `docs/MVPs/**/ROADMAP_MVP_*.md` and test/persistence reality — **explicitly out of scope** for this pass.
 - **Pre-built static site** under `site/` (if regenerated) may still contain old URLs until the next MkDocs build; **tracked source of truth** is `docs/`.
 
 ## Artifacts produced

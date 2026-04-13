@@ -80,7 +80,7 @@ def main() -> int:
     p.add_argument("--raw-sheet-b-ref", required=True)
     p.add_argument(
         "--roadmap-reference",
-        default="docs/ROADMAP_MVP_GoC.md section 6.10",
+        default="docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
     )
     args = p.parse_args()
     ma = _load_matrix(args.matrix_a)

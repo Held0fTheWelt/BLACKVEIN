@@ -34,7 +34,7 @@ This document is the **canonical spine** for AI in this repository: how retrieva
 
 ## Executive overview
 
-**Reading shorthand:** **LLM** means a large language model pool (higher-capacity adapters); **SLM** means a small or efficient model pool (faster or cheaper adapters). **GoC** means the God of Carnage vertical slice contract family (`docs/VERTICAL_SLICE_CONTRACT_GOC.md`).
+**Reading shorthand:** **LLM** means a large language model pool (higher-capacity adapters); **SLM** means a small or efficient model pool (faster or cheaper adapters). **GoC** means the God of Carnage vertical slice contract family (`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`).
 
 World of Shadows uses **three distinguishable AI-related planes** that share libraries but serve different jobs:
 
@@ -372,7 +372,7 @@ flowchart TB
 
 ## How the layers work together (runtime turn)
 
-High-level node order lives in `RuntimeTurnGraphExecutor._build_graph` and [ai-stack-overview.md](../technical/ai/ai-stack-overview.md). Normative field names: [`VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md).
+High-level node order lives in `RuntimeTurnGraphExecutor._build_graph` and [ai-stack-overview.md](../technical/ai/ai-stack-overview.md). Normative field names: [`VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md).
 
 **Not every HTTP handler runs the full LangGraph path** — follow the call chain from the handler you care about (`backend` vs `world-engine`).
 
@@ -488,4 +488,4 @@ AI in World of Shadows is a **relationship system**: **RAG** supplies retrieved 
 | Research vs sandbox improvement | [improvement_loop_in_world_of_shadows.md](../technical/ai/improvement_loop_in_world_of_shadows.md) |
 | MCP suites, tools, resources | [MCP.md](../technical/integration/MCP.md), [MVP_SUITE_MAP.md](../mcp/MVP_SUITE_MAP.md) |
 | Play vs backend ownership | [runtime-authority-and-state-flow.md](../technical/runtime/runtime-authority-and-state-flow.md) |
-| Normative GoC contract | [VERTICAL_SLICE_CONTRACT_GOC.md](../VERTICAL_SLICE_CONTRACT_GOC.md) |
+| Normative GoC contract | [VERTICAL_SLICE_CONTRACT_GOC.md](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) |

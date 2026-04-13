@@ -14,9 +14,9 @@ Each item is tagged by gate relevance and evidence role.
 
 | repo_path | evidence_role | gates | evidence_type | notes |
 | --- | --- | --- | --- | --- |
-| `docs/ROADMAP_MVP_GoC.md` | canonical requirements source | Phase0, G1-G6 | doc | Authoritative gate and surface requirements. |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` | canonical requirements source | Phase0, G1-G6 | doc | Authoritative gate and surface requirements. |
 | `docs/GoC_Gate_Baseline_Audit_Plan.md` | baseline audit method source | Phase0, G1-G6 | doc | Command and gate audit framing. |
-| `docs/CANONICAL_TURN_CONTRACT_GOC.md` | turn contract definition | G3, G4 | doc | Canonical turn record sections and fields. |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` | turn contract definition | G3, G4 | doc | Canonical turn record sections and fields. |
 | `docs/rag_retrieval_hardening.md` | retrieval governance requirements | G5 | doc | Retrieval hardening and governance scope. |
 | `docs/rag_retrieval_subsystem_closure.md` | retrieval closure guidance | G5 | doc | Retrieval closure evidence framing. |
 | `docs/rag_task3_source_governance.md` | source governance contract | G5 | doc | Governance lane and provenance expectations. |

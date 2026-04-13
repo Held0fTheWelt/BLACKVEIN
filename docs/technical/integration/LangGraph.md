@@ -32,7 +32,7 @@ LangGraph answers: **in what order** does a live turn interpret input, pull retr
 12. `render_visible` — visible bundle for the player-facing layer.
 13. `package_output` — final packaging; graph ends at `END`.
 
-**Anchors:** `ai_stack/langgraph_runtime.py` (graph wiring), `ai_stack/runtime_turn_contracts.py` (turn state and health fields), `docs/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
+**Anchors:** `ai_stack/langgraph_runtime.py` (graph wiring), `ai_stack/runtime_turn_contracts.py` (turn state and health fields), `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` (normative GoC checklist).
 
 ## Why this matters in World of Shadows
 
@@ -119,5 +119,5 @@ Minimal **seed** graphs for product experiments—not the canonical play path:
 
 - [LangChain.md](LangChain.md) — structured invocation and bridges.
 - [RAG.md](../ai/RAG.md) — retrieval domain, profiles, governance.
-- [VERTICAL_SLICE_CONTRACT_GOC.md](../../VERTICAL_SLICE_CONTRACT_GOC.md) — GoC graph checklist.
+- [VERTICAL_SLICE_CONTRACT_GOC.md](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) — GoC graph checklist.
 - [runtime-authority-and-state-flow.md](../runtime/runtime-authority-and-state-flow.md) — who commits session truth.

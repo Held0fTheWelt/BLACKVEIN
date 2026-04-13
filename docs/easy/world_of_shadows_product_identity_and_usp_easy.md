@@ -6,7 +6,7 @@ This document is a **founder- and stakeholder-grade** explanation of **World of 
 
 It is written to be **read aloud**, **taken seriously**, and **checked against the repository**—not to sound like a pitch deck, a task report, or generic AI marketing.
 
-**Companion reads:** [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md), [`docs/easy/what_world_of_shadows_is_and_why_it_works_this_way.md`](what_world_of_shadows_is_and_why_it_works_this_way.md), [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md).
+**Companion reads:** [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md), [`docs/easy/what_world_of_shadows_is_and_why_it_works_this_way.md`](what_world_of_shadows_is_and_why_it_works_this_way.md), [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md).
 
 **Regeneration history:** An earlier prompt spec lives at [`docs/easy/PROMPT_WOS_PRODUCT_AUDIENCE_AND_USP_EXPLAINER_EASY.md`](PROMPT_WOS_PRODUCT_AUDIENCE_AND_USP_EXPLAINER_EASY.md). **Index of easy docs:** [`docs/easy/README.md`](README.md).
 
@@ -18,7 +18,7 @@ Facts follow this order:
 
 1. **Implementation** — `frontend/`, `backend/`, `world-engine/`, `administration-tool/`, `writers-room/`, `ai_stack/`, `story_runtime_core/`, `content/modules/`, `tools/mcp_server/`.
 2. **Current documentation** — [`README.md`](../../README.md), [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md), [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md).
-3. **Roadmap and architecture** — [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md), [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md), [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md).
+3. **Roadmap and architecture** — [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md), [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md), [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md).
 4. **Tests and reports** — supporting evidence only.
 5. **Inference** — labeled explicitly when the repo does not state a commercial or packaging decision.
 
@@ -129,9 +129,9 @@ Beneath the **named world** is a **serious runtime**: **authored interactive dra
 
 ### Precise reading
 
-- **World of Shadows** (the roadmap thesis) is **not a chatbot**: it is an **authored interactive dramatic runtime** with **truth-governed, scene-led** play ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2).
+- **World of Shadows** (the roadmap thesis) is **not a chatbot**: it is an **authored interactive dramatic runtime** with **truth-governed, scene-led** play ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2).
 - **Play authority** lives in **`world-engine/`** per ADR-0001 ([`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md)).
-- **AI** fits as **proposal → validation → commit** ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)); GoC slice graphs and contracts are implemented around [`ai_stack/langgraph_runtime.py`](../../ai_stack/langgraph_runtime.py) and [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md).
+- **AI** fits as **proposal → validation → commit** ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)); GoC slice graphs and contracts are implemented around [`ai_stack/langgraph_runtime.py`](../../ai_stack/langgraph_runtime.py) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ### Why it matters
 
@@ -140,7 +140,7 @@ The **world** wins attention; the **runtime** wins **trust and repeatability**. 
 ### What it is not
 
 - **Not** a second **public** product identity that must be marketed separately **today**. It is the **reusable core** that can power **multiple worlds and wedges** over time.
-- **Not** finished “platform completeness.” The MVP roadmap explicitly warns against **architecture depth** substituting for **felt user value** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §3.2–3.3).
+- **Not** finished “platform completeness.” The MVP roadmap explicitly warns against **architecture depth** substituting for **felt user value** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §3.2–3.3).
 
 ### Commitment
 
@@ -185,7 +185,7 @@ flowchart TB
 
 **What to notice:** **GoC** and **Better Tomorrow** both **ride on** the **same runtime**; neither **is** the runtime. **Commercial paths** are **how money and adoption happen**—they are **not** the same box as **IP** or **slice**.
 
-**Anchors:** `content/modules/god_of_carnage/`, `better_tomorrow_district_alpha` in `world-engine/app/content/builtins.py`, [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4.
+**Anchors:** `content/modules/god_of_carnage/`, `better_tomorrow_district_alpha` in `world-engine/app/content/builtins.py`, [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4.
 
 **Inference:** **Training/simulation** as a labeled wedge is **not** spelled out in [`README.md`](../../README.md); it is included as a **plausible** application of **scene-bound, truth-stable interaction**—to be validated like any other market bet.
 
@@ -199,9 +199,9 @@ flowchart TB
 
 ### Precise reading
 
-- GoC is the **first MVP vertical slice** in roadmap and glossary terms ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2, §6; [`docs/reference/glossary.md`](../reference/glossary.md)).
-- The roadmap states clearly: GoC is a **runtime proof module**, **not** proof of **broad market pull** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4).
-- Normative contracts bind the slice ([`docs/VERTICAL_SLICE_CONTRACT_GOC.md`](../VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md)).
+- GoC is the **first MVP vertical slice** in roadmap and glossary terms ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2, §6; [`docs/reference/glossary.md`](../reference/glossary.md)).
+- The roadmap states clearly: GoC is a **runtime proof module**, **not** proof of **broad market pull** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4).
+- Normative contracts bind the slice ([`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md), [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)).
 
 ### Why it matters
 
@@ -226,7 +226,7 @@ We commit to **praising GoC for what it proved** (runtime and dramatic machinery
 
 ### Precise reading
 
-- The roadmap’s framing separates **runtime validation** from **genre/market validation** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4)—the same logic applies to **choice of demo story**: accessible demos **reduce friction**; they do not **transfer IP equity**.
+- The roadmap’s framing separates **runtime validation** from **genre/market validation** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4)—the same logic applies to **choice of demo story**: accessible demos **reduce friction**; they do not **transfer IP equity**.
 - Multiple experience templates can coexist in builtins and modules (e.g. GoC-related and **Better Tomorrow** district content in `world-engine/app/content/builtins.py`).
 
 ### Why it matters
@@ -263,7 +263,7 @@ flowchart LR
   GoC --> Proof["Mechanism proof:\ncontracts & tests"]
 ```
 
-**Anchors:** [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4, `content/modules/god_of_carnage/`, [`README.md`](../../README.md).
+**Anchors:** [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4, `content/modules/god_of_carnage/`, [`README.md`](../../README.md).
 
 ---
 
@@ -275,7 +275,7 @@ These are **differentiators tied to behavior**, not adjectives.
 
 2. **Authored canon in modules** — YAML-first **canonical modules** under `content/modules/` are the **authored source of truth** for runtime and retrieval projections ([`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md), [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md)).
 
-3. **Scene-led play, not endless improv** — Roadmap and README position **guided interactive drama** and **scene-led** narrative vs generic chat ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2; [`README.md`](../../README.md)).
+3. **Scene-led play, not endless improv** — Roadmap and README position **guided interactive drama** and **scene-led** narrative vs generic chat ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2; [`README.md`](../../README.md)).
 
 4. **Operable multi-service architecture** — Separate **player**, **admin**, **API**, **play service** ([`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md)) supports **scaling and governance** without collapsing everything into one brittle layer.
 
@@ -321,7 +321,7 @@ flowchart TB
 
 **Why it matters:** This is one of the **clearest B2B-shaped surfaces** in the tree today.
 
-**What it is not:** **Not** autonomous canon writing as a committed launch scope item for the MVP slice roadmap ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §6.2).
+**What it is not:** **Not** autonomous canon writing as a committed launch scope item for the MVP slice roadmap ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §6.2).
 
 ---
 
@@ -329,7 +329,7 @@ flowchart TB
 
 **Plain language:** Organizations that need **scenario-based practice** where **what happened** is **stable enough** to debrief and audit.
 
-**Repo grounding:** **Inference.** The repository describes a **truth-governed dramatic runtime** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2, §4.1)—a **plausible foundation** for simulation-style products—but **does not** name training/simulation as a committed vertical in [`README.md`](../../README.md).
+**Repo grounding:** **Inference.** The repository describes a **truth-governed dramatic runtime** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2, §4.1)—a **plausible foundation** for simulation-style products—but **does not** name training/simulation as a committed vertical in [`README.md`](../../README.md).
 
 **Why it matters:** **Money** often lives here for serious interactive systems—but **only if** buyers believe **integrity and operability**.
 
@@ -360,7 +360,7 @@ flowchart TB
 
 **Definition:** People whose **belief** and **feedback** matter **early**, who may **not** be the **first paying market segment**.
 
-The roadmap lists **three MVP-first target user groups** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.2):
+The roadmap lists **three MVP-first target user groups** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.2):
 
 1. **Internal operators and builders** — verify the runtime **works** and can be **operated**.
 2. **Design-sensitive early evaluators** — judge whether it feels like **directed drama**, not chat.
@@ -377,7 +377,7 @@ Confusing **proof audiences** with **customer segments** produces **bad forecast
 
 ### Commitment
 
-We commit to **using** these groups to **de-risk the runtime thesis** (H1–H3 in [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §5.1) **without** relabeling them as **“the market.”**
+We commit to **using** these groups to **de-risk the runtime thesis** (H1–H3 in [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §5.1) **without** relabeling them as **“the market.”**
 
 ---
 
@@ -432,7 +432,7 @@ flowchart TB
   Roles -->|"operate & consume"| Asset
 ```
 
-**Anchor:** [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.2; [`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md).
+**Anchor:** [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.2; [`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md).
 
 ---
 
@@ -478,9 +478,9 @@ flowchart TB
 
 | Dimension | Commitment |
 |-----------|------------|
-| **Promise** | A **narrow, testable** experiential claim: truth-bound dramatic runtime **feels different** from generic chat ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.3–§5). |
+| **Promise** | A **narrow, testable** experiential claim: truth-bound dramatic runtime **feels different** from generic chat ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.3–§5). |
 | **We commit** | To **instrumentation and honesty** about **what passed** and **what did not**. |
-| **We do not claim** | That **GoC success** equals **mass-market success** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4). |
+| **We do not claim** | That **GoC success** equals **mass-market success** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.4). |
 
 ---
 
@@ -514,7 +514,7 @@ Many AI products sell **fluency**. This line of work sells **structure**: **memo
 
 ### Precise reading
 
-Roadmap falsification modes read like a catalog of **shallow AI story failure** ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §5.2). The architecture is aimed at **those** failures.
+Roadmap falsification modes read like a catalog of **shallow AI story failure** ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §5.2). The architecture is aimed at **those** failures.
 
 ### What it is not
 
@@ -526,7 +526,7 @@ Roadmap falsification modes read like a catalog of **shallow AI story failure** 
 
 ### Players and community participants
 
-**Coherent scene reality** and **continuity** as **designed outcomes** of runtime commit semantics—not only clever text ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.3).
+**Coherent scene reality** and **continuity** as **designed outcomes** of runtime commit semantics—not only clever text ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4.3).
 
 ### Paying / partnering customers (by wedge)
 
@@ -550,7 +550,7 @@ If the **core asset** stays strong, the **same engine** can support **more world
 
 ### Precise reading
 
-- Roadmap **freezes** certain expansions until assumptions are tested ([`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §6.4)—growth is **intentionally gated**, not denied.
+- Roadmap **freezes** certain expansions until assumptions are tested ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §6.4)—growth is **intentionally gated**, not denied.
 - **Better Tomorrow** gives a **named place** for **long-term creative compounding** ([`README.md`](../../README.md); builtins templates).
 
 ### What it is not
@@ -586,7 +586,7 @@ If one sentence should survive: **love the world in public; earn the business in
 | Product + services | [`README.md`](../../README.md) |
 | Plain “what is it” | [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md) |
 | AI proposal vs commit | [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md) |
-| MVP proof vs market | [`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4 |
+| MVP proof vs market | [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4 |
 | Writers’ Room | [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md) |
 | Runtime authority | [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md) |
 | System map | [`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md) |

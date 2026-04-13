@@ -1,8 +1,8 @@
 # PLAN: Real Independent Evaluator B Workflow (G9B)
 
-This document is an **execution-oriented plan** for how a **real independent Evaluator B** workflow **will** be implemented and operated so that it **can later** produce **truthful** evidence suitable for a serious **Level B** attempt under Gate G9B (`docs/ROADMAP_MVP_GoC.md` §6.10). It does **not** perform scoring, ingestion, gate upgrades, or closure classification.
+This document is an **execution-oriented plan** for how a **real independent Evaluator B** workflow **will** be implemented and operated so that it **can later** produce **truthful** evidence suitable for a serious **Level B** attempt under Gate G9B (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.10). It does **not** perform scoring, ingestion, gate upgrades, or closure classification.
 
-**Governing references:** `docs/ROADMAP_MVP_GoC.md`; `docs/GoC_Gate_Baseline_Audit_Plan.md`; `docs/audit/gate_G9_experience_acceptance_baseline.md`; `docs/audit/gate_G9B_evaluator_independence_baseline.md`; `docs/audit/gate_G10_end_to_end_closure_baseline.md`; `docs/audit/gate_summary_matrix.md`; `docs/audit/closure_level_classification_summary.md`; `docs/audit/master_goc_baseline_audit_report.md`; `docs/audit/repo_evidence_index.md`; `docs/goc_evidence_templates/` (templates and JSON schemas); authoritative G9 bundle `tests/reports/evidence/g9_level_a_fullsix_20260410/` (Evaluator A matrix, frozen scenario JSONs, and current Evaluator B–related artifacts for context only).
+**Governing references:** `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`; `docs/GoC_Gate_Baseline_Audit_Plan.md`; `docs/audit/gate_G9_experience_acceptance_baseline.md`; `docs/audit/gate_G9B_evaluator_independence_baseline.md`; `docs/audit/gate_G10_end_to_end_closure_baseline.md`; `docs/audit/gate_summary_matrix.md`; `docs/audit/closure_level_classification_summary.md`; `docs/audit/master_goc_baseline_audit_report.md`; `docs/audit/repo_evidence_index.md`; `docs/goc_evidence_templates/` (templates and JSON schemas); authoritative G9 bundle `tests/reports/evidence/g9_level_a_fullsix_20260410/` (Evaluator A matrix, frozen scenario JSONs, and current Evaluator B–related artifacts for context only).
 
 ---
 
@@ -26,7 +26,7 @@ This document is an **execution-oriented plan** for how a **real independent Eva
 
 The repository already contains a second matrix and related G9B artifacts for `audit_run_id` `g9_level_a_fullsix_20260410` (see `docs/audit/gate_G9B_evaluator_independence_baseline.md` and `tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_evaluator_b_declaration.json`). Those artifacts **explicitly** record **limited** independence: they were produced in the **same assistant-mediated, same-repository** context as other audit work—not a second human adjudicator (`independence_assessment: limited` and the English limitation in `independence_and_process` in the declaration pattern).
 
-For roadmap Level B, `docs/ROADMAP_MVP_GoC.md` §6.10 and `docs/goc_evidence_templates/README.md` require **actual** independence in **process**, **authorship**, and **score generation**. A **structural** package with two frozen matrices and a computed delta is **necessary** for later analysis but **not sufficient** to support a strict Level B independence claim when process and authorship separation do not meet that bar. A **future** real independent Evaluator B workflow must therefore be designed to close that evidential gap—not to duplicate the same contextual limitation under a new filename.
+For roadmap Level B, `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.10 and `docs/goc_evidence_templates/README.md` require **actual** independence in **process**, **authorship**, and **score generation**. A **structural** package with two frozen matrices and a computed delta is **necessary** for later analysis but **not sufficient** to support a strict Level B independence claim when process and authorship separation do not meet that bar. A **future** real independent Evaluator B workflow must therefore be designed to close that evidential gap—not to duplicate the same contextual limitation under a new filename.
 
 ---
 
@@ -52,7 +52,7 @@ For roadmap Level B, `docs/ROADMAP_MVP_GoC.md` §6.10 and `docs/goc_evidence_tem
 
 ## 4. Required source package for evaluator B
 
-**Fixed six scenario ids** (normative order; do not substitute, merge, or drop)—from `ai_stack/goc_g9_roadmap_scenarios.py` and `docs/ROADMAP_MVP_GoC.md` §6.9:
+**Fixed six scenario ids** (normative order; do not substitute, merge, or drop)—from `ai_stack/goc_g9_roadmap_scenarios.py` and `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.9:
 
 1. `goc_roadmap_s1_direct_provocation` — Direct provocation  
 2. `goc_roadmap_s2_deflection_brevity` — Deflection / brevity  
@@ -67,13 +67,13 @@ For roadmap Level B, `docs/ROADMAP_MVP_GoC.md` §6.10 and `docs/goc_evidence_tem
 
 **Scoring rubric and criteria** (must match G9)
 
-- Each scenario: scores **1–5** on: dramatic responsiveness; truth consistency; character credibility; conflict continuity; graceful degradation. Threshold semantics for the **failure-oriented** row (S5) remain aligned with `docs/ROADMAP_MVP_GoC.md` §6.9 and `docs/goc_evidence_templates/README.md` (`failure_oriented`, validator mapping). The handoff package may reference `scripts/g9_threshold_validator.py` for **meaning** of thresholds; Evaluator B’s raw task is **not** to re-run the repo validator unless the governing process explicitly requires it.
+- Each scenario: scores **1–5** on: dramatic responsiveness; truth consistency; character credibility; conflict continuity; graceful degradation. Threshold semantics for the **failure-oriented** row (S5) remain aligned with `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.9 and `docs/goc_evidence_templates/README.md` (`failure_oriented`, validator mapping). The handoff package may reference `scripts/g9_threshold_validator.py` for **meaning** of thresholds; Evaluator B’s raw task is **not** to re-run the repo validator unless the governing process explicitly requires it.
 
 **Allowed source-grounding materials** (to be listed explicitly in the handoff zip or manifest)
 
 - The frozen scenario JSON bundle above.
 - Optional dramatic source grounding, e.g. `resources/Script-God-Of-Carnage-Script-by-Yazmina-Reza.pdf` (as in existing declaration patterns), **if** the handoff authorizes it.
-- Canonical repo references **as cited in the handoff**, e.g. `content/modules/god_of_carnage/`, `docs/CANONICAL_TURN_CONTRACT_GOC.md`—not an open-ended repo crawl unless the governing package says so.
+- Canonical repo references **as cited in the handoff**, e.g. `content/modules/god_of_carnage/`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`—not an open-ended repo crawl unless the governing package says so.
 
 **Hard recommendation: blindness to Evaluator A**
 
@@ -123,7 +123,7 @@ If evaluator B is allowed to see evaluator A scores or rationales before raw sco
 - **Frozen scoring prompt/package:** The instructions, rubric text, and any LLM system prompts used for B **will** be versioned (id + date), stored in a fixed location, and **not** silently edited mid-pass.
 - **Authorship separation:** The handoff **will** record **who** authored the prompt package and **who** produced scores (roster / identity record)—not only a file name.
 - **Copied language:** Substantive overlap between B’s `cell_rationale` texts and A’s (beyond unavoidable short rubric phrases) **will** be treated as contamination; see §10.
-- **Reconciliation and delta:** **Raw** Evaluator B scoring **must** be **completed and frozen** before any A-vs-B **delta**, **reconciliation**, or **narrative harmonization** begins. This follows `docs/ROADMAP_MVP_GoC.md` §6.10 (raw scores stored separately; reconciled scores do not replace raw evidence) and the sequencing in `docs/goc_evidence_templates/README.md`.
+- **Reconciliation and delta:** **Raw** Evaluator B scoring **must** be **completed and frozen** before any A-vs-B **delta**, **reconciliation**, or **narrative harmonization** begins. This follows `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.10 (raw scores stored separately; reconciled scores do not replace raw evidence) and the sequencing in `docs/goc_evidence_templates/README.md`.
 
 ---
 

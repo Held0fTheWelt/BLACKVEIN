@@ -15,16 +15,16 @@
 
 | Document | Binding scope |
 |----------|----------------|
-| [`VERTICAL_SLICE_CONTRACT_GOC.md`](../../VERTICAL_SLICE_CONTRACT_GOC.md) | Slice boundaries, YAML authority, graph reality anchor |
-| [`CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md) | Turn schema, seams, validation/commit/render semantics |
-| [`GATE_SCORING_POLICY_GOC.md`](../../GATE_SCORING_POLICY_GOC.md) | Gate/scoring and failure-to-response policy for slice QA |
+| [`VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) | Slice boundaries, YAML authority, graph reality anchor |
+| [`CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) | Turn schema, seams, validation/commit/render semantics |
+| [`GATE_SCORING_POLICY_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md) | Gate/scoring and failure-to-response policy for slice QA |
 
 ## Freeze and roadmap (context, amend carefully)
 
 | Document | Notes |
 |----------|--------|
-| [`FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../../FREEZE_OPERATIONALIZATION_MVP_VSL.md) | Phase 0 freeze operationalization |
-| [`ROADMAP_MVP_VSL.md`](../../ROADMAP_MVP_VSL.md) | Target product arc — aspirational vs shipped must be labeled in stakeholder docs |
+| [`FREEZE_OPERATIONALIZATION_MVP_VSL.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md) | Phase 0 freeze operationalization |
+| [`ROADMAP_MVP_VSL.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md) | Target product arc — aspirational vs shipped must be labeled in stakeholder docs |
 
 ## RAG (active technical)
 

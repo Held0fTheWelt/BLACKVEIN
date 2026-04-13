@@ -1,4 +1,4 @@
-"""Improvement path typed entry classes (``docs/ROADMAP_MVP_GoC.md`` §7.5–7.6, gate G8)."""
+"""Improvement path typed entry classes (``docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`` §7.5–7.6, gate G8)."""
 
 from __future__ import annotations
 

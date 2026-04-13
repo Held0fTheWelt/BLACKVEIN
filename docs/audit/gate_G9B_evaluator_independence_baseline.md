@@ -4,7 +4,7 @@
 
 - Gate name: G9B Evaluator Independence
 - Gate class: evaluative
-- Audit subject: evaluator mode declaration, raw-score and delta discipline, optional reconciliation, and consistency with the G9 evidence package from the **same** audit run (`docs/ROADMAP_MVP_GoC.md` §6.10, §11.2A)
+- Audit subject: evaluator mode declaration, raw-score and delta discipline, optional reconciliation, and consistency with the G9 evidence package from the **same** audit run (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.10, §11.2A)
 
 ## Sequencing Rule
 

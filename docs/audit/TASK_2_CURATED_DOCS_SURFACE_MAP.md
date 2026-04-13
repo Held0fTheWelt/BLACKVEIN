@@ -15,8 +15,8 @@
 - `docs/api/REFERENCE.md`
 - `docs/architecture/README.md`
 - `docs/architecture/runtime_authority_decision.md`
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md` (protected X1 handling applies)
-- `docs/VERTICAL_SLICE_CONTRACT_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` (protected X1 handling applies)
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`
 - `docs/development/README.md`
 - `docs/development/LocalDevelopment.md`
 - `docs/testing/README.md`
@@ -50,7 +50,7 @@
 
 ### Contract/interface/governance core
 
-- `docs/GATE_SCORING_POLICY_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`
 - `docs/rag_task3_source_governance.md`
 - `docs/rag_task4_readiness_and_trace.md`
 - `docs/rag_task4_evaluation_harness.md`
@@ -68,9 +68,9 @@
 
 - `docs/audit/gate_*_baseline.md` (except active claim-audit references and X1 protected registry behavior)
 - `docs/reports/*`
-- `docs/research_mvp_*`
-- `docs/ROADMAP_MVP_*`
-- `docs/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md`
+- `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_*`
+- `docs/MVPs/**/ROADMAP_MVP_*.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/PHASE0_FREEZE_CLOSURE_NOTE_GOC.md`
 
 ### External distribution mirrors
 

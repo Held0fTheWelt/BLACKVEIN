@@ -4,14 +4,14 @@
 
 The protected exception applies only to:
 
-1. `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+1. `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 2. Associated unfinished G1-G10 canonical-turn-contract completion-chain files when acting as that chain.
 
 ## Registry entries
 
 | Surface | Protected class | Protection type | Still required | Not exempt from |
 |---|---|---|---|---|
-| `docs/CANONICAL_TURN_CONTRACT_GOC.md` | X1 | excluded from generic readability/de-abstraction queue | inventory, claim audit, placement check, protection marking | claim truth governance, evidence requirements |
+| `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` | X1 | excluded from generic readability/de-abstraction queue | inventory, claim audit, placement check, protection marking | claim truth governance, evidence requirements |
 | `docs/audit/gate_G1_semantic_contract_baseline.md` through `docs/audit/gate_G10_end_to_end_closure_baseline.md` when in completion-chain role | X1 | same | inventory, claim audit where relevant, placement check, protection marking | removal criteria and claim-audit discipline for non-X1 claims |
 
 ## Non-generalization rule

@@ -19,8 +19,8 @@ Consolidation pass: 2026. Maps **enduring topics** to a **single canonical activ
 | Writers’ Room & publishing | `docs/technical/content/writers-room-and-publishing-flow.md` | `writers_room_on_unified_stack.md`, `content-modules-and-compiler-pipeline` (dev stub remains) |
 | Test strategy | `docs/technical/reference/test-strategy-and-suite-layout.md` | `dev/testing/test-pyramid-and-suite-map.md` (dev stub), `docs/testing/README.md` |
 | Area2 / task closure narratives | — | `docs/archive/architecture-legacy/*` (archived) |
-| Canonical Turn Contract (GoC) | `docs/CANONICAL_TURN_CONTRACT_GOC.md` | **Narrow exception** — remains at repo `docs/` root |
-| Vertical slice / gate scoring / MVP roadmaps | `docs/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/GATE_SCORING_POLICY_GOC.md`, `docs/ROADMAP_MVP_*.md` | **Narrow exception** where they describe implemented slice / MVP set |
+| Canonical Turn Contract (GoC) | `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` | **Narrow exception** — lives under `docs/MVPs/MVP_VSL_And_GoC_Contracts/` |
+| Vertical slice / gate scoring / MVP roadmaps | `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`, `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`, `docs/MVPs/**/ROADMAP_MVP_*.md` | **Narrow exception** where they describe implemented slice / MVP set |
 
 ## Task 1A–4 baseline revalidation note
 

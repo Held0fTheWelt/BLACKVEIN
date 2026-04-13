@@ -1,12 +1,12 @@
 # PLAN_G9_S4_Misinterpretation_Correction_Closure
 
-**Governing references:** [docs/ROADMAP_MVP_GoC.md](../ROADMAP_MVP_GoC.md) (§6.9, §8.2 Scenario S4, §8.5); [docs/GoC_Gate_Baseline_Audit_Plan.md](../GoC_Gate_Baseline_Audit_Plan.md) (G9 phase); [docs/audit/gate_G9_experience_acceptance_baseline.md](../audit/gate_G9_experience_acceptance_baseline.md); [docs/audit/gate_G9B_evaluator_independence_baseline.md](../audit/gate_G9B_evaluator_independence_baseline.md); [docs/goc_evidence_templates/](../goc_evidence_templates/) (matrix schema/template); [scripts/g9_threshold_validator.py](../../scripts/g9_threshold_validator.py).
+**Governing references:** [docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md) (§6.9, §8.2 Scenario S4, §8.5); [docs/GoC_Gate_Baseline_Audit_Plan.md](../GoC_Gate_Baseline_Audit_Plan.md) (G9 phase); [docs/audit/gate_G9_experience_acceptance_baseline.md](../audit/gate_G9_experience_acceptance_baseline.md); [docs/audit/gate_G9B_evaluator_independence_baseline.md](../audit/gate_G9B_evaluator_independence_baseline.md); [docs/goc_evidence_templates/](../goc_evidence_templates/) (matrix schema/template); [scripts/g9_threshold_validator.py](../../scripts/g9_threshold_validator.py).
 
 ---
 
 ## 1. Scope
 
-**In scope:** Roadmap experience-acceptance **scenario S4** only — *Misunderstanding / correction* as defined in [docs/ROADMAP_MVP_GoC.md](../ROADMAP_MVP_GoC.md) §8.2 (runtime initially interprets imperfectly; player corrects; correction incorporated plausibly; truth stable; exchange dramatically alive). Work is limited to planning how a **later** execution task will produce a truthful S4 anchor and evidence package aligned with frozen scenario id `goc_roadmap_s4_misinterpretation_correction` ([ai_stack/goc_g9_roadmap_scenarios.py](../../ai_stack/goc_g9_roadmap_scenarios.py)).
+**In scope:** Roadmap experience-acceptance **scenario S4** only — *Misunderstanding / correction* as defined in [docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md) §8.2 (runtime initially interprets imperfectly; player corrects; correction incorporated plausibly; truth stable; exchange dramatically alive). Work is limited to planning how a **later** execution task will produce a truthful S4 anchor and evidence package aligned with frozen scenario id `goc_roadmap_s4_misinterpretation_correction` ([ai_stack/goc_g9_roadmap_scenarios.py](../../ai_stack/goc_g9_roadmap_scenarios.py)).
 
 **Out of scope:** Full G9 re-run orchestration, full G9B re-run, full G10 re-run, global closure aggregation, updating audit matrix statuses, threshold arithmetic execution, assigning numeric rubric scores, and any code or test changes.
 
@@ -103,7 +103,7 @@ Align JSON shape with existing `scenario_goc_roadmap_s4_*.json` patterns and tem
 
 ## 9. Scoring-readiness rule
 
-This **planning** task does **not** score S4 and does **not** invoke rubric arithmetic. It only defines how S4 can become **truthfully scoreable later**: once Section 8 is complete and Section 4 is satisfied, a later human or process may assign 1–5 scores per [docs/ROADMAP_MVP_GoC.md](../ROADMAP_MVP_GoC.md) §8.3 and fill [docs/goc_evidence_templates/g9_experience_score_matrix.template.json](../goc_evidence_templates/g9_experience_score_matrix.template.json).
+This **planning** task does **not** score S4 and does **not** invoke rubric arithmetic. It only defines how S4 can become **truthfully scoreable later**: once Section 8 is complete and Section 4 is satisfied, a later human or process may assign 1–5 scores per [docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md) §8.3 and fill [docs/goc_evidence_templates/g9_experience_score_matrix.template.json](../goc_evidence_templates/g9_experience_score_matrix.template.json).
 
 **Rule:** No later S4 numeric row is acceptable unless **misunderstanding**, **correction**, and **correction-incorporation** are all **explicitly evidenced** in the package (Section 8). Filling the matrix before that evidence exists is invalid.
 
@@ -116,7 +116,7 @@ Successful S4 closure (in a **later** execution task) unblocks:
 - Completion of the **6×5** G9 experience matrix (all six roadmap scenarios scored).
 - **Threshold calculation** via [scripts/g9_threshold_validator.py](../../scripts/g9_threshold_validator.py) with `complete: true`.
 - **Single-evaluator G9B Level A** raw sheet consistency (matrix no longer has null S4 cells for that run), per [docs/audit/gate_G9B_evaluator_independence_baseline.md](../audit/gate_G9B_evaluator_independence_baseline.md) sequencing.
-- **Later G10** step-11 re-evaluation that depends on G9 evidence completeness ([docs/ROADMAP_MVP_GoC.md](../ROADMAP_MVP_GoC.md) §6.11 item 11).
+- **Later G10** step-11 re-evaluation that depends on G9 evidence completeness ([docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md](../MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md) §6.11 item 11).
 
 **This planning task** does not change any gate structural status, closure-level status, or matrix cell. It produces no audit delta.
 

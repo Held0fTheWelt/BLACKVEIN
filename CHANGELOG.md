@@ -274,7 +274,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`tools/mcp_server/resource_prompt_support.py`**: imports resource/prompt specs from `ai_stack.mcp_static_catalog`.
 - **`tools/mcp_server/logging_utils.py`**, **`tools/mcp_server/server.py`**: per-dispatch telemetry capture and best-effort POST to backend when ingest URL + token are set.
 - **`tools/mcp_server/README.md`**: `WOS_MCP_TELEMETRY_INGEST_URL` and `MCP_SERVICE_TOKEN` for telemetry.
-- **`docs/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: §20 implementation pointer to code paths and ops doc.
+- **`docs/MVPs/MVP_MCP_Operations_Cockpit_WoS/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: §20 implementation pointer to code paths and ops doc.
 - **`backend/app/config.py`**, **`backend/.env.example`**: `DOCS_SITE_URL` for clickable links from `/backend/*` to a built MkDocs site.
 - **`backend/app/info/templates/`** (`base.html`, `home.html`, `api.html`, `engine.html`, `ai.html`, `auth.html`, `ops.html`): German copy, unified sections (capabilities, scenarios, limits, doc links), topic cards, `lang="de"`.
 - **`backend/app/info/static/backend-info.css`**: wide layout for Redoc, topic grid, doc tables.
@@ -296,12 +296,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **`docs/ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`**: Role-based subsystem owners and MVP module id `god_of_carnage` (Phase 0).
+- **`docs/MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`**: Role-based subsystem owners and MVP module id `god_of_carnage` (Phase 0).
 - **`docs/mcp/MVP_SUITE_MAP.md`**: Suite ↔ tool ↔ resource URI ↔ prompt mapping and misrouting rubric for pilot metrics.
 - **`docs/pilot/MVP_OPERATOR_REVIEW_SHEET.md`**: Operator classification template aligned with roadmap §10.
-- **`docs/MVP_WOS_VSL_EXTERNAL_BLOCKERS.md`**: Explicit non-repository dependencies (cohort, surveys, secrets).
+- **`docs/MVPs/MVP_WoS_VSL/MVP_WOS_VSL_EXTERNAL_BLOCKERS.md`**: Explicit non-repository dependencies (cohort, surveys, secrets).
 - **`docs/technical/integration/mvp_wos_vsl_mcp_surface.md`**: Integration pointer for MCP MVP surface.
-- **`docs/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: Roadmap for a bounded MCP operations cockpit in `administration-tool`.
+- **`docs/MVPs/MVP_MCP_Operations_Cockpit_WoS/ROADMAP_MVP_MCP_OPERATIONS_COCKPIT_WOS.md`**: Roadmap for a bounded MCP operations cockpit in `administration-tool`.
 - **`ai_stack/wos_vsl_mcp_metrics.py`**: Static helpers for write-capable / high-risk mutation counts and read-via-resource share (roadmap §10.3).
 - **`ai_stack/tests/test_mcp_suite_map_complete.py`**, **`ai_stack/tests/test_wos_vsl_mvp_closure.py`**: Suite completeness and MVP metric thresholds.
 - **`tools/mcp_server/resource_prompt_support.py`**: Resource catalog, prompt bodies, and `McpResourceReader` for `wos://` URIs.
@@ -309,7 +309,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **`docs/ROADMAP_MVP_WOS_VSL.md`**: §4.2 Phase 0 closeout in-repo; §10.2 links to pilot instruments and metrics; owner-doc links use `ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`.
+- **`docs/MVPs/MVP_WoS_VSL/ROADMAP_MVP_WOS_VSL.md`**: §4.2 Phase 0 closeout in-repo; §10.2 links to pilot instruments and metrics; owner-doc links use `ROADMAP_MVP_WOS_VSL_OWNER_TABLE.md`.
 - **`ai_stack/mcp_canonical_surface.py`**: `McpSuite`, `mcp_suite` on every canonical tool descriptor, `resolve_active_mcp_suite_filter`, `canonical_tool_names_for_suite`; `wos.session.logs` and `wos.session.state` reclassified as `read_only`; public metadata includes `mcp_suite`.
 - **`tools/mcp_server/server.py`**: Shared `BackendClient` / `FileSystemTools`, `resources/list|read`, `prompts/list|get`, `initialize` capabilities; `serverInfo.wos_mcp_suite`.
 - **`tools/mcp_server/tools_registry.py`**: Optional `suite_filter` and injectable backend/fs; `mcp_suite` on `tools/list`; **`wos.session.execute_turn`** targets **`/api/v1/sessions/{id}/turns`** with **`player_input`** (aliases `prompt` / `input`).
@@ -332,8 +332,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **`scripts/mvp_generic_llm_baseline_chat.py`**: httpx-based chat-completions REPL for the MVP generic baseline (no world-engine); `--print-opening` emits machine-readable JSON on stdout; optional `--max-turns`, model and base URL overrides via env (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `MVP_BASELINE_MODEL`).
 - **`scripts/data/mvp_goc_baseline_opening.json`**: frozen evaluator goal framing, opening narration, player role hint, and Arm B system prompt aligned with the God of Carnage slice premise (not authored canon text).
-- **`docs/validation/mvp_comparative_evaluation_playbook.md`**: facilitator session script, Arm A vs B table, turn-budget guidance, and scoring form mapped to assumptions H1–H3 (`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md` Phase 2).
-- **`docs/ROADMAP_MVP_WORLD_OF_SHADOWS.md`**: execution-ready MVP roadmap (product scope, phases, milestones M1–M4); Phase 2 links to baseline CLI, data file, and playbook.
+- **`docs/validation/mvp_comparative_evaluation_playbook.md`**: facilitator session script, Arm A vs B table, turn-budget guidance, and scoring form mapped to assumptions H1–H3 (`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md` Phase 2).
+- **`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`**: execution-ready MVP roadmap (product scope, phases, milestones M1–M4); Phase 2 links to baseline CLI, data file, and playbook.
 - **`backend/tests/test_mvp_baseline_script_cli.py`**: smoke tests for `--print-opening` JSON and `build_initial_messages` / `load_opening_bundle` (no live API).
 
 ### Changed
@@ -374,9 +374,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Scripts**: `scripts/g9_level_a_evidence_capture.py` and selected `outgoing/**/scenario_goc_roadmap_s5_primary_failure_fallback.json` metadata aligned with renamed pytest nodes.
 - **Documentation and evidence alignment (integrity pass)**  
   - `README.md`: representative GoC tests and focused regression command use current `ai_stack/tests` modules (no removed `test_goc_phase*.py`).  
-  - `docs/research_mvp_gate_closure.md`, `docs/mcp/12_M1_canonical_parity.md`, `tools/mcp_server/README.md`: MCP parity command targets `test_mcp_operational_parity_and_registry.py`.  
+  - `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_gate_closure.md`, `docs/mcp/12_M1_canonical_parity.md`, `tools/mcp_server/README.md`: MCP parity command targets `test_mcp_operational_parity_and_registry.py`.  
   - `tests/reports/MCP_M1_CLOSURE_REPORT.md`: gate matrix, validation commands, and result counts (21 + 17) aligned with current suite; `tests/reports/MCP_M1_CANONICAL_PARITY_CLOSURE_REPORT.md` labeled historical with pointer to canonical report.  
-  - `docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md` §11: lists actual planner contract test modules.  
+  - `docs/MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md` §11: lists actual planner contract test modules.  
   - Audit / gate docs: `docs/audit/repo_evidence_index.md`, `gate_G3`/`G4`/`G5` baselines, `canonical_to_repo_mapping_table.md`, `TASK_1A_REPOSITORY_BASELINE.md`, `TASK_3_P0_P1_EXECUTION_INVENTORY.md`, `task3_retained_gate_suites.json` (v2), `task3_sidecar_disposition.json`, `PLAN_G9_S4_Misinterpretation_Correction_Closure.md` — paths for G9 CLI tests, MCP gates, GoC renames, and runtime successors.  
   - `tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py`: `test_g_mcp_07` asserts the updated closure-report command line.
 - **RAG (`ai_stack/rag.py`)**: `_source_patterns` includes `docs/architecture/**/*.md` and `world-engine/**/var/runs/**/*.json` so ingestion matches content-class detection and `test_rag` / documented G5-style bundles stay green.
@@ -407,7 +407,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Research closure enforcement tests**: `ai_stack/tests/test_research_contract_enforcement.py` with negative/positive invariants for engine budget requirement, unknown anchor blocking, governance-field integrity, and copyright posture enforcement.
 - **Comparison rendering structure checks** in `administration-tool/tests/test_manage_inspector_suite.py` for mandatory-dimension and structured comparison fields.
 - **Research MVP module surface (new files)** in `ai_stack/`: `canon_improvement_contract.py`, `canon_improvement_engine.py`, `research_contract.py`, `research_store.py`, `research_ingestion.py`, `research_perspectives.py`, `research_aspect_extraction.py`, `research_exploration.py`, `research_validation.py`, `research_langgraph.py`, fixture packs (`research_fixtures.py`, `research_golden_cases.py`), and dedicated golden suites (`test_research_*_golden.py`) plus `tools/mcp_server/tests/test_research_mcp_contracts.py`.
-- **Closure evidence docs**: `docs/research_mvp_implementation_summary.md` and `docs/research_mvp_gate_closure.md`.
+- **Closure evidence docs**: `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_implementation_summary.md` and `docs/MVPs/MVP_Research_Gate_And_Implementation/research_mvp_gate_closure.md`.
 
 ### Changed
 
@@ -689,7 +689,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **`ai_stack/goc_frozen_vocab.py`**: Frozen controlled vocabulary (scene function, pacing, silence/brevity, continuity, visibility, failure, transition pattern, gate families) aligned with **`docs/VERTICAL_SLICE_CONTRACT_GOC.md`** §5 and related freeze artifacts.
+- **`ai_stack/goc_frozen_vocab.py`**: Frozen controlled vocabulary (scene function, pacing, silence/brevity, continuity, visibility, failure, transition pattern, gate families) aligned with **`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`** §5 and related freeze artifacts.
 - **`ai_stack/goc_yaml_authority.py`**: Loads canonical **`content/modules/god_of_carnage/module.yaml`**; detects builtin template title mismatch vs YAML → **`scope_breach`** marker.
 - **`ai_stack/scene_director_goc.py`**: Deterministic **`scene_assessment`**, **`selected_responder_set`**, **`selected_scene_function`**, **`pacing_mode`**, **`silence_brevity_decision`** (including multi-pressure §3.5 resolution).
 - **`ai_stack/goc_turn_seams.py`**: Proposal normalization hooks, **`validation_outcome`**, **`committed_result`**, **`visible_output_bundle`**, **`build_diagnostics_refs`**, **`repro_metadata_complete`** (gate §5.2 / §5.4 support).

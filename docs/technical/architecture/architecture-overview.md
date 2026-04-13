@@ -20,7 +20,7 @@ World of Shadows is a **multi-service narrative platform**: a player web app, an
 
 - **World-engine** is the authoritative host for **story session** execution and committed turn effects.
 - **Backend** owns policy, publishing governance, admin APIs, and persistence for platform data.
-- **AI output** is **proposal data** until runtime validation and commit rules allow state changes. See [`runtime-authority-and-state-flow.md`](../runtime/runtime-authority-and-state-flow.md) and [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md) for GoC.
+- **AI output** is **proposal data** until runtime validation and commit rules allow state changes. See [`runtime-authority-and-state-flow.md`](../runtime/runtime-authority-and-state-flow.md) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) for GoC.
 
 ## Primary player input
 

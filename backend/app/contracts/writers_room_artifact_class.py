@@ -1,4 +1,4 @@
-"""Writers' Room artifact taxonomy (``docs/ROADMAP_MVP_GoC.md`` §6.7–7.3, gate G7)."""
+"""Writers' Room artifact taxonomy (``docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md`` §6.7–7.3, gate G7)."""
 
 from __future__ import annotations
 

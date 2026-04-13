@@ -4,7 +4,7 @@
 
 - Gate name: G9 User-Facing Experience Acceptance
 - Gate class: evaluative
-- Audit subject: scenario execution evidence, roadmap rubric readiness, threshold rules, transcript/trace linkage, and fallback/retrieval grounding for the fixed six-scenario set (`docs/ROADMAP_MVP_GoC.md` §6.9)
+- Audit subject: scenario execution evidence, roadmap rubric readiness, threshold rules, transcript/trace linkage, and fallback/retrieval grounding for the fixed six-scenario set (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.9)
 
 ## Prerequisites Used
 
@@ -18,8 +18,8 @@ This baseline assumes the Task 3 dependency artifacts exist and were not re-audi
 
 ## Repository Inspection and Evidence Surfaces
 
-- `docs/ROADMAP_MVP_GoC.md` §6.9
-- `docs/GATE_SCORING_POLICY_GOC.md` (rubric alignment only where consistent with roadmap numeric frame)
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.9
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md` (rubric alignment only where consistent with roadmap numeric frame)
 - `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`
 - `ai_stack/tests/test_goc_multi_turn_experience_quality.py`
 - `ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py`

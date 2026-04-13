@@ -38,7 +38,7 @@ Validate against schemas under `docs/goc_evidence_templates/schemas/` when possi
 
 ## Governing references
 
-- Roadmap: `docs/ROADMAP_MVP_GoC.md` §6.9 (criteria and scenario set), §6.10 (independence discipline).
+- Roadmap: `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.9 (criteria and scenario set), §6.10 (independence discipline).
 - Workflow plan: `docs/plans/PLAN_G9B_REAL_INDEPENDENT_EVALUATOR_B.md`.
 - Baselines: `docs/audit/gate_G9_experience_acceptance_baseline.md`, `docs/audit/gate_G9B_evaluator_independence_baseline.md`.
 

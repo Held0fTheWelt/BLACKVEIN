@@ -207,7 +207,7 @@ This is how the product keeps the promise: **AI suggests → runtime decides →
 
 ### What it is not
 
-The model is **not** allowed to invent open-ended canon or bypass validation; contracts like `docs/CANONICAL_TURN_CONTRACT_GOC.md` exist to keep behavior bounded.
+The model is **not** allowed to invent open-ended canon or bypass validation; contracts like `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md` exist to keep behavior bounded.
 
 **Diagram — AI and World Engine (authority)**
 
@@ -316,7 +316,7 @@ flowchart LR
 
 ### Naming note (important)
 
-You may hear **social semantic planner** or **semantic dramatic planner**. In the repository, the implemented idea is a **bounded semantic dramatic planner** for **God of Carnage**: structured records and graph stages that interpret **social moves**, track **interpersonal state**, and plan **scene direction**—while staying **advisory** until validation and commit succeed (`docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md`).
+You may hear **social semantic planner** or **semantic dramatic planner**. In the repository, the implemented idea is a **bounded semantic dramatic planner** for **God of Carnage**: structured records and graph stages that interpret **social moves**, track **interpersonal state**, and plan **scene direction**—while staying **advisory** until validation and commit succeed (`docs/MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md`).
 
 ### Simple explanation
 
@@ -337,7 +337,7 @@ This is how the system scales **dramatic intelligence** without giving models a 
 
 ### What it is not
 
-It is **not** a separate microservice pretending to be the runtime. Roadmap text is explicit: stay **inside the turn graph** (`docs/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md`).
+It is **not** a separate microservice pretending to be the runtime. Roadmap text is explicit: stay **inside the turn graph** (`docs/MVPs/MVP_Semantic_Dramatic_Planner/ROADMAP_MVP_SEMANTIC_DRAMATIC_PLANNER.md`).
 
 **Diagram — planner inside the engine-authorized pipeline**
 

@@ -15,4 +15,4 @@ Short orientation for **non-developers**. For the **full, maintained** term list
 | **Proposal vs commit** | AI may **propose** content; only **validated, committed** results become authoritative narrative state. |
 | **RAG** | Retrieval over project documents to **inform** generation—does not override runtime authority. |
 
-When you implement behavior, use the [normative contracts index](../dev/contracts/normative-contracts-index.md) and [`docs/CANONICAL_TURN_CONTRACT_GOC.md`](../CANONICAL_TURN_CONTRACT_GOC.md) instead of this short table alone.
+When you implement behavior, use the [normative contracts index](../dev/contracts/normative-contracts-index.md) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md) instead of this short table alone.

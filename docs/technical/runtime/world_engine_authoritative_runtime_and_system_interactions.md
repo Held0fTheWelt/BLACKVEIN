@@ -16,7 +16,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 - [Architecture overview](../architecture/architecture-overview.md) — service map
 - [ADR-0001: Runtime authority in world-engine](../../governance/adr-0001-runtime-authority-in-world-engine.md)
 - [How AI fits the platform](../../start-here/how-ai-fits-the-platform.md) and [AI stack overview](../ai/ai-stack-overview.md)
-- [Canonical turn contract (GoC)](../../CANONICAL_TURN_CONTRACT_GOC.md)
+- [Canonical turn contract (GoC)](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - [M0 MCP host and runtime](../../mcp/01_M0_host_and_runtime.md)
 
 ## Scope and source of truth
@@ -242,7 +242,7 @@ flowchart LR
 
 **What to notice.** **Authored** and **projection** define the possibility space; **RAG** is context, not permission to bypass legality; **graph output** feeds **VAL**; only **RT** holds committed `current_scene_id` for the story path.
 
-**Seams:** `commit_models.py`, [`CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md).
+**Seams:** `commit_models.py`, [`CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ---
 
@@ -450,7 +450,7 @@ AI can retrieve lore, interpret tone, and propose the next scene—but **the eng
 
 - **Orchestration:** `RuntimeTurnGraphExecutor` from `ai_stack` (`world-engine/app/story_runtime/manager.py` imports).
 - **Interpretation:** `interpret_player_input` from `story_runtime_core` passed into the executor.
-- **Commit boundary:** After `turn_graph.run`, `resolve_narrative_commit` applies legality; model structured `proposed_scene_id` is only a **candidate** ([`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md), [`CANONICAL_TURN_CONTRACT_GOC.md`](../../CANONICAL_TURN_CONTRACT_GOC.md)).
+- **Commit boundary:** After `turn_graph.run`, `resolve_narrative_commit` applies legality; model structured `proposed_scene_id` is only a **candidate** ([`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md), [`CANONICAL_TURN_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)).
 
 ### Why this matters in World of Shadows
 
@@ -708,5 +708,5 @@ The **World Engine** (`world-engine/`) is the **authoritative FastAPI play host*
 | Audience | Next read |
 |----------|-----------|
 | New to the platform | [`what-is-world-of-shadows.md`](../../start-here/what-is-world-of-shadows.md) |
-| Implementing AI | [`ai-stack-overview.md`](../ai/ai-stack-overview.md), [`VERTICAL_SLICE_CONTRACT_GOC.md`](../../VERTICAL_SLICE_CONTRACT_GOC.md) |
+| Implementing AI | [`ai-stack-overview.md`](../ai/ai-stack-overview.md), [`VERTICAL_SLICE_CONTRACT_GOC.md`](../../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md) |
 | Writing tests | [`WORLD_ENGINE_TARGET_TEST_MATRIX.md`](../../testing/WORLD_ENGINE_TARGET_TEST_MATRIX.md) |

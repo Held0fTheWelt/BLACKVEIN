@@ -4,7 +4,7 @@
 
 - Gate name: G10 End-to-End Closure  
 - Gate class: operational (roadmap taxonomy; `docs/GoC_Gate_Baseline_Audit_Plan.md` G10 §A)  
-- Audit subject: the full eleven-step end-to-end chain in `docs/ROADMAP_MVP_GoC.md` §6.11, evidenced as **one integrated system**, not isolated green layers.
+- Audit subject: the full eleven-step end-to-end chain in `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.11, evidenced as **one integrated system**, not isolated green layers.
 
 ## Prerequisites Consumed (Tasks 1–3)
 
@@ -27,7 +27,7 @@ This baseline is assembled **only after** per-gate reports for G1–G9 and G9B e
 
 Integrated witness for steps **1–10**: backend pytest trio run `g10_backend_e2e_20260409` — `tests/reports/evidence/g10_backend_e2e_20260409/pytest_g10_backend_trio.txt` (**15 passed**, `exit_code: 0`), metadata `run_metadata.json`. Step **11** remains anchored on authoritative G9 only (same run as G9/G9B baselines).
 
-| # | Roadmap requirement (`docs/ROADMAP_MVP_GoC.md` §6.11) | Evidence basis for this baseline | Upstream gate / note |
+| # | Roadmap requirement (`docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md` §6.11) | Evidence basis for this baseline | Upstream gate / note |
 |---|--------------------------------------------------------|-----------------------------------|----------------------|
 | 1 | Module load from canonical package | E2E: `create_session("god_of_carnage")`, module registered in runtime store (`test_e2e_god_of_carnage_full_lifecycle.py`); bootstrap uses real `ContentModule` (`test_bootstrap_staged_runtime_integration.py`). | G1, G3, G5, G10 |
 | 2 | Runtime turn execution | E2E: `dispatch_turn` single and multi-turn (`test_e2e_*`); bootstrap: `execute_turn_with_ai` under `create_app` with `ROUTING_REGISTRY_BOOTSTRAP` (`test_bootstrap_*`); area2 closure gates re-invoke staged path (`test_area2_task4_closure_gates.py`). | G3, G4 |

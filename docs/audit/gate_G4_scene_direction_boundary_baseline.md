@@ -13,7 +13,7 @@
 - `ai_stack/scene_director_goc.py`
 - `ai_stack/goc_turn_seams.py`
 - `ai_stack/langgraph_runtime.py`
-- `docs/CANONICAL_TURN_CONTRACT_GOC.md`
+- `docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`
 - `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py`
 - `ai_stack/tests/test_goc_runtime_breadth_continuity_diagnostics.py`
 
