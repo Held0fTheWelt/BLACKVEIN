@@ -85,6 +85,10 @@ Optional drift check (e.g. in CI): `python "./'fy'-suites/despaghettify/tools/sy
 
 See also root **`AGENTS.md`**, [`'fy'-suites/despaghettify/superpowers/README.md`](../../'fy'-suites/despaghettify/superpowers/README.md), and [`'fy'-suites/despaghettify/README.md`](../../'fy'-suites/despaghettify/README.md).
 
+## Contractify (repository contracts)
+
+**Contract governance** (anchors vs projections, drift JSON, **CG-*** backlog) lives under [`'fy'-suites/contractify/`](../../'fy'-suites/contractify/README.md). Router skills mirror into **`.cursor/skills/`** via **`python "./'fy'-suites/contractify/tools/sync_contractify_skills.py"`** — same copy-only rule as other fy suites.
+
 ## Related
 
 - [Architecture README](../architecture/README.md)

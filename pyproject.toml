@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "world-of-shadows-hub"
 version = "0.0.0"
-description = "Optional editable package: World of Shadows monorepo hub CLIs (Despaghettify, Postmanify, …)."
+description = "Optional editable package: World of Shadows monorepo hub CLIs (Despaghettify, Postmanify, Contractify, …)."
 requires-python = ">=3.10"
 dependencies = [
     "pyyaml>=6.0.1",
@@ -16,6 +16,7 @@ despag-check = "despaghettify.tools.hub_cli:main"
 wos-despag = "despaghettify.tools.hub_cli:main"
 postmanify = "postmanify.tools.cli:main"
 docify = "docify.tools.hub_cli:main"
+contractify = "contractify.tools.hub_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["'fy'-suites"]

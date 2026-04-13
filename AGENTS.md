@@ -42,3 +42,16 @@ Docify lives under **`'fy'-suites/docify/`** with other **“fy”** meta-tool s
 **Docify default docstring scan** (`docify audit` / `python_documentation_audit.py` without `--root`): `backend`, `world-engine`, `ai_stack`, `frontend`, `administration-tool`, `story_runtime_core`, `'fy'-suites/despaghettify`, `'fy'-suites/postmanify`, **`'fy'-suites/docify`**, `tools/mcp_server` — see **`'fy'-suites/docify/README.md`**. **`python_docstring_synthesize.py`** does **not** scan the tree; it adds **PEP 8 inline `#` comments** or an optional Google docstring draft for a chosen `--file` (see **`'fy'-suites/docify/documentation-docstring-synthesize-task.md`**).
 
 **Docify path validation:** `python "./'fy'-suites/docify/tools/validate_docify_skill_paths.py"` (GitHub Actions: `.github/workflows/docify-skills-validate.yml` on relevant diffs).
+
+## Contractify hub
+
+Contractify lives under **`'fy'-suites/contractify/`** with other **“fy”** meta-tool suites; see the suite catalog in **`'fy'-suites/Readme.md`**. Optional **`pip install -e .`** exposes the **`contractify`** console script (same entry point as **`python -m contractify.tools`**).
+
+1. **Router skills** live under ``'fy'-suites/contractify/superpowers/<skill-name>/SKILL.md`` (minimal). **Procedure** lives in task Markdown at suite root (`contract-audit-task.md`, `contract-solve-task.md`, `contract-reset-task.md`); scope ceilings live in **`'fy'-suites/contractify/CONTRACT_GOVERNANCE_SCOPE.md`**.
+2. **Cursor discovery** uses **`.cursor/skills/<skill-name>/SKILL.md`** (committed). After changing any canonical Contractify skill file, run **`python "./'fy'-suites/contractify/tools/sync_contractify_skills.py"`** from the repo root before commit/PR (optional CI: `python "./'fy'-suites/contractify/tools/sync_contractify_skills.py" --check`).
+3. Do **not** hand-edit only `.cursor/skills/` for Contractify copies — the next sync overwrites them. Use **`python "./'fy'-suites/contractify/tools/sync_contractify_skills.py"`** (file copy only — **no** symlinks, **no** `mklink`).
+4. **Language:** Same canonical policy as [`docs/dev/contributing.md`](docs/dev/contributing.md#repository-language). Hub overview: **`'fy'-suites/contractify/README.md`**.
+
+**Contractify ↔ Docify / Postmanify / Despaghettify:** Contractify **models anchors and projections** and emits **drift JSON**; **docify** repairs Python/readable docs; **postmanify** regenerates API collections from OpenAPI; **despaghettify** handles structural execution cleanup when truth is tangled in code layout.
+
+**Skill path validation:** `python "./'fy'-suites/contractify/tools/validate_contractify_skill_paths.py"` after changing links under `'fy'-suites/contractify/superpowers/`.

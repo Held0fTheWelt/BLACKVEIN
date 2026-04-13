@@ -17,3 +17,9 @@ Single source of truth: **[`docs/dev/contributing.md`](docs/dev/contributing.md#
 
 - **Author** the router skill under **`'fy'-suites/postmanify/superpowers/postmanify-sync/SKILL.md`**.
 - **Mirror** into **`.cursor/skills/`** with **`python "./'fy'-suites/postmanify/tools/sync_postmanify_skills.py"`** after edits (optional **`--check`**).
+
+## Contractify · Cursor skills
+
+- **Author** router skills under **`'fy'-suites/contractify/superpowers/<skill-name>/SKILL.md`**.
+- **Mirror** into **`.cursor/skills/`** with **`python "./'fy'-suites/contractify/tools/sync_contractify_skills.py"`** after edits (optional **`--check`**).
+- **Validate** skill markdown link targets: **`python "./'fy'-suites/contractify/tools/validate_contractify_skill_paths.py"`**.

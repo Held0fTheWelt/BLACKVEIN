@@ -13,6 +13,7 @@ Use this file as the **catalog**: scan the table, jump to a suite’s `README.md
 | [**`despaghettify/`](despaghettify/README.md)** | Structure / “spaghetti” checks, DS-style workflow Markdown, metrics, autonomous loop helpers. | `python -m despaghettify.tools` · `despag-check` / `wos-despag` | [`superpowers/`](despaghettify/superpowers/README.md) → `python "./'fy'-suites/despaghettify/tools/sync_despag_skills.py"` |
 | [**`postmanify/`](postmanify/README.md)** | Refresh Postman collections from OpenAPI; emit **master** + **per-tag sub-suites** under `postman/`. | `python -m postmanify.tools` · `postmanify` | [`postmanify-sync`](postmanify/superpowers/postmanify-sync/SKILL.md) → `python "./'fy'-suites/postmanify/tools/sync_postmanify_skills.py"` |
 | [**`docify/`](docify/README.md)** | Python docstring backlog audit (AST), optional Google-layout checks, PEP 8 `#` comment / Google docstring assists for a single file. | `python "./'fy'-suites/docify/tools/python_documentation_audit.py"` · `python "./'fy'-suites/docify/tools/python_docstring_synthesize.py"` | [`superpowers/`](docify/superpowers/README.md) → `python "./'fy'-suites/docify/tools/sync_docify_skills.py"` |
+| [**`contractify/`](contractify/README.md)** | Contract discovery, anchoring vs projections, relation edges, drift (incl. OpenAPI ↔ Postman manifest), governance backlog **CG-***. | `python -m contractify.tools` · `contractify` | [`superpowers/`](contractify/superpowers/README.md) → `python "./'fy'-suites/contractify/tools/sync_contractify_skills.py"` |
 
 ---
 

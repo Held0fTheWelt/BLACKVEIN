@@ -73,6 +73,7 @@ DEFAULT_RELATIVE_ROOTS: tuple[str, ...] = (
     "'fy'-suites/despaghettify",
     "'fy'-suites/postmanify",
     "'fy'-suites/docify",
+    "'fy'-suites/contractify",
     "tools/mcp_server",
 )
 

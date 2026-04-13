@@ -30,6 +30,8 @@ Task.md
 .clockwork_integration
 /.ollama
 /tests/reports
+# Contractify audit JSON (regenerate: python -m contractify.tools audit --out "'fy'-suites/contractify/reports/contract_audit.json")
+**/contractify/reports/*.json
 /tests/e2e/node_modules/
 /tests/e2e/playwright-report/
 /tests/e2e/test-results/

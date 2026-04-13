@@ -59,7 +59,7 @@ python "./'fy'-suites/docify/tools/python_docstring_synthesize.py" --help
 
 ## Default AST scan roots
 
-When `audit` runs **without** `--root`, it walks: `backend`, `world-engine`, `ai_stack`, `frontend`, `administration-tool`, `story_runtime_core`, `'fy'-suites/despaghettify`, `'fy'-suites/postmanify`, **`'fy'-suites/docify`**, `tools/mcp_server` — excluding `**/migrations/**`, `**/site-packages/**`, `world-engine/source/**`, and (unless `--include-tests`) any path with a `tests` path segment. Override with one or more `--root` arguments for narrower slices.
+When `audit` runs **without** `--root`, it walks: `backend`, `world-engine`, `ai_stack`, `frontend`, `administration-tool`, `story_runtime_core`, `'fy'-suites/despaghettify`, `'fy'-suites/postmanify`, **`'fy'-suites/docify`**, **`'fy'-suites/contractify`**, `tools/mcp_server` — excluding `**/migrations/**`, `**/site-packages/**`, `world-engine/source/**`, and (unless `--include-tests`) any path with a `tests` path segment. Override with one or more `--root` arguments for narrower slices.
 
 ## Adjunct / maintenance scripts
 
