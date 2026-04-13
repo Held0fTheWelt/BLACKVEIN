@@ -12,6 +12,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.6.5] - 2026-04-14
+
+**Summary:** Establishes the Phase 1 operator foundation for **AI Runtime Governance** and a canonical **World-Engine Control Center**. The administration tool now supports practical provider/model/route governance workflows, deterministic runtime-readiness blocker visibility (`mock_only` vs `ai_only`), and a consolidated world-engine control-plane posture instead of fragmented diagnostics-only navigation.
+
+### Added
+
+- **Backend runtime readiness endpoint:** `GET /api/v1/admin/ai/runtime-readiness` in [`backend/app/api/v1/operational_governance_routes.py`](backend/app/api/v1/operational_governance_routes.py), backed by deterministic readiness evaluation in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py).
+- **World-engine control-center aggregation service:** [`backend/app/services/world_engine_control_center_service.py`](backend/app/services/world_engine_control_center_service.py) to unify desired/observed play-service posture, connectivity/readiness, active runs/sessions, operator-safe controls, and normalized blockers/warnings.
+- **World-engine control-center backend API:** `GET /api/v1/admin/world-engine/control-center` in [`backend/app/api/v1/world_engine_console_routes.py`](backend/app/api/v1/world_engine_console_routes.py).
+- **Canonical World-Engine Control Center page:** route and template/JS surface at `/manage/world-engine-control-center` via [`administration-tool/route_registration_manage_sections.py`](administration-tool/route_registration_manage_sections.py), [`administration-tool/templates/manage/world_engine_control_center.html`](administration-tool/templates/manage/world_engine_control_center.html), and [`administration-tool/static/manage_world_engine_control_center.js`](administration-tool/static/manage_world_engine_control_center.js).
+- **Canonical AI Runtime Governance route alias:** `/manage/ai-runtime-governance` in [`administration-tool/route_registration_manage_sections.py`](administration-tool/route_registration_manage_sections.py) as the primary Phase 1 entrypoint.
+- **New tests for control-center and routing surfaces:** [`backend/tests/test_world_engine_control_center.py`](backend/tests/test_world_engine_control_center.py) and [`administration-tool/tests/test_manage_world_engine_control_center.py`](administration-tool/tests/test_manage_world_engine_control_center.py).
+
+### Changed
+
+- **Provider/model/route governance listings now carry operator-ready eligibility context:** `list_models()` and `list_routes()` in [`backend/app/services/governance_runtime_service.py`](backend/app/services/governance_runtime_service.py) now include runtime eligibility and normalized blocker fields rather than plain record echoes.
+- **Operational governance admin UI is now a real CRUD control plane:** [`administration-tool/templates/manage/operational_governance.html`](administration-tool/templates/manage/operational_governance.html) and [`administration-tool/static/manage_operational_governance.js`](administration-tool/static/manage_operational_governance.js) now expose create/edit flows for providers, models, and routes, plus runtime-readiness and blocker visibility.
+- **Manage navigation now reflects canonical operator flow:** [`administration-tool/templates/manage/base.html`](administration-tool/templates/manage/base.html) adds first-class entries for **AI Runtime Governance** and **World-Engine Control Center** while preserving deep-dive pages.
+- **Diagnosis and World Engine console page framing updated:** [`administration-tool/templates/manage/diagnosis.html`](administration-tool/templates/manage/diagnosis.html) and [`administration-tool/templates/manage/world_engine_console.html`](administration-tool/templates/manage/world_engine_console.html) now position the Control Center as canonical and existing pages as detail views.
+- **Phase 1 operator docs updated:** [`docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md`](docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md) now documents AI runtime governance flow, readiness interpretation, world-engine control-center usage, and explicit out-of-phase items.
+- **Operational governance and admin tests expanded:** [`backend/tests/test_operational_governance_mvp.py`](backend/tests/test_operational_governance_mvp.py) and [`administration-tool/tests/test_manage_operational_governance.py`](administration-tool/tests/test_manage_operational_governance.py) include new Phase 1 surface checks.
+
+### Tests (integrity verification)
+
+- `python -m pytest backend/tests/test_operational_governance_mvp.py backend/tests/test_world_engine_control_center.py` (from repo root) — passed.
+- `python -m pytest administration-tool/tests/test_manage_operational_governance.py administration-tool/tests/test_manage_world_engine_control_center.py administration-tool/tests/test_manage_world_engine_console.py administration-tool/tests/test_manage_play_service_control.py` (from repo root) — passed.
+
+---
+
 ## [0.6.4] - 2026-04-13
 
 **Summary:** Delivers **Narrative Governance & Revision Foundation MVP** closure (promotion/rollback honesty, notifications, permissions, tests, acceptance matrix), the first **operational settings and runtime governance** slice (persistence, secrets, admin APIs, operator UI, world-engine resolved-config client, **docker-up** wiring, ops doc), **Docify** documentation-suite additions and audit/CI refinements that were previously noted only under **[Unreleased]**, **Contractify** as a new **fy** hub for contract discovery, anchoring vs projections, drift JSON, **CG-*** governance backlog, plus **completion/hardening**, a **finalization** slice (deterministic conflicts, operational versioning, bounded relations, fy-suite task discovery, conflict **`severity`** / **`kind`**, lifecycle index checks, extra drift passes, **26** hermetic tests, state notes [`FINALIZATION_PASS_2026-04-13.md`]('fy'-suites/contractify/state/FINALIZATION_PASS_2026-04-13.md) / [`LAST_MILE_CLOSURE_2026-04-13.md`]('fy'-suites/contractify/state/LAST_MILE_CLOSURE_2026-04-13.md)), committed JSON examples, **committed** full discover/audit fixtures under **`reports/committed/`**, and repository hygiene (**duplicate Despaghettify** root tree removal). **Alembic 043** is safe on **Docker/SQLite** when governance tables already exist or when **`bootstrap_presets`** must be seeded with timestamps. **Wave 1 fy-platform extraction** adds shared **`fy_platform`** (manifest-first project root, versioned artifact envelope, **`fy-manifest.yaml`** bootstrap/validation, compatibility and soft-deprecation matrices, synthetic portability fixtures, cross-suite **`repo_paths`** alignment, optional **`--envelope-out`** on pilot CLIs, and **Despaghettify** portability closure for **`check`** on non–World-of-Shadows trees); evidence lives under [`'fy'-suites/fy_platform/state/`]('fy'-suites/fy_platform/state/).
