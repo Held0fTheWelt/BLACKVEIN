@@ -9,8 +9,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
-from concurrent.futures import ThreadPoolExecutor
-
 from flask import Flask, has_app_context
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -27,7 +25,6 @@ MODE_REMOTE = "remote"
 MODES = (MODE_DISABLED, MODE_LOCAL, MODE_DOCKER, MODE_REMOTE)
 
 UPSTREAM_TIMEOUT_S = 0.75
-INTERNAL_VALIDATE_S = 0.25
 
 _PLAY_CFG_KEYS = (
     "PLAY_SERVICE_CONTROL_DISABLED",
@@ -260,7 +257,15 @@ def _probe_play_http(internal_base: str, headers: dict[str, str], path: str) -> 
     base = internal_base.rstrip("/")
     t0 = time.perf_counter()
     try:
-        with httpx.Client(base_url=base, timeout=UPSTREAM_TIMEOUT_S, headers=headers) as client:
+        # Bound connect separately so slow DNS / TCP handshakes cannot outlive the pool deadline
+        # used by callers (and avoid ThreadPoolExecutor ``result()`` timeouts on constrained hosts).
+        _tmo = httpx.Timeout(
+            connect=min(UPSTREAM_TIMEOUT_S, 0.5),
+            read=UPSTREAM_TIMEOUT_S,
+            write=UPSTREAM_TIMEOUT_S,
+            pool=UPSTREAM_TIMEOUT_S,
+        )
+        with httpx.Client(base_url=base, timeout=_tmo, headers=headers) as client:
             r = client.get(path)
         ms = int((time.perf_counter() - t0) * 1000)
         body = r.json() if r.content else {}
@@ -311,12 +316,10 @@ def run_connectivity_test(app: Flask, desired: dict[str, Any]) -> dict[str, Any]
     if key:
         headers["X-Play-Service-Key"] = key
 
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        fut_h = pool.submit(_probe_play_http, internal, headers, "/api/health")
-        fut_r = pool.submit(_probe_play_http, internal, headers, "/api/health/ready")
-        _pool_timeout = INTERNAL_VALIDATE_S + UPSTREAM_TIMEOUT_S + 0.5
-        health = fut_h.result(timeout=_pool_timeout)
-        ready = fut_r.result(timeout=_pool_timeout)
+    # Sequential probes: each call is bounded by httpx timeouts; avoids executor ``TimeoutError``
+    # when worker threads exceed ``fut.result(timeout=…)`` under slow DNS or platform quirks.
+    health = _probe_play_http(internal, headers, "/api/health")
+    ready = _probe_play_http(internal, headers, "/api/health/ready")
 
     checks = [
         {"id": "health", "ok": health.get("ok") and health.get("body_status") == "ok", "detail": health},

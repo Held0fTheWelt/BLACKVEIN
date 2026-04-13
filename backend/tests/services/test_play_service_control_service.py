@@ -10,7 +10,6 @@ from app.services.play_service_control_service import (
     MODE_DOCKER,
     MODE_REMOTE,
     UPSTREAM_TIMEOUT_S,
-    INTERNAL_VALIDATE_S,
     _utc_iso,
     _empty_document,
     _load_raw_document,

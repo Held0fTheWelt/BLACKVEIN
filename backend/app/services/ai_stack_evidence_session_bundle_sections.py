@@ -9,7 +9,6 @@ from typing import Any
 
 from ai_stack import build_retrieval_trace
 
-from app.services.game_service import GameServiceError, get_story_diagnostics, get_story_state
 from app.services.improvement_service import list_recommendation_packages
 
 
@@ -51,6 +50,9 @@ def session_bundle_base_scaffold(
 def apply_world_engine_bridge(bundle: dict[str, Any], *, engine_id: Any, trace_id: str) -> None:
     if not (isinstance(engine_id, str) and engine_id.strip()):
         return
+    # Import inside the bridge so tests (and callers) can monkeypatch ``game_service`` symbols.
+    from app.services.game_service import GameServiceError, get_story_diagnostics, get_story_state
+
     try:
         bundle["world_engine_state"] = get_story_state(engine_id, trace_id=trace_id)
         bundle["world_engine_diagnostics"] = get_story_diagnostics(engine_id, trace_id=trace_id)
