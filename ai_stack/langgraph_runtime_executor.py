@@ -18,7 +18,6 @@ except Exception:  # pragma: no cover
 from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy
 from ai_stack.capabilities import CapabilityRegistry
-from ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
 from ai_stack.story_runtime_playability import (
     build_rewrite_instruction,
     decide_playability_recovery,
@@ -79,6 +78,18 @@ from ai_stack.langgraph_runtime_state import (
     RuntimeTurnState,
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
+
+
+def _invoke_runtime_adapter_with_langchain(**kwargs: Any) -> Any:
+    """Load LangChain integration only when a graph node actually invokes an adapter.
+
+    Keeping this import lazy lets ``ai_stack.langgraph_runtime`` (and test collection)
+    succeed in slim images or CI slices that ship LangGraph but omit optional
+    ``langchain_core`` / ``langchain`` extras.
+    """
+    from ai_stack.langchain_integration import invoke_runtime_adapter_with_langchain
+
+    return invoke_runtime_adapter_with_langchain(**kwargs)
 
 
 @dataclass
@@ -716,7 +727,7 @@ class RuntimeTurnGraphExecutor:
             }
             if api_model:
                 invoke_kw["model_name"] = api_model
-            runtime_result = invoke_runtime_adapter_with_langchain(**invoke_kw)
+            runtime_result = _invoke_runtime_adapter_with_langchain(**invoke_kw)
             call = runtime_result.call
             generation["success"] = call.success
             generation["error"] = call.metadata.get("error") if not call.success else None
@@ -839,7 +850,7 @@ class RuntimeTurnGraphExecutor:
                 {"attempt_index": attempt_index, "status": "adapter_missing", "candidate_model": candidate_mid},
             )
         provider_model = getattr(spec, "provider_model_name", None) if spec is not None else None
-        runtime_result = invoke_runtime_adapter_with_langchain(
+        runtime_result = _invoke_runtime_adapter_with_langchain(
             adapter=adapter,
             player_input=state["player_input"],
             interpreted_input=state.get("interpreted_input", {}) if isinstance(state.get("interpreted_input"), dict) else {},

@@ -4,7 +4,8 @@ invariants for maintainers.
 """
 from .version import AI_STACK_MILESTONE, AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 
-# True only when LangGraph + LangChain imports succeeded (see try/ blocks below).
+# True when the LangGraph runtime package surface imported successfully (see try/except below).
+# LangChain symbols are exported in a separate optional block; their absence does not clear this flag.
 # If False, use `pip install -e "./ai_stack[test]"` or `pip install -r ai_stack/requirements-test.txt`
 # plus editable `story_runtime_core`, and ensure the repository root is on PYTHONPATH.
 LANGGRAPH_RUNTIME_EXPORT_AVAILABLE: bool = False
@@ -106,7 +107,7 @@ try:
             "build_runtime_retriever",
         ]
     )
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 try:
@@ -127,7 +128,7 @@ try:
             "ensure_langgraph_available",
         ]
     )
-except ModuleNotFoundError:
+except ImportError:
     pass
 
 __all__.append("LANGGRAPH_RUNTIME_EXPORT_AVAILABLE")
@@ -158,5 +159,5 @@ try:
             "invoke_writers_room_adapter_with_langchain",
         ]
     )
-except ModuleNotFoundError:
+except ImportError:
     pass

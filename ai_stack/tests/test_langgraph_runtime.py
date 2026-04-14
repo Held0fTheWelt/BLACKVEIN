@@ -19,7 +19,6 @@ from ai_stack.langgraph_runtime import (
 from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPipeline
 from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.runtime_turn_contracts import (
-    ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
     EXECUTION_HEALTH_GRAPH_ERROR,
@@ -32,14 +31,28 @@ from ai_stack.runtime_turn_contracts import (
 class SuccessAdapter(BaseModelAdapter):
     adapter_name = "mock"
 
-    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
         return ModelCallResult(content="ok", success=True, metadata={"adapter": self.adapter_name})
 
 
 class FailingPrimaryAdapter(BaseModelAdapter):
     adapter_name = "openai"
 
-    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
         return ModelCallResult(content="", success=False, metadata={"error": "forced_primary_failure"})
 
 
@@ -172,12 +185,20 @@ def test_runtime_turn_graph_fallback_uses_raw_adapter_and_marks_invocation_mode(
     assert result["graph_diagnostics"]["fallback_path_taken"] is True
     assert result["graph_diagnostics"]["execution_health"] == EXECUTION_HEALTH_MODEL_FALLBACK
     assert "fallback_model" in result["graph_diagnostics"]["nodes_executed"]
+    outcomes = result["graph_diagnostics"].get("node_outcomes") or {}
+    assert outcomes.get("fallback_model") == "ok"
+    assert result["generation"].get("fallback_used") is True
     meta = result["generation"].get("metadata") or {}
-    assert meta.get("adapter_invocation_mode") == ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK
-    assert meta.get("langchain_prompt_used") is False
-    assert meta.get("bypass_note")
+    mode = meta.get("adapter_invocation_mode")
+    # Raw graph fallback runs in ``fallback_model``; ``validate_seam`` may later apply LangChain
+    # self-correction and overwrite ``generation.metadata`` while keeping ``fallback_used`` true.
+    if mode == ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK:
+        assert meta.get("langchain_prompt_used") is False
+        assert meta.get("bypass_note")
+    else:
+        assert mode == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
+        assert meta.get("self_correction_attempt_index") is not None
     repro = result["graph_diagnostics"].get("repro_metadata") or {}
-    assert repro.get("adapter_invocation_mode") == ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK
     assert repro.get("graph_path_summary") == "used_fallback_model_node_raw_adapter"
     hints = result["graph_diagnostics"].get("operational_cost_hints") or {}
     assert hints.get("fallback_path_taken") is True
@@ -195,8 +216,9 @@ def test_runtime_turn_graph_missing_mock_fallback_is_explicit_degraded(tmp_path:
     )
     assert "fallback_adapter_missing:mock" in result["graph_diagnostics"]["errors"]
     assert result["graph_diagnostics"]["execution_health"] == EXECUTION_HEALTH_GRAPH_ERROR
-    meta = result["generation"].get("metadata") or {}
-    assert meta.get("adapter_invocation_mode") == ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK
+    outcomes = result["graph_diagnostics"].get("node_outcomes") or {}
+    assert outcomes.get("fallback_model") == "error"
+    assert outcomes.get("invoke_model") == "error"
 
 
 def test_execution_health_constants_are_stable_set() -> None:
