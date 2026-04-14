@@ -1135,7 +1135,8 @@ textarea:focus-visible {
     flex-shrink: 0;
 }
 
-.manage-severity-badge--ok {
+.manage-severity-badge--ok,
+.manage-severity-badge--healthy {
     border-color: rgba(46, 160, 67, 0.45);
     color: #2ea043;
     background: rgba(46, 160, 67, 0.12);

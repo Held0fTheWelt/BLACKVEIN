@@ -60,6 +60,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         "evaluate_runtime_readiness",
         lambda: {
             "ai_only_valid": False,
+            "readiness_severity": "blocked",
             "provider_summary": {"total": 2, "eligible_non_mock": 0},
             "route_summary": {"total": 3, "ai_ready": 0},
             "readiness_headline": "blocked by routes",
@@ -91,7 +92,7 @@ def test_runtime_dashboard_exposes_domain_status_and_warning_summary(app, monkey
         suite_service,
         "build_world_engine_control_center_snapshot",
         lambda app, trace_id=None: {
-            "status": {"control_plane_ok": False, "warning_count": 1},
+            "status": {"state": "blocked", "control_plane_ok": False, "warning_count": 1},
             "active_runtime": {"run_count": 0, "session_count": 0},
         },
     )

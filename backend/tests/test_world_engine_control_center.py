@@ -19,7 +19,8 @@ def test_world_engine_control_center_snapshot(client, moderator_headers, monkeyp
             "active_runtime": {"run_count": 0, "session_count": 0, "runs": {"items": []}, "sessions": {"items": []}},
             "operator_controls": [{"id": "refresh", "path": "/api/v1/admin/world-engine/control-center"}],
             "operator_summary": {"headline": "stub", "sub_lines": []},
-            "status": {"control_plane_ok": True, "blocker_count": 0, "warning_count": 0},
+            "status": {"state": "healthy", "control_plane_ok": True, "blocker_count": 0, "warning_count": 0},
+            "status_semantics": {"healthy": "ok"},
             "blockers": [],
             "warnings": [],
         },
@@ -29,6 +30,7 @@ def test_world_engine_control_center_snapshot(client, moderator_headers, monkeyp
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["status"]["control_plane_ok"] is True
+    assert payload["status"]["state"] == "healthy"
     assert payload["active_runtime"]["run_count"] == 0
     assert payload["operator_controls"][0]["id"] == "refresh"
 
@@ -46,5 +48,7 @@ def test_world_engine_control_center_live_payload_includes_operator_summary(clie
     assert payload["posture_at_a_glance"].get("observed_lines")
     assert isinstance(payload.get("drill_down"), list)
     assert len(payload["drill_down"]) >= 2
+    assert payload.get("status", {}).get("state") in {"healthy", "degraded", "blocked"}
+    assert isinstance(payload.get("status_semantics"), dict)
     terminate = next((c for c in payload.get("operator_controls") or [] if c.get("id") == "terminate_run"), None)
     assert terminate and terminate.get("requires_path_parameter") == "run_id"

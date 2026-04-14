@@ -26,6 +26,7 @@ from app.services.governance_runtime_service import (
     update_runtime_modes,
     update_scope_settings,
 )
+from app.services.runtime_status_semantics import STATUS_SEMANTICS
 from app.services.world_engine_control_center_service import build_world_engine_control_center_snapshot
 
 _RAG_STACK_LOCK = threading.Lock()
@@ -269,15 +270,6 @@ _RUNTIME_PRESETS = [
         },
     },
 ]
-_STATUS_SEMANTICS = {
-    "healthy": "Runtime behavior is within expected governed posture.",
-    "degraded": "Runtime is available but with reduced quality, fallback behavior, or elevated error signals.",
-    "blocked": "Runtime path cannot satisfy its primary purpose until blockers are resolved.",
-    "configured_disabled": "Behavior is intentionally disabled by governed configuration.",
-    "unknown": "Insufficient runtime signal was available for a trustworthy classification.",
-}
-
-
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
@@ -648,7 +640,7 @@ def _effective_config_payload() -> dict[str, Any]:
         "requires_refresh": False,
         "guardrail_warnings": _guardrail_warnings(derived),
         "boundedness_notes": boundedness_notes,
-        "status_semantics": _STATUS_SEMANTICS,
+        "status_semantics": STATUS_SEMANTICS,
     }
 
 
@@ -782,10 +774,10 @@ def get_rag_operations_status() -> dict[str, Any]:
         degraded_reasons.append(corpus.rag_dense_rebuild_reason)
     mode_runtime = runtime_modes.get("retrieval_execution_mode")
     operational_state = "healthy"
-    if len(corpus.chunks) == 0:
-        operational_state = "blocked"
-    elif mode_runtime == "disabled":
+    if mode_runtime == "disabled":
         operational_state = "configured_disabled"
+    elif len(corpus.chunks) == 0:
+        operational_state = "blocked"
     elif degraded_reasons:
         operational_state = "degraded"
     guidance: list[dict[str, str]] = []
@@ -822,7 +814,7 @@ def get_rag_operations_status() -> dict[str, Any]:
     return {
         "generated_at": corpus.built_at,
         "operational_state": operational_state,
-        "status_semantics": _STATUS_SEMANTICS,
+        "status_semantics": STATUS_SEMANTICS,
         "corpus": {
             "chunk_count": len(corpus.chunks),
             "source_count": corpus.source_count,
@@ -1130,7 +1122,7 @@ def get_orchestration_status(*, trace_id: str | None = None) -> dict[str, Any]:
 
     return {
         "overall_state": overall_state,
-        "status_semantics": _STATUS_SEMANTICS,
+        "status_semantics": STATUS_SEMANTICS,
         "langgraph": {
             "state": langgraph_state,
             "dependency_available": langgraph_dependency_available,
@@ -1213,15 +1205,17 @@ def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
     blockers: list[dict[str, str]] = []
     if not governance.get("ai_only_valid"):
         blockers.append({"domain": "governance", "message": governance.get("readiness_headline") or "Governance readiness is blocked."})
-    if rag.get("degraded_reasons"):
-        blockers.append({"domain": "rag", "message": f"RAG degraded: {', '.join(rag['degraded_reasons'][:3])}"})
+    if str(rag.get("operational_state")) == "blocked":
+        blockers.append({"domain": "rag", "message": "RAG is blocked and cannot provide runtime retrieval context."})
     langgraph = orchestration.get("langgraph") or {}
-    if not langgraph.get("dependency_available"):
+    if str(orchestration.get("overall_state")) == "blocked" or not langgraph.get("dependency_available"):
         blockers.append({"domain": "orchestration", "message": "LangGraph runtime dependency is unavailable."})
     if (world_engine.get("status") or {}).get("control_plane_ok") is False:
         blockers.append({"domain": "world_engine", "message": "World-engine control plane has blocking posture issues."})
     effective = _effective_config_payload()
-    governance_state = "healthy" if bool(governance.get("ai_only_valid")) else "blocked"
+    governance_state = str(governance.get("readiness_severity") or "unknown")
+    if governance_state not in {"healthy", "degraded", "blocked", "configured_disabled", "unknown"}:
+        governance_state = "unknown"
     rag_state = str(rag.get("operational_state") or "unknown")
     orchestration_state = str(orchestration.get("overall_state") or "unknown")
     world_status = world_engine.get("status") or {}
@@ -1239,7 +1233,11 @@ def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
         },
         {
             "domain": "runtime_settings",
-            "state": "degraded" if int(effective.get("override_count") or 0) > 0 else "healthy",
+            "state": (
+                "degraded"
+                if (effective.get("guardrail_warnings") or []) or (effective.get("drift_keys") or [])
+                else "healthy"
+            ),
             "consequence": "Preset intent can diverge when manual overrides are active.",
             "fix_path": "/manage/runtime-settings",
         },
@@ -1300,7 +1298,7 @@ def get_runtime_dashboard(*, trace_id: str | None = None) -> dict[str, Any]:
                 "guardrail_warning_count": len(effective.get("guardrail_warnings") or []),
             },
         },
-        "status_semantics": _STATUS_SEMANTICS,
+        "status_semantics": STATUS_SEMANTICS,
         "domain_status": domain_status,
         "blockers": blockers,
         "degraded_or_warning": degraded_or_warning,

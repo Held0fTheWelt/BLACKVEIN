@@ -95,7 +95,9 @@ def test_runtime_readiness_payload_includes_actionable_fields(client, admin_head
     assert response.status_code == 200
     data = response.get_json()["data"]
     assert data.get("readiness_headline")
-    assert data.get("readiness_severity") in {"ok", "blocked", "degraded"}
+    assert data.get("readiness_severity") in {"healthy", "blocked", "degraded"}
+    assert isinstance(data.get("status_semantics"), dict)
+    assert data["status_semantics"].get("healthy")
     assert isinstance(data.get("readiness_legend"), list)
     assert len(data["readiness_legend"]) >= 2
     assert isinstance(data.get("provider_summary"), dict)

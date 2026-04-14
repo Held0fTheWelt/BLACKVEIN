@@ -134,6 +134,13 @@ Phase 3 does not add a new subsystem. It hardens coherence across existing canon
 - `configured_disabled`: capability is intentionally disabled by governed config.
 - `unknown`: signal is insufficient or missing; treat as investigation-required.
 
+The same status semantics now appear across:
+
+- runtime readiness severity in **AI Runtime Governance**
+- control-plane status in **World-Engine Control Center**
+- domain status and guidance payloads in **Runtime Dashboard**
+- operational summaries in **Runtime Settings**, **RAG Operations**, and **AI Orchestration**
+
 ## Phase 2 operator workflow
 
 1. Open `/manage/runtime-dashboard` to identify top blockers and next actions.

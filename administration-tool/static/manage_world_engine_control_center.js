@@ -61,10 +61,10 @@
     var st = payload.status || {};
     var bc = st.blocker_count != null ? st.blocker_count : (payload.blockers || []).length;
     var wc = st.warning_count != null ? st.warning_count : (payload.warnings || []).length;
-    var ok = st.control_plane_ok;
+    var state = st.state || (st.control_plane_ok ? "healthy" : "blocked");
+    var ok = state === "healthy";
     var parts = [];
-    if (ok) parts.push("Control plane: OK");
-    else parts.push("Control plane: blocked");
+    parts.push("Control plane state: " + state);
     parts.push("Blockers: " + bc);
     parts.push("Warnings: " + wc);
     el.textContent = parts.join(" · ");

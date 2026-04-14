@@ -176,7 +176,7 @@
       var s = data.readiness_severity || "";
       if (s) {
         sevRow.style.display = "";
-        badge.textContent = s === "ok" ? "OK" : s === "blocked" ? "Blocked" : "Degraded";
+        badge.textContent = s === "healthy" ? "Healthy" : s === "blocked" ? "Blocked" : s === "degraded" ? "Degraded" : "Unknown";
         badge.className = "manage-severity-badge manage-severity-badge--" + s;
         var parts = [];
         parts.push("Severity is " + s + ".");

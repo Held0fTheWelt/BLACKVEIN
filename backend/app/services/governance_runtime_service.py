@@ -34,6 +34,7 @@ from app.models import (
 )
 from app.services.activity_log_service import log_activity
 from app.services.governance_secret_crypto_service import decrypt_secret, encrypt_secret
+from app.services.runtime_status_semantics import STATUS_SEMANTICS
 
 
 _REQUIRED_TASK_KINDS: tuple[str, ...] = (
@@ -1182,7 +1183,7 @@ def evaluate_runtime_readiness() -> dict:
 
     if ai_only_valid:
         readiness_headline = "AI-only generation is currently valid for governed routes."
-        readiness_severity = "ok"
+        readiness_severity = "healthy"
     elif mock_only_required:
         readiness_headline = "Stay on mock_only (or hybrid with mock fallback) until the blockers below are cleared."
         readiness_severity = "blocked" if len([b for b in blockers if b["entity_id"] is None]) else "degraded"
@@ -1201,6 +1202,7 @@ def evaluate_runtime_readiness() -> dict:
         "ai_only_valid": ai_only_valid,
         "readiness_headline": readiness_headline,
         "readiness_severity": readiness_severity,
+        "status_semantics": STATUS_SEMANTICS,
         "readiness_legend": readiness_legend,
         "enabled_non_mock_provider_present": enabled_non_mock_provider,
         "enabled_non_mock_model_present": enabled_non_mock_model,

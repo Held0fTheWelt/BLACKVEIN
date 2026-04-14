@@ -13,6 +13,7 @@ from app.services.game_service import (
     list_story_sessions,
 )
 from app.services.play_service_control_service import get_control_payload
+from app.services.runtime_status_semantics import STATUS_SEMANTICS
 
 
 def _utc_iso() -> str:
@@ -152,6 +153,11 @@ def build_world_engine_control_center_snapshot(app: Flask, *, trace_id: str | No
         )
 
     control_plane_ok = not blockers
+    state = "healthy"
+    if blockers:
+        state = "blocked"
+    elif warnings:
+        state = "degraded"
     headline = (
         "Play-service control plane looks healthy from the backend perspective."
         if control_plane_ok
@@ -225,10 +231,12 @@ def build_world_engine_control_center_snapshot(app: Flask, *, trace_id: str | No
             },
         ],
         "status": {
+            "state": state,
             "control_plane_ok": control_plane_ok,
             "blocker_count": len(blockers),
             "warning_count": len(warnings),
         },
+        "status_semantics": STATUS_SEMANTICS,
         "blockers": blockers,
         "warnings": warnings,
     }
