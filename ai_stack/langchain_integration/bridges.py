@@ -4,6 +4,7 @@ entrypoints, and invariants for maintainers.
 """
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,6 +16,31 @@ from pydantic import BaseModel, Field
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
 from ai_stack.rag_retrieval_dtos import RetrievalRequest
 from ai_stack.rag_types import RetrievalDomain
+
+
+def _adapter_generate_kwargs(adapter: BaseModelAdapter, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Return ``kwargs`` restricted to names accepted by ``adapter.generate``.
+
+    Production adapters accept ``model_name``; lightweight test doubles often omit it.
+    Filtering avoids ``TypeError`` while still forwarding new optional parameters when implemented.
+    """
+    try:
+        sig = inspect.signature(adapter.generate)
+    except (TypeError, ValueError):
+        return dict(kwargs)
+    params = list(sig.parameters.values())
+    if not params:
+        return {}
+    rest = params[1:] if params[0].name == "self" else params
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in rest):
+        return dict(kwargs)
+    allowed = {
+        p.name
+        for p in rest
+        if p.kind
+        in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+    return {k: v for k, v in kwargs.items() if k in allowed}
 
 
 class RuntimeTurnStructuredOutput(BaseModel):
@@ -134,7 +160,7 @@ def invoke_runtime_adapter_with_langchain(
     }
     if model_name:
         gen_kw["model_name"] = model_name
-    call = adapter.generate(prompt_text, **gen_kw)
+    call = adapter.generate(prompt_text, **_adapter_generate_kwargs(adapter, gen_kw))
     if not call.success:
         return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=None)
     try:
