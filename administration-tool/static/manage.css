@@ -1267,3 +1267,31 @@ textarea:focus-visible {
         padding-right: 0.85rem;
     }
 }
+
+/* Research domain governance (strategic visibility) */
+.research-governance-page .research-nav-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.research-governance-page #research-layer-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.research-governance-page .research-layer-card .panel-body {
+    font-size: 0.85rem;
+}
+
+.research-governance-page #research-drilldown {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.research-governance-page #research-drilldown a {
+    color: var(--primary);
+}

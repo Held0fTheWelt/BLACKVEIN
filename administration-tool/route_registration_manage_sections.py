@@ -195,6 +195,34 @@ def register_manage_data_ops_and_platform_pages(app: Flask) -> None:
         return render_template("manage/mcp_operations.html")
 
 
+def register_manage_research_governance_pages(app: Flask) -> None:
+    """Strategic research-domain visibility (layered governance; not a full research IDE)."""
+
+    @app.route("/manage/research/overview")
+    def manage_research_overview():
+        return render_template("manage/research_governance/overview.html")
+
+    @app.route("/manage/research/source-intake")
+    def manage_research_source_intake():
+        return render_template("manage/research_governance/source_intake.html")
+
+    @app.route("/manage/research/extraction-tuning")
+    def manage_research_extraction_tuning():
+        return render_template("manage/research_governance/extraction_tuning.html")
+
+    @app.route("/manage/research/findings")
+    def manage_research_findings():
+        return render_template("manage/research_governance/findings.html")
+
+    @app.route("/manage/research/canonical-truth")
+    def manage_research_canonical_truth():
+        return render_template("manage/research_governance/canonical_truth.html")
+
+    @app.route("/manage/research/mcp-workbench")
+    def manage_research_mcp_workbench():
+        return render_template("manage/research_governance/mcp_workbench.html")
+
+
 def register_manage_operational_governance_pages(app: Flask) -> None:
     @app.route("/manage/ai-runtime-governance")
     def manage_ai_runtime_governance():

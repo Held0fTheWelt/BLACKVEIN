@@ -1,0 +1,26 @@
+{% extends "manage/base.html" %}
+{% block title %}Research — source intake{% endblock %}
+{% block content %}
+<section class="manage-section research-governance-page" data-research-governance-page="layer:source_intake">
+    <header class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Research · Layer 1</p>
+            <h1 class="page-header">Source intake &amp; pipeline visibility</h1>
+            <p class="manage-lead">Repository documentation footprint and provenance-oriented inventory. Controls for every ingestion path are deferred to repo workflows and wiki — this page stays truthful and high-level.</p>
+        </div>
+    </header>
+    {% set active_section = 'source_intake' %}
+    {% include "manage/research_governance/_subnav.html" %}
+    <p id="research-error-banner" class="form-error" style="display:none;" role="alert"></p>
+    <p id="research-strip" class="muted">Loading…</p>
+    <p id="research-layer-role" class="muted small"></p>
+    <p id="research-canonical-note" class="manage-state manage-state--ok" style="display:none;"></p>
+    <details class="manage-psc-json-wrap" style="margin-top:1rem;">
+        <summary>Technical JSON (audit)</summary>
+        <pre id="research-json-technical" class="manage-psc-json muted" style="max-height:28rem;overflow:auto;"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_research_governance.js') }}"></script>
+{% endblock %}

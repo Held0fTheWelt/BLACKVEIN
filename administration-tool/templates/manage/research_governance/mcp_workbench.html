@@ -1,0 +1,26 @@
+{% extends "manage/base.html" %}
+{% block title %}Research — MCP &amp; workbench{% endblock %}
+{% block content %}
+<section class="manage-section research-governance-page" data-research-governance-page="layer:mcp_workbench">
+    <header class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Execution posture</p>
+            <h1 class="page-header">MCP &amp; workbench connectivity</h1>
+            <p class="manage-lead">What exists on disk for MCP research handlers, what runs in MCP Operations, and what stays deferred to specialized clients. Canonical truth is still owned by governed packages — MCP traces do not auto-promote.</p>
+        </div>
+    </header>
+    {% set active_section = 'mcp_workbench' %}
+    {% include "manage/research_governance/_subnav.html" %}
+    <p id="research-error-banner" class="form-error" style="display:none;" role="alert"></p>
+    <p id="research-strip" class="muted">Loading…</p>
+    <p id="research-layer-role" class="muted small"></p>
+    <p id="research-canonical-note" class="manage-state manage-state--ok" style="display:none;"></p>
+    <details class="manage-psc-json-wrap" style="margin-top:1rem;">
+        <summary>Technical JSON (audit)</summary>
+        <pre id="research-json-technical" class="manage-psc-json muted" style="max-height:28rem;overflow:auto;"></pre>
+    </details>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_research_governance.js') }}"></script>
+{% endblock %}

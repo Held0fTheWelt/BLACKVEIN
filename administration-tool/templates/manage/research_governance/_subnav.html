@@ -1,0 +1,9 @@
+{# Strategic research-domain navigation (English operator copy). #}
+<div class="research-nav-row" aria-label="Research governance sections">
+    <a class="btn btn-outline btn-sm{% if active_section == 'overview' %} is-active{% endif %}" href="{{ url_for('manage_research_overview') }}">Overview</a>
+    <a class="btn btn-outline btn-sm{% if active_section == 'source_intake' %} is-active{% endif %}" href="{{ url_for('manage_research_source_intake') }}">Source intake</a>
+    <a class="btn btn-outline btn-sm{% if active_section == 'extraction_tuning' %} is-active{% endif %}" href="{{ url_for('manage_research_extraction_tuning') }}">Extraction / tuning</a>
+    <a class="btn btn-outline btn-sm{% if active_section == 'findings' %} is-active{% endif %}" href="{{ url_for('manage_research_findings') }}">Findings</a>
+    <a class="btn btn-outline btn-sm{% if active_section == 'canonical_truth' %} is-active{% endif %}" href="{{ url_for('manage_research_canonical_truth') }}">Canonical truth</a>
+    <a class="btn btn-outline btn-sm{% if active_section == 'mcp_workbench' %} is-active{% endif %}" href="{{ url_for('manage_research_mcp_workbench') }}">MCP / workbench</a>
+</div>

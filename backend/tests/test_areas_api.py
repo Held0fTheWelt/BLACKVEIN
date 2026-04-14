@@ -144,6 +144,7 @@ def test_auth_me_includes_allowed_features(client, admin_headers):
     assert "manage.world_engine_author" in data["allowed_features"]
     assert "manage.mcp_operations" in data["allowed_features"]
     assert "manage.ai_runtime_governance" in data["allowed_features"]
+    assert "manage.research_governance" in data["allowed_features"]
 
 
 """Tests for TestAreaAPI."""
