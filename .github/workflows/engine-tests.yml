@@ -42,11 +42,13 @@ jobs:
           cache-dependency-path: |
             world-engine/requirements.txt
             world-engine/requirements-dev.txt
+            ai_stack/pyproject.toml
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e "./story_runtime_core"
+          python -m pip install -e "./ai_stack[test]"
           pip install -r world-engine/requirements-dev.txt
 
       - name: Run engine fast tests
@@ -82,11 +84,13 @@ jobs:
           cache-dependency-path: |
             world-engine/requirements.txt
             world-engine/requirements-dev.txt
+            ai_stack/pyproject.toml
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e "./story_runtime_core"
+          python -m pip install -e "./ai_stack[test]"
           pip install -r world-engine/requirements-dev.txt
 
       - name: Run engine full tests

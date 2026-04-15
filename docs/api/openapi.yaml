@@ -28,6 +28,8 @@ tags:
   description: Improvement experiments, recommendations, variants.
 - name: MCP
   description: MCP operations UI support and operator telemetry ingest.
+- name: OperationalGovernance
+  description: Bootstrap, provider/model/route governance, runtime modes, settings, and cost control plane.
 - name: Roles
   description: Role CRUD for authorized admin clients.
 - name: SessionsBridge
@@ -250,6 +252,593 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/admin/ai/advanced-settings:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/advanced-settings
+      operationId: get_api_v1_admin_ai_advanced_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/advanced-settings
+      operationId: patch_api_v1_admin_ai_advanced_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/advanced-settings/reset-overrides:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/advanced-settings/reset-overrides
+      operationId: post_api_v1_admin_ai_advanced_settings_reset_overrides
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/effective-config:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/effective-config
+      operationId: get_api_v1_admin_ai_effective_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/models:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/models
+      operationId: get_api_v1_admin_ai_models
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/models
+      operationId: post_api_v1_admin_ai_models
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/models/{model_id}:
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/models/{model_id}
+      operationId: patch_api_v1_admin_ai_models_model_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: model_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/orchestration/settings:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/orchestration/settings
+      operationId: get_api_v1_admin_ai_orchestration_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/orchestration/settings
+      operationId: patch_api_v1_admin_ai_orchestration_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/orchestration/status:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/orchestration/status
+      operationId: get_api_v1_admin_ai_orchestration_status
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/presets:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/presets
+      operationId: get_api_v1_admin_ai_presets
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/presets/apply:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/presets/apply
+      operationId: post_api_v1_admin_ai_presets_apply
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/providers:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/providers
+      operationId: get_api_v1_admin_ai_providers
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/providers
+      operationId: post_api_v1_admin_ai_providers
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/providers/{provider_id}:
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/providers/{provider_id}
+      operationId: patch_api_v1_admin_ai_providers_provider_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/providers/{provider_id}/credential:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/providers/{provider_id}/credential
+      operationId: post_api_v1_admin_ai_providers_provider_id_credential
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/providers/{provider_id}/rotate-credential:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/providers/{provider_id}/rotate-credential
+      operationId: post_api_v1_admin_ai_providers_provider_id_rotate_credential
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/providers/{provider_id}/test-connection:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/providers/{provider_id}/test-connection
+      operationId: post_api_v1_admin_ai_providers_provider_id_test_connection
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/rag/actions/{action_id}:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/rag/actions/{action_id}
+      operationId: post_api_v1_admin_ai_rag_actions_action_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: action_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/rag/probe:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/rag/probe
+      operationId: post_api_v1_admin_ai_rag_probe
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/rag/settings:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/rag/settings
+      operationId: get_api_v1_admin_ai_rag_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/rag/settings
+      operationId: patch_api_v1_admin_ai_rag_settings
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/rag/status:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/rag/status
+      operationId: get_api_v1_admin_ai_rag_status
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/routes:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/routes
+      operationId: get_api_v1_admin_ai_routes
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/routes
+      operationId: post_api_v1_admin_ai_routes
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/routes/{route_id}:
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/ai/routes/{route_id}
+      operationId: patch_api_v1_admin_ai_routes_route_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: route_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/ai/runtime-dashboard:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/runtime-dashboard
+      operationId: get_api_v1_admin_ai_runtime_dashboard
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/runtime-readiness:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/runtime-readiness
+      operationId: get_api_v1_admin_ai_runtime_readiness
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/settings-changes:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/settings-changes
+      operationId: get_api_v1_admin_ai_settings_changes
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/analytics/content:
     get:
       tags:
@@ -332,6 +921,238 @@ paths:
       - Analytics
       summary: GET /admin/analytics/users
       operationId: get_api_v1_admin_analytics_users
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/audit/governance:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/audit/governance
+      operationId: get_api_v1_admin_audit_governance
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/bootstrap/initialize:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/bootstrap/initialize
+      operationId: post_api_v1_admin_bootstrap_initialize
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/bootstrap/presets:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/bootstrap/presets
+      operationId: get_api_v1_admin_bootstrap_presets
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/bootstrap/reopen:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/bootstrap/reopen
+      operationId: post_api_v1_admin_bootstrap_reopen
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/bootstrap/status:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/bootstrap/status
+      operationId: get_api_v1_admin_bootstrap_status
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/costs/budgets:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/costs/budgets
+      operationId: get_api_v1_admin_costs_budgets
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/costs/budgets
+      operationId: post_api_v1_admin_costs_budgets
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/costs/budgets/{budget_policy_id}:
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/costs/budgets/{budget_policy_id}
+      operationId: patch_api_v1_admin_costs_budgets_budget_policy_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: budget_policy_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/costs/rollups:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/costs/rollups
+      operationId: get_api_v1_admin_costs_rollups
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/costs/rollups/rebuild:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/costs/rollups/rebuild
+      operationId: post_api_v1_admin_costs_rollups_rebuild
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/costs/usage-events:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/costs/usage-events
+      operationId: get_api_v1_admin_costs_usage_events
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/costs/usage-events
+      operationId: post_api_v1_admin_costs_usage_events
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).
@@ -679,6 +1500,803 @@ paths:
         required: true
         schema:
           type: integer
+  /api/v1/admin/narrative/evaluations:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/evaluations
+      operationId: get_api_v1_admin_narrative_evaluations
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/evaluations/run-preview:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/evaluations/run-preview
+      operationId: post_api_v1_admin_narrative_evaluations_run_preview
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/evaluations/{run_id}:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/evaluations/{run_id}
+      operationId: get_api_v1_admin_narrative_evaluations_run_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/evaluations/{run_id}/complete:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/evaluations/{run_id}/complete
+      operationId: post_api_v1_admin_narrative_evaluations_run_id_complete
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/evaluations/{run_id}/coverage:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/evaluations/{run_id}/coverage
+      operationId: get_api_v1_admin_narrative_evaluations_run_id_coverage
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - &id001
+        name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/evaluations/{run_id}/coverage
+      operationId: post_api_v1_admin_narrative_evaluations_run_id_coverage
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - *id001
+  /api/v1/admin/narrative/notifications/feed:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/notifications/feed
+      operationId: get_api_v1_admin_narrative_notifications_feed
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/notifications/feed/{notification_id}/ack:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/notifications/feed/{notification_id}/ack
+      operationId: post_api_v1_admin_narrative_notifications_feed_notification_id_ack
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: notification_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/notifications/rules:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/notifications/rules
+      operationId: get_api_v1_admin_narrative_notifications_rules
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/notifications/rules
+      operationId: post_api_v1_admin_narrative_notifications_rules
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/packages:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/packages
+      operationId: get_api_v1_admin_narrative_packages
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/packages/{module_id}/active:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/packages/{module_id}/active
+      operationId: get_api_v1_admin_narrative_packages_module_id_active
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/packages/{module_id}/build-preview:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/packages/{module_id}/build-preview
+      operationId: post_api_v1_admin_narrative_packages_module_id_build_preview
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/packages/{module_id}/history:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/packages/{module_id}/history
+      operationId: get_api_v1_admin_narrative_packages_module_id_history
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/packages/{module_id}/previews:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/packages/{module_id}/previews
+      operationId: get_api_v1_admin_narrative_packages_module_id_previews
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/packages/{module_id}/promote-preview:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/packages/{module_id}/promote-preview
+      operationId: post_api_v1_admin_narrative_packages_module_id_promote_preview
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/packages/{module_id}/rollback-to/{package_version}:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/packages/{module_id}/rollback-to/{package_version}
+      operationId: post_api_v1_admin_narrative_packages_module_id_rollback_to_package_version
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: package_version
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/revision-conflicts:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/revision-conflicts
+      operationId: get_api_v1_admin_narrative_revision_conflicts
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/revision-conflicts/detect/{module_id}:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/revision-conflicts/detect/{module_id}
+      operationId: post_api_v1_admin_narrative_revision_conflicts_detect_module_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: module_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/revision-conflicts/{conflict_id}/resolve:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/revision-conflicts/{conflict_id}/resolve
+      operationId: post_api_v1_admin_narrative_revision_conflicts_conflict_id_resolve
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: conflict_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/revisions:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/revisions
+      operationId: get_api_v1_admin_narrative_revisions
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/revisions/{revision_id}:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/revisions/{revision_id}
+      operationId: get_api_v1_admin_narrative_revisions_revision_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: revision_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/revisions/{revision_id}/apply-to-draft:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/revisions/{revision_id}/apply-to-draft
+      operationId: post_api_v1_admin_narrative_revisions_revision_id_apply_to_draft
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: revision_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/revisions/{revision_id}/transition:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/revisions/{revision_id}/transition
+      operationId: post_api_v1_admin_narrative_revisions_revision_id_transition
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: revision_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/narrative/runtime/config:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/config
+      operationId: get_api_v1_admin_narrative_runtime_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/config
+      operationId: post_api_v1_admin_narrative_runtime_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/diagnostics:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/diagnostics
+      operationId: get_api_v1_admin_narrative_runtime_diagnostics
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/health:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/health
+      operationId: get_api_v1_admin_narrative_runtime_health
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/health/events:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/health/events
+      operationId: get_api_v1_admin_narrative_runtime_health_events
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/health/events
+      operationId: post_api_v1_admin_narrative_runtime_health_events
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/health/fallbacks:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/narrative/runtime/health/fallbacks
+      operationId: get_api_v1_admin_narrative_runtime_health_fallbacks
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/health/sync:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/health/sync
+      operationId: post_api_v1_admin_narrative_runtime_health_sync
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/previews/end-session:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/previews/end-session
+      operationId: post_api_v1_admin_narrative_runtime_previews_end_session
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/previews/load:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/previews/load
+      operationId: post_api_v1_admin_narrative_runtime_previews_load
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/previews/start-session:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/previews/start-session
+      operationId: post_api_v1_admin_narrative_runtime_previews_start_session
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/runtime/previews/unload:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/runtime/previews/unload
+      operationId: post_api_v1_admin_narrative_runtime_previews_unload
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/narrative/validation-feedback/retry-payload:
+    post:
+      tags:
+      - Admin
+      summary: POST /admin/narrative/validation-feedback/retry-payload
+      operationId: post_api_v1_admin_narrative_validation_feedback_retry_payload
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/play-service-control:
     get:
       tags:
@@ -754,12 +2372,335 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/admin/research-domain/layer/{layer_id}:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/research-domain/layer/{layer_id}
+      operationId: get_api_v1_admin_research_domain_layer_layer_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: layer_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/admin/research-domain/overview:
+    get:
+      tags:
+      - Admin
+      summary: GET /admin/research-domain/overview
+      operationId: get_api_v1_admin_research_domain_overview
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/runtime/modes:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/runtime/modes
+      operationId: get_api_v1_admin_runtime_modes
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/runtime/modes
+      operationId: patch_api_v1_admin_runtime_modes
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/runtime/reload-resolved-config:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/runtime/reload-resolved-config
+      operationId: post_api_v1_admin_runtime_reload_resolved_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/runtime/resolved-config:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/runtime/resolved-config
+      operationId: get_api_v1_admin_runtime_resolved_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/settings/backend:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/settings/backend
+      operationId: get_api_v1_admin_settings_backend
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/settings/backend
+      operationId: patch_api_v1_admin_settings_backend
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/settings/costs:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/settings/costs
+      operationId: get_api_v1_admin_settings_costs
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/settings/costs
+      operationId: patch_api_v1_admin_settings_costs
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/settings/notifications:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/settings/notifications
+      operationId: get_api_v1_admin_settings_notifications
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/settings/notifications
+      operationId: patch_api_v1_admin_settings_notifications
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/settings/retrieval:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/settings/retrieval
+      operationId: get_api_v1_admin_settings_retrieval
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/settings/retrieval
+      operationId: patch_api_v1_admin_settings_retrieval
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/settings/world-engine:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/settings/world-engine
+      operationId: get_api_v1_admin_settings_world_engine
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    patch:
+      tags:
+      - OperationalGovernance
+      summary: PATCH /admin/settings/world-engine
+      operationId: patch_api_v1_admin_settings_world_engine
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/system-diagnosis:
     get:
       tags:
       - System
       summary: GET /admin/system-diagnosis
       operationId: get_api_v1_admin_system_diagnosis
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/world-engine/control-center:
+    get:
+      tags:
+      - WorldEngineConsole
+      summary: GET /admin/world-engine/control-center
+      operationId: get_api_v1_admin_world_engine_control_center
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).
@@ -1074,7 +3015,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id001
+      - &id002
         name: area_id
         in: path
         required: true
@@ -1099,7 +3040,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id001
+      - *id002
     put:
       tags:
       - Areas
@@ -1119,7 +3060,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id001
+      - *id002
   /api/v1/auth/forgot-password:
     post:
       tags:
@@ -1276,6 +3217,25 @@ paths:
         '500':
           description: Server error.
       security: []
+  /api/v1/bootstrap/public-status:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /bootstrap/public-status
+      operationId: get_api_v1_bootstrap_public_status
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/data/export:
     post:
       tags:
@@ -1391,7 +3351,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id002
+      - &id003
         name: feature_id
         in: path
         required: true
@@ -1416,7 +3376,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id002
+      - *id003
   /api/v1/forum/admin/categories:
     post:
       tags:
@@ -1456,7 +3416,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id003
+      - &id004
         name: category_id
         in: path
         required: true
@@ -1481,7 +3441,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id003
+      - *id004
   /api/v1/forum/bookmarks:
     get:
       tags:
@@ -1565,7 +3525,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id004
+      - &id005
         name: slug
         in: path
         required: true
@@ -1590,7 +3550,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id004
+      - *id005
   /api/v1/forum/moderation/bulk-posts/hide:
     post:
       tags:
@@ -1883,7 +3843,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id005
+      - &id006
         name: post_id
         in: path
         required: true
@@ -1908,7 +3868,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id005
+      - *id006
   /api/v1/forum/posts/{post_id}/hide:
     post:
       tags:
@@ -1954,7 +3914,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id006
+      - &id007
         name: post_id
         in: path
         required: true
@@ -1979,7 +3939,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id006
+      - *id007
   /api/v1/forum/posts/{post_id}/unhide:
     post:
       tags:
@@ -2081,7 +4041,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id007
+      - &id008
         name: report_id
         in: path
         required: true
@@ -2106,7 +4066,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id007
+      - *id008
   /api/v1/forum/search:
     get:
       tags:
@@ -2284,7 +4244,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id008
+      - &id009
         name: thread_id
         in: path
         required: true
@@ -2309,7 +4269,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id008
+      - *id009
   /api/v1/forum/threads/{thread_id}/archive:
     post:
       tags:
@@ -2355,7 +4315,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id009
+      - &id010
         name: thread_id
         in: path
         required: true
@@ -2380,7 +4340,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id009
+      - *id010
   /api/v1/forum/threads/{thread_id}/feature:
     post:
       tags:
@@ -2501,7 +4461,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id010
+      - &id011
         name: thread_id
         in: path
         required: true
@@ -2526,7 +4486,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id010
+      - *id011
   /api/v1/forum/threads/{thread_id}/split:
     post:
       tags:
@@ -2572,7 +4532,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id011
+      - &id012
         name: thread_id
         in: path
         required: true
@@ -2597,7 +4557,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id011
+      - *id012
   /api/v1/forum/threads/{thread_id}/subscribers:
     get:
       tags:
@@ -2805,7 +4765,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id012
+      - &id013
         name: experience_id
         in: path
         required: true
@@ -2830,7 +4790,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id012
+      - *id013
   /api/v1/game-admin/experiences/{experience_id}/governance/decision:
     post:
       tags:
@@ -3145,7 +5105,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id013
+      - &id014
         name: character_id
         in: path
         required: true
@@ -3170,7 +5130,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id013
+      - *id014
   /api/v1/game/content/experiences:
     get:
       tags:
@@ -3228,7 +5188,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id014
+      - &id015
         name: experience_id
         in: path
         required: true
@@ -3253,7 +5213,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id014
+      - *id015
   /api/v1/game/content/experiences/{experience_id}/governance/decision:
     post:
       tags:
@@ -3731,6 +5691,44 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/internal/runtime-config:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /internal/runtime-config
+      operationId: get_api_v1_internal_runtime_config
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/internal/runtime-config/reload:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /internal/runtime-config/reload
+      operationId: post_api_v1_internal_runtime_config_reload
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/languages:
     get:
       tags:
@@ -3807,7 +5805,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id015
+      - &id016
         name: article_id
         in: path
         required: true
@@ -3832,7 +5830,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id015
+      - *id016
   /api/v1/news/{article_id}/discussion-thread:
     delete:
       tags:
@@ -3853,7 +5851,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id016
+      - &id017
         name: article_id
         in: path
         required: true
@@ -3878,7 +5876,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id016
+      - *id017
   /api/v1/news/{article_id}/publish:
     post:
       tags:
@@ -3924,7 +5922,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id017
+      - &id018
         name: article_id
         in: path
         required: true
@@ -3949,7 +5947,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id017
+      - *id018
   /api/v1/news/{article_id}/related-threads/{thread_id}:
     delete:
       tags:
@@ -4075,13 +6073,13 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id018
+      - &id019
         name: article_id
         in: path
         required: true
         schema:
           type: integer
-      - &id019
+      - &id020
         name: lang
         in: path
         required: true
@@ -4106,8 +6104,8 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id018
       - *id019
+      - *id020
   /api/v1/news/{article_id}/translations/{lang}/approve:
     post:
       tags:
@@ -4324,7 +6322,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id020
+      - &id021
         name: notification_id
         in: path
         required: true
@@ -4349,7 +6347,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id020
+      - *id021
   /api/v1/operator/mcp-telemetry/ingest:
     post:
       tags:
@@ -4426,7 +6424,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id021
+      - &id022
         name: role_id
         in: path
         required: true
@@ -4451,7 +6449,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id021
+      - *id022
     put:
       tags:
       - Roles
@@ -4471,7 +6469,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id021
+      - *id022
   /api/v1/sessions:
     post:
       tags:
@@ -4823,7 +6821,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id022
+      - &id023
         name: slogan_id
         in: path
         required: true
@@ -4848,7 +6846,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id022
+      - *id023
     put:
       tags:
       - SiteContent
@@ -4868,7 +6866,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id022
+      - *id023
   /api/v1/slogans/{slogan_id}/activate:
     post:
       tags:
@@ -4977,7 +6975,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id023
+      - &id024
         name: user_id
         in: path
         required: true
@@ -5002,7 +7000,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id023
+      - *id024
     put:
       tags:
       - Users
@@ -5022,7 +7020,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id023
+      - *id024
   /api/v1/users/{user_id}/areas:
     get:
       tags:
@@ -5043,7 +7041,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id024
+      - &id025
         name: user_id
         in: path
         required: true
@@ -5068,7 +7066,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id024
+      - *id025
   /api/v1/users/{user_id}/ban:
     post:
       tags:
@@ -5413,13 +7411,13 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id025
+      - &id026
         name: page_id
         in: path
         required: true
         schema:
           type: integer
-      - &id026
+      - &id027
         name: lang
         in: path
         required: true
@@ -5444,8 +7442,8 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id025
       - *id026
+      - *id027
   /api/v1/wiki-admin/pages/{page_id}/translations/{lang}/approve:
     post:
       tags:
@@ -5556,7 +7554,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id027
+      - &id028
         name: page_id
         in: path
         required: true
@@ -5581,7 +7579,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id027
+      - *id028
   /api/v1/wiki/{page_id}/related-threads:
     get:
       tags:
@@ -5602,7 +7600,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - &id028
+      - &id029
         name: page_id
         in: path
         required: true
@@ -5627,7 +7625,7 @@ paths:
         '500':
           description: Server error.
       parameters:
-      - *id028
+      - *id029
   /api/v1/wiki/{page_id}/related-threads/{thread_id}:
     delete:
       tags:

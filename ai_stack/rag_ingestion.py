@@ -23,6 +23,28 @@ _MODULE_PATH = re.compile(r"(?i)^content/modules/([^/]+)/")
 _PUBLISHED_MODULE_PATH = re.compile(r"(?i)^content/published/([^/]+)/")
 
 
+def _world_engine_var_runs_json_files(repo_root: Path) -> list[Path]:
+    """JSON run logs under ``world-engine/**/var/runs/``.
+
+    A literal ``Path.glob("world-engine/**/var/runs/**/*.json")`` is not reliable on
+    all supported Python versions when ``**`` sits between fixed segments; walk the
+    tree and match ``var`` / ``runs`` path segments instead.
+    """
+    we = repo_root / "world-engine"
+    if not we.is_dir():
+        return []
+    found: list[Path] = []
+    for path in we.rglob("*.json"):
+        if not path.is_file():
+            continue
+        parts = tuple(p.lower() for p in path.parts)
+        for i in range(len(parts) - 1):
+            if parts[i] == "var" and parts[i + 1] == "runs":
+                found.append(path)
+                break
+    return found
+
+
 def _infer_module_id(repo_root: Path, file: Path) -> str | None:
     """Resolve module_id from conventional paths; flat
     ``content/<stem>.md`` uses file stem.
@@ -121,7 +143,6 @@ class RagIngestionPipeline:
             "docs/technical/**/*.md",
             "docs/architecture/**/*.md",
             "docs/reports/**/*.md",
-            "world-engine/**/var/runs/**/*.json",
         ]
 
     def _select_sources(self, repo_root: Path) -> list[Path]:
@@ -139,6 +160,7 @@ class RagIngestionPipeline:
         files: list[Path] = []
         for pattern in self._source_patterns():
             files.extend(repo_root.glob(pattern))
+        files.extend(_world_engine_var_runs_json_files(repo_root))
         return sorted({file for file in files if file.is_file()})[: self.max_sources]
 
     def compute_source_fingerprint(self, repo_root: Path) -> str:

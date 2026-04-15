@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.observability.audit_log import log_world_engine_bridge, log_workflow_audit
+from app.services.ai_stack_closure_cockpit_parsing import G9B_ATTEMPT_RECORD_PATH, read_audit_json as closure_read_audit_json
 from app.services.game_service import GameServiceError
 
 
@@ -478,7 +481,22 @@ def test_release_readiness_improvement_weak_retrieval_backing_is_partial(client,
     assert payload["decision_support"]["improvement_review_ready_for_retrieval_graded_review"] is False
 
 
-def test_closure_cockpit_endpoint_returns_normalized_gate_truth(client, moderator_headers):
+def test_closure_cockpit_endpoint_returns_normalized_gate_truth(client, moderator_headers, monkeypatch):
+    """Contract test: pin G9B attempt JSON so CI does not depend on fork-evolved evidence files."""
+    g9b_fixture = {
+        "audit_run_id": "m11_closure_cockpit_contract",
+        "level_b_attempt_status": "failed_insufficient_independence",
+        "reason_codes": ["independence_evidence_insufficient_for_level_b"],
+        "independence_classification_primary": "insufficient_process_separation",
+    }
+
+    def _read_audit_json(path):
+        if Path(path).resolve() == G9B_ATTEMPT_RECORD_PATH.resolve():
+            return g9b_fixture
+        return closure_read_audit_json(path)
+
+    monkeypatch.setattr("app.services.ai_stack_closure_cockpit_service.read_audit_json", _read_audit_json)
+
     response = client.get("/api/v1/admin/ai-stack/closure-cockpit", headers=moderator_headers)
     assert response.status_code == 200
     payload = response.get_json()
@@ -503,6 +521,9 @@ def test_closure_cockpit_endpoint_returns_normalized_gate_truth(client, moderato
     assert "repo_local_resolved" in blockers
     assert "evidential_or_external" in blockers
     assert blockers.get("decisive_blocker_id") == "g9b_independence"
+    evidential = blockers.get("evidential_or_external") or []
+    assert len(evidential) == 1
+    assert evidential[0].get("id") == "g9b_independence"
 
     focus = payload.get("g9_g9b_g10_focus") or {}
     assert "anti_misread_statement" in focus

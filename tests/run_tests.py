@@ -279,6 +279,31 @@ def check_environment(suites: dict[str, tuple[Path, str]]) -> bool:
             if err:
                 print_info(err)
 
+        print_info("Probing ai_stack LangGraph export (StoryRuntimeManager imports RuntimeTurnGraphExecutor) …")
+        graph_py = (
+            "import ai_stack\n"
+            "assert getattr(ai_stack, 'LANGGRAPH_RUNTIME_EXPORT_AVAILABLE', False), "
+            "'install ai_stack runtime deps: pip install -e \"./ai_stack[test]\" "
+            "from repo root (see .github/workflows/engine-tests.yml).'\n"
+            "from ai_stack import RuntimeTurnGraphExecutor\n"
+            "assert RuntimeTurnGraphExecutor is not None\n"
+        )
+        g_passed, g_err = _import_probe(
+            cwd=PROJECT_ROOT,
+            py_code=graph_py,
+            env_overrides={"PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        if g_passed:
+            print_success("World engine suite: ai_stack exports RuntimeTurnGraphExecutor (LangGraph path OK).")
+        else:
+            ok = False
+            print_error(
+                "ai_stack LangGraph surface not importable with repo root on PYTHONPATH. "
+                "From repo root: `pip install -e ./story_runtime_core` and `pip install -e \"./ai_stack[test]\"`."
+            )
+            if g_err:
+                print_info(g_err)
+
     # --- ai_stack (repo root on PYTHONPATH; editable installs per CI) ---
     if "ai_stack" in labels:
         print_info("Probing ai_stack (cwd=repo root, PYTHONPATH=repo) …")
@@ -314,8 +339,8 @@ def check_environment(suites: dict[str, tuple[Path, str]]) -> bool:
 
 
 def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
-    """ai_stack tests import sibling packages; ensure repo root is on PYTHONPATH."""
-    if suite_name != "ai_stack":
+    """Put repo root on PYTHONPATH for suites that import ``ai_stack`` / ``story_runtime_core`` as siblings."""
+    if suite_name not in ("ai_stack", "engine"):
         return None
     env = dict(os.environ)
     root = str(PROJECT_ROOT)
