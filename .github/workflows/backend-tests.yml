@@ -18,7 +18,7 @@ on:
       - "'fy'-suites/docify/**"
       - 'docs/goc_evidence_templates/**'
       - '.github/workflows/backend-tests.yml'
-      - 'run_tests.py'
+      - 'tests/run_tests.py'
       - 'setup-test-environment.sh'
       - 'setup-test-environment.bat'
   pull_request:
@@ -36,7 +36,7 @@ on:
       - "'fy'-suites/docify/**"
       - 'docs/goc_evidence_templates/**'
       - '.github/workflows/backend-tests.yml'
-      - 'run_tests.py'
+      - 'tests/run_tests.py'
       - 'setup-test-environment.sh'
       - 'setup-test-environment.bat'
 

@@ -23,6 +23,16 @@ administration, and engine (see ``--help``).
 
 Or ``cd tests`` then ``python run_tests.py …``. See ``tests/TESTING.md`` for full runner
 contracts (``--quick``, ``--scope``, coverage roots, and ``--suite all`` semantics).
+
+**One-shot dependency install (recommended for a fresh clone / CI-like venv):** from the
+repository root run ``./setup-test-environment.sh`` (Linux/macOS/Git Bash) or
+``setup-test-environment.bat`` (Windows cmd), or the equivalent
+``scripts/install-full-test-env.sh`` / ``scripts/install-full-test-env.ps1`` /
+``scripts/install-full-test-env.bat``. That installs backend, frontend, administration-tool,
+and world-engine dev requirements plus editable ``story_runtime_core`` and ``ai_stack[test]``,
+then verifies the LangGraph export surface required by the **engine** and **ai_stack** suites.
+Without that closure, :func:`check_environment` fails fast with ``pip`` hints instead of
+mid-suite ``ModuleNotFoundError``.
 """
 
 from __future__ import annotations
@@ -694,6 +704,13 @@ def main() -> int:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+Prerequisites (full ``--suite all``): install all component test deps and editable
+``story_runtime_core`` + ``ai_stack[test]`` once. From repo root:
+  ./setup-test-environment.sh          (Unix / Git Bash)
+  setup-test-environment.bat           (Windows cmd)
+  ./scripts/install-full-test-env.sh   (wrapper, same as above)
+See tests/TESTING.md (Environment preflight).
+
 Examples (from repository root):
   python tests/run_tests.py
   python tests/run_tests.py --suite backend

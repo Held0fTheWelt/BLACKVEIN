@@ -8,6 +8,14 @@ The root `tests/` folder holds the **orchestrator** (`run_tests.py`), smoke asse
 
 ## Quick start
 
+**First-time / fresh clone (installs all Python deps for `--suite all`):** from the repository root, run one of:
+
+- **Linux / macOS / Git Bash:** `./setup-test-environment.sh` or `./scripts/install-full-test-env.sh` (same behavior)
+- **Windows (cmd):** `setup-test-environment.bat` or `scripts\install-full-test-env.bat`
+- **Windows (PowerShell):** `.\scripts\install-full-test-env.ps1`
+
+That installs `backend/requirements-dev.txt`, `frontend/requirements-dev.txt`, `administration-tool/requirements-dev.txt`, `world-engine/requirements-dev.txt`, plus editable `story_runtime_core` and `ai_stack[test]`, and verifies the LangGraph export surface (`RuntimeTurnGraphExecutor`) expected by the **engine** and **ai_stack** suites. For **ai_stack tests only**, use `scripts/install-ai-stack-test-env.sh` (or `.ps1` / `.bat`) — smaller install.
+
 From the **repository root** (recommended):
 
 ```bash
@@ -195,7 +203,7 @@ Before running pytest, `run_tests.py` calls `check_environment()` and runs **imp
 - **engine** — FastAPI / SQLAlchemy / HTTPX for the engine app, then **LangChain / LangGraph** plus `from ai_stack import RuntimeTurnGraphExecutor` with repo root on `PYTHONPATH` (same bar as `.github/workflows/engine-tests.yml`).
 - **ai_stack** — editable `story_runtime_core` + `ai_stack` resolvable from repo root, then the **same LangGraph lane** probe as engine (`langchain_core`, `langgraph`, export flag).
 
-For AI-stack-only work, use `scripts/install-ai-stack-test-env.sh` (Linux/macOS) or `pip install -r ai_stack/requirements-test.txt` with editable installs per `ai_stack/requirements-test.txt` header comments.
+For **full** orchestrator parity (including `engine` + `ai_stack` graph lane), use `setup-test-environment.sh` / `setup-test-environment.bat` or `scripts/install-full-test-env.*` (see Quick start above). For AI-stack-only work, use `scripts/install-ai-stack-test-env.sh` (Linux/macOS) or `pip install -r ai_stack/requirements-test.txt` with editable installs per `ai_stack/requirements-test.txt` header comments.
 
 ---
 

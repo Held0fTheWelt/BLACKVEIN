@@ -40,24 +40,18 @@ echo "Repository: $REPO_ROOT"
 echo "Python: $($PYTHON_BIN --version)"
 echo ""
 
-# Install backend dependencies
+# Install backend dependencies (same bar as .github/workflows/backend-tests.yml)
 echo -e "${YELLOW}Installing backend dependencies...${NC}"
 cd backend
 
-if [[ ! -f "requirements.txt" ]]; then
-    echo -e "${RED}Error: backend/requirements.txt not found${NC}" >&2
+if [[ ! -f "requirements-dev.txt" ]]; then
+    echo -e "${RED}Error: backend/requirements-dev.txt not found${NC}" >&2
     exit 1
 fi
 
-if [[ ! -f "requirements-test.txt" ]]; then
-    echo -e "${RED}Error: backend/requirements-test.txt not found${NC}" >&2
-    exit 1
-fi
-
-# Single install: requirements-test.txt includes "-r requirements.txt" (same directory).
-echo "Installing production + test dependencies (requirements-test.txt)..."
+echo "Installing production + dev/test dependencies (requirements-dev.txt)..."
 $PYTHON_BIN -m pip install --upgrade pip -q
-$PYTHON_BIN -m pip install -r requirements-test.txt -q
+$PYTHON_BIN -m pip install -r requirements-dev.txt -q
 
 cd "$REPO_ROOT"
 
@@ -79,13 +73,27 @@ if [[ -d "ai_stack" ]]; then
     fi
 fi
 
+# Other components needed for ``python tests/run_tests.py --suite all`` (orchestrator cwd per suite).
+if [[ -f "frontend/requirements-dev.txt" ]]; then
+    echo -e "${YELLOW}Installing frontend test dependencies...${NC}"
+    $PYTHON_BIN -m pip install -r frontend/requirements-dev.txt -q
+fi
+if [[ -f "administration-tool/requirements-dev.txt" ]]; then
+    echo -e "${YELLOW}Installing administration-tool test dependencies...${NC}"
+    $PYTHON_BIN -m pip install -r administration-tool/requirements-dev.txt -q
+fi
+if [[ -f "world-engine/requirements-dev.txt" ]]; then
+    echo -e "${YELLOW}Installing world-engine test dependencies...${NC}"
+    $PYTHON_BIN -m pip install -r world-engine/requirements-dev.txt -q
+fi
+
 # Verify critical dependencies
 echo ""
 echo -e "${YELLOW}Verifying critical dependencies...${NC}"
 
 MISSING=()
 
-packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio" "langchain_core" "langgraph")
+packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio" "langchain_core" "langgraph" "fastapi" "httpx")
 
 for pkg in "${packages[@]}"; do
     if $PYTHON_BIN -c "import ${pkg}" 2>/dev/null; then
@@ -104,8 +112,21 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
         echo "  - $pkg"
     done
     echo ""
-    echo "Try running pip install again:"
-    echo "  pip install -r backend/requirements.txt -r backend/requirements-test.txt"
+    echo "Try running pip install again from repo root (see setup-test-environment.sh)."
+    exit 1
+fi
+
+# Same surface as tests/run_tests.py ``_probe_ai_stack_langgraph_lane`` / engine CI.
+echo -e "${YELLOW}Verifying ai_stack LangGraph export (RuntimeTurnGraphExecutor)...${NC}"
+if ! PYTHONPATH="$REPO_ROOT" $PYTHON_BIN -c "
+import langchain_core, langgraph, ai_stack
+assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE
+from ai_stack import RuntimeTurnGraphExecutor
+assert RuntimeTurnGraphExecutor is not None
+print('  ✓ ai_stack graph lane OK')
+"; then
+    echo -e "${RED}Error: ai_stack LangGraph export check failed.${NC}" >&2
+    echo "Ensure: pip install -e ./story_runtime_core && pip install -e \"./ai_stack[test]\"" >&2
     exit 1
 fi
 
@@ -113,7 +134,9 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}All dependencies installed successfully!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo "You can now run tests:"
+echo "You can now run the full Python orchestrator (from repo root):"
+echo "  python tests/run_tests.py"
+echo "Or component-only:"
 echo "  python -m pytest tests/smoke/ -v"
 echo "  python -m pytest backend/tests/ -v"
 echo "  PYTHONPATH=$REPO_ROOT python -m pytest ai_stack/tests -q"

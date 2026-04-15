@@ -33,34 +33,46 @@ echo Repository: %REPO_ROOT%
 echo Python: %PYTHON_VERSION%
 echo.
 
-REM Install backend dependencies
+REM Install backend dependencies (same bar as .github/workflows/backend-tests.yml)
 echo Installing backend dependencies...
 cd backend
 
-if not exist "requirements.txt" (
-    echo Error: backend/requirements.txt not found
+if not exist "requirements-dev.txt" (
+    echo Error: backend/requirements-dev.txt not found
     exit /b 1
 )
 
-if not exist "requirements-test.txt" (
-    echo Error: backend/requirements-test.txt not found
-    exit /b 1
-)
-
-echo Installing production and test dependencies via requirements-test.txt...
+echo Installing production and dev/test dependencies via requirements-dev.txt...
 python -m pip install --upgrade pip -q
 if errorlevel 1 (
     echo Error upgrading pip
     exit /b 1
 )
 
-python -m pip install -r requirements-test.txt -q
+python -m pip install -r requirements-dev.txt -q
 if errorlevel 1 (
     echo Error installing dependencies
     exit /b 1
 )
 
 cd /d "%REPO_ROOT%"
+
+REM Other components for ``python tests/run_tests.py --suite all``
+if exist "frontend\requirements-dev.txt" (
+    echo Installing frontend test dependencies...
+    python -m pip install -r frontend/requirements-dev.txt -q
+    if errorlevel 1 exit /b 1
+)
+if exist "administration-tool\requirements-dev.txt" (
+    echo Installing administration-tool test dependencies...
+    python -m pip install -r administration-tool/requirements-dev.txt -q
+    if errorlevel 1 exit /b 1
+)
+if exist "world-engine\requirements-dev.txt" (
+    echo Installing world-engine test dependencies...
+    python -m pip install -r world-engine/requirements-dev.txt -q
+    if errorlevel 1 exit /b 1
+)
 
 REM Editable local packages so ai_stack LangGraph tests and imports match CI / full repo layout.
 if exist "story_runtime_core\pyproject.toml" (
@@ -88,7 +100,7 @@ echo Verifying critical dependencies...
 setlocal enabledelayedexpansion
 set "MISSING="
 
-for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio langchain_core langgraph) do (
+for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio langchain_core langgraph fastapi httpx) do (
     python -c "import %%p" >nul 2>&1
     if !errorlevel! equ 0 (
         echo   [OK] %%p
@@ -104,8 +116,16 @@ if not "!MISSING!"=="" (
     echo Error: Missing required packages:
     echo   !MISSING!
     echo.
-    echo Try running pip install again:
-    echo   pip install -r backend/requirements.txt -r backend/requirements-test.txt
+    echo Try running pip install again from repo root (see setup-test-environment.bat).
+    exit /b 1
+)
+
+echo Verifying ai_stack LangGraph export (RuntimeTurnGraphExecutor^)...
+set "PYTHONPATH=%REPO_ROOT%"
+python -c "import langchain_core, langgraph, ai_stack; assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE; from ai_stack import RuntimeTurnGraphExecutor; assert RuntimeTurnGraphExecutor is not None; print('  [OK] ai_stack graph lane')"
+if errorlevel 1 (
+    echo Error: ai_stack LangGraph export check failed.
+    echo Ensure: pip install -e ./story_runtime_core ^&^& pip install -e "./ai_stack[test]"
     exit /b 1
 )
 
@@ -113,7 +133,9 @@ echo ========================================
 echo All dependencies installed successfully!
 echo ========================================
 echo.
-echo You can now run tests:
+echo Full Python orchestrator from repo root:
+echo   python tests/run_tests.py
+echo Or component-only:
 echo   python -m pytest tests/smoke/ -v
 echo   python -m pytest backend/tests/ -v
 echo   set PYTHONPATH=%%REPO_ROOT%% ^&^& python -m pytest ai_stack/tests -q

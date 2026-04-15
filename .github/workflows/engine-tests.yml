@@ -10,7 +10,9 @@ on:
       - 'story_runtime_core/**'
       - '.github/workflows/engine-tests.yml'
       - '.devcontainer/**'
-      - 'run_tests.py'
+      - 'tests/run_tests.py'
+      - 'setup-test-environment.sh'
+      - 'setup-test-environment.bat'
   pull_request:
     branches: [ master, main, develop ]
     paths:
@@ -20,7 +22,9 @@ on:
       - 'story_runtime_core/**'
       - '.github/workflows/engine-tests.yml'
       - '.devcontainer/**'
-      - 'run_tests.py'
+      - 'tests/run_tests.py'
+      - 'setup-test-environment.sh'
+      - 'setup-test-environment.bat'
 
 jobs:
   engine-fast-tests:
