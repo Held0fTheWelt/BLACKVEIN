@@ -51,6 +51,13 @@ DriftClass = Literal[
 ]
 DriftSeverity = Literal["critical", "high", "medium", "low", "informational"]
 AutomationTier = Literal["auto_high", "curator_review", "candidate_only"]
+PrecedenceTier = Literal[
+    "runtime_authority",
+    "slice_normative",
+    "implementation_evidence",
+    "verification_evidence",
+    "projection_low",
+]
 
 
 def automation_tier(confidence: float) -> AutomationTier:
@@ -88,6 +95,7 @@ class ProjectionRecord:
     confidence: float
     evidence: str
     contract_version_ref: str = ""
+    precedence_tier: PrecedenceTier = "projection_low"
 
 
 @dataclass
@@ -163,6 +171,7 @@ class ContractRecord:
     change_risk: str
     tags: list[str]
     discovery_reason: str
+    precedence_tier: PrecedenceTier = "slice_normative"
 
 
 def serialise(obj: Any) -> Any:

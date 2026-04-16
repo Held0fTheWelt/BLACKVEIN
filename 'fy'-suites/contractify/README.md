@@ -111,10 +111,12 @@ Optional shared-platform output:
 | [`contract-solve-task.md`](contract-solve-task.md) | Bounded implementation procedure |
 | [`contract-reset-task.md`](contract-reset-task.md) | Recovery |
 | [`CONTRACT_GOVERNANCE_SCOPE.md`](CONTRACT_GOVERNANCE_SCOPE.md) | Ceilings + automation thresholds |
+| [`state/ATTACHMENT_PASS_INDEX.md`](state/ATTACHMENT_PASS_INDEX.md) | Visible index for major Contractify state-tracked passes |
 | [`state/PREWORK_REPOSITORY_CONTRACT_REALITY.md`](state/PREWORK_REPOSITORY_CONTRACT_REALITY.md) | Human snapshot of pre-suite reality |
 | [`state/COMPLETION_PASS_STATE.md`](state/COMPLETION_PASS_STATE.md) | Completion / hardening pass record |
 | [`state/FINALIZATION_PASS_2026-04-13.md`](state/FINALIZATION_PASS_2026-04-13.md) | Final bounded completion: baseline, slices, evidence, honest limits |
 | [`state/LAST_MILE_CLOSURE_2026-04-13.md`](state/LAST_MILE_CLOSURE_2026-04-13.md) | Last-mile closure: committed report fixtures, projection↔retired signal, evidence alignment |
+| [`state/RUNTIME_MVP_SPINE_ATTACHMENT.md`](state/RUNTIME_MVP_SPINE_ATTACHMENT.md) | Current runtime/MVP spine attachment record: promoted anchors, evidence attachments, precedence, unresolved overlaps |
 | [`examples/`](examples/) | Committed JSON **shape** samples + [`examples/README.md`](examples/README.md) |
 | [`reports/`](reports/) | Ephemeral JSON at `reports/*.json` (gitignored) + [`reports/README.md`](reports/README.md) + tracked [`reports/committed/`](reports/committed/) hermetic **discover/audit** fixtures |
 
@@ -149,3 +151,7 @@ python -m pytest "'fy'-suites/contractify/tools/tests" -q
 ## Versioning
 
 OpenAPI contracts use **`info.version`** when present; ADRs use explicit **`Status:`** lines for lifecycle (`active`, `deprecated`, `superseded`, …) and optional **`Supersedes:`** lines (parsed for **`supersedes`** relation edges when both ADRs are discovered). Other anchors remain **`unversioned`** until the repository adds machine-readable markers. Breaking vs non-breaking change tracking stays **manual** in **CG-*** backlog rows; projection rows may carry **`contract_version_ref`** (e.g. manifest SHA prefix) for drift and conflict checks.
+
+## Current state-tracked governance wave
+
+For state-tracked visibility of the current runtime/MVP governance wave, start with [`state/RUNTIME_MVP_SPINE_ATTACHMENT.md`](state/RUNTIME_MVP_SPINE_ATTACHMENT.md), then compare it with [`reports/runtime_mvp_attachment_report.md`](reports/runtime_mvp_attachment_report.md), [`contract_governance_input.md`](contract_governance_input.md), and a fresh local `reports/contract_audit.json` export.

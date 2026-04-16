@@ -17,6 +17,7 @@ _MODULES_WITHOUT_REPO_PATCH = frozenset(
     {
         "contractify.tools.tests.test_models",
         "contractify.tools.tests.test_example_artifacts",
+        "contractify.tools.tests.test_runtime_mvp_spine",
     }
 )
 

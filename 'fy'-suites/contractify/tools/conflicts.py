@@ -14,6 +14,7 @@ from urllib.parse import unquote
 from fy_platform.core.manifest import load_manifest, suite_config
 from contractify.tools.discovery import NORMATIVE_INDEX, OPENAPI_DEFAULT, POSTMAN_MANIFEST
 from contractify.tools.models import ConflictFinding, ContractRecord, ProjectionRecord
+from contractify.tools.runtime_mvp_spine import build_runtime_mvp_spine
 from contractify.tools.versioning import adr_declared_status, openapi_sha256_prefix
 
 # Markdown table / inline link targets from normative index (same cell patterns as human editors use).
@@ -25,6 +26,17 @@ _ADR_OVERLAP_TERMS = (
     ("session surface", ("session surface", "session_surface", "session")),
     ("runtime authority", ("runtime authority", "runtime_authority", "authority")),
 )
+
+_GOVERNED_RUNTIME_SPINE_OVERLAPS: dict[str, set[str]] = {
+    "session surface": {
+        "adr-0001-runtime-authority-in-world-engine.md",
+        "adr-0002-backend-session-surface-quarantine.md",
+    },
+    "runtime authority": {
+        "adr-0001-runtime-authority-in-world-engine.md",
+        "adr-0002-backend-session-surface-quarantine.md",
+    },
+}
 
 
 def _openapi_default(repo: Path) -> str:
@@ -45,6 +57,14 @@ def _norm_index_link(repo: Path, index_dir: Path, raw_target: str) -> str:
     except ValueError:
         return ""
 
+
+
+
+def _governed_runtime_spine_overlap(bucket: str, hits: list[str]) -> bool:
+    governed = _GOVERNED_RUNTIME_SPINE_OVERLAPS.get(bucket)
+    if not governed:
+        return False
+    return set(hits).issubset(governed)
 
 def detect_duplicate_normative_index_targets(repo: Path) -> list[ConflictFinding]:
     """Two or more index rows link to the same resolved path — anchor ambiguity (deterministic)."""
@@ -100,6 +120,8 @@ def detect_adr_vocabulary_overlap(repo: Path) -> list[ConflictFinding]:
             if any(k.lower() in text for k in keywords):
                 hits.append(adr.name)
         if len(hits) >= 2:
+            if _governed_runtime_spine_overlap(bucket, hits):
+                continue
             out.append(
                 ConflictFinding(
                     id=f"CNF-ADR-VOC-{hashlib.sha256(bucket.encode()).hexdigest()[:8]}",
@@ -342,6 +364,8 @@ def detect_all_conflicts(
         )
     if contract_ids:
         all_c.extend(detect_projection_orphan_source_contract(projections, contract_ids))
+    _curated_contracts, _curated_projections, _curated_relations, curated_conflicts, _curated_families = build_runtime_mvp_spine(repo)
+    all_c.extend(curated_conflicts)
     seen: set[str] = set()
     uniq: list[ConflictFinding] = []
     for c in all_c:

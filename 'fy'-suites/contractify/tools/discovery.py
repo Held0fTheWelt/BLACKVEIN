@@ -23,6 +23,7 @@ from contractify.tools.models import (
     ProjectionRecord,
     RelationEdge,
 )
+from contractify.tools.runtime_mvp_spine import build_runtime_mvp_spine
 from contractify.tools.versioning import adr_declared_status, read_openapi_version_from_file
 
 EXPLICIT_MARKER_PATTERNS = (
@@ -221,6 +222,14 @@ def discover_contracts_and_projections(
             )
         )
 
+    # A2b — Curated runtime/MVP spine (bounded, evidence-attached, higher priority than generic scans)
+    curated_contracts, curated_projections, curated_relations, _curated_conflicts, _curated_families = build_runtime_mvp_spine(repo)
+    curated_anchor_locations = {c.anchor_location for c in curated_contracts}
+    for c in curated_contracts:
+        add(c)
+    projections.extend(curated_projections)
+    relations.extend(curated_relations)
+
     # A3 — ADRs
     adr_dir = repo / "docs" / "governance"
     if adr_dir.is_dir():
@@ -230,6 +239,8 @@ def discover_contracts_and_projections(
             if "template" in adr.stem.lower():
                 continue
             rel = _safe_rel(adr, repo)
+            if rel in curated_anchor_locations:
+                continue
             head = _read_head(adr)
             st_raw = adr_declared_status(head)
             adr_status = _adr_contract_status(st_raw)
@@ -388,7 +399,7 @@ def discover_contracts_and_projections(
     # B1 — GitHub workflows (operational workflow contracts)
     wf_dir = repo / ".github" / "workflows"
     if wf_dir.is_dir():
-        for wf in sorted(wf_dir.glob("*.yml"))[:8]:
+        for wf in sorted(wf_dir.glob("*.yml"))[:2]:
             if len(contracts) >= max_contracts:
                 break
             rel = _safe_rel(wf, repo)

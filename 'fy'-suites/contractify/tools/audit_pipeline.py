@@ -11,6 +11,7 @@ from contractify.tools.discovery import discover_contracts_and_projections
 from contractify.tools.drift_analysis import run_all_drifts
 from contractify.tools.models import automation_tier, serialise
 from contractify.tools.relations import extend_relations
+from contractify.tools.runtime_mvp_spine import PRECEDENCE_RULES, build_runtime_mvp_spine
 
 
 def build_discover_payload(
@@ -33,6 +34,7 @@ def build_discover_payload(
         contracts=contracts,
     )
     relations = extend_relations(repo, contracts, projections, relations, conflicts=conflicts)
+    _spine_contracts, _spine_projections, _spine_relations, spine_conflicts, families = build_runtime_mvp_spine(repo)
     return {
         "generated_at": frozen_generated_at or datetime.now(timezone.utc).isoformat(),
         "repo_root": str(repo),
@@ -44,6 +46,9 @@ def build_discover_payload(
             "0.75": automation_tier(0.75),
             "0.4": automation_tier(0.4),
         },
+        "precedence_rules": PRECEDENCE_RULES,
+        "runtime_mvp_families": families,
+        "manual_unresolved_areas": [serialise(c) for c in spine_conflicts],
     }
 
 
@@ -82,6 +87,7 @@ def run_audit(
         contracts=contracts,
     )
     relations = extend_relations(repo, contracts, projections, relations, conflicts=conflicts)
+    _spine_contracts, _spine_projections, _spine_relations, spine_conflicts, families = build_runtime_mvp_spine(repo)
 
     # attach drift ids onto contracts (lightweight cross-index)
     drift_by_contract: dict[str, list[str]] = {}
@@ -111,6 +117,9 @@ def run_audit(
         "relations": [serialise(r) for r in relations],
         "drift_findings": [serialise(d) for d in drifts],
         "conflicts": [serialise(c) for c in conflicts],
+        "precedence_rules": PRECEDENCE_RULES,
+        "runtime_mvp_families": families,
+        "manual_unresolved_areas": [serialise(c) for c in spine_conflicts],
         "actionable_units": build_actionable_units(drifts, conflicts),
         "stats": {
             "n_contracts": len(contracts),
@@ -118,6 +127,7 @@ def run_audit(
             "n_relations": len(relations),
             "n_drifts": len(drifts),
             "n_conflicts": len(conflicts),
+            "n_manual_unresolved_areas": len(spine_conflicts),
         },
         "disclaimer": "Heuristic drift is evidence for review, not automatic ground truth. "
         "Normative authority outranks observed implementation in governance decisions.",
