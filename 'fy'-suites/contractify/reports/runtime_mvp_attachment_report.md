@@ -6,8 +6,16 @@ Generated from the curated runtime/MVP spine attachment pass.
 
 - Audit JSON: `'fy'-suites/contractify/reports/contract_audit.json`
 - Contracts discovered in audit: **43**
-- Relations discovered in audit: **225**
+- Projections discovered in audit: **19**
+- Relations discovered in audit: **239**
 - Manual unresolved areas kept explicit: **2**
+
+## Continuation update (2026-04-17)
+
+- Refreshed the missing machine audit artifact at `reports/contract_audit.json`.
+- Added direct verification attachment for Writers’ Room route governance via `backend/tests/writers_room/test_writers_room_routes.py`.
+- Added direct verification attachment for RAG governance via `ai_stack/tests/test_retrieval_governance_summary.py`.
+- Regenerated this report from the current Contractify state so the counts now match the live audit output.
 
 ## Precedence / weight handling
 
@@ -50,6 +58,8 @@ Generated from the curated runtime/MVP spine attachment pass.
 ## Test-evidenced / verification anchors promoted
 
 - `tests/TESTING.md` → `CTR-TESTING-ORCHESTRATION`
+- `ai_stack/tests/test_retrieval_governance_summary.py` → `VER-AI-RETRIEVAL-GOVERNANCE-SUMMARY-TEST`
+- `backend/tests/writers_room/test_writers_room_routes.py` → `VER-BE-WRITERS-ROOM-ROUTES-TEST`
 - `tests/run_tests.py` → `VER-TEST-RUNNER-CLI`
 - `ai_stack/tests/test_goc_scene_identity.py` → `VER-AI-GOC-SCENE-IDENTITY-TEST`
 - `story_runtime_core/tests/test_input_interpreter.py` → `VER-CORE-INPUT-INTERPRETER-TEST`
@@ -90,6 +100,8 @@ Generated from the curated runtime/MVP spine attachment pass.
 - `OBS-AI-GOC-YAML-AUTHORITY` — `ai_stack/goc_yaml_authority.py`
 - `OBS-AI-RAG` — `ai_stack/rag.py`
 - `OBS-BE-GAME-SERVICE` — `backend/app/services/game_service.py`
+- `VER-AI-RETRIEVAL-GOVERNANCE-SUMMARY-TEST` — `ai_stack/tests/test_retrieval_governance_summary.py`
+- `VER-BE-WRITERS-ROOM-ROUTES-TEST` — `backend/tests/writers_room/test_writers_room_routes.py`
 - `VER-TEST-RUNNER-CLI` — `tests/run_tests.py`
 - `VER-AI-GOC-SCENE-IDENTITY-TEST` — `ai_stack/tests/test_goc_scene_identity.py`
 - `VER-CORE-INPUT-INTERPRETER-TEST` — `story_runtime_core/tests/test_input_interpreter.py`
@@ -114,9 +126,11 @@ Generated from the curated runtime/MVP spine attachment pass.
 - `validated_by`: `CTR-PLAYER-INPUT-INTERPRETATION` -> `VER-WE-STORY-RUNTIME-API-TEST`
 - `derives_from`: `CTR-GOC-CANONICAL-TURN` -> `CTR-GOC-VERTICAL-SLICE`
 - `implemented_by`: `CTR-WRITERS-ROOM-PUBLISHING-FLOW` -> `OBS-BE-WRITERS-ROOM-ROUTES`
+- `validated_by`: `CTR-WRITERS-ROOM-PUBLISHING-FLOW` -> `VER-BE-WRITERS-ROOM-ROUTES-TEST`
 - `implemented_by`: `CTR-RAG-GOVERNANCE` -> `OBS-AI-RAG`
 - `implemented_by`: `CTR-RAG-GOVERNANCE` -> `OBS-WE-STORY-RUNTIME-MANAGER`
 - `validated_by`: `CTR-RAG-GOVERNANCE` -> `VER-WE-STORY-RUNTIME-API-TEST`
+- `validated_by`: `CTR-RAG-GOVERNANCE` -> `VER-AI-RETRIEVAL-GOVERNANCE-SUMMARY-TEST`
 - `refines`: `CTR-RUNTIME-AUTHORITY-STATE-FLOW` -> `CTR-ADR-0001-RUNTIME-AUTHORITY`
 - `refines`: `CTR-BACKEND-RUNTIME-CLASSIFICATION` -> `CTR-ADR-0001-RUNTIME-AUTHORITY`
 - `operationalizes`: `CTR-BACKEND-RUNTIME-CLASSIFICATION` -> `CTR-ADR-0002-BACKEND-SESSION-QUARANTINE`
@@ -149,10 +163,10 @@ Generated from the curated runtime/MVP spine attachment pass.
 - **input_turn**: CTR-PLAYER-INPUT-INTERPRETATION, OBS-CORE-INPUT-INTERPRETER, VER-CORE-INPUT-INTERPRETER-TEST
 - **goc**: CTR-GOC-VERTICAL-SLICE, CTR-GOC-CANONICAL-TURN, CTR-GOC-GATE-SCORING, VER-GOC-EXPERIENCE-SCORE-CLI-TEST
 - **scene_identity**: CTR-ADR-0003-SCENE-IDENTITY, OBS-AI-GOC-SCENE-IDENTITY, OBS-AI-GOC-YAML-AUTHORITY, VER-AI-GOC-SCENE-IDENTITY-TEST
-- **publish_rag**: CTR-WRITERS-ROOM-PUBLISHING-FLOW, CTR-RAG-GOVERNANCE, OBS-BE-WRITERS-ROOM-ROUTES, OBS-AI-RAG
+- **publish_rag**: CTR-WRITERS-ROOM-PUBLISHING-FLOW, CTR-RAG-GOVERNANCE, OBS-BE-WRITERS-ROOM-ROUTES, OBS-AI-RAG, VER-BE-WRITERS-ROOM-ROUTES-TEST, VER-AI-RETRIEVAL-GOVERNANCE-SUMMARY-TEST
 - **testing**: CTR-TESTING-ORCHESTRATION, VER-TEST-RUNNER-CLI, VER-SMOKE-DOCUMENTED-PATHS
 
 ## Notes
 
-- `detect_adr_vocabulary_overlap` now suppresses the formerly noisy ADR-0001/ADR-0002 runtime/session overlap because that layering is now explicitly governed through curated precedence and relations.
+- `detect_adr_vocabulary_overlap` still suppresses the formerly noisy ADR-0001/ADR-0002 runtime/session overlap because that layering is now explicitly governed through curated precedence and relations.
 - Writers’ Room vs RAG overlap remains visible on purpose and was not flattened into fake certainty.

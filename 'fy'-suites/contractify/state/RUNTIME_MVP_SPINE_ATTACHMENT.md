@@ -73,6 +73,13 @@ The gap was insufficient first-class attachment, relation richness, and evidence
 - `precedence_rules`, `runtime_mvp_families`, and `manual_unresolved_areas` are emitted into the audit payload.
 - Curated runtime/MVP records and relations are injected into Contractify discovery/audit output via `tools/runtime_mvp_spine.py` and discovery/audit integration.
 
+## Continuation update (2026-04-17)
+
+- The machine audit artifact now exists again at `../reports/contract_audit.json`.
+- Writers’ Room governance now carries direct validation evidence from `backend/tests/writers_room/test_writers_room_routes.py`.
+- RAG governance now carries direct validation evidence from `ai_stack/tests/test_retrieval_governance_summary.py`.
+- The generated markdown report was refreshed so its counts match the live audit output.
+
 ## Evidence produced by this pass
 
 - Updated machine audit JSON: `../reports/contract_audit.json`
