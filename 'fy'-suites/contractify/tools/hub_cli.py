@@ -8,13 +8,24 @@ from pathlib import Path
 from typing import Sequence
 
 from fy_platform.core.artifact_envelope import build_envelope, write_envelope
-from fy_platform.core.manifest import load_manifest
+from fy_platform.core.manifest import load_manifest, suite_config
 from contractify.tools.audit_pipeline import build_discover_payload, run_audit
-from contractify.tools.investigation_suite import write_adr_investigation_suite
 from contractify.tools.repo_paths import repo_root
 
 SUITE_VERSION = "0.1.0"
 
+
+
+
+def _configured_max_contracts(root: Path, manifest: dict | None, cli_value: int | None) -> int:
+    """Resolve discovery ceiling from explicit CLI arg first, else manifest, else phase-1 default."""
+    if cli_value is not None:
+        return int(cli_value)
+    cfg = suite_config(manifest, "contractify")
+    raw = cfg.get("max_contracts") if cfg else None
+    if isinstance(raw, int) and raw > 0:
+        return raw
+    return 30
 
 def _base_findings_from_payload(payload: dict) -> tuple[list[dict], list[dict]]:
     """Project contractify-specific payload into suite-neutral finding/evidence summaries."""
@@ -103,7 +114,8 @@ def cmd_discover(args: argparse.Namespace) -> int:
                 "removal_target": "wave-2",
             }
         )
-    payload = build_discover_payload(root, max_contracts=args.max_contracts)
+    max_contracts = _configured_max_contracts(root, manifest, args.max_contracts)
+    payload = build_discover_payload(root, max_contracts=max_contracts)
     text = json.dumps(payload, indent=2)
     if args.out:
         out = (root / args.out).resolve()
@@ -146,7 +158,8 @@ def cmd_audit(args: argparse.Namespace) -> int:
                 "removal_target": "wave-2",
             }
         )
-    payload = run_audit(root, max_contracts=args.max_contracts)
+    max_contracts = _configured_max_contracts(root, manifest, args.max_contracts)
+    payload = run_audit(root, max_contracts=max_contracts)
     text = json.dumps(payload, indent=2)
     if args.out:
         out = (root / args.out).resolve()
@@ -179,23 +192,6 @@ def cmd_self_check(args: argparse.Namespace) -> int:
     return cmd_audit(args)
 
 
-
-def cmd_adr_investigation(args: argparse.Namespace) -> int:
-    root = repo_root()
-    bundle = write_adr_investigation_suite(root, out_dir_rel=args.out_dir)
-    if not args.quiet:
-        print(
-            json.dumps(
-                {
-                    "out_dir": args.out_dir,
-                    "n_adrs": bundle["adr_governance"]["stats"]["n_adrs"],
-                    "n_findings": bundle["adr_governance"]["stats"]["n_findings"],
-                },
-                indent=2,
-            )
-        )
-    return 0
-
 def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] in ("-h", "--help", "help"):
@@ -208,7 +204,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_disc = sub.add_parser("discover", help="Discovery-only JSON")
     p_disc.add_argument("--json", action="store_true", help="Emit JSON (always on for discover)")
     p_disc.add_argument("--out", default="", help="Repo-relative JSON output path")
-    p_disc.add_argument("--max-contracts", type=int, default=30, help="Phase-1 discovery ceiling")
+    p_disc.add_argument("--max-contracts", type=int, default=None, help="Optional explicit discovery ceiling; defaults to suites.contractify.max_contracts or 30")
     p_disc.add_argument("--quiet", action="store_true", help="When --out set, skip stdout")
     p_disc.add_argument("--envelope-out", default="", help="Optional path for shared envelope output JSON")
     p_disc.set_defaults(func=cmd_discover)
@@ -216,7 +212,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_audit = sub.add_parser("audit", help="Discovery + drift + conflicts")
     p_audit.add_argument("--json", action="store_true", help="Emit JSON")
     p_audit.add_argument("--out", default="", help="Repo-relative JSON output path")
-    p_audit.add_argument("--max-contracts", type=int, default=30)
+    p_audit.add_argument("--max-contracts", type=int, default=None, help="Optional explicit discovery ceiling; defaults to suites.contractify.max_contracts or 30")
     p_audit.add_argument("--quiet", action="store_true", help="When --out set, skip stdout")
     p_audit.add_argument("--envelope-out", default="", help="Optional path for shared envelope output JSON")
     p_audit.set_defaults(func=cmd_audit)
@@ -224,15 +220,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_self = sub.add_parser("self-check", help="Integration sanity audit")
     p_self.add_argument("--json", action="store_true", help="Emit JSON")
     p_self.add_argument("--out", default="")
-    p_self.add_argument("--max-contracts", type=int, default=30)
+    p_self.add_argument("--max-contracts", type=int, default=None, help="Optional explicit discovery ceiling; defaults to suites.contractify.max_contracts or 30")
     p_self.add_argument("--quiet", action="store_true")
     p_self.add_argument("--envelope-out", default="", help="Optional path for shared envelope output JSON")
     p_self.set_defaults(func=cmd_self_check)
-
-    p_adr = sub.add_parser("adr-investigation", help="Write ADR governance inventory and Mermaid maps")
-    p_adr.add_argument("--out-dir", default="'fy'-suites/contractify/investigations/adr")
-    p_adr.add_argument("--quiet", action="store_true")
-    p_adr.set_defaults(func=cmd_adr_investigation)
 
     args = parser.parse_args(argv)
     return int(args.func(args))

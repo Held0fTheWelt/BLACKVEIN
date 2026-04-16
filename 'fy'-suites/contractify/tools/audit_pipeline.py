@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from contractify.tools.adr_governance import discover_adr_governance
 from contractify.tools.conflicts import detect_all_conflicts
 from contractify.tools.discovery import discover_contracts_and_projections
 from contractify.tools.drift_analysis import run_all_drifts
@@ -36,8 +35,6 @@ def build_discover_payload(
     )
     relations = extend_relations(repo, contracts, projections, relations, conflicts=conflicts)
     _spine_contracts, _spine_projections, _spine_relations, spine_conflicts, families = build_runtime_mvp_spine(repo)
-    adr_governance = discover_adr_governance(repo)
-    adr_governance = discover_adr_governance(repo)
     return {
         "generated_at": frozen_generated_at or datetime.now(timezone.utc).isoformat(),
         "repo_root": str(repo),
@@ -49,14 +46,14 @@ def build_discover_payload(
             "0.75": automation_tier(0.75),
             "0.4": automation_tier(0.4),
         },
+        "execution_profile": {"mode": "discover", "max_contracts": max_contracts},
         "precedence_rules": PRECEDENCE_RULES,
         "runtime_mvp_families": families,
         "manual_unresolved_areas": [serialise(c) for c in spine_conflicts],
-        "adr_governance": adr_governance,
     }
 
 
-def build_actionable_units(drifts: list[Any], conflicts: list[Any], adr_findings: list[dict[str, Any]] | None = None) -> list[str]:
+def build_actionable_units(drifts: list[Any], conflicts: list[Any]) -> list[str]:
     """Human-oriented backlog strings (not raw counts)."""
     units: list[str] = []
     for d in drifts:
@@ -67,9 +64,6 @@ def build_actionable_units(drifts: list[Any], conflicts: list[Any], adr_findings
             who = ", ".join(c.sources[:5])
             sev = getattr(c, "severity", "medium")
             units.append(f"[conflict:{sev}|{tag}] {c.summary} (sources: {who})")
-    for finding in adr_findings or []:
-        sev = finding.get("severity", "medium")
-        units.append(f"[adr-governance:{sev}] {finding.get('summary', '')} → {finding.get('recommended_action', '')}")
     return units
 
 
@@ -95,7 +89,6 @@ def run_audit(
     )
     relations = extend_relations(repo, contracts, projections, relations, conflicts=conflicts)
     _spine_contracts, _spine_projections, _spine_relations, spine_conflicts, families = build_runtime_mvp_spine(repo)
-    adr_governance = discover_adr_governance(repo)
 
     # attach drift ids onto contracts (lightweight cross-index)
     drift_by_contract: dict[str, list[str]] = {}
@@ -128,7 +121,7 @@ def run_audit(
         "precedence_rules": PRECEDENCE_RULES,
         "runtime_mvp_families": families,
         "manual_unresolved_areas": [serialise(c) for c in spine_conflicts],
-        "adr_governance": adr_governance,
+        "execution_profile": {"mode": "audit", "max_contracts": max_contracts},
         "actionable_units": build_actionable_units(drifts, conflicts),
         "stats": {
             "n_contracts": len(contracts),
@@ -137,8 +130,6 @@ def run_audit(
             "n_drifts": len(drifts),
             "n_conflicts": len(conflicts),
             "n_manual_unresolved_areas": len(spine_conflicts),
-            "n_adrs": adr_governance["stats"]["n_adrs"],
-            "n_adr_governance_findings": adr_governance["stats"]["n_findings"],
         },
         "disclaimer": "Heuristic drift is evidence for review, not automatic ground truth. "
         "Normative authority outranks observed implementation in governance decisions.",

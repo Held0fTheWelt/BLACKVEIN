@@ -20,7 +20,7 @@
 
 ## Maturity (known boundaries)
 
-Phase-1 tooling is **deliberately shallow** in places: conflicts are real but not semantic (no normative↔implementation contradiction mining, no test-derived conflict classes, no rich supersession graph). Versioning reads **declared** OpenAPI and ADR header signals only — no automatic breaking-change taxonomy or cross-family migration workflows. ADR normalization can now propose canonical ids/paths under `docs/ADR`, but it still requires human review before actual repository moves/renames. Use **CG-*** backlog rows and human review for anything that needs semantic judgement. For **ZIP / copy exports**, strip `__pycache__` / `*.pyc` or use `git archive`; see [`examples/README.md`](examples/README.md) and [`reports/README.md`](reports/README.md).
+Phase-1 tooling is **deliberately shallow** in places: conflicts are real but not semantic (no normative↔implementation contradiction mining, no test-derived conflict classes, no rich supersession graph). Versioning reads **declared** OpenAPI and ADR header signals only — no automatic breaking-change taxonomy or cross-family migration workflows. Use **CG-*** backlog rows and human review for anything that needs semantic judgement. For **ZIP / copy exports**, strip `__pycache__` / `*.pyc` or use `git archive`; see [`examples/README.md`](examples/README.md) and [`reports/README.md`](reports/README.md).
 
 ## Core truth model
 
@@ -87,15 +87,19 @@ With **`pip install -e .`** at the repository root ([`pyproject.toml`](../../pyp
 | `discover` | Contracts + projections + relations (JSON). |
 | `audit` | Full pass + drift + conflicts + `actionable_units`. |
 | `self-check` | Same payload as `audit` (integration sanity). |
-| `adr-investigation` | Write ADR governance inventory + Mermaid relation/conflict maps under `investigations/adr/`. |
 
 Examples:
 
 ```bash
 contractify audit --json --out "'fy'-suites/contractify/reports/contract_audit.json"
-python -m contractify.tools discover --max-contracts 25 --out "'fy'-suites/contractify/reports/contract_discovery.json" --quiet
-python -m contractify.tools adr-investigation --out-dir "'fy'-suites/contractify/investigations/adr"
+python -m contractify.tools discover --out "'fy'-suites/contractify/reports/contract_discovery.json" --quiet
 ```
+
+Canonical repository run profile:
+
+- Run from repository root with `fy-manifest.yaml` present.
+- If `fy-manifest.yaml` defines `suites.contractify.max_contracts`, the default `discover` / `audit` CLI uses that ceiling automatically.
+- World of Shadows currently pins the canonical audit profile this way so the runtime/MVP spine is reproducible without hidden `--max-contracts` knowledge.
 
 Optional shared-platform output:
 

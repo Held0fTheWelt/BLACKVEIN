@@ -9,6 +9,7 @@ A repository artifact is contract-relevant when it **creates or stabilises expec
 | Phase | Ceiling | Intent |
 |-------|---------|--------|
 | Phase 1 discovery | **≤ 30** contracts per `discover`/`audit` pass | Signal density over coverage |
+| Canonical manifest-backed profile | repository-configured ceiling when explicitly pinned in `fy-manifest.yaml` | Allows bounded exceptions, such as World of Shadows runtime/MVP closure, without hidden operator flags |
 | Early mature inventory | **< ~200** active governed contracts | Avoid noise |
 | Hard review trigger | **≥ ~500** active | Mandatory consolidation / scope review |
 

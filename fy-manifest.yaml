@@ -1,0 +1,54 @@
+manifestVersion: 1
+platformVersion: "0.x"
+compat: transitional
+generatedBy:
+  tool: contractify manifest-first closure
+  generated_at: "2026-04-17T16:00:00+00:00"
+project:
+  id: world-of-shadows
+  name: World of Shadows
+  repository_type: python-monorepo
+roots:
+  source:
+    - backend
+    - world-engine
+    - ai_stack
+    - story_runtime_core
+    - frontend
+    - writers-room
+    - administration-tool
+  docs:
+    - docs
+    - tests
+suites:
+  docify:
+    roots:
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+      - administration-tool
+      - "'fy'-suites/contractify"
+      - "'fy'-suites/fy_platform"
+  postmanify:
+    openapi: docs/api/openapi.yaml
+    out_master: postman/WorldOfShadows_Complete_OpenAPI.postman_collection.json
+    suites_dir: postman/suites
+    manifest: postman/postmanify-manifest.json
+  despaghettify:
+    scan_roots:
+      - backend
+      - world-engine
+      - ai_stack
+      - story_runtime_core
+      - frontend
+      - writers-room
+      - administration-tool
+  contractify:
+    openapi: docs/api/openapi.yaml
+    max_contracts: 60
+    canonical_discover_out: "'fy'-suites/contractify/reports/contract_discovery.json"
+    canonical_audit_out: "'fy'-suites/contractify/reports/contract_audit.json"
+    runtime_mvp_state: "'fy'-suites/contractify/state/RUNTIME_MVP_SPINE_ATTACHMENT.md"
