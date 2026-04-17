@@ -2,7 +2,7 @@
 """Validate repo-relative paths referenced from Despaghettify hub skills markdown.
 
 Scans ``<hub>/superpowers/**/*.md`` for:
-  - Markdown link targets `](path)` (skips http(s), mailto, bare fragments)
+  - Markdown link targets ``[text](path)`` / ``![alt](path)`` (skips http(s), mailto, bare fragments)
   - Inline repo paths in backticks: ``'fy'-suites/despaghettify/...``, hub-relative alias ``despaghettify/...``, or ``tools/...`` with a file suffix
 
 Run from repository root:
@@ -40,7 +40,9 @@ def _resolve_repo_relpath(raw: str) -> Path:
             return alt
     return p
 
-LINK_RE = re.compile(r"\]\(([^)]+)\)")
+# Require a proper ``[...](...)`` / ``![...](...)`` so prose like `` `](...)` `` in VALIDATION.md
+# does not yield a bogus ``...`` path target.
+LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 # Repo-like path inside backticks (file or trailing slash dir)
 BACKTICK_REPO_RE = re.compile(
     r"`((?:'fy'-suites/despaghettify|despaghettify|despaghettify/tools|tools)/[a-zA-Z0-9_./-]+(?:\.(?:md|py|yaml|yml)|/))`"
