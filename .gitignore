@@ -56,3 +56,4 @@ docs.zip
 # Ephemeral MkDocs/session copies of those trees live under /.state_tmp (ignored above).
 /despaghettify/state
 /despaghettify/state
+/docs/reports/audit
