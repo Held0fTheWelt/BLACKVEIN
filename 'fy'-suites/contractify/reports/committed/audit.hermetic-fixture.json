@@ -100,7 +100,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0001-scene-identity.md",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -137,7 +137,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0002-runtime-authority.md",
+      "anchor_location": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -174,7 +174,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0003-retired.md",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -535,8 +535,8 @@
     {
       "relation": "indexes",
       "source_id": "CTR-NORM-INDEX-001",
-      "target_id": "DOC:docs/governance/adr-0003-retired.md",
-      "evidence": "Normative index table links to docs/governance/adr-0003-retired.md",
+      "target_id": "DOC:docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "evidence": "Normative index table links to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "confidence": 0.88
     },
     {
@@ -564,7 +564,7 @@
       "relation": "supersedes",
       "source_id": "CTR-ADR-ADR_0003_RETIRED",
       "target_id": "CTR-ADR-ADR_0001_SCENE_IDENTITY",
-      "evidence": "adr-0003-retired.md declares explicit Supersedes navigation to docs/governance/adr-0001-scene-identity.md",
+      "evidence": "adr-0003-retired.md declares explicit Supersedes navigation to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "confidence": 0.9
     },
     {
@@ -658,10 +658,10 @@
     {
       "id": "CNF-IDX-RET-3c967fb6bc",
       "conflict_type": "lifecycle_index_row_vs_retired_adr",
-      "summary": "Normative index row suggests current/binding navigation but links to retired ADR docs/governance/adr-0003-retired.md (declared status line resolves to superseded).",
+      "summary": "Normative index row suggests current/binding navigation but links to retired ADR docs/ADR/adr-0003-scene-identity-canonical-surface.md (declared status line resolves to superseded).",
       "sources": [
         "docs/dev/contracts/normative-contracts-index.md",
-        "docs/governance/adr-0003-retired.md",
+        "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
         "| Active | [retired ADR](../../governance/adr-0003-retired.md) |"
       ],
       "confidence": 0.88,
@@ -670,14 +670,14 @@
       "classification": "superseded_still_referenced_as_current",
       "normative_sources": [
         "docs/dev/contracts/normative-contracts-index.md",
-        "docs/governance/adr-0003-retired.md"
+        "docs/ADR/adr-0003-scene-identity-canonical-surface.md"
       ],
       "observed_or_projection_sources": [],
       "kind": "superseded_contract_still_active_navigation",
       "severity": "high",
       "normative_candidates": [
         "docs/dev/contracts/normative-contracts-index.md",
-        "docs/governance/adr-0003-retired.md"
+        "docs/ADR/adr-0003-scene-identity-canonical-surface.md"
       ],
       "observed_candidates": [],
       "projection_candidates": []
@@ -686,8 +686,8 @@
   "actionable_units": [
     "[informational] spaghetti-setup.md exists but spaghetti-setup.json is absent (may be fine before setup-sync). \u2192 If tooling expects JSON, run despaghettify setup-sync; else ignore.",
     "[conflict:high|conflict-deterministic] Normative index lists the same resolved target more than once: docs/technical/shared-runtime.md (sources: docs/dev/contracts/normative-contracts-index.md, docs/technical/shared-runtime.md)",
-    "[conflict:medium|conflict] Multiple ADRs reference the same governance vocabulary bucket \u201cscene identity\u201d; check supersession and single-current-truth narrative. (sources: adr-0001-scene-identity.md, adr-0002-runtime-authority.md, adr-0003-retired.md)",
-    "[conflict:high|conflict] Normative index row suggests current/binding navigation but links to retired ADR docs/governance/adr-0003-retired.md (declared status line resolves to superseded). (sources: docs/dev/contracts/normative-contracts-index.md, docs/governance/adr-0003-retired.md, | Active | [retired ADR](../../governance/adr-0003-retired.md) |)"
+    "[conflict:medium|conflict] Multiple ADRs reference the same governance vocabulary bucket \u201cscene identity\u201d; check supersession and single-current-truth narrative. (sources: docs/ADR/adr-0003-scene-identity-canonical-surface.md, docs/ADR/adr-0001-runtime-authority-in-world-engine.md, docs/ADR/adr-0003-scene-identity-canonical-surface.md)",
+    "[conflict:high|conflict] Normative index row suggests current/binding navigation but links to retired ADR docs/ADR/adr-0003-scene-identity-canonical-surface.md (declared status line resolves to superseded). (sources: docs/dev/contracts/normative-contracts-index.md, docs/ADR/adr-0003-scene-identity-canonical-surface.md, | Active | [retired ADR](../../ADR/adr-0003-scene-identity-canonical-surface.md) |)"
   ],
   "stats": {
     "n_contracts": 12,

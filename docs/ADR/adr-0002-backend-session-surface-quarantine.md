@@ -56,3 +56,18 @@ Canonical replacement = authoritative World Engine HTTP surface where applicable
 
 - State: [audit_resolution_state_world_of_shadows.md](../governance/audit_resolution/audit_resolution_state_world_of_shadows.md) (finding F-H2)
 - Architecture: [backend-runtime-classification.md](../technical/architecture/backend-runtime-classification.md)
+
+## Migrated excerpt from MVPs
+
+Source: `docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md`
+
+**Migrated Decision (ADR-002 — Package versions are immutable and append-only)**
+
+A package version, once built and stored under `versions/<package_version>/`, is immutable. `active/` is a pointer to a version, never the storage location of mutable content.
+
+**Migrated Consequences**
+
+- package promotion is pointer movement plus event log
+- rollback is pointer movement to an earlier version
+- audit history is lossless
+- preview vs active comparisons are reliable

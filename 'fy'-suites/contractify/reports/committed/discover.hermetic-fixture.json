@@ -88,7 +88,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0001-scene-identity.md",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -125,7 +125,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0002-runtime-authority.md",
+      "anchor_location": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -162,7 +162,7 @@
       "version": "unversioned",
       "authority_level": "normative",
       "anchor_kind": "document",
-      "anchor_location": "docs/governance/adr-0003-retired.md",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "source_of_truth": true,
       "derived_from": [],
       "implemented_by": [],
@@ -521,8 +521,8 @@
     {
       "relation": "indexes",
       "source_id": "CTR-NORM-INDEX-001",
-      "target_id": "DOC:docs/governance/adr-0003-retired.md",
-      "evidence": "Normative index table links to docs/governance/adr-0003-retired.md",
+      "target_id": "DOC:docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "evidence": "Normative index table links to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "confidence": 0.88
     },
     {
@@ -550,7 +550,7 @@
       "relation": "supersedes",
       "source_id": "CTR-ADR-ADR_0003_RETIRED",
       "target_id": "CTR-ADR-ADR_0001_SCENE_IDENTITY",
-      "evidence": "adr-0003-retired.md declares explicit Supersedes navigation to docs/governance/adr-0001-scene-identity.md",
+      "evidence": "adr-0003-retired.md declares explicit Supersedes navigation to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
       "confidence": 0.9
     },
     {

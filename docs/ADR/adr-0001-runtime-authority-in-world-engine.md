@@ -42,3 +42,18 @@ World of Shadows split **platform API / governance** from **live narrative execu
 - `docs/archive/architecture-legacy/runtime_authority_decision.md` (archived original)
 - `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`)
 - `docs/dev/architecture/runtime-authority-and-session-lifecycle.md`
+
+## Migrated excerpt from MVPs
+
+Source: `docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md`
+
+**Migrated Decision (ADR-001 — Compiled Narrative Package is the only runtime content authority)**
+
+Runtime must consume only approved compiled packages. Raw authored source, research outputs, and draft patches are never read directly by live runtime execution.
+
+**Migrated Consequences**
+
+- promotion becomes a formal act
+- preview builds are first-class
+- rollback becomes feasible
+- authored source and runtime stability are cleanly separated

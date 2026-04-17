@@ -35,3 +35,17 @@ Authored narrative modules are consumed by more than one component (content comp
 
 - State: [audit_resolution_state_world_of_shadows.md](../governance/audit_resolution/audit_resolution_state_world_of_shadows.md) (finding F-H3)
 - Normative contracts: [normative contracts index](../dev/contracts/normative-contracts-index.md)
+
+## Migrated excerpt from MVPs
+
+Source: `docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md`
+
+**Migrated Decision (ADR-003 — Scene Packet is the execution contract, not a prompt convenience)**
+
+The model call must be built from a typed `NarrativeDirectorScenePacket`. This is not optional retrieval context and not ad hoc prompt interpolation.
+
+**Migrated Consequences**
+
+- runtime model input is inspectable and testable
+- policy, legality, actor scope, and constraints are explicit
+- generation becomes reproducible enough for regression testing

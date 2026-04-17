@@ -66,7 +66,6 @@ def _adr0001(repo: Path) -> str:
     return first_existing_relative(
         repo,
         "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
-        "docs/governance/adr-0001-runtime-authority-in-world-engine.md",
     )
 
 
@@ -74,7 +73,6 @@ def _adr0002(repo: Path) -> str:
     return first_existing_relative(
         repo,
         "docs/ADR/adr-0002-backend-session-surface-quarantine.md",
-        "docs/governance/adr-0002-backend-session-surface-quarantine.md",
     )
 
 
@@ -82,7 +80,6 @@ def _adr0003(repo: Path) -> str:
     return first_existing_relative(
         repo,
         "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
-        "docs/governance/adr-0003-scene-identity-canonical-surface.md",
     )
 
 
