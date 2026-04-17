@@ -81,8 +81,8 @@ The gap was insufficient first-class attachment, relation richness, and evidence
 
 - The repo now has a root `fy-manifest.yaml`, so Contractify no longer needs legacy fallback when run canonically from repo root.
 - The canonical audit profile is now manifest-backed through `suites.contractify.max_contracts = 60`, eliminating the hidden expanded-run requirement for the runtime/MVP spine.
-- The canonical tracked snapshot was refreshed at `../reports/CANONICAL_REPO_ROOT_AUDIT.md` using the canonical manifest-backed run.
-- The generated runtime/MVP markdown report was refreshed so its counts match the canonical fresh run.
+- The canonical tracked snapshot at `../reports/CANONICAL_REPO_ROOT_AUDIT.md` must be regenerated from the canonical manifest-backed run whenever audit totals change.
+- The generated runtime/MVP markdown report is regenerated from the same canonical run and must stay count-synchronized with the tracked snapshot.
 - Writers' Room governance still carries direct validation evidence from `backend/tests/writers_room/test_writers_room_routes.py`.
 - RAG governance still carries direct validation evidence from `ai_stack/tests/test_retrieval_governance_summary.py`.
 
@@ -126,8 +126,9 @@ When resuming work on this attachment family:
 1. Read this file.
 2. Read `ATTACHMENT_PASS_INDEX.md`.
 3. Read `../reports/runtime_mvp_attachment_report.md`.
-4. Re-run the canonical audit command into local `../reports/_local_contract_audit.json` from repo root and compare it with `../reports/CANONICAL_REPO_ROOT_AUDIT.md`.
-5. Update `contract_governance_input.md` if new unresolved issues or follow-up tasks appear.
+4. Run `python .scripts/regenerate_contract_audit.py` from repo root to refresh the tracked canonical markdown snapshot and the bounded runtime/MVP report.
+5. Inspect local `../reports/_local_contract_audit.json` only when machine-level detail is needed.
+6. Update `contract_governance_input.md` if new unresolved issues or follow-up tasks appear.
 
 ## Edit history
 

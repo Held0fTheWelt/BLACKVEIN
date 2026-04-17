@@ -25,7 +25,13 @@
 
 ## Canonical audit execution
 
-Run from repository root when you need a fresh machine export:
+Run from repository root when you need the tracked markdown evidence refreshed from the canonical machine run:
+
+```bash
+python .scripts/regenerate_contract_audit.py
+```
+
+Direct machine export remains available when you only need ephemeral JSON:
 
 ```bash
 python -m contractify.tools audit --json --out "'fy'-suites/contractify/reports/_local_contract_audit.json"
@@ -44,7 +50,7 @@ PYTHONPATH="$(pwd)/'fy'-suites" python -m pytest "'fy'-suites/postmanify/tools/t
 
 ## Results
 
-- Canonical audit stats: `54 contracts`, `25 projections`, `314 relations`, `0 drifts`, `4 conflicts`, `3 manual unresolved areas`
+- Canonical audit stats: `60 contracts`, `25 projections`, `311 relations`, `0 drifts`, `5 conflicts`, `3 manual unresolved areas`
 - Legacy fallback deprecation: not emitted on canonical repo-root Contractify audit run
 - OpenAPI/Postman SHA drift: closed
 - Audience projection backref drifts: closed

@@ -110,3 +110,16 @@ def test_reports_policy_is_markdown_tracked_json_ephemeral() -> None:
     assert "tracked human-readable markdown" in reports_readme
     assert "intentionally ephemeral" in reports_readme
     assert "**/contractify/reports/*.json" in gitignore
+
+
+def test_helper_paths_use_markdown_policy_and_local_json_names() -> None:
+    root = repo_paths.repo_root()
+    helper = (root / ".scripts" / "regenerate_contract_audit.py").read_text(encoding="utf-8")
+    skill = (root / ".cursor" / "skills" / "contractify-check" / "SKILL.md").read_text(encoding="utf-8")
+    changed = (root / "CHANGED_FILES.txt").read_text(encoding="utf-8")
+    assert "_local_contract_audit.json" in helper
+    assert "CANONICAL_REPO_ROOT_AUDIT.md" in helper
+    assert "runtime_mvp_attachment_report.md" in helper
+    assert "reports/contract_audit.json" not in skill
+    assert "reports/contract_audit.json" not in changed
+    assert "reports/contract_discovery.json" not in changed

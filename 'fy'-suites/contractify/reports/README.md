@@ -36,7 +36,13 @@ Root `.gitignore` ignores `**/contractify/reports/*.json` **only for files direc
 
 ## Regenerate locally
 
-From the **repository root** generate local machine exports when needed:
+From the **repository root** use the helper script when you want the tracked markdown evidence refreshed from the canonical machine run:
+
+```bash
+python .scripts/regenerate_contract_audit.py
+```
+
+If you only need ephemeral machine exports, generate them directly:
 
 ```bash
 python -m contractify.tools discover --json --out "'fy'-suites/contractify/reports/_local_contract_discovery.json"
