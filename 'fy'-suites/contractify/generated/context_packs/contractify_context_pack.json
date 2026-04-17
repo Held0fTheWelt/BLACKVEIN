@@ -1,0 +1,75 @@
+{
+  "pack_id": "623c4bd75c594c26ac82b3d5a5fb01b2",
+  "query": "openapi health",
+  "suite_scope": [
+    "contractify"
+  ],
+  "audience": "developer",
+  "summary": "Found 8 indexed evidence hits for query \"openapi health\". Strongest source: generated/context_packs/contractify_context_pack.md#chunk-1.",
+  "hits": [
+    {
+      "chunk_id": "4dcac1eb5516463aa5260659d61d1a1e",
+      "score_lexical": 1.0,
+      "score_semantic": 0.4773,
+      "score_hybrid": 0.7909,
+      "source_path": "generated/context_packs/contractify_context_pack.md#chunk-1",
+      "excerpt": "# Context Pack — contractify  Query: `openapi health`  Found 8 indexed evidence hits for query \"openapi health\". Strongest source: generated/context_packs/contractify_context_pack.md#chunk-1.  ## generated/context_packs/contractify_context_pack.md#chunk-1  - lexical: 1.0 - semant"
+    },
+    {
+      "chunk_id": "af3c8aae29684da1aa58c70fc17cd3b5",
+      "score_lexical": 1.0,
+      "score_semantic": 0.4057,
+      "score_hybrid": 0.7623,
+      "source_path": "generated/context_packs/contractify_context_pack.json#chunk-1",
+      "excerpt": "{   \"pack_id\": \"9cc97dcf71404923ba059043e76d53bf\",   \"query\": \"openapi health\",   \"suite_scope\": [     \"contractify\"   ],   \"audience\": \"developer\",   \"summary\": \"Found 8 indexed evidence hits for query \\\"openapi health\\\". Strongest source: generated/context_packs/contractify_con"
+    },
+    {
+      "chunk_id": "a6bc7a6e0a6b4345859c1a98467c9e39",
+      "score_lexical": 1.0,
+      "score_semantic": 0.4015,
+      "score_hybrid": 0.7606,
+      "source_path": "generated/context_packs/contractify_context_pack.md#chunk-2",
+      "excerpt": "openapi: 3.0.0 info:   title: Toy API   version: 1.0.0 paths:   /health:     get:       tags: [system]       summary: Health       responses:         \"200\":           description: OK  ## generated/context_packs/contractify_context_pack.md#chunk-2  - lexical: 1.0 - semantic: 0.308"
+    },
+    {
+      "chunk_id": "ac261ac021814f03a18e5b17543894bd",
+      "score_lexical": 1.0,
+      "score_semantic": 0.343,
+      "score_hybrid": 0.7372,
+      "source_path": "docs/api/openapi.yaml#chunk-1",
+      "excerpt": "openapi: 3.0.0 info:   title: Toy API   version: 1.0.0 paths:   /health:     get:       tags: [system]       summary: Health       responses:         \"200\":           description: OK"
+    },
+    {
+      "chunk_id": "642fc108e46845e184909bf00ad7caba",
+      "score_lexical": 1.0,
+      "score_semantic": 0.2102,
+      "score_hybrid": 0.6841,
+      "source_path": "state/LATEST_AUDIT_STATE.md#chunk-5",
+      "excerpt": "#### Signal Analysis - **Contract Graph Stability:** 60 contracts, 310 relations, 25 projections—all at baseline. No silent regressions. - **Confidence Stability:** 100% >= 0.85 confidence maintained. No erosion of contract strength. - **New Signals:** +1 drift finding (OpenAPI s"
+    },
+    {
+      "chunk_id": "66ade1932f8b43fbbd156c372cf5d582",
+      "score_lexical": 1.0,
+      "score_semantic": 0.1577,
+      "score_hybrid": 0.6631,
+      "source_path": "reports/contractify_audit_report_latest.md#chunk-6",
+      "excerpt": "**Conclusion:** MVP remains coherent with committed contracts. Contractify enforcement is working—gates are catching the OpenAPI drift and vocabulary overlaps. No dangerous gaps detected. The +3 conflicts and +1 drift signal indicate normal evolution friction, not structural brea"
+    },
+    {
+      "chunk_id": "c57597832ff04425a807303ff478651b",
+      "score_lexical": 1.0,
+      "score_semantic": 0.1572,
+      "score_hybrid": 0.6629,
+      "source_path": "state/LATEST_AUDIT_STATE.md#chunk-6",
+      "excerpt": "**Contractify enforcement is working.** Evidence: - New conflicts flagged (+3): Gates caught Postman fingerprint stale issue and ADR vocabulary overlaps - Drift detection active (+1): Gates flagged OpenAPI spec modification - Zero silent regressions: Contract graph unchanged, sam"
+    },
+    {
+      "chunk_id": "0293e2177b304647a83f0810bd30b235",
+      "score_lexical": 1.0,
+      "score_semantic": 0.1104,
+      "score_hybrid": 0.6442,
+      "source_path": "adapter/tests/test_contractify_adapter.py#chunk-1",
+      "excerpt": "from fy_platform.tests.fixtures_autark import create_target_repo from contractify.adapter.service import ContractifyAdapter   def test_contractify_adapter_full_cycle(tmp_path, monkeypatch):     repo = create_target_repo(tmp_path)     monkeypatch.chdir(tmp_path)     adapter = Cont"
+    }
+  ]
+}

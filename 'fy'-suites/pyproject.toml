@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fy-suites-autark"
+version = "0.2.0"
+description = "Autark AI-augmented fy suite MVP"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+fy-platform = "fy_platform.tools.cli:main"
+fy-suite = "fy_platform.tools.ai_suite_cli:main"
+contractify = "contractify.tools.hub_cli:main"
+contractify-adapter = "contractify.adapter.cli:main"
+testify = "testify.tools.hub_cli:main"
+testify-adapter = "testify.adapter.cli:main"
+documentify = "documentify.tools.hub_cli:main"
+documentify-adapter = "documentify.adapter.cli:main"
+docify = "docify.tools.hub_cli:main"
+docify-adapter = "docify.adapter.cli:main"
+despag-check = "despaghettify.tools.hub_cli:main"
+despaghettify-adapter = "despaghettify.adapter.cli:main"
+dockerify = "dockerify.tools.hub_cli:main"
+dockerify-adapter = "dockerify.adapter.cli:main"
+postmanify = "postmanify.tools.cli:main"
+postmanify-adapter = "postmanify.adapter.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fy_platform*", "contractify*", "testify*", "documentify*", "docify*", "despaghettify*", "dockerify*", "postmanify*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = [
+  "fy_platform/tests",
+  "contractify/adapter/tests",
+  "testify/adapter/tests",
+  "documentify/adapter/tests",
+  "docify/adapter/tests",
+  "despaghettify/adapter/tests",
+  "dockerify/adapter/tests",
+  "postmanify/adapter/tests",
+]
