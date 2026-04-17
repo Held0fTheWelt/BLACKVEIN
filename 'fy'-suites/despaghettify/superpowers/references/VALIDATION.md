@@ -8,7 +8,7 @@ From the repository root:
 python "./'fy'-suites/despaghettify/tools/validate_despag_skill_paths.py"
 ```
 
-Exit **0** if every `[label](path)` link and every scanned backtick repo path under `'fy'-suites/despaghettify/superpowers/**/*.md` resolves to an existing file (or allowed path under the repo). Exit **1** on any missing target.
+Exit **0** if every **Markdown inline link** (a bracketed label immediately followed by parentheses around a repo-relative path) and every scanned backtick repo path under `'fy'-suites/despaghettify/superpowers/**/*.md` resolves to an existing file (or allowed path under the repo). Exit **1** on any missing target.
 
 ## GitHub Actions
 
