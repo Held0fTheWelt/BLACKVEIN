@@ -8,6 +8,8 @@
 
 The Despaghettify hub (Python package **`despaghettify`**, task Markdown, **state/**) lives under **`'fy'-suites/despaghettify/`** alongside other repo-wide tool suites. Use **`pip install -e .`** at the repo root so `python -m despaghettify.tools …` resolves the package (see root **`pyproject.toml`**).
 
+The root **`world-of-shadows-hub`** package declares **`[project.dependencies]`** that include the full **backend Flask + pytest** pin set (aligned with **`backend/requirements.txt`**, **`backend/requirements-dev.txt`**, and **`backend/requirements-test.txt`**). After **`pip install -e .`** alone, **`python tests/run_tests.py --suite backend`** must run without an extra **`pip install -r backend/...`** step. **`--suite all`** and engine / ai_stack work still require **`setup-test-environment.*`** (or the per-component installs documented in **`tests/run_tests.py`** / **`tests/TESTING.md`**).
+
 ### Repo standard (Cursor)
 
 1. **Router skills** live under `'fy'-suites/despaghettify/superpowers/<skill-name>/SKILL.md` (minimal; edit only to improve routing or descriptions). **Procedure** lives in the task Markdowns (`spaghetti-check-task.md`, `spaghetti-solve-task.md`, etc.); **numeric** trigger policy lives in `'fy'-suites/despaghettify/spaghetti-setup.md` — never duplicate those in a skill.

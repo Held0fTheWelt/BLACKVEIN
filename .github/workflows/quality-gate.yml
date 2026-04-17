@@ -7,9 +7,25 @@ on:
     branches: [ master, main, develop ]
 
 jobs:
+  requirements-hygiene:
+    name: Requirements hygiene (hub pyproject vs backend pins)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install pytest only
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pytest>=7,<9"
+      - name: Static requirements chain (repo root)
+        run: python -m pytest tests/requirements_hygiene/ -q
+
   security-tests:
     name: Security-Only Tests
     runs-on: ubuntu-latest
+    needs: [ requirements-hygiene ]
 
     strategy:
       matrix:
@@ -22,7 +38,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       - name: Install dependencies
         run: |
@@ -32,7 +52,13 @@ jobs:
       - name: Run security tests
         working-directory: ./backend
         run: |
-          python -m pytest tests/ -m security -v --tb=short || true
+          set +e
+          python -m pytest tests/ -m security -v --tb=short --no-cov
+          ec=$?
+          set -e
+          if [ "$ec" -eq 0 ]; then exit 0; fi
+          if [ "$ec" -eq 5 ]; then echo "::notice::No tests matched -m security (pytest exit 5)."; exit 0; fi
+          exit "$ec"
 
       - name: Upload test results
         if: always()
@@ -45,6 +71,7 @@ jobs:
   contract-tests:
     name: Contract Tests (API Contracts)
     runs-on: ubuntu-latest
+    needs: [ requirements-hygiene ]
 
     strategy:
       matrix:
@@ -57,7 +84,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: "pip"
+          cache-dependency-path: |
+            pyproject.toml
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       - name: Install dependencies
         run: |
@@ -80,6 +111,7 @@ jobs:
   bridge-contract-tests:
     name: Bridge Contract Tests (Backend-Engine)
     runs-on: ubuntu-latest
+    needs: [ requirements-hygiene ]
 
     strategy:
       matrix:
@@ -92,8 +124,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: "pip"
           cache-dependency-path: |
+            pyproject.toml
             backend/requirements.txt
             backend/requirements-dev.txt
             world-engine/requirements.txt
@@ -121,10 +154,22 @@ jobs:
   quality-gate-report:
     name: Quality Gate Report
     runs-on: ubuntu-latest
-    needs: [ security-tests, contract-tests, bridge-contract-tests ]
+    needs:
+      - requirements-hygiene
+      - security-tests
+      - contract-tests
+      - bridge-contract-tests
     if: always()
 
     steps:
+      - name: Enforce upstream job success
+        run: |
+          set -e
+          test "${{ needs.requirements-hygiene.result }}" = "success" || { echo "::error::requirements-hygiene: ${{ needs.requirements-hygiene.result }}"; exit 1; }
+          test "${{ needs.security-tests.result }}" = "success" || { echo "::error::security-tests: ${{ needs.security-tests.result }}"; exit 1; }
+          test "${{ needs.contract-tests.result }}" = "success" || { echo "::error::contract-tests: ${{ needs.contract-tests.result }}"; exit 1; }
+          test "${{ needs.bridge-contract-tests.result }}" = "success" || { echo "::error::bridge-contract-tests: ${{ needs.bridge-contract-tests.result }}"; exit 1; }
+
       - name: Download all test results
         uses: actions/download-artifact@v4
         with:
@@ -135,6 +180,7 @@ jobs:
           echo "# Quality Gate Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Security Tests: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "- Contract Tests: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "- Bridge Contract Tests: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Requirements hygiene: ${{ needs.requirements-hygiene.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security tests: ${{ needs.security-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract tests: ${{ needs.contract-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Bridge contract tests: ${{ needs.bridge-contract-tests.result }}" >> $GITHUB_STEP_SUMMARY

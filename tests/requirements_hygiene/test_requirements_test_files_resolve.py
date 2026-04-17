@@ -18,8 +18,10 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend"
+ROOT_PYPROJECT = REPO_ROOT / "pyproject.toml"
 REQUIREMENTS_TEST = BACKEND_ROOT / "requirements-test.txt"
 REQUIREMENTS_PROD = BACKEND_ROOT / "requirements.txt"
+REQUIREMENTS_DEV = BACKEND_ROOT / "requirements-dev.txt"
 
 
 def _walk_requirement_files(entry: Path) -> list[Path]:
@@ -97,3 +99,64 @@ def test_requirements_txt_declares_flask() -> None:
         text,
         re.IGNORECASE,
     ), "backend/requirements.txt must declare flask for backend tests"
+
+
+def _dependency_lines(path: Path) -> list[str]:
+    """Return stripped requirement lines (skip comments, blank, and ``-r`` includes)."""
+    out: list[str] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("-r ") or line.startswith("--requirement "):
+            continue
+        if "#" in line:
+            line = line.split("#", 1)[0].strip()
+        if line:
+            out.append(line)
+    return out
+
+
+def test_root_pyproject_dependencies_include_backend_pytest_closure() -> None:
+    """Root ``pip install -e .`` must ship the backend Flask + pytest pins (agent default).
+
+    Autonomous sandboxes install only the hub editable; ``[project.dependencies]`` must
+    mirror ``backend/requirements.txt``, pytest lines from ``backend/requirements-dev.txt``,
+    and anyio / exceptiongroup from ``backend/requirements-test.txt`` so no second pip step
+    is required for ``python tests/run_tests.py --suite backend``.
+    """
+    assert ROOT_PYPROJECT.is_file()
+    hub_text = ROOT_PYPROJECT.read_text(encoding="utf-8")
+    assert "dependencies = [" in hub_text, "root pyproject.toml must declare [project] dependencies"
+
+    prod_lines = _dependency_lines(REQUIREMENTS_PROD)
+    assert prod_lines, "backend/requirements.txt must list production dependencies"
+    for dep in prod_lines:
+        if dep == "pyyaml>=6.0,<7":
+            # Hub uses a stricter floor (historical root pin) while staying within backend's range.
+            assert "pyyaml>=6.0.1,<7" in hub_text or dep in hub_text, (
+                "root pyproject.toml must pin pyyaml compatible with backend/requirements.txt "
+                "(expected pyyaml>=6.0.1,<7 or pyyaml>=6.0,<7)"
+            )
+            continue
+        assert dep in hub_text, (
+            f"root pyproject.toml dependencies must include the same pin as backend/requirements.txt: {dep!r}"
+        )
+
+    dev_lines = _dependency_lines(REQUIREMENTS_DEV)
+    # requirements-dev starts with ``-r requirements.txt``; remainder is pytest stack.
+    pytestish = [d for d in dev_lines if d.lower().startswith("pytest")]
+    assert pytestish, "backend/requirements-dev.txt must list pytest-related packages after -r"
+    for dep in pytestish:
+        assert dep in hub_text, (
+            f"root pyproject.toml dependencies must include pytest stack line from requirements-dev.txt: {dep!r}"
+        )
+
+    # requirements-test.txt pins async helpers used by backend tests on 3.10.
+    test_only = _dependency_lines(REQUIREMENTS_TEST)
+    for marker in ("anyio>=", "exceptiongroup>="):
+        matching = [d for d in test_only if d.startswith(marker)]
+        assert matching, f"backend/requirements-test.txt must declare {marker}"
+        assert matching[0] in hub_text, (
+            f"root pyproject.toml dependencies must include {matching[0]!r} from requirements-test.txt"
+        )

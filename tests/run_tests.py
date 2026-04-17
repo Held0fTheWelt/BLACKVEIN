@@ -34,6 +34,12 @@ then verifies the LangGraph export surface required by the **engine** and **ai_s
 Without that closure, :func:`check_environment` fails fast with ``pip`` hints instead of
 mid-suite ``ModuleNotFoundError``. Those scripts install **only** from tracked
 ``requirements*.txt`` files and use ``python -m pip`` (no remote pipe-to-shell bootstrap).
+
+**Root editable alone:** ``pip install -e .`` at the repository root installs **``world-of-shadows-hub``**
+with the same pinned **backend runtime + pytest** closure as ``backend/requirements*.txt`` (see
+root ``pyproject.toml``), so ``python tests/run_tests.py --suite backend`` works in a fresh
+venv with no extra install step. **Other suites** (frontend, administration, engine, ai_stack)
+still need ``setup-test-environment.*`` or their component ``requirements-dev.txt`` installs.
 """
 
 from __future__ import annotations
