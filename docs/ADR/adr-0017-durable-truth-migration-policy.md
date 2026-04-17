@@ -12,6 +12,10 @@ Repository authorship and licensing: see project LICENSE; contact maintainers fo
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+
 ## Context
 During a documentation consolidation effort, many source documents were merged into canonical technical pages, while historical plans and specs were moved to `docs/archive/` for evidence preservation. The consolidation requires a clear, auditable policy for where decisions live and how archival sources are referenced.
 
@@ -28,6 +32,7 @@ During a documentation consolidation effort, many source documents were merged i
 
 ## Testing
 
+Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

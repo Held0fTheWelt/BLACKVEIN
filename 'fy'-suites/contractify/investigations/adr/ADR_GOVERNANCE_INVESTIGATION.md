@@ -41,7 +41,7 @@ This investigation suite makes ADR state visible in one place: current locations
 | `docs/ADR/adr-0028-mcp-security-baseline-phase-a.md` | `ADR-0028` | `proposed` | `GENERAL` | `ADR.GENERAL.0028` | `docs/ADR/ADR.GENERAL.0028-mcp-security-baseline-phase-a-minimal-policy.md` | none |
 | `docs/ADR/adr-0029-residue-removal-policy.md` | `ADR-0029` | `proposed` | `GENERAL` | `ADR.GENERAL.0029` | `docs/ADR/ADR.GENERAL.0029-residue-removal-policy-operational-criteria-and-handling.md` | none |
 | `docs/ADR/adr-0001-runtime-authority-in-world-engine.md` | `ADR-0001` | `accepted` | `RUNTIME` | `ADR.RUNTIME.0001` | `docs/ADR/ADR.RUNTIME.0001-runtime-authority-in-world-engine.md` | none |
-| `docs/ADR/adr-0021-runtime-authority.md` | `ADR-0021` | `accepted` | `RUNTIME` | `ADR.RUNTIME.0021` | `docs/ADR/ADR.RUNTIME.0021-runtime-authority-world-engine-as-authoritative-runtime-host.md` | none |
+| `docs/ADR/adr-0021-runtime-authority.md` | `ADR-0021` | `superseded_by_ADR-0001` | `RUNTIME` | `ADR.RUNTIME.0021` | `docs/ADR/ADR.RUNTIME.0021-runtime-authority-world-engine-as-authoritative-runtime-host.md` | duplicate stub — normative record is ADR-0001 |
 | `docs/ADR/adr-0003-scene-identity-canonical-surface.md` | `ADR-0003` | `accepted` | `SLICE.GOC` | `ADR.SLICE.GOC.0003` | `docs/ADR/ADR.SLICE.GOC.0003-single-canonical-scene-identity-surface-across-compile-ai-guidance-and-commit.md` | none |
 
 ## Findings

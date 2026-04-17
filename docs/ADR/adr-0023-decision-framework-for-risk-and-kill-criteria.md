@@ -12,6 +12,10 @@ Repository authorship and licensing: see project LICENSE; contact maintainers fo
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+
 ## Context
 The NextVision Suite's risk and mitigation documentation defines a decision framework for evaluating new initiatives and kill criteria for continuing work. This framework guides go/no-go decisions across phases.
 
@@ -26,6 +30,7 @@ The NextVision Suite's risk and mitigation documentation defines a decision fram
 
 ## Testing
 
+Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

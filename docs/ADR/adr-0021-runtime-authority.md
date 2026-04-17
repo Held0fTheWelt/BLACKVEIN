@@ -1,32 +1,43 @@
 # ADR-0021: Runtime Authority — World-Engine as authoritative runtime host
 
 ## Status
-Accepted
+
+Superseded by [ADR-0001](adr-0001-runtime-authority-in-world-engine.md)
 
 ## Date
-2026-03-30
+
+2026-03-30 (stub); supersession recorded 2026-04-17
 
 ## Intellectual property rights
-Yves Tanas
+
+Repository authorship and licensing: see project LICENSE; contact maintainers for clarification.
 
 ## Privacy and confidentiality
+
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [ADR-0001](adr-0001-runtime-authority-in-world-engine.md) — **canonical** runtime authority decision (read this instead of this file).
+
 ## Context
-A cross-cutting decision was made to centralize authoritative story session execution in the World-Engine runtime. The existing backend retains governance, publishing and review responsibilities while runtime lifecycle and state progression move to World-Engine.
+
+This file was an **automated consolidation stub** created while migrating narrative. Its bullets duplicated the later, richer **ADR-0001** record and linked technical docs. **Do not extend this file** — amend ADR-0001 or add a new ADR if authority shifts.
 
 ## Decision
-- Declare the World-Engine as the authoritative runtime host for story sessions.
-- Keep backend as the governance/publishing/review layer.
-- Extract shared runtime business logic into `story_runtime_core` and treat it as the canonical shared library for runtime behavior.
+
+_(Void — see ADR-0001.)_
 
 ## Consequences
-- Backend session APIs move toward World-Engine-hosted execution paths.
-- Compatibility shims may be needed during migration; these must be explicitly labeled as transitional.
-- No duplicate business logic should be introduced; shared logic should live in `story_runtime_core`.
+
+_(Void — see ADR-0001.)_
 
 ## Testing
 
+_(N/A — superseded.)_
 
 ## References
-(Automated migration entry created 2026-04-17)
+
+- [ADR-0001: Runtime authority in world-engine](adr-0001-runtime-authority-in-world-engine.md)
+- [`docs/technical/runtime/runtime-authority-and-state-flow.md`](../technical/runtime/runtime-authority-and-state-flow.md)
+- [`migration_from_archive_2026-04-17.md`](migration_from_archive_2026-04-17.md)

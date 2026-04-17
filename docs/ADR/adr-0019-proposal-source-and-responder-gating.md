@@ -12,6 +12,10 @@ Yves Tanas
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+
 ## Context
 Certain AI-produced proposals should be classified by origin (e.g., `MOCK`, `RESPONDER_DERIVED`, `DIRECTOR`, `MODEL_PROPOSAL`) to allow enforcement of "responder-only" execution modes and to ensure that proposals from non-authoritative sources are handled appropriately by runtime filters and validators.
 
@@ -27,6 +31,7 @@ Certain AI-produced proposals should be classified by origin (e.g., `MOCK`, `RES
 
 ## Testing
 
+Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

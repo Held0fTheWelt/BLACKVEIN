@@ -53,6 +53,7 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 
 ## Related
 
+- [`docs/ADR/README.md`](../../ADR/README.md) — Architecture Decision Records (ADR) index
 - [`world_engine_authoritative_runtime_and_system_interactions.md`](world_engine_authoritative_runtime_and_system_interactions.md) — canonical World Engine spine (two play-service faces, integration, diagrams)
 - [`player_input_interpretation_contract.md`](player_input_interpretation_contract.md) — structured interpretation contract
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics

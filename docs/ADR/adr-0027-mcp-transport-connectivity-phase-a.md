@@ -12,6 +12,10 @@ Repository authorship and licensing: see project LICENSE; contact maintainers fo
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+
 ## Context
 MCP transport and connectivity need stable defaults for Phase A operator/QA usage.
 
@@ -26,6 +30,7 @@ MCP transport and connectivity need stable defaults for Phase A operator/QA usag
 
 ## Testing
 
+Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
 
 ## References
 (Automated migration entry created 2026-04-17)

@@ -26,7 +26,7 @@ It incorporates the prior review, the rollback/conflict/validator/state-machine/
 
 - `00_executive_overview.md` — condensed architecture intent and foundation decisions
 - `01_revised_mvp_spec.md` — revised MVP specification with live-play continuity requirements
-- `02_architecture_decisions.md` — ADR-style decisions that anchor the design
+- `02_architecture_decisions.md` — index of architecture decisions; **normative text** in [`docs/ADR/README.md`](../../ADR/README.md) / `docs/ADR/adr-*.md`
 - `03_data_contracts.md` — canonical data models and enums
 - `04_api_catalog.md` — proposed backend and world-engine APIs
 - `05_admin_tool_governance_surface.md` — administration-tool information architecture, wireframes, and operator flows

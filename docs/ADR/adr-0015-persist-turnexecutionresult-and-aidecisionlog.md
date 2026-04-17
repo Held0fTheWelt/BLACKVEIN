@@ -12,6 +12,10 @@ Yves Tanas
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+
 ## Context
 During W2/W3 workstreams the team implemented helper-role parsing, session APIs, and diagnostic visibility for the end-to-end AI decision pipeline. As part of closure, the team agreed which runtime artifacts must be persisted in order to provide traceability, debugging, and audit evidence.
 

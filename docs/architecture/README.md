@@ -9,4 +9,6 @@ Historical closure reports, Area 2 gate narratives, and superseded milestone sna
 - [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
 
+**Architecture decisions (ADR):** [`docs/ADR/README.md`](../ADR/README.md)
+
 **Quick entry:** [`docs/technical/architecture/architecture-overview.md`](../technical/architecture/architecture-overview.md)

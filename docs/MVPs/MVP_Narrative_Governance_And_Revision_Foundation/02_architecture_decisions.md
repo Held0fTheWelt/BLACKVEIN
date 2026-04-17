@@ -1,5 +1,7 @@
 # Architecture Decisions
 
+**Normative detail** for each heading below lives in the linked `docs/ADR/adr-*.md` file. **Catalogue / status table:** [`docs/ADR/README.md`](../../ADR/README.md). This MVP file is an **index only** — do not duplicate decision paragraphs here.
+
 ## ADR-001 — Compiled Narrative Package is the only runtime content authority
 
 Canonical ADR moved to [docs/ADR/adr-0001-runtime-authority-in-world-engine.md](docs/ADR/adr-0001-runtime-authority-in-world-engine.md).

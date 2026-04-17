@@ -6,14 +6,25 @@ Accepted - aligns with `docs/technical/runtime/runtime-authority-and-state-flow.
 ## Date
 2026-04-10 (ADR authored with documentation program; decision content predates this file.)
 
+## Supersedes
+
+- [ADR-0021](adr-0021-runtime-authority.md) — earlier duplicate stub; all normative content lives in this ADR.
+
 ## Intellectual property rights
 Repository authorship and licensing: see project LICENSE; contact maintainers for clarification.
 
 ## Privacy and confidentiality
 This ADR contains no personal data. Implementers must follow the repository privacy and confidentiality policies, avoid committing secrets, and document any sensitive data handling in implementation steps.
 
+## Related ADRs
+
+- [`README.md`](README.md) — ADR index
+- [ADR-0002](adr-0002-backend-session-surface-quarantine.md) — quarantine and retirement of backend transitional runtime surfaces aligned to this authority split.
+
 ## Context
 World of Shadows split **platform API / governance** from **live narrative execution**. Without a single authoritative runtime host, duplicate business logic and conflicting session state would emerge across Flask backends and experimental paths.
+
+**MVP narrative governance (historical index):** Runtime must consume only **approved compiled packages**; raw authored source, research outputs, and draft patches are never read directly by live runtime execution. Preview builds are first-class; rollback is feasible; promotion is a formal act. (Source: [`02_architecture_decisions.md`](../MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md) — index only; **this ADR is normative** for authority placement.)
 
 ## Decision
 1. **`world-engine` (play service)** is the **authoritative runtime host** for story sessions: lifecycle, turn execution, and runtime-side session persistence model.
@@ -39,8 +50,13 @@ World of Shadows split **platform API / governance** from **live narrative execu
 
 ## Testing
 
+- **Documentation / review:** cross-check against [`runtime-authority-and-state-flow.md`](../technical/runtime/runtime-authority-and-state-flow.md) and [`runtime-authority-and-session-lifecycle.md`](../dev/architecture/runtime-authority-and-session-lifecycle.md).
+- **Code anchors:** `StoryRuntimeManager` and play-service session lifecycle paths in `world-engine/` must remain the only authority for committed play; flag any new backend “truth” writes in review.
+- **Failure mode:** duplicated session commit paths or Flask-hosted canonical play without an ADR amendment.
 
 ## References
+
+- [`docs/ADR/README.md`](README.md) — ADR catalogue
 - `docs/technical/runtime/runtime-authority-and-state-flow.md`
 - `docs/archive/architecture-legacy/runtime_authority_decision.md` (archived original)
 - `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`)
