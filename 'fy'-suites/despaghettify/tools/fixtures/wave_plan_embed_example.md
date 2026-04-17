@@ -16,14 +16,14 @@ Paste or generate a block like this next to your wave-plan table; `wave_plan_emi
       "id": "w01",
       "goal": "Extract helper module for first seam; keep public API unchanged.",
       "primary_paths": ["backend/app/__init__.py"],
-      "gate_commands": ["python "./'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py""]
+      "gate_commands": ["python \"./'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py\""]
     },
     {
       "index": 2,
       "id": "w02",
       "goal": "Thin entrypoint and wire imports.",
       "primary_paths": ["backend/app/__init__.py"],
-      "gate_commands": ["python "./'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py""]
+      "gate_commands": ["python \"./'fy'-suites/despaghettify/tools/ds005_runtime_import_check.py\""]
     }
   ]
 }
