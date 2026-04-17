@@ -23,7 +23,7 @@ It is written for **technical readers**, **non-specialists**, **stakeholders**, 
 Facts here follow this order:
 
 1. **What the repository actually implements** (services under `frontend/`, `backend/`, `world-engine/`, `administration-tool/`, `writers-room/`, packages `ai_stack/` and `story_runtime_core/`, content under `content/modules/`).
-2. **Normative documentation** (for example [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md), [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md), [`docs/technical/architecture/service-boundaries.md`](../technical/architecture/service-boundaries.md)).
+2. **Normative documentation** (for example [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md), [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md), [`docs/technical/architecture/service-boundaries.md`](../technical/architecture/service-boundaries.md)).
 3. **Architecture and governance docs** linked from the root [`README.md`](../../README.md).
 
 **Honest caveat:** Some **backend** paths are explicitly **transitional** (orchestration and legacy shims). Where the tree shows migration in progress, this document describes the **intended authority split** (ADR-0001) and notes that a few call paths may still be in flux—see [`docs/technical/architecture/backend-runtime-classification.md`](../technical/architecture/backend-runtime-classification.md).
@@ -60,7 +60,7 @@ If “the story state” lived in five places, you would get **contradictions** 
 
 ### Why it is done this way instead of another way
 
-A **single authoritative runtime host** for live narrative execution is an explicit **architectural decision** to prevent duplicate business logic and conflicting session state across Flask layers and experiments (`docs/governance/adr-0001-runtime-authority-in-world-engine.md`).
+A **single authoritative runtime host** for live narrative execution is an explicit **architectural decision** to prevent duplicate business logic and conflicting session state across Flask layers and experiments (`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`).
 
 ### What it is not
 
@@ -213,7 +213,7 @@ The engine is a **FastAPI** app that hosts **`RuntimeManager`** (template/lobby/
 
 ### Why it is done this way instead of another way
 
-If Flask handlers, background jobs, and model calls each “update the story,” you lose **one ledger** for the session. ADR-0001 names **`world-engine`** as the **authoritative runtime host** for story sessions (`docs/governance/adr-0001-runtime-authority-in-world-engine.md`).
+If Flask handlers, background jobs, and model calls each “update the story,” you lose **one ledger** for the session. ADR-0001 names **`world-engine`** as the **authoritative runtime host** for story sessions (`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`).
 
 ### What it is not
 
@@ -535,7 +535,7 @@ The repo already separates **runtime play AI**, **research/improvement AI**, and
 
 ### Diagram: growth path — foundations → safe evolution
 
-*Anchored in:* `docs/governance/adr-0001-runtime-authority-in-world-engine.md` (consequences), modular packages `ai_stack/`, `story_runtime_core/`.
+*Anchored in:* `docs/ADR/adr-0001-runtime-authority-in-world-engine.md` (consequences), modular packages `ai_stack/`, `story_runtime_core/`.
 
 ```mermaid
 flowchart TB
@@ -564,7 +564,7 @@ The **World Engine** is the **live referee**. **Authored modules** are the **hum
 
 ## Quick anchor index (for contributors)
 
-- **Runtime authority decision:** `docs/governance/adr-0001-runtime-authority-in-world-engine.md`
+- **Runtime authority decision:** `docs/ADR/adr-0001-runtime-authority-in-world-engine.md`
 - **Service ownership:** `docs/technical/architecture/service-boundaries.md`
 - **AI spine:** `docs/ai/ai_system_in_world_of_shadows.md`
 - **AI plain summary:** `docs/start-here/how-ai-fits-the-platform.md`

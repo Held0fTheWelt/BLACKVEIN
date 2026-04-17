@@ -32,4 +32,4 @@ Natural-language input is the **primary** contract at the play UI; structured co
 - **Service boundaries and URLs:** [`service-boundaries.md`](service-boundaries.md)
 - **AI/RAG/orchestration:** [`../ai/ai-stack-overview.md`](../ai/ai-stack-overview.md)
 - **Session/trace observability:** [`../operations/observability-and-governance.md`](../operations/observability-and-governance.md) — traces, audits, governance APIs
-- **ADR (runtime authority):** [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../../governance/adr-0001-runtime-authority-in-world-engine.md)
+- **ADR (runtime authority):** [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../../ADR/adr-0001-runtime-authority-in-world-engine.md)

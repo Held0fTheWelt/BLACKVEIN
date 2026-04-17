@@ -61,4 +61,4 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration
 - [`../ai/RAG.md`](../ai/RAG.md) — retrieval in the turn path
-- ADR: [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../../governance/adr-0001-runtime-authority-in-world-engine.md)
+- ADR: [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../../ADR/adr-0001-runtime-authority-in-world-engine.md)

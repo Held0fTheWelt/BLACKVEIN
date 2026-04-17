@@ -57,7 +57,7 @@ This roadmap assumes those assets are real and must be reused, not replaced.
 
 ### 3.1 Already implemented or materially present
 
-- **Authoritative runtime direction** documented in `docs/governance/adr-0001-runtime-authority-in-world-engine.md`
+- **Authoritative runtime direction** documented in `docs/ADR/adr-0001-runtime-authority-in-world-engine.md`
 - **LangGraph-based turn runtime** in `ai_stack/langgraph_runtime.py`
 - **Bounded dramatic slice contracts** in:
   - `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`

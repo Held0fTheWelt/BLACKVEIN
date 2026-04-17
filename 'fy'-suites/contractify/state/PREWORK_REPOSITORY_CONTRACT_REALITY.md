@@ -15,7 +15,7 @@ This file captures **observed repository structure** used to shape Contractify v
 
 1. **Normative index** — `docs/dev/contracts/normative-contracts-index.md` binds slice/runtime docs.
 2. **OpenAPI** — `docs/api/openapi.yaml` declares HTTP surface (machine contract).
-3. **ADRs** — `docs/governance/adr-*.md` record architecture decisions.
+3. **ADRs** — `docs/ADR/adr-*.md` record architecture decisions.
 4. **Despaghettify** — explicit “canonical / derived” split for setup JSON vs markdown.
 5. **Postmanify manifest** — fingerprints OpenAPI (`openapi_sha256`) for projection drift checks.
 6. **Easy / start-here docs** — audience projections; historically link normative docs inconsistently.

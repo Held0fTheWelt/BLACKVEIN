@@ -311,7 +311,7 @@ The **backend** is the main **API and policy gate**: login, data, forums, conten
 
 #### What it is not
 
-The backend **does not** replace the World Engine as **authoritative live play host** for story runtime (`docs/governance/adr-0001-runtime-authority-in-world-engine.md`).
+The backend **does not** replace the World Engine as **authoritative live play host** for story runtime (`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`).
 
 ---
 
@@ -479,7 +479,7 @@ sequenceDiagram
 
 ### What this means in the actual system
 
-ADR and runtime docs: `docs/governance/adr-0001-runtime-authority-in-world-engine.md`, `docs/technical/runtime/runtime-authority-and-state-flow.md`.
+ADR and runtime docs: `docs/ADR/adr-0001-runtime-authority-in-world-engine.md`, `docs/technical/runtime/runtime-authority-and-state-flow.md`.
 
 ### Why it matters
 

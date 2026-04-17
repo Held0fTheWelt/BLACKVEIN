@@ -2,7 +2,7 @@
 
 Canonical reference for the **World of Shadows play service** (`world-engine/`): what it is in isolation, what it **commits** as runtime truth, and how it sits at the center of backend integration, player flows, AI, MCP, authored content, and operations.
 
-**Repository anchors:** [`adr-0001-runtime-authority-in-world-engine.md`](../../governance/adr-0001-runtime-authority-in-world-engine.md), `world-engine/app/main.py`.
+**Repository anchors:** [`adr-0001-runtime-authority-in-world-engine.md`](../../ADR/adr-0001-runtime-authority-in-world-engine.md), `world-engine/app/main.py`.
 
 ## Purpose and how to use this document
 
@@ -14,7 +14,7 @@ This page is the **spine** for runtime documentation. It connects implementation
 - [A1 repair — free input as primary path](a1_free_input_primary_runtime_path.md) — end-to-end player turn path via backend proxy
 - [Backend runtime classification](../architecture/backend-runtime-classification.md) — what must **not** run inside Flask as live play
 - [Architecture overview](../architecture/architecture-overview.md) — service map
-- [ADR-0001: Runtime authority in world-engine](../../governance/adr-0001-runtime-authority-in-world-engine.md)
+  - [ADR-0001: Runtime authority in world-engine](../../ADR/adr-0001-runtime-authority-in-world-engine.md)
 - [How AI fits the platform](../../start-here/how-ai-fits-the-platform.md) and [AI stack overview](../ai/ai-stack-overview.md)
 - [Canonical turn contract (GoC)](../../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - [M0 MCP host and runtime](../../mcp/01_M0_host_and_runtime.md)

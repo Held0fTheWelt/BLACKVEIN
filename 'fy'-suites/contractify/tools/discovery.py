@@ -232,18 +232,25 @@ def discover_contracts_and_projections(
     relations.extend(curated_relations)
 
     # A3 — ADRs (canonical docs/ADR)
+    # Only ADRs under the canonical `docs/ADR` directory are treated as active
+    # contract anchors. Legacy ADR locations remain visible to ADR governance
+    # tools, but are skipped here so the discovery inventory reflects the
+    # repository rule that ADRs live in `docs/ADR`.
     for adr in iter_adr_markdown_paths(repo):
         if len(contracts) >= max_contracts:
             break
         rel = _safe_rel(adr, repo)
         if rel in curated_anchor_locations:
             continue
+        # Skip legacy ADR locations; enforce canonical ADR home for discovery.
+        if not rel.startswith("docs/ADR/"):
+            continue
         head = _read_head(adr)
         st_raw = adr_declared_status(head)
         adr_status = _adr_contract_status(st_raw)
         conf = 0.9 + _marker_boost(head)
         slug = adr.stem.upper().replace("-", "_").replace(".", "_")
-        location_reason = "docs/ADR" if rel.startswith("docs/ADR/") else "legacy ADR directory"
+        location_reason = "docs/ADR"
         add(
             _contract(
                 cid=f"CTR-ADR-{slug[:24]}",

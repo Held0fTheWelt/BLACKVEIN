@@ -26,7 +26,7 @@ Facts follow this order:
 
 1. **Implementation** — `frontend/`, `backend/`, `world-engine/`, `administration-tool/`, `writers-room/`, `ai_stack/`, `story_runtime_core/`, `content/modules/`, `tools/mcp_server/`.
 2. **Current documentation** — [`README.md`](../../README.md), [`docs/start-here/what-is-world-of-shadows.md`](../start-here/what-is-world-of-shadows.md), [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md).
-3. **Roadmap and architecture** — [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md), [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md), [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md).
+3. **Roadmap and architecture** — [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md), [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md), [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md).
 4. **Tests and reports** — supporting evidence only.
 5. **Inference** — labeled explicitly when the repo does not state a commercial or packaging decision.
 
@@ -63,7 +63,7 @@ If identity is fuzzy, **everything downstream**—partnerships, pricing, creativ
 ### What it is not
 
 - **Not** “Better Tomorrow is only a skin.” The **world and title** are part of **what is being built and sold** as the **public face** of the line.
-- **Not** “the runtime has a separate consumer brand today.” The **runtime** is the **engine room**; it does **not** need its own public trademark to be valuable ([`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md) names **world-engine** as authority host—an engineering seam, not a second product logo).
+- **Not** “the runtime has a separate consumer brand today.” The **runtime** is the **engine room**; it does **not** need its own public trademark to be valuable ([`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md) names **world-engine** as authority host—an engineering seam, not a second product logo).
 
 ### Commitment
 
@@ -99,7 +99,7 @@ flowchart TB
 
 **What to notice:** **Identity** is **one layer** for the outside world. **world-engine**, **ai_stack**, and **modules** are **how** the promise is kept—not a competing brand.
 
-**Anchor:** [`README.md`](../../README.md), ADR-0001 [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md).
+**Anchor:** [`README.md`](../../README.md), ADR-0001 [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md).
 
 ---
 
@@ -138,7 +138,7 @@ Beneath the **named world** is a **serious runtime**: **authored interactive dra
 ### Precise reading
 
 - **World of Shadows** (the roadmap thesis) is **not a chatbot**: it is an **authored interactive dramatic runtime** with **truth-governed, scene-led** play ([`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §2).
-- **Play authority** lives in **`world-engine/`** per ADR-0001 ([`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md)).
+-- **Play authority** lives in **`world-engine/`** per ADR-0001 ([`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md)).
 - **AI** fits as **proposal → validation → commit** ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)); GoC slice graphs and contracts are implemented around [`ai_stack/langgraph_runtime.py`](../../ai_stack/langgraph_runtime.py) and [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](../MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md).
 
 ### Why it matters
@@ -501,7 +501,7 @@ Because **drama plus community plus operations** cannot share one **silent sourc
 ### Precise reading
 
 - **Containers** separate player UI, admin UI, API, database, play service ([`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md)).
-- **ADR-0001** places **live narrative authority** in **world-engine** ([`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md)).
+- **ADR-0001** places **live narrative authority** in **world-engine** ([`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md)).
 - **AI** supports turns but does **not** own committed truth ([`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md)).
 
 ### Why it matters
@@ -596,5 +596,5 @@ If one sentence should survive: **love the world in public; earn the business in
 | AI proposal vs commit | [`docs/start-here/how-ai-fits-the-platform.md`](../start-here/how-ai-fits-the-platform.md) |
 | MVP proof vs market | [`docs/MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md`](../MVPs/MVP_World_Of_Shadows/ROADMAP_MVP_WORLD_OF_SHADOWS.md) §4 |
 | Writers’ Room | [`docs/technical/content/writers-room-and-publishing-flow.md`](../technical/content/writers-room-and-publishing-flow.md) |
-| Runtime authority | [`docs/governance/adr-0001-runtime-authority-in-world-engine.md`](../governance/adr-0001-runtime-authority-in-world-engine.md) |
+| Runtime authority | [`docs/ADR/adr-0001-runtime-authority-in-world-engine.md`](../ADR/adr-0001-runtime-authority-in-world-engine.md) |
 | System map | [`docs/start-here/system-map-services-and-data-stores.md`](../start-here/system-map-services-and-data-stores.md) |

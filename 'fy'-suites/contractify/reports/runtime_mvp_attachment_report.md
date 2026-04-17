@@ -5,9 +5,9 @@ Generated from the curated runtime/MVP spine attachment pass.
 ## Outcome
 
 - Audit JSON: `'fy'-suites/contractify/reports/contract_audit.json`
-- Contracts discovered in audit: **43**
-- Relations discovered in audit: **233**
-- Manual unresolved areas kept explicit: **2**
+- Contracts discovered in audit: **56**
+- Relations discovered in audit: **314**
+- Manual unresolved areas kept explicit: **3**
 
 ## Precedence / weight handling
 

@@ -118,8 +118,8 @@ See [baseline-validation-note.md](baseline-validation-note.md) for Task 1A–4 a
 | Document | Owner (placeholder) | Update cadence |
 |----------|---------------------|----------------|
 | [governance/README.md](../governance/README.md) | Tech lead | When ADR set changes |
-| [governance/adr-template.md](../governance/adr-template.md) | Tech lead | Rare |
-| [governance/adr-0001-runtime-authority-in-world-engine.md](../governance/adr-0001-runtime-authority-in-world-engine.md) | Architecture council | When superseding the decision |
+| [ADR/adr-template.md](../ADR/adr-template.md) | Tech lead | Rare |
+| [ADR/adr-0001-runtime-authority-in-world-engine.md](../ADR/adr-0001-runtime-authority-in-world-engine.md) | Architecture council | When superseding the decision |
 
 ## Reference
 
