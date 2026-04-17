@@ -1,16 +1,11 @@
 # Runtime Authority Decision
+**Migrated Decision:** See canonical ADR: [ADR-0001: Runtime authority in world-engine](../../ADR/adr-0001-runtime-authority-in-world-engine.md)
+
+
 
 Status: Canonical decision for Milestones 0-5.
 
-## Decision summary
-
-World-Engine is the authoritative runtime host for story sessions.
-Backend is the policy/review/publishing/governance layer.
-Shared runtime business logic is extracted into `story_runtime_core`.
-
-**Migrated Decision:** See canonical ADR: [ADR-0021: Runtime Authority — World-Engine as authoritative runtime host](../../ADR/adr-0021-runtime-authority.md)
-
-## Ownership boundaries
+Ownership boundaries
 
 ### Backend remains responsible for
 

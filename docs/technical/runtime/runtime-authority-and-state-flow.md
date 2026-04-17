@@ -1,14 +1,11 @@
 # Runtime authority and state flow
+**Migrated Decision:** See canonical ADR: [ADR-0001: Runtime authority in world-engine](../../ADR/adr-0001-runtime-authority-in-world-engine.md)
+
+
 
 **Who owns live play** and how **session state** progresses through turns. This is the consolidated technical source for the former `docs/architecture/runtime_authority_decision.md` and the developer-oriented session overview.
 
-## Decision summary
-
-- **World-engine** is the **authoritative runtime host** for story sessions (create, execute turn, state, diagnostics).
-- **Backend** is the **policy, review, publishing, and governance** layer (and platform persistence for non-runtime data).
-- **Shared core** (`story_runtime_core`) holds **model/adapter contracts**, registry/routing, and reusable interpretation behavior.
-
-## Ownership matrix
+Ownership matrix
 
 | Layer | Owns |
 |-------|------|

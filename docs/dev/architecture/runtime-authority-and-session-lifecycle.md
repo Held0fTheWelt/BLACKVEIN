@@ -1,4 +1,7 @@
 # Runtime authority and session lifecycle (developer seam)
+**Migrated Decision:** See canonical ADR: [ADR-0001: Runtime authority in world-engine](../../ADR/adr-0001-runtime-authority-in-world-engine.md)
+
+
 
 > **Projection governance**
 > contractify-projection:

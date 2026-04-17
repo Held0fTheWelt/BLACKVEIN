@@ -1,4 +1,7 @@
 # CANONICAL_TURN_CONTRACT_GOC.md
+**Migrated Decision:** See canonical ADR: [ADR-0001: Runtime authority in world-engine](../../ADR/adr-0001-runtime-authority-in-world-engine.md)
+
+
 
 Canonical **starter turn contract** for the MVP vertical slice **God of Carnage**. Normative process: `docs/MVPs/MVP_VSL_And_GoC_Contracts/FREEZE_OPERATIONALIZATION_MVP_VSL.md`; product phases: `docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_VSL.md` §8. **Slice boundaries, Reality Anchor, current-vs-target bridge, asset inventory, and slice-level vocabulary** are normative in `docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md` — this document references them, does not redefine them.
 
