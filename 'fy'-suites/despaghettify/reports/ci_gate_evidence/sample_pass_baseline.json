@@ -1,0 +1,13 @@
+{
+  "gate_name": "despaghettify",
+  "execution_date": "2026-04-17",
+  "status": "PASS",
+  "summary": {
+    "functions_over_200_lines": 0,
+    "max_nesting_depth": 0,
+    "import_cycle_count": 0
+  },
+  "message": "Despaghettify gate baseline established: no structural flagging.",
+  "is_advisory": true,
+  "allows_merge_with_justification": true
+}

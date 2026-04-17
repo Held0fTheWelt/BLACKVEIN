@@ -80,3 +80,22 @@ contractify-projection:
 | **docify** | Drift when default AST roots omit contractify; discovery surfaces **`documentation-check-task`** as a normative handoff anchor when present. |
 | **postmanify** | Manifest + collections as OpenAPI projections (SHA drift); discovery surfaces **`postmanify-sync-task`**; drift when task prose **`openapi_path`** disagrees with manifest. |
 | **despaghettify** | Drift when derived **`spaghetti-setup.json`** is missing; discovery keeps **`spaghetti-setup.md`** as normative hub input. |
+
+## CI enforcement thresholds and gate policies
+
+Contractify enforcement is active on PR merge via the **`fy-contractify-gate`** GitHub Actions workflow. The gate is **mandatory** and blocks merge on failure.
+
+**Gate thresholds:**
+
+| Condition | Severity | Block merge | Response |
+|-----------|----------|-------------|----------|
+| New contracts added without relating to existing contracts | **critical** | Yes | Ensure new contracts declare relations in normative index. |
+| Precedence tier assignments change without justification | **high** | Yes | Document tier rationale or revert to baseline tier. |
+| Confidence scores drop below 0.85 on `runtime_authority` tier contracts | **high** | Yes | Review discovery evidence or narrow confidence scope. |
+| Named conflicts removed without escalation or documentation | **critical** | Yes | Resolve conflict via merge/narrow/disambiguate, or document as accepted drift. |
+
+**Configuration:** See `'fy'-suites/fy_governance_enforcement.yaml` for centralized policy, baseline paths, and gate execution flow.
+
+**Evidence:** Baseline snapshot at `'fy'-suites/contractify/reports/CANONICAL_REPO_ROOT_AUDIT.md`; sample pass/fail logs at `'fy'-suites/contractify/reports/ci_gate_evidence/`.
+
+**Execution:** On every PR to master/main, gate runs contractify audit, compares against baseline, and reports pass/fail status as a PR comment.

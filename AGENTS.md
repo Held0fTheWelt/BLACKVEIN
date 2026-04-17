@@ -57,3 +57,36 @@ Contractify lives under **`'fy'-suites/contractify/`** with other **“fy”** m
 **Contractify ↔ Docify / Postmanify / Despaghettify:** Contractify **models anchors and projections** and emits **drift JSON**; **docify** repairs Python/readable docs; **postmanify** regenerates API collections from OpenAPI; **despaghettify** handles structural execution cleanup when truth is tangled in code layout.
 
 **Skill path validation:** `python "./'fy'-suites/contractify/tools/validate_contractify_skill_paths.py"` after changing links under `'fy'-suites/contractify/superpowers/`.
+
+## Testify hub
+
+Testify lives under **`'fy'-suites/testify/`** with other **"fy"** meta-tool suites; see the suite catalog in **`'fy'-suites/README.md`**. Optional **`pip install -e .`** exposes the **`testify`** console script (same entry point as **`python -m testify.tools`**).
+
+1. **Router skills** live under ``'fy'-suites/testify/superpowers/<skill-name>/SKILL.md`` (minimal). **Procedure** lives in task Markdowns (`testify-check-task.md`, `testify-solve-task.md`, `testify-audit-task.md`, `testify-reset-task.md`); do not duplicate repository language policy in skills.
+2. **Cursor discovery** uses **`.cursor/skills/<skill-name>/SKILL.md`** (committed). After changing any canonical Testify skill file, run **`python "./'fy'-suites/testify/tools/sync_testify_skills.py"`** from the repo root before commit/PR (optional CI: `python "./'fy'-suites/testify/tools/sync_testify_skills.py" --check`).
+3. Do **not** hand-edit only `.cursor/skills/` for Testify copies — the next sync overwrites them. Use **`python "./'fy'-suites/testify/tools/sync_testify_skills.py"`** (file copy only — **no** symlinks, **no** `mklink`).
+4. **Language:** Same canonical policy as [`docs/dev/contributing.md`](docs/dev/contributing.md#repository-language). Hub overview: **`'fy'-suites/testify/README.md`**.
+
+**CLI:** `python -m testify.tools audit` | `testify self-check` — see `'fy'-suites/testify/README.md`.
+
+## Documentify hub
+
+Documentify lives under **`'fy'-suites/documentify/`** with other **"fy"** meta-tool suites; see the suite catalog in **`'fy'-suites/README.md`**. Optional **`pip install -e .`** exposes the **`documentify`** console script (same entry point as **`python -m documentify.tools`**).
+
+1. **Router skills** live under ``'fy'-suites/documentify/superpowers/<skill-name>/SKILL.md`` (minimal). **Procedure** lives in task Markdowns (`documentify-check-task.md`, `documentify-solve-task.md`, `documentify-audit-task.md`, `documentify-reset-task.md`); do not duplicate repository language policy in skills.
+2. **Cursor discovery** uses **`.cursor/skills/<skill-name>/SKILL.md`** (committed). After changing any canonical Documentify skill file, run **`python "./'fy'-suites/documentify/tools/sync_documentify_skills.py"`** from the repo root before commit/PR (optional CI: `python "./'fy'-suites/documentify/tools/sync_documentify_skills.py" --check`).
+3. Do **not** hand-edit only `.cursor/skills/` for Documentify copies — the next sync overwrites them. Use **`python "./'fy'-suites/documentify/tools/sync_documentify_skills.py"`** (file copy only — **no** symlinks, **no** `mklink`).
+4. **Language:** Same canonical policy as [`docs/dev/contributing.md`](docs/dev/contributing.md#repository-language). Hub overview: **`'fy'-suites/documentify/README.md`**.
+
+**CLI:** `python -m documentify.tools audit` | `documentify self-check` — see `'fy'-suites/documentify/README.md`.
+
+## Dockerify hub
+
+Dockerify lives under **`'fy'-suites/dockerify/`** with other **"fy"** meta-tool suites; see the suite catalog in **`'fy'-suites/README.md`**. Optional **`pip install -e .`** exposes the **`dockerify`** console script (same entry point as **`python -m dockerify.tools`**).
+
+1. **Router skills** live under ``'fy'-suites/dockerify/superpowers/<skill-name>/SKILL.md`` (minimal). **Procedure** lives in task Markdowns (`dockerify-check-task.md`, `dockerify-solve-task.md`, `dockerify-audit-task.md`, `dockerify-reset-task.md`); do not duplicate repository language policy in skills.
+2. **Cursor discovery** uses **`.cursor/skills/<skill-name>/SKILL.md`** (committed). After changing any canonical Dockerify skill file, run **`python "./'fy'-suites/dockerify/tools/sync_dockerify_skills.py"`** from the repo root before commit/PR (optional CI: `python "./'fy'-suites/dockerify/tools/sync_dockerify_skills.py" --check`).
+3. Do **not** hand-edit only `.cursor/skills/` for Dockerify copies — the next sync overwrites them. Use **`python "./'fy'-suites/dockerify/tools/sync_dockerify_skills.py"`** (file copy only — **no** symlinks, **no** `mklink`).
+4. **Language:** Same canonical policy as [`docs/dev/contributing.md`](docs/dev/contributing.md#repository-language). Hub overview: **`'fy'-suites/dockerify/README.md`**.
+
+**CLI:** `python -m dockerify.tools audit` | `dockerify self-check` — see `'fy'-suites/dockerify/README.md`.

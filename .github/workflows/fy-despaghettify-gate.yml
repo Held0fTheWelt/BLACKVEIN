@@ -1,0 +1,88 @@
+name: FY-Despaghettify Enforcement Gate
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  despaghettify-gate:
+    runs-on: ubuntu-latest
+    name: Structural Metrics Monitoring
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run despaghettify check on PR branch
+        id: despaghettify-check
+        run: |
+          python -m despaghettify.tools check --with-metrics --out "'fy'-suites/despaghettify/reports/pr_metrics_check.json" || true
+          echo "check_complete=true" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Compare against baseline
+        id: baseline-compare
+        run: python .github/scripts/despaghettify-gate-check.py
+        continue-on-error: true
+
+      - name: Load gate result
+        id: load-result
+        run: |
+          python3 << 'PYEOF'
+          import json
+          with open("despaghettify_gate_result.json") as f:
+              result = json.load(f)
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"has_warnings={'true' if not result['passed'] else 'false'}\n")
+          PYEOF
+
+      - name: Comment PR on warning
+        if: steps.load-result.outputs.has_warnings == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = JSON.parse(fs.readFileSync('despaghettify_gate_result.json', 'utf8'));
+            const warningList = result.warnings.map(w => '- ' + w).join('\n');
+            const comment = '## Despaghettify Enforcement Gate: ADVISORY\n\nStructural metric changes flagged for review.\n\n**Flagged Items:**\n' + warningList + '\n\n**Summary:**\n- Functions over 200 lines: ' + result.summary.pr_long_functions + ' (baseline: ' + result.summary.baseline_long_functions + ')\n- Max nesting depth: ' + result.summary.pr_max_nesting + ' (baseline: ' + result.summary.baseline_max_nesting + ')\n- Import cycles: ' + result.summary.pr_cycles + ' (baseline: ' + result.summary.baseline_cycles + ')';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Comment PR on pass
+        if: steps.load-result.outputs.has_warnings == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = '## Despaghettify Enforcement Gate: PASSED\n\nNo new structural issues flagged.';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

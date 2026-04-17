@@ -1,0 +1,171 @@
+{
+  "suite": "dockerify",
+  "summary": {
+    "required_service_count": 4,
+    "present_service_count": 4,
+    "finding_count": 0,
+    "warning_count": 3,
+    "migration_on_start": true
+  },
+  "compose": {
+    "services": {
+      "backend": {
+        "ports": [
+          "8000:8000"
+        ],
+        "has_build": true,
+        "has_env_file": true,
+        "has_healthcheck": false,
+        "depends_on": [
+          "play-service"
+        ],
+        "dependency_conditions": {
+          "play-service": "service_healthy"
+        }
+      },
+      "frontend": {
+        "ports": [
+          "5002:5002"
+        ],
+        "has_build": true,
+        "has_env_file": true,
+        "has_healthcheck": false,
+        "depends_on": [
+          "backend"
+        ],
+        "dependency_conditions": {}
+      },
+      "administration-tool": {
+        "ports": [
+          "5001:5001"
+        ],
+        "has_build": true,
+        "has_env_file": false,
+        "has_healthcheck": false,
+        "depends_on": [],
+        "dependency_conditions": {}
+      },
+      "play-service": {
+        "ports": [
+          "8001:8000"
+        ],
+        "has_build": true,
+        "has_env_file": true,
+        "has_healthcheck": true,
+        "depends_on": [],
+        "dependency_conditions": {}
+      }
+    },
+    "service_names": [
+      "administration-tool",
+      "backend",
+      "frontend",
+      "play-service"
+    ],
+    "parse_error": null
+  },
+  "docker_up": {
+    "path": "docker-up.py",
+    "commands_present": [
+      "init-env",
+      "ensure-env",
+      "up",
+      "build",
+      "restart",
+      "stop",
+      "down",
+      "reset"
+    ],
+    "mentions_env_bootstrap": true,
+    "mentions_health_wait": false
+  },
+  "file_checks": [
+    {
+      "path": "docker-up.py",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "docker-compose.yml",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": ".env.example",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "backend/Dockerfile",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "world-engine/Dockerfile",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "frontend/Dockerfile",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "administration-tool/Dockerfile",
+      "exists": true,
+      "kind": "file"
+    }
+  ],
+  "smoke_evidence": [
+    {
+      "path": "tests/smoke/test_backend_startup.py",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "tests/smoke/test_admin_startup.py",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "tests/smoke/test_engine_startup.py",
+      "exists": true,
+      "kind": "file"
+    }
+  ],
+  "database_evidence": [
+    {
+      "path": "backend/docker-entrypoint.sh",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "backend/migrations",
+      "exists": true,
+      "kind": "dir"
+    },
+    {
+      "path": "database/tests/test_database_migrations_and_files.py",
+      "exists": true,
+      "kind": "file"
+    },
+    {
+      "path": "database/tests/test_database_upgrades.py",
+      "exists": true,
+      "kind": "file"
+    }
+  ],
+  "strengths": [
+    "No deterministic Docker governance gaps were detected in the audited surfaces.",
+    "play-service healthcheck is explicitly declared in compose.",
+    "backend waits for play-service health before startup.",
+    "backend Docker entrypoint upgrades the database schema on startup.",
+    "Repository contains startup smoke tests for backend, admin tool, and engine."
+  ],
+  "warnings": [
+    "administration-tool has no compose healthcheck; startup confidence relies on smoke tests and dependent service readiness.",
+    "backend has no compose healthcheck; startup confidence relies on smoke tests and dependent service readiness.",
+    "frontend has no compose healthcheck; startup confidence relies on smoke tests and dependent service readiness."
+  ],
+  "findings": []
+}

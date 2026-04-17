@@ -21,6 +21,15 @@
 
 **Important:** **Bars and `M7_ref` apply to real measured shares** (`**Anteil %`** / `metrics_bundle.score.*.anteil_pct` / `condition_shares_pct`), **not** to the **heuristic trigger v2** scale (`category_scores` / `m7` from `ast_heuristic_v2`). Triggers are **advisory** (trend / saturation); see § *Heuristic trigger scale (advisory modes)* below.
 
+## Merge-time monitoring
+
+**Structural metrics are monitored at merge time by the `fy-despaghettify-gate` GitHub Actions workflow.** The gate is **advisory** (non-blocking) and flags:
+- New functions over 200 lines
+- Nesting depth increases (new functions with nesting >= 6)
+- Import cycle increases
+
+Merge is allowed with justification. See `'fy'-suites/fy_governance_enforcement.yaml` for enforcement thresholds and `'fy'-suites/despaghettify/baseline_metrics.json` for baseline snapshot.
+
 **Where which “trigger” numbers live (single confusion point):**
 
 

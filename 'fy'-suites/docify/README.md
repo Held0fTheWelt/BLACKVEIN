@@ -15,6 +15,15 @@
 - Product copy, marketing pages, or non-Python ecosystems (unless a task explicitly expands scope).
 - Replacing code review, CI, or Despaghettify structural governance.
 
+## Merge-time enforcement
+
+**Docstring coverage is enforced at merge time by the `fy-docify-gate` GitHub Actions workflow.** The gate is **mandatory** and blocks PR merge if:
+- New parse errors are introduced (BOM, syntax issues)
+- Docstring coverage degradates (new missing docstrings)
+- Files with missing docstrings increase from baseline
+
+See `'fy'-suites/fy_governance_enforcement.yaml` for enforcement thresholds and `'fy'-suites/docify/baseline_docstring_coverage.json` for baseline snapshot.
+
 ## Layout
 
 | Path | Role |
