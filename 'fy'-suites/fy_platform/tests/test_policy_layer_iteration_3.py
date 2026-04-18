@@ -10,6 +10,7 @@ import pytest
 from fy_platform.ai.contracts import (
     PolicyDecision, EvidenceLink, PreCheckResult
 )
+from fy_platform.ai.lanes import PreCheckLane
 
 
 class TestPolicyLayerIR:
@@ -70,3 +71,71 @@ class TestPolicyLayerIR:
         assert result.is_valid is False
         assert len(result.violations) == 2
         assert all(v.decision == 'deny' for v in result.violations)
+
+
+class TestPreCheckLane:
+    """Test PreCheckLane validation and rule registration."""
+
+    def test_precheck_lane_creation(self):
+        """PreCheckLane can be created."""
+        lane = PreCheckLane()
+        assert lane.rules == {}
+        assert lane.violations == []
+
+    def test_register_rule(self):
+        """Rules can be registered."""
+        lane = PreCheckLane()
+
+        def check_foo(target: Path, mode: str) -> PolicyDecision | None:
+            return None
+
+        lane.register_rule('foo_rule', check_foo)
+        assert 'foo_rule' in lane.rules
+
+    def test_validate_with_missing_target(self):
+        """Validation fails if target does not exist."""
+        lane = PreCheckLane()
+        result = lane.validate(Path('/nonexistent'), mode='policy-check')
+        assert result.is_valid is False
+        assert len(result.violations) == 1
+        assert result.violations[0].rule_name == 'target_exists'
+
+    def test_validate_with_custom_rule(self):
+        """Custom rules are checked during validation."""
+        lane = PreCheckLane()
+
+        def check_forbidden(target: Path, mode: str) -> PolicyDecision | None:
+            if target.name == 'forbidden.txt':
+                return PolicyDecision(
+                    policy_id='policy-forbidden',
+                    rule_name='forbidden_names',
+                    decision='deny',
+                    evidence='Filename matches forbidden pattern',
+                )
+            return None
+
+        lane.register_rule('forbidden_names', check_forbidden)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            forbidden_path = Path(tmpdir) / 'forbidden.txt'
+            forbidden_path.write_text('test')
+            result = lane.validate(forbidden_path, mode='policy-check')
+            assert result.is_valid is False
+            assert any(v.rule_name == 'forbidden_names' for v in result.violations)
+
+    def test_validate_with_valid_target(self):
+        """Validation passes for valid targets."""
+        lane = PreCheckLane()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / 'test.txt'
+            target.write_text('test data')
+            result = lane.validate(target, mode='policy-check')
+            assert result.is_valid is True
+            assert len(result.violations) == 0
+
+    def test_validate_with_cost_check_mode(self):
+        """cost-check mode skips builtin rules."""
+        lane = PreCheckLane()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = lane.validate(Path(tmpdir), mode='cost-check')
+            assert result.is_valid is True  # Directory without file size limit

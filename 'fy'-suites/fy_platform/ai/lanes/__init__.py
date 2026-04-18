@@ -17,6 +17,7 @@ from fy_platform.ai.lanes.govern_lane import GovernLane
 from fy_platform.ai.lanes.generate_lane import GenerateLane
 from fy_platform.ai.lanes.verify_lane import VerifyLane
 from fy_platform.ai.lanes.structure_lane import StructureLane
+from fy_platform.ai.lanes.precheck_lane import PreCheckLane
 
 __all__ = [
     'InspectLane',
@@ -24,4 +25,5 @@ __all__ = [
     'GenerateLane',
     'VerifyLane',
     'StructureLane',
+    'PreCheckLane',
 ]
