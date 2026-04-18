@@ -1,0 +1,30 @@
+# Iteration 3 Implementation — Changed Files
+
+## Created Files
+- fy_platform/ai/lanes/precheck_lane.py (122 lines) — PreCheckLane class with validation rules
+- fy_platform/tests/test_policy_layer_iteration_3.py (155 lines) — 20 comprehensive tests
+- IMPLEMENTATION_ITERATION_3.md — Complete implementation report
+
+## Modified Files
+- fy_platform/ai/contracts.py — Added PolicyDecision and PreCheckResult dataclasses
+- fy_platform/ai/lanes/__init__.py — Exported PreCheckLane
+- fy_platform/ai/lanes/govern_lane.py — Integrated PreCheckLane and policy decisions
+- metrify/adapter/service.py — Added enforce_budget() method
+- fy_platform/tools/platform_cli.py — Added policy-check and cost-check modes
+
+## Summary
+- 7 commits
+- 3 files created
+- 5 files modified
+- 20 new tests (all passing)
+- 0 regressions (all 33 foundation tests still pass)
+- Total: 53 tests passing
+
+## Commits
+1. b503c4c3 - feat: add PolicyDecision and PreCheckResult IR objects
+2. ab02b878 - feat: implement PreCheckLane with pluggable validation rules
+3. 523a4fdf - feat: add enforce_budget() method to MetrifyAdapter
+4. e9cb3894 - feat: integrate policy checks into GovernLane
+5. e75221c1 - feat: add policy-check and cost-check modes to platform CLI
+6. 0e8a7bde - test: add comprehensive integration tests
+7. 47f70a1a - docs: add comprehensive implementation report
