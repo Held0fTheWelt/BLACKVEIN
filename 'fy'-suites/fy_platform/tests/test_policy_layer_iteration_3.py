@@ -208,3 +208,55 @@ class TestPlatformCLIPolicyModes:
         """Legacy govern --mode release still works."""
         result = platform_cli.main(['govern', '--mode', 'release', '--format', 'json'])
         assert result == 0
+
+
+class TestPolicyLayerIntegration:
+    """End-to-end tests for policy layer."""
+
+    def test_full_policy_check_workflow(self):
+        """Full workflow: validate target -> check policies -> govern decision."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create valid target
+            target = Path(tmpdir) / 'valid-repo'
+            target.mkdir()
+            (target / 'file.txt').write_text('test')
+
+            # Run PreCheckLane
+            precheck = PreCheckLane()
+            precheck_result = precheck.validate(target, mode='policy-check')
+            assert precheck_result.is_valid is True
+
+            # Run GovernLane with policy decisions
+            govern = GovernLane()
+            readiness = govern.check_readiness(mode='release')
+            assert readiness['mode'] == 'release'
+
+    def test_policy_violation_prevents_work(self):
+        """PreCheckLane violations prevent downstream work."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Validate missing target
+            precheck = PreCheckLane()
+            result = precheck.validate(Path(tmpdir) / 'missing', mode='policy-check')
+            assert result.is_valid is False
+            assert len(result.violations) > 0
+            # Violations should be reason to not proceed
+
+    def test_metrify_budget_decision_recorded(self):
+        """Metrify budget decision is recorded in GovernLane."""
+        govern = GovernLane()
+
+        # Record budget decision via GovernLane
+        budget_decision = PolicyDecision(
+            policy_id='policy-token-budget',
+            rule_name='token_budget',
+            decision='allow',
+            evidence='Token budget sufficient: 50k available',
+        )
+        govern.record_policy_decision(budget_decision)
+        assert len(govern.get_policy_decisions()) == 1
+
+    def test_backward_compat_suite_cli_still_works(self):
+        """Legacy suite-first CLI unaffected by policy layer."""
+        from fy_platform.tools import ai_suite_cli
+        # Just verify it can be imported; actual suite runs tested elsewhere
+        assert hasattr(ai_suite_cli, 'main')
