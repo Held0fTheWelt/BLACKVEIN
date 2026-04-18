@@ -46,12 +46,12 @@ from fy_platform.ai.policy.suite_quality_policy import (
 from fy_platform.ai.production_readiness import workspace_production_readiness
 from fy_platform.ai.release_readiness import suite_release_readiness
 from fy_platform.ai.run_journal.journal import RunJournal
+from fy_platform.ai.run_helpers import RunLifecycleHelper, PayloadBundleHelper
 from fy_platform.ai.semantic_index.index_manager import SemanticIndex
 from fy_platform.ai.status_page import build_status_payload, write_status_page
 from fy_platform.ai.workspace import (
     binding_path,
     ensure_workspace_layout,
-    internal_run_dir,
     suite_hub_dir,
     target_repo_id,
     utc_now,
@@ -118,6 +118,10 @@ class BaseSuiteAdapter(ABC):
         (self.hub_dir / "reports").mkdir(parents=True, exist_ok=True)
         (self.hub_dir / "state").mkdir(parents=True, exist_ok=True)
         (self.hub_dir / "generated").mkdir(parents=True, exist_ok=True)
+
+        # Initialize mechanical helpers (extracted from base adapter for thinning)
+        self._run_lifecycle = RunLifecycleHelper(self.registry, self.journal, self.root)
+        self._bundle_helper = PayloadBundleHelper(self.registry, self.root)
 
     def _cross_suite(self, query: str | None = None) -> dict[str, Any]:
         """Collect cross-suite signals relevant to the current suite.
@@ -628,38 +632,24 @@ class BaseSuiteAdapter(ABC):
         return self._attach_status_page("consolidate", payload)
 
     def _start_run(self, mode: str, target_repo_root: Path) -> tuple[str, Path, str]:
-        """Create a new run, enforce governance, and write opening journal events."""
-        governance = self.self_governance_status()
-        if not governance["ok"]:
-            raise RuntimeError(f"governance_gate_failed:{';'.join(governance['failures'])}")
+        """Create a new run, enforce governance, and write opening journal events.
 
-        tgt_id = target_repo_id(target_repo_root)
-        run = self.registry.start_run(
+        This method delegates to RunLifecycleHelper (extracted mechanical responsibility).
+        """
+        governance = self.self_governance_status()
+        return self._run_lifecycle.start_run(
             suite=self.suite,
             mode=mode,
-            target_repo_root=str(target_repo_root),
-            target_repo_id=tgt_id,
+            target_repo_root=target_repo_root,
+            governance=governance,
         )
-        run_dir = internal_run_dir(self.root, self.suite, run.run_id)
-        run_dir.mkdir(parents=True, exist_ok=True)
-
-        self.journal.append(
-            self.suite,
-            run.run_id,
-            "run_started",
-            {
-                "mode": mode,
-                "target_repo_root": str(target_repo_root),
-                "target_repo_id": tgt_id,
-            },
-        )
-        self.journal.append(self.suite, run.run_id, "self_governance_checked", governance)
-        return run.run_id, run_dir, tgt_id
 
     def _finish_run(self, run_id: str, status: str, summary: dict[str, Any]) -> None:
-        """Write closing run journal data and mark the run complete."""
-        self.journal.append(self.suite, run_id, "run_finished", {"status": status, "summary": summary})
-        self.registry.finish_run(run_id, status=status)
+        """Write closing run journal data and mark the run complete.
+
+        This method delegates to RunLifecycleHelper (extracted mechanical responsibility).
+        """
+        self._run_lifecycle.finish_run(self.suite, run_id, status, summary)
 
     def _write_payload_bundle(
         self,
@@ -672,29 +662,16 @@ class BaseSuiteAdapter(ABC):
     ) -> dict[str, str]:
         """Write a JSON/Markdown artifact pair for a run payload.
 
-        This helper is one of the most important bridge points in the adapter:
-        it turns an in-memory result into persistent, explainable run artifacts.
+        This is one of the most important bridge points: turning an in-memory
+        result into persistent, explainable run artifacts.
+
+        This method delegates to PayloadBundleHelper (extracted mechanical responsibility).
         """
-        json_path = run_dir / f"{role_prefix}.json"
-        md_path = run_dir / f"{role_prefix}.md"
-
-        write_json(json_path, payload)
-        md_path.write_text(summary_md, encoding="utf-8")
-
-        self.registry.record_artifact(
+        return self._bundle_helper.write_payload_bundle(
             suite=self.suite,
             run_id=run_id,
-            format="json",
-            role=f"{role_prefix}_json",
-            path=str(json_path.relative_to(self.root)),
+            run_dir=run_dir,
             payload=payload,
+            summary_md=summary_md,
+            role_prefix=role_prefix,
         )
-        self.registry.record_artifact(
-            suite=self.suite,
-            run_id=run_id,
-            format="md",
-            role=f"{role_prefix}_md",
-            path=str(md_path.relative_to(self.root)),
-            payload={"markdown_preview": summary_md[:500]},
-        )
-        return {"json_path": str(json_path), "md_path": str(md_path)}

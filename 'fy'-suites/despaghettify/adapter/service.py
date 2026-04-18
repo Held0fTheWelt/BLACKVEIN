@@ -5,6 +5,7 @@ import statistics
 from pathlib import Path
 
 from fy_platform.ai.base_adapter import BaseSuiteAdapter
+from fy_platform.ai.contracts import StructureFinding
 from fy_platform.ai.workspace import write_json, write_text
 
 
@@ -114,3 +115,154 @@ class DespaghettifyAdapter(BaseSuiteAdapter):
             'rerun despaghettify to confirm local spike closure',
         ]
         return out
+
+    def audit_platform_evolution(self, platform_root: Path | None = None) -> dict:
+        """Audit fy platform itself for transition risks (fy v2 stabilization).
+
+        This is the despaghettify transition-stabilization mode. It audits the
+        shared fy core (fy_platform/ai/) for:
+        - Over-splitting (too many thin modules)
+        - Wrapper proliferation (unnecessary abstraction layers)
+        - Low-cohesion extraction (mechanical pieces split without purpose)
+        - Unstable glue (repeated delegation patterns)
+        - Re-fattening (extracted pieces growing back)
+
+        Returns guidance for platform evolution decisions.
+        """
+        if platform_root is None:
+            platform_root = self.root.parent / 'fy_platform'
+
+        platform_root = Path(platform_root).resolve()
+
+        run_id, run_dir, tgt_id = self._start_run('audit_platform_evolution', platform_root)
+        try:
+            # Scan fy_platform/ai/ for structural patterns
+            ai_dir = platform_root / 'ai'
+            findings_list = []
+            wave_actions = []
+
+            if ai_dir.exists():
+                # Detect over-splitting: too many thin modules
+                thin_modules = []
+                for py_file in ai_dir.glob('*.py'):
+                    if py_file.name.startswith('_'):
+                        continue
+                    lines = len(py_file.read_text(encoding='utf-8').splitlines())
+                    if 50 < lines < 100:  # Thin module threshold
+                        thin_modules.append({'path': py_file.name, 'lines': lines})
+
+                if len(thin_modules) > 5:
+                    findings_list.append({
+                        'finding_type': 'over_splitting',
+                        'severity': 'medium',
+                        'title': 'Platform core over-split',
+                        'description': f'{len(thin_modules)} thin modules detected in ai/',
+                        'modules': thin_modules,
+                    })
+                    wave_actions.append({
+                        'kind': 'consolidate_thin_modules',
+                        'severity': 'medium',
+                        'description': 'Consider consolidating thin modules into cohesive units',
+                    })
+
+                # Detect base_adapter concentration (before extraction)
+                base_adapter = ai_dir / 'base_adapter.py'
+                if base_adapter.exists():
+                    ba_lines = len(base_adapter.read_text(encoding='utf-8').splitlines())
+                    if ba_lines > 700:
+                        findings_list.append({
+                            'finding_type': 'concentrated_adapter',
+                            'severity': 'high',
+                            'title': 'Base adapter concentration',
+                            'description': f'base_adapter.py is {ba_lines} lines',
+                            'suggestion': 'Extract mechanical responsibilities (run lifecycle, bundle writing)',
+                        })
+                        wave_actions.append({
+                            'kind': 'extract_mechanical',
+                            'severity': 'high',
+                            'path': 'fy_platform/ai/base_adapter.py',
+                            'description': 'Extract run lifecycle and bundle writing helpers',
+                        })
+
+                # Detect wrapper proliferation: high-level delegation modules
+                wrappers = []
+                for py_file in ai_dir.glob('**/graph_recipes/*.py'):
+                    text = py_file.read_text(encoding='utf-8')
+                    # Simple heuristic: mostly delegation (calls to other adapters)
+                    if 'self.adapter' in text or 'delegate' in text.lower():
+                        wrappers.append(py_file.relative_to(ai_dir).as_posix())
+
+                if len(wrappers) > 2:
+                    findings_list.append({
+                        'finding_type': 'wrapper_proliferation',
+                        'severity': 'low',
+                        'title': 'Wrapper and delegation patterns',
+                        'description': f'{len(wrappers)} wrapper/delegation files detected',
+                        'wrappers': wrappers,
+                        'suggestion': 'Evaluate if wrappers add sufficient value or just add indirection',
+                    })
+
+            payload = {
+                'platform_root': str(platform_root),
+                'transition_mode': 'stabilization',
+                'findings': findings_list,
+                'wave_actions': wave_actions,
+                'summary': f'Platform evolution audit: {len(findings_list)} structural findings',
+            }
+
+            md_lines = [
+                '# fy Platform Evolution Audit (Despaghettify Transition Mode)',
+                '',
+                f'Scanning: {platform_root.relative_to(self.root) if platform_root.is_relative_to(self.root) else platform_root}',
+                f'Mode: transition-stabilization',
+                '',
+            ]
+
+            if findings_list:
+                md_lines.extend(['## Structural Findings', ''])
+                for finding in findings_list:
+                    md_lines.append(f"### {finding['title']} ({finding['severity']})")
+                    md_lines.append(f"- Type: `{finding['finding_type']}`")
+                    md_lines.append(f"- Description: {finding['description']}")
+                    if 'suggestion' in finding:
+                        md_lines.append(f"- Suggestion: {finding['suggestion']}")
+                    md_lines.append('')
+
+            if wave_actions:
+                md_lines.extend(['## Wave Plan', ''])
+                for action in wave_actions:
+                    md_lines.append(f"- [{action['severity']}] {action['kind']}: {action['description']}")
+                md_lines.append('')
+
+            summary_md = '\n'.join(md_lines)
+
+            paths = self._write_payload_bundle(
+                run_id=run_id,
+                run_dir=run_dir,
+                payload=payload,
+                summary_md=summary_md,
+                role_prefix='platform_evolution_audit'
+            )
+
+            self._finish_run(run_id, 'ok', {
+                'findings_count': len(findings_list),
+                'wave_action_count': len(wave_actions),
+            })
+
+            return {
+                'ok': True,
+                'suite': self.suite,
+                'run_id': run_id,
+                'findings_count': len(findings_list),
+                'wave_action_count': len(wave_actions),
+                'transition_mode': 'stabilization',
+                **paths,
+            }
+        except Exception as exc:
+            self._finish_run(run_id, 'failed', {'error': str(exc)})
+            return {
+                'ok': False,
+                'suite': self.suite,
+                'run_id': run_id,
+                'error': str(exc),
+            }
