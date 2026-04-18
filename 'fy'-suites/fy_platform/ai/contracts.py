@@ -133,3 +133,35 @@ class DecisionRecord:
     related_contracts: list[str] = field(default_factory=list)  # contract IDs
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     metadata: dict = field(default_factory=dict)
+
+
+@dataclass
+class PolicyDecision:
+    """A decision made by policy enforcement gates.
+
+    Unlike DecisionRecord (which tracks platform evolution), PolicyDecision
+    is specific to governance enforcement (cost gates, validation rules, etc.).
+    """
+    policy_id: str
+    rule_name: str  # e.g., 'file_size_limit', 'token_budget', 'model_availability'
+    decision: str  # 'allow', 'deny', or 'escalate'
+    evidence: str  # Brief description of why this decision was made
+    evidence_link: EvidenceLink | None = None  # Optional link to supporting artifacts
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    metadata: dict = field(default_factory=dict)
+
+    __test__ = False  # Prevent pytest from treating this as a test class
+
+
+@dataclass
+class PreCheckResult:
+    """Result of pre-check validation (input to PreCheckLane.validate()).
+
+    PreCheckResult accumulates violations before work begins.
+    """
+    target: str  # Path or identifier being validated
+    mode: str  # e.g., 'policy-check', 'cost-check', 'full'
+    is_valid: bool  # True if no violations
+    violations: list[PolicyDecision] = field(default_factory=list)  # List of policy violations
+    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    metadata: dict = field(default_factory=dict)
