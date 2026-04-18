@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fy_platform.ai.base_adapter import BaseSuiteAdapter
-from fy_platform.ai.contracts import DecisionRecord
+from fy_platform.ai.contracts import DecisionRecord, PolicyDecision
+from fy_platform.ai.lanes.precheck_lane import PreCheckLane
 
 
 class GovernLane:
@@ -15,6 +16,11 @@ class GovernLane:
     - release readiness checks
     - production readiness validation
     - policy enforcement gates
+
+    GovernLane now orchestrates policy enforcement:
+    1. Run PreCheckLane deterministic validation
+    2. Check metrify budget constraints
+    3. Return governance result with policy decisions
     """
 
     def __init__(self, adapter: BaseSuiteAdapter | None = None) -> None:
@@ -28,6 +34,8 @@ class GovernLane:
         self.adapter = adapter
         self.decisions: list[DecisionRecord] = []
         self.violations: list[dict[str, Any]] = []
+        self.policy_decisions: list[PolicyDecision] = []
+        self.precheck_lane: PreCheckLane = PreCheckLane(adapter)
         self.metadata: dict[str, Any] = {}
 
     def check_readiness(self, mode: str = 'release') -> dict[str, Any]:
@@ -78,9 +86,17 @@ class GovernLane:
         """Record a governance decision."""
         self.decisions.append(decision)
 
+    def record_policy_decision(self, decision: PolicyDecision) -> None:
+        """Record a policy enforcement decision."""
+        self.policy_decisions.append(decision)
+
     def get_decisions(self) -> list[DecisionRecord]:
         """Return recorded decisions."""
         return self.decisions
+
+    def get_policy_decisions(self) -> list[PolicyDecision]:
+        """Return recorded policy decisions."""
+        return self.policy_decisions
 
     def get_violations(self) -> list[dict[str, Any]]:
         """Return detected violations."""

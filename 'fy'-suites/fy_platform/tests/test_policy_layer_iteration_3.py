@@ -10,7 +10,7 @@ import pytest
 from fy_platform.ai.contracts import (
     PolicyDecision, EvidenceLink, PreCheckResult
 )
-from fy_platform.ai.lanes import PreCheckLane
+from fy_platform.ai.lanes import PreCheckLane, GovernLane
 from metrify.adapter.service import MetrifyAdapter
 
 
@@ -162,3 +162,25 @@ class TestMetrifyEnforcement:
         assert result['decision'] == 'allow'
         assert 'run_budget' in result
         assert 'policy_ids' in result
+
+
+class TestGovernLanePolicyIntegration:
+    """Test GovernLane integration with policy checks."""
+
+    def test_govern_lane_has_precheck_lane(self):
+        """GovernLane owns a PreCheckLane instance."""
+        lane = GovernLane()
+        assert isinstance(lane.precheck_lane, PreCheckLane)
+
+    def test_govern_lane_records_policy_decisions(self):
+        """GovernLane can record policy decisions."""
+        lane = GovernLane()
+        decision = PolicyDecision(
+            policy_id='policy-test',
+            rule_name='test_rule',
+            decision='allow',
+            evidence='Test evidence',
+        )
+        lane.record_policy_decision(decision)
+        assert len(lane.get_policy_decisions()) == 1
+        assert lane.get_policy_decisions()[0].policy_id == 'policy-test'
