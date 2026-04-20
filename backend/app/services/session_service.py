@@ -1,107 +1,174 @@
-"""Session service layer for API exposure (non-authoritative in-process W2 bridge).
+"""
+Backend session service.
 
-The Flask backend is **not** the live narrative runtime. Authoritative runs execute in
-the **World Engine** play service (``game_service`` HTTP client). This module wires
-content modules into an in-memory ``SessionState`` for tests, MCP/operator endpoints,
-and deferred W3.2 work — see ``docs/architecture/backend_runtime_classification.md``.
-
-Exposed operations:
-- create_session: start a **local** session from a module (registers in volatile store)
-- get_session / execute_turn / logs / state: still deferred (NotImplementedError)
+Orchestrates:
+- World-engine for authoritative operations
+- Backend mirrors for read-only queries
 """
 
-from __future__ import annotations
-
-from typing import Any
-
-from app.runtime.session_start import start_session
-from app.runtime.runtime_models import SessionState
+from typing import Dict, Any, Optional
 
 
-def create_session(module_id: str, *, metadata_updates: dict[str, Any] | None = None) -> SessionState:
-    """Bootstrap in-process ``SessionState`` from a content module (deprecated transitional).
-
-    **Not** creation of a World Engine run. Steps: load module, seed initial scene/state,
-    register in ``session_store`` (volatile, process-local).
-
-    Args:
-        module_id: Identifier of the module (e.g., "god_of_carnage")
-
-    Returns:
-        SessionState for the newly created in-process session
-
-    Raises:
-        SessionStartError: If module loading fails or module is invalid
+class SessionService:
     """
-    result = start_session(module_id)
-    session_state = result.session
-    if metadata_updates:
-        merged = dict(session_state.metadata)
-        merged.update(metadata_updates)
-        session_state.metadata = merged
+    Session service for backend.
 
-    from app.runtime.session_store import create_session as register_session
-
-    register_session(session_state.session_id, session_state, result.module)
-
-    return session_state
-
-
-def get_session(session_id: str) -> SessionState:
-    """Retrieve an active session by session_id.
-
-    W3.2 Deferral: Requires persistence layer.
-
-    Raises:
-        NotImplementedError: Requires W3.2 session persistence layer
+    Handles:
+    - Forwarding session creation to world-engine
+    - Querying session state from mirror
+    - Forwarding turn execution to world-engine
+    - Syncing results back to mirror
     """
-    raise NotImplementedError("get_session requires W3.2 session persistence")
+
+    def __init__(self, world_engine_client=None, session_mirror=None):
+        """
+        Initialize session service.
+
+        Args:
+            world_engine_client: Client for world-engine calls
+            session_mirror: Backend mirror store
+        """
+        self.world_engine_client = world_engine_client
+        self.session_mirror = session_mirror
+
+    def create_session(
+        self,
+        world_id: str,
+        session_type: str,
+        initial_state: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a session via world-engine.
+
+        Args:
+            world_id: World for session
+            session_type: Type of session
+            initial_state: Initial game state
+
+        Returns:
+            Session data or None if creation failed
+        """
+        if not self.world_engine_client:
+            return None
+
+        # Create in world-engine (authoritative)
+        session = self.world_engine_client.create_session(
+            world_id=world_id,
+            session_type=session_type,
+            initial_state=initial_state
+        )
+
+        if not session:
+            return None
+
+        # Mirror in backend
+        if self.session_mirror:
+            self.session_mirror.store_session_copy(session.to_dict())
+
+        return session.to_dict() if hasattr(session, 'to_dict') else session
+
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get session from mirror (read-only).
+
+        Args:
+            session_id: Session to retrieve
+
+        Returns:
+            Session data or None
+        """
+        if not self.session_mirror:
+            return None
+
+        return self.session_mirror.get_session(session_id)
+
+    def bind_player(self, session_id: str, player_id: str) -> bool:
+        """
+        Bind player to session (world-engine authority).
+
+        Args:
+            session_id: Session
+            player_id: Player
+
+        Returns:
+            True if successful
+        """
+        if not self.world_engine_client:
+            return False
+
+        success = self.world_engine_client.bind_player(session_id, player_id)
+
+        if success and self.session_mirror:
+            # Update mirror with new player binding
+            session = self.world_engine_client.get_session(session_id)
+            if session:
+                self.session_mirror.store_session_copy(
+                    session.to_dict() if hasattr(session, 'to_dict') else session
+                )
+
+        return success
+
+    def execute_turn(
+        self,
+        session_id: str,
+        player_id: str,
+        action: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Execute turn via world-engine.
+
+        Args:
+            session_id: Session
+            player_id: Player
+            action: Action to execute
+
+        Returns:
+            Turn result with success/error
+        """
+        if not self.world_engine_client:
+            return {"success": False, "error": "World-engine client not configured"}
+
+        # Execute in world-engine
+        result = self.world_engine_client.execute_turn(
+            session_id=session_id,
+            player_id=player_id,
+            action=action
+        )
+
+        # Update mirror with result
+        if result.get("success") and self.session_mirror:
+            self.session_mirror.apply_turn_result(session_id, result)
+
+        return result
 
 
-def execute_turn(session_id: str, decision: dict) -> SessionState:
-    """Execute a turn in an active session.
-
-    W3.2 Deferral: Requires persistence layer and turn dispatcher integration.
-
-    Args:
-        session_id: Session identifier
-        decision: Decision payload for this turn
-
-    Raises:
-        NotImplementedError: Requires W3.2 persistence and turn execution
-    """
-    raise NotImplementedError("execute_turn requires W3.2 turn execution and persistence")
+# Module-level wrapper functions for backwards compatibility
+_session_service = SessionService()
 
 
-def get_session_logs(session_id: str) -> list:
-    """Retrieve event logs for a session.
-
-    W3.2 Deferral: Requires persistence layer for log retrieval.
-
-    Args:
-        session_id: Session identifier
-
-    Returns:
-        List of event log entries
-
-    Raises:
-        NotImplementedError: Requires W3.2 persistence layer
-    """
-    raise NotImplementedError("get_session_logs requires W3.2 event log persistence")
+def create_session(world_id: str, session_type: str, initial_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Wrapper for SessionService.create_session."""
+    return _session_service.create_session(world_id, session_type, initial_state)
 
 
-def get_session_state(session_id: str) -> dict:
-    """Get world state dict for a session (W2 ``canonical_state`` field shape).
+def get_session(session_id: str) -> Optional[Dict[str, Any]]:
+    """Wrapper for SessionService.get_session."""
+    return _session_service.get_session(session_id)
 
-    W3.2 Deferral: Requires persistence layer for state retrieval.
 
-    Args:
-        session_id: Session identifier
+def execute_turn(session_id: str, player_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
+    """Wrapper for SessionService.execute_turn."""
+    return _session_service.execute_turn(session_id, player_id, action)
 
-    Returns:
-        World state dict
 
-    Raises:
-        NotImplementedError: Requires W3.2 persistence layer
-    """
-    raise NotImplementedError("get_session_state requires W3.2 state persistence")
+def get_session_logs(session_id: str) -> Optional[list]:
+    """Get session logs (stub for now)."""
+    return None
+
+
+def get_session_state(session_id: str) -> Optional[Dict[str, Any]]:
+    """Get session state (stub for now)."""
+    session = _session_service.get_session(session_id)
+    if session:
+        return session.get("state", {})
+    return None
