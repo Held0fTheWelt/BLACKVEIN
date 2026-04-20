@@ -60,9 +60,33 @@
     {% else %}
       <p>No authoritative transcript line available yet.</p>
     {% endif %}
+    <p id="who-answers-now">{{ shell_state_view.get("who_answers_now") or "" }}</p>
+    <p id="why-this-reply-now">{{ shell_state_view.get("why_this_reply_now") or "" }}</p>
+    <p id="observation-foothold-now">{{ shell_state_view.get("observation_foothold_now") or "" }}</p>
   {% else %}
     <p>No post-turn authoritative observation captured yet.</p>
   {% endif %}
+</section>
+
+<section class="panel" id="social-readout-panel">
+  <h2>Socially live right now</h2>
+  <p id="social-weather-now">{{ shell_state_view.get("social_weather_now") or "" }}</p>
+  <p id="live-surface-now">{{ shell_state_view.get("live_surface_now") or "" }}</p>
+  <p id="carryover-now">{{ shell_state_view.get("carryover_now") or "" }}</p>
+  <p id="social-geometry-now">{{ shell_state_view.get("social_geometry_now") or "" }}</p>
+  <p id="situational-freedom-now">{{ shell_state_view.get("situational_freedom_now") or "" }}</p>
+  <p id="address-pressure-now">{{ shell_state_view.get("address_pressure_now") or "" }}</p>
+  <p id="social-moment-now">{{ shell_state_view.get("social_moment_now") or "" }}</p>
+  <p id="response-pressure-now">{{ shell_state_view.get("response_pressure_now") or "" }}</p>
+</section>
+
+
+<section class="panel" id="reaction-delta-panel">
+  <h2>What just shifted</h2>
+  <p id="reaction-delta-now">{{ shell_state_view.get("reaction_delta_now") or "" }}</p>
+  <p id="carryover-delta-now">{{ shell_state_view.get("carryover_delta_now") or "" }}</p>
+  <p id="pressure-shift-delta-now">{{ shell_state_view.get("pressure_shift_delta_now") or "" }}</p>
+  <p id="hot-surface-delta-now">{{ shell_state_view.get("hot_surface_delta_now") or "" }}</p>
 </section>
 
 <section class="panel">

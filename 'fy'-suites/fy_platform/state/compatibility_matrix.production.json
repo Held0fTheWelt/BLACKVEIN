@@ -1,0 +1,5 @@
+{
+  "schema_version": "fy.compatibility-matrix.v1",
+  "command_envelope": {"current": "fy.command-envelope.v4", "supported_read_versions": ["fy.command-envelope.v3", "fy.command-envelope.v4"]},
+  "manifest": {"current": 1, "supported": [1]}
+}

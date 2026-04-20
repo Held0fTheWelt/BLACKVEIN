@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SufficiencyVerdict",
+  "type": "object",
+  "schema_version": "fy.sufficiency-verdict.schema.v1",
+  "properties": {
+    "sufficiency_verdict_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "supporting_artifact_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

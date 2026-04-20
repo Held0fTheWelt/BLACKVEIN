@@ -1,0 +1,40 @@
+{
+  "schema_version": "fy.testify-coda-proof-obligation-manifest.v1",
+  "suite": "testify",
+  "generated_at": "2026-04-20T02:59:02.309448+00:00",
+  "source_report": "testify/reports/testify_audit.json",
+  "proof_report_path": "testify/generated/target-repo-f393f381/testify-659d27359d5d/evolution_graph/proof_report.json",
+  "claim_proof_status_path": "testify/generated/target-repo-f393f381/testify-659d27359d5d/evolution_graph/claim_proof_status.json",
+  "obligations": [],
+  "required_tests": [
+    {
+      "test_id": "testify-warning-1",
+      "suite": "testify",
+      "severity": "medium",
+      "summary": "No standalone frontend-tests.yml workflow detected; frontend quality currently relies on broader gates or local runner usage.",
+      "source_kind": "warning",
+      "blocking": false
+    },
+    {
+      "test_id": "contractify:claim:ctr_wf_ci_claim",
+      "suite": "testify",
+      "severity": "medium",
+      "summary": "Keep proof linkage healthy for claim `contractify:claim:ctr_wf_ci_claim`.",
+      "source_kind": "linked_claim",
+      "workflow_path": "",
+      "blocking": false
+    }
+  ],
+  "proof_family_status": {
+    "blocker_gap_count": 0,
+    "warning_gap_count": 1,
+    "linked_claim_count": 1,
+    "highest_blocker_severity": "low",
+    "summary": "Testify sees 0 blocker-class proof family gap(s), 1 warning-shaped proof item(s), and 1 linked claim(s)."
+  },
+  "summary": "Testify exported 2 bounded required test/proof items for closure-pack review.",
+  "written_paths": {
+    "json_path": "testify/reports/latest_coda_test_obligation_manifest.json",
+    "md_path": "testify/reports/latest_coda_test_obligation_manifest.md"
+  }
+}

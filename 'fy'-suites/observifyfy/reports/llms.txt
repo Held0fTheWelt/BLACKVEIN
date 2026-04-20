@@ -1,0 +1,31 @@
+# Observifyfy LLM Context
+
+AI-readable cross-suite operational context for fy-suite self-management.
+
+## Diagnosta
+- active_profile: D
+- readiness_status: implementation_ready
+- blocker_count: 0
+- warning_count: 4
+
+## Coda
+- active_profile: D
+- closure_status: closed_for_current_target_reviewed_scope
+- obligation_count: 0
+- required_test_count: 0
+- required_doc_count: 0
+- warning_count: 4
+- residue_count: 0
+
+## Next steps
+- contractify: Add or repair a workflow for contractify.
+- documentify: Add or repair a workflow for documentify.
+- docify: Add or repair a workflow for docify.
+- despaghettify: Add or repair a workflow for despaghettify.
+- dockerify: Add or repair a workflow for dockerify.
+- testify: Add or repair a workflow for testify.
+- templatify: Add or repair a workflow for templatify.
+- securify: Add or repair a workflow for securify.
+- diagnosta: Add or repair a workflow for diagnosta.
+- coda: Add or repair a workflow for coda.
+

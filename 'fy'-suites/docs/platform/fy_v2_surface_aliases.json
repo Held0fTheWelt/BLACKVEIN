@@ -1,0 +1,100 @@
+{
+  "ok": true,
+  "workspace_root": "/mnt/data/wave3/'fy'-suites",
+  "entry_count": 9,
+  "entries": [
+    {
+      "legacy_surface": "contractify",
+      "current_surface": "fy analyze --mode contract",
+      "lens": "governance",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "despag-check",
+      "current_surface": "fy analyze --mode structure",
+      "lens": "quality",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "despaghettify",
+      "current_surface": "fy analyze --mode structure",
+      "lens": "quality",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "docify",
+      "current_surface": "fy analyze --mode code_docs",
+      "lens": "knowledge",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "documentify",
+      "current_surface": "fy analyze --mode docs",
+      "lens": "knowledge",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "metrify",
+      "current_surface": "fy metrics --mode report",
+      "lens": "platform",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "mvpify",
+      "current_surface": "fy import --mode mvp",
+      "lens": "platform",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "securify",
+      "current_surface": "fy analyze --mode security",
+      "lens": "governance",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    },
+    {
+      "legacy_surface": "testify",
+      "current_surface": "fy analyze --mode quality",
+      "lens": "quality",
+      "sunset_phase": "C2",
+      "status": "compatibility-entry"
+    }
+  ],
+  "lens_groups": {
+    "governance": [
+      "contract",
+      "security",
+      "release",
+      "production"
+    ],
+    "quality": [
+      "quality",
+      "structure"
+    ],
+    "knowledge": [
+      "docs",
+      "code_docs"
+    ],
+    "platform": [
+      "context_pack",
+      "mvp",
+      "report",
+      "governor_status",
+      "surface_aliases",
+      "packaging_prep"
+    ]
+  },
+  "exceptions": [
+    "dockerify remains suite-first until provider/runtime packaging converges.",
+    "postmanify remains suite-first until API projection governance is explicitly collapsed.",
+    "observifyfy stays internal-first and is not yet exposed as a platform mode.",
+    "usabilify remains indirectly represented through the knowledge lens until its collapse surface is implemented."
+  ]
+}

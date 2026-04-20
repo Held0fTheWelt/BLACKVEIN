@@ -1,0 +1,20 @@
+{
+  "schema_version": "fy.strategy-profile-comparison.v1",
+  "left_profile": "B",
+  "right_profile": "D",
+  "left_run_id": "diagnosta-2c6bce674b22",
+  "right_run_id": "diagnosta-afe7ad1e58a5",
+  "strategy_profile_changed": true,
+  "left_readiness_status": "not_ready",
+  "right_readiness_status": "not_ready",
+  "left_blocker_count": 7,
+  "right_blocker_count": 7,
+  "compare_runs_fields": {
+    "artifact_delta": 0,
+    "mode_changed": false,
+    "strategy_profile_changed": true,
+    "left_strategy_profile": "B",
+    "right_strategy_profile": "D"
+  },
+  "note": "In this bounded MVP, strategy switching is operational and recorded in run metadata. The real B-vs-D self-hosting comparison shows profile metadata changes clearly, while deep diagnosis semantics remain intentionally similar in this release."
+}

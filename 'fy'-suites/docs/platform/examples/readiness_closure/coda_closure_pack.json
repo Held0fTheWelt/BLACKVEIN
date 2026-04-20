@@ -1,0 +1,426 @@
+{
+  "schema_version": "fy.closure-pack.v1",
+  "closure_pack_id": "closure-pack:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "active_profile": "D",
+  "status": "closed_for_current_target_reviewed_scope",
+  "review_required": true,
+  "obligation_ids": [],
+  "accepted_obligation_ids": [
+    "documentify-track:easy",
+    "documentify-track:technical",
+    "documentify-track:role-admin",
+    "documentify-track:role-developer",
+    "documentify-track:role-operator",
+    "documentify-track:role-writer",
+    "documentify-track:role-player",
+    "documentify-track:ai-read"
+  ],
+  "warning_ids": [
+    "warning:testify:proof-items",
+    "warning:despaghettify:packetized-hotspots",
+    "warning:dockerify:warnings",
+    "warning:readiness:optional-evidence-missing"
+  ],
+  "residue_ids": [],
+  "warnings": [
+    {
+      "warning_id": "warning:testify:proof-items",
+      "severity": "medium",
+      "summary": "Testify still reports 1 warning-shaped proof item(s).",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:despaghettify:packetized-hotspots",
+      "severity": "low",
+      "summary": "Despaghettify still sees local hotspots, but the remaining burden is packetized and non-blocking for this wave.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:dockerify:warnings",
+      "severity": "medium",
+      "summary": "Dockerify still reports 3 warning(s) that remain visible but non-blocking.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:readiness:optional-evidence-missing",
+      "severity": "medium",
+      "summary": "Optional supporting evidence is still missing: securify.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    }
+  ],
+  "obligations": [],
+  "required_tests": [],
+  "required_docs": [],
+  "review_acceptances": [
+    {
+      "item_id": "testify-warning-1",
+      "item_type": "test",
+      "summary": "No standalone frontend-tests.yml workflow detected; frontend quality currently relies on broader gates or local runner usage.",
+      "source_suite": "testify",
+      "source_kind": "warning",
+      "path": "",
+      "status": "accepted_non_blocking",
+      "adjudication": "Visible proof/test follow-up remains review-significant but does not prevent current-target closure."
+    },
+    {
+      "item_id": "contractify:claim:ctr_wf_ci_claim",
+      "item_type": "test",
+      "summary": "Keep proof linkage healthy for claim `contractify:claim:ctr_wf_ci_claim`.",
+      "source_suite": "testify",
+      "source_kind": "linked_claim",
+      "path": "",
+      "status": "accepted_non_blocking",
+      "adjudication": "Visible proof/test follow-up remains review-significant but does not prevent current-target closure."
+    },
+    {
+      "item_id": "documentify:easy/OVERVIEW.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `easy/OVERVIEW.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "easy/OVERVIEW.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:technical/SYSTEM_REFERENCE.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `technical/SYSTEM_REFERENCE.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "technical/SYSTEM_REFERENCE.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:technical/DOCS_SITE_BLUEPRINT.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `technical/DOCS_SITE_BLUEPRINT.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "technical/DOCS_SITE_BLUEPRINT.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:role-admin/README.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `role-admin/README.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "role-admin/README.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:role-developer/README.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `role-developer/README.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "role-developer/README.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:role-operator/README.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `role-operator/README.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "role-operator/README.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:role-writer/README.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `role-writer/README.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "role-writer/README.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:role-player/README.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `role-player/README.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "role-player/README.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify:ai-read/bundle.md",
+      "item_type": "doc",
+      "summary": "Keep generated documentation track `ai-read/bundle.md` aligned with the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "generated_document",
+      "path": "ai-read/bundle.md",
+      "status": "satisfied_by_current_artifact",
+      "adjudication": "Generated documentation already exists in current artifacts and remains visible as reviewed supporting material."
+    },
+    {
+      "item_id": "documentify-track:easy",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `easy` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "easy",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:technical",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `technical` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "technical",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:role-admin",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `role-admin` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "role-admin",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:role-developer",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `role-developer` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "role-developer",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:role-operator",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `role-operator` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "role-operator",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:role-writer",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `role-writer` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "role-writer",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:role-player",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `role-player` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "role-player",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    },
+    {
+      "item_id": "documentify-track:ai-read",
+      "item_type": "obligation",
+      "summary": "Preserve the Documentify `ai-read` track when landing the closure pack.",
+      "source_suite": "documentify",
+      "source_kind": "documentation_track_alignment",
+      "path": "ai-read",
+      "status": "review_accepted",
+      "adjudication": "Current artifacts already satisfy the bounded alignment expectation for current-target reviewed closure."
+    }
+  ],
+  "review_packet_id": "review-packet:'fy'-suites",
+  "affected_surfaces": [
+    {
+      "surface_id": "despag-surface-233909",
+      "suite": "despaghettify",
+      "path": "testify/tools/test_governance.py",
+      "summary": "testify/tools/test_governance.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-8654477",
+      "suite": "despaghettify",
+      "path": "testify/tools/canonical_graph.py",
+      "summary": "testify/tools/canonical_graph.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-536625",
+      "suite": "despaghettify",
+      "path": "mvpify/tools/importer.py",
+      "summary": "mvpify/tools/importer.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-5558976",
+      "suite": "despaghettify",
+      "path": "fy_platform/ai/adr_reflection.py",
+      "summary": "fy_platform/ai/adr_reflection.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-4294485",
+      "suite": "despaghettify",
+      "path": "fy_platform/ai/adapter_commands.py",
+      "summary": "fy_platform/ai/adapter_commands.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-7756037",
+      "suite": "despaghettify",
+      "path": "fy_platform/ai/evidence_registry/registry.py",
+      "summary": "fy_platform/ai/evidence_registry/registry.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-4503091",
+      "suite": "despaghettify",
+      "path": "fy_platform/ai/semantic_index/index_manager.py",
+      "summary": "fy_platform/ai/semantic_index/index_manager.py",
+      "surface_kind": "file_hotspot"
+    },
+    {
+      "surface_id": "despag-surface-6651656",
+      "suite": "despaghettify",
+      "path": "documentify/tools/document_builder.py",
+      "summary": "documentify/tools/document_builder.py",
+      "surface_kind": "file_hotspot"
+    }
+  ],
+  "structural_risks": [
+    {
+      "risk_id": "despaghettify-risk-6043089",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'testify/tools/test_governance.py', 'line_count': 401, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "testify/tools/test_governance.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-9932656",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'testify/tools/canonical_graph.py', 'line_count': 541, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "testify/tools/canonical_graph.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-785209",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'mvpify/tools/importer.py', 'line_count': 437, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "mvpify/tools/importer.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-573916",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'fy_platform/ai/adr_reflection.py', 'line_count': 410, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "fy_platform/ai/adr_reflection.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-9225037",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'fy_platform/ai/adapter_commands.py', 'line_count': 440, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "fy_platform/ai/adapter_commands.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-7427577",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'fy_platform/ai/evidence_registry/registry.py', 'line_count': 493, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "fy_platform/ai/evidence_registry/registry.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-3453238",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'fy_platform/ai/semantic_index/index_manager.py', 'line_count': 364, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "fy_platform/ai/semantic_index/index_manager.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-5491915",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'documentify/tools/document_builder.py', 'line_count': 375, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "documentify/tools/document_builder.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-1422493",
+      "suite": "despaghettify",
+      "severity": "low",
+      "summary": "{'path': 'docify/tools/documentation_drift.py', 'line_count': 424, 'category': 'local_spike_file_length', 'severity': 'low'}",
+      "source_path": "docify/tools/documentation_drift.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-2094109",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'docify/tools/python_docstring_synthesize.py', 'line_count': 2029, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "docify/tools/python_docstring_synthesize.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-8912615",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'docify/tools/python_documentation_audit.py', 'line_count': 978, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "docify/tools/python_documentation_audit.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-8447211",
+      "suite": "despaghettify",
+      "severity": "high",
+      "summary": "{'path': 'docify/tools/python_inline_explain.py', 'line_count': 712, 'category': 'local_spike_file_length', 'severity': 'high'}",
+      "source_path": "docify/tools/python_inline_explain.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-4425037",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'docify/tools/strip_ai_stack_docstring_placeholders.py', 'line_count': 497, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "docify/tools/strip_ai_stack_docstring_placeholders.py"
+    },
+    {
+      "risk_id": "despaghettify-risk-1529878",
+      "suite": "despaghettify",
+      "severity": "medium",
+      "summary": "{'path': 'docify/tools/canonical_graph.py', 'line_count': 463, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+      "source_path": "docify/tools/canonical_graph.py"
+    }
+  ],
+  "justification": [
+    "Coda only assembles bounded review-first closure packs.",
+    "Supporting-suite truth remains owned by the originating suites.",
+    "Warnings stay visible without being overstated as residue.",
+    "Already-generated docs and non-blocking test items can be review-accepted without pretending they disappeared.",
+    "Residue stays explicit whenever stronger closure is not justified."
+  ],
+  "summary": "Coda assembled a bounded closure pack for 'fy'-suites with 0 open obligation(s), 0 open required test item(s), 0 open required doc item(s), 19 review-accepted item(s), 4 warning item(s), and 0 residue item(s).",
+  "source_reports": {
+    "contractify": "contractify/reports/latest_coda_obligation_manifest.json",
+    "testify": "testify/reports/latest_coda_test_obligation_manifest.json",
+    "despaghettify": "despaghettify/reports/latest_coda_insertion_surface_report.json",
+    "docify": "docify/reports/latest_coda_documentation_manifest.json",
+    "documentify": "documentify/reports/latest_coda_documentation_manifest.json",
+    "readiness_case": "diagnosta/reports/latest_readiness_case.json"
+  }
+}

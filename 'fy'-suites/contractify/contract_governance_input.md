@@ -1,0 +1,18 @@
+# Contract governance backlog (CG-*)
+
+| **ID** | **Slice** | **Status** | **Evidence / notes** |
+|--------|-----------|------------|----------------------|
+| **CG-001** | Re-run `python -m contractify.tools audit --json --out "'fy'-suites/contractify/reports/_local_contract_audit.json"` after OpenAPI or Postman workflow changes; update `reports/CANONICAL_REPO_ROOT_AUDIT.md` if the canonical stats changed; triage `actionable_units`. | open | Deterministic drift: `openapi_sha256` vs file hash |
+| **CG-002** | Add explicit normative backlinks or `contractify-projection` front matter to `docs/easy/**` pages flagged with low-severity `DRF-PROJ-BACKREF-*` (heuristic). | open | See audit `drift_findings` |
+| **CG-003** | Keep Docify default AST roots including contractify (suite self-governance). | open | `DRF-DOCIFY-ROOT-001` should stay **absent** after integration |
+| **CG-004** | Promote the runtime/MVP normative spine into first-class Contractify records with evidence-backed `implemented_by`, `validated_by`, `documented_in`, and `projected_as` fields. | closed | See `state/RUNTIME_MVP_SPINE_ATTACHMENT.md` and `reports/runtime_mvp_attachment_report.md` |
+| **CG-005** | Make runtime/MVP relation growth visible with bounded `depends_on`, `refines`, `derives_from`, `overlaps_with`, `implements`, `implemented_by`, `validates`, `validated_by`, and `operationalizes` edges. | closed | Curated attachment pass in `tools/runtime_mvp_spine.py`; summary in `reports/runtime_mvp_attachment_report.md` |
+| **CG-006** | Add deterministic precedence/weight visibility so runtime authority, slice norms, implementation evidence, verification evidence, and projections are distinguishable in the graph. | closed | Audit payload now includes `precedence_rules`; see `state/RUNTIME_MVP_SPINE_ATTACHMENT.md` |
+| **CG-007** | Keep unresolved overlap areas explicit rather than flattening them into false certainty. | closed | Audit payload `manual_unresolved_areas`; report section `Unresolved conflicts / disputed areas kept explicit` |
+| **CG-008** | Make the runtime/MVP attachment wave visibly state-tracked in tracked markdown, not only in local JSON exports. | closed | See `state/ATTACHMENT_PASS_INDEX.md`, `state/RUNTIME_MVP_SPINE_ATTACHMENT.md`, and `state/README.md` |
+| **CG-009** | Re-audit whether backend transitional session surfaces should gain a more explicit retirement/supersession record once repository truth supports it. | open | Currently intentionally unresolved; see `CNF-RUNTIME-SPINE-TRANSITIONAL-RETIREMENT` |
+| **CG-010** | Re-audit the Writers' Room vs RAG overlap boundary if retrieval/publishing responsibilities widen. | open | Currently intentionally unresolved; see `CNF-RUNTIME-SPINE-WRITERS-RAG-OVERLAP` |
+| **CG-011** | Normalize ADR home to `docs/ADR` and stop leaving active architecture decisions in legacy folders once links are migrated. | open | ADR governance inventory now proposes canonical `docs/ADR/...` targets |
+| **CG-012** | Prevent duplicate ADR truth by removing or redirecting legacy ADR copies after canonical migration. | open | See audit `adr_governance.findings` for `duplicate_declared_id`, `canonical_path_collision`, and `legacy_adr_location` |
+| **CG-013** | Use richer canonical ADR ids/paths when simple sequential names would falsely imply simultaneity across similarly named MVP-era decisions. | open | Investigation suite proposes layered ids such as `ADR.RUNTIME.0001` and `ADR.SLICE.GOC.0003` |
+| **CG-014** | Refresh the ADR investigation suite whenever ADRs are added, renamed, superseded, or moved. | open | Command: `python -m contractify.tools adr-investigation --out-dir "'fy'-suites/contractify/investigations/adr"` |

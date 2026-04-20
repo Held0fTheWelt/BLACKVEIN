@@ -1,0 +1,118 @@
+{
+  "suite": "templatify",
+  "source_dir": "/mnt/data/work/admin/'fy'-suites/templatify/templates/source_pack",
+  "areas": {
+    "frontend": {
+      "status": "ready",
+      "target_root": "frontend/templates",
+      "base_template": "base.html",
+      "source_shell": "default/shell.html",
+      "generated_shell_path": "frontend/templates/_templatify/shell.html",
+      "generated_base_path": "frontend/templates/base.html",
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "body_class",
+        "site_header",
+        "site_main",
+        "extra_scripts"
+      ],
+      "child_count_extending_base": 14,
+      "unmapped_base_blocks": [],
+      "generated_shell": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"[[META_DESCRIPTION]]\">\n  <title>{% block title %}{% endblock %}</title>\n  {% block extra_head %}{% endblock %}\n</head>\n<body class=\"{% block body_class %}{% endblock %}\">\n  <header class=\"site-shell-header\">\n    {% block site_header %}{% endblock %}\n  </header>\n  <main class=\"site-shell-main[[WRAP_MODIFIERS]]\">\n    <section class=\"site-shell-heading\">\n      [[HEADING]]\n      [[SUBHEADING]]\n    </section>\n    {% block site_main %}{% endblock %}\n  </main>\n  {% block extra_scripts %}{% endblock %}\n</body>\n</html>\n",
+      "generated_base": "{% extends \"_templatify/shell.html\" %}\n\n{% block site_main %}\n  {% block content %}{% endblock %}\n{% endblock %}\n\n{% block body_class %}\n{% endblock %}\n\n{% block extra_head %}\n{% endblock %}\n\n{% block extra_scripts %}\n{% endblock %}\n\n{% block site_header %}\n<header class=\"site-header\">\n    <nav class=\"nav\">\n      <a href=\"{{ url_for('frontend.home') }}\">Home</a>\n      <a href=\"{{ url_for('frontend.news') }}\">News</a>\n      <a href=\"{{ url_for('frontend.wiki') }}\">Wiki</a>\n      <a href=\"{{ url_for('frontend.community') }}\">Community</a>\n      <a href=\"{{ url_for('frontend.game_menu') }}\">Game Menu</a>\n      {% if session.get(\"access_token\") %}\n        {% if session.get(\"current_user\") %}\n          <span class=\"user-info\">{{ session[\"current_user\"].get(\"username\", \"\") }}</span>\n        {% endif %}\n        <a href=\"{{ url_for('frontend.dashboard') }}\">Dashboard</a>\n        <form method=\"post\" action=\"{{ url_for('frontend.logout') }}\">\n          <button type=\"submit\">Log out</button>\n        </form>\n      {% else %}\n        <a href=\"{{ url_for('frontend.login') }}\">Login</a>\n        <a href=\"{{ url_for('frontend.register') }}\">Register</a>\n      {% endif %}\n    </nav>\n  </header>\n{% endblock %}\n\n{% block title %}\nWorld of Shadows\n{% endblock %}\n"
+    },
+    "administration_tool": {
+      "status": "ready",
+      "target_root": "administration-tool/templates",
+      "base_template": "base.html",
+      "source_shell": "default/shell.html",
+      "generated_shell_path": "administration-tool/templates/_templatify/shell.html",
+      "generated_base_path": "administration-tool/templates/base.html",
+      "base_blocks": [
+        "html_class",
+        "title",
+        "meta_description",
+        "extra_head",
+        "body_class",
+        "content",
+        "extra_scripts"
+      ],
+      "child_count_extending_base": 11,
+      "unmapped_base_blocks": [
+        "html_class"
+      ],
+      "generated_shell": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"{% block meta_description %}{% endblock %}\">\n  <title>{% block title %}{% endblock %}</title>\n  {% block extra_head %}{% endblock %}\n</head>\n<body class=\"{% block body_class %}{% endblock %}\">\n  <header class=\"site-shell-header\">\n    [[HEADER]]\n  </header>\n  <main class=\"site-shell-main[[WRAP_MODIFIERS]]\">\n    <section class=\"site-shell-heading\">\n      [[HEADING]]\n      [[SUBHEADING]]\n    </section>\n    {% block content %}{% endblock %}\n  </main>\n  {% block extra_scripts %}{% endblock %}\n</body>\n</html>\n",
+      "generated_base": "{% extends \"_templatify/shell.html\" %}\n\n{% block body_class %}\n{% endblock %}\n\n{% block content %}\n{% endblock %}\n\n{% block extra_head %}\n{% endblock %}\n\n{% block extra_scripts %}\n{% endblock %}\n\n{% block meta_description %}\nBLACKVEIN \u2013 Enter the World of Blackveign.\n{% endblock %}\n\n{% block title %}\n{{ t.site_name | default('BLACKVEIN') }}\n{% endblock %}\n\n{% block html_class %}\n{% endblock %}\n"
+    },
+    "administration_manage": {
+      "status": "ready",
+      "target_root": "administration-tool/templates/manage",
+      "base_template": "base.html",
+      "source_shell": "default/shell.html",
+      "generated_shell_path": "administration-tool/templates/manage/_templatify/shell.html",
+      "generated_base_path": "administration-tool/templates/manage/base.html",
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "content",
+        "extra_scripts"
+      ],
+      "child_count_extending_base": 39,
+      "unmapped_base_blocks": [],
+      "generated_shell": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"[[META_DESCRIPTION]]\">\n  <title>{% block title %}{% endblock %}</title>\n  {% block extra_head %}{% endblock %}\n</head>\n<body class=\"[[BODY_CLASS]]\">\n  <header class=\"site-shell-header\">\n    [[HEADER]]\n  </header>\n  <main class=\"site-shell-main[[WRAP_MODIFIERS]]\">\n    <section class=\"site-shell-heading\">\n      [[HEADING]]\n      [[SUBHEADING]]\n    </section>\n    {% block content %}{% endblock %}\n  </main>\n  {% block extra_scripts %}{% endblock %}\n</body>\n</html>\n",
+      "generated_base": "{% extends \"_templatify/shell.html\" %}\n\n{% block content %}\n{% endblock %}\n\n{% block extra_head %}\n{% endblock %}\n\n{% block extra_scripts %}\n{# Page-specific scripts MUST be in extra_scripts so they run after ManageAuth is available. #}\n{% endblock %}\n\n{% block title %}\n{{ t.nav_manage | default('Manage') }}\n{% endblock %}\n"
+    },
+    "backend_info": {
+      "status": "ready",
+      "target_root": "backend/app/info/templates",
+      "base_template": "base.html",
+      "source_shell": "default/shell.html",
+      "generated_shell_path": "backend/app/info/templates/_templatify/shell.html",
+      "generated_base_path": "backend/app/info/templates/base.html",
+      "base_blocks": [
+        "title",
+        "wrap_modifiers",
+        "heading",
+        "subheading",
+        "body"
+      ],
+      "child_count_extending_base": 7,
+      "unmapped_base_blocks": [],
+      "generated_shell": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"[[META_DESCRIPTION]]\">\n  <title>{% block title %}{% endblock %}</title>\n  [[EXTRA_HEAD]]\n</head>\n<body class=\"[[BODY_CLASS]]\">\n  <header class=\"site-shell-header\">\n    [[HEADER]]\n  </header>\n  <main class=\"site-shell-main{% block wrap_modifiers %}{% endblock %}\">\n    <section class=\"site-shell-heading\">\n      {% block heading %}{% endblock %}\n      {% block subheading %}{% endblock %}\n    </section>\n    {% block body %}{% endblock %}\n  </main>\n  [[EXTRA_SCRIPTS]]\n</body>\n</html>\n",
+      "generated_base": "{% extends \"_templatify/shell.html\" %}\n\n{% block body %}\n{% endblock %}\n\n{% block heading %}\nBackend\n{% endblock %}\n\n{% block subheading %}\n{% endblock %}\n\n{% block title %}\nBackend\n{% endblock %}\n\n{% block wrap_modifiers %}\n{% endblock %}\n"
+    },
+    "writers_room": {
+      "status": "ready",
+      "target_root": "writers-room/app/templates",
+      "base_template": "base.html",
+      "source_shell": "default/shell.html",
+      "generated_shell_path": "writers-room/app/templates/_templatify/shell.html",
+      "generated_base_path": "writers-room/app/templates/base.html",
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "content"
+      ],
+      "child_count_extending_base": 2,
+      "unmapped_base_blocks": [],
+      "generated_shell": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <meta name=\"description\" content=\"[[META_DESCRIPTION]]\">\n  <title>{% block title %}{% endblock %}</title>\n  {% block extra_head %}{% endblock %}\n</head>\n<body class=\"[[BODY_CLASS]]\">\n  <header class=\"site-shell-header\">\n    [[HEADER]]\n  </header>\n  <main class=\"site-shell-main[[WRAP_MODIFIERS]]\">\n    <section class=\"site-shell-heading\">\n      [[HEADING]]\n      [[SUBHEADING]]\n    </section>\n    {% block content %}{% endblock %}\n  </main>\n  [[EXTRA_SCRIPTS]]\n</body>\n</html>\n",
+      "generated_base": "{% extends \"_templatify/shell.html\" %}\n\n{% block content %}\n{% endblock %}\n\n{% block extra_head %}\n{% endblock %}\n\n{% block title %}\nWriters Room\n{% endblock %}\n"
+    }
+  },
+  "warnings": [
+    "administration_tool: unmapped base blocks -> html_class"
+  ],
+  "written_files": [
+    "'fy'-suites/templatify/generated/frontend/frontend/templates/_templatify/shell.html",
+    "'fy'-suites/templatify/generated/frontend/frontend/templates/base.html",
+    "'fy'-suites/templatify/generated/administration_tool/administration-tool/templates/_templatify/shell.html",
+    "'fy'-suites/templatify/generated/administration_tool/administration-tool/templates/base.html",
+    "'fy'-suites/templatify/generated/administration_manage/administration-tool/templates/manage/_templatify/shell.html",
+    "'fy'-suites/templatify/generated/administration_manage/administration-tool/templates/manage/base.html",
+    "'fy'-suites/templatify/generated/backend_info/backend/app/info/templates/_templatify/shell.html",
+    "'fy'-suites/templatify/generated/backend_info/backend/app/info/templates/base.html",
+    "'fy'-suites/templatify/generated/writers_room/writers-room/app/templates/_templatify/shell.html",
+    "'fy'-suites/templatify/generated/writers_room/writers-room/app/templates/base.html"
+  ]
+}

@@ -1,0 +1,14 @@
+Wave AM validation summary
+
+Commands rerun:
+- world-engine/tests/test_story_runtime_shell_readout.py
+- backend/tests/test_session_routes.py -k shell_readout_projection
+- frontend/tests/test_routes_extended.py focused shell/readout selection
+- ai_stack/tests/test_social_state_goc.py
+- ai_stack/tests/test_semantic_move_interpretation_goc.py
+
+Result:
+- world-engine shell readout tests: PASS
+- backend session bridge focused test: PASS
+- frontend shell/readout focused tests: PASS
+- narrow ai_stack social-state/semantic tests: PASS

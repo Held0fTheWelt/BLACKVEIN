@@ -1,0 +1,34 @@
+World of Shadows MVP-v24 — God of Carnage Canonical Experience C1 Validation Summary
+
+Selected wave:
+- C1 — Action-Caused Countermove + Multi-Turn Reply Continuity Hardening
+
+Precondition re-audit:
+- B-line closure remains package-truth-supported in the accessible package.
+- The visible response/output path already carries responder identity, defensive style, mask slippage, recentering, room/object/surface pressure, and carryover.
+- The strongest next gap was multi-turn reply continuity in the actual visible answer path.
+
+What changed:
+- Added bounded authoritative previous-reply continuity context to the world-engine session commit/state path.
+- Hardened shell-readout/visible-output generation so the next reply can explicitly counter or carry the prior visible answer while staying compact.
+- Added focused proof for same-surface countermove continuity and for authoritative turn-to-turn carry-forward through StoryRuntimeManager.
+
+Focused validation commands:
+1. PYTHONPATH=world-engine FLASK_ENV=test /opt/pyvenv/bin/python -m pytest -q world-engine/tests/test_story_runtime_shell_readout.py world-engine/tests/test_story_runtime_narrative_commit.py --tb=short
+   Result: 20 passed in 28.47s
+
+2. PYTHONPATH=backend /opt/pyvenv/bin/python -m pytest -q backend/tests/test_session_routes.py -k 'shell_readout_projection or execute_turn_proxies_to_world_engine' --tb=short
+   Result: 2 passed, 35 deselected in 9.57s
+
+3. PYTHONPATH=frontend /opt/pyvenv/bin/python -m pytest -q frontend/tests/test_routes_extended.py -k 'play_execute_json_merges_runtime_shell_readout_projection or play_shell_frames_latest_transcript_with_runtime_response_address or play_execute_json_prefers_turn_level_addressed_visible_output_bundle or play_execute_json_uses_turn_level_runtime_shell_readout_when_state_missing or play_shell_renders_cached_runtime_shell_readout_fields or play_shell_prefers_compressed_contextual_readout_fields or play_execute_json_returns_authoritative_shell_state_bundle or play_observe_returns_observation_meta or play_shell_embeds_initial_authoritative_shell_state_json or play_observe_returns_observation_source_and_runtime_session_flags or play_execute_json_returns_runtime_ready_and_observation_source or play_execute_json_and_followup_observe_share_coherent_bundle_shape or play_execute_json_prefers_turn_level_addressed_visible_output_bundle_over_hosting_surface' --tb=short
+   Result: 14 passed, 53 deselected in 0.49s
+
+4. PYTHONPATH=. /opt/pyvenv/bin/python -m pytest -q ai_stack/tests/test_social_state_goc.py ai_stack/tests/test_semantic_move_interpretation_goc.py --tb=short
+   Result: 5 passed in 1.50s
+
+What is now proven:
+- B-line closure stayed intact in accessible package truth.
+- The next visible answer can now reuse the previous visible answer as a compact countermove rather than reading as a fresh reset.
+- This continuity is grounded in authoritative runtime/session state rather than diagnostics-only memory.
+- The countermove reaches the actual addressed visible output bundle used by the frontend transcript path.
+- Backend/frontend bridge projections remain intact.

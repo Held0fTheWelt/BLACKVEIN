@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceRecord",
+  "type": "object",
+  "schema_version": "fy.evidence-record.schema.v1",
+  "properties": {
+    "evidence_id": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "source_uri": {
+      "type": "string"
+    },
+    "ownership_zone": {
+      "type": "string"
+    },
+    "content_hash": {
+      "type": "string"
+    },
+    "mime_type": {
+      "type": "string"
+    },
+    "deterministic": {
+      "type": "boolean"
+    },
+    "review_state": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

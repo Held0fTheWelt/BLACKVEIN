@@ -1,0 +1,16 @@
+{
+  "suite": "brokenify",
+  "command": "audit",
+  "ok": false,
+  "summary": "No summary is available yet.",
+  "decision_summary": "",
+  "latest_run": null,
+  "next_steps": [
+    "Read the error details and rerun the command after the blocking issue is fixed."
+  ],
+  "key_signals": {},
+  "warnings": [],
+  "cross_suite": {},
+  "governance": null,
+  "uncertainty": []
+}

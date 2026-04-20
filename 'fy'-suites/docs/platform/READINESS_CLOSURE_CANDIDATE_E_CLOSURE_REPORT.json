@@ -1,0 +1,49 @@
+{
+  "schema_version": "fy.candidate-e-closure-report.v1",
+  "closure_status": "candidate_e_honestly_implemented_bounded_narrow_but_deep",
+  "default_profile": "D",
+  "candidate_e_opt_in": true,
+  "material_difference_confirmed": true,
+  "diagnosta_deeper_under_e": true,
+  "handoff_deeper_under_e": true,
+  "coda_deeper_under_e": true,
+  "observability_difference_confirmed": true,
+  "self_hosting_proof_present": true,
+  "review_first_preserved": true,
+  "warnings_visible": true,
+  "cannot_honestly_claim_preserved": true,
+  "silent_auto_apply_detected": false,
+  "fake_autonomous_closure_detected": false,
+  "restored_profile_after_proof": "D",
+  "proof_sources": [
+    "docs/platform/self_hosting/candidate_e_self_hosting_manifest.json",
+    "docs/platform/self_hosting/candidate_e_self_hosting_manifest.md",
+    "docs/platform/self_hosting/candidate_e_d_vs_e_comparison.json",
+    "docs/platform/self_hosting/candidate_e_d_vs_e_comparison.md",
+    "docs/platform/examples/candidate_e/d/diagnosta/latest_readiness_case.json",
+    "docs/platform/examples/candidate_e/d/diagnosta/latest_deep_synthesis.json",
+    "docs/platform/examples/candidate_e/d/diagnosta/latest_handoff_packet.json",
+    "docs/platform/examples/candidate_e/d/coda/latest_closure_pack.json",
+    "docs/platform/examples/candidate_e/d/coda/latest_review_packet.json",
+    "docs/platform/examples/candidate_e/d/observifyfy/observifyfy_ai_context.json",
+    "docs/platform/examples/candidate_e/e/diagnosta/latest_readiness_case.json",
+    "docs/platform/examples/candidate_e/e/diagnosta/latest_deep_synthesis.json",
+    "docs/platform/examples/candidate_e/e/diagnosta/latest_handoff_packet.json",
+    "docs/platform/examples/candidate_e/e/coda/latest_closure_pack.json",
+    "docs/platform/examples/candidate_e/e/coda/latest_review_packet.json",
+    "docs/platform/examples/candidate_e/e/observifyfy/observifyfy_ai_context.json",
+    "fy_platform/tests/test_candidate_e_profile.py",
+    "fy_platform/tests/test_candidate_e_release_bundle.py"
+  ],
+  "caveats": [
+    "Some Candidate E sub-dimensions are exercised more strongly than others in the shipped self-hosting example.",
+    "The current repo comparison demonstrates deeper planning, clustering, packet depth, wave packets, and bounded auto-preparation more strongly than grouped handoff obligation counts."
+  ],
+  "non_claims": [
+    "No global full-closure claim.",
+    "No proof-certified autonomous closure.",
+    "No silent auto-apply authority.",
+    "No replacement of suite-native truth domains.",
+    "No broad Candidate E expansion beyond bounded narrow-but-deep form."
+  ]
+}

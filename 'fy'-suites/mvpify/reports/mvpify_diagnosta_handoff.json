@@ -1,0 +1,209 @@
+{
+  "schema_version": "fy.mvpify-diagnosta-handoff.v1",
+  "import_id": "fy-suites-43352254",
+  "mvpify_run_id": "mvpify-followon-f1",
+  "diagnosta_run_id": "diagnosta-b797523dd9b4",
+  "target_repo_root": "/mnt/data/f1wave/'fy'-suites",
+  "active_strategy_profile": {
+    "schema_version": "fy.active-strategy-profile.v1",
+    "active_profile": "D",
+    "profile_label": "balanced_dual_suite_target",
+    "default_profile": "D",
+    "supported_profiles": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "recommended_progression_order": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "progression_graph": "A->B->C->D->E",
+    "progression_mode": "progressive",
+    "allow_profile_switching": true,
+    "require_review_by_default": true,
+    "emit_profile_to_run_journal": true,
+    "emit_profile_to_compare_runs": true,
+    "emit_profile_to_observifyfy": true,
+    "emit_profile_to_status_pages": true,
+    "source_path": "FY_STRATEGY_SETTINGS.md"
+  },
+  "readiness_status": "not_ready",
+  "implementation_outcome": "not_ready",
+  "blocker_count": 2,
+  "blocked_claim_count": 4,
+  "residue_count": 4,
+  "highest_value_next_step": {
+    "phase": "governance",
+    "suite": "contractify",
+    "objective": "Attach the imported MVP contracts, ADRs, and runtime/MVP spine to governed records.",
+    "why_now": "The imported MVP already contains governance surfaces that must become first-class before implementation drift begins.",
+    "inputs": [
+      "mvpify import inventory",
+      "docs/ADR",
+      "runtime/MVP docs"
+    ],
+    "outputs": [
+      "contract audit update",
+      "attachment report",
+      "runtime/MVP spine state"
+    ],
+    "depends_on": [
+      "import:mvpify"
+    ]
+  },
+  "import_context": {
+    "artifact_count": 15557,
+    "source": "/mnt/data/f1wave/'fy'-suites",
+    "suite_signals": [
+      {
+        "name": "contractify",
+        "present": true,
+        "evidence": [
+          "contractify",
+          "contractify/.gitignore",
+          "contractify/CHANGED_FILES.txt",
+          "contractify/CONTRACT_GOVERNANCE_SCOPE.md",
+          "contractify/README.md"
+        ],
+        "relevance": "primary"
+      },
+      {
+        "name": "despaghettify",
+        "present": true,
+        "evidence": [
+          "despaghettify",
+          "despaghettify/README.md",
+          "despaghettify/__init__.py",
+          "despaghettify/baseline_metrics.json",
+          "despaghettify/despaghettification_implementation_input.md"
+        ],
+        "relevance": "primary"
+      },
+      {
+        "name": "docify",
+        "present": true,
+        "evidence": [
+          "docify",
+          "docify/DOCUMENTATION_QUALITY_STANDARD.md",
+          "docify/README.md",
+          "docify/__init__.py",
+          "docify/baseline_docstring_coverage.json"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "documentify",
+        "present": true,
+        "evidence": [
+          "documentify",
+          "documentify/README.md",
+          "documentify/__init__.py",
+          "documentify/documentify-audit-task.md",
+          "documentify/documentify-check-task.md"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "dockerify",
+        "present": true,
+        "evidence": [
+          "dockerify",
+          "dockerify/README.md",
+          "dockerify/__init__.py",
+          "dockerify/dockerify-audit-task.md",
+          "dockerify/dockerify-check-task.md"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "testify",
+        "present": true,
+        "evidence": [
+          "testify",
+          "testify/README.md",
+          "testify/__init__.py",
+          "testify/pyproject.toml",
+          "testify/testify-audit-task.md"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "templatify",
+        "present": true,
+        "evidence": [
+          "templatify",
+          "templatify/README.md",
+          "templatify/__init__.py",
+          "templatify/suite_ownership.json",
+          "templatify/adapter"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "usabilify",
+        "present": true,
+        "evidence": [
+          "usabilify",
+          "usabilify/README.md",
+          "usabilify/__init__.py",
+          "usabilify/suite_ownership.json",
+          "usabilify/adapter"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "securify",
+        "present": true,
+        "evidence": [
+          "securify",
+          "securify/README.md",
+          "securify/__init__.py",
+          "securify/suite_ownership.json",
+          "securify/adapter"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "observifyfy",
+        "present": true,
+        "evidence": [
+          "observifyfy",
+          "observifyfy/README.md",
+          "observifyfy/__init__.py",
+          "observifyfy/observifyfy-audit-task.md",
+          "observifyfy/observifyfy-check-task.md"
+        ],
+        "relevance": "supporting"
+      },
+      {
+        "name": "mvpify",
+        "present": true,
+        "evidence": [
+          "mvpify",
+          "mvpify/README.md",
+          "mvpify/__init__.py",
+          "mvpify/mvpify-audit-task.md",
+          "mvpify/mvpify-check-task.md"
+        ],
+        "relevance": "primary"
+      }
+    ]
+  },
+  "summary": "MVPify handed the imported target to Diagnosta and received not_ready / not_ready.",
+  "next_steps": [
+    "Review the Diagnosta readiness_case before scheduling implementation work.",
+    "Use the blocker_priority_report to pick the next bounded implementation wave.",
+    "Keep residue explicit when the import is not fully implementation-ready."
+  ],
+  "diagnosta_paths": {
+    "readiness_case": "/mnt/data/f1wave/'fy'-suites/.fydata/runs/diagnosta/diagnosta-b797523dd9b4/readiness_case.json",
+    "blocker_graph": "/mnt/data/f1wave/'fy'-suites/.fydata/runs/diagnosta/diagnosta-b797523dd9b4/blocker_graph.json",
+    "guarantee_gap_report": "/mnt/data/f1wave/'fy'-suites/.fydata/runs/diagnosta/diagnosta-b797523dd9b4/guarantee_gap_report.md"
+  }
+}

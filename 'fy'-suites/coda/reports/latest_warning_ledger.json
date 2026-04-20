@@ -1,0 +1,36 @@
+{
+  "schema_version": "fy.warning-ledger.v1",
+  "warning_ledger_id": "coda-warning:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "items": [
+    {
+      "warning_id": "warning:testify:proof-items",
+      "severity": "medium",
+      "summary": "Testify still reports 1 warning-shaped proof item(s).",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:despaghettify:packetized-hotspots",
+      "severity": "low",
+      "summary": "Despaghettify still sees local hotspots, but the remaining burden is packetized and non-blocking for this wave.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:dockerify:warnings",
+      "severity": "medium",
+      "summary": "Dockerify still reports 3 warning(s) that remain visible but non-blocking.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    },
+    {
+      "warning_id": "warning:readiness:optional-evidence-missing",
+      "severity": "medium",
+      "summary": "Optional supporting evidence is still missing: securify.",
+      "visibility_class": "visible_non_blocking",
+      "closure_significance": "non_preventive"
+    }
+  ],
+  "summary": "Coda keeps 4 warning item(s) explicit."
+}

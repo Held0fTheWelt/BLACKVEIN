@@ -1,0 +1,51 @@
+Wave: D2 — Rhythm / Overlap / Hesitation / Silence Pressure Hardening
+Date: 2026-04-20
+Package: world_of_shadows_mvp_v24_wave_d1_FULL_MVP_DIRECTORY.zip (extracted)
+
+Audit confirmation before change
+- Inspected validation/V24_GOC_CANONICAL_EXPERIENCE_WAVE_D1_INTERRUPTION_DEFLECTION_REENTRY_PRESSURE_HARDENING.md
+- Inspected validation/CURRENT_STATE_VALIDATION_SUMMARY_WAVE_D1.txt
+- Inspected the real D1 code/test surfaces in:
+  * world-engine/app/story_runtime_shell_readout.py
+  * world-engine/app/story_runtime/manager.py
+  * world-engine/tests/test_story_runtime_shell_readout.py
+  * world-engine/tests/test_story_runtime_narrative_commit.py
+- Confirmed that the strongest remaining narrow gap belonged to D and concerned reply rhythm / overlap / hesitation pressure, not another continuity or shell-only wave.
+
+Implemented D2 surfaces
+- world-engine/app/story_runtime_shell_readout.py
+- world-engine/tests/test_story_runtime_shell_readout.py
+- world-engine/tests/test_story_runtime_narrative_commit.py
+
+Focused D2 proof
+1) Targeted shell-readout proof
+   PYTHONPATH=world-engine:. FLASK_ENV=test /opt/pyvenv/bin/python -m pytest -q world-engine/tests/test_story_runtime_shell_readout.py -k 'delayed_same_surface_afterlife or answering_around_the_point or forces_reentry_after_same_surface_dodge or buying_a_beat or can_go_quiet or earlier_pause_back_over_same_surface' --tb=short
+   -> 6 passed, 9 deselected, 1 warning in 0.33s
+
+2) Targeted manager/session proof
+   PYTHONPATH=world-engine:. FLASK_ENV=test /opt/pyvenv/bin/python -m pytest -q world-engine/tests/test_story_runtime_narrative_commit.py -k 'threads_previous_visible_reply_context_into_next_addressed_output or reuse_earlier_visible_reply_after_intervening_turn or forces_reentry_after_same_surface_dodge or buying_a_beat or breaks_earlier_pause_back_over_same_surface' --tb=short
+   -> 5 passed, 10 deselected, 1 warning in 0.95s
+
+3) Full authoritative world-engine proof
+   PYTHONPATH=world-engine:. FLASK_ENV=test /opt/pyvenv/bin/python -m pytest -q world-engine/tests/test_story_runtime_shell_readout.py world-engine/tests/test_story_runtime_narrative_commit.py --tb=short
+   -> 30 passed, 1 warning in 1.93s
+
+4) Narrow GoC support regression proof
+   PYTHONPATH=. /opt/pyvenv/bin/python -m pytest -q ai_stack/tests/test_social_state_goc.py ai_stack/tests/test_semantic_move_interpretation_goc.py --tb=short
+   -> 5 passed in 0.89s
+
+Environment note
+- Attempted backend focused proof in the current container:
+  PYTHONPATH=backend:world-engine:. /opt/pyvenv/bin/python -m pytest -q backend/tests/test_session_routes.py -k 'shell_readout_projection or execute_turn_proxies_to_world_engine' --tb=short
+  -> blocked at import time by missing Flask in /opt/pyvenv (ModuleNotFoundError: No module named 'flask')
+- Backend/frontend codepaths were inspected, not re-executed, because D2 changed only authoritative world-engine reply assembly and the environment still lacks backend test dependencies.
+
+D2 closure judgment
+- D2 materially improved the actual visible response/output layer.
+- The visible line now expresses:
+  * evasive hesitation: "buying a beat on the same phone instead of answering it"
+  * re-entry interruption: "cutting back in before the dodge on the same phone can go quiet"
+  * delayed return of a stalled line: "breaking the earlier pause back over the same hosting surface"
+- C-line and D1 gains remained intact in full world-engine proof.
+- After re-audit, no stronger remaining unresolved issue stayed narrow enough to count as another honest D-wave inside the current MVP-v24 seams.
+- The D-line is honestly closed for the current accessible package slice.

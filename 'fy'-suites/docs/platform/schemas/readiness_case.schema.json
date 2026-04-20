@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReadinessCase",
+  "type": "object",
+  "schema_version": "fy.readiness-case.schema.v1",
+  "properties": {
+    "readiness_case_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "target_kind": {
+      "type": "string"
+    },
+    "active_profile": {
+      "type": "string"
+    },
+    "readiness_status": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "blocker_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "obligation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sufficiency_verdict_id": {
+      "type": "string"
+    },
+    "cannot_honestly_claim_id": {
+      "type": "string"
+    },
+    "residue_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

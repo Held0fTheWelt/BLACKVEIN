@@ -1,0 +1,5 @@
+Metrify AI context
+
+- Start with reports/metrify_cost_report.md
+- Then inspect reports/metrify_ai_context.md
+- Use state/latest_summary.json for machine-readable totals and top drivers

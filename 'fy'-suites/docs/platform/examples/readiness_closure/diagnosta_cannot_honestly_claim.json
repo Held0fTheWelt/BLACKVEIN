@@ -1,0 +1,12 @@
+{
+  "schema_version": "fy.cannot-honestly-claim.v1",
+  "cannot_honestly_claim_id": "cannot-claim:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "blocked_claims": [
+    "full_closure"
+  ],
+  "reasons": [
+    "Full closure remains deferred in bounded review-first form."
+  ],
+  "summary": "Diagnosta still blocks full closure because bounded review-first closure does not certify full completion."
+}

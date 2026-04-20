@@ -1,0 +1,161 @@
+{
+  "schema_version": "fy.diagnosta-deep-synthesis.v1",
+  "synthesis_id": "deep-synthesis:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "active_profile": "E",
+  "profile_execution_lane": "candidate_e_narrow_deep",
+  "profile_behavior_depth": "narrow_deep",
+  "planning_horizon": 3,
+  "blocker_clusters": [
+    {
+      "cluster_id": "cluster:dockerify:1",
+      "suite": "dockerify",
+      "severity": "medium",
+      "cluster_kind": "candidate_e_dependency_cluster",
+      "item_count": 1,
+      "blocker_ids": [
+        "warning:dockerify:warnings"
+      ],
+      "obligation_ids": [],
+      "dependency_targets": [],
+      "review_focus": "Deep review cluster for dockerify with 1 blocker/warning signal(s) and 0 linked obligation(s)."
+    },
+    {
+      "cluster_id": "cluster:readiness:2",
+      "suite": "readiness",
+      "severity": "medium",
+      "cluster_kind": "candidate_e_dependency_cluster",
+      "item_count": 1,
+      "blocker_ids": [
+        "warning:readiness:optional-evidence-missing"
+      ],
+      "obligation_ids": [],
+      "dependency_targets": [
+        "cluster:dockerify:1"
+      ],
+      "review_focus": "Deep review cluster for readiness with 1 blocker/warning signal(s) and 0 linked obligation(s)."
+    },
+    {
+      "cluster_id": "cluster:testify:3",
+      "suite": "testify",
+      "severity": "medium",
+      "cluster_kind": "candidate_e_dependency_cluster",
+      "item_count": 1,
+      "blocker_ids": [
+        "warning:testify:proof-items"
+      ],
+      "obligation_ids": [],
+      "dependency_targets": [
+        "cluster:readiness:2"
+      ],
+      "review_focus": "Deep review cluster for testify with 1 blocker/warning signal(s) and 0 linked obligation(s)."
+    },
+    {
+      "cluster_id": "cluster:despaghettify:4",
+      "suite": "despaghettify",
+      "severity": "low",
+      "cluster_kind": "candidate_e_dependency_cluster",
+      "item_count": 1,
+      "blocker_ids": [
+        "warning:despaghettify:packetized-hotspots"
+      ],
+      "obligation_ids": [],
+      "dependency_targets": [
+        "cluster:testify:3"
+      ],
+      "review_focus": "Deep review cluster for despaghettify with 1 blocker/warning signal(s) and 0 linked obligation(s)."
+    }
+  ],
+  "guarantee_gap_clusters": [
+    {
+      "gap_cluster_id": "gap:warning:environment_visibility:dockerify",
+      "gap_family": "environment_visibility",
+      "suite": "dockerify",
+      "severity": "medium",
+      "item_ids": [
+        "warning:dockerify:warnings"
+      ],
+      "cluster_summary": "environment_visibility cluster for dockerify with 1 visible item(s)."
+    },
+    {
+      "gap_cluster_id": "gap:warning:optional_supporting_evidence:readiness",
+      "gap_family": "optional_supporting_evidence",
+      "suite": "readiness",
+      "severity": "medium",
+      "item_ids": [
+        "warning:readiness:optional-evidence-missing"
+      ],
+      "cluster_summary": "optional_supporting_evidence cluster for readiness with 1 visible item(s)."
+    },
+    {
+      "gap_cluster_id": "gap:warning:proof_visibility:testify",
+      "gap_family": "proof_visibility",
+      "suite": "testify",
+      "severity": "medium",
+      "item_ids": [
+        "warning:testify:proof-items"
+      ],
+      "cluster_summary": "proof_visibility cluster for testify with 1 visible item(s)."
+    },
+    {
+      "gap_cluster_id": "gap:warning:structural_visibility:despaghettify",
+      "gap_family": "structural_visibility",
+      "suite": "despaghettify",
+      "severity": "low",
+      "item_ids": [
+        "warning:despaghettify:packetized-hotspots"
+      ],
+      "cluster_summary": "structural_visibility cluster for despaghettify with 1 visible item(s)."
+    }
+  ],
+  "next_wave_plan": [
+    {
+      "wave_id": "E-wave-1",
+      "order": 1,
+      "intent": "stabilize",
+      "focus_cluster_id": "gap:warning:environment_visibility:dockerify",
+      "focus_item_ids": [
+        "warning:dockerify:warnings"
+      ],
+      "recommended_action": "Candidate E wave 1 should deepen review packets and implementation sequencing for 1 prioritized item(s).",
+      "closure_intent": "review_first_strengthening",
+      "requires_human_review": true
+    },
+    {
+      "wave_id": "E-wave-2",
+      "order": 2,
+      "intent": "prepare",
+      "focus_cluster_id": "gap:warning:optional_supporting_evidence:readiness",
+      "focus_item_ids": [
+        "warning:readiness:optional-evidence-missing"
+      ],
+      "recommended_action": "Candidate E wave 2 should deepen review packets and implementation sequencing for 1 prioritized item(s).",
+      "closure_intent": "review_first_strengthening",
+      "requires_human_review": true
+    },
+    {
+      "wave_id": "E-wave-3",
+      "order": 3,
+      "intent": "review",
+      "focus_cluster_id": "gap:warning:proof_visibility:testify",
+      "focus_item_ids": [
+        "warning:testify:proof-items"
+      ],
+      "recommended_action": "Candidate E wave 3 should deepen review packets and implementation sequencing for 1 prioritized item(s).",
+      "closure_intent": "review_first_strengthening",
+      "requires_human_review": true
+    }
+  ],
+  "review_problem_frame": {
+    "frame_id": "review-frame:candidate-e",
+    "frame_type": "deep_review_problem_frame",
+    "summary": "Candidate E frames 0 blocker(s) and 4 warning(s) as a multi-wave review problem with deeper sequencing and packet preparation.",
+    "decision_axes": [
+      "dependency_order",
+      "review_packet_depth",
+      "bounded_auto_preparation",
+      "residue_honesty"
+    ]
+  },
+  "summary": "Diagnosta E synthesis carries 4 blocker cluster(s), 4 guarantee-gap cluster(s), and planning horizon 3."
+}

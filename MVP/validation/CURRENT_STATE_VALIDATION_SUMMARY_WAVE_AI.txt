@@ -1,0 +1,7 @@
+Wave AI validation summary
+
+Focused validation rerun against:
+- world-engine shell-readout logic
+- backend session bridge projection pass-through
+- frontend shell rendering and execute/observe bundle readout
+- narrow inherited ai_stack social-state / semantic interpretation surfaces

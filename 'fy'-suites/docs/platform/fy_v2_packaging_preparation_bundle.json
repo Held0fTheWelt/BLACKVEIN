@@ -1,0 +1,83 @@
+{
+  "ok": true,
+  "workspace_root": "/mnt/data/wave3/'fy'-suites",
+  "target_layout": [
+    "fy_platform/core/* for workspace, hashing, IO, and backup primitives.",
+    "fy_platform/runtime/* for mode dispatch, lane runtime, compatibility routing, and transition stabilization.",
+    "fy_platform/ir/* for models, IDs, catalog persistence, relations, and serializers.",
+    "fy_platform/providers/* for provider contracts, governor, cache, execution, and adapters.",
+    "fy_platform/surfaces/* for platform shell, legacy aliases, lens registry, alias maps, and public shell docs.",
+    "fy_platform/services/* for domain services separated from platform runtime concerns.",
+    "fy_platform/compatibility/* for bounded carry-over shells during collapse."
+  ],
+  "migration_notes": [
+    "Keep fy_platform/ai as a compatibility shell during the staged move into core/runtime/ir/providers/surfaces.",
+    "Prefer extraction over file moves when preserving import stability for runner-driven implementation passes.",
+    "Do not remove legacy suite CLIs until surface aliases are documented and the platform shell covers the same outward action.",
+    "Use despaghettify core-transition waves to decide extraction order for shared hotspots."
+  ],
+  "compatibility_impact_matrix": [
+    {
+      "surface": "contractify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode contract",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "despag-check",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode structure",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "despaghettify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode structure",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "docify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode code_docs",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "documentify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode docs",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "metrify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy metrics --mode report",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "mvpify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy import --mode mvp",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "securify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode security",
+      "sunset_phase": "C2"
+    },
+    {
+      "surface": "testify",
+      "impact": "compatibility-wrapper-retained",
+      "target": "fy analyze --mode quality",
+      "sunset_phase": "C2"
+    }
+  ],
+  "package_freeze_checklist": [
+    "Platform shell covers primary public entry points.",
+    "Lane runtime persists real execution records for active platform modes.",
+    "IR seed objects are written by real runtime paths.",
+    "Governor boundary blocks or records every routed provider decision.",
+    "Surface alias map is complete or explicitly excepted.",
+    "Packaging impact reviewed for every still-public suite CLI."
+  ]
+}

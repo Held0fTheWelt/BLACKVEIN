@@ -1,0 +1,248 @@
+{
+  "purpose": "Help an agent import a prepared MVP into the live repository with honest orchestration across the fy suite family.",
+  "import_source": "/mnt/data/f1wave/'fy'-suites",
+  "import_summary": {
+    "artifact_count": 15557,
+    "docs_files": 687,
+    "test_files": 159,
+    "detected_suites": [
+      "contractify",
+      "despaghettify",
+      "docify",
+      "documentify",
+      "dockerify",
+      "testify",
+      "templatify",
+      "usabilify",
+      "securify",
+      "observifyfy",
+      "mvpify"
+    ],
+    "mirrored_docs_root": "docs/MVPs/imports/fy-suites-43352254",
+    "normalized_root": "mvpify/imports/fy-suites-43352254/normalized"
+  },
+  "highest_value_next_step": {
+    "phase": "governance",
+    "suite": "contractify",
+    "objective": "Attach the imported MVP contracts, ADRs, and runtime/MVP spine to governed records.",
+    "why_now": "The imported MVP already contains governance surfaces that must become first-class before implementation drift begins.",
+    "inputs": [
+      "mvpify import inventory",
+      "docs/ADR",
+      "runtime/MVP docs"
+    ],
+    "outputs": [
+      "contract audit update",
+      "attachment report",
+      "runtime/MVP spine state"
+    ],
+    "depends_on": [
+      "import:mvpify"
+    ]
+  },
+  "search_hints": [
+    "Find prepared MVP docs, contracts, tests, and implementation hints first.",
+    "Prefer the smallest coherent insertion slice over broad speculative implementation.",
+    "Use suite outputs as evidence, not as silent authority over project truth.",
+    "After import, refresh tests, runtime validation, docs, and observability state.",
+    "Mirror imported MVP docs so temporary implementation folders can later be removed."
+  ],
+  "managed_internal_roots": {
+    "mvpify_reports": "mvpify/reports",
+    "mvpify_state": "mvpify/state",
+    "mvpify_imports": "mvpify/imports",
+    "mvp_docs_imports": "docs/MVPs/imports",
+    "fy_internal_docs": "docs",
+    "fy_internal_adrs": "docs/ADR"
+  },
+  "implemented_ai_mechanics": {
+    "retrieval": [
+      "semantic_index",
+      "context_packs",
+      "cross_suite_signals"
+    ],
+    "decisioning": [
+      "model_router",
+      "decision_policy"
+    ],
+    "graph_support": [
+      "generic inspect/audit/context/triage recipes via fy-suite"
+    ],
+    "tracking": [
+      "run_journal",
+      "observifyfy link if present"
+    ]
+  },
+  "observifyfy_signal": {
+    "present": true,
+    "payload": {
+      "recommended_next_steps": [
+        {
+          "suite": "contractify",
+          "priority": 95,
+          "reason": "diagnosta readiness status is not_ready",
+          "recommended_action": "Plan the next bounded wave against contractify to address blocker blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001."
+        },
+        {
+          "suite": "coda",
+          "priority": 92,
+          "reason": "closure pack is still partial and residue remains explicit",
+          "recommended_action": "Reduce closure residue by satisfying the next bounded required test/doc or obligation cluster."
+        },
+        {
+          "suite": "contractify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for contractify."
+        },
+        {
+          "suite": "docify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for docify."
+        },
+        {
+          "suite": "despaghettify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for despaghettify."
+        },
+        {
+          "suite": "templatify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for templatify."
+        },
+        {
+          "suite": "usabilify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for usabilify."
+        },
+        {
+          "suite": "securify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for securify."
+        },
+        {
+          "suite": "diagnosta",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for diagnosta."
+        },
+        {
+          "suite": "coda",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for coda."
+        },
+        {
+          "suite": "mvpify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for mvpify."
+        },
+        {
+          "suite": "mvpify",
+          "priority": 88,
+          "reason": "imported MVP docs should remain mirrored under docs/MVPs/imports and tracked through observifyfy",
+          "recommended_action": "Keep mvpify imports normalized and mirrored so temporary implementation folders can be removed safely."
+        }
+      ],
+      "highest_value_next_step": {
+        "suite": "contractify",
+        "priority": 95,
+        "reason": "diagnosta readiness status is not_ready",
+        "recommended_action": "Plan the next bounded wave against contractify to address blocker blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001."
+      },
+      "needs_human_decision": [
+        {
+          "suite": "contractify",
+          "priority": 95,
+          "reason": "diagnosta readiness status is not_ready",
+          "recommended_action": "Plan the next bounded wave against contractify to address blocker blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001."
+        },
+        {
+          "suite": "coda",
+          "priority": 92,
+          "reason": "closure pack is still partial and residue remains explicit",
+          "recommended_action": "Reduce closure residue by satisfying the next bounded required test/doc or obligation cluster."
+        },
+        {
+          "suite": "contractify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for contractify."
+        },
+        {
+          "suite": "docify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for docify."
+        },
+        {
+          "suite": "despaghettify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for despaghettify."
+        },
+        {
+          "suite": "templatify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for templatify."
+        },
+        {
+          "suite": "usabilify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for usabilify."
+        },
+        {
+          "suite": "securify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for securify."
+        },
+        {
+          "suite": "diagnosta",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for diagnosta."
+        },
+        {
+          "suite": "coda",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for coda."
+        },
+        {
+          "suite": "mvpify",
+          "priority": 90,
+          "reason": "suite has no dedicated CI workflow",
+          "recommended_action": "Add or repair a workflow for mvpify."
+        },
+        {
+          "suite": "mvpify",
+          "priority": 88,
+          "reason": "imported MVP docs should remain mirrored under docs/MVPs/imports and tracked through observifyfy",
+          "recommended_action": "Keep mvpify imports normalized and mirrored so temporary implementation folders can be removed safely."
+        },
+        {
+          "suite": "contractify",
+          "priority": 85,
+          "reason": "internal ADR root should be actively governed under docs/ADR",
+          "recommended_action": "Keep contractify's internal ADR management discoverable through observifyfy and align references to docs/ADR."
+        },
+        {
+          "suite": "documentify",
+          "priority": 85,
+          "reason": "internal docs root should be actively governed under docs",
+          "recommended_action": "Keep documentify's internal docs management discoverable through observifyfy and align references to docs."
+        }
+      ]
+    },
+    "path": "observifyfy/reports/observifyfy_next_steps.json"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "kind": "ai_cost_context",
+  "summary": {
+    "total_cost_usd": 0.271975,
+    "today_cost_usd": 0,
+    "last_10_runs_cost_usd": 0.271975,
+    "top_models": [
+      {
+        "key": "gpt-5.4",
+        "cost_usd": 0.2425,
+        "event_count": 1,
+        "output_tokens": 12000
+      },
+      {
+        "key": "gpt-5.4-mini",
+        "cost_usd": 0.029475,
+        "event_count": 1,
+        "output_tokens": 4500
+      },
+      {
+        "key": "local-general-llm",
+        "cost_usd": 0.0,
+        "event_count": 56,
+        "output_tokens": 0
+      },
+      {
+        "key": "local-slim-retrieval-helper",
+        "cost_usd": 0.0,
+        "event_count": 23,
+        "output_tokens": 0
+      },
+      {
+        "key": "local-slim-summarizer",
+        "cost_usd": 0.0,
+        "event_count": 10,
+        "output_tokens": 0
+      }
+    ],
+    "top_suites": [
+      {
+        "key": "documentify",
+        "cost_usd": 0.2425,
+        "event_count": 1,
+        "output_tokens": 12000
+      },
+      {
+        "key": "contractify",
+        "cost_usd": 0.029475,
+        "event_count": 1,
+        "output_tokens": 4500
+      },
+      {
+        "key": "metrify",
+        "cost_usd": 0.0,
+        "event_count": 89,
+        "output_tokens": 0
+      }
+    ],
+    "optimization_suggestions": [
+      "GPT-5.4 is currently the top cost driver. Review whether some runs can move to GPT-5.4-mini or nano."
+    ]
+  },
+  "recommended_usage": [
+    "Use this pack before selecting a model for a new suite wave.",
+    "Compare intended model choice against the current top cost drivers.",
+    "Record utility_score where possible so future runs can measure cost versus value."
+  ]
+}

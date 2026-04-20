@@ -1,0 +1,2464 @@
+{
+  "total_python_files": 341,
+  "median_file_lines": 76,
+  "average_file_lines": 131.04,
+  "trimmed_average_file_lines": 85.83,
+  "file_spikes": [
+    {
+      "path": "testify/tools/test_governance.py",
+      "line_count": 401,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "testify/tools/canonical_graph.py",
+      "line_count": 541,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "mvpify/tools/importer.py",
+      "line_count": 437,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/adr_reflection.py",
+      "line_count": 410,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/adapter_commands.py",
+      "line_count": 440,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/evidence_registry/registry.py",
+      "line_count": 493,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/semantic_index/index_manager.py",
+      "line_count": 364,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "documentify/tools/document_builder.py",
+      "line_count": 375,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/documentation_drift.py",
+      "line_count": 424,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/python_docstring_synthesize.py",
+      "line_count": 2029,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "docify/tools/python_documentation_audit.py",
+      "line_count": 978,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "docify/tools/python_inline_explain.py",
+      "line_count": 712,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "docify/tools/strip_ai_stack_docstring_placeholders.py",
+      "line_count": 497,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/canonical_graph.py",
+      "line_count": 463,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/bulk_python_document.py",
+      "line_count": 598,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "despaghettify/tools/autonomous_loop.py",
+      "line_count": 633,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "despaghettify/tools/hub_cli.py",
+      "line_count": 1105,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "despaghettify/tools/metrics_bundle.py",
+      "line_count": 449,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "despaghettify/tools/spaghetti_setup_audit.py",
+      "line_count": 711,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/adapter/service.py",
+      "line_count": 484,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/adr_governance.py",
+      "line_count": 535,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/conflicts.py",
+      "line_count": 532,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/discovery.py",
+      "line_count": 707,
+      "category": "local_spike_file_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/tools/drift_analysis.py",
+      "line_count": 429,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/hub_cli.py",
+      "line_count": 359,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/canonical_graph.py",
+      "line_count": 606,
+      "category": "local_spike_file_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/runtime_mvp_spine_contracts_d.py",
+      "line_count": 364,
+      "category": "local_spike_file_length",
+      "severity": "low"
+    }
+  ],
+  "function_spikes": [
+    {
+      "path": "coda/tools/assembly.py",
+      "name": "build_closure_bundle",
+      "line_span": 105,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "diagnosta/tools/analysis.py",
+      "name": "build_readiness_bundle",
+      "line_span": 257,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "testify/adapter/service.py",
+      "name": "audit",
+      "line_span": 91,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "testify/tools/test_governance.py",
+      "name": "audit_test_governance",
+      "line_span": 122,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "testify/tools/canonical_graph.py",
+      "name": "build_testify_graph",
+      "line_span": 206,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "testify/tools/canonical_graph.py",
+      "name": "persist_testify_graph",
+      "line_span": 150,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "testify/tools/coda_exports.py",
+      "name": "build_test_obligation_manifest",
+      "line_span": 103,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "templatify/adapter/service.py",
+      "name": "audit",
+      "line_span": 95,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "templatify/tools/hub_cli.py",
+      "name": "main",
+      "line_span": 179,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "postmanify/tools/cli.py",
+      "name": "_cmd_generate",
+      "line_span": 86,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "postmanify/tools/openapi_postman.py",
+      "name": "build_collections",
+      "line_span": 91,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "observifyfy/adapter/service.py",
+      "name": "audit",
+      "line_span": 92,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "observifyfy/tools/hub_cli.py",
+      "name": "run_audit",
+      "line_span": 148,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "observifyfy/tools/next_steps.py",
+      "name": "rank_next_steps",
+      "line_span": 119,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "mvpify/adapter/service.py",
+      "name": "_build_diagnosta_handoff",
+      "line_span": 96,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "mvpify/tools/importer.py",
+      "name": "_scan_root",
+      "line_span": 100,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "mvpify/tools/importer.py",
+      "name": "materialize_import",
+      "line_span": 132,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "mvpify/tools/planner.py",
+      "name": "build_plan",
+      "line_span": 133,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "mvpify/tools/canonical_graph.py",
+      "name": "persist_mvpify_graph",
+      "line_span": 136,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/adapter_cli_helper.py",
+      "name": "run_adapter_cli",
+      "line_span": 93,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/decision_policy.py",
+      "name": "assess_solution_decision",
+      "line_span": 116,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/security_review.py",
+      "name": "scan_workspace_security",
+      "line_span": 82,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/status_page_rendering.py",
+      "name": "_fallback_markdown",
+      "line_span": 83,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/tools/ai_suite_cli_execution.py",
+      "name": "execute_command",
+      "line_span": 85,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/surfaces/platform_dispatch.py",
+      "name": "platform_mode_payload",
+      "line_span": 87,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/evolution/suite_graph_emit.py",
+      "name": "persist_simple_bundle",
+      "line_span": 144,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/context_packs/service.py",
+      "name": "build_and_write",
+      "line_span": 101,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "documentify/tools/document_builder.py",
+      "name": "_simple_overview",
+      "line_span": 95,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/documentation_drift.py",
+      "name": "classify_repository_path",
+      "line_span": 124,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/documentation_drift.py",
+      "name": "drift_cli_main",
+      "line_span": 100,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/python_docstring_synthesize.py",
+      "name": "_function_summary",
+      "line_span": 86,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/python_docstring_synthesize.py",
+      "name": "build_google_docstring_lines",
+      "line_span": 89,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "docify/tools/python_docstring_synthesize.py",
+      "name": "_describe_statement",
+      "line_span": 114,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/python_docstring_synthesize.py",
+      "name": "main",
+      "line_span": 144,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/python_documentation_audit.py",
+      "name": "main",
+      "line_span": 205,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "docify/tools/strip_ai_stack_docstring_placeholders.py",
+      "name": "_sanitize_docstring_inner",
+      "line_span": 150,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "docify/tools/canonical_graph.py",
+      "name": "build_docify_graph",
+      "line_span": 197,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "docify/tools/canonical_graph.py",
+      "name": "persist_docify_graph",
+      "line_span": 163,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "despaghettify/tools/autonomous_loop.py",
+      "name": "advance",
+      "line_span": 146,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "despaghettify/tools/autonomous_loop.py",
+      "name": "verify",
+      "line_span": 91,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "despaghettify/tools/hub_cli.py",
+      "name": "validate_wave_plan_document",
+      "line_span": 143,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "despaghettify/tools/hub_cli.py",
+      "name": "main",
+      "line_span": 172,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "despaghettify/tools/spaghetti_setup_audit.py",
+      "name": "parse_spaghetti_setup_md",
+      "line_span": 98,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "despaghettify/tools/spaghetti_setup_audit.py",
+      "name": "audit_setup",
+      "line_span": 212,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/adapter/service.py",
+      "name": "_build_consolidation_plan",
+      "line_span": 94,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/adapter/service.py",
+      "name": "consolidate",
+      "line_span": 110,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/adr_governance.py",
+      "name": "discover_adr_governance",
+      "line_span": 172,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/tools/audit_pipeline.py",
+      "name": "run_audit",
+      "line_span": 85,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/discovery.py",
+      "name": "_contract",
+      "line_span": 87,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/discovery.py",
+      "name": "discover_contracts_and_projections",
+      "line_span": 439,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/tools/drift_analysis.py",
+      "name": "drift_postman_openapi_manifest",
+      "line_span": 81,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/importer.py",
+      "name": "import_contractify_bundle",
+      "line_span": 90,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/investigation_suite.py",
+      "name": "render_adr_investigation_markdown",
+      "line_span": 104,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/minimal_repo.py",
+      "name": "build_minimal_contractify_test_repo",
+      "line_span": 145,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/relations.py",
+      "name": "extend_relations",
+      "line_span": 178,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/tools/canonical_graph.py",
+      "name": "_build_schema_export_family",
+      "line_span": 86,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/canonical_graph.py",
+      "name": "build_contractify_graph",
+      "line_span": 167,
+      "category": "local_spike_function_length",
+      "severity": "high"
+    },
+    {
+      "path": "contractify/tools/canonical_graph.py",
+      "name": "persist_contractify_graph",
+      "line_span": 151,
+      "category": "local_spike_function_length",
+      "severity": "medium"
+    },
+    {
+      "path": "contractify/tools/runtime_mvp_spine_record_builders.py",
+      "name": "_contract",
+      "line_span": 86,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    },
+    {
+      "path": "contractify/tools/runtime_mvp_spine_record_builders.py",
+      "name": "_field_edges",
+      "line_span": 89,
+      "category": "local_spike_function_length",
+      "severity": "low"
+    }
+  ],
+  "global_category": "low",
+  "local_spike_count": 87,
+  "transition_profile": "core_transition",
+  "ownership_map": {
+    "ownership_rows": [
+      {
+        "path": "fy_platform/ai/__init__.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/adapter_cli_helper.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/adapter_commands.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/adr_reflection.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/backup_manager.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/base_adapter.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/context_packs/__init__.py",
+        "concern_count": 1,
+        "concerns": [
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/context_packs/service.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/contracts.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/cross_suite_intelligence.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/decision_policy.py",
+        "concern_count": 2,
+        "concerns": [
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/evidence_registry/__init__.py",
+        "concern_count": 1,
+        "concerns": [
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/evidence_registry/compare_runs.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/evidence_registry/registry.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/evolution_contract_pack.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/final_product.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "packaging",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/final_product_capability.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/final_product_catalog.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/final_product_catalog_data.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/final_product_catalog_render.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/final_product_health.py",
+        "concern_count": 2,
+        "concerns": [
+          "packaging",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/final_product_schema_catalog.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/final_product_schemas.py",
+        "concern_count": 1,
+        "concerns": [
+          "compatibility_aliasing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/governance_checks.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/__init__.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/audit_graph.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/context_pack_graph.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/inspect_graph.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/recipe_base.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/graph_recipes/triage_graph.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/model_router/__init__.py",
+        "concern_count": 2,
+        "concerns": [
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/model_router/policies.py",
+        "concern_count": 2,
+        "concerns": [
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/model_router/recording.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/model_router/router.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/observability.py",
+        "concern_count": 2,
+        "concerns": [
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/persistence_state.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/policy/__init__.py",
+        "concern_count": 1,
+        "concerns": [
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/policy/ai_policy.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/policy/indexing_policy.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/policy/review_policy.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/policy/suite_quality_policy.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/production_readiness.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/production_readiness_checks.py",
+        "concern_count": 2,
+        "concerns": [
+          "compatibility_aliasing",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/production_readiness_render.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/readiness_facade.py",
+        "concern_count": 2,
+        "concerns": [
+          "compatibility_aliasing",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/release_readiness.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/release_readiness_data.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/release_readiness_render.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/run_journal/__init__.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/run_journal/journal.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/run_lifecycle.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/schemas/__init__.py",
+        "concern_count": 3,
+        "concerns": [
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/schemas/common.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/schemas/common_records.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/schemas/common_runtime.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/schemas/common_utils.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/schemas/readiness_closure.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/security_review.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/self_hosting_tracking.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/semantic_index/__init__.py",
+        "concern_count": 1,
+        "concerns": [
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/semantic_index/context_pack_summary.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/semantic_index/index_manager.py",
+        "concern_count": 1,
+        "concerns": [
+          "lifecycle"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/semantic_index/scoring.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/status_page.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/status_page_analysis.py",
+        "concern_count": 1,
+        "concerns": [
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/status_page_rendering.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/strategy_profiles.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/workspace.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/workspace_docs.py",
+        "concern_count": 2,
+        "concerns": [
+          "compatibility_aliasing",
+          "packaging"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/workspace_hashing.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/workspace_io.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ai/workspace_layout.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ai/workspace_status_site.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "readiness_rendering"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/runtime/__init__.py",
+        "concern_count": 2,
+        "concerns": [
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/runtime/execution_plan.py",
+        "concern_count": 2,
+        "concerns": [
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/runtime/lane_runtime.py",
+        "concern_count": 2,
+        "concerns": [
+          "lifecycle",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/runtime/mode_registry.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/runtime/packaging_preparation.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "packaging",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ir/__init__.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "packaging",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ir/catalog.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/ir/ids.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/ir/models.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/providers/__init__.py",
+        "concern_count": 2,
+        "concerns": [
+          "packaging",
+          "provider_policy"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/providers/cache.py",
+        "concern_count": 1,
+        "concerns": [
+          "provider_policy"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/providers/contracts.py",
+        "concern_count": 3,
+        "concerns": [
+          "lifecycle",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/providers/execution.py",
+        "concern_count": 1,
+        "concerns": [
+          "provider_policy"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/providers/governor.py",
+        "concern_count": 2,
+        "concerns": [
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/providers/mock.py",
+        "concern_count": 1,
+        "concerns": [
+          "provider_policy"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/surfaces/__init__.py",
+        "concern_count": 3,
+        "concerns": [
+          "compatibility_aliasing",
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/surfaces/alias_map.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "provider_policy",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/surfaces/legacy_aliases.py",
+        "concern_count": 2,
+        "concerns": [
+          "compatibility_aliasing",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/surfaces/lens_registry.py",
+        "concern_count": 0,
+        "concerns": [],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/surfaces/platform_dispatch.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "provider_policy",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/surfaces/platform_dispatch_emit.py",
+        "concern_count": 1,
+        "concerns": [
+          "routing"
+        ],
+        "mixed_responsibility": false
+      },
+      {
+        "path": "fy_platform/surfaces/platform_dispatch_payloads.py",
+        "concern_count": 5,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "readiness_rendering",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/surfaces/platform_dispatch_records.py",
+        "concern_count": 4,
+        "concerns": [
+          "compatibility_aliasing",
+          "lifecycle",
+          "packaging",
+          "routing"
+        ],
+        "mixed_responsibility": true
+      },
+      {
+        "path": "fy_platform/surfaces/public_cli.py",
+        "concern_count": 2,
+        "concerns": [
+          "compatibility_aliasing",
+          "routing"
+        ],
+        "mixed_responsibility": false
+      }
+    ],
+    "mixed_responsibility_count": 34
+  },
+  "ownership_hotspots": [
+    {
+      "path": "fy_platform/ai/adr_reflection.py",
+      "issue": "core_transition_spike",
+      "recommended_wave": "extract_service_or_facade",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/adapter_commands.py",
+      "issue": "core_transition_spike",
+      "recommended_wave": "extract_service_or_facade",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/evidence_registry/registry.py",
+      "issue": "core_transition_spike",
+      "recommended_wave": "extract_service_or_facade",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/semantic_index/index_manager.py",
+      "issue": "core_transition_spike",
+      "recommended_wave": "extract_service_or_facade",
+      "severity": "low"
+    },
+    {
+      "path": "fy_platform/ai/adapter_cli_helper.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ai/adapter_commands.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ai/base_adapter.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ai/contracts.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/evidence_registry/registry.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/final_product.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/final_product_capability.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/final_product_catalog_data.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ai/final_product_catalog_render.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/final_product_schema_catalog.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ai/model_router/recording.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/model_router/router.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/production_readiness_render.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/run_lifecycle.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/schemas/__init__.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/schemas/common.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/schemas/common_records.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/schemas/common_runtime.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/schemas/readiness_closure.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/status_page_rendering.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/strategy_profiles.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/workspace.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ai/workspace_layout.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/runtime/mode_registry.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/runtime/packaging_preparation.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/ir/__init__.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ir/catalog.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/ir/models.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/providers/contracts.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/surfaces/__init__.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/surfaces/alias_map.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    },
+    {
+      "path": "fy_platform/surfaces/platform_dispatch.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/surfaces/platform_dispatch_payloads.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "high"
+    },
+    {
+      "path": "fy_platform/surfaces/platform_dispatch_records.py",
+      "issue": "mixed_responsibility_module",
+      "recommended_wave": "split_by_concern",
+      "severity": "medium"
+    }
+  ],
+  "refattening_guard_report": {
+    "ok": false,
+    "violation_count": 10,
+    "violations": [
+      {
+        "path": "fy_platform/ai/adr_reflection.py",
+        "kind": "file_length",
+        "line_count": 410,
+        "limit": 350
+      },
+      {
+        "path": "fy_platform/ai/adapter_commands.py",
+        "kind": "file_length",
+        "line_count": 440,
+        "limit": 350
+      },
+      {
+        "path": "fy_platform/ai/evidence_registry/registry.py",
+        "kind": "file_length",
+        "line_count": 493,
+        "limit": 350
+      },
+      {
+        "path": "fy_platform/ai/semantic_index/index_manager.py",
+        "kind": "file_length",
+        "line_count": 364,
+        "limit": 350
+      },
+      {
+        "path": "fy_platform/ai/adapter_cli_helper.py",
+        "kind": "function_length",
+        "name": "run_adapter_cli",
+        "line_span": 93,
+        "limit": 80
+      },
+      {
+        "path": "fy_platform/ai/decision_policy.py",
+        "kind": "function_length",
+        "name": "assess_solution_decision",
+        "line_span": 116,
+        "limit": 80
+      },
+      {
+        "path": "fy_platform/ai/security_review.py",
+        "kind": "function_length",
+        "name": "scan_workspace_security",
+        "line_span": 82,
+        "limit": 80
+      },
+      {
+        "path": "fy_platform/ai/status_page_rendering.py",
+        "kind": "function_length",
+        "name": "_fallback_markdown",
+        "line_span": 83,
+        "limit": 80
+      },
+      {
+        "path": "fy_platform/surfaces/platform_dispatch.py",
+        "kind": "function_length",
+        "name": "platform_mode_payload",
+        "line_span": 87,
+        "limit": 80
+      },
+      {
+        "path": "fy_platform/ai/context_packs/service.py",
+        "kind": "function_length",
+        "name": "build_and_write",
+        "line_span": 101,
+        "limit": 80
+      }
+    ]
+  },
+  "wave_plan": {
+    "global_category": "low",
+    "action_count": 125,
+    "actions": [
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/adr_governance.py",
+        "name": "discover_adr_governance",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/canonical_graph.py",
+        "name": "build_contractify_graph",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/discovery.py",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/discovery.py",
+        "name": "discover_contracts_and_projections",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/relations.py",
+        "name": "extend_relations",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "despaghettify/tools/hub_cli.py",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/hub_cli.py",
+        "name": "main",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "despaghettify/tools/spaghetti_setup_audit.py",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/spaghetti_setup_audit.py",
+        "name": "audit_setup",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "diagnosta/tools/analysis.py",
+        "name": "build_readiness_bundle",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/canonical_graph.py",
+        "name": "build_docify_graph",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/canonical_graph.py",
+        "name": "persist_docify_graph",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/python_docstring_synthesize.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/python_documentation_audit.py",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/python_documentation_audit.py",
+        "name": "main",
+        "severity": "high"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/python_inline_explain.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/adapter_cli_helper.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/adapter_commands.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/base_adapter.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/final_product_catalog_data.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/final_product_schema_catalog.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/runtime/packaging_preparation.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/surfaces/platform_dispatch.py",
+        "severity": "high"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/surfaces/platform_dispatch_payloads.py",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "templatify/tools/hub_cli.py",
+        "name": "main",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "testify/tools/canonical_graph.py",
+        "name": "build_testify_graph",
+        "severity": "high"
+      },
+      {
+        "kind": "extract_function",
+        "path": "coda/tools/assembly.py",
+        "name": "build_closure_bundle",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/adapter/service.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/adapter/service.py",
+        "name": "consolidate",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/adr_governance.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/canonical_graph.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/canonical_graph.py",
+        "name": "persist_contractify_graph",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/conflicts.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/investigation_suite.py",
+        "name": "render_adr_investigation_markdown",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/minimal_repo.py",
+        "name": "build_minimal_contractify_test_repo",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "despaghettify/tools/autonomous_loop.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/autonomous_loop.py",
+        "name": "advance",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/hub_cli.py",
+        "name": "validate_wave_plan_document",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/bulk_python_document.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/canonical_graph.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/documentation_drift.py",
+        "name": "classify_repository_path",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/python_docstring_synthesize.py",
+        "name": "_describe_statement",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/python_docstring_synthesize.py",
+        "name": "main",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/strip_ai_stack_docstring_placeholders.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/strip_ai_stack_docstring_placeholders.py",
+        "name": "_sanitize_docstring_inner",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/contracts.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/ai/decision_policy.py",
+        "name": "assess_solution_decision",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "fy_platform/ai/evidence_registry/registry.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_service_or_facade",
+        "path": "fy_platform/ai/evidence_registry/registry.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/evidence_registry/registry.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/final_product.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/final_product_capability.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/final_product_catalog_render.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/model_router/recording.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/model_router/router.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/production_readiness_render.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/run_lifecycle.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/schemas/__init__.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/schemas/common.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/schemas/common_records.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/schemas/common_runtime.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/schemas/readiness_closure.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/status_page_rendering.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/strategy_profiles.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/workspace.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ai/workspace_layout.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/evolution/suite_graph_emit.py",
+        "name": "persist_simple_bundle",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ir/__init__.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ir/catalog.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/ir/models.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/providers/contracts.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/runtime/mode_registry.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/surfaces/__init__.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/surfaces/alias_map.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_by_concern",
+        "path": "fy_platform/surfaces/platform_dispatch_records.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "mvpify/tools/canonical_graph.py",
+        "name": "persist_mvpify_graph",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "mvpify/tools/importer.py",
+        "name": "materialize_import",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "mvpify/tools/planner.py",
+        "name": "build_plan",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "observifyfy/tools/hub_cli.py",
+        "name": "run_audit",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "observifyfy/tools/next_steps.py",
+        "name": "rank_next_steps",
+        "severity": "medium"
+      },
+      {
+        "kind": "split_file",
+        "path": "testify/tools/canonical_graph.py",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "testify/tools/canonical_graph.py",
+        "name": "persist_testify_graph",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "testify/tools/test_governance.py",
+        "name": "audit_test_governance",
+        "severity": "medium"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/adapter/service.py",
+        "name": "_build_consolidation_plan",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/audit_pipeline.py",
+        "name": "run_audit",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/canonical_graph.py",
+        "name": "_build_schema_export_family",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/discovery.py",
+        "name": "_contract",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/drift_analysis.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/drift_analysis.py",
+        "name": "drift_postman_openapi_manifest",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/hub_cli.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/importer.py",
+        "name": "import_contractify_bundle",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "contractify/tools/runtime_mvp_spine_contracts_d.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/runtime_mvp_spine_record_builders.py",
+        "name": "_contract",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "contractify/tools/runtime_mvp_spine_record_builders.py",
+        "name": "_field_edges",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/autonomous_loop.py",
+        "name": "verify",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "despaghettify/tools/metrics_bundle.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "despaghettify/tools/spaghetti_setup_audit.py",
+        "name": "parse_spaghetti_setup_md",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "docify/tools/documentation_drift.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/documentation_drift.py",
+        "name": "drift_cli_main",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/python_docstring_synthesize.py",
+        "name": "_function_summary",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "docify/tools/python_docstring_synthesize.py",
+        "name": "build_google_docstring_lines",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "documentify/tools/document_builder.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "documentify/tools/document_builder.py",
+        "name": "_simple_overview",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/ai/adapter_cli_helper.py",
+        "name": "run_adapter_cli",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "fy_platform/ai/adapter_commands.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_service_or_facade",
+        "path": "fy_platform/ai/adapter_commands.py",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "fy_platform/ai/adr_reflection.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_service_or_facade",
+        "path": "fy_platform/ai/adr_reflection.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/ai/context_packs/service.py",
+        "name": "build_and_write",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/ai/security_review.py",
+        "name": "scan_workspace_security",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "fy_platform/ai/semantic_index/index_manager.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_service_or_facade",
+        "path": "fy_platform/ai/semantic_index/index_manager.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/ai/status_page_rendering.py",
+        "name": "_fallback_markdown",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/surfaces/platform_dispatch.py",
+        "name": "platform_mode_payload",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "fy_platform/tools/ai_suite_cli_execution.py",
+        "name": "execute_command",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "mvpify/adapter/service.py",
+        "name": "_build_diagnosta_handoff",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "mvpify/tools/importer.py",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "mvpify/tools/importer.py",
+        "name": "_scan_root",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "observifyfy/adapter/service.py",
+        "name": "audit",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "postmanify/tools/cli.py",
+        "name": "_cmd_generate",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "postmanify/tools/openapi_postman.py",
+        "name": "build_collections",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "templatify/adapter/service.py",
+        "name": "audit",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "testify/adapter/service.py",
+        "name": "audit",
+        "severity": "low"
+      },
+      {
+        "kind": "extract_function",
+        "path": "testify/tools/coda_exports.py",
+        "name": "build_test_obligation_manifest",
+        "severity": "low"
+      },
+      {
+        "kind": "split_file",
+        "path": "testify/tools/test_governance.py",
+        "severity": "low"
+      }
+    ]
+  },
+  "target_repo_id": "fy-suites-7abef95f",
+  "canonical_graph": {
+    "unit_count": 16,
+    "relation_count": 15,
+    "artifact_count": 5,
+    "graph_dir": ".fydata/evolution_graph/runs/despaghettify-105bba0fb9e8",
+    "export_dir": "despaghettify/generated/fy-suites-7abef95f/despaghettify-105bba0fb9e8/evolution_graph",
+    "run_manifest_path": "despaghettify/generated/fy-suites-7abef95f/despaghettify-105bba0fb9e8/evolution_graph/run_manifest.json"
+  }
+}

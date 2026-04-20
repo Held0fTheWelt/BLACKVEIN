@@ -1,0 +1,288 @@
+{
+  "schema_version": "fy.documentify-coda-documentation-obligation-manifest.v1",
+  "suite": "documentify",
+  "generated_at": "2026-04-20T02:59:02.326160+00:00",
+  "source_report": "documentify/generated/target-repo-fcc89076/documentify-aa5b5052b517/document_manifest.json",
+  "generated_root": "documentify/generated/target-repo-fcc89076/documentify-aa5b5052b517",
+  "tracks": [
+    "easy",
+    "technical",
+    "role-admin",
+    "role-developer",
+    "role-operator",
+    "role-writer",
+    "role-player",
+    "ai-read",
+    "status"
+  ],
+  "track_statuses": [
+    {
+      "track": "easy",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "technical",
+      "generated_file_count": 2,
+      "generated": true
+    },
+    {
+      "track": "role-admin",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "role-developer",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "role-operator",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "role-writer",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "role-player",
+      "generated_file_count": 1,
+      "generated": true
+    },
+    {
+      "track": "ai-read",
+      "generated_file_count": 1,
+      "generated": true
+    }
+  ],
+  "obligations": [
+    {
+      "obligation_id": "documentify-track:easy",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `easy` track when landing the closure pack.",
+      "source_paths": [
+        "easy"
+      ],
+      "review_required": true,
+      "track": "easy",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:technical",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `technical` track when landing the closure pack.",
+      "source_paths": [
+        "technical"
+      ],
+      "review_required": true,
+      "track": "technical",
+      "generated_file_count": 2,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:role-admin",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `role-admin` track when landing the closure pack.",
+      "source_paths": [
+        "role-admin"
+      ],
+      "review_required": true,
+      "track": "role-admin",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:role-developer",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `role-developer` track when landing the closure pack.",
+      "source_paths": [
+        "role-developer"
+      ],
+      "review_required": true,
+      "track": "role-developer",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:role-operator",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `role-operator` track when landing the closure pack.",
+      "source_paths": [
+        "role-operator"
+      ],
+      "review_required": true,
+      "track": "role-operator",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:role-writer",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `role-writer` track when landing the closure pack.",
+      "source_paths": [
+        "role-writer"
+      ],
+      "review_required": true,
+      "track": "role-writer",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:role-player",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `role-player` track when landing the closure pack.",
+      "source_paths": [
+        "role-player"
+      ],
+      "review_required": true,
+      "track": "role-player",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "obligation_id": "documentify-track:ai-read",
+      "suite": "documentify",
+      "category": "documentation_track_alignment",
+      "severity": "medium",
+      "summary": "Preserve the Documentify `ai-read` track when landing the closure pack.",
+      "source_paths": [
+        "ai-read"
+      ],
+      "review_required": true,
+      "track": "ai-read",
+      "generated_file_count": 1,
+      "satisfied_by_current_artifacts": true,
+      "review_acceptance_candidate": true
+    }
+  ],
+  "required_docs": [
+    {
+      "doc_id": "documentify:easy/OVERVIEW.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `easy/OVERVIEW.md` aligned with the closure pack.",
+      "path": "easy/OVERVIEW.md",
+      "track": "easy",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:technical/SYSTEM_REFERENCE.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `technical/SYSTEM_REFERENCE.md` aligned with the closure pack.",
+      "path": "technical/SYSTEM_REFERENCE.md",
+      "track": "technical",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:technical/DOCS_SITE_BLUEPRINT.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `technical/DOCS_SITE_BLUEPRINT.md` aligned with the closure pack.",
+      "path": "technical/DOCS_SITE_BLUEPRINT.md",
+      "track": "technical",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:role-admin/README.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `role-admin/README.md` aligned with the closure pack.",
+      "path": "role-admin/README.md",
+      "track": "role-admin",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:role-developer/README.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `role-developer/README.md` aligned with the closure pack.",
+      "path": "role-developer/README.md",
+      "track": "role-developer",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:role-operator/README.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `role-operator/README.md` aligned with the closure pack.",
+      "path": "role-operator/README.md",
+      "track": "role-operator",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:role-writer/README.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `role-writer/README.md` aligned with the closure pack.",
+      "path": "role-writer/README.md",
+      "track": "role-writer",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:role-player/README.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `role-player/README.md` aligned with the closure pack.",
+      "path": "role-player/README.md",
+      "track": "role-player",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    },
+    {
+      "doc_id": "documentify:ai-read/bundle.md",
+      "suite": "documentify",
+      "severity": "medium",
+      "summary": "Keep generated documentation track `ai-read/bundle.md` aligned with the closure pack.",
+      "path": "ai-read/bundle.md",
+      "track": "ai-read",
+      "source_kind": "generated_document",
+      "artifact_present": true,
+      "review_acceptance_candidate": true
+    }
+  ],
+  "summary": "Documentify exported 9 bounded required docs and 8 documentation-track obligations.",
+  "written_paths": {
+    "json_path": "documentify/reports/latest_coda_documentation_manifest.json",
+    "md_path": "documentify/reports/latest_coda_documentation_manifest.md"
+  }
+}

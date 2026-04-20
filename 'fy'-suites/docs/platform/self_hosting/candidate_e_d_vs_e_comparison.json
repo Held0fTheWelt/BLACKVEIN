@@ -1,0 +1,83 @@
+{
+  "schema_version": "fy.candidate-e-comparison.v1",
+  "default_profile": "D",
+  "original_profile": "D",
+  "d_metrics": {
+    "active_profile": "D",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_cluster_count": 1,
+    "guarantee_gap_cluster_count": 1,
+    "next_wave_count": 1,
+    "handoff_depth": "standard",
+    "grouped_handoff_obligation_count": 0,
+    "closure_status": "closed_for_current_target_reviewed_scope",
+    "closure_packet_depth": "standard",
+    "grouped_obligation_count": 0,
+    "wave_packet_count": 1,
+    "auto_preparation_count": 0,
+    "warning_count": 4,
+    "residue_count": 0,
+    "observed_packet_depth": "standard"
+  },
+  "e_metrics": {
+    "active_profile": "E",
+    "profile_execution_lane": "candidate_e_narrow_deep",
+    "profile_behavior_depth": "narrow_deep",
+    "planning_horizon": 3,
+    "blocker_cluster_count": 4,
+    "guarantee_gap_cluster_count": 4,
+    "next_wave_count": 3,
+    "handoff_depth": "deep_structured",
+    "grouped_handoff_obligation_count": 0,
+    "closure_status": "closed_for_current_target_reviewed_scope",
+    "closure_packet_depth": "multi_wave_review_packets",
+    "grouped_obligation_count": 1,
+    "wave_packet_count": 3,
+    "auto_preparation_count": 2,
+    "warning_count": 4,
+    "residue_count": 0,
+    "observed_packet_depth": "multi_wave_review_packets"
+  },
+  "material_difference_confirmed": true,
+  "honesty_constraints_confirmed": true,
+  "copied_examples": {
+    "d": {
+      "diagnosta": [
+        "docs/platform/examples/candidate_e/d/diagnosta/latest_readiness_case.json",
+        "docs/platform/examples/candidate_e/d/diagnosta/latest_deep_synthesis.json",
+        "docs/platform/examples/candidate_e/d/diagnosta/latest_handoff_packet.json",
+        "docs/platform/examples/candidate_e/d/diagnosta/latest_warning_ledger.json"
+      ],
+      "coda": [
+        "docs/platform/examples/candidate_e/d/coda/latest_closure_pack.json",
+        "docs/platform/examples/candidate_e/d/coda/latest_review_packet.json",
+        "docs/platform/examples/candidate_e/d/coda/latest_warning_ledger.json"
+      ],
+      "observifyfy": [
+        "docs/platform/examples/candidate_e/d/observifyfy/observifyfy_diagnosta_signal.json",
+        "docs/platform/examples/candidate_e/d/observifyfy/observifyfy_coda_signal.json",
+        "docs/platform/examples/candidate_e/d/observifyfy/observifyfy_ai_context.json"
+      ]
+    },
+    "e": {
+      "diagnosta": [
+        "docs/platform/examples/candidate_e/e/diagnosta/latest_readiness_case.json",
+        "docs/platform/examples/candidate_e/e/diagnosta/latest_deep_synthesis.json",
+        "docs/platform/examples/candidate_e/e/diagnosta/latest_handoff_packet.json",
+        "docs/platform/examples/candidate_e/e/diagnosta/latest_warning_ledger.json"
+      ],
+      "coda": [
+        "docs/platform/examples/candidate_e/e/coda/latest_closure_pack.json",
+        "docs/platform/examples/candidate_e/e/coda/latest_review_packet.json",
+        "docs/platform/examples/candidate_e/e/coda/latest_warning_ledger.json"
+      ],
+      "observifyfy": [
+        "docs/platform/examples/candidate_e/e/observifyfy/observifyfy_diagnosta_signal.json",
+        "docs/platform/examples/candidate_e/e/observifyfy/observifyfy_coda_signal.json",
+        "docs/platform/examples/candidate_e/e/observifyfy/observifyfy_ai_context.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+Wave AG focused validation summary
+
+- world-engine shell-readout logic: passed
+- backend session bridge shell-readout passthrough: passed
+- frontend shell/readout focused tests: passed
+- narrow inherited ai_stack GoC tests: passed

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelRouteDecision",
+  "type": "object",
+  "schema_version": "fy.model-route-decision.schema.v1",
+  "properties": {
+    "task_type": {
+      "type": "string"
+    },
+    "selected_tier": {
+      "type": "string"
+    },
+    "selected_model": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "budget_class": {
+      "type": "string"
+    },
+    "fallback_chain": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reproducibility_mode": {
+      "type": "string"
+    },
+    "safety_mode": {
+      "type": "string"
+    },
+    "estimated_cost_class": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

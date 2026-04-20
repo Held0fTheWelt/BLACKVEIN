@@ -1,0 +1,157 @@
+{
+  "schema_version": "fy.command-reference.v1",
+  "generated_at": "2026-04-20T02:57:31.942305+00:00",
+  "command_envelope_current": "fy.command-envelope.v4",
+  "command_envelope_compatibility": {
+    "current": "fy.command-envelope.v4",
+    "supported_read_versions": [
+      "fy.command-envelope.v3",
+      "fy.command-envelope.v4"
+    ],
+    "supported_write_versions": [
+      "fy.command-envelope.v4"
+    ]
+  },
+  "manifest_compatibility": {
+    "current_manifest_version": 1,
+    "supported_manifest_versions": [
+      1
+    ],
+    "compat_mode": "autark-outbound"
+  },
+  "generic_lifecycle_commands": [
+    "init",
+    "inspect",
+    "audit",
+    "explain",
+    "prepare-context-pack",
+    "compare-runs",
+    "clean",
+    "reset",
+    "triage",
+    "prepare-fix",
+    "self-audit",
+    "release-readiness",
+    "production-readiness"
+  ],
+  "platform_native_commands": [
+    "strategy show",
+    "strategy set <A|B|C|D|E>"
+  ],
+  "active_strategy_profile": {
+    "schema_version": "fy.active-strategy-profile.v1",
+    "active_profile": "D",
+    "profile_label": "balanced_dual_suite_target",
+    "default_profile": "D",
+    "supported_profiles": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "recommended_progression_order": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "progression_graph": "A->B->C->D->E",
+    "progression_mode": "progressive",
+    "allow_profile_switching": true,
+    "require_review_by_default": true,
+    "emit_profile_to_run_journal": true,
+    "emit_profile_to_compare_runs": true,
+    "emit_profile_to_observifyfy": true,
+    "emit_profile_to_status_pages": true,
+    "allow_candidate_e_features": false,
+    "source_path": "FY_STRATEGY_SETTINGS.md",
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "candidate_e_active": false,
+    "candidate_e_opt_in_state": "inactive",
+    "candidate_e_requires_explicit_opt_in": true,
+    "orchestration_depth": "standard",
+    "planning_horizon": 1,
+    "blocker_grouping_depth": "standard",
+    "guarantee_gap_grouping": "standard",
+    "handoff_depth": "standard",
+    "closure_packet_depth": "standard",
+    "review_packet_depth": "standard",
+    "bounded_auto_preparation": "disabled",
+    "compare_profile_effects": "optional",
+    "profile_comparison_hint": "Candidate D is the stable balanced baseline for readiness and closure work.",
+    "expected_distinction_from_d": []
+  },
+  "suite_native_commands": {
+    "coda": [
+      "assemble",
+      "closure-pack",
+      "residue-report",
+      "bundle"
+    ],
+    "contractify": [
+      "consolidate",
+      "import",
+      "legacy-import"
+    ],
+    "despaghettify": [
+      "wave-plan"
+    ],
+    "diagnosta": [
+      "diagnose",
+      "readiness-case",
+      "blocker-graph"
+    ],
+    "docify": [
+      "inline-explain"
+    ],
+    "dockerify": [
+      "stack-audit"
+    ],
+    "documentify": [
+      "generate-track"
+    ],
+    "metrify": [
+      "pricing",
+      "record",
+      "ingest",
+      "report",
+      "ai-pack",
+      "full"
+    ],
+    "mvpify": [
+      "inspect",
+      "plan",
+      "ai-pack",
+      "full"
+    ],
+    "observifyfy": [
+      "inspect",
+      "audit",
+      "ai-pack",
+      "full"
+    ],
+    "postmanify": [
+      "sync"
+    ],
+    "securify": [
+      "scan",
+      "evaluate",
+      "autofix"
+    ],
+    "templatify": [
+      "list-templates",
+      "validate",
+      "render",
+      "check-drift"
+    ],
+    "testify": [],
+    "usabilify": [
+      "inspect",
+      "evaluate",
+      "full"
+    ]
+  }
+}

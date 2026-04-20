@@ -9,11 +9,12 @@ from uuid import uuid4
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
-from ai_stack import (
-    RuntimeTurnGraphExecutor,
-    build_runtime_retriever,
-    create_default_capability_registry,
-)
+from ai_stack import build_runtime_retriever, create_default_capability_registry
+
+try:
+    from ai_stack import RuntimeTurnGraphExecutor
+except ImportError:  # pragma: no cover - exercised indirectly in minimal test environments
+    RuntimeTurnGraphExecutor = None  # type: ignore[assignment]
 
 from app.config import APP_VERSION
 from app.observability.audit_log import log_story_runtime_failure, log_story_turn_event
@@ -26,6 +27,98 @@ from app.story_runtime.narrative_threads import (
     thread_continuity_metrics,
     update_narrative_threads,
 )
+from app.story_runtime_shell_readout import build_story_runtime_shell_readout, frame_story_runtime_visible_output_bundle
+
+
+
+class _UnavailableRuntimeTurnGraphExecutor:
+    def run(self, **kwargs: Any) -> dict[str, Any]:
+        raise RuntimeError(
+            "RuntimeTurnGraphExecutor is unavailable because optional ai_stack runtime dependencies are missing. "
+            "Inject a test double or install the full ai_stack runtime dependencies."
+        )
+
+
+def _extract_first_addressed_line(bundle: dict[str, Any] | None) -> str | None:
+    if not isinstance(bundle, dict):
+        return None
+    for key in ("gm_narration", "spoken_lines"):
+        lines = bundle.get(key)
+        if isinstance(lines, list):
+            for item in lines:
+                if isinstance(item, str) and item.strip():
+                    return item.strip()
+    return None
+
+
+def _reply_continuity_context_from_turn(turn_record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(turn_record, dict):
+        return None
+    after = turn_record.get("committed_state_after")
+    if isinstance(after, dict):
+        ctx = after.get("reply_continuity_context")
+        if isinstance(ctx, dict):
+            return ctx
+    return None
+
+
+def _stored_previous_reply_context_from_turn(turn_record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(turn_record, dict):
+        return None
+    after = turn_record.get("committed_state_after")
+    if isinstance(after, dict):
+        ctx = after.get("previous_reply_continuity_context")
+        if isinstance(ctx, dict):
+            return ctx
+    return None
+
+
+def _stored_earlier_reply_context_from_turn(turn_record: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(turn_record, dict):
+        return None
+    after = turn_record.get("committed_state_after")
+    if isinstance(after, dict):
+        ctx = after.get("earlier_reply_continuity_context")
+        if isinstance(ctx, dict):
+            return ctx
+    return None
+
+
+def _first_responder_actor_for_event(selected_responder_set: Any) -> str | None:
+    if isinstance(selected_responder_set, list) and selected_responder_set and isinstance(selected_responder_set[0], dict):
+        actor = selected_responder_set[0].get("actor_id")
+        if isinstance(actor, str) and actor.strip():
+            return actor.strip()
+    return None
+
+
+def _surface_token_from_projection(projection: dict[str, Any]) -> str:
+    live_surface = str(projection.get("live_surface_now") or "").lower()
+    if "doorway" in live_surface or "threshold" in live_surface:
+        return "doorway"
+    if "bathroom edge" in live_surface:
+        return "bathroom edge"
+    if "books" in live_surface:
+        return "books"
+    if "flowers" in live_surface:
+        return "flowers"
+    if "phone" in live_surface:
+        return "phone"
+    if "hosting surface" in live_surface:
+        return "hosting surface"
+    return "room"
+
+
+def _build_reply_continuity_context(*, shell_readout_projection: dict[str, Any] | None, addressed_visible_output_bundle: dict[str, Any] | None, responder_actor: str | None) -> dict[str, Any]:
+    projection = shell_readout_projection if isinstance(shell_readout_projection, dict) else {}
+    return {
+        "exchange_label": str(projection.get("response_exchange_label_now") or "").strip(),
+        "surface_token": _surface_token_from_projection(projection),
+        "response_line_prefix": str(projection.get("response_line_prefix_now") or "").strip(),
+        "response_recentering": str(projection.get("response_recentering_now") or "").strip(),
+        "responder_actor": (responder_actor or "").strip().lower(),
+        "addressed_line": _extract_first_addressed_line(addressed_visible_output_bundle) or "",
+    }
 
 
 @dataclass
@@ -73,15 +166,18 @@ class StoryRuntimeManager:
             assembler=self.context_assembler,
             repo_root=self.repo_root,
         )
-        self.turn_graph = RuntimeTurnGraphExecutor(
-            interpreter=interpret_player_input,
-            routing=self.routing,
-            registry=self.registry,
-            adapters=self.adapters,
-            retriever=self.retriever,
-            assembler=self.context_assembler,
-            capability_registry=self.capability_registry,
-        )
+        if RuntimeTurnGraphExecutor is None:
+            self.turn_graph = _UnavailableRuntimeTurnGraphExecutor()
+        else:
+            self.turn_graph = RuntimeTurnGraphExecutor(
+                interpreter=interpret_player_input,
+                routing=self.routing,
+                registry=self.registry,
+                adapters=self.adapters,
+                retriever=self.retriever,
+                assembler=self.context_assembler,
+                capability_registry=self.capability_registry,
+            )
 
     def create_session(self, *, module_id: str, runtime_projection: dict[str, Any]) -> StorySession:
         session_id = uuid4().hex
@@ -101,6 +197,8 @@ class StoryRuntimeManager:
         session.updated_at = datetime.now(timezone.utc)
         prior_scene_id = session.current_scene_id
         history_tail = session.history[-(NARRATIVE_COMMIT_HISTORY_TAIL - 1) :]
+        prior_reply_context = _reply_continuity_context_from_turn(session.history[-1] if session.history else None)
+        earlier_reply_context = _stored_previous_reply_context_from_turn(session.history[-1] if session.history else None)
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
         host_experience_template: dict[str, Any] | None = None
         if session.module_id == "god_of_carnage":
@@ -169,6 +267,11 @@ class StoryRuntimeManager:
             turn_number=session.turn_counter,
         )
 
+        thread_metrics = thread_continuity_metrics(session.narrative_threads)
+        last_thread_summary: str | None = None
+        if session.last_thread_update_trace is not None:
+            last_thread_summary = session.last_thread_update_trace.summary or None
+
         model_ok = gen.get("success") is True
         outcome = "ok" if model_ok and not errors else "degraded"
         log_story_turn_event(
@@ -182,6 +285,62 @@ class StoryRuntimeManager:
         )
 
         narrative_commit_payload = narrative_commit.model_dump(mode="json")
+        preview_state = {
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "turn_counter": session.turn_counter,
+            "current_scene_id": session.current_scene_id,
+            "runtime_projection": session.runtime_projection,
+            "history_count": len(session.history),
+            "committed_state": {
+                "current_scene_id": session.current_scene_id,
+                "turn_counter": session.turn_counter,
+                "last_narrative_commit": narrative_commit_payload,
+                "last_narrative_commit_summary": {
+                    "situation_status": narrative_commit_payload.get("situation_status"),
+                    "allowed": narrative_commit_payload.get("allowed"),
+                    "commit_reason_code": narrative_commit_payload.get("commit_reason_code"),
+                    "committed_scene_id": narrative_commit_payload.get("committed_scene_id"),
+                    "proposed_scene_id": narrative_commit_payload.get("proposed_scene_id"),
+                    "selected_candidate_source": narrative_commit_payload.get("selected_candidate_source"),
+                    "is_terminal": narrative_commit_payload.get("is_terminal"),
+                },
+                "last_committed_consequences": [str(x) for x in (narrative_commit_payload.get("committed_consequences") or [])],
+                "last_open_pressures": [str(x) for x in (narrative_commit_payload.get("open_pressures") or [])],
+                "narrative_thread_continuity": {
+                    "narrative_threads": session.narrative_threads.model_dump(mode="json"),
+                    "active_narrative_threads": [
+                        t.model_dump(mode="json")
+                        for t in session.narrative_threads.active
+                        if t.status != "resolved"
+                    ],
+                    "thread_count": thread_metrics["thread_count"],
+                    "dominant_thread_kind": thread_metrics["dominant_thread_kind"],
+                    "thread_pressure_level": thread_metrics["thread_pressure_level"],
+                    "last_narrative_thread_update_summary": last_thread_summary,
+                },
+                "previous_reply_continuity_context": prior_reply_context,
+                "earlier_reply_continuity_context": earlier_reply_context,
+            },
+            "updated_at": session.updated_at.isoformat(),
+        }
+        shell_readout_projection = build_story_runtime_shell_readout(
+            state=preview_state,
+            last_diagnostic={
+                "selected_scene_function": graph_state.get("selected_scene_function"),
+                "selected_responder_set": graph_state.get("selected_responder_set"),
+                "social_state_record": graph_state.get("social_state_record"),
+            },
+        )
+        addressed_visible_output_bundle = frame_story_runtime_visible_output_bundle(
+            visible_output_bundle=graph_state.get("visible_output_bundle") if isinstance(graph_state.get("visible_output_bundle"), dict) else None,
+            shell_readout_projection=shell_readout_projection,
+        )
+        reply_continuity_context = _build_reply_continuity_context(
+            shell_readout_projection=shell_readout_projection,
+            addressed_visible_output_bundle=addressed_visible_output_bundle,
+            responder_actor=_first_responder_actor_for_event(graph_state.get("selected_responder_set")),
+        )
         event = {
             "turn_number": session.turn_counter,
             "trace_id": trace_id or "",
@@ -195,11 +354,15 @@ class StoryRuntimeManager:
             },
             "graph": graph_state.get("graph_diagnostics", {}),
             "visible_output_bundle": graph_state.get("visible_output_bundle"),
+            "visible_output_bundle_addressed": addressed_visible_output_bundle,
+            "shell_readout_projection": shell_readout_projection,
             "diagnostics_refs": graph_state.get("diagnostics_refs"),
             "experiment_preview": graph_state.get("experiment_preview"),
             "validation_outcome": graph_state.get("validation_outcome"),
             "committed_result": graph_state.get("committed_result"),
             "selected_scene_function": graph_state.get("selected_scene_function"),
+            "selected_responder_set": graph_state.get("selected_responder_set"),
+            "social_state_record": graph_state.get("social_state_record"),
         }
         committed_record = {
             "turn_number": session.turn_counter,
@@ -209,6 +372,9 @@ class StoryRuntimeManager:
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
+                "previous_reply_continuity_context": prior_reply_context,
+                "earlier_reply_continuity_context": earlier_reply_context,
+                "reply_continuity_context": reply_continuity_context,
             },
         }
         session.history.append(committed_record)
@@ -257,7 +423,7 @@ class StoryRuntimeManager:
         if session.last_thread_update_trace is not None:
             last_thread_summary = session.last_thread_update_trace.summary or None
 
-        return {
+        state_payload = {
             "session_id": session.session_id,
             "module_id": session.module_id,
             "turn_counter": session.turn_counter,
@@ -283,10 +449,18 @@ class StoryRuntimeManager:
                     "thread_pressure_level": thread_metrics["thread_pressure_level"],
                     "last_narrative_thread_update_summary": last_thread_summary,
                 },
+                "previous_reply_continuity_context": _stored_previous_reply_context_from_turn(last_committed_turn),
+                "earlier_reply_continuity_context": _stored_earlier_reply_context_from_turn(last_committed_turn),
+                "reply_continuity_context": (last_committed_turn.get("committed_state_after", {}) or {}).get("reply_continuity_context") if isinstance(last_committed_turn, dict) else None,
             },
             "last_committed_turn": last_committed_turn,
             "updated_at": session.updated_at.isoformat(),
         }
+        last_diagnostic = session.diagnostics[-1] if session.diagnostics else None
+        shell_readout_projection = build_story_runtime_shell_readout(state=state_payload, last_diagnostic=last_diagnostic if isinstance(last_diagnostic, dict) else None)
+        state_payload["committed_state"]["shell_readout_projection"] = shell_readout_projection
+        state_payload["shell_readout_projection"] = shell_readout_projection
+        return state_payload
 
     def get_diagnostics(self, session_id: str) -> dict[str, Any]:
         session = self.get_session(session_id)

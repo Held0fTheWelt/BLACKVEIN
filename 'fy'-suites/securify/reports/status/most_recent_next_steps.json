@@ -1,0 +1,149 @@
+{
+  "suite": "securify",
+  "command": "audit",
+  "ok": true,
+  "summary": "Securify did not find tracked secret-like files or embedded secret patterns, and basic security guidance is present.",
+  "decision_summary": "",
+  "latest_run": {
+    "run_id": "securify-a14bb251d05b",
+    "suite": "securify",
+    "mode": "audit",
+    "started_at": "2026-04-19T12:19:24.070979+00:00",
+    "ended_at": "2026-04-19T12:19:29.790668+00:00",
+    "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+    "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+    "target_repo_id": "fy-suites-b6e36aef",
+    "status": "ok"
+  },
+  "next_steps": [
+    "Keep security surfaces stable and rerun securify after meaningful repository changes."
+  ],
+  "key_signals": {},
+  "warnings": [],
+  "cross_suite": {
+    "suite": "securify",
+    "related_suites": [
+      "contractify",
+      "testify",
+      "documentify",
+      "docify",
+      "usabilify",
+      "observifyfy",
+      "metrify"
+    ],
+    "relation_edges": [],
+    "signal_count": 5,
+    "signals": [
+      {
+        "suite": "usabilify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "usabilify-7923ee8d3ba9",
+          "suite": "usabilify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:56.429231+00:00",
+          "ended_at": "2026-04-19T12:18:56.441266+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Usabilify evaluated UI and UX surfaces, connected available UI contracts, and highlighted the next usability steps in plain language.",
+        "next_steps": [
+          "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "securify_related_signal"
+      },
+      {
+        "suite": "testify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "testify-180ce1cec9ad",
+          "suite": "testify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:23.955136+00:00",
+          "ended_at": "2026-04-19T12:13:23.994660+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Compared testify-1aacbc6ff67e with testify-914014651f68. Focus first on changed artifacts, review-state changes, and any target or mode differences.",
+        "next_steps": [
+          "Read the latest testify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "securify_related_signal"
+      },
+      {
+        "suite": "documentify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "documentify-b93cdd6456d4",
+          "suite": "documentify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:19:20.459142+00:00",
+          "ended_at": "2026-04-19T12:19:20.786801+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Documentify generated the current documentation tracks and status pages.",
+        "next_steps": [
+          "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "securify_related_signal"
+      },
+      {
+        "suite": "docify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "docify-a9be4ee99502",
+          "suite": "docify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:18.539642+00:00",
+          "ended_at": "2026-04-19T12:13:21.984322+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"docstring\" across suites ['docify']. Strongest source: generated/context_packs/docify_context_pack.json#chunk-1. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/docify_context_pack.json#chunk-1 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "securify_related_signal"
+      },
+      {
+        "suite": "contractify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "contractify-ce0bf06ec416",
+          "suite": "contractify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:14.077782+00:00",
+          "ended_at": "2026-04-19T12:13:14.110434+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"openapi health\" across suites ['contractify']. Strongest source: generated/context_packs/contractify_context_pack.md#chunk-4. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/contractify_context_pack.md#chunk-4 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "securify_related_signal"
+      }
+    ],
+    "summary": "The strongest cross-suite signal for securify currently comes from usabilify via securify_related_signal. Use it to connect the latest result with nearby suite work instead of treating the suite in isolation."
+  },
+  "governance": null,
+  "uncertainty": []
+}

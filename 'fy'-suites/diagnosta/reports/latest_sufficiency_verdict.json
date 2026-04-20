@@ -1,0 +1,13 @@
+{
+  "schema_version": "fy.sufficiency-verdict.v1",
+  "sufficiency_verdict_id": "sufficiency:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "verdict": "bounded_sufficient",
+  "reason": "No blocker-class evidence remains after bounded synthesis.",
+  "supporting_artifact_paths": [
+    "contractify/reports/latest_coda_obligation_manifest.json",
+    "testify/reports/latest_coda_test_obligation_manifest.json",
+    "despaghettify/reports/latest_coda_insertion_surface_report.json"
+  ],
+  "summary": "No blocker-class evidence remains after bounded synthesis."
+}

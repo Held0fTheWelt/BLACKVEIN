@@ -1,0 +1,29 @@
+{
+  "suite": "templatify",
+  "command": "audit",
+  "ok": true,
+  "summary": "No summary is available yet.",
+  "decision_summary": "",
+  "latest_run": {
+    "run_id": "templatify-c6dc3b06367f",
+    "suite": "templatify",
+    "mode": "audit",
+    "started_at": "2026-04-18T14:43:53.655557+00:00",
+    "ended_at": "2026-04-18T14:43:53.671555+00:00",
+    "workspace_root": "/mnt/data/wave3/'fy'-suites",
+    "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_generic_ai_suite_cli_temp0/target_repo",
+    "target_repo_id": "target-repo-7a9a6dce",
+    "status": "ok"
+  },
+  "next_steps": [
+    "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+  ],
+  "key_signals": {
+    "drift_count": 0,
+    "template_count": 11
+  },
+  "warnings": [],
+  "cross_suite": {},
+  "governance": null,
+  "uncertainty": []
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClosurePack",
+  "type": "object",
+  "schema_version": "fy.closure-pack.schema.v1",
+  "properties": {
+    "closure_pack_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "obligation_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "residue_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "review_required": {
+      "type": "boolean"
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

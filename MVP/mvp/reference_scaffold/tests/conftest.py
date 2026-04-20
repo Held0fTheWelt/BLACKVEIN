@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
+
+# Python 3.10 compatibility: UTC was added in Python 3.11
+UTC = timezone.utc
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:

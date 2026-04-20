@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CannotHonestlyClaim",
+  "type": "object",
+  "schema_version": "fy.cannot-honestly-claim.schema.v1",
+  "properties": {
+    "cannot_honestly_claim_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "blocked_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

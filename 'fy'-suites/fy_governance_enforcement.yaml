@@ -1,0 +1,200 @@
+# FY-Governance Enforcement Configuration
+# Central declarative config for all governance enforcement gates.
+# Defines which gates are mandatory vs advisory, baseline paths, severity thresholds.
+
+---
+
+enforcement_gates:
+  contractify:
+    name: "Contractify Enforcement Gate"
+    enabled: true
+    mandatory: true
+    description: "Enforce contract drift detection on PR merge; fail if new contracts lack relations, precedence changes without justification, or confidence drops below thresholds."
+
+    baseline:
+      path: "contractify/reports/CANONICAL_REPO_ROOT_AUDIT.md"
+      format: "markdown_snapshot"
+
+    audit_command: "python -m contractify.tools audit --json"
+    audit_output_path: "contractify/reports/_local_contract_audit.json"
+
+    failure_conditions:
+      - condition: "new_contracts_without_relations"
+        description: "New contracts added without relating to existing contracts"
+        severity: "critical"
+        block_merge: true
+
+      - condition: "precedence_tier_change_unjustified"
+        description: "Precedence tier assignments change without justification"
+        severity: "high"
+        block_merge: true
+
+      - condition: "confidence_below_threshold"
+        description: "Confidence scores drop below 0.85 on runtime_authority tier contracts"
+        severity: "high"
+        confidence_threshold: 0.85
+        target_tier: "runtime_authority"
+        block_merge: true
+
+      - condition: "named_conflicts_unresolved"
+        description: "Named conflicts are removed without resolving them (must escalate or document)"
+        severity: "critical"
+        block_merge: true
+
+    output:
+      format: "pr_comment_with_audit_link"
+      audit_json_link: "Full audit JSON available at build artifact"
+      pass_message: "Contractify gate passed: no drift detected."
+      fail_message: "Contractify gate failed: contract drift detected. Review: {failure_details}"
+
+  docify:
+    name: "Docify Enforcement Gate"
+    enabled: true
+    mandatory: true
+    description: "Enforce docstring coverage and documentation quality on PR merge; fail if new missing docstrings, parse errors, or coverage degradation."
+
+    baseline:
+      path: "docify/baseline_docstring_coverage.json"
+      format: "json_snapshot"
+      key_metrics:
+        - "summary.findings"  # baseline docstring findings count
+        - "summary.files_with_findings"
+        - "summary.parse_errors"
+
+    audit_command: "python -m docify.tools audit --json"
+    audit_output_path: "docify/reports/_local_docstring_audit.json"
+
+    scan_roots:
+      - "contractify"
+      - "despaghettify"
+      - "docify"
+      - "ai_stack"
+      - "story_runtime_core"
+      - "world-engine"
+      - "backend"
+      - "administration-tool"
+
+    failure_conditions:
+      - condition: "new_missing_docstrings"
+        description: "New missing docstrings in tracked modules"
+        severity: "high"
+        block_merge: true
+
+      - condition: "parse_errors"
+        description: "Parse errors (BOM, syntax) in tracked modules"
+        severity: "high"
+        block_merge: true
+
+      - condition: "coverage_degradation"
+        description: "Docstring coverage decreases from baseline"
+        severity: "high"
+        block_merge: true
+        metric_key: "summary.findings"
+        comparison: "increase_only"  # findings should not increase
+
+    output:
+      format: "pr_comment_with_audit_link"
+      pass_message: "Docify gate passed: no new docstring findings introduced."
+      fail_message: "Docify gate failed: {failure_count} new docstring findings. Review: {failure_details}"
+
+  despaghettify:
+    name: "Despaghettify Enforcement Gate"
+    enabled: true
+    mandatory: false
+    description: "Monitor structural metrics and flag functions that exceed baseline thresholds; allows merge with justification."
+
+    baseline:
+      path: "despaghettify/baseline_metrics.json"
+      format: "json_snapshot"
+      key_metrics:
+        - "summary.functions_over_200_lines"
+        - "summary.max_nesting_depth"
+        - "summary.import_cycle_count"
+
+    audit_command: "python -m despaghettify.tools check --with-metrics"
+    audit_output_path: "despaghettify/reports/_local_metrics_check.json"
+
+    failure_conditions:
+      - condition: "functions_over_200_lines"
+        description: "New functions over 200 lines (flag for review)"
+        severity: "medium"
+        block_merge: false
+        allow_override: true
+        threshold: 200
+
+      - condition: "nesting_depth_increase"
+        description: "Nesting depth increase beyond baseline (new functions with nesting >= 6)"
+        severity: "medium"
+        block_merge: false
+        allow_override: true
+        threshold: 6
+
+      - condition: "import_cycle_increase"
+        description: "Import cycle count increase (flagged but not blocked by default)"
+        severity: "low"
+        block_merge: false
+        allow_override: true
+
+    output:
+      format: "pr_comment_with_metrics_link"
+      pass_message: "Despaghettify gate passed: no new structural issues flagged."
+      fail_message: "Despaghettify gate advisory: {flagged_count} structural items flagged. Review: {failure_details}. This gate is advisory; merge is allowed with justification."
+
+---
+
+# Global enforcement policy
+enforcement_policy:
+  pr_event: "pull_request"
+  trigger_on_branches:
+    - "master"
+    - "main"
+  run_on: "pr_open,pr_synchronize"
+
+  # If any mandatory gate fails, block the PR
+  mandatory_gate_failure_strategy: "block_merge"
+
+  # Advisory gates (non-blocking) produce warnings but allow merge
+  advisory_gate_failure_strategy: "warn_allow_merge"
+
+  # Evidence artifacts stored at:
+  evidence_artifact_root: "*/reports/ci_gate_evidence/"
+
+  # Logging and reporting
+  report_format: "github_pr_comment"
+  include_full_audit_in_comment: false  # link to artifacts instead
+  archive_reports: true
+  archive_path: ".github/workflow-artifacts/"
+
+---
+
+# Documentation updates required
+documentation_updates:
+  contractify:
+    file: "contractify/CONTRACT_GOVERNANCE_SCOPE.md"
+    section: "CI enforcement thresholds and gate policies"
+    required: true
+
+  docify:
+    file: "docify/README.md"
+    section: "Merge-time enforcement note"
+    required: true
+
+  despaghettify:
+    file: "despaghettify/spaghetti-setup.md"
+    section: "Merge-time monitoring note"
+    required: true
+
+  workstream_state:
+    file: "despaghettify/state/WORKSTREAM_DOCUMENTATION_STATE.md"
+    section: "FY-governance enforcement gates implementation"
+    required: true
+
+---
+
+# Version and metadata
+metadata:
+  version: "1.0.0"
+  created_date: "2026-04-17"
+  enforcement_layer: "MVP v24"
+  policy_authority: "FY-Governance"
+  last_updated: "2026-04-17"

@@ -1,0 +1,4 @@
+run_id,suite,cost_usd,event_count,latest_timestamp_utc,models
+route-only,metrify,0.0,89,2026-04-18T22:27:22.149424+00:00,"local-general-llm,local-slim-retrieval-helper,local-slim-summarizer"
+demo-run-2,documentify,0.2425,1,2026-04-18T01:00:00+00:00,gpt-5.4
+demo-run-1,contractify,0.029475,1,2026-04-18T00:00:00+00:00,gpt-5.4-mini

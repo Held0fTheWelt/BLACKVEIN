@@ -1,0 +1,13 @@
+{
+  "schema_version": "fy.docify-coda-documentation-obligation-manifest.v1",
+  "suite": "docify",
+  "generated_at": "2026-04-20T02:59:02.315675+00:00",
+  "source_report": "docify/baseline_docstring_coverage.json",
+  "obligations": [],
+  "required_docs": [],
+  "summary": "Docify exported 0 documentation obligations and 0 concrete required-doc follow-up item(s) from baseline coverage data.",
+  "written_paths": {
+    "json_path": "docify/reports/latest_coda_documentation_manifest.json",
+    "md_path": "docify/reports/latest_coda_documentation_manifest.md"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "kind": "mvpify_operations_memory",
+  "source": "/mnt/data/f1wave/'fy'-suites",
+  "artifact_count": 15557,
+  "highest_value_next_step": {
+    "phase": "governance",
+    "suite": "contractify",
+    "objective": "Attach the imported MVP contracts, ADRs, and runtime/MVP spine to governed records.",
+    "why_now": "The imported MVP already contains governance surfaces that must become first-class before implementation drift begins.",
+    "inputs": [
+      "mvpify import inventory",
+      "docs/ADR",
+      "runtime/MVP docs"
+    ],
+    "outputs": [
+      "contract audit update",
+      "attachment report",
+      "runtime/MVP spine state"
+    ],
+    "depends_on": [
+      "import:mvpify"
+    ]
+  },
+  "step_count": 7
+}

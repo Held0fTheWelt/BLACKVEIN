@@ -1,0 +1,13 @@
+{
+  "suite": "diagnosta",
+  "truth_domain": [
+    "bounded readiness diagnosis",
+    "blocker prioritization",
+    "claim-honesty outputs"
+  ],
+  "does_not_own": [
+    "contract truth",
+    "test truth",
+    "autonomous fixing"
+  ]
+}

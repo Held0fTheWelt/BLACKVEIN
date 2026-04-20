@@ -1,0 +1,242 @@
+{
+  "suite": "contractify",
+  "command": "compare-runs",
+  "ok": true,
+  "summary": "Compared contractify-325da7354949 with contractify-24f426721713. Focus first on changed artifacts, review-state changes, and any target or mode differences.",
+  "decision_summary": "",
+  "latest_run": {
+    "run_id": "contractify-24f426721713",
+    "suite": "contractify",
+    "mode": "consolidate",
+    "started_at": "2026-04-19T21:39:13.720322+00:00",
+    "ended_at": "2026-04-19T21:39:13.803086+00:00",
+    "workspace_root": "/mnt/data/fy_wave4/'fy'-suites",
+    "target_repo_root": "/tmp/pytest-of-root/pytest-14/test_compare_runs_returns_rich0/target_repo",
+    "target_repo_id": "target-repo-9acc0e71",
+    "status": "ok",
+    "strategy_profile": "D",
+    "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+    "run_metadata": {
+      "active_strategy_profile": {
+        "schema_version": "fy.active-strategy-profile.v1",
+        "active_profile": "D",
+        "profile_label": "balanced_dual_suite_target",
+        "default_profile": "D",
+        "supported_profiles": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "recommended_progression_order": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E"
+        ],
+        "progression_graph": "A->B->C->D->E",
+        "progression_mode": "progressive",
+        "allow_profile_switching": true,
+        "require_review_by_default": true,
+        "emit_profile_to_run_journal": true,
+        "emit_profile_to_compare_runs": true,
+        "emit_profile_to_observifyfy": true,
+        "emit_profile_to_status_pages": true,
+        "source_path": "FY_STRATEGY_SETTINGS.md"
+      }
+    }
+  },
+  "next_steps": [
+    "Read the latest contractify output and choose the narrowest next move based on the current evidence."
+  ],
+  "key_signals": {},
+  "warnings": [
+    "mode_changed_between_runs"
+  ],
+  "active_strategy_profile": {
+    "schema_version": "fy.active-strategy-profile.v1",
+    "active_profile": "D",
+    "profile_label": "balanced_dual_suite_target",
+    "default_profile": "D",
+    "supported_profiles": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "recommended_progression_order": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E"
+    ],
+    "progression_graph": "A->B->C->D->E",
+    "progression_mode": "progressive",
+    "allow_profile_switching": true,
+    "require_review_by_default": true,
+    "emit_profile_to_run_journal": true,
+    "emit_profile_to_compare_runs": true,
+    "emit_profile_to_observifyfy": true,
+    "emit_profile_to_status_pages": true,
+    "source_path": "FY_STRATEGY_SETTINGS.md"
+  },
+  "cross_suite": {
+    "suite": "contractify",
+    "related_suites": [
+      "testify",
+      "documentify",
+      "docify",
+      "templatify",
+      "usabilify",
+      "securify"
+    ],
+    "relation_edges": [
+      [
+        "testify",
+        "requires_review_from"
+      ],
+      [
+        "documentify",
+        "informs"
+      ],
+      [
+        "docify",
+        "projects_to"
+      ],
+      [
+        "securify",
+        "conflicts_with"
+      ]
+    ],
+    "signal_count": 5,
+    "signals": [
+      {
+        "suite": "usabilify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "usabilify-7923ee8d3ba9",
+          "suite": "usabilify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:56.429231+00:00",
+          "ended_at": "2026-04-19T12:18:56.441266+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_summary": "Usabilify evaluated UI and UX surfaces, connected available UI contracts, and highlighted the next usability steps in plain language.",
+        "next_steps": [
+          "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "contractify_related_signal"
+      },
+      {
+        "suite": "testify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "testify-180ce1cec9ad",
+          "suite": "testify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:23.955136+00:00",
+          "ended_at": "2026-04-19T12:13:23.994660+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_summary": "Compared testify-1aacbc6ff67e with testify-914014651f68. Focus first on changed artifacts, review-state changes, and any target or mode differences.",
+        "next_steps": [
+          "Read the latest testify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "requires_review_from"
+      },
+      {
+        "suite": "templatify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "templatify-0d91cf7ac120",
+          "suite": "templatify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:54.455093+00:00",
+          "ended_at": "2026-04-19T12:18:54.483270+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_summary": "No summary is available yet.",
+        "next_steps": [
+          "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "contractify_related_signal"
+      },
+      {
+        "suite": "securify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "securify-a14bb251d05b",
+          "suite": "securify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:19:24.070979+00:00",
+          "ended_at": "2026-04-19T12:19:29.790668+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_summary": "Securify did not find tracked secret-like files or embedded secret patterns, and basic security guidance is present.",
+        "next_steps": [
+          "Keep security surfaces stable and rerun securify after meaningful repository changes."
+        ],
+        "status_ok": true,
+        "relation_reason": "conflicts_with"
+      },
+      {
+        "suite": "documentify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "documentify-db558b5d3a05",
+          "suite": "documentify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:20:40.150428+00:00",
+          "ended_at": "2026-04-19T12:20:40.199984+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+          "target_repo_id": "target-repo-01a1fe91",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_summary": "Documentify generated the current documentation tracks and status pages.",
+        "next_steps": [
+          "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "informs"
+      }
+    ],
+    "summary": "The strongest cross-suite signal for contractify currently comes from usabilify via contractify_related_signal. Use it to connect the latest result with nearby suite work instead of treating the suite in isolation."
+  },
+  "governance": null,
+  "uncertainty": []
+}

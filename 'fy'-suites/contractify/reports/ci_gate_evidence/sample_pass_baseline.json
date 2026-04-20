@@ -1,0 +1,18 @@
+{
+  "gate_name": "contractify",
+  "execution_date": "2026-04-17",
+  "status": "PASS",
+  "summary": {
+    "contracts_found": 60,
+    "conflicts": 8,
+    "unresolved_conflicts": 6
+  },
+  "message": "Contractify gate baseline established: no drift detected.",
+  "baseline_snapshot": {
+    "contracts_discovered": 60,
+    "projections_discovered": 25,
+    "relations_discovered": 310,
+    "drift_findings": 8,
+    "named_conflicts": 6
+  }
+}

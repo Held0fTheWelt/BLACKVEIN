@@ -1,0 +1,16 @@
+{
+  "gate_name": "docify",
+  "execution_date": "2026-04-17",
+  "status": "PASS",
+  "summary": {
+    "findings": 1097,
+    "files_with_findings": 227,
+    "parse_errors": 4
+  },
+  "message": "Docify gate baseline established: coverage stable.",
+  "comparison": {
+    "pr_findings": 1097,
+    "baseline_findings": 1097,
+    "change": "no change"
+  }
+}

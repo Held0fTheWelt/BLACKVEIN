@@ -1,0 +1,157 @@
+{
+  "suite": "testify",
+  "summary": {
+    "workflow_count": 13,
+    "runner_suite_count": 8,
+    "hub_script_count": 9,
+    "finding_count": 0,
+    "warning_count": 1
+  },
+  "runner": {
+    "suite_targets": [
+      "administration",
+      "ai_stack",
+      "backend",
+      "database",
+      "engine",
+      "frontend",
+      "improvement",
+      "writers_room"
+    ],
+    "all_sequence": [
+      "backend",
+      "frontend",
+      "administration",
+      "engine",
+      "database",
+      "ai_stack"
+    ],
+    "display_names": {
+      "backend": "Backend (Flask API and services)",
+      "frontend": "Frontend (player/public UI)",
+      "administration": "Administration tool (proxy and UI)",
+      "engine": "World engine (runtime and HTTP/WS)",
+      "database": "Database (migrations and tooling)",
+      "writers_room": "Writers-Room workflow (human-in-the-loop production)",
+      "improvement": "Improvement loop (mutation / evaluation / recommendation)",
+      "ai_stack": "WOS AI stack (LangGraph runtime, RAG, Writers-Room / improvement seed graphs)"
+    }
+  },
+  "hub_pyproject": {
+    "scripts": {
+      "despag-check": "despaghettify.tools.hub_cli:main",
+      "wos-despag": "despaghettify.tools.hub_cli:main",
+      "postmanify": "postmanify.tools.cli:main",
+      "docify": "docify.tools.hub_cli:main",
+      "contractify": "contractify.tools.hub_cli:main",
+      "documentify": "documentify.tools.hub_cli:main",
+      "testify": "testify.tools.hub_cli:main",
+      "dockerify": "dockerify.tools.hub_cli:main",
+      "fy-platform": "fy_platform.tools.cli:main"
+    },
+    "packages_where_clause_present": true
+  },
+  "workflows": {
+    "admin-tests.yml": {
+      "job_count": 2,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "ai-stack-tests.yml": {
+      "job_count": 1,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "backend-tests.yml": {
+      "job_count": 6,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "compose-smoke.yml": {
+      "job_count": 1,
+      "has_path_filters": false,
+      "workflow_dispatch": true
+    },
+    "despaghettify-skills-validate.yml": {
+      "job_count": 1,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "docify-skills-validate.yml": {
+      "job_count": 1,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "docs.yml": {
+      "job_count": 1,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "engine-tests.yml": {
+      "job_count": 2,
+      "has_path_filters": true,
+      "workflow_dispatch": false
+    },
+    "fy-contractify-gate.yml": {
+      "job_count": 1,
+      "has_path_filters": false,
+      "workflow_dispatch": false
+    },
+    "fy-despaghettify-gate.yml": {
+      "job_count": 1,
+      "has_path_filters": false,
+      "workflow_dispatch": false
+    },
+    "fy-docify-gate.yml": {
+      "job_count": 1,
+      "has_path_filters": false,
+      "workflow_dispatch": false
+    },
+    "pre-deployment.yml": {
+      "job_count": 2,
+      "has_path_filters": false,
+      "workflow_dispatch": true
+    },
+    "quality-gate.yml": {
+      "job_count": 5,
+      "has_path_filters": false,
+      "workflow_dispatch": false
+    }
+  },
+  "component_pyprojects": [
+    {
+      "path": "backend/pyproject.toml",
+      "exists": true
+    },
+    {
+      "path": "frontend/pyproject.toml",
+      "exists": true
+    },
+    {
+      "path": "administration-tool/pyproject.toml",
+      "exists": true
+    },
+    {
+      "path": "world-engine/pyproject.toml",
+      "exists": true
+    },
+    {
+      "path": "ai_stack/pyproject.toml",
+      "exists": true
+    },
+    {
+      "path": "story_runtime_core/pyproject.toml",
+      "exists": true
+    }
+  ],
+  "strengths": [
+    "Core GitHub Actions workflow set is present for backend, admin, engine, AI stack, quality gate, pre-deployment, and compose smoke.",
+    "Root pyproject exports all fy-suite console scripts, including dockerify, testify, and documentify.",
+    "tests/run_tests.py declares canonical --suite all order: backend, frontend, administration, engine, database, ai_stack.",
+    "tests/run_tests.py declares explicit suite targets for: administration, ai_stack, backend, database, engine, frontend, improvement, writers_room."
+  ],
+  "warnings": [
+    "No standalone frontend-tests.yml workflow detected; frontend quality currently relies on broader gates or local runner usage."
+  ],
+  "findings": []
+}

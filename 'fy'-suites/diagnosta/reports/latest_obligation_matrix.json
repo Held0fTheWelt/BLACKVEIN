@@ -1,0 +1,7 @@
+{
+  "schema_version": "fy.obligation-matrix.v1",
+  "obligation_matrix_id": "obligation-matrix:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "rows": [],
+  "summary": "Bundled 0 supporting obligation row(s) into the readiness review packet."
+}

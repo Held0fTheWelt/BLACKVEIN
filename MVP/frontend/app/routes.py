@@ -48,7 +48,7 @@ def _request_wants_json() -> bool:
     return False
 
 
-def _compose_authoritative_shell_bundle(*, run_id: str, run_detail: dict[str, Any] | None, transcript: dict[str, Any] | None) -> dict[str, Any]:
+def _compose_authoritative_shell_bundle(*, run_id: str, run_detail: dict[str, Any] | None, transcript: dict[str, Any] | None, runtime_shell_readout: dict[str, Any] | None = None) -> dict[str, Any]:
     entries = []
     if isinstance(transcript, dict):
         raw_entries = transcript.get("entries")
@@ -59,6 +59,7 @@ def _compose_authoritative_shell_bundle(*, run_id: str, run_detail: dict[str, An
     latest_text = None
     if isinstance(latest_entry, dict):
         latest_text = latest_entry.get("text") or latest_entry.get("content") or latest_entry.get("message")
+    latest_text = _build_response_framed_line(text=latest_text, runtime_shell_readout=runtime_shell_readout)
 
     run_obj = run_detail.get("run") if isinstance(run_detail, dict) else {}
     template_obj = run_detail.get("template") if isinstance(run_detail, dict) else {}
@@ -68,6 +69,7 @@ def _compose_authoritative_shell_bundle(*, run_id: str, run_detail: dict[str, An
         (entry.get("text") or entry.get("content") or entry.get("message") or str(entry))
         for entry in entries[-5:]
     ]
+    transcript_preview = _build_response_framed_preview(preview=transcript_preview, runtime_shell_readout=runtime_shell_readout)
     transcript_entry_count = len(entries)
     run_status = (run_obj or {}).get("status") if isinstance(run_obj, dict) else None
     lobby_status = (lobby_obj or {}).get("status") if isinstance(lobby_obj, dict) else None
@@ -105,12 +107,52 @@ def _compose_authoritative_shell_bundle(*, run_id: str, run_detail: dict[str, An
     }
 
 
-def _build_shell_state_view(*, run_detail: dict[str, Any] | None, transcript: dict[str, Any] | None, authoritative_observation: dict[str, Any] | None) -> dict[str, Any]:
+
+
+def _build_response_framed_line(*, text: str | None, runtime_shell_readout: dict[str, Any] | None) -> str | None:
+    if not isinstance(text, str) or not text.strip():
+        return None
+    raw = text.strip()
+    if not isinstance(runtime_shell_readout, dict):
+        return raw
+    prefix = runtime_shell_readout.get("response_line_prefix_now")
+    if not (isinstance(prefix, str) and prefix.strip()):
+        prefix = runtime_shell_readout.get("response_address_source_now")
+    if not (isinstance(prefix, str) and prefix.strip()):
+        prefix = runtime_shell_readout.get("who_answers_now")
+    if not (isinstance(prefix, str) and prefix.strip()):
+        return raw
+    prefix = prefix.strip().rstrip('.')
+    return f"{prefix} — {raw}"
+
+
+def _build_response_framed_preview(*, preview: list[str], runtime_shell_readout: dict[str, Any] | None) -> list[str]:
+    if not isinstance(preview, list) or not preview:
+        return preview
+    framed = list(preview)
+    last = _build_response_framed_line(text=framed[-1], runtime_shell_readout=runtime_shell_readout)
+    if isinstance(last, str) and last.strip():
+        framed[-1] = last
+    return framed
+
+def _build_shell_state_view(*, run_id: str, run_detail: dict[str, Any] | None, transcript: dict[str, Any] | None, authoritative_observation: dict[str, Any] | None) -> dict[str, Any]:
+    runtime_shell_readout = _get_play_shell_runtime_readout(run_id)
     if isinstance(authoritative_observation, dict):
         shell_state_view = authoritative_observation.get("shell_state_view")
         if isinstance(shell_state_view, dict):
-            return shell_state_view
-    return _compose_authoritative_shell_bundle(run_id="unknown", run_detail=run_detail, transcript=transcript).get("shell_state_view", {})
+            merged = _merge_runtime_shell_readout(base=shell_state_view, runtime_shell_readout=runtime_shell_readout)
+            merged["latest_entry_text"] = _build_response_framed_line(text=merged.get("latest_entry_text"), runtime_shell_readout=runtime_shell_readout)
+            preview = merged.get("transcript_preview")
+            if isinstance(preview, list):
+                merged["transcript_preview"] = _build_response_framed_preview(preview=preview, runtime_shell_readout=runtime_shell_readout)
+            return merged
+    base = _compose_authoritative_shell_bundle(run_id="unknown", run_detail=run_detail, transcript=transcript, runtime_shell_readout=runtime_shell_readout).get("shell_state_view", {})
+    merged = _merge_runtime_shell_readout(base=base, runtime_shell_readout=runtime_shell_readout)
+    merged["latest_entry_text"] = _build_response_framed_line(text=merged.get("latest_entry_text"), runtime_shell_readout=runtime_shell_readout)
+    preview = merged.get("transcript_preview")
+    if isinstance(preview, list):
+        merged["transcript_preview"] = _build_response_framed_preview(preview=preview, runtime_shell_readout=runtime_shell_readout)
+    return merged
 
 
 def _fetch_authoritative_shell_observation(run_id: str) -> dict[str, Any]:
@@ -144,6 +186,150 @@ def _store_play_shell_observation(run_id: str, observation: dict[str, Any]) -> N
     observations[run_id] = observation
     session["play_shell_authoritative_observations"] = observations
     session.modified = True
+
+
+def _get_play_shell_runtime_readouts() -> dict[str, Any]:
+    payload = session.get("play_shell_runtime_readouts", {})
+    return payload if isinstance(payload, dict) else {}
+
+
+
+def _get_play_shell_runtime_readout(run_id: str) -> dict[str, Any] | None:
+    payload = _get_play_shell_runtime_readouts().get(run_id)
+    return payload if isinstance(payload, dict) else None
+
+
+
+def _store_play_shell_runtime_readout(run_id: str, readout: dict[str, Any]) -> None:
+    payload = _get_play_shell_runtime_readouts()
+    payload[run_id] = readout
+    session["play_shell_runtime_readouts"] = payload
+    session.modified = True
+
+
+
+def _extract_runtime_shell_readout(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    turn = payload.get("turn")
+    if isinstance(turn, dict):
+        direct_turn = turn.get("shell_readout_projection")
+        if isinstance(direct_turn, dict):
+            return direct_turn
+    state = payload.get("state")
+    if not isinstance(state, dict):
+        return None
+    direct = state.get("shell_readout_projection")
+    if isinstance(direct, dict):
+        return direct
+    committed_state = state.get("committed_state")
+    if isinstance(committed_state, dict):
+        nested = committed_state.get("shell_readout_projection")
+        if isinstance(nested, dict):
+            return nested
+    return None
+
+
+def _extract_turn_level_addressed_line(payload: dict[str, Any] | None) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    turn = payload.get("turn")
+    if not isinstance(turn, dict):
+        return None
+    bundle = turn.get("visible_output_bundle_addressed")
+    if not isinstance(bundle, dict):
+        return None
+    for key in ("gm_narration", "spoken_lines"):
+        raw = bundle.get(key)
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, str) and item.strip():
+                    return item.strip()
+    return None
+
+
+def _merge_turn_level_addressed_output(*, shell_response: dict[str, Any], payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(shell_response, dict):
+        return shell_response
+    addressed_line = _extract_turn_level_addressed_line(payload)
+    if not addressed_line:
+        return shell_response
+    merged = dict(shell_response)
+    shell_state = dict(merged.get("shell_state_view") or {})
+    shell_state["latest_entry_text"] = addressed_line
+    preview = shell_state.get("transcript_preview")
+    if isinstance(preview, list):
+        preview_lines = [str(x) for x in preview if str(x).strip()]
+        if not preview_lines or preview_lines[-1] != addressed_line:
+            preview_lines = (preview_lines + [addressed_line])[-5:]
+        shell_state["transcript_preview"] = preview_lines
+    else:
+        shell_state["transcript_preview"] = [addressed_line]
+    status = shell_state.get("authoritative_status_summary")
+    if isinstance(status, str) and status.strip():
+        parts = [p.strip() for p in status.split(" · ") if p.strip() and not p.strip().startswith("Latest line:")]
+        parts.append(f"Latest line: {addressed_line}")
+        shell_state["authoritative_status_summary"] = " · ".join(parts)
+    merged["shell_state_view"] = shell_state
+    merged["latest_entry_text"] = addressed_line
+    if isinstance(merged.get("transcript_preview"), list):
+        preview_lines = [str(x) for x in merged.get("transcript_preview") if str(x).strip()]
+        if not preview_lines or preview_lines[-1] != addressed_line:
+            preview_lines = (preview_lines + [addressed_line])[-5:]
+        merged["transcript_preview"] = preview_lines
+    return merged
+
+
+
+def _merge_runtime_shell_readout(*, base: dict[str, Any], runtime_shell_readout: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(base, dict):
+        base = {}
+    merged = dict(base)
+    if isinstance(runtime_shell_readout, dict):
+        for field in (
+            "social_weather_now",
+            "live_surface_now",
+            "carryover_now",
+            "social_geometry_now",
+            "situational_freedom_now",
+            "address_pressure_now",
+            "social_moment_now",
+            "response_pressure_now",
+            "response_address_source_now",
+            "response_exchange_now",
+            "response_exchange_label_now",
+            "response_carryover_now",
+            "response_line_prefix_now",
+            "who_answers_now",
+            "why_this_reply_now",
+            "observation_foothold_now",
+            "room_pressure_now",
+            "zone_sensitivity_now",
+            "salient_object_now",
+            "object_sensitivity_now",
+            "continued_wound_now",
+            "role_pressure_now",
+            "dominant_social_reading_now",
+            "social_axis_now",
+            "host_guest_pressure_now",
+            "spouse_axis_now",
+            "cross_couple_now",
+            "pressure_redistribution_now",
+            "callback_pressure_now",
+            "callback_role_frame_now",
+            "active_pressure_now",
+            "recent_act_social_meaning",
+            "object_social_reading_now",
+            "situational_affordance_now",
+            "reaction_delta_now",
+            "carryover_delta_now",
+            "pressure_shift_delta_now",
+            "hot_surface_delta_now",
+        ):
+            value = runtime_shell_readout.get(field)
+            if isinstance(value, str) and value.strip():
+                merged[field] = value.strip()
+    return merged
 
 
 def _get_play_shell_run_module_bindings() -> dict[str, Any]:
@@ -306,10 +492,11 @@ def _resolve_runtime_recovery(
 
 def _authoritative_observation_response(*, run_id: str, observation: dict[str, Any] | None, observation_source: str, observation_error: str | None = None, backend_session_id: str | None = None, runtime_recovery: dict[str, Any] | None = None) -> dict[str, Any]:
     shell_state_view = _build_shell_state_view(
+        run_id=run_id,
         run_detail=observation.get("run_detail") if isinstance(observation, dict) else None,
         transcript=observation.get("transcript") if isinstance(observation, dict) else None,
         authoritative_observation=observation,
-    ) if isinstance(observation, dict) else {}
+    ) if isinstance(observation, dict) else _merge_runtime_shell_readout(base={}, runtime_shell_readout=_get_play_shell_runtime_readout(run_id))
     observation_meta = {
         "source": observation_source,
         "error": observation_error,
@@ -707,12 +894,16 @@ def play_execute(session_id: str):
         flash(str(exc), "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
+    runtime_shell_readout = _extract_runtime_shell_readout(payload)
+    if isinstance(runtime_shell_readout, dict):
+        _store_play_shell_runtime_readout(session_id, runtime_shell_readout)
     try:
         shell_response = _build_play_shell_response(run_id=session_id, backend_session_id=backend_session_id)
         shell_state_view = shell_response.get("shell_state_view") or {}
         success_message = f"Turn executed in runtime (input kind: {interpreted}). {shell_state_view.get('authoritative_status_summary') or 'Authoritative refresh completed.'}"
         if wants_json:
             response_payload = dict(shell_response)
+            response_payload = _merge_turn_level_addressed_output(shell_response=response_payload, payload=payload)
             response_payload.update({
                 "turn": payload.get("turn"),
                 "interpreted_input_kind": interpreted,

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ActiveStrategyProfile",
+  "type": "object",
+  "schema_version": "fy.active-strategy-profile.schema.v1",
+  "properties": {
+    "active_profile": {
+      "type": "string"
+    },
+    "profile_label": {
+      "type": "string"
+    },
+    "default_progression_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "progression_mode": {
+      "type": "string"
+    },
+    "allow_profile_switching": {
+      "type": "boolean"
+    },
+    "menu_enabled": {
+      "type": "boolean"
+    },
+    "trigger_enabled": {
+      "type": "boolean"
+    },
+    "command_enabled": {
+      "type": "boolean"
+    },
+    "markdown_override_allowed": {
+      "type": "boolean"
+    },
+    "require_review_by_default": {
+      "type": "boolean"
+    },
+    "auto_apply_level": {
+      "type": "string"
+    },
+    "diagnosta_enabled": {
+      "type": "boolean"
+    },
+    "diagnosta_scope": {
+      "type": "string"
+    },
+    "coda_enabled": {
+      "type": "boolean"
+    },
+    "coda_scope": {
+      "type": "string"
+    },
+    "emit_profile_to_run_journal": {
+      "type": "boolean"
+    },
+    "emit_profile_to_observifyfy": {
+      "type": "boolean"
+    },
+    "emit_profile_to_compare_runs": {
+      "type": "boolean"
+    },
+    "emit_profile_to_status_pages": {
+      "type": "boolean"
+    },
+    "compare_profile_effects": {
+      "type": "string"
+    },
+    "allow_candidate_e_features": {
+      "type": "boolean"
+    },
+    "candidate_e_requires_explicit_opt_in": {
+      "type": "boolean"
+    },
+    "source_path": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

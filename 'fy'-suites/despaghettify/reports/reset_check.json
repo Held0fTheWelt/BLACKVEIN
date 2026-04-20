@@ -1,0 +1,246 @@
+{
+  "kind": "despaghettify_check",
+  "generated_at_utc": "2026-04-12T11:16:06Z",
+  "repo_root": "C:/Users/YvesT/PycharmProjects/WorldOfShadows",
+  "ast": {
+    "total_functions": 4404,
+    "total_python_files": 601,
+    "count_over_50_lines": 272,
+    "count_over_100_lines": 34,
+    "count_nesting_ge_3": 185,
+    "count_nesting_ge_4": 56,
+    "count_nesting_ge_5": 15,
+    "count_nesting_ge_6": 0,
+    "count_functions_magic_int_literals_ge_5": 49,
+    "count_functions_duplicate_name_across_files": 660,
+    "count_functions_control_flow_heavy": 249,
+    "c1_files_in_import_cycles_pct": 10.7692,
+    "c1_import_graph_files": 325,
+    "c1_files_in_cycles": 35,
+    "top12_longest": [
+      {
+        "name": "legacy_keyword_scene_candidates",
+        "lines": 123,
+        "nest_depth": 3,
+        "path": "ai_stack/scene_director_goc_legacy_keyword_candidates.py"
+      },
+      {
+        "name": "run_research_pipeline",
+        "lines": 118,
+        "nest_depth": 2,
+        "path": "ai_stack/research_langgraph.py"
+      },
+      {
+        "name": "test_full_workflow_with_all_entities",
+        "lines": 118,
+        "nest_depth": 1,
+        "path": "ai_stack/tests/test_research_store_extended.py"
+      },
+      {
+        "name": "derive_progression_summary",
+        "lines": 116,
+        "nest_depth": 3,
+        "path": "backend/app/runtime/progression_summary.py"
+      },
+      {
+        "name": "run_bounded_exploration_expand_loop",
+        "lines": 116,
+        "nest_depth": 4,
+        "path": "ai_stack/research_exploration_bounded_expand_loop.py"
+      },
+      {
+        "name": "build_area2_operator_truth",
+        "lines": 114,
+        "nest_depth": 3,
+        "path": "backend/app/runtime/area2_operator_truth.py"
+      },
+      {
+        "name": "update_narrative_threads_impl",
+        "lines": 114,
+        "nest_depth": 1,
+        "path": "world-engine/app/story_runtime/narrative_threads_update.py"
+      },
+      {
+        "name": "build_roadmap_dramatic_turn_record",
+        "lines": 114,
+        "nest_depth": 2,
+        "path": "ai_stack/goc_turn_seams.py"
+      },
+      {
+        "name": "finalize_synthesis_staged_generation",
+        "lines": 113,
+        "nest_depth": 0,
+        "path": "backend/app/runtime/runtime_ai_stages_sections.py"
+      },
+      {
+        "name": "populated_store",
+        "lines": 113,
+        "nest_depth": 0,
+        "path": "ai_stack/tests/test_research_store_extended.py"
+      },
+      {
+        "name": "build_relationship_axis_context_from_maps",
+        "lines": 112,
+        "nest_depth": 4,
+        "path": "backend/app/runtime/relationship_context_derive.py"
+      },
+      {
+        "name": "suggest_related_threads_for_query",
+        "lines": 112,
+        "nest_depth": 2,
+        "path": "backend/app/services/forum_service.py"
+      }
+    ],
+    "top6_nesting": [],
+    "ai_turn_executor": {
+      "file_lines": 78,
+      "execute_turn_with_ai": {
+        "lines": 39,
+        "nest_depth": 0
+      }
+    }
+  },
+  "ds005": {
+    "exit_code": 0,
+    "import_ok_count": 12,
+    "stdout_tail": [
+      "import_ok\tapp.runtime.ai_failure_recovery",
+      "import_ok\tapp.runtime.ai_turn_executor",
+      "import_ok\tapp.runtime.turn_dispatcher",
+      "import_ok\tapp.runtime.supervisor_orchestrate_execute",
+      "import_ok\tapp.runtime.supervisor_orchestrator"
+    ]
+  },
+  "extra_builtins_goc": {
+    "def_in_builtins_py_paths": [],
+    "count_in_builtins_py": 0,
+    "goc_solo_builtin_template_has_def": true
+  },
+  "extra_runtime_grep": {
+    "runtime_dir_exists": true,
+    "hit_count": 0,
+    "hits": []
+  },
+  "metrics_bundle": {
+    "kind": "metrics_bundle",
+    "schema_version": 1,
+    "source": "ast_heuristic_v2",
+    "category_scores": {
+      "C1": 6.088,
+      "C2": 0.0,
+      "C3": 65.44092474230254,
+      "C4": 67.10062815490878,
+      "C5": 36.90534548519983,
+      "C6": 26.56798490965555,
+      "C7": 42.53660108249665
+    },
+    "score": {
+      "legend_de": "``trigger_v2`` = interne Heuristik v2 (0\u2026100, saturierende Kurve; Vergleich mit ``trigger_bars`` im Setup). **Kein** gemessener Fl\u00e4chenanteil \u2014 nur Trigger-Skala. ``anteil_pct`` = operational gemessener Anteil in % (siehe ``plain_language_de`` / ``literal_rates.condition_shares_pct``). **C1** = % der analysierten Dateien unter ``backend/app``; **C2\u2013C7** = % der gemessenen Funktionen. ``m7_trigger_v2`` und ``m7_anteil_pct_gewichtet`` nutzen dieselben top-level ``weights`` wie ``m7`` (Trigger) bzw. ``metric_a.m7`` (Anteile).",
+      "categories": {
+        "C1": {
+          "trigger_v2": 6.088,
+          "anteil_pct": 10.7692
+        },
+        "C2": {
+          "trigger_v2": 0.0,
+          "anteil_pct": 1.2716
+        },
+        "C3": {
+          "trigger_v2": 65.4409,
+          "anteil_pct": 0.772
+        },
+        "C4": {
+          "trigger_v2": 67.1006,
+          "anteil_pct": 6.1762
+        },
+        "C5": {
+          "trigger_v2": 36.9053,
+          "anteil_pct": 1.1126
+        },
+        "C6": {
+          "trigger_v2": 26.568,
+          "anteil_pct": 14.9864
+        },
+        "C7": {
+          "trigger_v2": 42.5366,
+          "anteil_pct": 5.654
+        }
+      },
+      "m7_trigger_v2": 36.3003,
+      "m7_anteil_pct_gewichtet": 6.2865
+    },
+    "literal_rates": {
+      "total_functions_measured": 4404,
+      "total_python_files_measured": 601,
+      "functions_over_100_lines_pct": 0.772,
+      "functions_over_50_lines_pct": 6.1762,
+      "functions_nesting_ge_6_pct": 0.0,
+      "over_100_lines_among_over_50_lines_pct": 12.5,
+      "condition_shares_pct": {
+        "C1": 10.7692,
+        "C2": 1.2716,
+        "C3": 0.772,
+        "C4": 6.1762,
+        "C5": 1.1126,
+        "C6": 14.9864,
+        "C7": 5.654
+      },
+      "c1_import_graph_files": 325,
+      "c1_files_in_cycles": 35
+    },
+    "plain_language_de": {
+      "C1": "Anteil der 325 analysierten Python-Dateien unter ``backend/app``, die in einem Importzyklus liegen (nur explizite ``app.*``-Kanten, v1): 10.77 % (35 Dateien).",
+      "C2": "Anteil der 4404 gemessenen Funktionen mit AST-Verschachtelungstiefe \u2265 4: 1.27 %.",
+      "C3": "Anteil der 4404 gemessenen Funktionen mit mehr als 100 AST-Zeilen: 0.77 %.",
+      "C4": "Anteil der 4404 gemessenen Funktionen mit mehr als 50 AST-Zeilen: 6.18 %.",
+      "C5": "Anteil der 4404 gemessenen Funktionen mit \u2265 5 nicht-trivialen int-Literalen im Body (Heuristik, ohne globalen Modulzustand): 1.11 %.",
+      "C6": "Anteil der 4404 gemessenen Funktionen, deren Name in mehreren Dateien vorkommt (schwacher Duplikat-/Namenskollisions-Proxy): 14.99 %.",
+      "C7": "Anteil der 4404 gemessenen Funktionen mit Verschachtelung \u2265 3 **oder** mehr als 80 AST-Zeilen (Kontrollfluss-/Lesbarkeits-Proxy): 5.65 %."
+    },
+    "metric_a": {
+      "id": "share_weighted_m7",
+      "description_de": "Gewichtetes Mittel der ``condition_shares_pct`` (sieben echte Anteile); ersetzt nicht m7/trigger.",
+      "category_scores": {
+        "C1": 10.7692,
+        "C2": 1.2716,
+        "C3": 0.772,
+        "C4": 6.1762,
+        "C5": 1.1126,
+        "C6": 14.9864,
+        "C7": 5.654
+      },
+      "m7": 6.2865
+    },
+    "m7": 36.3003,
+    "m7_ref": 14.1,
+    "trigger_bars": {
+      "C1": 5.0,
+      "C2": 8.0,
+      "C3": 25.0,
+      "C4": 20.0,
+      "C5": 12.0,
+      "C6": 14.0,
+      "C7": 10.0
+    },
+    "weights": {
+      "C1": 0.2,
+      "C2": 0.1,
+      "C3": 0.2,
+      "C4": 0.15,
+      "C5": 0.1,
+      "C6": 0.15,
+      "C7": 0.1
+    },
+    "per_category_trigger_fires": {
+      "C1": true,
+      "C2": false,
+      "C3": true,
+      "C4": true,
+      "C5": true,
+      "C6": true,
+      "C7": true
+    },
+    "composite_trigger_fires": true,
+    "trigger_policy_fires": true
+  }
+}

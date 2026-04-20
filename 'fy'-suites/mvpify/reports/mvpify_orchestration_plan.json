@@ -1,0 +1,158 @@
+{
+  "ok": true,
+  "repo_root": "/mnt/data/f1wave/'fy'-suites",
+  "source": null,
+  "steps": [
+    {
+      "phase": "import",
+      "suite": "mvpify",
+      "objective": "Normalize the prepared MVP bundle into a governed internal import inventory.",
+      "why_now": "Prepared MVP information exists but must become explicit and restartable before implementation work starts.",
+      "inputs": [
+        "/mnt/data/f1wave/'fy'-suites"
+      ],
+      "outputs": [
+        "mvpify/reports/mvpify_import_inventory.json",
+        "mvpify/reports/mvpify_import_inventory.md"
+      ],
+      "depends_on": []
+    },
+    {
+      "phase": "governance",
+      "suite": "contractify",
+      "objective": "Attach the imported MVP contracts, ADRs, and runtime/MVP spine to governed records.",
+      "why_now": "The imported MVP already contains governance surfaces that must become first-class before implementation drift begins.",
+      "inputs": [
+        "mvpify import inventory",
+        "docs/ADR",
+        "runtime/MVP docs"
+      ],
+      "outputs": [
+        "contract audit update",
+        "attachment report",
+        "runtime/MVP spine state"
+      ],
+      "depends_on": [
+        "import:mvpify"
+      ]
+    },
+    {
+      "phase": "structure",
+      "suite": "despaghettify",
+      "objective": "Assess structural drift and pick the smallest safe implementation surface for the next coding pass.",
+      "why_now": "Prepared MVP plans only help if the code insertion path is scoped and coherent.",
+      "inputs": [
+        "mvpify import inventory",
+        "current repo tree",
+        "existing despaghettify workstreams"
+      ],
+      "outputs": [
+        "workstream state update",
+        "next structural insertion target"
+      ],
+      "depends_on": [
+        "governance:contractify"
+      ]
+    },
+    {
+      "phase": "verification",
+      "suite": "testify",
+      "objective": "Align tests, CI gates, and suite execution metadata with the imported MVP change set.",
+      "why_now": "Implementation cannot be trusted unless test and CI surfaces are ready to carry the change.",
+      "inputs": [
+        "implementation task draft",
+        "tests/run_tests.py",
+        "GitHub workflows",
+        "pyproject.toml"
+      ],
+      "outputs": [
+        "test audit update",
+        "recommended gate set"
+      ],
+      "depends_on": [
+        "implementation_task:mvpify"
+      ]
+    },
+    {
+      "phase": "runtime_validation",
+      "suite": "dockerify",
+      "objective": "Validate startup, compose topology, database readiness, and smoke paths for the MVP insertion.",
+      "why_now": "The imported MVP targets runtime behavior, so stable boot evidence matters immediately after implementation.",
+      "inputs": [
+        "implementation task draft",
+        "docker-up.py",
+        "docker-compose.yml"
+      ],
+      "outputs": [
+        "docker audit update",
+        "startup/stability findings"
+      ],
+      "depends_on": [
+        "implementation_task:mvpify"
+      ]
+    },
+    {
+      "phase": "documentation",
+      "suite": "documentify",
+      "objective": "Refresh easy, technical, role-based, and AI-facing docs after the MVP import is applied.",
+      "why_now": "Imported MVP plans lose value if the resulting repository state is not explained and searchable.",
+      "inputs": [
+        "implementation task draft",
+        "current docs",
+        "technical docs",
+        "contract/docs findings"
+      ],
+      "outputs": [
+        "documentify generation update",
+        "AI context pack refresh"
+      ],
+      "depends_on": [
+        "verification:testify"
+      ]
+    },
+    {
+      "phase": "meta_tracking",
+      "suite": "observifyfy",
+      "objective": "Track the import cycle, resulting suite findings, and the best next step outside project truth surfaces.",
+      "why_now": "The import should remain restartable and internally observable across multiple suite passes.",
+      "inputs": [
+        "all previous phase outputs"
+      ],
+      "outputs": [
+        "observifyfy next-step update",
+        "operations memory refresh"
+      ],
+      "depends_on": [
+        "documentation:documentify"
+      ]
+    }
+  ],
+  "highest_value_next_step": {
+    "phase": "governance",
+    "suite": "contractify",
+    "objective": "Attach the imported MVP contracts, ADRs, and runtime/MVP spine to governed records.",
+    "why_now": "The imported MVP already contains governance surfaces that must become first-class before implementation drift begins.",
+    "inputs": [
+      "mvpify import inventory",
+      "docs/ADR",
+      "runtime/MVP docs"
+    ],
+    "outputs": [
+      "contract audit update",
+      "attachment report",
+      "runtime/MVP spine state"
+    ],
+    "depends_on": [
+      "import:mvpify"
+    ]
+  },
+  "phase_index": {
+    "import:mvpify": 1,
+    "governance:contractify": 2,
+    "structure:despaghettify": 3,
+    "verification:testify": 4,
+    "runtime_validation:dockerify": 5,
+    "documentation:documentify": 6,
+    "meta_tracking:observifyfy": 7
+  }
+}

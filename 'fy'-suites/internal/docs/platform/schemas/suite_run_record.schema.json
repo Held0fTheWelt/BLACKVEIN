@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SuiteRunRecord",
+  "type": "object",
+  "schema_version": "fy.suite-run.schema.v1",
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "workspace_root": {
+      "type": "string"
+    },
+    "target_repo_root": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target_repo_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string"
+    },
+    "strategy_profile": {
+      "type": "string"
+    },
+    "run_metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

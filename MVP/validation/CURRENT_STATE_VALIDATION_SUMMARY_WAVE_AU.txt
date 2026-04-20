@@ -1,0 +1,14 @@
+Wave AU validation summary
+
+Pre-change package-truth verification
+
+world-engine/tests/test_story_runtime_shell_readout.py -> 7 passed
+backend/tests/test_session_routes.py -k 'shell_readout_projection or execute_turn_proxies_to_world_engine' -> 2 passed, 35 deselected
+frontend/tests/test_routes_extended.py -k focused play/session shell flow -> 14 passed, 53 deselected
+
+Wave AU proof after implementation
+
+world-engine/tests/test_story_runtime_shell_readout.py -> 8 passed
+backend/tests/test_session_routes.py -k 'shell_readout_projection or execute_turn_proxies_to_world_engine' -> 2 passed, 35 deselected
+frontend/tests/test_routes_extended.py -k focused play/session shell flow -> 14 passed, 53 deselected
+ai_stack/tests/test_social_state_goc.py ai_stack/tests/test_semantic_move_interpretation_goc.py -> 5 passed

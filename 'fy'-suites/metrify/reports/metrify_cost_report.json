@@ -1,0 +1,168 @@
+{
+  "ledger_path": "/mnt/data/self_hosting_repo/'fy'-suites/metrify/state/ledger.jsonl",
+  "event_count": 91,
+  "run_count": 3,
+  "last_run": {
+    "run_id": "route-only",
+    "suite": "metrify",
+    "event_count": 89,
+    "latest_timestamp_utc": "2026-04-18T22:27:22.149424+00:00",
+    "cost_usd": 0.0,
+    "input_tokens": 0,
+    "cached_input_tokens": 0,
+    "output_tokens": 0,
+    "models": [
+      "local-general-llm",
+      "local-slim-retrieval-helper",
+      "local-slim-summarizer"
+    ],
+    "utility_score_avg": null,
+    "resolved_findings": 0,
+    "technique_tags": []
+  },
+  "last_10_runs_cost_usd": 0.271975,
+  "today_cost_usd": 0,
+  "total_cost_usd": 0.271975,
+  "total_input_tokens": 37000,
+  "total_cached_input_tokens": 3000,
+  "total_output_tokens": 16500,
+  "top_models": [
+    {
+      "key": "gpt-5.4",
+      "cost_usd": 0.2425,
+      "event_count": 1,
+      "output_tokens": 12000
+    },
+    {
+      "key": "gpt-5.4-mini",
+      "cost_usd": 0.029475,
+      "event_count": 1,
+      "output_tokens": 4500
+    },
+    {
+      "key": "local-general-llm",
+      "cost_usd": 0.0,
+      "event_count": 56,
+      "output_tokens": 0
+    },
+    {
+      "key": "local-slim-retrieval-helper",
+      "cost_usd": 0.0,
+      "event_count": 23,
+      "output_tokens": 0
+    },
+    {
+      "key": "local-slim-summarizer",
+      "cost_usd": 0.0,
+      "event_count": 10,
+      "output_tokens": 0
+    }
+  ],
+  "top_suites": [
+    {
+      "key": "documentify",
+      "cost_usd": 0.2425,
+      "event_count": 1,
+      "output_tokens": 12000
+    },
+    {
+      "key": "contractify",
+      "cost_usd": 0.029475,
+      "event_count": 1,
+      "output_tokens": 4500
+    },
+    {
+      "key": "metrify",
+      "cost_usd": 0.0,
+      "event_count": 89,
+      "output_tokens": 0
+    }
+  ],
+  "top_techniques": [
+    {
+      "key": "doc-wave",
+      "cost_usd": 0.2425,
+      "event_count": 1,
+      "output_tokens": 12000
+    },
+    {
+      "key": "template-growth",
+      "cost_usd": 0.2425,
+      "event_count": 1,
+      "output_tokens": 12000
+    },
+    {
+      "key": "untagged",
+      "cost_usd": 0.029475,
+      "event_count": 90,
+      "output_tokens": 4500
+    }
+  ],
+  "recent_runs": [
+    {
+      "run_id": "route-only",
+      "suite": "metrify",
+      "event_count": 89,
+      "latest_timestamp_utc": "2026-04-18T22:27:22.149424+00:00",
+      "cost_usd": 0.0,
+      "input_tokens": 0,
+      "cached_input_tokens": 0,
+      "output_tokens": 0,
+      "models": [
+        "local-general-llm",
+        "local-slim-retrieval-helper",
+        "local-slim-summarizer"
+      ],
+      "utility_score_avg": null,
+      "resolved_findings": 0,
+      "technique_tags": []
+    },
+    {
+      "run_id": "demo-run-2",
+      "suite": "documentify",
+      "event_count": 1,
+      "latest_timestamp_utc": "2026-04-18T01:00:00+00:00",
+      "cost_usd": 0.2425,
+      "input_tokens": 25000,
+      "cached_input_tokens": 0,
+      "output_tokens": 12000,
+      "models": [
+        "gpt-5.4"
+      ],
+      "utility_score_avg": 0.7,
+      "resolved_findings": 2,
+      "technique_tags": [
+        "doc-wave",
+        "template-growth"
+      ]
+    },
+    {
+      "run_id": "demo-run-1",
+      "suite": "contractify",
+      "event_count": 1,
+      "latest_timestamp_utc": "2026-04-18T00:00:00+00:00",
+      "cost_usd": 0.029475,
+      "input_tokens": 12000,
+      "cached_input_tokens": 3000,
+      "output_tokens": 4500,
+      "models": [
+        "gpt-5.4-mini"
+      ],
+      "utility_score_avg": null,
+      "resolved_findings": 0,
+      "technique_tags": []
+    }
+  ],
+  "optimization_suggestions": [
+    "GPT-5.4 is currently the top cost driver. Review whether some runs can move to GPT-5.4-mini or nano."
+  ],
+  "avg_cost_per_run_usd": 0.09065833,
+  "canonical_graph": {
+    "unit_count": 4,
+    "relation_count": 3,
+    "artifact_count": 4,
+    "graph_dir": ".fydata/evolution_graph/runs/metrify-c6150fb81f86",
+    "export_dir": "metrify/generated/fy-suites-b6e36aef/metrify-c6150fb81f86/evolution_graph",
+    "run_manifest_path": "metrify/generated/fy-suites-b6e36aef/metrify-c6150fb81f86/evolution_graph/run_manifest.json"
+  }
+}

@@ -1,0 +1,14 @@
+Wave AF validation summary
+==========================
+
+World-engine shell readout helper:
+- 1 passed
+
+Backend authoritative state bridge passthrough:
+- 1 passed, 36 deselected
+
+Frontend shell/readout integration subset:
+- 8 passed, 53 deselected
+
+Inherited ai_stack narrow GoC surfaces:
+- 5 passed

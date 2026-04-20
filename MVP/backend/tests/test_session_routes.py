@@ -290,7 +290,7 @@ class TestExecuteTurnEndpoint:
         )
         monkeypatch.setattr(
             "app.api.v1.session_routes.execute_story_turn_in_engine",
-            lambda **_: {"turn": {"turn_number": 1, "raw_input": "hello"}},
+            lambda **_: {"turn": {"turn_number": 1, "raw_input": "hello", "shell_readout_projection": {"response_line_prefix_now": "Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway"}, "visible_output_bundle_addressed": {"gm_narration": ["Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway — A sharp reply."]}}},
         )
         monkeypatch.setattr(
             "app.api.v1.session_routes.get_story_state",
@@ -310,6 +310,8 @@ class TestExecuteTurnEndpoint:
         data = response.get_json()
         assert data["world_engine_story_session_id"] == "we_story_1"
         assert data["turn"]["turn_number"] == 1
+        assert data["turn"]["shell_readout_projection"]["response_line_prefix_now"] == "Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway"
+        assert data["turn"]["visible_output_bundle_addressed"]["gm_narration"][0].startswith("Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway — A sharp reply.")
 
 
 class TestGetLogsEndpoint:
@@ -630,3 +632,75 @@ class TestExplicitUnboundLocalFallback:
         response = client.get(f"/api/v1/sessions/{session_id}/diagnostics?allow_backend_local_fallback=1", headers={"Authorization": "Bearer test-token"})
         assert response.status_code == 200
         assert "backend_local_fallback_explicitly_requested" in response.get_json()["warnings"]
+
+
+
+def test_get_state_returns_shell_readout_projection_when_authoritative_state_has_it(client, monkeypatch):
+    monkeypatch.setenv("MCP_SERVICE_TOKEN", "test-token")
+    create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
+    session_id = create_resp.get_json()["session_id"]
+
+    from app.runtime.session_store import get_session as get_runtime_session
+
+    runtime_session = get_runtime_session(session_id)
+    runtime_session.current_runtime_state.metadata["world_engine_story_session_id"] = "we_story_shell"
+
+    monkeypatch.setattr(
+        "app.api.v1.session_routes.get_story_state",
+        lambda *_, **__: {
+            "turn_counter": 5,
+            "current_scene_id": "hallway_threshold",
+            "committed_state": {
+                "current_scene_id": "hallway_threshold",
+                "shell_readout_projection": {
+                    "social_weather_now": "Exit pressure is dominating the room; even practical movement is reading as failed repair.",
+                    "live_surface_now": "The doorway is the hot surface right now; hovering there reads as departure pressure, not neutral movement.",
+                    "carryover_now": "Departure shame is still active; the room has not spent the earlier failed-exit pressure.",
+                    "social_geometry_now": "Pressure is sitting with the host side and spouse axis rather than the guests.",
+                    "situational_freedom_now": "Distance shifts, hovering, and trying not to leave cleanly will all be socially legible here.",
+                    "address_pressure_now": "Veronique is effectively pressing you through failed departure pressure; the doorway is acting like an accusation, not a neutral exit.",
+                    "social_moment_now": "This is a failed-exit moment under brittle civility.",
+                    "response_pressure_now": "The room is pressing for repair, explanation, or a refusal to leave cleanly.",
+                    "response_address_source_now": "Veronique answers from the host side through the spouse axis in failed repair, with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction.",
+                    "response_exchange_now": "Your act drew a failed repair answer because your move turned departure into repair pressure.",
+                    "response_exchange_label_now": "failed repair",
+                    "response_line_prefix_now": "Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway",
+                    "who_answers_now": "Veronique is the one answering now; the host side is speaking through spouse embarrassment, with civility hardening into correction.",
+                    "why_this_reply_now": "The room read the act as failed repair, so the host side answered through spouse embarrassment at the doorway and let the reply pull the moment back under principle instead of letting the exit close it, in a principle-first rebuke that uses civility as correction.",
+                    "observation_foothold_now": "You are inside a failed-exit exchange now; the host side is answering through departure pressure and restraint still reads as part of the exchange.",
+                    "room_pressure_now": "The room feels exit-loaded; the doorway still reads as a social trap.",
+                    "salient_object_now": "The threshold itself is acting like a pressure object.",
+                    "dominant_social_reading_now": "It is landing as failed repair and renewed departure pressure rather than a clean practical move.",
+                    "social_axis_now": "The host side and spouse axis are carrying the weight; Veronique is taking the room's boundary reading.",
+                    "host_guest_pressure_now": "Host-side pressure is carrying more of the room; the guests have more room to watch than absorb.",
+                    "spouse_axis_now": "One partner is carrying social cost for the other's act; the spouse axis is not settled.",
+                    "cross_couple_now": "Cross-couple strain is live, though it is not fully taking over the room.",
+                    "pressure_redistribution_now": "Pressure has shifted from practical movement into spouse embarrassment and departure shame.",
+                },
+            },
+            "runtime_projection": {"start_scene_id": "scene_1"},
+        },
+    )
+
+    response = client.get(f"/api/v1/sessions/{session_id}/state", headers={"Authorization": "Bearer test-token"})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["committed_state"]["shell_readout_projection"]["social_weather_now"].startswith("Exit pressure is dominating the room")
+    assert data["committed_state"]["shell_readout_projection"]["live_surface_now"].startswith("The doorway is the hot surface right now")
+    assert data["committed_state"]["shell_readout_projection"]["carryover_now"].startswith("Departure shame is still active")
+    assert data["committed_state"]["shell_readout_projection"]["social_geometry_now"].startswith("Pressure is sitting with the host side and spouse axis")
+    assert data["committed_state"]["shell_readout_projection"]["situational_freedom_now"].startswith("Distance shifts, hovering")
+    assert data["committed_state"]["shell_readout_projection"]["address_pressure_now"].startswith("Veronique is effectively pressing you through failed departure pressure")
+    assert data["committed_state"]["shell_readout_projection"]["social_moment_now"].startswith("This is a failed-exit moment under brittle civility")
+    assert data["committed_state"]["shell_readout_projection"]["response_pressure_now"].startswith("The room is pressing for repair, explanation")
+    assert data["committed_state"]["shell_readout_projection"]["response_address_source_now"] == "Veronique answers from the host side through the spouse axis in failed repair, with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction."
+    assert data["committed_state"]["shell_readout_projection"]["response_exchange_now"].startswith("Your act drew a failed repair answer")
+    assert data["committed_state"]["shell_readout_projection"]["response_exchange_label_now"] == "failed repair"
+    assert data["committed_state"]["shell_readout_projection"]["response_line_prefix_now"] == "Veronique, from the host side through the spouse axis, answers in failed repair with host-side spouse embarrassment at the doorway, in a principle-first rebuke that uses civility as correction, the earlier failed exit still sitting at the doorway"
+    assert data["committed_state"]["shell_readout_projection"]["who_answers_now"].startswith("Veronique is the one answering now")
+    assert data["committed_state"]["shell_readout_projection"]["why_this_reply_now"].startswith("The room read the act as failed repair")
+    assert data["committed_state"]["shell_readout_projection"]["observation_foothold_now"].startswith("You are inside a failed-exit exchange now")
+    assert data["committed_state"]["shell_readout_projection"]["room_pressure_now"].startswith("The room feels exit-loaded")
+    assert data["committed_state"]["shell_readout_projection"]["dominant_social_reading_now"].startswith("It is landing as failed repair")
+    assert data["committed_state"]["shell_readout_projection"]["host_guest_pressure_now"].startswith("Host-side pressure is carrying more of the room")
+    assert data["committed_state"]["shell_readout_projection"]["spouse_axis_now"].startswith("One partner is carrying social cost")

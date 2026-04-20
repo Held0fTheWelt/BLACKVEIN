@@ -1,0 +1,576 @@
+{
+  "generated_at": "2026-04-13T18:00:00+00:00",
+  "repo_root": "<synthetic-minimal-repo-contractify-fixtures>",
+  "contracts": [
+    {
+      "id": "CTR-NORM-INDEX-001",
+      "title": "Normative contracts index",
+      "summary": "Developer-facing index of binding slice and runtime contracts.",
+      "contract_type": "governance_index",
+      "layer": "governance",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "docs/dev/contracts/normative-contracts-index.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.99,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "slice",
+        "navigation",
+        "normative"
+      ],
+      "discovery_reason": "A: explicit governance index path + normative vocabulary in prose"
+    },
+    {
+      "id": "CTR-API-OPENAPI-001",
+      "title": "Public HTTP API (OpenAPI 3)",
+      "summary": "Declared REST surface for backend integration and tooling.",
+      "contract_type": "api_schema",
+      "layer": "api",
+      "status": "active",
+      "version": "0.0.1",
+      "authority_level": "normative",
+      "anchor_kind": "machine_schema",
+      "anchor_location": "docs/api/openapi.yaml",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.94,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "http",
+        "openapi",
+        "backend"
+      ],
+      "discovery_reason": "A: canonical OpenAPI document under docs/api/"
+    },
+    {
+      "id": "CTR-ADR-ADR_0001_SCENE_IDENTITY",
+      "title": "ADR: adr-0001-scene-identity",
+      "summary": "Architecture decision record with governance force when accepted.",
+      "contract_type": "adr",
+      "layer": "governance",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.9,
+      "drift_signals": [],
+      "notes": "adr_status_line=accepted",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "adr",
+        "architecture"
+      ],
+      "discovery_reason": "A: ADR filename pattern under docs/governance/"
+    },
+    {
+      "id": "CTR-ADR-ADR_0002_RUNTIME_AUTHORI",
+      "title": "ADR: adr-0002-runtime-authority",
+      "summary": "Architecture decision record with governance force when accepted.",
+      "contract_type": "adr",
+      "layer": "governance",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "docs/ADR/adr-0001-runtime-authority-in-world-engine.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.9,
+      "drift_signals": [],
+      "notes": "adr_status_line=accepted",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "adr",
+        "architecture"
+      ],
+      "discovery_reason": "A: ADR filename pattern under docs/governance/"
+    },
+    {
+      "id": "CTR-ADR-ADR_0003_RETIRED",
+      "title": "ADR: adr-0003-retired",
+      "summary": "Architecture decision record with governance force when accepted.",
+      "contract_type": "adr",
+      "layer": "governance",
+      "status": "superseded",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.93,
+      "drift_signals": [],
+      "notes": "adr_status_line=superseded",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "adr",
+        "architecture"
+      ],
+      "discovery_reason": "A: ADR filename pattern under docs/governance/"
+    },
+    {
+      "id": "CTR-OPS-RUNTIME-001",
+      "title": "Operational governance runtime (runbook)",
+      "summary": "Operator-facing procedures and guarantees for runtime governance controls.",
+      "contract_type": "operational_runbook",
+      "layer": "operations",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "docs/operations/OPERATIONAL_GOVERNANCE_RUNTIME.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "operations",
+      "confidence": 0.81,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "operations",
+        "operator"
+      ],
+      "discovery_reason": "B: explicit operations markdown under docs/operations/"
+    },
+    {
+      "id": "CTR-SCHEMA-1F31DB6B8B",
+      "title": "JSON schema: sample_payload.json",
+      "summary": "Shared machine-readable schema constraining data exchanged across components.",
+      "contract_type": "json_schema",
+      "layer": "implementation",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "machine_schema",
+      "anchor_location": "schemas/sample_payload.json",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.74,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "schema",
+        "data-contract"
+      ],
+      "discovery_reason": "B: top-level schemas/*.json with bounded scan (max 2 files per pass ceiling)"
+    },
+    {
+      "id": "CTR-POSTMANIFY-TASK-001",
+      "title": "Postmanify sync task (OpenAPI \u2192 Postman)",
+      "summary": "Procedure for regenerating Postman collections and manifest from the canonical OpenAPI anchor.",
+      "contract_type": "suite_handoff",
+      "layer": "workflow",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "'fy'-suites/postmanify/postmanify-sync-task.md",
+      "source_of_truth": true,
+      "derived_from": [
+        "docs/api/openapi.yaml"
+      ],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "platform",
+      "confidence": 0.86,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "postmanify",
+        "openapi",
+        "projection"
+      ],
+      "discovery_reason": "A: postmanify task markdown under fy-suite (explicit OpenAPI linkage expected in prose)"
+    },
+    {
+      "id": "CTR-DOCIFY-TASK-001",
+      "title": "Docify documentation check task",
+      "summary": "Procedure and inputs for repository documentation quality audits (Python/docstring drift).",
+      "contract_type": "suite_handoff",
+      "layer": "documentation",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "'fy'-suites/docify/documentation-check-task.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "platform",
+      "confidence": 0.87,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "docify",
+        "documentation"
+      ],
+      "discovery_reason": "A: docify governance task markdown under fy-suite"
+    },
+    {
+      "id": "CTR-DESPAG-SETUP-001",
+      "title": "Despaghettify spaghetti setup (normative)",
+      "summary": "Numeric triggers and governance rules for structural execution hub.",
+      "contract_type": "workflow_governance",
+      "layer": "governance",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "'fy'-suites/despaghettify/spaghetti-setup.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [
+        "'fy'-suites/despaghettify/spaghetti-setup.md"
+      ],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "engineering",
+      "confidence": 0.98,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "despaghettify",
+        "structure"
+      ],
+      "discovery_reason": "A: explicit canonical / normative sections in spaghetti-setup.md"
+    },
+    {
+      "id": "CTR-WF-CI_OPENAPI_HINT",
+      "title": "CI workflow: ci_openapi_hint.yml",
+      "summary": "Automation contract for verification gates and release hygiene.",
+      "contract_type": "ci_workflow",
+      "layer": "workflow",
+      "status": "active",
+      "version": "unversioned",
+      "authority_level": "verification",
+      "anchor_kind": "workflow_definition",
+      "anchor_location": ".github/workflows/ci_openapi_hint.yml",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "platform",
+      "confidence": 0.68,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "ci",
+        "verification"
+      ],
+      "discovery_reason": "B: structural workflow definition under .github/workflows/"
+    },
+    {
+      "id": "CTR-CONTRACTIFY-SELF-001",
+      "title": "Contractify suite charter",
+      "summary": "Defines suite scope, truth model, drift classes, and integration with sibling fy hubs.",
+      "contract_type": "suite_charter",
+      "layer": "governance",
+      "status": "active",
+      "version": "0.1.0",
+      "authority_level": "normative",
+      "anchor_kind": "document",
+      "anchor_location": "'fy'-suites/contractify/README.md",
+      "source_of_truth": true,
+      "derived_from": [],
+      "implemented_by": [],
+      "validated_by": [],
+      "documented_in": [],
+      "projected_as": [],
+      "audiences": [
+        "developer",
+        "architect"
+      ],
+      "modes": [
+        "specialist"
+      ],
+      "scope": "repository",
+      "owner_or_area": "platform",
+      "confidence": 0.91,
+      "drift_signals": [],
+      "notes": "",
+      "last_verified": "",
+      "change_risk": "unknown",
+      "tags": [
+        "contractify",
+        "meta"
+      ],
+      "discovery_reason": "Self-application: contractify/README.md describes suite obligations"
+    }
+  ],
+  "projections": [
+    {
+      "id": "PRJ-POSTMANIFY-MANIFEST-001",
+      "title": "Postmanify generation manifest",
+      "path": "postman/postmanify-manifest.json",
+      "audience": "developer",
+      "mode": "specialist",
+      "source_contract_id": "CTR-API-OPENAPI-001",
+      "anchor_location": "docs/api/openapi.yaml",
+      "authoritative": false,
+      "confidence": 0.95,
+      "evidence": "postmanify-manifest.json records openapi_path and openapi_sha256",
+      "contract_version_ref": "29e2d23e67907b0e"
+    },
+    {
+      "id": "PRJ-POSTMAN-MASTER-001",
+      "title": "Postman master collection (OpenAPI projection)",
+      "path": "postman/Master.postman_collection.json",
+      "audience": "developer",
+      "mode": "specialist",
+      "source_contract_id": "CTR-API-OPENAPI-001",
+      "anchor_location": "docs/api/openapi.yaml",
+      "authoritative": false,
+      "confidence": 0.9,
+      "evidence": "Generated by postmanify from OpenAPI",
+      "contract_version_ref": "29e2d23e67907b0e"
+    }
+  ],
+  "relations": [
+    {
+      "relation": "derives_from",
+      "source_id": "PRJ-POSTMANIFY-MANIFEST-001",
+      "target_id": "CTR-API-OPENAPI-001",
+      "evidence": "Manifest openapi_path binds generation input",
+      "confidence": 0.95
+    },
+    {
+      "relation": "projects",
+      "source_id": "PRJ-POSTMAN-MASTER-001",
+      "target_id": "CTR-API-OPENAPI-001",
+      "evidence": "Postmanify emits collection from same OpenAPI revision fingerprint",
+      "confidence": 0.9
+    },
+    {
+      "relation": "operationalizes",
+      "source_id": "CTR-CONTRACTIFY-SELF-001",
+      "target_id": "CTR-NORM-INDEX-001",
+      "evidence": "Suite README instructs readers to anchor product contracts in normative index",
+      "confidence": 0.55
+    },
+    {
+      "relation": "references",
+      "source_id": "CTR-NORM-INDEX-001",
+      "target_id": "CTR-API-OPENAPI-001",
+      "evidence": "Normative index prose references the HTTP/OpenAPI contract surface.",
+      "confidence": 0.82
+    },
+    {
+      "relation": "indexes",
+      "source_id": "CTR-NORM-INDEX-001",
+      "target_id": "DOC:docs/technical/shared-runtime.md",
+      "evidence": "Normative index table links to docs/technical/shared-runtime.md",
+      "confidence": 0.88
+    },
+    {
+      "relation": "indexes",
+      "source_id": "CTR-NORM-INDEX-001",
+      "target_id": "DOC:docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "evidence": "Normative index table links to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "confidence": 0.88
+    },
+    {
+      "relation": "operationalizes",
+      "source_id": "CTR-OPS-RUNTIME-001",
+      "target_id": "CTR-NORM-INDEX-001",
+      "evidence": "Operational runbook translates normative governance into operator-facing procedures.",
+      "confidence": 0.68
+    },
+    {
+      "relation": "references",
+      "source_id": "CTR-POSTMANIFY-TASK-001",
+      "target_id": "CTR-API-OPENAPI-001",
+      "evidence": "Postmanify procedure consumes the canonical OpenAPI anchor for collection generation.",
+      "confidence": 0.9
+    },
+    {
+      "relation": "documents",
+      "source_id": "CTR-DOCIFY-TASK-001",
+      "target_id": "CTR-CONTRACTIFY-SELF-001",
+      "evidence": "Docify default roots include contractify; check task documents cross-suite audit obligations.",
+      "confidence": 0.62
+    },
+    {
+      "relation": "supersedes",
+      "source_id": "CTR-ADR-ADR_0003_RETIRED",
+      "target_id": "CTR-ADR-ADR_0001_SCENE_IDENTITY",
+      "evidence": "adr-0003-retired.md declares explicit Supersedes navigation to docs/ADR/adr-0003-scene-identity-canonical-surface.md",
+      "confidence": 0.9
+    },
+    {
+      "relation": "validates",
+      "source_id": "OBS:.github/workflows/ci_openapi_hint.yml",
+      "target_id": "CTR-API-OPENAPI-001",
+      "evidence": "Workflow .github/workflows/ci_openapi_hint.yml references OpenAPI/Postman artefacts (regeneration or contract checks).",
+      "confidence": 0.66
+    },
+    {
+      "relation": "conflicts_with",
+      "source_id": "CTR-NORM-INDEX-001",
+      "target_id": "DOC:docs/technical/shared-runtime.md",
+      "evidence": "Normative index lists the same resolved markdown target more than once (navigation ambiguity).",
+      "confidence": 0.88
+    }
+  ],
+  "automation_tiers_sample": {
+    "0.95": "auto_high",
+    "0.75": "curator_review",
+    "0.4": "candidate_only"
+  }
+}

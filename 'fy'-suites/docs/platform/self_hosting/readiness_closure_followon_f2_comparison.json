@@ -1,0 +1,165 @@
+{
+  "schema_version": "fy.readiness-closure-followon-f2-comparison.v1",
+  "wave": "F2",
+  "before": {
+    "readiness_status": "not_ready",
+    "blocker_count": 2,
+    "blocker_ids": [
+      "blocker:testify:proof-family-gaps",
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "closure_status": "bounded_partial_closure",
+    "obligation_count": 10,
+    "required_test_count": 2,
+    "required_doc_count": 11,
+    "affected_surface_count": 8,
+    "residue_count": 5
+  },
+  "after": {
+    "readiness_status": "not_ready",
+    "blocker_count": 1,
+    "blocker_ids": [
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "closure_status": "bounded_partial_closure",
+    "obligation_count": 20,
+    "required_test_count": 2,
+    "required_doc_count": 27,
+    "affected_surface_count": 8,
+    "residue_count": 6
+  },
+  "changes": {
+    "blockers_removed": [
+      "blocker:testify:proof-family-gaps"
+    ],
+    "blockers_still_open": [
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "newly_discovered_blockers": [],
+    "residues_added": [
+      "residue:coda:hotspots-still-open"
+    ],
+    "residues_removed": [],
+    "deltas": {
+      "blocker_delta": -1,
+      "obligation_delta": 10,
+      "required_test_delta": 0,
+      "required_doc_delta": 16,
+      "affected_surface_delta": 0,
+      "residue_delta": 1
+    }
+  },
+  "testify_proof_family_status": {
+    "blocker_gap_count": 0,
+    "warning_gap_count": 1,
+    "linked_claim_count": 1,
+    "highest_blocker_severity": "low",
+    "summary": "Testify sees 0 blocker-class proof family gap(s), 1 warning-shaped proof item(s), and 1 linked claim(s)."
+  },
+  "despaghettify_hotspot_packet": {
+    "blocking_hotspots": [
+      {
+        "risk_id": "despaghettify-risk-5008877",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'testify/tools/canonical_graph.py', 'line_count': 541, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "testify/tools/canonical_graph.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-5477883",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'fy_platform/ai/evidence_registry/registry.py', 'line_count': 493, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "fy_platform/ai/evidence_registry/registry.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-6182152",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'documentify/tools/track_engine.py', 'line_count': 704, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "documentify/tools/track_engine.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-3536649",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'docify/tools/python_docstring_synthesize.py', 'line_count': 2029, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "docify/tools/python_docstring_synthesize.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-5594761",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'docify/tools/python_documentation_audit.py', 'line_count': 978, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "docify/tools/python_documentation_audit.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-9686931",
+        "suite": "despaghettify",
+        "severity": "high",
+        "summary": "{'path': 'docify/tools/python_inline_explain.py', 'line_count': 712, 'category': 'local_spike_file_length', 'severity': 'high'}",
+        "source_path": "docify/tools/python_inline_explain.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-2492509",
+        "suite": "despaghettify",
+        "severity": "medium",
+        "summary": "{'path': 'docify/tools/strip_ai_stack_docstring_placeholders.py', 'line_count': 497, 'category': 'local_spike_file_length', 'severity': 'medium'}",
+        "source_path": "docify/tools/strip_ai_stack_docstring_placeholders.py"
+      }
+    ],
+    "non_blocking_hotspots": [
+      {
+        "risk_id": "despaghettify-risk-9875452",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'testify/tools/test_governance.py', 'line_count': 401, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "testify/tools/test_governance.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-7899514",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'mvpify/tools/importer.py', 'line_count': 437, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "mvpify/tools/importer.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-2302041",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'fy_platform/ai/adr_reflection.py', 'line_count': 410, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "fy_platform/ai/adr_reflection.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-7915453",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'fy_platform/ai/adapter_commands.py', 'line_count': 440, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "fy_platform/ai/adapter_commands.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-2929413",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'fy_platform/ai/semantic_index/index_manager.py', 'line_count': 364, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "fy_platform/ai/semantic_index/index_manager.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-5674418",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'documentify/tools/document_builder.py', 'line_count': 375, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "documentify/tools/document_builder.py"
+      },
+      {
+        "risk_id": "despaghettify-risk-2015567",
+        "suite": "despaghettify",
+        "severity": "low",
+        "summary": "{'path': 'docify/tools/documentation_drift.py', 'line_count': 424, 'category': 'local_spike_file_length', 'severity': 'low'}",
+        "source_path": "docify/tools/documentation_drift.py"
+      }
+    ],
+    "highest_blocking_severity": "medium",
+    "summary": "Despaghettify sees 7 blocking hotspot(s) and 7 packetized non-blocking hotspot(s)."
+  }
+}

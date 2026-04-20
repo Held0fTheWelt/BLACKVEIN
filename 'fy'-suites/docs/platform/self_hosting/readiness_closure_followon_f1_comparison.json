@@ -1,0 +1,60 @@
+{
+  "schema_version": "fy.readiness-closure-followon-f1-comparison.v1",
+  "wave": "F1",
+  "before": {
+    "readiness_status": "not_ready",
+    "blocker_count": 7,
+    "blocker_ids": [
+      "blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001",
+      "blocker:mvpify:import-missing-primary-signals",
+      "blocker:despaghettify:global-structure-category",
+      "blocker:contractify:review-conflicts",
+      "blocker:contractify:manual:CNF-RUNTIME-SPINE-WRITERS-RAG-OVERLAP",
+      "blocker:contractify:manual:CNF-RUNTIME-SPINE-TRANSITIONAL-RETIREMENT",
+      "blocker:contractify:manual:CNF-EVIDENCE-BASELINE-CLONE-REPRO"
+    ],
+    "closure_status": "bounded_partial_closure",
+    "obligation_count": 40,
+    "required_test_count": 6,
+    "required_doc_count": 27,
+    "affected_surface_count": 8,
+    "residue_count": 5
+  },
+  "after": {
+    "readiness_status": "not_ready",
+    "blocker_count": 2,
+    "blocker_ids": [
+      "blocker:testify:proof-family-gaps",
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "closure_status": "bounded_partial_closure",
+    "obligation_count": 10,
+    "required_test_count": 2,
+    "required_doc_count": 11,
+    "affected_surface_count": 8,
+    "residue_count": 5
+  },
+  "changes": {
+    "blockers_removed": [
+      "blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001",
+      "blocker:mvpify:import-missing-primary-signals",
+      "blocker:despaghettify:global-structure-category",
+      "blocker:contractify:review-conflicts",
+      "blocker:contractify:manual:CNF-RUNTIME-SPINE-WRITERS-RAG-OVERLAP",
+      "blocker:contractify:manual:CNF-RUNTIME-SPINE-TRANSITIONAL-RETIREMENT",
+      "blocker:contractify:manual:CNF-EVIDENCE-BASELINE-CLONE-REPRO"
+    ],
+    "blockers_still_open": [],
+    "newly_discovered_blockers": [
+      "blocker:testify:proof-family-gaps",
+      "blocker:despaghettify:local-hotspots"
+    ],
+    "closure_pack_delta": {
+      "obligation_delta": -30,
+      "required_test_delta": -4,
+      "required_doc_delta": -16,
+      "affected_surface_delta": 0,
+      "residue_delta": 0
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommandEnvelope",
+  "type": "object",
+  "schema_version": "fy.command-envelope.schema.v1",
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recovery_hints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "error_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

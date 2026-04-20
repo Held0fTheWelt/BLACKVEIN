@@ -1,0 +1,8 @@
+{
+  "schema_version": "fy.blocker-graph.v1",
+  "blocker_graph_id": "blocker-graph:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "nodes": [],
+  "edges": [],
+  "summary": "Diagnosta synthesized 0 blocker(s) from bounded supporting-suite evidence."
+}

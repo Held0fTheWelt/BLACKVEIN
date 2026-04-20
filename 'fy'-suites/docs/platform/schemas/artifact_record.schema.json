@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactRecord",
+  "type": "object",
+  "schema_version": "fy.artifact-record.schema.v1",
+  "properties": {
+    "artifact_id": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "format": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

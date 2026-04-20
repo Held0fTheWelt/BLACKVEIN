@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContextPack",
+  "type": "object",
+  "schema_version": "fy.context-pack.schema.v1",
+  "properties": {
+    "pack_id": {
+      "type": "string"
+    },
+    "query": {
+      "type": "string"
+    },
+    "suite_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "audience": {
+      "type": "string"
+    },
+    "hits": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "artifact_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "related_suites": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_confidence": {
+      "type": "string"
+    },
+    "priorities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "uncertainty": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

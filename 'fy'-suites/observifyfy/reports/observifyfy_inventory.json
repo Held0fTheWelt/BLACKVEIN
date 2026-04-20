@@ -1,0 +1,304 @@
+{
+  "created_internal_layout": {},
+  "suite_count": 16,
+  "existing_suite_count": 13,
+  "suites": [
+    {
+      "name": "contractify",
+      "hub_path": "contractify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "documentify",
+      "hub_path": "documentify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "docify",
+      "hub_path": "docify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "despaghettify",
+      "hub_path": "despaghettify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 14,
+      "journal_count": 7,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "dockerify",
+      "hub_path": "dockerify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "testify",
+      "hub_path": "testify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "templatify",
+      "hub_path": "templatify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "usabilify",
+      "hub_path": "usabilify",
+      "exists": false,
+      "has_readme": false,
+      "has_reports": false,
+      "has_state": false,
+      "has_tools": false,
+      "has_adapter": false,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": []
+    },
+    {
+      "name": "securify",
+      "hub_path": "securify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [
+        "reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "reports/status/most_recent_next_steps.json"
+      ],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "diagnosta",
+      "hub_path": "diagnosta",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 26,
+      "journal_count": 13,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "coda",
+      "hub_path": "coda",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 26,
+      "journal_count": 13,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "cryptify",
+      "hub_path": "cryptify",
+      "exists": false,
+      "has_readme": false,
+      "has_reports": false,
+      "has_state": false,
+      "has_tools": false,
+      "has_adapter": false,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": []
+    },
+    {
+      "name": "decryptify",
+      "hub_path": "decryptify",
+      "exists": false,
+      "has_readme": false,
+      "has_reports": false,
+      "has_state": false,
+      "has_tools": false,
+      "has_adapter": false,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": []
+    },
+    {
+      "name": "observifyfy",
+      "hub_path": "observifyfy",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 24,
+      "journal_count": 13,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "mvpify",
+      "hub_path": "mvpify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    },
+    {
+      "name": "metrify",
+      "hub_path": "metrify",
+      "exists": true,
+      "has_readme": true,
+      "has_reports": true,
+      "has_state": true,
+      "has_tools": true,
+      "has_adapter": true,
+      "run_count": 0,
+      "journal_count": 0,
+      "workflow_count": 0,
+      "status_files": [],
+      "warnings": [
+        "missing_workflow"
+      ]
+    }
+  ],
+  "internal_roots": {
+    "fy_internal_root": ".",
+    "contractify_internal_adr_root": "docs/ADR",
+    "documentify_internal_docs_root": "docs",
+    "observifyfy_root": "observifyfy"
+  },
+  "docs_summary": {
+    "docs_file_count": 7319,
+    "adr_file_count": 4
+  }
+}

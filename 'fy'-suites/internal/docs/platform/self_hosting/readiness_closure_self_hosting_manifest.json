@@ -1,0 +1,71 @@
+{
+  "schema_version": "fy.readiness-closure-self-hosting.v1",
+  "default_profile_after_run": "D",
+  "strategy_profile_comparison": {
+    "left_profile": "B",
+    "right_profile": "D",
+    "compare_runs_ok": true,
+    "strategy_profile_changed": null,
+    "left_run_id": "diagnosta-2c6bce674b22",
+    "right_run_id": "diagnosta-afe7ad1e58a5"
+  },
+  "diagnosta_self_hosting_run": {
+    "run_id": "diagnosta-afe7ad1e58a5",
+    "readiness_status": "not_ready",
+    "blocker_count": 7,
+    "blocked_claim_count": 4,
+    "artifact_paths": {
+      "readiness_case": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/readiness_case.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/readiness_case.md"
+      },
+      "blocker_graph": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/blocker_graph.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/blocker_graph.md"
+      },
+      "blocker_priority_report": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/blocker_priority_report.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/blocker_priority_report.md"
+      },
+      "obligation_matrix": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/obligation_matrix.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/obligation_matrix.md"
+      },
+      "sufficiency_verdict": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/sufficiency_verdict.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/sufficiency_verdict.md"
+      },
+      "cannot_honestly_claim": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/cannot_honestly_claim.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/cannot_honestly_claim.md"
+      },
+      "residue_ledger": {
+        "json_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/residue_ledger.json",
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/residue_ledger.md"
+      },
+      "guarantee_gap_report": {
+        "md_path": "/mnt/data/fy_wave4_run/'fy'-suites/.fydata/runs/diagnosta/diagnosta-afe7ad1e58a5/guarantee_gap_report.md"
+      }
+    }
+  },
+  "coda_self_hosting_run": {
+    "run_id": "coda-ff833e727430",
+    "closure_status": "bounded_partial_closure",
+    "obligation_count": 40,
+    "required_test_count": 6,
+    "required_doc_count": 27,
+    "affected_surface_count": 8,
+    "residue_count": 5
+  },
+  "observifyfy_signal": {
+    "run_id": "observifyfy-31b4904e5000",
+    "active_profile": "D",
+    "highest_value_next_step": {
+      "suite": "contractify",
+      "priority": 95,
+      "reason": "diagnosta readiness status is not_ready",
+      "recommended_action": "Plan the next bounded wave against contractify to address blocker blocker:contractify:drift:DRF-POSTMAN-OPENAPI-SHA-001."
+    }
+  },
+  "example_outputs_root": "docs/platform/examples/readiness_closure"
+}

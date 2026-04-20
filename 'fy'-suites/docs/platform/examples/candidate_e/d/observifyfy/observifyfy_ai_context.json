@@ -1,0 +1,238 @@
+{
+  "purpose": "AI-readable cross-suite operational context for fy-suite self-management.",
+  "managed_internal_roots": {
+    "fy_internal_root": ".",
+    "contractify_internal_adr_root": "docs/ADR",
+    "documentify_internal_docs_root": "docs",
+    "observifyfy_root": "observifyfy"
+  },
+  "suite_focus": [
+    {
+      "suite": "contractify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "documentify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "docify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "despaghettify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 14,
+      "journal_count": 7
+    },
+    {
+      "suite": "dockerify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "testify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "templatify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "securify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "diagnosta",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 22,
+      "journal_count": 11
+    },
+    {
+      "suite": "coda",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 22,
+      "journal_count": 11
+    },
+    {
+      "suite": "observifyfy",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 20,
+      "journal_count": 11
+    },
+    {
+      "suite": "mvpify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    },
+    {
+      "suite": "metrify",
+      "warnings": [
+        "missing_workflow"
+      ],
+      "run_count": 0,
+      "journal_count": 0
+    }
+  ],
+  "next_steps": [
+    {
+      "suite": "contractify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for contractify."
+    },
+    {
+      "suite": "documentify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for documentify."
+    },
+    {
+      "suite": "docify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for docify."
+    },
+    {
+      "suite": "despaghettify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for despaghettify."
+    },
+    {
+      "suite": "dockerify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for dockerify."
+    },
+    {
+      "suite": "testify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for testify."
+    },
+    {
+      "suite": "templatify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for templatify."
+    },
+    {
+      "suite": "securify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for securify."
+    },
+    {
+      "suite": "diagnosta",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for diagnosta."
+    },
+    {
+      "suite": "coda",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for coda."
+    },
+    {
+      "suite": "observifyfy",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for observifyfy."
+    },
+    {
+      "suite": "mvpify",
+      "priority": 90,
+      "reason": "suite has no dedicated CI workflow",
+      "recommended_action": "Add or repair a workflow for mvpify."
+    }
+  ],
+  "search_hints": [
+    "suite health",
+    "freshness",
+    "cross-suite conflicts",
+    "contractify internal ADR management",
+    "documentify internal docs management",
+    "status pages",
+    "run journals",
+    "mvpify imported MVP mirroring",
+    "metrify cost and usage summaries",
+    "diagnosta readiness cases",
+    "diagnosta blocker graphs",
+    "coda closure packs",
+    "coda residue ledgers"
+  ],
+  "memory_contract": {
+    "store": "observifyfy tracks suite operations memory, not project-facing truth",
+    "refresh_rule": "prefer latest run evidence and internal docs over stale summaries",
+    "guardrails": [
+      "do_not_overwrite_project_truth",
+      "do_not_flatten_contractify_or_testify_findings"
+    ]
+  },
+  "diagnosta": {
+    "active_profile": "D",
+    "readiness_status": "implementation_ready",
+    "blocker_count": 0,
+    "warning_count": 4,
+    "profile_execution_lane": "balanced_review_first",
+    "profile_behavior_depth": "standard",
+    "blocker_cluster_count": 1,
+    "guarantee_gap_cluster_count": 1,
+    "next_wave_count": 1,
+    "handoff_depth": "standard",
+    "suggested_next_wave": null
+  },
+  "coda": {
+    "active_profile": "D",
+    "closure_status": "closed_for_current_target_reviewed_scope",
+    "obligation_count": 0,
+    "required_test_count": 0,
+    "required_doc_count": 0,
+    "warning_count": 4,
+    "residue_count": 0,
+    "grouped_obligation_count": 0,
+    "wave_packet_count": 1,
+    "auto_preparation_count": 0,
+    "packet_depth": "standard"
+  }
+}

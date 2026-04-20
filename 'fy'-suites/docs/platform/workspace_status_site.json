@@ -1,0 +1,52 @@
+{
+  "schema_version": "fy.workspace-status-site.v1",
+  "suite_count": 2,
+  "ok_suite_count": 2,
+  "blocked_suite_count": 0,
+  "suites": [
+    {
+      "suite": "contractify",
+      "has_status": true,
+      "ok": true,
+      "summary": "No summary is available yet.",
+      "next_steps": [
+        "Review the 4 finding(s) and decide which one should be fixed first."
+      ],
+      "warnings": [],
+      "command": "audit",
+      "latest_run": {
+        "run_id": "contractify-fcf1714a5e94",
+        "suite": "contractify",
+        "mode": "audit",
+        "started_at": "2026-04-18T14:43:59.357243+00:00",
+        "ended_at": "2026-04-18T14:43:59.394838+00:00",
+        "workspace_root": "/mnt/data/wave3/'fy'-suites",
+        "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_workspace_production_read0/target_repo",
+        "target_repo_id": "target-repo-1ffc3296",
+        "status": "ok"
+      }
+    },
+    {
+      "suite": "documentify",
+      "has_status": true,
+      "ok": true,
+      "summary": "Documentify generated the current documentation tracks and status pages.",
+      "next_steps": [
+        "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+      ],
+      "warnings": [],
+      "command": "audit",
+      "latest_run": {
+        "run_id": "documentify-56a341f2d1e1",
+        "suite": "documentify",
+        "mode": "audit",
+        "started_at": "2026-04-18T14:44:00.405691+00:00",
+        "ended_at": "2026-04-18T14:44:00.434877+00:00",
+        "workspace_root": "/mnt/data/wave3/'fy'-suites",
+        "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_suite_release_readiness_a0/target_repo",
+        "target_repo_id": "target-repo-005d1d40",
+        "status": "ok"
+      }
+    }
+  ]
+}

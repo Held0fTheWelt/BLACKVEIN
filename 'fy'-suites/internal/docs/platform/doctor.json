@@ -1,0 +1,2225 @@
+{
+  "schema_version": "fy.doctor.v1",
+  "generated_at": "2026-04-19T20:41:06.710268+00:00",
+  "ok": true,
+  "workspace_release": {
+    "schema_version": "fy.workspace-release-readiness.v1",
+    "generated_at": "2026-04-19T20:40:59.798796+00:00",
+    "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+    "ok": true,
+    "workspace_check": {
+      "ok": true,
+      "missing": [],
+      "warnings": []
+    },
+    "core_ready_suites": [
+      "contractify",
+      "despaghettify",
+      "diagnosta",
+      "docify",
+      "documentify",
+      "metrify",
+      "mvpify",
+      "observifyfy",
+      "securify",
+      "templatify",
+      "testify",
+      "usabilify"
+    ],
+    "core_blocked_suites": [],
+    "optional_ready_suites": [
+      "dockerify",
+      "postmanify"
+    ],
+    "optional_blocked_suites": [],
+    "suites": [
+      {
+        "suite": "contractify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "contractify-886c091c83ee",
+          "suite": "contractify",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:40:59.437895+00:00",
+          "ended_at": "2026-04-19T20:40:59.620041+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-4/test_export_schemas_and_doctor0/target_repo",
+          "target_repo_id": "target-repo-180142e5",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        },
+        "status_page_json": "contractify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "contractify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Review the 4 finding(s) and decide which one should be fixed first."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "contractify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "despaghettify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "despaghettify-d744469e37eb",
+          "suite": "despaghettify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:15.885003+00:00",
+          "ended_at": "2026-04-19T12:13:16.617688+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "despaghettify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "despaghettify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Read the latest despaghettify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "despaghettify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "diagnosta",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "diagnosta-4831c5022724",
+          "suite": "diagnosta",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:39:51.369167+00:00",
+          "ended_at": "2026-04-19T20:39:51.507126+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-56be9d32",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        },
+        "status_page_json": "diagnosta/reports/status/most_recent_next_steps.json",
+        "status_page_md": "diagnosta/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Review the readiness-case before making broader MVP claims.",
+          "Use blocker priorities to plan the next implementation wave.",
+          "Keep residue explicit where closure remains out of scope."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "diagnosta",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "docify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "docify-205cb8f5917f",
+          "suite": "docify",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:39:36.245967+00:00",
+          "ended_at": "2026-04-19T20:39:36.333971+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-1/test_generic_ai_suite_cli_doci0/target_repo",
+          "target_repo_id": "target-repo-e39e6307",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        },
+        "status_page_json": "docify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "docify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Review the 5 finding(s) and decide which one should be fixed first."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "docify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "dockerify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "dockerify-2d19293ff5e3",
+          "suite": "dockerify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:49.056399+00:00",
+          "ended_at": "2026-04-19T12:18:49.065168+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": null,
+        "status_page_md": null,
+        "next_steps": [],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "dockerify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "documentify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "documentify-db558b5d3a05",
+          "suite": "documentify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:20:40.150428+00:00",
+          "ended_at": "2026-04-19T12:20:40.199984+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+          "target_repo_id": "target-repo-01a1fe91",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "documentify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "documentify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "documentify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "metrify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "metrify-c6150fb81f86",
+          "suite": "metrify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:52.508026+00:00",
+          "ended_at": "2026-04-19T12:18:52.521485+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": null,
+        "status_page_md": null,
+        "next_steps": [],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "metrify",
+          "missing": [],
+          "warnings": []
+        }
+      },
+      {
+        "suite": "mvpify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "mvpify-ed129fa74e71",
+          "suite": "mvpify",
+          "mode": "import",
+          "started_at": "2026-04-19T12:19:19.663843+00:00",
+          "ended_at": "2026-04-19T12:19:19.838635+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": null,
+        "status_page_md": null,
+        "next_steps": [],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "mvpify",
+          "missing": [],
+          "warnings": []
+        }
+      },
+      {
+        "suite": "observifyfy",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "observifyfy-b5ab7481692d",
+          "suite": "observifyfy",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:51.058011+00:00",
+          "ended_at": "2026-04-19T12:18:51.177553+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": null,
+        "status_page_md": null,
+        "next_steps": [],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "observifyfy",
+          "missing": [],
+          "warnings": []
+        }
+      },
+      {
+        "suite": "postmanify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "postmanify-9f2cb85b1991",
+          "suite": "postmanify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:21:33.865854+00:00",
+          "ended_at": "2026-04-19T12:21:33.877391+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_api_fixture",
+          "target_repo_id": "self-hosting-api-fixture-4b931d27",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": null,
+        "status_page_md": null,
+        "next_steps": [],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "postmanify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "securify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "securify-a14bb251d05b",
+          "suite": "securify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:19:24.070979+00:00",
+          "ended_at": "2026-04-19T12:19:29.790668+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "securify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "securify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Keep security surfaces stable and rerun securify after meaningful repository changes."
+        ],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "securify",
+          "missing": [],
+          "warnings": []
+        }
+      },
+      {
+        "suite": "templatify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "templatify-0d91cf7ac120",
+          "suite": "templatify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:54.455093+00:00",
+          "ended_at": "2026-04-19T12:18:54.483270+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "templatify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "templatify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "templatify",
+          "missing": [],
+          "warnings": []
+        }
+      },
+      {
+        "suite": "testify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "testify-180ce1cec9ad",
+          "suite": "testify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:23.955136+00:00",
+          "ended_at": "2026-04-19T12:13:23.994660+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "testify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "testify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Read the latest testify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [
+          "missing_optional:docs"
+        ],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "testify",
+          "missing": [],
+          "warnings": [
+            "missing_optional:docs"
+          ]
+        }
+      },
+      {
+        "suite": "usabilify",
+        "ready": true,
+        "has_run": true,
+        "latest_run": {
+          "run_id": "usabilify-7923ee8d3ba9",
+          "suite": "usabilify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:56.429231+00:00",
+          "ended_at": "2026-04-19T12:18:56.441266+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok",
+          "strategy_profile": "",
+          "run_metadata_json": "{}",
+          "run_metadata": {}
+        },
+        "status_page_json": "usabilify/reports/status/most_recent_next_steps.json",
+        "status_page_md": "usabilify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+        "next_steps": [
+          "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "blocking_reasons": [],
+        "suite_check": {
+          "ok": true,
+          "suite": "usabilify",
+          "missing": [],
+          "warnings": []
+        }
+      }
+    ]
+  },
+  "workspace_production": {
+    "schema_version": "fy.production-readiness.v2",
+    "generated_at": "2026-04-19T20:41:06.599444+00:00",
+    "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+    "ok": true,
+    "release_readiness": {
+      "schema_version": "fy.workspace-release-readiness.v1",
+      "generated_at": "2026-04-19T20:40:59.908717+00:00",
+      "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+      "ok": true,
+      "workspace_check": {
+        "ok": true,
+        "missing": [],
+        "warnings": []
+      },
+      "core_ready_suites": [
+        "contractify",
+        "despaghettify",
+        "diagnosta",
+        "docify",
+        "documentify",
+        "metrify",
+        "mvpify",
+        "observifyfy",
+        "securify",
+        "templatify",
+        "testify",
+        "usabilify"
+      ],
+      "core_blocked_suites": [],
+      "optional_ready_suites": [
+        "dockerify",
+        "postmanify"
+      ],
+      "optional_blocked_suites": [],
+      "suites": [
+        {
+          "suite": "contractify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "contractify-886c091c83ee",
+            "suite": "contractify",
+            "mode": "audit",
+            "started_at": "2026-04-19T20:40:59.437895+00:00",
+            "ended_at": "2026-04-19T20:40:59.620041+00:00",
+            "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+            "target_repo_root": "/tmp/pytest-of-root/pytest-4/test_export_schemas_and_doctor0/target_repo",
+            "target_repo_id": "target-repo-180142e5",
+            "status": "ok",
+            "strategy_profile": "D",
+            "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+            "run_metadata": {
+              "active_strategy_profile": {
+                "schema_version": "fy.active-strategy-profile.v1",
+                "active_profile": "D",
+                "profile_label": "balanced_dual_suite_target",
+                "default_profile": "D",
+                "supported_profiles": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "recommended_progression_order": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "progression_graph": "A->B->C->D->E",
+                "progression_mode": "progressive",
+                "allow_profile_switching": true,
+                "require_review_by_default": true,
+                "emit_profile_to_run_journal": true,
+                "emit_profile_to_compare_runs": true,
+                "emit_profile_to_observifyfy": true,
+                "emit_profile_to_status_pages": true,
+                "source_path": "FY_STRATEGY_SETTINGS.md"
+              }
+            }
+          },
+          "status_page_json": "contractify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "contractify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Review the 4 finding(s) and decide which one should be fixed first."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "contractify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "despaghettify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "despaghettify-d744469e37eb",
+            "suite": "despaghettify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:13:15.885003+00:00",
+            "ended_at": "2026-04-19T12:13:16.617688+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "despaghettify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "despaghettify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Read the latest despaghettify output and choose the narrowest next move based on the current evidence."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "despaghettify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "diagnosta",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "diagnosta-4831c5022724",
+            "suite": "diagnosta",
+            "mode": "audit",
+            "started_at": "2026-04-19T20:39:51.369167+00:00",
+            "ended_at": "2026-04-19T20:39:51.507126+00:00",
+            "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/fy_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-56be9d32",
+            "status": "ok",
+            "strategy_profile": "D",
+            "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+            "run_metadata": {
+              "active_strategy_profile": {
+                "schema_version": "fy.active-strategy-profile.v1",
+                "active_profile": "D",
+                "profile_label": "balanced_dual_suite_target",
+                "default_profile": "D",
+                "supported_profiles": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "recommended_progression_order": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "progression_graph": "A->B->C->D->E",
+                "progression_mode": "progressive",
+                "allow_profile_switching": true,
+                "require_review_by_default": true,
+                "emit_profile_to_run_journal": true,
+                "emit_profile_to_compare_runs": true,
+                "emit_profile_to_observifyfy": true,
+                "emit_profile_to_status_pages": true,
+                "source_path": "FY_STRATEGY_SETTINGS.md"
+              }
+            }
+          },
+          "status_page_json": "diagnosta/reports/status/most_recent_next_steps.json",
+          "status_page_md": "diagnosta/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Review the readiness-case before making broader MVP claims.",
+            "Use blocker priorities to plan the next implementation wave.",
+            "Keep residue explicit where closure remains out of scope."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "diagnosta",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "docify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "docify-205cb8f5917f",
+            "suite": "docify",
+            "mode": "audit",
+            "started_at": "2026-04-19T20:39:36.245967+00:00",
+            "ended_at": "2026-04-19T20:39:36.333971+00:00",
+            "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+            "target_repo_root": "/tmp/pytest-of-root/pytest-1/test_generic_ai_suite_cli_doci0/target_repo",
+            "target_repo_id": "target-repo-e39e6307",
+            "status": "ok",
+            "strategy_profile": "D",
+            "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+            "run_metadata": {
+              "active_strategy_profile": {
+                "schema_version": "fy.active-strategy-profile.v1",
+                "active_profile": "D",
+                "profile_label": "balanced_dual_suite_target",
+                "default_profile": "D",
+                "supported_profiles": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "recommended_progression_order": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ],
+                "progression_graph": "A->B->C->D->E",
+                "progression_mode": "progressive",
+                "allow_profile_switching": true,
+                "require_review_by_default": true,
+                "emit_profile_to_run_journal": true,
+                "emit_profile_to_compare_runs": true,
+                "emit_profile_to_observifyfy": true,
+                "emit_profile_to_status_pages": true,
+                "source_path": "FY_STRATEGY_SETTINGS.md"
+              }
+            }
+          },
+          "status_page_json": "docify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "docify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Review the 5 finding(s) and decide which one should be fixed first."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "docify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "dockerify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "dockerify-2d19293ff5e3",
+            "suite": "dockerify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:18:49.056399+00:00",
+            "ended_at": "2026-04-19T12:18:49.065168+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": null,
+          "status_page_md": null,
+          "next_steps": [],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "dockerify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "documentify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "documentify-db558b5d3a05",
+            "suite": "documentify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:20:40.150428+00:00",
+            "ended_at": "2026-04-19T12:20:40.199984+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+            "target_repo_id": "target-repo-01a1fe91",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "documentify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "documentify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "documentify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "metrify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "metrify-c6150fb81f86",
+            "suite": "metrify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:18:52.508026+00:00",
+            "ended_at": "2026-04-19T12:18:52.521485+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": null,
+          "status_page_md": null,
+          "next_steps": [],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "metrify",
+            "missing": [],
+            "warnings": []
+          }
+        },
+        {
+          "suite": "mvpify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "mvpify-ed129fa74e71",
+            "suite": "mvpify",
+            "mode": "import",
+            "started_at": "2026-04-19T12:19:19.663843+00:00",
+            "ended_at": "2026-04-19T12:19:19.838635+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": null,
+          "status_page_md": null,
+          "next_steps": [],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "mvpify",
+            "missing": [],
+            "warnings": []
+          }
+        },
+        {
+          "suite": "observifyfy",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "observifyfy-b5ab7481692d",
+            "suite": "observifyfy",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:18:51.058011+00:00",
+            "ended_at": "2026-04-19T12:18:51.177553+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": null,
+          "status_page_md": null,
+          "next_steps": [],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "observifyfy",
+            "missing": [],
+            "warnings": []
+          }
+        },
+        {
+          "suite": "postmanify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "postmanify-9f2cb85b1991",
+            "suite": "postmanify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:21:33.865854+00:00",
+            "ended_at": "2026-04-19T12:21:33.877391+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_api_fixture",
+            "target_repo_id": "self-hosting-api-fixture-4b931d27",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": null,
+          "status_page_md": null,
+          "next_steps": [],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "postmanify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "securify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "securify-a14bb251d05b",
+            "suite": "securify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:19:24.070979+00:00",
+            "ended_at": "2026-04-19T12:19:29.790668+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "securify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "securify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Keep security surfaces stable and rerun securify after meaningful repository changes."
+          ],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "securify",
+            "missing": [],
+            "warnings": []
+          }
+        },
+        {
+          "suite": "templatify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "templatify-0d91cf7ac120",
+            "suite": "templatify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:18:54.455093+00:00",
+            "ended_at": "2026-04-19T12:18:54.483270+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "templatify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "templatify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+          ],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "templatify",
+            "missing": [],
+            "warnings": []
+          }
+        },
+        {
+          "suite": "testify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "testify-180ce1cec9ad",
+            "suite": "testify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:13:23.955136+00:00",
+            "ended_at": "2026-04-19T12:13:23.994660+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "testify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "testify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Read the latest testify output and choose the narrowest next move based on the current evidence."
+          ],
+          "warnings": [
+            "missing_optional:docs"
+          ],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "testify",
+            "missing": [],
+            "warnings": [
+              "missing_optional:docs"
+            ]
+          }
+        },
+        {
+          "suite": "usabilify",
+          "ready": true,
+          "has_run": true,
+          "latest_run": {
+            "run_id": "usabilify-7923ee8d3ba9",
+            "suite": "usabilify",
+            "mode": "audit",
+            "started_at": "2026-04-19T12:18:56.429231+00:00",
+            "ended_at": "2026-04-19T12:18:56.441266+00:00",
+            "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+            "target_repo_id": "fy-suites-b6e36aef",
+            "status": "ok",
+            "strategy_profile": "",
+            "run_metadata_json": "{}",
+            "run_metadata": {}
+          },
+          "status_page_json": "usabilify/reports/status/most_recent_next_steps.json",
+          "status_page_md": "usabilify/reports/status/MOST_RECENT_NEXT_STEPS.md",
+          "next_steps": [
+            "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+          ],
+          "warnings": [],
+          "blocking_reasons": [],
+          "suite_check": {
+            "ok": true,
+            "suite": "usabilify",
+            "missing": [],
+            "warnings": []
+          }
+        }
+      ]
+    },
+    "persistence": {
+      "ok": true,
+      "schema_state": {
+        "schema_version": "fy.storage-schema-state.v1",
+        "generated_at": "2026-04-19T20:37:48.272478+00:00",
+        "components": {
+          "registry": {
+            "current_version": 3,
+            "last_migrated_at": "2026-04-19T20:37:48.272451+00:00",
+            "status": "ok"
+          },
+          "semantic_index": {
+            "current_version": 2,
+            "last_migrated_at": "2026-04-17T21:24:02.074057+00:00",
+            "status": "ok"
+          }
+        }
+      },
+      "migration_plan": {
+        "schema_version": "fy.storage-migration-plan.v1",
+        "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+        "required": false,
+        "plans": []
+      },
+      "backup_count": 1,
+      "latest_backup": {
+        "schema_version": "fy.backup-manifest.v1",
+        "backup_id": "backup-20260417T232623322089+0000",
+        "created_at": "2026-04-17T23:26:23.341747+00:00",
+        "reason": "production-readiness-bootstrap",
+        "workspace_root": "/mnt/data/stage15_build/'fy'-suites",
+        "paths": [
+          ".fydata/registry/registry.db",
+          ".fydata/index/semantic_index.db",
+          ".fydata/registry/schema_versions.json",
+          ".fydata/bindings",
+          "pyproject.toml",
+          "requirements.txt",
+          "requirements-dev.txt",
+          "requirements-test.txt"
+        ]
+      }
+    },
+    "compatibility": {
+      "ok": true,
+      "command_envelope": {
+        "current": "fy.command-envelope.v4",
+        "supported_read_versions": [
+          "fy.command-envelope.v3",
+          "fy.command-envelope.v4"
+        ],
+        "supported_write_versions": [
+          "fy.command-envelope.v4"
+        ]
+      },
+      "manifest": {
+        "current_manifest_version": 1,
+        "supported_manifest_versions": [
+          1
+        ],
+        "compat_mode": "autark-outbound"
+      },
+      "backward_compatibility_rules": [
+        "Read support for the previous command-envelope schema stays available while writes stay pinned to the current version.",
+        "Manifest support is bounded to declared versions only.",
+        "Breaking contract changes require changelog and deprecation entries before release."
+      ]
+    },
+    "recovery": {
+      "ok": true,
+      "latest_backup_id": "backup-20260417T232623322089+0000",
+      "rollback_ready": true,
+      "notes": [
+        "Workspace backups are stored under .fydata/backups and can be rolled back explicitly."
+      ]
+    },
+    "observability": {
+      "schema_version": "fy.observability.v3",
+      "command_event_count": 200,
+      "route_event_count": 0,
+      "suite_counts": {
+        "brokenify": 14,
+        "contractify": 111,
+        "diagnosta": 1,
+        "docify": 18,
+        "documentify": 14,
+        "securify": 14,
+        "templatify": 14,
+        "usabilify": 14
+      },
+      "command_counts": {
+        "brokenify::audit": 14,
+        "contractify::audit": 51,
+        "contractify::consolidate": 18,
+        "contractify::init": 14,
+        "contractify::release-readiness": 14,
+        "contractify::self-audit": 14,
+        "diagnosta::audit": 1,
+        "docify::audit": 18,
+        "documentify::audit": 14,
+        "securify::audit": 14,
+        "templatify::audit": 14,
+        "usabilify::audit": 14
+      },
+      "exit_code_counts": {
+        "0": 172,
+        "1": 14,
+        "5": 14
+      },
+      "model_counts": {},
+      "active_profile_counts": {
+        "D": 1
+      },
+      "avg_duration_ms": 37.77,
+      "max_duration_ms": 204,
+      "has_metrics": true
+    },
+    "security": {
+      "schema_version": "fy.security-review.v2",
+      "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+      "indexing_policy_ok": true,
+      "security_docs": [
+        "SECURITY.md"
+      ],
+      "security_doc_count": 1,
+      "has_gitignore": true,
+      "ignore_has_secret_rules": true,
+      "risky_file_count": 0,
+      "secret_hit_count": 0,
+      "risky_files": [],
+      "secret_hits": [],
+      "next_steps": [
+        "Security hygiene checks are green. Keep imported reference exclusions bounded and rerun after meaningful changes."
+      ],
+      "summary": "Workspace security hygiene checks are green and bounded import-reference exclusions remain active.",
+      "ok": true
+    },
+    "release_management": {
+      "ok": true,
+      "missing": [],
+      "required_files": [
+        "CHANGELOG.md",
+        "docs/platform/BACKWARD_COMPATIBILITY.md",
+        "docs/platform/DEPRECATION_POLICY.md",
+        "docs/platform/SUPPORT_POLICY.md",
+        "docs/platform/RELEASE_POLICY.md",
+        "docs/platform/UPGRADE_AND_ROLLBACK.md"
+      ]
+    },
+    "multi_repo": {
+      "ok": true,
+      "fixture_count": 3,
+      "fixtures": [
+        "backend_service",
+        "cli_api_hybrid",
+        "library_only"
+      ]
+    },
+    "top_next_steps": [
+      "Production-hardening MVP checks are green. The next work should be real-world field validation and longer-run stability exercises."
+    ]
+  },
+  "workspace_status": {
+    "schema_version": "fy.workspace-status-site.v1",
+    "suite_count": 14,
+    "ok_suite_count": 9,
+    "blocked_suite_count": 5,
+    "suites": [
+      {
+        "suite": "contractify",
+        "has_status": true,
+        "ok": true,
+        "summary": "No summary is available yet.",
+        "next_steps": [
+          "Review the 4 finding(s) and decide which one should be fixed first."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "contractify-886c091c83ee",
+          "suite": "contractify",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:40:59.437895+00:00",
+          "ended_at": "2026-04-19T20:40:59.620041+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-4/test_export_schemas_and_doctor0/target_repo",
+          "target_repo_id": "target-repo-180142e5",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        }
+      },
+      {
+        "suite": "despaghettify",
+        "has_status": true,
+        "ok": true,
+        "summary": "No summary is available yet.",
+        "next_steps": [
+          "Read the latest despaghettify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "command": "reset",
+        "latest_run": {
+          "run_id": "despaghettify-52c985fea484",
+          "suite": "despaghettify",
+          "mode": "audit",
+          "started_at": "2026-04-18T14:44:02.387122+00:00",
+          "ended_at": "2026-04-18T14:44:02.393963+00:00",
+          "workspace_root": "/mnt/data/wave3/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_despaghettify_adapter_det0/target_repo",
+          "target_repo_id": "target-repo-f17f2b57",
+          "status": "ok"
+        }
+      },
+      {
+        "suite": "diagnosta",
+        "has_status": true,
+        "ok": true,
+        "summary": "Diagnosta emitted 7 bounded readiness artifacts from current workspace evidence.",
+        "next_steps": [
+          "Review the readiness-case before making broader MVP claims.",
+          "Use blocker priorities to plan the next implementation wave.",
+          "Keep residue explicit where closure remains out of scope."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "diagnosta-86db20061b9b",
+          "suite": "diagnosta",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:37:49.143150+00:00",
+          "ended_at": "2026-04-19T20:37:49.231143+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-0/test_ai_suite_cli_records_acti0",
+          "target_repo_id": "test-ai-suite-cli-records-acti0-c9ac0f2c",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        }
+      },
+      {
+        "suite": "docify",
+        "has_status": true,
+        "ok": true,
+        "summary": "No summary is available yet.",
+        "next_steps": [
+          "Review the 5 finding(s) and decide which one should be fixed first."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "docify-205cb8f5917f",
+          "suite": "docify",
+          "mode": "audit",
+          "started_at": "2026-04-19T20:39:36.245967+00:00",
+          "ended_at": "2026-04-19T20:39:36.333971+00:00",
+          "workspace_root": "/mnt/data/fy_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-1/test_generic_ai_suite_cli_doci0/target_repo",
+          "target_repo_id": "target-repo-e39e6307",
+          "status": "ok",
+          "strategy_profile": "D",
+          "run_metadata_json": "{\"active_strategy_profile\": {\"schema_version\": \"fy.active-strategy-profile.v1\", \"active_profile\": \"D\", \"profile_label\": \"balanced_dual_suite_target\", \"default_profile\": \"D\", \"supported_profiles\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"recommended_progression_order\": [\"A\", \"B\", \"C\", \"D\", \"E\"], \"progression_graph\": \"A->B->C->D->E\", \"progression_mode\": \"progressive\", \"allow_profile_switching\": true, \"require_review_by_default\": true, \"emit_profile_to_run_journal\": true, \"emit_profile_to_compare_runs\": true, \"emit_profile_to_observifyfy\": true, \"emit_profile_to_status_pages\": true, \"source_path\": \"FY_STRATEGY_SETTINGS.md\"}}",
+          "run_metadata": {
+            "active_strategy_profile": {
+              "schema_version": "fy.active-strategy-profile.v1",
+              "active_profile": "D",
+              "profile_label": "balanced_dual_suite_target",
+              "default_profile": "D",
+              "supported_profiles": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "recommended_progression_order": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "progression_graph": "A->B->C->D->E",
+              "progression_mode": "progressive",
+              "allow_profile_switching": true,
+              "require_review_by_default": true,
+              "emit_profile_to_run_journal": true,
+              "emit_profile_to_compare_runs": true,
+              "emit_profile_to_observifyfy": true,
+              "emit_profile_to_status_pages": true,
+              "source_path": "FY_STRATEGY_SETTINGS.md"
+            }
+          }
+        }
+      },
+      {
+        "suite": "dockerify",
+        "has_status": false,
+        "ok": false,
+        "summary": "No status page generated yet.",
+        "next_steps": [
+          "Run init and audit for this suite first."
+        ]
+      },
+      {
+        "suite": "documentify",
+        "has_status": true,
+        "ok": true,
+        "summary": "Documentify generated the current documentation tracks and status pages.",
+        "next_steps": [
+          "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "documentify-db558b5d3a05",
+          "suite": "documentify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:20:40.150428+00:00",
+          "ended_at": "2026-04-19T12:20:40.199984+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+          "target_repo_id": "target-repo-01a1fe91",
+          "status": "ok"
+        }
+      },
+      {
+        "suite": "metrify",
+        "has_status": false,
+        "ok": false,
+        "summary": "No status page generated yet.",
+        "next_steps": [
+          "Run init and audit for this suite first."
+        ]
+      },
+      {
+        "suite": "mvpify",
+        "has_status": false,
+        "ok": false,
+        "summary": "No status page generated yet.",
+        "next_steps": [
+          "Run init and audit for this suite first."
+        ]
+      },
+      {
+        "suite": "observifyfy",
+        "has_status": false,
+        "ok": false,
+        "summary": "No status page generated yet.",
+        "next_steps": [
+          "Run init and audit for this suite first."
+        ]
+      },
+      {
+        "suite": "postmanify",
+        "has_status": false,
+        "ok": false,
+        "summary": "No status page generated yet.",
+        "next_steps": [
+          "Run init and audit for this suite first."
+        ]
+      },
+      {
+        "suite": "securify",
+        "has_status": true,
+        "ok": true,
+        "summary": "Securify did not find tracked secret-like files or embedded secret patterns, and basic security guidance is present.",
+        "next_steps": [
+          "Keep security surfaces stable and rerun securify after meaningful repository changes."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "securify-a14bb251d05b",
+          "suite": "securify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:19:24.070979+00:00",
+          "ended_at": "2026-04-19T12:19:29.790668+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        }
+      },
+      {
+        "suite": "templatify",
+        "has_status": true,
+        "ok": true,
+        "summary": "No summary is available yet.",
+        "next_steps": [
+          "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "templatify-c6dc3b06367f",
+          "suite": "templatify",
+          "mode": "audit",
+          "started_at": "2026-04-18T14:43:53.655557+00:00",
+          "ended_at": "2026-04-18T14:43:53.671555+00:00",
+          "workspace_root": "/mnt/data/wave3/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_generic_ai_suite_cli_temp0/target_repo",
+          "target_repo_id": "target-repo-7a9a6dce",
+          "status": "ok"
+        }
+      },
+      {
+        "suite": "testify",
+        "has_status": true,
+        "ok": true,
+        "summary": "Compared testify-1aacbc6ff67e with testify-914014651f68. Focus first on changed artifacts, review-state changes, and any target or mode differences.",
+        "next_steps": [
+          "Read the latest testify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "command": "compare-runs",
+        "latest_run": {
+          "run_id": "testify-914014651f68",
+          "suite": "testify",
+          "mode": "audit",
+          "started_at": "2026-04-18T22:27:22.038689+00:00",
+          "ended_at": "2026-04-18T22:27:22.119762+00:00",
+          "workspace_root": "/mnt/data/work2/repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_testify_adapter_audit_and0/target_repo",
+          "target_repo_id": "target-repo-099a1fd4",
+          "status": "ok"
+        }
+      },
+      {
+        "suite": "usabilify",
+        "has_status": true,
+        "ok": true,
+        "summary": "Usabilify evaluated UI and UX surfaces, connected available UI contracts, and highlighted the next usability steps in plain language.",
+        "next_steps": [
+          "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+        ],
+        "warnings": [],
+        "command": "audit",
+        "latest_run": {
+          "run_id": "usabilify-7923ee8d3ba9",
+          "suite": "usabilify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:56.429231+00:00",
+          "ended_at": "2026-04-19T12:18:56.441266+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        }
+      }
+    ]
+  },
+  "catalog": {
+    "schema_version": "fy.suite-catalog.v1",
+    "generated_at": "2026-04-19T20:41:06.710218+00:00",
+    "suite_count": 14,
+    "core_count": 12,
+    "optional_count": 2,
+    "suites": [
+      {
+        "suite": "contractify",
+        "category": "core",
+        "summary": "Discovers, audits, explains, and consolidates contracts and projections.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "consolidate",
+          "import",
+          "legacy-import"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "contractify-886c091c83ee"
+      },
+      {
+        "suite": "despaghettify",
+        "category": "core",
+        "summary": "Detects structural complexity and opens work for local spikes and broader cleanup.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "wave-plan"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "despaghettify-d744469e37eb"
+      },
+      {
+        "suite": "diagnosta",
+        "category": "core",
+        "summary": "Owns bounded readiness diagnosis, blocker prioritization, and claim-honesty outputs across suites.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "diagnose",
+          "readiness-case",
+          "blocker-graph"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "diagnosta-4831c5022724"
+      },
+      {
+        "suite": "docify",
+        "category": "core",
+        "summary": "Improves code documentation, docstrings, and dense inline explanations for Python code.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "inline-explain"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "docify-205cb8f5917f"
+      },
+      {
+        "suite": "dockerify",
+        "category": "optional",
+        "summary": "Provides repo-serving Docker and compose governance when the target repository needs it.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": false,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "stack-audit"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "dockerify-2d19293ff5e3"
+      },
+      {
+        "suite": "documentify",
+        "category": "core",
+        "summary": "Builds and grows documentation tracks, including status and AI-readable exports.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "generate-track"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "documentify-db558b5d3a05"
+      },
+      {
+        "suite": "metrify",
+        "category": "core",
+        "summary": "Measures AI usage, cost, model routing, and output volume across fy suites and summarizes the spending/utility picture.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": false,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "pricing",
+          "record",
+          "ingest",
+          "report",
+          "ai-pack",
+          "full"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "metrify-c6150fb81f86"
+      },
+      {
+        "suite": "mvpify",
+        "category": "core",
+        "summary": "Imports prepared MVP bundles, mirrors their docs into the governed workspace, and orchestrates next-step implementation across suites.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": false,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "inspect",
+          "plan",
+          "ai-pack",
+          "full"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "mvpify-ed129fa74e71"
+      },
+      {
+        "suite": "observifyfy",
+        "category": "core",
+        "summary": "Tracks internal fy-suite operations, internal docs roots, and non-contaminating cross-suite observability.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": false,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "inspect",
+          "audit",
+          "ai-pack",
+          "full"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "observifyfy-b5ab7481692d"
+      },
+      {
+        "suite": "postmanify",
+        "category": "optional",
+        "summary": "Refreshes Postman surfaces from API evidence for repositories that use them.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": false,
+        "has_status": false,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "sync"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "postmanify-9f2cb85b1991"
+      },
+      {
+        "suite": "securify",
+        "category": "core",
+        "summary": "Provides the security lane for scans, secret-risk review, and security-oriented guidance.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "scan",
+          "evaluate",
+          "autofix"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "securify-a14bb251d05b"
+      },
+      {
+        "suite": "templatify",
+        "category": "core",
+        "summary": "Owns and validates reusable templates for reports, docs, context packs, and suite outputs.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "list-templates",
+          "validate",
+          "render",
+          "check-drift"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "templatify-0d91cf7ac120"
+      },
+      {
+        "suite": "testify",
+        "category": "core",
+        "summary": "Audits test governance and verifies ADR-to-test reflection, not just passing behavior.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [
+          "missing_optional:docs"
+        ],
+        "release_ready": true,
+        "latest_run_id": "testify-180ce1cec9ad"
+      },
+      {
+        "suite": "usabilify",
+        "category": "core",
+        "summary": "Surfaces human-usable status, UX guidance, and understandable next-step outputs.",
+        "has_adapter": true,
+        "has_tools": true,
+        "has_docs": true,
+        "has_templates": true,
+        "has_status": true,
+        "lifecycle_commands": [
+          "init",
+          "inspect",
+          "audit",
+          "explain",
+          "prepare-context-pack",
+          "compare-runs",
+          "clean",
+          "reset",
+          "triage",
+          "prepare-fix",
+          "self-audit",
+          "release-readiness",
+          "production-readiness"
+        ],
+        "native_commands": [
+          "inspect",
+          "evaluate",
+          "full"
+        ],
+        "quality_ok": true,
+        "quality_missing": [],
+        "quality_warnings": [],
+        "release_ready": true,
+        "latest_run_id": "usabilify-7923ee8d3ba9"
+      }
+    ]
+  },
+  "top_next_steps": [
+    "Production-hardening MVP checks are green. The next work should be real-world field validation and longer-run stability exercises.",
+    "Use the workspace status site to read each suite's most recent next steps in simple language."
+  ]
+}

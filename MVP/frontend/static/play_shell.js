@@ -60,6 +60,21 @@
   const transcriptEmpty = document.getElementById("transcript-preview-empty");
   const input = document.getElementById("player-input");
   const refreshBtn = document.getElementById("refresh-observation-btn");
+  const socialWeatherNow = document.getElementById("social-weather-now");
+  const liveSurfaceNow = document.getElementById("live-surface-now");
+  const carryoverNow = document.getElementById("carryover-now");
+  const socialGeometryNow = document.getElementById("social-geometry-now");
+  const situationalFreedomNow = document.getElementById("situational-freedom-now");
+  const addressPressureNow = document.getElementById("address-pressure-now");
+  const socialMomentNow = document.getElementById("social-moment-now");
+  const responsePressureNow = document.getElementById("response-pressure-now");
+  const whoAnswersNow = document.getElementById("who-answers-now");
+  const whyThisReplyNow = document.getElementById("why-this-reply-now");
+  const observationFootholdNow = document.getElementById("observation-foothold-now");
+  const reactionDeltaNow = document.getElementById("reaction-delta-now");
+  const carryoverDeltaNow = document.getElementById("carryover-delta-now");
+  const pressureShiftDeltaNow = document.getElementById("pressure-shift-delta-now");
+  const hotSurfaceDeltaNow = document.getElementById("hot-surface-delta-now");
 
   function setStatus(text, level) {
     if (!statusBox) return;
@@ -107,6 +122,21 @@
     if (transcriptCount) transcriptCount.textContent = String(shell.transcript_entry_count || 0);
     if (authoritativeStatusSummary) authoritativeStatusSummary.textContent = shell.authoritative_status_summary || "";
     if (observedRunStatus) observedRunStatus.textContent = shell.run_status || observedRunStatus.textContent || "";
+    if (socialWeatherNow) socialWeatherNow.textContent = shell.social_weather_now || "";
+    if (liveSurfaceNow) liveSurfaceNow.textContent = shell.live_surface_now || "";
+    if (carryoverNow) carryoverNow.textContent = shell.carryover_now || "";
+    if (socialGeometryNow) socialGeometryNow.textContent = shell.social_geometry_now || "";
+    if (situationalFreedomNow) situationalFreedomNow.textContent = shell.situational_freedom_now || "";
+    if (addressPressureNow) addressPressureNow.textContent = shell.address_pressure_now || "";
+    if (socialMomentNow) socialMomentNow.textContent = shell.social_moment_now || "";
+    if (responsePressureNow) responsePressureNow.textContent = shell.response_pressure_now || "";
+    if (whoAnswersNow) whoAnswersNow.textContent = shell.who_answers_now || "";
+    if (whyThisReplyNow) whyThisReplyNow.textContent = shell.why_this_reply_now || "";
+    if (observationFootholdNow) observationFootholdNow.textContent = shell.observation_foothold_now || "";
+    if (reactionDeltaNow) reactionDeltaNow.textContent = shell.reaction_delta_now || "";
+    if (carryoverDeltaNow) carryoverDeltaNow.textContent = shell.carryover_delta_now || "";
+    if (pressureShiftDeltaNow) pressureShiftDeltaNow.textContent = shell.pressure_shift_delta_now || "";
+    if (hotSurfaceDeltaNow) hotSurfaceDeltaNow.textContent = shell.hot_surface_delta_now || "";
     if (latestLine && latestLineWrapper) {
       if (shell.latest_entry_text) {
         latestLine.textContent = shell.latest_entry_text;

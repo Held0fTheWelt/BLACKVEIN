@@ -1,0 +1,27 @@
+{
+  "schema_version": "fy.readiness-closure-self-hosting-manifest.v4",
+  "wave": "F6",
+  "active_strategy_profile": "D",
+  "target_repo": "fy-suites",
+  "readiness_status": "implementation_ready",
+  "closure_status": "closed_for_current_target_reviewed_scope",
+  "blocker_count": 0,
+  "blocker_ids": [],
+  "warning_count": 4,
+  "warning_ids": [
+    "warning:testify:proof-items",
+    "warning:despaghettify:packetized-hotspots",
+    "warning:dockerify:warnings",
+    "warning:readiness:optional-evidence-missing"
+  ],
+  "residue_count": 0,
+  "residue_ids": [],
+  "obligation_count": 0,
+  "required_test_count": 0,
+  "required_doc_count": 0,
+  "accepted_review_item_count": 19,
+  "affected_surface_count": 8,
+  "diagnosta_summary": "Diagnosta readiness case for 'fy'-suites under Candidate D with primary evidence coverage 3/3 and blocker count 0.",
+  "coda_summary": "Coda assembled a bounded closure pack for 'fy'-suites with 0 open obligation(s), 0 open required test item(s), 0 open required doc item(s), 19 review-accepted item(s), 4 warning item(s), and 0 residue item(s).",
+  "review_packet_summary": "Current-target reviewed closure is honest: no blocker-class or residue-class burden remains, and remaining visible items are review-accepted or warning-only."
+}

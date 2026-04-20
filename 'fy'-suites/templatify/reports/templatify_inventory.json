@@ -1,0 +1,1257 @@
+{
+  "suite": "templatify",
+  "areas": {
+    "frontend": {
+      "target_root": "frontend/templates",
+      "base_template": "base.html",
+      "exists": true,
+      "template_count": 15,
+      "child_count_extending_base": 14,
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "body_class",
+        "site_header",
+        "site_main",
+        "extra_scripts"
+      ],
+      "records": [
+        {
+          "path": "base.html",
+          "extends": null,
+          "blocks": [
+            "title",
+            "extra_head",
+            "body_class",
+            "site_header",
+            "site_main",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "community.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "dashboard.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "body_class",
+            "extra_head",
+            "site_main",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forgot_password.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "game_menu.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "home.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "body_class",
+            "extra_scripts",
+            "site_main"
+          ]
+        },
+        {
+          "path": "login.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "news.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "register.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "register_pending.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "resend_verification.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "reset_password.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "session_shell.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "session_start.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "wiki.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        }
+      ],
+      "slot_map": {
+        "[[TITLE]]": "title",
+        "[[EXTRA_HEAD]]": "extra_head",
+        "[[BODY_CLASS]]": "body_class",
+        "[[HEADER]]": "site_header",
+        "[[CONTENT]]": "site_main",
+        "[[EXTRA_SCRIPTS]]": "extra_scripts"
+      },
+      "bridge_block": [
+        "site_main",
+        "content"
+      ]
+    },
+    "administration_tool": {
+      "target_root": "administration-tool/templates",
+      "base_template": "base.html",
+      "exists": true,
+      "template_count": 56,
+      "child_count_extending_base": 11,
+      "base_blocks": [
+        "html_class",
+        "title",
+        "meta_description",
+        "extra_head",
+        "body_class",
+        "content",
+        "extra_scripts"
+      ],
+      "records": [
+        {
+          "path": "base.html",
+          "extends": null,
+          "blocks": [
+            "html_class",
+            "title",
+            "meta_description",
+            "extra_head",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "base_manage.html",
+          "extends": "manage/base.html",
+          "blocks": []
+        },
+        {
+          "path": "forum/category.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum/index.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum/notifications.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum/saved_threads.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum/tag_detail.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum/thread.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "index.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content"
+          ]
+        },
+        {
+          "path": "manage/ai_orchestration.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/areas.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/base.html",
+          "extends": null,
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/dashboard.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/data.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/diagnosis.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/feature_areas.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/forum.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/game_content.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/game_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/inspector_workbench.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/login.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/mcp_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/evaluations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/findings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/notifications.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/overview.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/packages.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/policies.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/revisions.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/runtime.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/narrative_governance/runtime_health.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/news.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/operational_governance.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/play_service_control.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/rag_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/_subnav.html",
+          "extends": null,
+          "blocks": []
+        },
+        {
+          "path": "manage/research_governance/canonical_truth.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/extraction_tuning.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/findings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/mcp_workbench.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/overview.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/research_governance/source_intake.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/roles.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/runtime_dashboard.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/runtime_settings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/slogans.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/users.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/wiki.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/world_engine_console.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage/world_engine_control_center.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "manage_analytics.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "manage_moderator_dashboard.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "news.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "news_detail.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "user/profile.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "meta_description",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "wiki_public.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "body_class",
+            "content",
+            "extra_scripts"
+          ]
+        }
+      ],
+      "slot_map": {
+        "[[TITLE]]": "title",
+        "[[META_DESCRIPTION]]": "meta_description",
+        "[[EXTRA_HEAD]]": "extra_head",
+        "[[BODY_CLASS]]": "body_class",
+        "[[CONTENT]]": "content",
+        "[[EXTRA_SCRIPTS]]": "extra_scripts"
+      },
+      "bridge_block": null
+    },
+    "administration_manage": {
+      "target_root": "administration-tool/templates/manage",
+      "base_template": "base.html",
+      "exists": true,
+      "template_count": 41,
+      "child_count_extending_base": 39,
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "content",
+        "extra_scripts"
+      ],
+      "records": [
+        {
+          "path": "ai_orchestration.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "areas.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "base.html",
+          "extends": null,
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "dashboard.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "data.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "diagnosis.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "feature_areas.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "forum.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "game_content.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "game_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "inspector_workbench.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "login.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "mcp_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/evaluations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/findings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/notifications.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/overview.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/packages.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/policies.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/revisions.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/runtime.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "narrative_governance/runtime_health.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "news.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "operational_governance.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "play_service_control.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "rag_operations.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/_subnav.html",
+          "extends": null,
+          "blocks": []
+        },
+        {
+          "path": "research_governance/canonical_truth.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/extraction_tuning.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/findings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/mcp_workbench.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/overview.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "research_governance/source_intake.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "roles.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "runtime_dashboard.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "runtime_settings.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "slogans.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "users.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "wiki.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "extra_head",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "world_engine_console.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        },
+        {
+          "path": "world_engine_control_center.html",
+          "extends": "manage/base.html",
+          "blocks": [
+            "title",
+            "content",
+            "extra_scripts"
+          ]
+        }
+      ],
+      "slot_map": {
+        "[[TITLE]]": "title",
+        "[[EXTRA_HEAD]]": "extra_head",
+        "[[CONTENT]]": "content",
+        "[[EXTRA_SCRIPTS]]": "extra_scripts"
+      },
+      "bridge_block": null
+    },
+    "backend_info": {
+      "target_root": "backend/app/info/templates",
+      "base_template": "base.html",
+      "exists": true,
+      "template_count": 9,
+      "child_count_extending_base": 7,
+      "base_blocks": [
+        "title",
+        "wrap_modifiers",
+        "heading",
+        "subheading",
+        "body"
+      ],
+      "records": [
+        {
+          "path": "ai.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "api.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "api_explorer.html",
+          "extends": "base.html",
+          "blocks": [
+            "wrap_modifiers",
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "auth.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "base.html",
+          "extends": null,
+          "blocks": [
+            "title",
+            "wrap_modifiers",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "engine.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "home.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        },
+        {
+          "path": "info_sections.html",
+          "extends": null,
+          "blocks": []
+        },
+        {
+          "path": "ops.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "heading",
+            "subheading",
+            "body"
+          ]
+        }
+      ],
+      "slot_map": {
+        "[[TITLE]]": "title",
+        "[[WRAP_MODIFIERS]]": "wrap_modifiers",
+        "[[HEADING]]": "heading",
+        "[[SUBHEADING]]": "subheading",
+        "[[CONTENT]]": "body"
+      },
+      "bridge_block": null
+    },
+    "writers_room": {
+      "target_root": "writers-room/app/templates",
+      "base_template": "base.html",
+      "exists": true,
+      "template_count": 3,
+      "child_count_extending_base": 2,
+      "base_blocks": [
+        "title",
+        "extra_head",
+        "content"
+      ],
+      "records": [
+        {
+          "path": "base.html",
+          "extends": null,
+          "blocks": [
+            "title",
+            "extra_head",
+            "content"
+          ]
+        },
+        {
+          "path": "index.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        },
+        {
+          "path": "login.html",
+          "extends": "base.html",
+          "blocks": [
+            "title",
+            "content"
+          ]
+        }
+      ],
+      "slot_map": {
+        "[[TITLE]]": "title",
+        "[[EXTRA_HEAD]]": "extra_head",
+        "[[CONTENT]]": "content"
+      },
+      "bridge_block": null
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompareRunsDelta",
+  "type": "object",
+  "schema_version": "fy.compare-runs-delta.schema.v1",
+  "properties": {
+    "left_run_id": {
+      "type": "string"
+    },
+    "right_run_id": {
+      "type": "string"
+    },
+    "left_status": {
+      "type": "string"
+    },
+    "right_status": {
+      "type": "string"
+    },
+    "artifact_delta": {
+      "type": "integer"
+    },
+    "added_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "removed_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "left_artifact_count": {
+      "type": "integer"
+    },
+    "right_artifact_count": {
+      "type": "integer"
+    },
+    "left_evidence_count": {
+      "type": "integer"
+    },
+    "right_evidence_count": {
+      "type": "integer"
+    },
+    "left_review_state_counts": {
+      "type": "object"
+    },
+    "right_review_state_counts": {
+      "type": "object"
+    },
+    "left_journal_event_count": {
+      "type": "integer"
+    },
+    "right_journal_event_count": {
+      "type": "integer"
+    },
+    "left_duration_seconds": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "right_duration_seconds": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "mode_changed": {
+      "type": "boolean"
+    },
+    "target_repo_changed": {
+      "type": "boolean"
+    },
+    "target_repo_id_changed": {
+      "type": "boolean"
+    },
+    "left_strategy_profile": {
+      "type": "string"
+    },
+    "right_strategy_profile": {
+      "type": "string"
+    },
+    "strategy_profile_changed": {
+      "type": "boolean"
+    },
+    "added_formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "removed_formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

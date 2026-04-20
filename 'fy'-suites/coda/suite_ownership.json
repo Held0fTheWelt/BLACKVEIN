@@ -1,0 +1,12 @@
+{
+  "suite": "coda",
+  "truth_domain": [
+    "closure-pack assembly",
+    "residue reporting",
+    "review-first bundling"
+  ],
+  "does_not_own": [
+    "proof certification",
+    "autonomous implementation"
+  ]
+}

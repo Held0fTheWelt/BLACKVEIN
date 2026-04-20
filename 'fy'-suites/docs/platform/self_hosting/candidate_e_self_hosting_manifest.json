@@ -1,0 +1,17 @@
+{
+  "schema_version": "fy.candidate-e-terminal-manifest.v1",
+  "default_profile": "D",
+  "restored_profile": "D",
+  "d_run_ids": {
+    "diagnosta": "diagnosta-a2873558c5ce",
+    "coda": "coda-96f720c4f615",
+    "observifyfy": "observifyfy-52bd6a240953"
+  },
+  "e_run_ids": {
+    "diagnosta": "diagnosta-5f3febd8faca",
+    "coda": "coda-0790db4ac301",
+    "observifyfy": "observifyfy-a86172222c93"
+  },
+  "comparison_path": "docs/platform/self_hosting/candidate_e_d_vs_e_comparison.json",
+  "candidate_e_honesty_note": "Candidate E stays review-first, opt-in, residue-honest, and does not enable silent auto-apply."
+}

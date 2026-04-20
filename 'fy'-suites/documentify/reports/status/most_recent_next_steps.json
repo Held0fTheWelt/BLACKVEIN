@@ -1,0 +1,156 @@
+{
+  "suite": "documentify",
+  "command": "audit",
+  "ok": true,
+  "summary": "Documentify generated the current documentation tracks and status pages.",
+  "decision_summary": "",
+  "latest_run": {
+    "run_id": "documentify-db558b5d3a05",
+    "suite": "documentify",
+    "mode": "audit",
+    "started_at": "2026-04-19T12:20:40.150428+00:00",
+    "ended_at": "2026-04-19T12:20:40.199984+00:00",
+    "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+    "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+    "target_repo_id": "target-repo-01a1fe91",
+    "status": "ok"
+  },
+  "next_steps": [
+    "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+  ],
+  "key_signals": {},
+  "warnings": [],
+  "cross_suite": {
+    "suite": "documentify",
+    "related_suites": [
+      "docify",
+      "templatify",
+      "usabilify",
+      "contractify",
+      "securify"
+    ],
+    "relation_edges": [
+      [
+        "templatify",
+        "depends_on"
+      ],
+      [
+        "usabilify",
+        "informs"
+      ]
+    ],
+    "signal_count": 5,
+    "signals": [
+      {
+        "suite": "usabilify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "usabilify-7923ee8d3ba9",
+          "suite": "usabilify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:56.429231+00:00",
+          "ended_at": "2026-04-19T12:18:56.441266+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Usabilify evaluated UI and UX surfaces, connected available UI contracts, and highlighted the next usability steps in plain language.",
+        "next_steps": [
+          "Read the latest usabilify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "informs"
+      },
+      {
+        "suite": "templatify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "templatify-0d91cf7ac120",
+          "suite": "templatify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:18:54.455093+00:00",
+          "ended_at": "2026-04-19T12:18:54.483270+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "No summary is available yet.",
+        "next_steps": [
+          "Read the latest templatify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "depends_on"
+      },
+      {
+        "suite": "securify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "securify-a14bb251d05b",
+          "suite": "securify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:19:24.070979+00:00",
+          "ended_at": "2026-04-19T12:19:29.790668+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Securify did not find tracked secret-like files or embedded secret patterns, and basic security guidance is present.",
+        "next_steps": [
+          "Keep security surfaces stable and rerun securify after meaningful repository changes."
+        ],
+        "status_ok": true,
+        "relation_reason": "documentify_related_signal"
+      },
+      {
+        "suite": "docify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "docify-a9be4ee99502",
+          "suite": "docify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:18.539642+00:00",
+          "ended_at": "2026-04-19T12:13:21.984322+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"docstring\" across suites ['docify']. Strongest source: generated/context_packs/docify_context_pack.json#chunk-1. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/docify_context_pack.json#chunk-1 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "documentify_related_signal"
+      },
+      {
+        "suite": "contractify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "contractify-ce0bf06ec416",
+          "suite": "contractify",
+          "mode": "audit",
+          "started_at": "2026-04-19T12:13:14.077782+00:00",
+          "ended_at": "2026-04-19T12:13:14.110434+00:00",
+          "workspace_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_root": "/mnt/data/self_hosting_repo/'fy'-suites",
+          "target_repo_id": "fy-suites-b6e36aef",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"openapi health\" across suites ['contractify']. Strongest source: generated/context_packs/contractify_context_pack.md#chunk-4. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/contractify_context_pack.md#chunk-4 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "documentify_related_signal"
+      }
+    ],
+    "summary": "The strongest cross-suite signal for documentify currently comes from usabilify via informs. Use it to connect the latest result with nearby suite work instead of treating the suite in isolation."
+  },
+  "governance": null,
+  "uncertainty": []
+}

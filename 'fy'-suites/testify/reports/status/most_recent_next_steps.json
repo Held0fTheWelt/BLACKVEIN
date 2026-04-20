@@ -1,0 +1,157 @@
+{
+  "suite": "testify",
+  "command": "compare-runs",
+  "ok": true,
+  "summary": "Compared testify-1aacbc6ff67e with testify-914014651f68. Focus first on changed artifacts, review-state changes, and any target or mode differences.",
+  "decision_summary": "",
+  "latest_run": {
+    "run_id": "testify-914014651f68",
+    "suite": "testify",
+    "mode": "audit",
+    "started_at": "2026-04-18T22:27:22.038689+00:00",
+    "ended_at": "2026-04-18T22:27:22.119762+00:00",
+    "workspace_root": "/mnt/data/work2/repo/'fy'-suites",
+    "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_testify_adapter_audit_and0/target_repo",
+    "target_repo_id": "target-repo-099a1fd4",
+    "status": "ok"
+  },
+  "next_steps": [
+    "Read the latest testify output and choose the narrowest next move based on the current evidence."
+  ],
+  "key_signals": {},
+  "warnings": [],
+  "cross_suite": {
+    "suite": "testify",
+    "related_suites": [
+      "contractify",
+      "documentify",
+      "docify",
+      "despaghettify",
+      "securify"
+    ],
+    "relation_edges": [
+      [
+        "contractify",
+        "validates"
+      ],
+      [
+        "despaghettify",
+        "improves"
+      ]
+    ],
+    "signal_count": 5,
+    "signals": [
+      {
+        "suite": "securify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "securify-2a5587836364",
+          "suite": "securify",
+          "mode": "audit",
+          "started_at": "2026-04-18T14:43:53.424532+00:00",
+          "ended_at": "2026-04-18T14:43:53.490501+00:00",
+          "workspace_root": "/mnt/data/wave3/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_generic_ai_suite_cli_secu0/target_repo",
+          "target_repo_id": "target-repo-d5f3ac6a",
+          "status": "ok"
+        },
+        "status_summary": "Securify found security follow-up work: no discoverable security documentation, secret-related ignore rules are missing. Start with the most direct exposure and the missing guidance surfaces.",
+        "next_steps": [
+          "Add a SECURITY.md or docs/security guide so security expectations are discoverable.",
+          "Add secret-related ignore rules such as .env, *.pem, and *.key to .gitignore."
+        ],
+        "status_ok": true,
+        "relation_reason": "testify_related_signal"
+      },
+      {
+        "suite": "documentify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "documentify-534e5f7b0567",
+          "suite": "documentify",
+          "mode": "audit",
+          "started_at": "2026-04-18T22:27:17.566027+00:00",
+          "ended_at": "2026-04-18T22:27:17.686737+00:00",
+          "workspace_root": "/mnt/data/work2/repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_documentify_generates_tra0/target_repo",
+          "target_repo_id": "target-repo-01a1fe91",
+          "status": "ok"
+        },
+        "status_summary": "Documentify generated the current documentation tracks and status pages.",
+        "next_steps": [
+          "Read the latest documentify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "testify_related_signal"
+      },
+      {
+        "suite": "docify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "docify-9c6d38108d63",
+          "suite": "docify",
+          "mode": "audit",
+          "started_at": "2026-04-18T22:27:16.828590+00:00",
+          "ended_at": "2026-04-18T22:27:16.894247+00:00",
+          "workspace_root": "/mnt/data/work2/repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_public_surfaces_emit_and_0/target_repo",
+          "target_repo_id": "target-repo-751c9331",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"docstring\" across suites ['docify']. Strongest source: generated/context_packs/docify_context_pack.json#chunk-1. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/docify_context_pack.json#chunk-1 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "testify_related_signal"
+      },
+      {
+        "suite": "despaghettify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "despaghettify-e489f6c385f7",
+          "suite": "despaghettify",
+          "mode": "audit",
+          "started_at": "2026-04-18T14:44:02.416572+00:00",
+          "ended_at": "2026-04-18T14:44:02.422586+00:00",
+          "workspace_root": "/mnt/data/wave3/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-8/test_despaghettify_generates_w0/target_repo",
+          "target_repo_id": "target-repo-1916aed2",
+          "status": "ok"
+        },
+        "status_summary": "No summary is available yet.",
+        "next_steps": [
+          "Read the latest despaghettify output and choose the narrowest next move based on the current evidence."
+        ],
+        "status_ok": true,
+        "relation_reason": "improves"
+      },
+      {
+        "suite": "contractify",
+        "score": 5,
+        "latest_run": {
+          "run_id": "contractify-edf530f61c3f",
+          "suite": "contractify",
+          "mode": "consolidate",
+          "started_at": "2026-04-18T22:27:21.875738+00:00",
+          "ended_at": "2026-04-18T22:27:21.944182+00:00",
+          "workspace_root": "/mnt/data/work2/repo/'fy'-suites",
+          "target_repo_root": "/tmp/pytest-of-root/pytest-3/test_testify_adapter_audit_and0/target_repo",
+          "target_repo_id": "target-repo-099a1fd4",
+          "status": "ok"
+        },
+        "status_summary": "Found 8 indexed evidence hits for query \"openapi health\" across suites ['contractify']. Strongest source: generated/context_packs/contractify_context_pack.md#chunk-4. Use the top-ranked items first and treat lower-confidence hits as hints.",
+        "next_steps": [
+          "Open generated/context_packs/contractify_context_pack.md#chunk-4 first.",
+          "Use the top two hits to validate the next code or governance action."
+        ],
+        "status_ok": true,
+        "relation_reason": "validates"
+      }
+    ],
+    "summary": "The strongest cross-suite signal for testify currently comes from securify via testify_related_signal. Use it to connect the latest result with nearby suite work instead of treating the suite in isolation."
+  },
+  "governance": null,
+  "uncertainty": []
+}

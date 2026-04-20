@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RetrievalHit",
+  "type": "object",
+  "schema_version": "fy.retrieval-hit.schema.v1",
+  "properties": {
+    "chunk_id": {
+      "type": "string"
+    },
+    "suite": {
+      "type": "string"
+    },
+    "score_lexical": {
+      "type": "number"
+    },
+    "score_semantic": {
+      "type": "number"
+    },
+    "score_hybrid": {
+      "type": "number"
+    },
+    "source_path": {
+      "type": "string"
+    },
+    "excerpt": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "target_repo_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "score_recency": {
+      "type": "number"
+    },
+    "score_scope": {
+      "type": "number"
+    },
+    "score_suite_affinity": {
+      "type": "number"
+    },
+    "matched_terms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "type": "string"
+    },
+    "rationale": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

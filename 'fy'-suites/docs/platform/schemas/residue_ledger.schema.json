@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResidueLedger",
+  "type": "object",
+  "schema_version": "fy.residue-ledger.schema.v1",
+  "properties": {
+    "residue_ledger_id": {
+      "type": "string"
+    },
+    "target_id": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

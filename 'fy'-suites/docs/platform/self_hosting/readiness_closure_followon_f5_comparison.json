@@ -1,0 +1,76 @@
+{
+  "schema_version": "fy.readiness-closure-followon-comparison.v1",
+  "from_wave": "F4",
+  "to_wave": "F5",
+  "before": {
+    "wave": "F4",
+    "readiness_status": "implementation_ready",
+    "closure_status": "bounded_partial_closure",
+    "blocker_count": 0,
+    "obligation_count": 20,
+    "required_test_count": 2,
+    "required_doc_count": 27,
+    "residue_count": 6,
+    "residue_ids": [
+      "residue:testify:warnings",
+      "residue:despaghettify:packetized-hotspots",
+      "residue:dockerify:warnings",
+      "residue:readiness:optional-evidence-missing",
+      "residue:readiness:bounded-closure-only",
+      "residue:coda:closure-not-complete"
+    ]
+  },
+  "after": {
+    "wave": "F5",
+    "active_strategy_profile": "D",
+    "target_repo": "fy-suites",
+    "readiness_status": "implementation_ready",
+    "closure_status": "bounded_review_ready",
+    "blocker_count": 0,
+    "blocker_ids": [],
+    "warning_count": 4,
+    "warning_ids": [
+      "warning:testify:proof-items",
+      "warning:despaghettify:packetized-hotspots",
+      "warning:dockerify:warnings",
+      "warning:readiness:optional-evidence-missing"
+    ],
+    "residue_count": 0,
+    "residue_ids": [],
+    "obligation_count": 8,
+    "required_test_count": 2,
+    "required_doc_count": 9,
+    "affected_surface_count": 8,
+    "diagnosta_summary": "Diagnosta readiness case for 'fy'-suites under Candidate D with primary evidence coverage 3/3 and blocker count 0.",
+    "coda_summary": "Coda assembled a bounded closure pack for 'fy'-suites with 8 obligation(s), 2 required test item(s), 9 required doc item(s), 4 warning item(s), and 0 residue item(s).",
+    "observifyfy": {
+      "diagnosta_signal_present": true,
+      "coda_signal_present": true
+    },
+    "written_examples": {
+      "readiness_case": "diagnosta/reports/latest_readiness_case.json",
+      "warning_ledger": "diagnosta/reports/latest_warning_ledger.json",
+      "closure_pack": "coda/reports/latest_closure_pack.json",
+      "coda_warning_ledger": "coda/reports/latest_warning_ledger.json"
+    }
+  },
+  "delta": {
+    "closure_status_changed": true,
+    "readiness_status_changed": false,
+    "obligation_delta_count": -12,
+    "required_test_delta_count": 0,
+    "required_doc_delta_count": -18,
+    "residue_delta_count": -6,
+    "warning_delta_count": 4,
+    "moved_to_warning": {
+      "residue:testify:warnings": "warning:testify:proof-items",
+      "residue:despaghettify:packetized-hotspots": "warning:despaghettify:packetized-hotspots",
+      "residue:dockerify:warnings": "warning:dockerify:warnings",
+      "residue:readiness:optional-evidence-missing": "warning:readiness:optional-evidence-missing"
+    },
+    "removed_residue_ids": [
+      "residue:readiness:bounded-closure-only",
+      "residue:coda:closure-not-complete"
+    ]
+  }
+}

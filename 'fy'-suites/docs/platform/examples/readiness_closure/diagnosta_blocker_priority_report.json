@@ -1,0 +1,8 @@
+{
+  "schema_version": "fy.blocker-priority-report.v1",
+  "report_id": "blocker-priority:'fy'-suites",
+  "target_id": "workspace:'fy'-suites",
+  "blocker_count": 0,
+  "priorities": [],
+  "summary": "Prioritized 0 blocker(s) for the next bounded wave."
+}

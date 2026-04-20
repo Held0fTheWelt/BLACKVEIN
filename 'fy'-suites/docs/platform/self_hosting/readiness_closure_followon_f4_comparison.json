@@ -1,0 +1,40 @@
+{
+  "schema_version": "fy.readiness-closure-followon-f4-comparison.v1",
+  "wave": "F4",
+  "active_profile": "D",
+  "before": {
+    "readiness_status": "not_ready",
+    "closure_status": "bounded_partial_closure",
+    "blocking_hotspot_paths": [
+      "fy_platform/ai/final_product_schemas.py",
+      "documentify/tools/track_engine.py",
+      "contractify/tools/runtime_mvp_spine.py"
+    ],
+    "blocking_hotspot_count": 3,
+    "blocker_family": "blocker:despaghettify:local-hotspots"
+  },
+  "after": {
+    "readiness_status": "implementation_ready",
+    "closure_status": "bounded_partial_closure",
+    "blocking_hotspot_paths": [],
+    "blocking_hotspot_count": 0,
+    "packetized_non_blocking_count": 14,
+    "raw_local_spike_count": 87,
+    "blocker_family_present": false,
+    "residue_ids": [
+      "residue:testify:warnings",
+      "residue:despaghettify:packetized-hotspots",
+      "residue:dockerify:warnings",
+      "residue:readiness:optional-evidence-missing",
+      "residue:readiness:bounded-closure-only",
+      "residue:coda:closure-not-complete"
+    ]
+  },
+  "movement": {
+    "blocking_hotspot_delta": -3,
+    "readiness_status_changed": true,
+    "closure_status_changed": false,
+    "blocker_family_removed": true
+  },
+  "summary": "F4 reduced blocker-class hotspot count from 3 to 0; readiness moved from not_ready to implementation_ready; closure stayed bounded_partial_closure."
+}
