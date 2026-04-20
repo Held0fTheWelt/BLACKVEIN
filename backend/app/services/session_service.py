@@ -135,11 +135,21 @@ class SessionService:
             action=action
         )
 
-        # Update mirror with result
-        if result.get("success") and self.session_mirror:
-            self.session_mirror.apply_turn_result(session_id, result)
+        # Convert TurnResult to dict if needed
+        result_dict = result if isinstance(result, dict) else {
+            "success": result.success,
+            "new_turn_number": result.new_turn_number,
+            "turn_number": result.new_turn_number,  # Mirror also needs turn_number
+            "state_delta": result.state_delta,
+            "error_message": result.error_message,
+            "executed_at": result.executed_at.isoformat() if result.executed_at else None
+        }
 
-        return result
+        # Update mirror with result
+        if result_dict.get("success") and self.session_mirror:
+            self.session_mirror.apply_turn_result(session_id, result_dict)
+
+        return result_dict
 
 
 # Module-level wrapper functions for backwards compatibility
