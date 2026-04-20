@@ -173,3 +173,40 @@ Tone: helpful, not punitive.""",
 
         self._validated = True
         return True
+
+    def get_prompt_for_profile(self, name: str, profile: Any) -> Dict[str, Any]:
+        """Get prompt adjusted for operational profile.
+
+        For now, returns base prompt. In future, can vary based on
+        profile.difficulty, profile.complexity, etc.
+
+        Args:
+            name: Prompt name
+            profile: Operational profile with difficulty/complexity attributes
+
+        Returns:
+            Deep copy of prompt (possibly adjusted for profile)
+        """
+        # Get base prompt
+        prompt = self.get_prompt(name)
+
+        # For MVP: return base prompt for all difficulty levels
+        # Future: adjust prompt verbosity/depth based on profile
+        # - difficulty="easy": more guidance, simpler language
+        # - difficulty="hard": less guidance, complex scenarios
+        # - complexity="simple": shorter templates
+        # - complexity="complex": detailed templates
+
+        return prompt
+
+    def list_prompts_for_profile(self, profile: Any) -> List[str]:
+        """List prompts available for an operational profile.
+
+        Args:
+            profile: Operational profile
+
+        Returns:
+            List of available prompt names for this profile
+        """
+        # For MVP: all prompts available for all profiles
+        return self.list_prompts()

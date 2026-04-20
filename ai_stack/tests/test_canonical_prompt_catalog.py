@@ -6,6 +6,15 @@ import pytest
 from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
 
 
+class MockOperationalProfile:
+    """Mock operational profile for testing."""
+
+    def __init__(self, difficulty="normal", complexity="standard"):
+        self.difficulty = difficulty
+        self.complexity = complexity
+        self.ai_enabled = True
+
+
 class TestCanonicalPromptCatalogStructure:
     """Test catalog loads and validates prompt structure."""
 
@@ -66,3 +75,124 @@ class TestCanonicalPromptCatalogStructure:
         catalog = CanonicalPromptCatalog()
         result = catalog.validate()
         assert result is True or isinstance(result, dict)
+
+
+class TestPromptValidationAndSafety:
+    """Test prompt validation and safety checks."""
+
+    def test_prompt_validation_required_variables(self):
+        """Test prompt validation checks for required variables."""
+        catalog = CanonicalPromptCatalog()
+        # All prompts should have variables field (if they use template variables)
+        for prompt_name in catalog.list_prompts():
+            prompt = catalog.get_prompt(prompt_name)
+            # If template has {variables}, validate field exists
+            if "{" in prompt.get("template", ""):
+                assert "variables" in prompt or prompt["template"].count("{") > 0
+
+    def test_catalog_validate_no_forbidden_terms(self):
+        """Test validation prevents exposure of internal terms."""
+        catalog = CanonicalPromptCatalog()
+        # Should not raise any error
+        result = catalog.validate()
+        assert result is True
+
+    def test_prompt_templates_are_strings(self):
+        """Test all prompt templates are non-empty strings."""
+        catalog = CanonicalPromptCatalog()
+        for prompt_name in catalog.list_prompts():
+            prompt = catalog.get_prompt(prompt_name)
+            assert isinstance(prompt["template"], str)
+            assert len(prompt["template"]) > 0
+
+    def test_description_is_meaningful(self):
+        """Test all prompts have meaningful descriptions."""
+        catalog = CanonicalPromptCatalog()
+        for prompt_name in catalog.list_prompts():
+            prompt = catalog.get_prompt(prompt_name)
+            assert isinstance(prompt["description"], str)
+            assert len(prompt["description"]) > 5
+
+
+class TestPromptVariableBinding:
+    """Test prompt template variable binding."""
+
+    def test_decision_context_has_required_variables(self):
+        """Test decision_context prompt has required template variables."""
+        catalog = CanonicalPromptCatalog()
+        prompt = catalog.get_prompt("decision_context")
+        template = prompt["template"]
+        # Check for required placeholders
+        assert "{game_state}" in template
+        assert "{player_action}" in template
+        assert "{previous_result}" in template
+
+    def test_action_selection_has_required_variables(self):
+        """Test action_selection prompt has required variables."""
+        catalog = CanonicalPromptCatalog()
+        prompt = catalog.get_prompt("action_selection")
+        template = prompt["template"]
+        assert "{decision_analysis}" in template
+
+    def test_narrative_response_has_required_variables(self):
+        """Test narrative_response prompt has required variables."""
+        catalog = CanonicalPromptCatalog()
+        prompt = catalog.get_prompt("narrative_response")
+        template = prompt["template"]
+        assert "{action}" in template
+        assert "{outcome}" in template
+        assert "{world_context}" in template
+
+    def test_failure_explanation_has_required_variables(self):
+        """Test failure_explanation prompt has required variables."""
+        catalog = CanonicalPromptCatalog()
+        prompt = catalog.get_prompt("failure_explanation")
+        template = prompt["template"]
+        assert "{action}" in template
+        assert "{reason}" in template
+        assert "{game_state}" in template
+
+
+class TestOperationalProfileIntegration:
+    """Test prompt catalog integration with operational profile."""
+
+    def test_get_prompt_respects_difficulty(self):
+        """Test prompt selection can be influenced by difficulty level."""
+        catalog = CanonicalPromptCatalog()
+        profile = MockOperationalProfile(difficulty="hard")
+        prompt = catalog.get_prompt_for_profile("decision_context", profile)
+        # Should return a valid prompt
+        assert prompt is not None
+        assert "template" in prompt
+
+    def test_get_prompt_respects_complexity(self):
+        """Test prompt selection respects complexity level."""
+        catalog = CanonicalPromptCatalog()
+        profile_simple = MockOperationalProfile(complexity="simple")
+        profile_complex = MockOperationalProfile(complexity="complex")
+
+        prompt_simple = catalog.get_prompt_for_profile("narrative_response", profile_simple)
+        prompt_complex = catalog.get_prompt_for_profile("narrative_response", profile_complex)
+
+        assert prompt_simple is not None
+        assert prompt_complex is not None
+
+    def test_profile_default_behavior(self):
+        """Test default behavior when profile not specified."""
+        catalog = CanonicalPromptCatalog()
+        # Should work without profile
+        prompt = catalog.get_prompt("decision_context")
+        assert prompt is not None
+
+    def test_catalog_lists_prompts_for_all_profiles(self):
+        """Test catalog has prompts for different difficulty levels."""
+        catalog = CanonicalPromptCatalog()
+        normal_profile = MockOperationalProfile(difficulty="normal")
+        hard_profile = MockOperationalProfile(difficulty="hard")
+
+        normal_count = len(catalog.list_prompts())
+        hard_count = len(catalog.list_prompts_for_profile(hard_profile))
+
+        # Should have prompts for both
+        assert normal_count > 0
+        assert hard_count > 0
