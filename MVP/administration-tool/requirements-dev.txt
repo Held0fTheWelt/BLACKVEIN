@@ -1,6 +1,0 @@
-# Development and testing dependencies
--r requirements.txt
-
-# Testing framework
-pytest>=8.0
-pytest-timeout>=2.1

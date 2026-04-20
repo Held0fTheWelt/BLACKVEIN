@@ -1,6 +1,0 @@
-Wave AS validation summary
-
-world-engine/tests/test_story_runtime_shell_readout.py -> 7 passed
-frontend/tests/test_routes_extended.py (selected play/readout set) -> 14 passed, 53 deselected
-backend/tests/test_session_routes.py (selected shell_readout/session bridge set) -> 2 passed, 35 deselected
-ai_stack/tests/test_social_state_goc.py + ai_stack/tests/test_semantic_move_interpretation_goc.py -> 5 passed

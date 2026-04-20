@@ -1,7 +1,0 @@
-Wave AN validation summary
-
-world-engine/tests/test_story_runtime_shell_readout.py -> PASS
-backend/tests/test_session_routes.py -k shell_readout_projection -> PASS
-frontend/tests/test_routes_extended.py targeted play-shell observation/readout subset -> PASS
-ai_stack/tests/test_social_state_goc.py -> PASS
-ai_stack/tests/test_semantic_move_interpretation_goc.py -> PASS

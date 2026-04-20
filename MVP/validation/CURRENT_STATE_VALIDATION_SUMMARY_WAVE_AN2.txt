@@ -1,6 +1,0 @@
-Wave AN2 validation summary
-
-world-engine/tests/test_story_runtime_shell_readout.py -> 4 passed
-backend/tests/test_session_routes.py -k "shell_readout_projection or execute_turn_proxies_to_world_engine" -> 2 passed
-frontend/tests/test_routes_extended.py (focused play-shell/runtime-readout cases) -> 11 passed
-ai_stack/tests/test_social_state_goc.py + test_semantic_move_interpretation_goc.py -> 5 passed
