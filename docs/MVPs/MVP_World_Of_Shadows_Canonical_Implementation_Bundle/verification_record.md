@@ -8,8 +8,10 @@
 - [x] Canonical bundle contains one `README.md` entrypoint and required section files.
 - [x] Navigation files route to the canonical bundle (see [`navigation_update_record.md`](./navigation_update_record.md)); no primary onboarding path depends on raw `MVP/` URLs.
 - [x] Classification and omission entries include explicit justifications for non-direct migrations (intake heuristics + reconcile skips for cache/runtime paths).
+- [x] Mapping-table `verification status` column has been mechanically populated for every row by [`scripts/mvp_verify_mapping_table.py`](../../../scripts/mvp_verify_mapping_table.py); see [`mapping_verification_report.md`](./mapping_verification_report.md).
 - [x] Byte-level `CON-*` rows for compared domains (`backend`, `world-engine`, `ai_stack`, `frontend`, `administration-tool`, `docs`) — **cleared** (`mvp_reconcile.py` reports **0** conflicts; register has no data rows; see [`migration_report.md`](./migration_report.md) autonomous pass). Per-row `merge_after_reconciliation` validation columns are **not** populated because rows were eliminated by snapshot alignment rather than inline edits.
-- [ ] Every domain row in `domain_validation_matrix.md` shows **pass** for required runtime commands — **partial** (doc/navigation pass; backend + world-engine smoke subsets passed; full `run_tests.py` suites not completed in-session, see below).
+- [ ] Every domain row in `domain_validation_matrix.md` shows **pass** for required runtime commands — **partial**. `world-engine`, `ai_stack`, `frontend`, `administration-tool`, and canonical docs now have recorded pass outcomes; backend remains user-skipped/partial after a delayed full-suite run was stopped by request.
+- [ ] Mapping-table follow-up rows are fully reconciled — **open pending sign-off**. The table has no `pending_verification` rows, but it still has **7,843** follow-up rows: **7,755** `blocked_missing_active_target` and **88** `needs_reconcile_bytes`. [`mapping_verification_report.md`](./mapping_verification_report.md) includes repeatable triage buckets plus a **Prioritized Reconciliation Candidate Index** for the **252** active source/config and fy suite source/docs rows. [`mapping_closure_decisions.md`](./mapping_closure_decisions.md) records class-level closure decisions for generated/runtime/evidence/legacy snapshot material, but does not by itself authorize deletion.
 
 ## Intake Baseline (latest refresh)
 
@@ -23,9 +25,9 @@ See [`source_baseline_lock.txt`](./source_baseline_lock.txt) for `mvp_root_resol
 
 ## Unresolved Items
 
-- Full automated suites in [`domain_validation_matrix.md`](./domain_validation_matrix.md) were **not** executed to completion in-session (backend `--quick` collects thousands of tests). **Smoke evidence (2026-04-21):** repo root `python -m pytest backend/tests/test_app_init.py -q` → **4 passed**; from `world-engine/`, `python -m pytest tests/test_api.py -q` → **4 passed** (Windows, Python 3.14.x). Treat full-suite `pass` as a CI or dedicated local run obligation.
+- Backend full automated suite in [`domain_validation_matrix.md`](./domain_validation_matrix.md) remains **partial**. `env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite backend --quick` collected **4363** tests and produced sustained passing output, then was stopped at user request due delay. **Smoke evidence (2026-04-21):** repo root `python -m pytest backend/tests/test_app_init.py -q` -> **4 passed**. Treat backend full-suite `pass` as a CI or dedicated local run obligation if deletion-gate closure is required.
 - [`forward_integration_candidates.md`](./forward_integration_candidates.md) lists heuristic forward-copy targets; triage before bulk copy. Rows under **`'fy'-suites/`** concern **repo tooling** whose original belongs at repo root in that tree — not application/game code. For **governed MVP bundle import** (normalize + doc mirror), prefer **`mvpify`** ([`'fy'-suites/mvpify/README.md`](../../../'fy'-suites/mvpify/README.md)) over unstructured bulk copies.
-- `source_to_destination_mapping_table.md` still marks most rows `pending_verification` at the intake heuristic layer (orthogonal to byte reconcile).
+- `source_to_destination_mapping_table.md` no longer contains `pending_verification` rows. [`mapping_verification_report.md`](./mapping_verification_report.md) records **27,890** verified status assignments: **20,047** mechanically verified rows and **7,843** follow-up rows (**7,755** missing active targets; **88** byte differences requiring reconciliation). Triage split: **5,480** generated-output rows, **1,360** nested `repo/` snapshot rows, **431** runtime state/database rows, **191** legacy MVP/governance reference rows, **210** fy suite source/docs candidates, **128** validation-evidence rows, **42** active source/config candidates, and **1** duplicate nested suite snapshot row. The report’s **Prioritized Reconciliation Candidate Index** lists all **252** active source/config and fy suite source/docs candidates. **59** text rows are now verified as `verified_text_match_normalized_eol`, reducing false-positive byte-diff blockers without changing active files. [`mapping_closure_decisions.md`](./mapping_closure_decisions.md) provides the class-level no-loss rationale for rows that should be omitted or preserved as reference rather than copied.
 
 ## Smoke verification log (session)
 
@@ -38,6 +40,49 @@ python -m pytest tests/test_api.py -q --tb=no
 # outcome: 4 passed, 1 DeprecationWarning (pytest-asyncio / Python 3.16 policy)
 ```
 
+## Runtime validation log (2026-04-21 continuation)
+
+```text
+python scripts/mvp_reconcile.py --repo-root /mnt/d/WorldOfShadows
+# outcome: reconciliation=1684 conflicts=0
+
+env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite frontend --quick
+# outcome: 76 passed in 0.97s
+# report: tests/reports/pytest_frontend_20260421_175233.xml
+
+env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite administration --quick
+# outcome: 1149 passed in 35.31s
+# report: tests/reports/pytest_administration_20260421_175318.xml
+
+env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite engine --quick
+# outcome: 922 passed in 1096.04s
+# report: tests/reports/pytest_engine_20260421_175439.xml
+
+env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite ai_stack --quick
+# initial outcome: failed on Python 3.10 import of datetime.UTC
+# report: tests/reports/pytest_ai_stack_20260421_181228.xml
+# resolution: active ai_stack now uses datetime.timezone.utc
+# rerun outcome: 947 passed, 1 skipped in 204.72s
+# report: tests/reports/pytest_ai_stack_20260421_181448.xml
+
+env PYTEST_ADDOPTS=-s python tests/run_tests.py --suite backend --quick
+# outcome: partial / user-skipped; collected 4363 tests, sustained passing output, stopped due delay
+
+python scripts/mvp_verify_mapping_table.py --repo-root /mnt/d/WorldOfShadows
+# outcome: source_to_destination_mapping_table.md updated; mapping_verification_report.md written
+# status counts: verified_byte_match=7024, verified_merge_target_present=381,
+# verified_omit_with_justification=12576, verified_reference_target_present=7,
+# verified_text_match_normalized_eol=59,
+# blocked_missing_active_target=7755, needs_reconcile_bytes=88
+# follow-up triage: generated_output=5480, nested_repo_snapshot=1360,
+# runtime_state_or_database=431, legacy_mvp_reference=191, fy_source_or_docs=210,
+# validation_evidence=128, source_or_config=42, nested_suite_snapshot=1
+# prioritized candidate index rows: source_or_config + fy_source_or_docs = 252
+
+env PYTEST_ADDOPTS=-s python -m pytest backend/tests/test_app_init.py -q
+# outcome after adding repo-root conftest.py: 4 passed in 20.51s
+```
+
 ## No-Loss Preservation Statement
 
-Preservation coverage is represented by full-file inventory plus full-file source-to-destination mapping for all files under `MVP/`, plus the reconciliation artifacts above. **Deletion of the `MVP/` working tree is not cleared** while other deletion-gate items in [`retirement_record.md`](./retirement_record.md) remain open (runtime validation matrix, mapping-table verification, and explicit retirement sign-off).
+Preservation coverage is represented by full-file inventory plus full-file source-to-destination mapping for all files under `MVP/`, plus the reconciliation artifacts above. **Deletion of the `MVP/` working tree is not cleared** while other deletion-gate items in [`retirement_record.md`](./retirement_record.md) remain open (backend runtime validation, mapping follow-up rows, and explicit retirement sign-off).

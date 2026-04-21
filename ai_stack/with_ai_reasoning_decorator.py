@@ -16,7 +16,7 @@ Constitutional Laws:
 from functools import wraps
 from typing import Callable, Any, Dict, Optional
 import logging
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from ai_stack.langgraph_orchestrator import GameOrchestrator
 from ai_stack.mcp_agent_interface import MCPAgentInterface
@@ -119,7 +119,7 @@ class WithAIReasoning:
 
                 # Run AI reasoning before turn (if enabled)
                 if diagnostics.ai_enabled and player_id and session_id:
-                    diagnostics.reasoning_started_at = datetime.now(UTC)
+                    diagnostics.reasoning_started_at = datetime.now(timezone.utc)
 
                     try:
                         orchestrator = self._get_orchestrator()
@@ -149,7 +149,7 @@ class WithAIReasoning:
                     finally:
                         # Record duration
                         if diagnostics.reasoning_started_at:
-                            duration = datetime.now(UTC) - diagnostics.reasoning_started_at
+                            duration = datetime.now(timezone.utc) - diagnostics.reasoning_started_at
                             diagnostics.reasoning_duration_ms = int(duration.total_seconds() * 1000)
 
                 # Execute the original route function

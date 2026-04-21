@@ -29,7 +29,7 @@ isProject: false
 # Full MVP Re-Integration Plan
 
 ## Goal
-Implement the newly recreated source tree under [c:/Users/YvesT/PycharmProjects/WorldOfShadows/MVP/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/MVP/) into the active repository structure as real integrated assets (code, configs, tests, docs), not passive references, then retire `MVP/` only after full verification.
+Implement the source tree under [`MVP/`](MVP/) at the repository root into the active repository structure as real integrated assets (code, configs, tests, docs), not passive references, then retire `MVP/` only after full verification.
 
 ## Run state and handoff
 
@@ -55,6 +55,26 @@ This file (`Plan.md`) states the normative integration contract. Current progres
 - No phase is complete until repository-root `Task.md` reflects that completion state.
 - No deletion/retirement action is allowed unless repository-root `Task.md` explicitly records that deletion-gate conditions are satisfied.
 
+## Governed migration and tooling anchor
+
+This plan distinguishes **three complementary surfaces**; all are normative for how MVP work may land in the repo:
+
+1. **Repository-local rules and migration tooling (`'fy'-suites/`)**  
+   The directory **`'fy'-suites/`** (literal name including quotes) at the repository root is the **canonical home** for fy meta-suites (Contractify, Docify, Despaghettify, **mvpify**, Postmanify, etc.) **intended for this repository**. It is not application/game runtime code under `backend/` or `world-engine/`. Very deep paths under that tree may fail to materialise on some hosts (path length); **shallower** files that exist remain authoritative for those paths.
+
+2. **Path-level MVP integration scripts (`scripts/`, `tools/`)**  
+   - Intake and inventory/mapping: `tools/mvp_reintegration_intake.py`  
+   - Byte reconciliation and conflict register: `scripts/mvp_reconcile.py`  
+   - Snapshot copy from active into `MVP/` for compared domains: `scripts/mvp_sync_domain_snapshot_from_register.py`  
+   - Heuristic list of MVP paths whose **active** target is still missing (**forward** candidates): `scripts/mvp_forward_integration_candidates.py` → [`docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/forward_integration_candidates.md`](docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/forward_integration_candidates.md)  
+   Canonical narrative, execution records, and **mvpify** / CLI quick reference: [`docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md`](docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md).
+
+3. **Governed MVP bundle import (`mvpify`)**  
+   For **prepared MVP bundles** — normalised trees under `mvpify/imports/<id>/normalized`, documentation mirrored under `docs/MVPs/imports/<id>`, and orchestration across fy suites — execution **must prefer** the **mvpify** suite (read ``'fy'-suites/mvpify/README.md``) over ad-hoc bulk file copies from the forward-candidate table alone.  
+   **CLI:** install once with `pip install -e .` from ``'fy'-suites/`` (package **fy-suites-autark**, console script **`mvpify`** in ``'fy'-suites/pyproject.toml``). Then `mvpify <inspect|plan|ai-pack|full>` with optional `--repo-root`, `--source-root`, `--mvp-zip`, `--quiet`; module equivalent from ``'fy'-suites/``: `python -m mvpify.tools.hub_cli <subcommand> …` (implementation: ``'fy'-suites/mvpify/tools/hub_cli.py``). Verb summary: ``'fy'-suites/docs/platform/SUITE_COMMAND_REFERENCE.md``. Optional **`mvpify-adapter`**: ``'fy'-suites/mvpify/adapter/cli.py``.
+
+**Handoff:** repository-root [`Task.md`](Task.md) carries live state; this section is the **normative anchor** so later phases do not treat `'fy'-suites/` or **mvpify** as optional side notes.
+
 ## Phase 1 - Intake and Source Lock
 1. Confirm that the full `MVP/` tree exists and is ready for intake.
 2. Freeze an intake snapshot (inventory baseline) so implementation works against a stable source set.
@@ -64,8 +84,8 @@ This file (`Plan.md`) states the normative integration contract. Current progres
 
 ## Phase 2 - Target Design and Mapping Approval
 1. Define final destination paths per domain:
-   - Runtime/code: [backend/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/backend/), [world-engine/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/world-engine/), [ai_stack/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/ai_stack/), [frontend/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/frontend/), [administration-tool/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/administration-tool/)
-   - Canonical docs: [docs/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/) and [docs/MVPs/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/MVPs/)
+   - Runtime/code: [`backend/`](backend/), [`world-engine/`](world-engine/), [`ai_stack/`](ai_stack/), [`frontend/`](frontend/), [`administration-tool/`](administration-tool/)
+   - Canonical docs: [`docs/`](docs/) and [`docs/MVPs/`](docs/MVPs/)
    - Tests and validation surfaces: service test trees and repo-level validation docs.
 2. Lock section ownership for the canonical MVP bundle:
    - `README.md`
@@ -78,6 +98,9 @@ This file (`Plan.md`) states the normative integration contract. Current progres
 3. Confirm no domain remains “reference-only” if it is intended to be active implementation behavior.
 
 ## Phase 3 - Code, Config, and Test Integration (Hard Implementation)
+
+**Gate:** Follow **Governed migration and tooling anchor** (above) — use path-level scripts/registers for inventory, reconcile, and forward heuristics; use **mvpify** for governed **prepared MVP bundle** import (normalisation + `docs/MVPs/imports/<id>` mirroring) instead of ad-hoc bulk copies unless explicitly waived with justification in repository-root `Task.md`.
+
 1. Run file-by-file reconciliation for every `MVP/` source that maps into an already active runtime/config/test target path.
 2. Produce reconciliation decisions for each target: keep-existing, merge, partial replace, or no-change, with explicit conflict notes.
 3. Build and maintain `integration_conflict_register.md` for all meaningful conflicts across behavior, architecture, config, test, documentation, and sequencing.
@@ -87,9 +110,10 @@ This file (`Plan.md`) states the normative integration contract. Current progres
 7. Remove duplicated or generated-only artifacts from active path consideration; keep only justified reference evidence.
 8. Run incremental verification per domain (unit/integration/smoke as applicable).
 9. Update repository-root `Task.md` after each integration decision and conflict resolution.
+10. When integrating **bundle-shaped** MVP imports that require normalisation and documentation mirroring, run **mvpify** (see anchor section) and record outcomes under `mvpify/reports/` in the target repo root.
 
 ## Phase 4 - Documentation Population and Canonicalization
-1. Fully populate the canonical MVP bundle under [docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/).
+1. Fully populate the canonical MVP bundle under [`docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/`](docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/).
 2. Rewrite source materials into implementation-grade documents in strict English:
    - clear authority model
    - real runtime seams
@@ -101,9 +125,9 @@ This file (`Plan.md`) states the normative integration contract. Current progres
 
 ## Phase 5 - Navigation Normalization
 1. Update primary entrypoints to canonical bundle route:
-   - [docs/README.md](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/README.md)
-   - [docs/INDEX.md](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/INDEX.md)
-   - [docs/MVPs/README.md](c:/Users/YvesT/PycharmProjects/WorldOfShadows/docs/MVPs/README.md)
+   - [`docs/README.md`](docs/README.md)
+   - [`docs/INDEX.md`](docs/INDEX.md)
+   - [`docs/MVPs/README.md`](docs/MVPs/README.md)
 2. Remove active navigation pointing into retired `MVP/` source paths.
 3. Ensure exactly one canonical MVP entrypoint is discoverable.
 
@@ -139,6 +163,7 @@ I. `migration_report.md`
 J. `navigation_update_record.md`
 K. `verification_record.md`
 L. `retirement_record.md`
+M. `forward_integration_candidates.md` (generated; forward triage; see **Governed migration and tooling anchor**)
 
 ### Task.md continuity record (repository root)
 A continuously maintained execution-state file that records:
@@ -162,6 +187,7 @@ A continuously maintained execution-state file that records:
 - Every touched destination domain has a recorded validation matrix outcome (commands, evidence type, resulting status).
 - Repository-root `Task.md` is up to date, handoff-safe, and accurately reflects final execution state and deletion-gate status.
 - `MVP/` is retired only after deletion gate success.
+- Any **prepared MVP bundle** ingestion that required normalisation and `docs/MVPs/imports/<id>` mirroring was executed through **mvpify** (see **Governed migration and tooling anchor**), or explicitly waived with a recorded justification in repository-root `Task.md`.
 
 ## Mandatory Conflict Register Schema
 
