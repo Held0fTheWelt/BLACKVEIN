@@ -8,12 +8,10 @@
   </nav>
 
   <div id="panel-play" class="play-panel play-panel--active play-panel--game" role="tabpanel" aria-labelledby="tab-play">
-    <section class="panel panel--compact play-shell-meta">
-      <h1 class="play-shell-title">Spielsession <span class="mono">{{ session_id }}</span></h1>
-      {% if backend_session_id %}
-        <p class="runtime-meta">Technische Session: <code>{{ backend_session_id }}</code></p>
-      {% else %}
-        <p class="runtime-meta runtime-warn">Laufzeit-Session noch nicht bereit — Seite neu laden oder von „Play“ neu starten.</p>
+    <section class=”panel panel--compact play-shell-meta”>
+      <h1 class=”play-shell-title”>Spielsession</h1>
+      {% if not backend_session_id %}
+        <p class=”runtime-meta runtime-warn”>Laufzeit-Session noch nicht bereit — Seite neu laden oder von „Play” neu starten.</p>
       {% endif %}
     </section>
 
@@ -27,20 +25,14 @@
         {% if turn_log %}
           {% for entry in turn_log %}
           <article class="play-turn-card" data-turn-index="{{ loop.index0 }}">
-            <header class="play-turn-card__meta runtime-meta">
-              {% if entry.turn_number is not none %}Zug {{ entry.turn_number }}{% endif %}
-              {% if entry.trace_id %}· <code>{{ entry.trace_id }}</code>{% endif %}
-              {% if entry.interpreted_input_kind %}· <strong>{{ entry.interpreted_input_kind }}</strong>{% endif %}
+            {% if entry.turn_number is not none %}
+            <header class="play-turn-card__meta">
+              Zug {{ entry.turn_number }}
             </header>
+            {% endif %}
             {% if entry.player_line %}
             <p class="runtime-player-line"><strong>Du:</strong> {{ entry.player_line }}</p>
             {% endif %}
-            <div class="runtime-scene-strip runtime-meta">
-              {% if entry.current_scene_id %}Szene: <code>{{ entry.current_scene_id }}</code>{% endif %}
-              {% if entry.committed_scene_id %}· festgeschrieben: <code>{{ entry.committed_scene_id }}</code>{% endif %}
-              {% if entry.validation_status %}· Prüfung: <strong>{{ entry.validation_status }}</strong>{% endif %}
-              {% if entry.graph_error_count %}· Graph-Fehler: <strong class="runtime-warn">{{ entry.graph_error_count }}</strong>{% endif %}
-            </div>
             <div class="play-story-output">
             {% if entry.narration_text %}
               <div class="play-story-text play-turn-card__narration play-narration--reveal">{{ entry.narration_text }}</div>

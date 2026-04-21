@@ -153,22 +153,15 @@ def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any
     if str(turn.get("turn_kind") or "").strip() == "opening":
         player_line = ""
 
+    # PHASE 4: PLAYER SURFACE ONLY — Exclude diagnostic/operator fields
+    # Player-visible fields only: turn_number, narration, dialogue, consequences
+    # Excluded operator fields: trace_id, scene IDs, validation_status, graph_error_count
     return {
-        "trace_id": str(api_payload.get("trace_id") or "").strip() or None,
-        "world_engine_story_session_id": str(api_payload.get("world_engine_story_session_id") or "").strip() or None,
         "turn_number": turn.get("turn_number"),
         "player_line": player_line,
-        "interpreted_input_kind": input_kind,
         "narration_text": narration_text,
         "spoken_lines": spoken_lines,
-        "committed_scene_id": summary.get("committed_scene_id") or nc.get("committed_scene_id"),
-        "commit_reason_code": summary.get("commit_reason_code") or nc.get("commit_reason_code"),
-        "situation_status": summary.get("situation_status"),
-        "validation_status": val_status,
-        "graph_error_count": err_count,
         "committed_consequences": cons_list,
-        "current_scene_id": st.get("current_scene_id"),
-        "turn_counter": st.get("turn_counter"),
     }
 
 
