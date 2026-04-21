@@ -271,10 +271,19 @@ Individual services may define additional variables; check each app’s README o
 
 ## Docker Compose
 
+Run all compose and helper commands from the **repository root** (the directory that contains `docker-compose.yml` and `docker-up.py`). If your IDE shows `can't open file ...\\PycharmProjects\\WorldOfShadows\\docker-up.py`, a Run/Debug configuration or task still points at an **old clone path** — edit it to use `python docker-up.py` (or the full path to `docker-up.py`) **under your current checkout**, or open the project from the folder where this repo actually lives.
+
 Use the root compose file:
 
 ```bash
 docker compose up --build
+```
+
+Optional bootstrap helper (same root directory):
+
+```bash
+python docker-up.py init-env
+python docker-up.py up
 ```
 
 The **backend** container runs **`flask db upgrade`** automatically on each start (before Gunicorn), so the SQLite file under `backend/instance/` (mounted into the container) stays aligned with the image’s migration chain—no separate manual `flask db upgrade` is required for the Docker stack after you rebuild the backend image when migrations change.
