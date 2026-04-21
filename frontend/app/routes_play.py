@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-import yaml
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
 from flask import flash, jsonify, make_response, redirect, render_template, request, session, url_for
 
 from . import player_backend
@@ -26,17 +31,18 @@ OPERATOR_SESSION_JSON_MAX = 120_000
 def _load_template_mapping() -> dict[str, str]:
     """Load template ID to content module ID mapping from config file.
 
-    Falls back to default mapping if config file is not found.
+    Falls back to default mapping if config file is not found or yaml unavailable.
     """
-    config_path = Path(__file__).resolve().parent.parent / "config" / "template_module_mapping.yaml"
-    if config_path.exists():
-        try:
-            with open(config_path, "r") as f:
-                data = yaml.safe_load(f) or {}
-                return data.get("templates", {})
-        except Exception:
-            pass
-    # Fallback to inline mapping if config not found
+    if HAS_YAML:
+        config_path = Path(__file__).resolve().parent.parent / "config" / "template_module_mapping.yaml"
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    data = yaml.safe_load(f) or {}
+                    return data.get("templates", {})
+            except Exception:
+                pass
+    # Fallback to inline mapping if config not found or yaml not available
     return {
         "god_of_carnage_solo": "god_of_carnage",
     }
