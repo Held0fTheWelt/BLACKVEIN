@@ -6,6 +6,7 @@ import hmac
 import json
 import time
 from dataclasses import dataclass
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
@@ -374,6 +375,22 @@ def list_story_sessions(*, trace_id: str | None = None) -> dict:
     payload = _request("GET", "/api/story/sessions", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict) or "items" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session list payload.")
+    return payload
+
+
+def get_play_story_runtime_config_status(*, trace_id: str | None = None) -> dict[str, Any]:
+    """Fetch governed-runtime posture from the play service (world-engine)."""
+    payload = _request("GET", "/api/internal/story/runtime/config-status", internal=True, trace_id=trace_id)
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise GameServiceError("Play service returned an unexpected story runtime config-status payload.")
+    return payload
+
+
+def reload_play_story_runtime_governed_config(*, trace_id: str | None = None) -> dict[str, Any]:
+    """Push a fresh resolved runtime config into the play service in-process story runtime."""
+    payload = _request("POST", "/api/internal/story/runtime/reload-config", internal=True, trace_id=trace_id)
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected story runtime reload-config payload.")
     return payload
 
 

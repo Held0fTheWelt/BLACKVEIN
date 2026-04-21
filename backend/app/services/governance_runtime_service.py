@@ -1197,6 +1197,79 @@ def evaluate_runtime_readiness() -> dict:
         "Each blocker lists entity_type/entity_id when a specific provider or route is at fault; global rows (no entity_id) describe missing prerequisites.",
     ]
 
+    play_story_runtime_governance: dict[str, object] = {"status": "skipped", "reason": "play_service_not_configured"}
+    try:
+        from flask import has_app_context
+
+        from app.services.game_service import GameServiceError, get_play_story_runtime_config_status, has_complete_play_service_config
+
+        if has_app_context() and has_complete_play_service_config():
+            probe = get_play_story_runtime_config_status()
+            st = probe.get("runtime_config_status") if isinstance(probe, dict) else {}
+            play_story_runtime_governance = {"status": "ok", "runtime_config_status": st}
+            if not isinstance(st, dict):
+                play_story_runtime_governance = {"status": "error", "message": "unexpected_runtime_config_status_shape"}
+            else:
+                if not bool(st.get("governed_runtime_active")):
+                    blockers.append(
+                        {
+                            "code": "play_story_runtime_not_governed",
+                            "entity_type": "play_service",
+                            "entity_id": None,
+                            "message": "Play-service story runtime is not bound to governed resolved config (or execution is blocked).",
+                            "suggested_action": "Rebuild resolved runtime config from Administration Center, verify BACKEND_RUNTIME_CONFIG_URL and INTERNAL_RUNTIME_CONFIG_TOKEN on the play service, then POST /api/internal/story/runtime/reload-config or restart the play service.",
+                        }
+                    )
+                if bool(st.get("legacy_default_registry_path")):
+                    blockers.append(
+                        {
+                            "code": "play_story_runtime_legacy_default_registry",
+                            "entity_type": "play_service",
+                            "entity_id": None,
+                            "message": "Play-service story runtime reports legacy default registry posture.",
+                            "suggested_action": "Disable WOS_ALLOW_UNGOVERNED_STORY_RUNTIME in production-like environments and rebuild governed resolved runtime config.",
+                        }
+                    )
+                if bool(st.get("live_execution_blocked")):
+                    blockers.append(
+                        {
+                            "code": "play_story_runtime_live_execution_blocked",
+                            "entity_type": "play_service",
+                            "entity_id": None,
+                            "message": "Play-service story runtime reports live_execution_blocked.",
+                            "suggested_action": "Fix governed runtime configuration completeness, then reload the play-service story runtime from the backend rebuild path.",
+                        }
+                    )
+                if not str(st.get("config_version") or "").strip():
+                    blockers.append(
+                        {
+                            "code": "play_story_runtime_missing_config_version",
+                            "entity_type": "play_service",
+                            "entity_id": None,
+                            "message": "Play-service story runtime is missing an active config_version.",
+                            "suggested_action": "Rebuild resolved runtime config and rebind the play service story runtime.",
+                        }
+                    )
+    except GameServiceError as exc:
+        play_story_runtime_governance = {"status": "error", "message": str(exc)}
+        blockers.append(
+            {
+                "code": "play_story_runtime_governance_probe_failed",
+                "entity_type": "play_service",
+                "entity_id": None,
+                "message": f"Backend could not read play-service story runtime governance status: {exc}",
+                "suggested_action": "Verify play-service health, internal URL, and X-Play-Service-Key alignment, then retry.",
+            }
+        )
+
+    if play_story_runtime_governance.get("status") == "error" or any(
+        b.get("code", "").startswith("play_story_runtime") for b in blockers
+    ):
+        if readiness_severity == "healthy":
+            readiness_severity = "degraded"
+        if readiness_headline.startswith("AI-only generation is currently valid"):
+            readiness_headline = "Governance inventory looks eligible, but play-service story-runtime binding needs attention."
+
     return {
         "mock_only_required": mock_only_required,
         "ai_only_valid": ai_only_valid,
@@ -1227,6 +1300,7 @@ def evaluate_runtime_readiness() -> dict:
             "ai_ready": sum(1 for r in route_rows if r["ai_path_ready"]),
             "runtime_eligible": sum(1 for r in route_rows if r["runtime_eligible"]),
         },
+        "play_story_runtime_governance": play_story_runtime_governance,
     }
 
 
@@ -1524,6 +1598,20 @@ def build_resolved_runtime_config(*, persist_snapshot: bool, actor: str) -> dict
             resolved=resolved,
             actor=actor,
         )
+        rebind: dict[str, object] = {"attempted": False, "skipped": True}
+        try:
+            from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
+
+            if has_complete_play_service_config():
+                rebind["skipped"] = False
+                rebind["attempted"] = True
+                rebind.update(reload_play_story_runtime_governed_config())
+        except Exception as exc:  # noqa: BLE001 — operator-facing best-effort rebind must not roll back DB snapshot
+            rebind["skipped"] = False
+            rebind["attempted"] = True
+            rebind["ok"] = False
+            rebind["error"] = str(exc)[:500]
+        resolved["world_engine_story_runtime_rebind"] = rebind
     return resolved
 
 

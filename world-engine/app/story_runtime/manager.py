@@ -17,11 +17,17 @@ from ai_stack import (
 )
 from ai_stack.story_runtime_playability import is_hard_boundary_failure
 
-from app.config import APP_VERSION
+from app.config import APP_VERSION, allow_ungoverned_story_runtime
 from app.repo_root import resolve_wos_repo_root
 from app.observability.audit_log import log_story_runtime_failure, log_story_turn_event
 from app.observability.runtime_metrics import StoryRuntimeMetrics
 from app.story_runtime.governed_runtime import build_governed_story_runtime_components
+from app.story_runtime.live_governance import (
+    BlockedLiveStoryRoutingPolicy,
+    LiveStoryGovernanceError,
+    is_governed_resolved_config_operational,
+    opening_text_contains_preview_placeholder,
+)
 from app.story_runtime.commit_models import resolve_narrative_commit
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
@@ -222,6 +228,7 @@ class StoryRuntimeManager:
             "last_reload_ok": None,
             "route_count": 0,
             "model_count": 0,
+            "live_execution_blocked": False,
         }
         self.turn_graph: RuntimeTurnGraphExecutor | None = None
         # Isolated tests inject custom adapters/registry; skip Turn-0 graph opening there (fixtures are not
@@ -237,6 +244,7 @@ class StoryRuntimeManager:
                 "last_reload_ok": True,
                 "route_count": 0,
                 "model_count": len(self.registry.all()),
+                "live_execution_blocked": False,
             }
         elif adapters is not None:
             # Tests often pass custom adapters without a registry; do not let
@@ -254,23 +262,41 @@ class StoryRuntimeManager:
                     "last_reload_ok": True,
                     "route_count": len((governed_runtime_config or {}).get("routes") or []),
                     "model_count": len(self.registry.all()),
+                    "live_execution_blocked": False,
                 }
             else:
                 self._governed_runtime_config = (
                     dict(governed_runtime_config) if isinstance(governed_runtime_config, dict) else None
                 )
-                self.registry = build_default_registry()
-                self.routing = RoutingPolicy(self.registry)
-                self.adapters = adapters
-                self._runtime_config_status = {
-                    "source": "injected_adapters_default_registry",
-                    "config_version": self._governed_runtime_config.get("config_version")
-                    if isinstance(self._governed_runtime_config, dict)
-                    else None,
-                    "last_reload_ok": True,
-                    "route_count": 0,
-                    "model_count": len(self.registry.all()),
-                }
+                if allow_ungoverned_story_runtime():
+                    self.registry = build_default_registry()
+                    self.routing = RoutingPolicy(self.registry)
+                    self.adapters = adapters
+                    self._runtime_config_status = {
+                        "source": "injected_adapters_default_registry",
+                        "config_version": self._governed_runtime_config.get("config_version")
+                        if isinstance(self._governed_runtime_config, dict)
+                        else None,
+                        "last_reload_ok": True,
+                        "route_count": 0,
+                        "model_count": len(self.registry.all()),
+                        "live_execution_blocked": False,
+                    }
+                else:
+                    self.registry = ModelRegistry()
+                    self.routing = BlockedLiveStoryRoutingPolicy()
+                    self.adapters = adapters
+                    self._runtime_config_status = {
+                        "source": "governed_config_invalid_or_missing",
+                        "config_version": self._governed_runtime_config.get("config_version")
+                        if isinstance(self._governed_runtime_config, dict)
+                        else None,
+                        "last_reload_ok": False,
+                        "route_count": 0,
+                        "model_count": 0,
+                        "live_execution_blocked": True,
+                        "live_execution_block_reason": "injected_adapters_without_governed_config",
+                    }
         else:
             self._apply_runtime_components(governed_runtime_config)
         if retriever is None or context_assembler is None:
@@ -352,6 +378,7 @@ class StoryRuntimeManager:
                 "last_reload_ok": True,
                 "route_count": len((governed_runtime_config or {}).get("routes") or []),
                 "model_count": len((governed_runtime_config or {}).get("models") or []),
+                "live_execution_blocked": False,
             }
             self.metrics.incr(
                 "runtime_config_apply_success",
@@ -359,26 +386,66 @@ class StoryRuntimeManager:
                 config_version=(governed_runtime_config or {}).get("config_version"),
             )
             return
+        if allow_ungoverned_story_runtime():
+            self._governed_runtime_config = (
+                dict(governed_runtime_config) if isinstance(governed_runtime_config, dict) else None
+            )
+            self.registry = build_default_registry()
+            self.routing = RoutingPolicy(self.registry)
+            self.adapters = build_default_model_adapters()
+            self._runtime_config_status = {
+                "source": "default_registry",
+                "config_version": (governed_runtime_config or {}).get("config_version")
+                if isinstance(governed_runtime_config, dict)
+                else None,
+                "last_reload_ok": False if isinstance(governed_runtime_config, dict) else None,
+                "route_count": 0,
+                "model_count": 0,
+                "live_execution_blocked": False,
+            }
+            self.metrics.incr(
+                "runtime_config_apply_fallback_default",
+                source="default_registry",
+                config_version=self._runtime_config_status.get("config_version"),
+            )
+            return
+        reason = "resolved_config_unusable"
+        if not isinstance(governed_runtime_config, dict):
+            reason = "resolved_config_missing"
+        elif not is_governed_resolved_config_operational(governed_runtime_config):
+            reason = "resolved_config_incomplete_or_invalid"
+        self._apply_blocked_runtime_components(governed_runtime_config, reason_code=reason)
+
+    def _apply_blocked_runtime_components(
+        self, governed_runtime_config: dict[str, Any] | None, *, reason_code: str
+    ) -> None:
+        """Fail-closed posture: no default registry, no hidden live-capable adapters."""
         self._governed_runtime_config = dict(governed_runtime_config) if isinstance(governed_runtime_config, dict) else None
-        self.registry = build_default_registry()
-        self.routing = RoutingPolicy(self.registry)
-        self.adapters = build_default_model_adapters()
+        self.registry = ModelRegistry()
+        self.routing = BlockedLiveStoryRoutingPolicy()
+        self.adapters = {}
         self._runtime_config_status = {
-            "source": "default_registry",
+            "source": "governed_config_invalid_or_missing",
             "config_version": (governed_runtime_config or {}).get("config_version")
             if isinstance(governed_runtime_config, dict)
             else None,
-            "last_reload_ok": False if isinstance(governed_runtime_config, dict) else None,
+            "last_reload_ok": False,
             "route_count": 0,
             "model_count": 0,
+            "live_execution_blocked": True,
+            "live_execution_block_reason": reason_code,
         }
         self.metrics.incr(
-            "runtime_config_apply_fallback_default",
-            source="default_registry",
+            "runtime_config_apply_blocked",
+            source="governed_config_invalid_or_missing",
+            reason=reason_code,
             config_version=self._runtime_config_status.get("config_version"),
         )
 
     def _rebuild_turn_graph(self) -> None:
+        gen_mode = None
+        if isinstance(self._governed_runtime_config, dict):
+            gen_mode = str(self._governed_runtime_config.get("generation_execution_mode") or "").strip() or None
         self.turn_graph = RuntimeTurnGraphExecutor(
             interpreter=interpret_player_input,
             routing=self.routing,
@@ -389,6 +456,7 @@ class StoryRuntimeManager:
             capability_registry=self.capability_registry,
             max_self_correction_attempts=self._max_self_correction_attempts(),
             allow_degraded_commit_after_retries=self._allow_degraded_commit_after_retries(),
+            generation_execution_mode=gen_mode,
         )
 
     def reload_runtime_config(self, governed_runtime_config: dict[str, Any] | None) -> dict[str, Any]:
@@ -397,12 +465,35 @@ class StoryRuntimeManager:
         return self.runtime_config_status()
 
     def runtime_config_status(self) -> dict[str, Any]:
+        src = str(self._runtime_config_status.get("source") or "")
+        governed = src in {"governed_runtime_config", "governed_runtime_config_with_injected_adapters"}
         return {
             **self._runtime_config_status,
+            "governed_runtime_active": governed and not bool(self._runtime_config_status.get("live_execution_blocked")),
+            "legacy_default_registry_path": src == "default_registry",
             "max_self_correction_attempts": self._max_self_correction_attempts(),
             "allow_degraded_commit_after_retries": self._allow_degraded_commit_after_retries(),
             "metrics": self.metrics.summary(),
         }
+
+    def _live_governance_enforced_for_player_paths(self) -> bool:
+        if allow_ungoverned_story_runtime():
+            return False
+        src = str(self._runtime_config_status.get("source") or "")
+        return not src.startswith("injected")
+
+    def _assert_live_player_governance(self) -> None:
+        if not self._live_governance_enforced_for_player_paths():
+            return
+        st = self._runtime_config_status
+        src = str(st.get("source") or "")
+        governed = src in {"governed_runtime_config", "governed_runtime_config_with_injected_adapters"}
+        if st.get("live_execution_blocked") or not governed:
+            raise LiveStoryGovernanceError(
+                f"LIVE_STORY_RUNTIME_BLOCKED: runtime_source={src!r} live_execution_blocked={st.get('live_execution_blocked')!r}"
+            )
+        if not str(st.get("config_version") or "").strip():
+            raise LiveStoryGovernanceError("LIVE_STORY_RUNTIME_BLOCKED: config_version is missing on governed runtime surface.")
 
     def _build_opening_prompt(self, session: StorySession) -> str:
         projection = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
@@ -430,7 +521,20 @@ class StoryRuntimeManager:
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:
         val = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
-        return val.get("status") == "approved"
+        if val.get("status") != "approved":
+            return False
+        module_id = str(graph_state.get("module_id") or "")
+        committed = graph_state.get("committed_result") if isinstance(graph_state.get("committed_result"), dict) else {}
+        # GoC uses an explicit commit seam; non-GoC vertical slices may approve without the same commit envelope.
+        if module_id == "god_of_carnage" and not committed.get("commit_applied"):
+            return False
+        bundle = graph_state.get("visible_output_bundle") if isinstance(graph_state.get("visible_output_bundle"), dict) else {}
+        gm = bundle.get("gm_narration")
+        if isinstance(gm, list):
+            joined = "\n".join(str(x) for x in gm)
+            if opening_text_contains_preview_placeholder(joined):
+                return False
+        return True
 
     def _visible_narration_present(self, graph_state: dict[str, Any]) -> bool:
         gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
@@ -494,20 +598,36 @@ class StoryRuntimeManager:
             graph_error_count=len(errors),
         )
         narrative_commit_payload = narrative_commit.model_dump(mode="json")
-        gov = {
+        r_src = str(self._runtime_config_status.get("source") or "")
+        governed_active = r_src in {"governed_runtime_config", "governed_runtime_config_with_injected_adapters"} and not bool(
+            self._runtime_config_status.get("live_execution_blocked")
+        )
+        gov: dict[str, Any] = {
             "source": self._runtime_config_status.get("source"),
             "config_version": self._runtime_config_status.get("config_version"),
-            "governed_runtime_active": self._runtime_config_status.get("source") == "governed_runtime_config",
-            "legacy_default_registry_path": self._runtime_config_status.get("source") == "default_registry",
+            "governed_runtime_active": governed_active,
+            "legacy_default_registry_path": r_src == "default_registry",
+            "live_execution_blocked": bool(self._runtime_config_status.get("live_execution_blocked")),
         }
         routing = graph_state.get("routing") if isinstance(graph_state.get("routing"), dict) else {}
-        gov["route_selected_model"] = routing.get("selected_model")
-        gov["route_selected_provider"] = routing.get("selected_provider")
-        gov["route_reason_code"] = routing.get("route_reason_code")
+        gov["primary_route_selection"] = {
+            "selected_model_id": routing.get("selected_model"),
+            "selected_provider_id": routing.get("selected_provider"),
+            "route_reason_code": routing.get("route_reason_code"),
+            "fallback_chain": routing.get("fallback_chain"),
+        }
         gov["fallback_stage_reached"] = routing.get("fallback_stage_reached") or (
             "graph_fallback_executed" if "fallback_model" in (graph_state.get("nodes_executed") or []) else "primary_only"
         )
         gen_meta = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
+        gov["final_model_invocation"] = {
+            "adapter": gen_meta.get("adapter"),
+            "api_model": gen_meta.get("model"),
+            "adapter_invocation_mode": gen_meta.get("adapter_invocation_mode"),
+        }
+        gov["route_selected_model"] = routing.get("selected_model")
+        gov["route_selected_provider"] = routing.get("selected_provider")
+        gov["route_reason_code"] = routing.get("route_reason_code")
         gov["adapter"] = gen_meta.get("adapter")
         gov["api_model"] = gen_meta.get("model")
         self_correction = graph_state.get("self_correction") if isinstance(graph_state.get("self_correction"), dict) else {}
@@ -577,6 +697,7 @@ class StoryRuntimeManager:
                 turn_number=0,
                 turn_initiator_type="engine",
                 turn_input_class="opening",
+                live_player_truth_surface=True,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -639,6 +760,7 @@ class StoryRuntimeManager:
         self._persist_session(session)
         if self._skip_graph_opening_on_create:
             return session
+        self._assert_live_player_governance()
         attempts = self._opening_retry_count() + 1
         last_exc: BaseException | None = None
         for attempt in range(1, attempts + 1):
@@ -679,6 +801,7 @@ class StoryRuntimeManager:
 
     def _execute_turn_locked(self, *, session_id: str, player_input: str, trace_id: str | None = None) -> dict[str, Any]:
         session = self.get_session(session_id)
+        self._assert_live_player_governance()
         session.turn_counter += 1
         session.updated_at = datetime.now(timezone.utc)
         commit_turn_number = session.turn_counter
@@ -705,6 +828,7 @@ class StoryRuntimeManager:
                 prior_continuity_impacts=prior_ci if prior_ci else None,
                 turn_number=commit_turn_number,
                 turn_initiator_type="player",
+                live_player_truth_surface=True,
             )
         except Exception as exc:
             session.turn_counter -= 1

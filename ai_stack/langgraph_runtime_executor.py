@@ -107,6 +107,7 @@ class RuntimeTurnGraphExecutor:
     graph_version: str = RUNTIME_TURN_GRAPH_VERSION
     max_self_correction_attempts: int = 3
     allow_degraded_commit_after_retries: bool = True
+    generation_execution_mode: str | None = None
 
     def __post_init__(self) -> None:
         """``__post_init__`` — see implementation for behaviour and contracts.
@@ -178,6 +179,7 @@ class RuntimeTurnGraphExecutor:
         turn_initiator_type: str | None = None,
         turn_input_class: str | None = None,
         turn_execution_mode: str | None = None,
+        live_player_truth_surface: bool | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -240,6 +242,10 @@ class RuntimeTurnGraphExecutor:
             initial_state["turn_input_class"] = turn_input_class
         if force_experiment_preview is not None:
             initial_state["force_experiment_preview"] = force_experiment_preview
+        lt = live_player_truth_surface
+        if lt is None:
+            lt = not bool(force_experiment_preview)
+        initial_state["live_player_truth_surface"] = bool(lt)
         if active_narrative_threads:
             initial_state["active_narrative_threads"] = active_narrative_threads
         if thread_pressure_summary:
@@ -787,6 +793,21 @@ class RuntimeTurnGraphExecutor:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
         fallback_generation = dict(state.get("generation", {}))
+        if (self.generation_execution_mode or "").strip().lower() == "ai_only":
+            errors = list(state.get("graph_errors", []))
+            errors.append("ai_only_mode_blocks_graph_managed_mock_fallback")
+            fb_gen = dict(state.get("generation", {}))
+            meta = fb_gen.get("metadata") if isinstance(fb_gen.get("metadata"), dict) else {}
+            fb_gen["metadata"] = {
+                **meta,
+                "note": "generation_execution_mode=ai_only — graph-managed mock fallback is disabled.",
+            }
+            update = _track(state, node_name="fallback_model", outcome="error")
+            update["graph_errors"] = errors
+            update["generation"] = fb_gen
+            update["fallback_needed"] = True
+            return update
+
         fallback_adapter = self.adapters.get("mock")
         if fallback_adapter:
             call = fallback_adapter.generate(
@@ -1119,6 +1140,7 @@ class RuntimeTurnGraphExecutor:
             validation_outcome=validation,
             generation=generation,
             transition_pattern=tp,
+            live_player_truth_surface=bool(state.get("live_player_truth_surface")),
             render_context={
                 "pacing_mode": state.get("pacing_mode") or "",
                 "silence_brevity_decision": state.get("silence_brevity_decision")

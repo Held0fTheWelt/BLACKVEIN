@@ -232,3 +232,15 @@ BACKEND_CONTENT_TIMEOUT_SECONDS = float(os.getenv("BACKEND_CONTENT_TIMEOUT_SECON
 BACKEND_RUNTIME_CONFIG_URL = os.getenv("BACKEND_RUNTIME_CONFIG_URL", BACKEND_API_URL).strip().rstrip("/")
 INTERNAL_RUNTIME_CONFIG_TOKEN = os.getenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
 RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS = float(os.getenv("RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS", "2"))
+
+
+def env_truthy(name: str, *, default: bool = False) -> bool:
+    raw = (os.getenv(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("1", "true", "yes", "on")
+
+
+def allow_ungoverned_story_runtime() -> bool:
+    """When true, story runtime may use legacy default_registry (tests / explicit dev only)."""
+    return env_truthy("WOS_ALLOW_UNGOVERNED_STORY_RUNTIME", default=False)

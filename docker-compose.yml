@@ -90,6 +90,9 @@ services:
       # Stable secrets from .env (do not edit hardcoded values; manage in .env instead)
       - PLAY_SERVICE_SECRET=${PLAY_SERVICE_SHARED_SECRET}
       - PLAY_SERVICE_INTERNAL_API_KEY=${PLAY_SERVICE_INTERNAL_API_KEY}
+      # Governed runtime: play-service must fetch the same resolved config the Administration Center publishes.
+      - BACKEND_RUNTIME_CONFIG_URL=http://backend:8000
+      - INTERNAL_RUNTIME_CONFIG_TOKEN=${INTERNAL_RUNTIME_CONFIG_TOKEN}
       - RUN_STORE_BACKEND=json
     ports:
       - "8001:8000"

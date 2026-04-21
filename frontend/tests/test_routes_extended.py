@@ -625,13 +625,8 @@ def test_routes_play_operator_payload_truncation(monkeypatch):
 
 
 def test_routes_play_legacy_turn_log_helpers(client):
-    with client.session_transaction() as sess:
-        sess[routes_play.PLAY_SHELL_TURN_LOG_KEY] = "bad"
     with client.application.test_request_context("/"):
-        with client.session_transaction() as sess:
-            pass
-
-    with client:
+        routes_play.session[routes_play.PLAY_SHELL_TURN_LOG_KEY] = "bad"
         routes_play._append_turn_log("run-1", {"turn_number": 1})
         existing = routes_play._ensure_turn_log_from_legacy("run-1", None)
         assert existing == [{"turn_number": 1}]
@@ -661,7 +656,7 @@ def test_routes_play_persist_turn_success_stores_legacy_projection(client):
         "state": {"committed_state": {"last_committed_consequences": ["reply_done"]}},
         "diagnostics": {"diagnostics": []},
     }
-    with client:
+    with client.application.test_request_context("/"):
         result = routes_play._persist_turn_success("run-1", payload)
         assert result["runtime_view"]["narration_text"] == "Reply text."
         assert result["operator_bundle"]["trace_id"] == "trace-1"

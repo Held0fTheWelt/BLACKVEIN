@@ -31,6 +31,10 @@ os.environ["PLAY_SERVICE_INTERNAL_API_KEY"] = "internal-api-key-for-ops"
 if "BACKEND_CONTENT_SYNC_ENABLED" not in os.environ:
     os.environ["BACKEND_CONTENT_SYNC_ENABLED"] = "false"
 
+# World-engine story-runtime tests use the legacy default registry unless a test explicitly opts into strict governance.
+if "WOS_ALLOW_UNGOVERNED_STORY_RUNTIME" not in os.environ:
+    os.environ["WOS_ALLOW_UNGOVERNED_STORY_RUNTIME"] = "1"
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))

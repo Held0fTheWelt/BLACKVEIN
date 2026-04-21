@@ -273,6 +273,7 @@ def run_visible_render(
     validation_outcome: dict[str, Any],
     generation: dict[str, Any],
     transition_pattern: str,
+    live_player_truth_surface: bool = False,
     render_context: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """Build visible_output_bundle aligned with committed truth
@@ -289,6 +290,7 @@ def run_visible_render(
         transition_pattern: ``transition_pattern`` (str); meaning follows the type and call sites.
         render_context: ``render_context`` (dict[str,
             Any] | None); meaning follows the type and call sites.
+        live_player_truth_surface: When true, never emit preview-safe placeholder lines for live player execution.
     
     Returns:
         tuple[dict[str, Any], list[str]]:
@@ -375,6 +377,12 @@ def run_visible_render(
         return bundle, markers
 
     # No commit: truth-safe staging (GATE_SCORING_POLICY_GOC.md §6.3).
+    if live_player_truth_surface:
+        gm_lines = [content] if content else []
+        bundle = {"gm_narration": gm_lines, "spoken_lines": []}
+        markers.append("live_truth_surface_no_preview_placeholder")
+        return bundle, markers
+
     safe = content if content else "(Preview staging — no committed world-state change.)"
     bundle = {
         "gm_narration": [safe],

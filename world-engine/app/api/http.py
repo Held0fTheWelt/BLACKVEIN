@@ -19,6 +19,7 @@ from app.narrative.validation_feedback import ValidationFeedback
 from app.narrative.validator_strategies import OutputValidatorConfig
 from app.runtime.manager import RuntimeManager
 from app.story_runtime import StoryRuntimeManager
+from app.story_runtime.live_governance import LiveStoryGovernanceError
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -345,6 +346,12 @@ def get_transcript(run_id: str, manager: RuntimeManager = Depends(get_manager)) 
     }
 
 
+@router.get("/internal/story/runtime/config-status", dependencies=[Depends(_require_internal_api_key)])
+def story_runtime_config_status(manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
+    """Machine-readable governed-runtime posture for readiness probes (no config fetch)."""
+    return {"ok": True, "runtime_config_status": manager.runtime_config_status()}
+
+
 @router.post("/internal/story/runtime/reload-config", dependencies=[Depends(_require_internal_api_key)])
 def reload_story_runtime_governed_config(
     request: Request,
@@ -365,7 +372,12 @@ def reload_story_runtime_governed_config(
     )
     request.app.state.resolved_runtime_config = cfg
     status = manager.reload_runtime_config(cfg)
-    return {"ok": True, "runtime_config_status": status}
+    governed_ok = bool(status.get("governed_runtime_active")) and not bool(status.get("live_execution_blocked"))
+    return {
+        "ok": governed_ok,
+        "runtime_config_status": status,
+        "reload_notes": None if governed_ok else "Governed components could not be built from fetched config; live story execution remains blocked.",
+    }
 
 
 @router.get("/story/sessions", dependencies=[Depends(_require_internal_api_key)])
@@ -376,11 +388,14 @@ def list_story_sessions(manager: StoryRuntimeManager = Depends(get_story_manager
 
 @router.post("/story/sessions", dependencies=[Depends(_require_internal_api_key)])
 def create_story_session(payload: CreateStorySessionRequest, manager: StoryRuntimeManager = Depends(get_story_manager)) -> dict[str, Any]:
-    session = manager.create_session(
-        module_id=payload.module_id,
-        runtime_projection=payload.runtime_projection,
-        content_provenance=payload.content_provenance,
-    )
+    try:
+        session = manager.create_session(
+            module_id=payload.module_id,
+            runtime_projection=payload.runtime_projection,
+            content_provenance=payload.content_provenance,
+        )
+    except LiveStoryGovernanceError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     opening_turn = session.diagnostics[-1] if session.diagnostics else None
     return {
         "session_id": session.session_id,
@@ -410,6 +425,8 @@ def execute_story_turn(
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Story session not found") from exc
+    except LiveStoryGovernanceError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     return {"session_id": session_id, "turn": turn}
 
 

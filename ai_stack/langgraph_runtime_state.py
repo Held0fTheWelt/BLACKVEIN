@@ -68,6 +68,7 @@ class RuntimeTurnState(TypedDict, total=False):
     turn_initiator_type: str
     turn_input_class: str
     turn_execution_mode: str
+    live_player_truth_surface: bool
     # Bounded semantic planner state (phases 0–4); advisory until validation/commit.
     semantic_move_record: dict[str, Any]
     social_state_record: dict[str, Any]
