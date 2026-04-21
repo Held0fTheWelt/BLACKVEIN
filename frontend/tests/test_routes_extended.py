@@ -346,66 +346,63 @@ def test_play_create_no_run_id(client, monkeypatch):
 
 
 def test_play_create_success(client, monkeypatch):
-    monkeypatch.setattr(
-        "app.player_backend.request_backend",
-        lambda *a, **k: FakeResponse(payload={"run": {"id": "run-99"}}),
-    )
+    calls = []
+
+    def fake_request(method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return FakeResponse(payload={"run_id": "run-99"})
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
     r = client.post("/play/start", data={"template_id": "t1"}, follow_redirects=False)
     assert r.status_code == 302
     assert "/play/run-99" in r.headers["Location"]
-    with client.session_transaction() as sess:
-        assert sess.get("play_shell_run_modules", {}).get("run-99") == "t1"
+    assert calls[-1][1] == "/api/v1/game/player-sessions"
+    assert calls[-1][2]["json_data"]["template_id"] == "t1"
 
 
-def test_play_create_god_of_carnage_solo_maps_to_content_module(client, monkeypatch):
-    """Play catalog uses template_id god_of_carnage_solo; in-process session needs YAML module id."""
-    monkeypatch.setattr(
-        "app.player_backend.request_backend",
-        lambda *a, **k: FakeResponse(payload={"run": {"id": "run-goc"}}),
-    )
-    with client.session_transaction() as sess:
-        sess["access_token"] = "t"
-    r = client.post(
-        "/play/start",
-        data={"template_id": "god_of_carnage_solo"},
-        follow_redirects=False,
-    )
-    assert r.status_code == 302
-    with client.session_transaction() as sess:
-        assert sess.get("play_shell_run_modules", {}).get("run-goc") == "god_of_carnage"
-
-
-def test_play_shell_ticket_ok_and_error(client, monkeypatch):
+def test_play_shell_renders_canonical_story_entries_without_ticket_or_backend_session(client, monkeypatch):
     def fake_request(method, path, **kwargs):
-        if path == "/api/v1/game/tickets":
-            return FakeResponse(payload={"ticket": "abc"})
-        if path == "/api/v1/sessions":
-            return FakeResponse(payload={"session_id": "backend-session-1"})
+        if path == "/api/v1/game/player-sessions/s1":
+            return FakeResponse(
+                payload={
+                    "contract": "game_player_session_v1",
+                    "runtime_session_id": "story-1",
+                    "runtime_session_ready": True,
+                    "can_execute": True,
+                    "story_entries": [
+                        {
+                            "entry_id": "opening",
+                            "role": "runtime",
+                            "speaker": "World of Shadows",
+                            "turn_number": 0,
+                            "text": "The room is already tense.",
+                        }
+                    ],
+                    "shell_state_view": {
+                        "module_id": "god_of_carnage",
+                        "current_scene_id": "scene_1",
+                        "turn_counter": 0,
+                    },
+                }
+            )
         raise AssertionError(f"unexpected backend call: {method} {path}")
 
     monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"username": "u1"}
-        sess["play_shell_run_modules"] = {"s1": "god_of_carnage"}
     r = client.get("/play/s1")
     assert r.status_code == 200
     assert b'id="play-story-window"' in r.data
     assert b'id="play-input-dock"' in r.data
     assert b'name="player_input"' in r.data
-    assert b"Geschichte" in r.data
-    assert b"Dein Zug" in r.data
-    with client.session_transaction() as sess:
-        assert sess.get("play_shell_backend_sessions", {}).get("s1") == "backend-session-1"
-
-    monkeypatch.setattr(
-        "app.player_backend.request_backend",
-        lambda *a, **k: FakeResponse(status_code=400, payload={"error": "nope"}),
-    )
-    r2 = client.get("/play/s2")
-    assert r2.status_code == 200
+    assert b"Story" in r.data
+    assert b"Your Turn" in r.data
+    assert b"The room is already tense." in r.data
+    assert b"Connect WebSocket" not in r.data
+    assert b"data-backend-session-id" not in r.data
 
 
 def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
@@ -413,9 +410,13 @@ def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
 
     def fake_request(method, path, **kwargs):
         calls.append((method, path, kwargs))
-        if path == "/api/v1/sessions/backend-session-1/turns":
+        if path == "/api/v1/game/player-sessions/sid/turns":
             return FakeResponse(
                 payload={
+                    "story_entries": [
+                        {"role": "player", "text": kwargs["json_data"]["player_input"], "turn_number": 1},
+                        {"role": "runtime", "text": "The story answers.", "turn_number": 1},
+                    ],
                     "turn": {
                         "turn_number": 1,
                         "raw_input": kwargs["json_data"]["player_input"],
@@ -433,86 +434,26 @@ def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
 
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
-        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
     client.post("/play/sid/execute", data={"player_input": "I look around and wait."}, follow_redirects=False)
     assert calls
     method, path, kwargs = calls[-1]
     assert method == "POST"
-    assert path == "/api/v1/sessions/backend-session-1/turns"
+    assert path == "/api/v1/game/player-sessions/sid/turns"
     assert kwargs["json_data"]["player_input"] == "I look around and wait."
 
 
-def test_play_execute_surfaces_world_engine_narration_on_shell(client, monkeypatch):
+def test_play_execute_json_returns_story_entries(client, monkeypatch):
     def fake_request(method, path, **kwargs):
-        if path == "/api/v1/game/tickets":
-            return FakeResponse(payload={"ticket": "t"})
-        if path == "/api/v1/sessions":
-            return FakeResponse(payload={"session_id": "backend-session-1"})
-        if path == "/api/v1/sessions/backend-session-1/turns":
+        if path == "/api/v1/game/player-sessions/sid/turns":
             return FakeResponse(
                 payload={
-                    "trace_id": "trace-test",
-                    "world_engine_story_session_id": "we-1",
-                    "turn": {
-                        "turn_number": 3,
-                        "raw_input": kwargs["json_data"]["player_input"],
-                        "interpreted_input": {"kind": "speech"},
-                        "visible_output_bundle": {"gm_narration": ["The room holds its breath.", "A chair scrapes."]},
-                        "validation_outcome": {"status": "approved"},
-                        "graph": {"errors": []},
-                    },
-                    "state": {
-                        "current_scene_id": "scene_2",
-                        "turn_counter": 3,
-                        "committed_state": {
-                            "last_narrative_commit_summary": {
-                                "committed_scene_id": "scene_2",
-                                "commit_reason_code": "committed_ok",
-                            },
-                            "last_committed_consequences": ["tension_escalates"],
-                        },
-                    },
-                }
-            )
-        raise AssertionError(f"unexpected backend call: {method} {path}")
-
-    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
-    with client.session_transaction() as sess:
-        sess["access_token"] = "t"
-        sess["current_user"] = {"username": "u1"}
-        sess["play_shell_run_modules"] = {"sid": "god_of_carnage"}
-        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
-    client.post(
-        "/play/sid/execute",
-        data={"player_input": "I stare at Veronique."},
-        follow_redirects=False,
-    )
-    r = client.get("/play/sid")
-    assert r.status_code == 200
-    assert b"The room holds its breath." in r.data
-    assert b"scene_2" in r.data
-    assert b"committed_ok" in r.data
-    assert b"tension_escalates" in r.data
-    assert b"trace-test" in r.data
-
-
-def test_play_execute_rejects_missing_backend_session_binding(client, monkeypatch):
-    monkeypatch.setattr(
-        "app.player_backend.request_backend",
-        lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not call backend")),
-    )
-    with client.session_transaction() as sess:
-        sess["access_token"] = "t"
-    response = client.post("/play/sid/execute", data={"player_input": "I stay silent."}, follow_redirects=False)
-    assert response.status_code == 302
-
-
-def test_play_execute_json_returns_ok_and_bundles(client, monkeypatch):
-    def fake_request(method, path, **kwargs):
-        if path == "/api/v1/sessions/backend-session-1/turns":
-            return FakeResponse(
-                payload={
-                    "trace_id": "tr-json",
+                    "story_entries": [
+                        {"role": "runtime", "text": "Opening pressure.", "turn_number": 0},
+                        {"role": "player", "text": "wave", "turn_number": 1},
+                        {"role": "runtime", "text": "The room responds.", "turn_number": 1},
+                    ],
+                    "story_window": {"contract": "authoritative_story_window_v1"},
+                    "shell_state_view": {"current_scene_id": "scene_1"},
                     "turn": {
                         "turn_number": 1,
                         "raw_input": kwargs["json_data"]["player_input"],
@@ -527,7 +468,6 @@ def test_play_execute_json_returns_ok_and_bundles(client, monkeypatch):
     monkeypatch.setattr("app.player_backend.request_backend", fake_request)
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
-        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
     r = client.post(
         "/play/sid/execute",
         data=json.dumps({"player_input": "wave"}),
@@ -536,44 +476,27 @@ def test_play_execute_json_returns_ok_and_bundles(client, monkeypatch):
     assert r.status_code == 200
     data = r.get_json()
     assert data["ok"] is True
-    assert data["runtime_view"]["trace_id"] == "tr-json"
-    assert data["operator_bundle"]["trace_id"] == "tr-json"
+    assert [entry["text"] for entry in data["story_entries"]] == [
+        "Opening pressure.",
+        "wave",
+        "The room responds.",
+    ]
 
 
-def test_play_shell_transcript_includes_opening_when_bridge_returns_it(client, monkeypatch):
+def test_play_shell_transcript_includes_opening_and_returned_turns(client, monkeypatch):
     def fake_request(method, path, **kwargs):
-        if path == "/api/v1/game/tickets":
-            return FakeResponse(payload={"ticket": "t"})
-        if path == "/api/v1/sessions":
-            return FakeResponse(payload={"session_id": "backend-session-1"})
-        if path == "/api/v1/sessions/backend-session-1/turns":
+        if path == "/api/v1/game/player-sessions/sid":
             return FakeResponse(
                 payload={
-                    "trace_id": "tr-open",
-                    "opening_turn": {
-                        "turn_number": 0,
-                        "turn_kind": "opening",
-                        "raw_input": "internal opening prompt — hidden in UI",
-                        "interpreted_input": {"kind": "speech"},
-                        "narrative_commit": {
-                            "committed_scene_id": "scene_1",
-                            "committed_consequences": ["opening:committed"],
-                        },
-                        "visible_output_bundle": {"gm_narration": ["Welcome to the table."]},
-                        "validation_outcome": {"status": "approved"},
-                    },
-                    "world_engine_opening_meta": {
-                        "current_scene_id": "scene_1",
-                        "turn_counter": 1,
-                        "module_id": "god_of_carnage",
-                    },
-                    "turn": {
-                        "turn_number": 1,
-                        "raw_input": kwargs["json_data"]["player_input"],
-                        "interpreted_input": {"kind": "speech"},
-                        "visible_output_bundle": {"gm_narration": ["You speak; tension rises."]},
-                    },
-                    "state": {"current_scene_id": "scene_1", "turn_counter": 1},
+                    "runtime_session_id": "story-1",
+                    "runtime_session_ready": True,
+                    "can_execute": True,
+                    "story_entries": [
+                        {"role": "runtime", "speaker": "World of Shadows", "turn_number": 0, "text": "Welcome to the table."},
+                        {"role": "player", "speaker": "You", "turn_number": 1, "text": "Hello."},
+                        {"role": "runtime", "speaker": "World of Shadows", "turn_number": 1, "text": "You speak; tension rises."},
+                    ],
+                    "shell_state_view": {"module_id": "god_of_carnage", "current_scene_id": "scene_1", "turn_counter": 1},
                 }
             )
         raise AssertionError(f"unexpected backend call: {method} {path}")
@@ -582,66 +505,12 @@ def test_play_shell_transcript_includes_opening_when_bridge_returns_it(client, m
     with client.session_transaction() as sess:
         sess["access_token"] = "t"
         sess["current_user"] = {"username": "u1"}
-        sess["play_shell_run_modules"] = {"sid": "god_of_carnage"}
-        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
-    r = client.post(
-        "/play/sid/execute",
-        data=json.dumps({"player_input": "Hello."}),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-    )
-    assert r.status_code == 200
     page = client.get("/play/sid")
     assert page.status_code == 200
     assert b"Welcome to the table." in page.data
+    assert b"Hello." in page.data
     assert b"You speak; tension rises." in page.data
     assert b"internal opening prompt" not in page.data
-
-
-def test_play_shell_transcript_shows_two_turns_after_json_executes(client, monkeypatch):
-    turn_state = {"n": 0}
-
-    def fake_request(method, path, **kwargs):
-        if path == "/api/v1/game/tickets":
-            return FakeResponse(payload={"ticket": "t"})
-        if path == "/api/v1/sessions":
-            return FakeResponse(payload={"session_id": "backend-session-1"})
-        if path == "/api/v1/sessions/backend-session-1/turns":
-            turn_state["n"] += 1
-            n = turn_state["n"]
-            return FakeResponse(
-                payload={
-                    "trace_id": f"tr-{n}",
-                    "turn": {
-                        "turn_number": n,
-                        "raw_input": kwargs["json_data"]["player_input"],
-                        "interpreted_input": {"kind": "speech"},
-                        "visible_output_bundle": {"gm_narration": [f"Line {n}"]},
-                    },
-                    "state": {"current_scene_id": "sc"},
-                }
-            )
-        raise AssertionError(f"unexpected backend call: {method} {path}")
-
-    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
-    with client.session_transaction() as sess:
-        sess["access_token"] = "t"
-        sess["current_user"] = {"username": "u1"}
-        sess["play_shell_run_modules"] = {"sid": "god_of_carnage"}
-        sess["play_shell_backend_sessions"] = {"sid": "backend-session-1"}
-    client.post(
-        "/play/sid/execute",
-        data=json.dumps({"player_input": "one"}),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-    )
-    client.post(
-        "/play/sid/execute",
-        data=json.dumps({"player_input": "two"}),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-    )
-    r = client.get("/play/sid")
-    assert r.status_code == 200
-    assert b"Line 1" in r.data
-    assert b"Line 2" in r.data
 
 
 def test_api_proxy_get_and_post(client, monkeypatch):
@@ -667,5 +536,4 @@ def test_api_proxy_get_and_post(client, monkeypatch):
         headers={"Content-Type": "application/json"},
     )
     assert r2.status_code == 201
-
 

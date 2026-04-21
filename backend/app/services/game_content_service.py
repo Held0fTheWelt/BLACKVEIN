@@ -224,6 +224,31 @@ def _resolve_canonical_module_id(template_id: str) -> str | None:
     return template_id
 
 
+def resolve_canonical_module_id_for_template(template_id: str) -> str:
+    """Return the authoritative runtime module id for a launcher template id."""
+    clean_template_id = (template_id or "").strip()
+    if not clean_template_id:
+        raise GameContentValidationError("template_id is required")
+
+    ensure_default_game_content_seeded()
+    entity = db.session.scalar(
+        select(GameExperienceTemplate).where(
+            GameExperienceTemplate.template_id == clean_template_id,
+            GameExperienceTemplate.is_published.is_(True),
+        )
+    )
+    payload = entity.payload_json if entity is not None and isinstance(entity.payload_json, dict) else {}
+    compilation = payload.get("canonical_compilation") if isinstance(payload.get("canonical_compilation"), dict) else {}
+    module_id = str(compilation.get("module_id") or "").strip()
+    if module_id:
+        return module_id
+
+    fallback = _resolve_canonical_module_id(clean_template_id)
+    if fallback:
+        return fallback
+    raise GameContentValidationError(f"No canonical module mapping found for template_id {clean_template_id!r}")
+
+
 def _attach_canonical_compilation(payload: dict) -> dict:
     template_id = str(payload.get("id") or "").strip()
     module_id = _resolve_canonical_module_id(template_id)

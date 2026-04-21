@@ -124,6 +124,79 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
     )
 
 
+def _coerce_visible_text_lines(value: Any) -> list[str]:
+    if isinstance(value, str):
+        line = value.strip()
+        return [line] if line else []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _visible_lines_from_turn_event(event: dict[str, Any]) -> list[str]:
+    bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
+    lines = _coerce_visible_text_lines(bundle.get("gm_narration"))
+    if lines:
+        return lines
+
+    generation = ((event.get("model_route") or {}).get("generation") or {}) if isinstance(event.get("model_route"), dict) else {}
+    lines = _coerce_visible_text_lines(generation.get("content") or generation.get("model_raw_text"))
+    if lines:
+        return lines
+
+    commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
+    status = str(commit.get("situation_status") or "").strip()
+    return [status] if status else []
+
+
+def _story_window_entries_for_session(session: StorySession) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for event in session.diagnostics:
+        if not isinstance(event, dict):
+            continue
+        turn_number = event.get("turn_number")
+        turn_kind = str(event.get("turn_kind") or "player").strip() or "player"
+        commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
+        consequences = commit.get("committed_consequences")
+        consequence_lines = [str(item) for item in consequences] if isinstance(consequences, list) else []
+        bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
+        spoken_lines = _coerce_visible_text_lines(bundle.get("spoken_lines"))
+
+        if turn_kind != "opening":
+            raw_input = str(event.get("raw_input") or "").strip()
+            if raw_input:
+                entries.append(
+                    {
+                        "entry_id": f"{session.session_id}:{turn_number}:player",
+                        "kind": "player_turn",
+                        "role": "player",
+                        "speaker": "You",
+                        "turn_number": turn_number,
+                        "text": raw_input,
+                        "source": "player_input",
+                    }
+                )
+
+        visible_lines = _visible_lines_from_turn_event(event)
+        if not visible_lines and not spoken_lines and not consequence_lines:
+            continue
+        entries.append(
+            {
+                "entry_id": f"{session.session_id}:{turn_number}:{turn_kind}",
+                "kind": "opening" if turn_kind == "opening" else "runtime_response",
+                "role": "runtime",
+                "speaker": "World of Shadows",
+                "turn_number": turn_number,
+                "text": "\n\n".join(visible_lines),
+                "spoken_lines": spoken_lines,
+                "committed_consequences": consequence_lines,
+                "source": "authoritative_story_runtime",
+                "runtime_governance_surface": event.get("runtime_governance_surface"),
+            }
+        )
+    return entries
+
+
 class StoryRuntimeManager:
     def __init__(
         self,
@@ -725,6 +798,8 @@ class StoryRuntimeManager:
         if session.last_thread_update_trace is not None:
             last_thread_summary = session.last_thread_update_trace.summary or None
 
+        story_entries = _story_window_entries_for_session(session)
+
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
@@ -752,6 +827,13 @@ class StoryRuntimeManager:
                     "thread_pressure_level": thread_metrics["thread_pressure_level"],
                     "last_narrative_thread_update_summary": last_thread_summary,
                 },
+            },
+            "story_window": {
+                "contract": "authoritative_story_window_v1",
+                "source": "world_engine_story_runtime",
+                "entries": story_entries,
+                "entry_count": len(story_entries),
+                "latest_entry": story_entries[-1] if story_entries else None,
             },
             "last_committed_turn": last_committed_turn,
             "updated_at": session.updated_at.isoformat(),

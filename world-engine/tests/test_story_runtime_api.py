@@ -91,6 +91,13 @@ def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key)
     assert state_body.get("last_committed_turn", {}).get("turn_number") == 2
     assert state_body.get("history_count") == 3
     assert "graph" not in (state_body.get("last_committed_turn") or {})
+    story_window = state_body.get("story_window") or {}
+    assert story_window.get("contract") == "authoritative_story_window_v1"
+    story_entries = story_window.get("entries") or []
+    assert story_entries
+    assert story_entries[0]["kind"] == "opening"
+    assert any(entry.get("role") == "player" and "open the door" in entry.get("text", "") for entry in story_entries)
+    assert any(entry.get("role") == "runtime" and entry.get("turn_number") == 2 for entry in story_entries)
 
     diagnostics_response = client.get(
         f"/api/story/sessions/{session_id}/diagnostics",

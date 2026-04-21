@@ -188,7 +188,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "app" / "var"
 RUN_STORE_DIR = DATA_DIR / "runs"
 STORY_SESSION_STORE_DIR = DATA_DIR / "story_sessions"
-APP_TITLE = os.getenv("APP_TITLE", "World of Shadows Play Service Prototype")
+APP_TITLE = os.getenv("APP_TITLE", "World of Shadows World-Engine Simulator")
 APP_VERSION = "0.3.0"
 
 # Determine if we're in production-like mode (explicit opt-in to lenient test mode)

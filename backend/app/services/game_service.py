@@ -315,7 +315,13 @@ def terminate_run(
     return _parse_terminate_v1(payload, requested_run_id=run_id)
 
 
-def create_story_session(*, module_id: str, runtime_projection: dict, trace_id: str | None = None) -> dict:
+def create_story_session(
+    *,
+    module_id: str,
+    runtime_projection: dict,
+    trace_id: str | None = None,
+    content_provenance: dict | None = None,
+) -> dict:
     if not current_app.config.get("PLAY_SERVICE_ALLOW_NEW_SESSIONS", True):
         raise GameServiceError(
             "New story sessions are disabled by operator control (Play-Service allow_new_sessions=false).",
@@ -324,7 +330,11 @@ def create_story_session(*, module_id: str, runtime_projection: dict, trace_id: 
     payload = _request(
         "POST",
         "/api/story/sessions",
-        json_payload={"module_id": module_id, "runtime_projection": runtime_projection},
+        json_payload={
+            "module_id": module_id,
+            "runtime_projection": runtime_projection,
+            "content_provenance": content_provenance or {},
+        },
         internal=True,
         trace_id=trace_id,
     )

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
-from flask import current_app, jsonify, request, session
+from flask import current_app, g, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from sqlalchemy import select
 
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin
+from app.content.compiler import compile_module
+from app.content.module_exceptions import ModuleLoadError
 from app.extensions import db, limiter
-from app.models import User
+from app.models import GameSaveSlot, User
 from app.services.game_content_service import (
     GameContentConflictError,
     GameContentLifecycleError,
@@ -21,6 +25,7 @@ from app.services.game_content_service import (
     list_published_experience_payloads,
     mark_experience_publishable,
     publish_experience,
+    resolve_canonical_module_id_for_template,
     submit_experience_for_review,
     unpublish_experience,
     update_experience,
@@ -42,8 +47,11 @@ from app.services.game_service import (
     GameServiceConfigError,
     GameServiceError,
     create_run as create_play_run,
+    create_story_session,
+    execute_story_turn as execute_story_turn_in_engine,
     get_run_details as get_play_run_details,
     get_run_transcript as get_play_run_transcript,
+    get_story_state,
     terminate_run as terminate_play_run,
     get_play_service_websocket_url,
     has_complete_play_service_config,
@@ -150,6 +158,253 @@ def _resolve_identity_context(user: User, payload: dict[str, Any]) -> GameIdenti
         character_name=character_name,
     )
 
+
+
+def _player_session_slot_key(run_id: str) -> str:
+    digest = hashlib.sha1(run_id.encode("utf-8")).hexdigest()[:24]
+    return f"player-{digest}"
+
+
+def _find_player_session_slot(user_id: int, run_id: str) -> GameSaveSlot | None:
+    return db.session.scalar(
+        select(GameSaveSlot).where(
+            GameSaveSlot.user_id == user_id,
+            GameSaveSlot.slot_key == _player_session_slot_key(run_id),
+        )
+    )
+
+
+def _run_template_id(payload: dict[str, Any]) -> str:
+    run = payload.get("run") if isinstance(payload.get("run"), dict) else {}
+    template = payload.get("template") if isinstance(payload.get("template"), dict) else {}
+    template_id = str(run.get("template_id") or template.get("id") or payload.get("template_id") or "").strip()
+    if not template_id:
+        raise GameServiceError("Play run did not include a template id.", status_code=502)
+    return template_id
+
+
+def _run_id(payload: dict[str, Any]) -> str:
+    run = payload.get("run") if isinstance(payload.get("run"), dict) else {}
+    run_id = str(run.get("id") or payload.get("run_id") or "").strip()
+    if not run_id:
+        raise GameServiceError("Play run did not include a run id.", status_code=502)
+    return run_id
+
+
+def _story_window_from_state(state: dict[str, Any]) -> dict[str, Any]:
+    story_window = state.get("story_window") if isinstance(state.get("story_window"), dict) else {}
+    entries = story_window.get("entries") if isinstance(story_window.get("entries"), list) else []
+    return {
+        "contract": story_window.get("contract") or "authoritative_story_window_v1",
+        "source": story_window.get("source") or "world_engine_story_runtime",
+        "entries": entries,
+        "entry_count": len(entries),
+        "latest_entry": entries[-1] if entries else None,
+    }
+
+
+def _player_shell_state_view(
+    *,
+    state: dict[str, Any],
+    run_id: str,
+    template_id: str,
+    module_id: str,
+    runtime_session_id: str,
+) -> dict[str, Any]:
+    committed = state.get("committed_state") if isinstance(state.get("committed_state"), dict) else {}
+    return {
+        "run_id": run_id,
+        "template_id": template_id,
+        "module_id": module_id,
+        "runtime_session_id": runtime_session_id,
+        "turn_counter": state.get("turn_counter"),
+        "current_scene_id": state.get("current_scene_id"),
+        "history_count": state.get("history_count"),
+        "last_narrative_commit_summary": committed.get("last_narrative_commit_summary"),
+        "last_committed_consequences": committed.get("last_committed_consequences") or [],
+        "last_open_pressures": committed.get("last_open_pressures") or [],
+    }
+
+
+def _player_session_bundle(
+    *,
+    run_id: str,
+    template_id: str,
+    module_id: str,
+    runtime_session_id: str,
+    state: dict[str, Any],
+    created: dict[str, Any] | None = None,
+    turn: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    story_window = _story_window_from_state(state)
+    latest_turn = turn if isinstance(turn, dict) else None
+    if latest_turn is None:
+        latest_turn = state.get("last_committed_turn") if isinstance(state.get("last_committed_turn"), dict) else None
+    latest_governance = (
+        latest_turn.get("runtime_governance_surface")
+        if isinstance(latest_turn, dict) and isinstance(latest_turn.get("runtime_governance_surface"), dict)
+        else None
+    )
+    return {
+        "contract": "game_player_session_v1",
+        "run_id": run_id,
+        "template_id": template_id,
+        "module_id": module_id,
+        "ticket_id": None,
+        "backend_session_id": None,
+        "runtime_session_id": runtime_session_id,
+        "world_engine_story_session_id": runtime_session_id,
+        "runtime_session_ready": True,
+        "can_execute": True,
+        "story_window": story_window,
+        "story_entries": story_window["entries"],
+        "shell_state_view": _player_shell_state_view(
+            state=state,
+            run_id=run_id,
+            template_id=template_id,
+            module_id=module_id,
+            runtime_session_id=runtime_session_id,
+        ),
+        "authoritative_state": state,
+        "turn": latest_turn,
+        "opening_turn": created.get("opening_turn") if isinstance(created, dict) else None,
+        "governance": {
+            "runtime_governance_surface": latest_governance,
+            "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,
+            "content_publication_gate": "published_game_content_required_for_template_module_binding",
+            "player_path_governed_by": [
+                "game content publication lifecycle",
+                "world-engine governed runtime config",
+                "runtime validation and guardrails",
+            ],
+        },
+        "identifier_model": {
+            "template_id": "launcher/content template selection",
+            "module_id": "compiled runtime module for story execution",
+            "run_id": "player launch and continuity handle",
+            "ticket_id": "not used by canonical HTTP story player path",
+            "backend_session_id": "not used by canonical player path",
+            "runtime_session_id": "world-engine story session id",
+        },
+    }
+
+
+def _persist_player_session_binding(
+    user: User,
+    *,
+    run_id: str,
+    template_id: str,
+    template_title: str | None,
+    module_id: str,
+    runtime_session_id: str,
+) -> GameSaveSlot:
+    return upsert_save_slot_for_user(
+        user.id,
+        slot_key=_player_session_slot_key(run_id),
+        title=template_title or f"Play session {run_id}",
+        template_id=template_id,
+        template_title=template_title,
+        run_id=run_id,
+        kind="canonical_player_session",
+        status="active",
+        metadata={
+            "contract": "game_player_session_v1",
+            "module_id": module_id,
+            "runtime_session_id": runtime_session_id,
+            "world_engine_story_session_id": runtime_session_id,
+            "continuity_owner": "backend_game_player_session_bridge",
+        },
+    )
+
+
+def _compile_player_module(template_id: str) -> tuple[str, dict[str, Any], dict[str, Any]]:
+    module_id = resolve_canonical_module_id_for_template(template_id)
+    try:
+        compiled = compile_module(module_id)
+    except ModuleLoadError as exc:
+        raise GameContentValidationError(f"canonical module not found for template_id {template_id!r}") from exc
+    runtime_projection = compiled.runtime_projection.model_dump(mode="json")
+    provenance = {
+        "template_id": template_id,
+        "module_id": module_id,
+        "canonical_content_authority": f"content/modules/{module_id}/",
+        "runtime_projection_module_id": runtime_projection.get("module_id"),
+        "runtime_projection_module_version": runtime_projection.get("module_version"),
+        "publication_gate": "game_content_published",
+    }
+    return module_id, runtime_projection, provenance
+
+
+def _ensure_player_session(
+    user: User,
+    *,
+    run_id: str | None = None,
+    template_id: str | None = None,
+    run_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    clean_run_id = (run_id or "").strip()
+    created: dict[str, Any] | None = None
+
+    if not clean_run_id:
+        if not isinstance(run_payload, dict):
+            raise ValidationError("run_id is required.")
+        clean_run_id = _run_id(run_payload)
+
+    slot = _find_player_session_slot(user.id, clean_run_id)
+    if slot is not None:
+        metadata = slot.metadata_json if isinstance(slot.metadata_json, dict) else {}
+        runtime_session_id = str(
+            metadata.get("runtime_session_id") or metadata.get("world_engine_story_session_id") or ""
+        ).strip()
+        module_id = str(metadata.get("module_id") or "").strip()
+        slot_template_id = str(slot.template_id or template_id or "").strip()
+        if runtime_session_id and module_id and slot_template_id:
+            try:
+                state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
+                return _player_session_bundle(
+                    run_id=clean_run_id,
+                    template_id=slot_template_id,
+                    module_id=module_id,
+                    runtime_session_id=runtime_session_id,
+                    state=state,
+                )
+            except GameServiceError as exc:
+                if exc.status_code != route_status_codes.not_found:
+                    raise
+
+    if not isinstance(run_payload, dict):
+        run_payload = get_play_run_details(clean_run_id)
+    resolved_template_id = (template_id or _run_template_id(run_payload)).strip()
+    template = run_payload.get("template") if isinstance(run_payload.get("template"), dict) else {}
+    template_title = str(template.get("title") or resolved_template_id)
+    module_id, runtime_projection, provenance = _compile_player_module(resolved_template_id)
+    provenance["run_id"] = clean_run_id
+    created = create_story_session(
+        module_id=module_id,
+        runtime_projection=runtime_projection,
+        trace_id=g.get("trace_id"),
+        content_provenance=provenance,
+    )
+    runtime_session_id = str(created.get("session_id") or "").strip()
+    if not runtime_session_id:
+        raise GameServiceError("World-Engine did not return a story session id.", status_code=502)
+    _persist_player_session_binding(
+        user,
+        run_id=clean_run_id,
+        template_id=resolved_template_id,
+        template_title=template_title,
+        module_id=module_id,
+        runtime_session_id=runtime_session_id,
+    )
+    state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
+    return _player_session_bundle(
+        run_id=clean_run_id,
+        template_id=resolved_template_id,
+        module_id=module_id,
+        runtime_session_id=runtime_session_id,
+        state=state,
+        created=created,
+    )
 
 
 def _parse_optional_int(raw_value: Any, *, field_name: str) -> int | None:
@@ -275,6 +530,90 @@ def game_create_run():
         if identity["character_id"]:
             touch_character_last_used(user.id, int(identity["character_id"]))
         return jsonify(result), route_status_codes.ok
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/player-sessions", methods=["POST"])
+@limiter.limit("20 per minute")
+def game_player_session_create():
+    """Create or resume the canonical player story session for a play run."""
+    try:
+        user = _require_game_user()
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON body must be an object."}), route_status_codes.bad_request
+        run_id = (data.get("run_id") or "").strip()
+        template_id = (data.get("template_id") or "").strip()
+        run_payload: dict[str, Any] | None = None
+        if not run_id:
+            if not template_id:
+                return jsonify({"error": "template_id or run_id is required."}), route_status_codes.bad_request
+            identity = _resolve_identity_context(user, data)
+            run_payload = create_play_run(
+                template_id=template_id,
+                account_id=str(user.id),
+                character_id=identity["character_id"],
+                display_name=identity["display_name"],
+            )
+            run_id = _run_id(run_payload)
+            if identity["character_id"]:
+                touch_character_last_used(user.id, int(identity["character_id"]))
+        bundle = _ensure_player_session(
+            user,
+            run_id=run_id,
+            template_id=template_id or None,
+            run_payload=run_payload,
+        )
+        return jsonify(bundle), route_status_codes.ok
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/player-sessions/<run_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+def game_player_session_resume(run_id: str):
+    """Resume the canonical player story session by run id."""
+    try:
+        user = _require_game_user()
+        bundle = _ensure_player_session(user, run_id=run_id)
+        return jsonify(bundle), route_status_codes.ok
+    except Exception as exc:  # pragma: no cover - centralized mapper
+        return _error_response(exc)
+
+
+@api_v1_bp.route("/game/player-sessions/<run_id>/turns", methods=["POST"])
+@limiter.limit("30 per minute")
+def game_player_session_turn(run_id: str):
+    """Execute a player turn through the authoritative World-Engine story runtime."""
+    try:
+        user = _require_game_user()
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            return jsonify({"error": "JSON body must be an object."}), route_status_codes.bad_request
+        player_input = str(data.get("player_input") or data.get("input") or "").strip()
+        if not player_input:
+            return jsonify({"error": "player_input is required."}), route_status_codes.bad_request
+        bundle = _ensure_player_session(user, run_id=run_id)
+        runtime_session_id = str(bundle.get("runtime_session_id") or "").strip()
+        if not runtime_session_id:
+            raise GameServiceError("Canonical player session is not ready.", status_code=502)
+        turn_payload = execute_story_turn_in_engine(
+            session_id=runtime_session_id,
+            player_input=player_input,
+            trace_id=g.get("trace_id"),
+        )
+        turn = turn_payload.get("turn") if isinstance(turn_payload.get("turn"), dict) else {}
+        state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
+        refreshed = _player_session_bundle(
+            run_id=run_id,
+            template_id=str(bundle.get("template_id") or ""),
+            module_id=str(bundle.get("module_id") or ""),
+            runtime_session_id=runtime_session_id,
+            state=state,
+            turn=turn,
+        )
+        return jsonify(refreshed), route_status_codes.ok
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
 

@@ -186,6 +186,192 @@ def test_game_ticket_uses_selected_backend_character_and_returns_ws_url(client, 
     assert captured["display_name"] == "Bruno Houille"
 
 
+def test_game_player_session_create_binds_run_to_story_runtime_server_side(
+    client,
+    auth_headers,
+    test_user,
+    app,
+    monkeypatch,
+):
+    user, _ = test_user
+
+    class Projection:
+        def model_dump(self, mode="json"):
+            return {"module_id": "god_of_carnage", "module_version": "0.1.0", "start_scene_id": "scene_1"}
+
+    class Compiled:
+        runtime_projection = Projection()
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        lambda **kwargs: {
+            "run": {"id": "run-player-1", "template_id": kwargs["template_id"]},
+            "template": {"id": kwargs["template_id"], "title": "God of Carnage", "kind": "solo_story"},
+            "store": {},
+            "hint": "created",
+        },
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.resolve_canonical_module_id_for_template",
+        lambda template_id: "god_of_carnage",
+    )
+    monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: Compiled())
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_story_session",
+        lambda **kwargs: {
+            "session_id": "story-session-1",
+            "opening_turn": {"turn_kind": "opening", "turn_number": 0},
+            "runtime_config_status": {"source": "governed_runtime_config"},
+        },
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.get_story_state",
+        lambda session_id, trace_id=None: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {},
+            "story_window": {
+                "contract": "authoritative_story_window_v1",
+                "entries": [
+                    {
+                        "kind": "opening",
+                        "role": "runtime",
+                        "speaker": "World of Shadows",
+                        "turn_number": 0,
+                        "text": "The room is already tense.",
+                    }
+                ],
+            },
+        },
+    )
+
+    response = client.post(
+        "/api/v1/game/player-sessions",
+        json={"template_id": "god_of_carnage_solo"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["contract"] == "game_player_session_v1"
+    assert data["run_id"] == "run-player-1"
+    assert data["template_id"] == "god_of_carnage_solo"
+    assert data["module_id"] == "god_of_carnage"
+    assert data["runtime_session_id"] == "story-session-1"
+    assert data["backend_session_id"] is None
+    assert data["story_entries"][0]["text"] == "The room is already tense."
+
+    with app.app_context():
+        slots = GameSaveSlot.query.filter_by(user_id=user.id, run_id="run-player-1").all()
+        assert len(slots) == 1
+        assert slots[0].kind == "canonical_player_session"
+        assert slots[0].metadata_json["runtime_session_id"] == "story-session-1"
+
+
+def test_game_player_session_turn_continues_same_story_window(
+    client,
+    auth_headers,
+    monkeypatch,
+):
+    class Projection:
+        def model_dump(self, mode="json"):
+            return {"module_id": "god_of_carnage", "module_version": "0.1.0", "start_scene_id": "scene_1"}
+
+    class Compiled:
+        runtime_projection = Projection()
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        lambda **kwargs: {
+            "run": {"id": "run-player-2", "template_id": kwargs["template_id"]},
+            "template": {"id": kwargs["template_id"], "title": "God of Carnage", "kind": "solo_story"},
+            "store": {},
+            "hint": "created",
+        },
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.resolve_canonical_module_id_for_template",
+        lambda template_id: "god_of_carnage",
+    )
+    monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: Compiled())
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_story_session",
+        lambda **kwargs: {"session_id": "story-session-2", "opening_turn": {"turn_kind": "opening"}},
+    )
+
+    states = [
+        {
+            "session_id": "story-session-2",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {},
+            "story_window": {"entries": [{"role": "runtime", "text": "Opening pressure.", "turn_number": 0}]},
+        },
+        {
+            "session_id": "story-session-2",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {},
+            "story_window": {"entries": [{"role": "runtime", "text": "Opening pressure.", "turn_number": 0}]},
+        },
+        {
+            "session_id": "story-session-2",
+            "turn_counter": 1,
+            "current_scene_id": "scene_1",
+            "history_count": 2,
+            "committed_state": {},
+            "story_window": {
+                "entries": [
+                    {"role": "runtime", "text": "Opening pressure.", "turn_number": 0},
+                    {"role": "player", "text": "I speak plainly.", "turn_number": 1},
+                    {"role": "runtime", "text": "The answer lands hard.", "turn_number": 1},
+                ]
+            },
+        },
+    ]
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.get_story_state",
+        lambda session_id, trace_id=None: states.pop(0),
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.execute_story_turn_in_engine",
+        lambda **kwargs: {
+            "turn": {
+                "turn_number": 1,
+                "raw_input": kwargs["player_input"],
+                "interpreted_input": {"kind": "speech"},
+                "runtime_governance_surface": {"governed_runtime_active": True},
+            }
+        },
+    )
+
+    created = client.post(
+        "/api/v1/game/player-sessions",
+        json={"template_id": "god_of_carnage_solo"},
+        headers=auth_headers,
+    )
+    assert created.status_code == 200
+
+    response = client.post(
+        "/api/v1/game/player-sessions/run-player-2/turns",
+        json={"player_input": "I speak plainly."},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert [entry["text"] for entry in data["story_entries"]] == [
+        "Opening pressure.",
+        "I speak plainly.",
+        "The answer lands hard.",
+    ]
+    assert data["turn"]["interpreted_input"]["kind"] == "speech"
+
+
 
 def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(client, auth_headers, app):
     app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"

@@ -266,24 +266,12 @@ def _player_input_from_request() -> str:
 
 
 def _run_backend_turn(run_id: str, player_input: str) -> tuple[dict[str, Any] | None, str | None]:
-    # REPAIR: Check cookies first (survives page reload), then session storage
-    cookie_key = f"wos_backend_session_{run_id}"
-    backend_session_id = request.cookies.get(cookie_key)
-
-    if not backend_session_id:
-        backend_sessions = session.get("play_shell_backend_sessions", {})
-        if not isinstance(backend_sessions, dict):
-            backend_sessions = {}
-        backend_session_id = backend_sessions.get(run_id)
-
-    if not backend_session_id:
-        return None, "Runtime session is not ready. Re-open the play shell from Play Start."
     text = player_input.strip()
     if not text:
         return None, "Please describe your turn in natural language (or use an explicit command)."
     response = player_backend.request_backend(
         "POST",
-        f"/api/v1/sessions/{backend_session_id}/turns",
+        f"/api/v1/game/player-sessions/{run_id}/turns",
         json_data={"player_input": text},
     )
     try:
@@ -310,112 +298,57 @@ def play_create():
     if not template_id:
         flash("Please select a template.", "error")
         return redirect(url_for("frontend.play_start"))
-    response = player_backend.request_backend("POST", "/api/v1/game/runs", json_data={"template_id": template_id})
+    response = player_backend.request_backend(
+        "POST",
+        "/api/v1/game/player-sessions",
+        json_data={"template_id": template_id},
+    )
     try:
         payload = player_backend.require_success(response, "Could not create play run.")
     except BackendApiError as exc:
         flash(str(exc), "error")
         return redirect(url_for("frontend.play_start"))
-    run_id = payload.get("run", {}).get("id")
+    run_id = payload.get("run_id") or payload.get("run", {}).get("id")
     if not run_id:
-        flash("Run creation returned no run id.", "error")
+        flash("Player session creation returned no run id.", "error")
         return redirect(url_for("frontend.play_start"))
-    run_modules = session.get("play_shell_run_modules", {})
-    if not isinstance(run_modules, dict):
-        run_modules = {}
-    run_modules[run_id] = play_template_to_content_module_id(template_id)
-    session["play_shell_run_modules"] = run_modules
-    session.modified = True
     return redirect(url_for("frontend.play_shell", session_id=run_id))
 
 
 @frontend_bp.route("/play/<session_id>")
 @require_login
 def play_shell(session_id: str):
-    from flask import request
+    response = player_backend.request_backend("GET", f"/api/v1/game/player-sessions/{session_id}")
+    payload: dict[str, Any] = {}
+    if response.ok:
+        raw = response.json()
+        payload = raw if isinstance(raw, dict) else {}
+    else:
+        error_payload = response.json() if response.content else {}
+        flash(error_payload.get("error", "Could not resume player session."), "error")
 
-    user = session.get("current_user") or {}
-    response = player_backend.request_backend(
-        "POST",
-        "/api/v1/game/tickets",
-        json_data={"run_id": session_id, "display_name": user.get("username", "Player")},
+    story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
+    shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
+    play_bootstrap_json = json.dumps(
+        {
+            "contract": payload.get("contract"),
+            "run_id": session_id,
+            "runtime_session_id": payload.get("runtime_session_id"),
+            "story_entries": story_entries,
+            "shell_state_view": shell_state_view,
+        }
     )
-    ticket_payload = response.json() if response.ok else {}
-    if not response.ok:
-        flash(ticket_payload.get("error", "Could not create play ticket."), "error")
-
-    # REPAIR: Look for backend_session_id in cookies first (survives page reload),
-    # then in session storage (new sessions), then create if missing.
-    cookie_key = f"wos_backend_session_{session_id}"
-    backend_session_id = request.cookies.get(cookie_key)
-
-    if not backend_session_id:
-        backend_sessions = session.get("play_shell_backend_sessions", {})
-        if not isinstance(backend_sessions, dict):
-            backend_sessions = {}
-        backend_session_id = backend_sessions.get(session_id)
-
-    if not backend_session_id:
-        run_modules = session.get("play_shell_run_modules", {})
-        module_id = run_modules.get(session_id) if isinstance(run_modules, dict) else None
-        if module_id:
-            backend_response = player_backend.request_backend(
-                "POST",
-                "/api/v1/sessions",
-                json_data={"module_id": module_id},
-            )
-            if backend_response.ok:
-                backend_payload = backend_response.json()
-                backend_session_id = backend_payload.get("session_id")
-                if backend_session_id:
-                    backend_sessions = session.get("play_shell_backend_sessions", {})
-                    if not isinstance(backend_sessions, dict):
-                        backend_sessions = {}
-                    backend_sessions[session_id] = backend_session_id
-                    session["play_shell_backend_sessions"] = backend_sessions
-                    session.modified = True
-                else:
-                    flash("Runtime session creation returned no session id.", "error")
-            else:
-                backend_payload = backend_response.json() if backend_response.content else {}
-                flash(backend_payload.get("error", "Could not create runtime session."), "error")
-        else:
-            flash("No module mapping found for this run. Start a new run from Play Start.", "error")
-    runtime_views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
-    if not isinstance(runtime_views, dict):
-        runtime_views = {}
-    runtime_view = runtime_views.get(session_id)
-    turn_log = _ensure_turn_log_from_legacy(session_id, runtime_view)
-    op_map = session.get(PLAY_SHELL_OPERATOR_KEY)
-    operator_bundle = op_map.get(session_id) if isinstance(op_map, dict) else None
-    play_bootstrap_json = json.dumps({"operator_bundle": operator_bundle or {}})
-
-    # REPAIR: Set persistent cookie for backend_session_id (survives page reload)
-    from datetime import datetime, timedelta
-    response_obj = make_response(
-        render_template(
-            "session_shell.html",
-            session_id=session_id,
-            ticket=ticket_payload,
-            backend_session_id=backend_session_id,
-            runtime_view=runtime_view,
-            turn_log=turn_log,
-            operator_bundle=operator_bundle,
-            play_bootstrap_json=play_bootstrap_json,
-        )
+    return render_template(
+        "session_shell.html",
+        session_id=session_id,
+        runtime_session_id=payload.get("runtime_session_id"),
+        runtime_session_ready=bool(payload.get("runtime_session_ready")),
+        can_execute=bool(payload.get("can_execute")),
+        story_entries=story_entries,
+        shell_state_view=shell_state_view,
+        governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
+        play_bootstrap_json=play_bootstrap_json,
     )
-    if backend_session_id:
-        cookie_key = f"wos_backend_session_{session_id}"
-        # Set cookie to expire in 7 days (typical play session length)
-        response_obj.set_cookie(
-            cookie_key,
-            backend_session_id,
-            max_age=7 * 24 * 60 * 60,
-            secure=True,
-            httponly=True,
-            samesite="Strict",
-        )
-    return response_obj
 
 
 @frontend_bp.route("/play/<session_id>/execute", methods=["POST"])
@@ -430,14 +363,15 @@ def play_execute(session_id: str):
         flash(err, "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     assert payload is not None
-    extras = _persist_turn_success(session_id, payload)
     interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
     if wants_json:
         return jsonify(
             {
                 "ok": True,
                 "interpreted_input_kind": interpreted,
-                **extras,
+                "story_entries": payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else [],
+                "story_window": payload.get("story_window") if isinstance(payload.get("story_window"), dict) else {},
+                "shell_state_view": payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {},
             }
         ), 200
     flash(
