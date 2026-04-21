@@ -1,5 +1,0 @@
-# Security-pinned versions to mitigate known CVEs
-Flask>=3.0.6,<4
-# Werkzeug CVE-2026-21860 (Path Traversal), CVE-2025-66221 (DoS Windows device names), CVE-2024-34069 (Debugger RCE)
-werkzeug>=3.1.5,<4
-python-dotenv>=1.0.0,<2
