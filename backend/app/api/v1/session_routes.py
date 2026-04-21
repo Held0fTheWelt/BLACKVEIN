@@ -40,6 +40,53 @@ from app.runtime.input_interpreter import interpret_player_input
 from app.config.route_constants import route_session_config, route_status_codes
 
 
+def _validate_world_engine_turn_contract(turn: dict, trace_id: str | None = None) -> None:
+    """PHASE 2: Validate world-engine turn response against canonical contract.
+
+    Ensures all required fields are present. Logs warnings if optional fields are missing.
+    Raises GameServiceError if critical fields are missing.
+    """
+    if not isinstance(turn, dict):
+        raise GameServiceError("World-engine turn response is not a dict")
+
+    required_fields = {
+        "turn_number": int,
+        "turn_kind": str,
+        "interpreted_input": dict,
+        "narrative_commit": dict,
+        "validation_outcome": dict,
+        "visible_output_bundle": dict,
+    }
+
+    optional_fields = {
+        "trace_id": str,
+        "raw_input": str,
+        "graph": dict,
+        "model_route": dict,
+        "retrieval": dict,
+    }
+
+    missing_required = []
+    for field, expected_type in required_fields.items():
+        if field not in turn:
+            missing_required.append(field)
+        elif not isinstance(turn.get(field), expected_type):
+            missing_required.append(f"{field} (wrong type: {type(turn.get(field)).__name__})")
+
+    if missing_required:
+        msg = f"World-engine turn missing required fields: {', '.join(missing_required)}"
+        raise GameServiceError(msg)
+
+    # Warn about missing optional fields (but don't fail)
+    missing_optional = [f for f in optional_fields if f not in turn]
+    if missing_optional:
+        import sys
+        print(
+            f"[WARN] World-engine turn missing optional fields: {', '.join(missing_optional)}",
+            file=sys.stderr,
+        )
+
+
 @api_v1_bp.route("/sessions", methods=["POST"])
 @jwt_required(optional=True)
 def create_new_session():
@@ -512,6 +559,9 @@ def execute_session_turn(session_id):
         world_engine_story_session_id=engine_story_session_id,
         outcome="ok",
     )
+
+    # PHASE 2 VALIDATION: Verify turn response contains canonical contract fields
+    _validate_world_engine_turn_contract(turn, trace_id)
 
     response_body: dict = {
         "session_id": session_id,

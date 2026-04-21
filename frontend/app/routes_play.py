@@ -87,9 +87,24 @@ def _build_play_shell_opening_view(
 
 
 def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any]:
-    """Project world-engine bridge JSON into a compact, player-facing last-turn view."""
+    """Project world-engine bridge JSON into a compact, player-facing last-turn view.
+
+    PHASE 2: Validates that world-engine turn response contains canonical contract fields
+    before projecting to player view.
+    """
     turn = api_payload.get("turn") if isinstance(api_payload.get("turn"), dict) else {}
     st = api_payload.get("state") if isinstance(api_payload.get("state"), dict) else {}
+
+    # PHASE 2 VALIDATION: Check for critical fields from canonical contract
+    critical_fields = ["visible_output_bundle", "validation_outcome", "narrative_commit"]
+    missing = [f for f in critical_fields if f not in turn]
+    if missing:
+        import sys
+        print(
+            f"[WARN] World-engine turn missing critical fields for player view: {', '.join(missing)}",
+            file=sys.stderr,
+        )
+
     bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
     gm = bundle.get("gm_narration")
     lines: list[str] = []
