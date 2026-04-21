@@ -59,6 +59,7 @@ Commands run:
 - `env PYTHONPYCACHEPREFIX=/tmp/wos-pycache python -m py_compile ...` passed for modified Python files.
 - `env PYTHONPYCACHEPREFIX=/tmp/wos-pycache PYTEST_ADDOPTS=-s python -m pytest -q backend/tests/test_game_routes.py -k "player_session" --tb=short --no-cov` passed: 2 selected tests.
 - `env PYTHONPYCACHEPREFIX=/tmp/wos-pycache PYTHONPATH=/mnt/d/WorldOfShadows/frontend PYTEST_ADDOPTS=-s python -m pytest -q frontend/tests/test_routes_extended.py -k "play_" --tb=short --no-cov` passed: 8 selected tests.
+- `env PYTHONPYCACHEPREFIX=/tmp/wos-pycache PYTEST_ADDOPTS=-s python -m pytest -q world-engine/tests/test_story_window_projection.py --tb=short --no-cov` passed: 1 selected test.
 
 Observed request sequence covered by tests:
 
@@ -68,4 +69,4 @@ Observed request sequence covered by tests:
 4. `POST /play/<run_id>/execute` dispatches to `/api/v1/game/player-sessions/<run_id>/turns`.
 5. JSON turn response returns full refreshed `story_entries`.
 
-Remaining limitation: full browser visual verification was not run in this pass. World-Engine focused test needs a writable RAG cache root in this checkout; use `WOS_REPO_ROOT=/tmp/wosroot` with source symlinks when validating from this read-only mounted tree.
+Remaining limitation: full browser visual verification was not run in this pass. The full World-Engine route test (`test_story_session_lifecycle_and_nl_interpretation`) invoked the full graph/RAG startup and did not return in this mounted checkout; the stuck pytest processes were stopped. The narrower world-engine projection test validates the new `story_window` contract without depending on full graph startup.

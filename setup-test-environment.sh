@@ -93,6 +93,9 @@ if [[ -f "world-engine/requirements-dev.txt" ]]; then
     $PYTHON_BIN -m pip install -r world-engine/requirements-dev.txt -q
 fi
 
+echo -e "${YELLOW}Ensuring Python 3.14-safe pytest-asyncio range...${NC}"
+$PYTHON_BIN -m pip install --upgrade "pytest-asyncio>=1.3,<2" -q
+
 # Verify critical dependencies
 echo ""
 echo -e "${YELLOW}Verifying critical dependencies...${NC}"
@@ -109,6 +112,13 @@ for pkg in "${packages[@]}"; do
         MISSING+=("$pkg")
     fi
 done
+
+if $PYTHON_BIN -c 'from importlib.metadata import version; raw=version("pytest-asyncio"); parts=raw.split("+", 1)[0].split(".", 3); major=int(parts[0]); minor=int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0; assert (major == 1 and minor >= 3) or (major > 1 and major < 2), f"pytest-asyncio {raw} is outside required range >=1.3,<2"; print(f"  ✓ pytest-asyncio version {raw} (>=1.3,<2)")'; then
+    :
+else
+    echo -e "${RED}Error: pytest-asyncio must be upgraded to >=1.3,<2.${NC}"
+    exit 1
+fi
 
 echo ""
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+from app import routes_play
+
 from app.api_client import BackendApiError
 
 
@@ -536,4 +538,182 @@ def test_api_proxy_get_and_post(client, monkeypatch):
         headers={"Content-Type": "application/json"},
     )
     assert r2.status_code == 201
+
+
+def test_routes_play_template_mapping_helpers(monkeypatch):
+    monkeypatch.setattr(routes_play, "HAS_YAML", False)
+    assert routes_play._load_template_mapping() == {"god_of_carnage_solo": "god_of_carnage"}
+    monkeypatch.setattr(routes_play, "_PLAY_TEMPLATE_TO_CONTENT_MODULE_ID", {"tpl": "module"})
+    assert routes_play.play_template_to_content_module_id(" tpl ") == "module"
+    assert routes_play.play_template_to_content_module_id("unknown") == "unknown"
+
+
+def test_routes_play_runtime_view_and_opening_projection(capsys):
+    payload = {
+        "trace_id": "trace-1",
+        "turn": {
+            "turn_number": 2,
+            "raw_input": "I look at the table.",
+            "interpreted_input": {"kind": "action"},
+            "visible_output_bundle": {
+                "gm_narration": [" The room tightens. ", ""],
+                "spoken_lines": ["Annette: Enough.", ""],
+            },
+            "validation_outcome": {"status": "approved"},
+            "narrative_commit": {"committed_scene_id": "scene_1"},
+            "graph": {"errors": []},
+        },
+        "state": {
+            "committed_state": {
+                "last_narrative_commit_summary": {"committed_scene_id": "scene_1"},
+                "last_narrative_commit": {"committed_scene_id": "scene_1"},
+                "last_committed_consequences": ["tension_escalates"],
+            }
+        },
+    }
+    view = routes_play._build_play_shell_runtime_view(payload)
+    assert view == {
+        "turn_number": 2,
+        "player_line": "I look at the table.",
+        "narration_text": "The room tightens.",
+        "spoken_lines": ["Annette: Enough."],
+        "committed_consequences": ["tension_escalates"],
+    }
+
+    opening = routes_play._build_play_shell_opening_view(
+        {
+            "turn_number": 0,
+            "turn_kind": "opening",
+            "raw_input": "hidden prompt",
+            "trace_id": "opening-trace",
+            "narrative_commit": {"committed_consequences": ["opened"]},
+            "visible_output_bundle": {"gm_narration": ["Opening narration."]},
+            "validation_outcome": {"status": "approved"},
+        },
+        opening_meta={"current_scene_id": "scene_1", "turn_counter": 0},
+    )
+    assert opening["turn_number"] == 0
+    assert opening["player_line"] == ""
+    assert opening["narration_text"] == "Opening narration."
+    assert opening["committed_consequences"] == ["opened"]
+
+    missing_view = routes_play._build_play_shell_runtime_view({"turn": {"turn_number": 3}, "state": {}})
+    assert missing_view["turn_number"] == 3
+    assert "missing critical fields" in capsys.readouterr().err
+
+
+def test_routes_play_operator_payload_truncation(monkeypatch):
+    rows = [{"i": i} for i in range(routes_play.DIAGNOSTICS_MAX_ROWS + 3)]
+    payload = {
+        "session_id": "backend-1",
+        "trace_id": "trace-1",
+        "world_engine_story_session_id": "story-1",
+        "turn": {"turn_number": 1},
+        "state": {"current_scene_id": "scene_1"},
+        "diagnostics": {"diagnostics": rows},
+        "backend_interpretation_preview": {"kind": "speech"},
+        "warnings": ["w"],
+    }
+    truncated = routes_play._truncate_operator_payload(payload)
+    assert len(truncated["diagnostics"]["diagnostics"]) == routes_play.DIAGNOSTICS_MAX_ROWS
+    assert truncated["diagnostics"]["_truncated_row_count"] == routes_play.DIAGNOSTICS_MAX_ROWS + 3
+
+    monkeypatch.setattr(routes_play, "OPERATOR_SESSION_JSON_MAX", 20)
+    tiny = routes_play._truncate_operator_payload(payload)
+    assert tiny["diagnostics"]["_truncated"] is True
+    assert tiny["state"]["_truncated"] is True
+
+
+def test_routes_play_legacy_turn_log_helpers(client):
+    with client.session_transaction() as sess:
+        sess[routes_play.PLAY_SHELL_TURN_LOG_KEY] = "bad"
+    with client.application.test_request_context("/"):
+        with client.session_transaction() as sess:
+            pass
+
+    with client:
+        routes_play._append_turn_log("run-1", {"turn_number": 1})
+        existing = routes_play._ensure_turn_log_from_legacy("run-1", None)
+        assert existing == [{"turn_number": 1}]
+        assert routes_play._ensure_turn_log_from_legacy("run-2", {"turn_number": 2}) == [{"turn_number": 2}]
+        assert routes_play._ensure_turn_log_from_legacy("run-3", None) == []
+
+
+def test_routes_play_persist_turn_success_stores_legacy_projection(client):
+    payload = {
+        "trace_id": "trace-1",
+        "opening_turn": {
+            "turn_number": 0,
+            "turn_kind": "opening",
+            "narrative_commit": {"committed_consequences": ["opening_done"]},
+            "visible_output_bundle": {"gm_narration": ["Opening text."]},
+            "validation_outcome": {"status": "approved"},
+        },
+        "world_engine_opening_meta": {"current_scene_id": "scene_1", "turn_counter": 0},
+        "turn": {
+            "turn_number": 1,
+            "raw_input": "Hello.",
+            "interpreted_input": {"kind": "speech"},
+            "visible_output_bundle": {"gm_narration": ["Reply text."]},
+            "validation_outcome": {"status": "approved"},
+            "narrative_commit": {},
+        },
+        "state": {"committed_state": {"last_committed_consequences": ["reply_done"]}},
+        "diagnostics": {"diagnostics": []},
+    }
+    with client:
+        result = routes_play._persist_turn_success("run-1", payload)
+        assert result["runtime_view"]["narration_text"] == "Reply text."
+        assert result["operator_bundle"]["trace_id"] == "trace-1"
+        logs = routes_play.session.get(routes_play.PLAY_SHELL_TURN_LOG_KEY)["run-1"]
+        assert [entry["narration_text"] for entry in logs] == ["Opening text.", "Reply text."]
+
+
+def test_play_input_json_non_object_returns_empty(client):
+    with client.application.test_request_context(
+        "/play/sid/execute",
+        method="POST",
+        data="[]",
+        content_type="application/json",
+    ):
+        assert routes_play._player_input_from_request() == ""
+
+
+def test_play_execute_json_backend_error_and_invalid_payload(client, monkeypatch):
+    def backend_error(method, path, **kwargs):
+        return FakeResponse(status_code=502, payload={"error": "bridge down"})
+
+    monkeypatch.setattr("app.player_backend.request_backend", backend_error)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    response = client.post(
+        "/play/sid/execute",
+        data=json.dumps({"player_input": "Hello"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    assert response.status_code == 400
+    assert "bridge down" in response.get_json()["error"]
+
+    monkeypatch.setattr("app.player_backend.require_success", lambda *a, **k: ["bad"])
+    monkeypatch.setattr("app.player_backend.request_backend", lambda *a, **k: FakeResponse(payload=["bad"]))
+    response = client.post(
+        "/play/sid/execute",
+        data=json.dumps({"player_input": "Hello"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "Runtime turn execution returned an invalid response."
+
+
+def test_play_shell_backend_error_flashes_and_renders_empty_shell(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.player_backend.request_backend",
+        lambda *a, **k: FakeResponse(status_code=503, payload={"error": "resume failed"}),
+    )
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    response = client.get("/play/sid")
+    assert response.status_code == 200
+    assert b"resume failed" in response.data
+    assert b"No authored opening was returned" in response.data
 

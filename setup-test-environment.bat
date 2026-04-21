@@ -132,6 +132,13 @@ if exist "ai_stack\pyproject.toml" (
     )
 )
 
+echo Ensuring Python 3.14-safe pytest-asyncio range...
+"%PYTHON_EXE%" -m pip install --upgrade "pytest-asyncio>=1.3,<2" -q
+if !errorlevel! neq 0 (
+    echo Error: pytest-asyncio upgrade failed
+    exit /b 1
+)
+
 REM Verify critical dependencies
 echo.
 echo Verifying critical dependencies...
