@@ -1,0 +1,84 @@
+{
+  "integrated_now": [
+    {
+      "Integrated improvement": "Create one canonical MVP document family",
+      "Why justified": "Repeated source fragmentation and clear evidence that newer package summaries underrepresent real content.",
+      "Source basis": "mvp/docs/*; docs/start-here/*; docs/technical/*; validation/V24_GOC_CANONICAL_EXPERIENCE_*; backend/docs/UI_USABILITY.md",
+      "Impact": "Improves correctness, future usability, and anti-loss traceability."
+    },
+    {
+      "Integrated improvement": "Restore explicit player-facing UI/UX expectations",
+      "Why justified": "UI usability, shell loop, and re-entry requirements were source-supported but scattered and easy to lose.",
+      "Source basis": "backend/docs/UI_USABILITY.md; docs/ROADMAP_MVP_ENGINE_AND_UI.md; shell-loop and shell-reentry validation reports",
+      "Impact": "Improves player-route clarity and prevents future MVP summaries from flattening the experience into backend-only language."
+    },
+    {
+      "Integrated improvement": "Restore GoC A-F experience behavior as one canonical experience document",
+      "Why justified": "Wave reports prove materially relevant behavior that was not coherently represented in one place.",
+      "Source basis": "GoC wave reports AF-F1; god-of-carnage-as-an-experience.md",
+      "Impact": "Preserves character/social/room/object/performance depth without preserving wave jargon as the main documentation style."
+    },
+    {
+      "Integrated improvement": "Make authoring \u2192 compiler \u2192 publish \u2192 runtime continuity explicit",
+      "Why justified": "This seam is repeatedly emphasized by architecture docs and proof waves and was underrepresented when only lean package notes were considered.",
+      "Source basis": "writers-room-and-publishing-flow.md; god_of_carnage_canonical_path.md; activation proof reports",
+      "Impact": "Improves canonical correctness and runtime-proof legibility."
+    },
+    {
+      "Integrated improvement": "Make Level A vs Level B closure posture explicit",
+      "Why justified": "The audit material already distinguishes slice-capable closure from evaluator-independent closure.",
+      "Source basis": "closure_level_classification_summary.md; gate_summary_matrix.md",
+      "Impact": "Prevents false completion claims and makes proof standards usable."
+    },
+    {
+      "Integrated improvement": "Distinguish enduring target-state ambition from current slice reality",
+      "Why justified": "The historical MVP is broader than the current repo-proven slice, but still materially relevant.",
+      "Source basis": "mvp/docs/00_MASTER_MVP.md; broad historical specs; current docs; validation corpus",
+      "Impact": "Preserves broad design truth without pretending it is all equally implemented today."
+    }
+  ],
+  "deferred_to_runtime_proof_tasks": [
+    {
+      "Deferred task": "Finish backend transitional retirement by removing POST-local bootstrap residue",
+      "Why justified": "Explicit open residue in governance and validation; not honest to fold into a 'closed' canonical MVP.",
+      "Source basis": "backend retirement ledger; post-locality resolution report",
+      "Impact": "Needed for stronger runtime-authority closure."
+    },
+    {
+      "Deferred task": "Achieve Level B evaluator independence",
+      "Why justified": "The audit gate family marks Level B as blocked.",
+      "Source basis": "closure_level_classification_summary.md; G9B evaluator baseline",
+      "Impact": "Needed before claiming evaluator-independent runtime-proof closure."
+    },
+    {
+      "Deferred task": "Strengthen direct reproducible frontend/backend replay in the present audit environment",
+      "Why justified": "Packaged proof exists, but this current audit container still lacked Flask for direct replay.",
+      "Source basis": "local reruns; backend and engine quick-suite closure reports",
+      "Impact": "Improves present-day audit reproducibility rather than architecture semantics."
+    },
+    {
+      "Deferred task": "Further prove Writers\u2019 Room / RAG overlap remains bounded under new work",
+      "Why justified": "Governed seam exists, but remains explicitly overlap-bearing and re-audit sensitive.",
+      "Source basis": "V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md",
+      "Impact": "Prevents future retrieval-driven truth drift."
+    },
+    {
+      "Deferred task": "Convert more of the broad historical target layers from scaffold/spec status into repo-proven implementation",
+      "Why justified": "Memory/emotion/consciousness/writers-room target layers remain broader than the current proven slice.",
+      "Source basis": "historical MVP layer; reference scaffold; V24_PACKAGE_VALIDATION.md",
+      "Impact": "Required before calling the whole platform runtime-proof-ready rather than the current slice."
+    }
+  ],
+  "rejected": [
+    {
+      "Rejected item": "Speculative broadening to open-world improvisation or multi-module freeform play",
+      "Why rejected": "Explicitly outside the current GoC vertical slice contract.",
+      "Source basis": "VERTICAL_SLICE_CONTRACT_GOC.md"
+    },
+    {
+      "Rejected item": "Treating MCP or retrieval surfaces as a second story-truth authority",
+      "Why rejected": "Contradicted by runtime authority docs and overlap ledgers.",
+      "Source basis": "runtime-authority-and-state-flow.md; V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md"
+    }
+  ]
+}

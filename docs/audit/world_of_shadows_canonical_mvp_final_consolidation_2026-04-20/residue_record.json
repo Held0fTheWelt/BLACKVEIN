@@ -1,0 +1,37 @@
+[
+  {
+    "tension": "Enduring-target breadth vs active-slice proof depth",
+    "reading": "The broader WoS platform remains canonical system truth, but the most concretely proven live slice is still God of Carnage plus its supporting runtime path.",
+    "status": "open but bounded"
+  },
+  {
+    "tension": "Committed player path vs live-room / projection surfaces",
+    "reading": "Multiple session-facing surfaces exist and are now explicitly governed, but a fresh fully replayed convergence proof is still missing in this container.",
+    "status": "open but bounded"
+  },
+  {
+    "tension": "Authoring / writers' room / retrieval overlap",
+    "reading": "The overlap is now explicitly governed, but it remains a place where future refactors could reintroduce silent truth-boundary drift.",
+    "status": "open but governed"
+  },
+  {
+    "tension": "Backend transitional retirement",
+    "reading": "Later packages narrowed the residue, but it is still not honest to call the seam fully retired.",
+    "status": "open"
+  },
+  {
+    "tension": "Graph-heavy orchestration proof",
+    "reading": "AI-stack graph and fallback expectations remain canonically important, yet full replay still depends on missing optional dependencies.",
+    "status": "environment-limited"
+  },
+  {
+    "tension": "Governed lifecycle and operator surfaces vs fresh replay completeness",
+    "reading": "Package lifecycle, rollback, runtime health, settings, budgets, and control-plane visibility are now canonically preserved, but not all have been freshly exercised end to end in this pass.",
+    "status": "open but explicit"
+  },
+  {
+    "tension": "Collection-run inherited-proof framing vs final-pass fresh judgment",
+    "reading": "The collection-only package treated runtime-proof as inherited context; this final pass performs its own bounded runtime-proof judgment instead of inheriting one blindly.",
+    "status": "resolved procedurally in this pass"
+  }
+]

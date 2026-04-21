@@ -1,0 +1,32 @@
+[
+  {
+    "Residue / tension": "Broad historical MVP target vs narrower active proof-bearing slice",
+    "Status": "Unresolved by design, but now explicit rather than hidden.",
+    "Source basis": "mvp/docs/00_MASTER_MVP.md; validation/*; docs/start-here/*"
+  },
+  {
+    "Residue / tension": "Backend transitional session surfaces remain partially local-bootstrap-shaped",
+    "Status": "Open bounded residue.",
+    "Source basis": "backend retirement ledger; post-locality resolution report"
+  },
+  {
+    "Residue / tension": "Level B evaluator independence is blocked",
+    "Status": "Open proof gap.",
+    "Source basis": "closure_level_classification_summary.md"
+  },
+  {
+    "Residue / tension": "Builtin GoC fallback exists alongside published canonical path",
+    "Status": "Intentional bounded fallback; must not silently override published truth.",
+    "Source basis": "god_of_carnage_canonical_path.md"
+  },
+  {
+    "Residue / tension": "Writers\u2019 Room and RAG intentionally overlap for support functions",
+    "Status": "Governed but still re-audit sensitive.",
+    "Source basis": "V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md"
+  },
+  {
+    "Residue / tension": "Current local audit container could not directly replay backend/frontend tests without Flask",
+    "Status": "Environment limitation during this consolidation, not a repository truth override.",
+    "Source basis": "local consolidation reruns"
+  }
+]

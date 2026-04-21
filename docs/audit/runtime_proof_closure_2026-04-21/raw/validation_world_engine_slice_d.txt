@@ -1,0 +1,78 @@
+...........s.....ss..........s.......................................... [ 16%]
+................................s...sss...ss...ss.s.s..s................ [ 32%]
+......................ssssssssssssss.................................... [ 49%]
+........................................................................ [ 65%]
+........................................................................ [ 82%]
+........................................................................ [ 98%]
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+../../../../../opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313
+  /opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    self.loader.exec_module(module)
+
+tests/test_ws_auth.py::TestWebSocketAuthValidation::test_snapshot_contains_required_viewer_fields
+  /opt/pyvenv/lib/python3.13/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored in: <generator object TestClient._portal_factory at 0x7f9d507e3ae0>
+  
+  Traceback (most recent call last):
+    File "/opt/pyvenv/lib/python3.13/site-packages/anyio/from_thread.py", line 546, in start_blocking_portal
+      yield portal
+    File "/opt/pyvenv/lib/python3.13/site-packages/starlette/testclient.py", line 471, in _portal_factory
+      yield portal
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "/opt/pyvenv/lib/python3.13/site-packages/starlette/testclient.py", line 468, in _portal_factory
+      with anyio.from_thread.start_blocking_portal(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+          **self.async_backend
+          ^^^^^^^^^^^^^^^^^^^^
+      ) as portal:
+      ^
+    File "/usr/lib/python3.13/contextlib.py", line 162, in __exit__
+      self.gen.throw(value)
+      ~~~~~~~~~~~~~~^^^^^^^
+    File "/opt/pyvenv/lib/python3.13/site-packages/anyio/from_thread.py", line 556, in start_blocking_portal
+      thread.join()
+      ~~~~~~~~~~~^^
+    File "/usr/lib/python3.13/threading.py", line 1087, in join
+      raise RuntimeError("cannot join current thread")
+  RuntimeError: cannot join current thread
+  
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_persistence_contracts.py:51: sqlalchemy not available
+SKIPPED [1] tests/test_persistence_contracts.py:222: sqlalchemy not available
+SKIPPED [1] tests/test_persistence_contracts.py:246: could not import 'sqlalchemy': No module named 'sqlalchemy'
+SKIPPED [1] tests/test_recovery_contracts.py:238: sqlalchemy not available
+SKIPPED [1] tests/test_store.py:45: sqlalchemy not installed
+SKIPPED [1] tests/test_store_config.py:56: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:70: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:85: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:124: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:135: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:180: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:198: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:225: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:250: sqlalchemy not available
+SKIPPED [1] tests/test_store_config.py:287: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:25: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:40: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:67: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:93: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:128: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:161: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:195: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:210: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:245: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:282: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:324: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:366: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:405: sqlalchemy not available
+SKIPPED [1] tests/test_store_sqlalchemy.py:448: sqlalchemy not available
+408 passed, 29 skipped, 2 warnings in 9.91s

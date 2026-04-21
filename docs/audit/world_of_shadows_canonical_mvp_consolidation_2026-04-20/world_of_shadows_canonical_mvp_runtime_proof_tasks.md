@@ -1,0 +1,13 @@
+# World of Shadows runtime-proof task list
+
+These tasks remain because the consolidated archive is stronger than before,
+but not every justified closure item can honestly be marked complete yet.
+
+| Task | Why it remains open | Evidence basis | Proof needed |
+|---|---|---|---|
+| Remove POST-local backend bootstrap residue from `/api/v1/sessions` and its dependent store/service path | The remaining dominant blocker to stronger backend authority closure is still explicit local bootstrap state minted on POST. | backend retirement ledger; post-locality resolution report | Route, store, and service tests showing no backend-local runtime-shaped session truth remains except explicitly bounded compatibility shims, plus an updated retirement ledger closing the blocker. |
+| Close Level B evaluator independence | Current audit family supports Level A only; evaluator independence remains insufficient. | closure_level_classification_summary.md; G9B evaluator baseline | Independent evaluator process and artifact chain that satisfies G9B without relying on the same authority stack that produced package truth. |
+| Reproduce backend and frontend proof paths directly in the present audit environment | This consolidation could rerun world-engine, ai_stack, and scaffold tests locally, but backend/frontend direct replay in this container stopped at missing Flask. | local reruns; backend quick suite report; engine quick suite report | Documented environment bootstrap that allows the targeted backend/frontend replay commands to pass from a fresh audit container without manual dependency ambiguity. |
+| Keep publish/runtime activation proof live after future content or compiler changes | Activation semantics are proven, but only stay trustworthy if rerun after future publish-path changes. | publish/runtime activation reports | Repeat the environment-backed activation proof runner on the current package after significant compiler, backend content, or play-service loading changes. |
+| Continue turning the broad historical target layers into repo-proven implementation | The broad WoS target includes memory, emotional, consciousness, and authoring platform layers beyond the current active proof-bearing slice. | historical MVP layer; reference scaffold | Owner-component implementations, tests, and validation reports that move these capabilities from spec/scaffold status into repo-truth status. |
+| Re-audit Writers’ Room / RAG overlap after new recommendation, publish, or retrieval mutation work | The seam is intentionally bounded, not eliminated. | V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md | Evidence that retrieval/context support has not become publish authority or runtime truth by drift. |

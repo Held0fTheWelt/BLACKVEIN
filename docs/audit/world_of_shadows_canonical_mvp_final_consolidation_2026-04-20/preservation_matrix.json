@@ -1,0 +1,170 @@
+[
+  {
+    "concept_family": "World of Shadows identity as governed narrative runtime platform",
+    "main_source_basis": "v21 broad MVP docs; v24 full directory; prior canonical family",
+    "outcome": "Preserved directly",
+    "canonical_destination": "01_system_identity_and_player_experience.md",
+    "notes": "Kept both enduring target identity and active GoC slice center of gravity."
+  },
+  {
+    "concept_family": "One truth boundary / commit is truth / Turn 0 is canonical / route purity",
+    "main_source_basis": "v21 docs 01/02/03; v24 contracts; world-engine tests; reference scaffold",
+    "outcome": "Preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md",
+    "notes": "Still the core anti-drift law set."
+  },
+  {
+    "concept_family": "Publish-bound authoritative birth and fallback discipline",
+    "main_source_basis": "v17-v18 style maturity material embedded in MVP docs; v24 activation docs and validation",
+    "outcome": "Preserved directly",
+    "canonical_destination": "05_content_authoring_publish_and_runtime_continuity.md; 09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "No silent builtin-overrides-published drift allowed."
+  },
+  {
+    "concept_family": "Five-layer runtime, world model, memory, emotional and consciousness layers",
+    "main_source_basis": "v21 complete MVP family",
+    "outcome": "Preserved directly",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Kept as enduring target truth, not overstated as equally implemented."
+  },
+  {
+    "concept_family": "NPC autonomy, world simulation, relationship/world-state/counterfactual memory",
+    "main_source_basis": "v21 docs 07, 44, 45",
+    "outcome": "Merged into canonical section",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Merged for clarity rather than left scattered."
+  },
+  {
+    "concept_family": "Writers' room, authoring analytics, gold data, live tuning, evaluation posture",
+    "main_source_basis": "v21 docs 35, 37, 46; v24 writers-room/governance docs",
+    "outcome": "Preserved directly",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md",
+    "notes": "Kept as canonical target truth and explicitly bounded against overclaim."
+  },
+  {
+    "concept_family": "Structured module authoring and content compiler / publish continuity",
+    "main_source_basis": "v24 content and admin docs; VSL/GoC contracts; backend content docs",
+    "outcome": "Preserved directly",
+    "canonical_destination": "05_content_authoring_publish_and_runtime_continuity.md",
+    "notes": "Makes authoring-to-runtime flow explicit."
+  },
+  {
+    "concept_family": "God of Carnage as first canonical vertical slice",
+    "main_source_basis": "ROADMAP_MVP_GoC.md; VSL contracts; v24 validation corpus",
+    "outcome": "Preserved directly",
+    "canonical_destination": "06_god_of_carnage_canonical_experience.md",
+    "notes": "Remains the active proof-bearing slice."
+  },
+  {
+    "concept_family": "GoC A-F experience seams: character addressing, side/pair geometry, room/object pressure, wound carry-forward, interruption, multi-speaker relay",
+    "main_source_basis": "v24 A-F validation reports; player-facing docs; world-engine shell evidence",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "06_god_of_carnage_canonical_experience.md; 12_god_of_carnage_acceptance_and_experience_proof_matrix.md",
+    "notes": "Explicit anti-loss restoration to keep the slice non-generic."
+  },
+  {
+    "concept_family": "Player-shell hierarchy and the four questions the player route must answer",
+    "main_source_basis": "backend UI usability guidance; player docs; shell-loop reports",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Restored as concrete UX truth rather than vague polish."
+  },
+  {
+    "concept_family": "Player-facing transport discipline between committed path, live-room snapshots, and operator bundles",
+    "main_source_basis": "shell-loop/re-entry docs and reports; route purity laws",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md; 13_authoring_retrieval_and_runtime_boundary_contract.md",
+    "notes": "Kept explicit because it is easy to lose in later summaries."
+  },
+  {
+    "concept_family": "Concrete admin inspection domains and observe/operate/author console idea",
+    "main_source_basis": "v21 inspection docs; operator/admin docs; console wireframes",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Restored from underrepresented earlier MVP material."
+  },
+  {
+    "concept_family": "Operations, deployment, localization, budgets, degraded modes, live constraints",
+    "main_source_basis": "v21 ops docs; repo ops/config docs",
+    "outcome": "Preserved directly",
+    "canonical_destination": "08_operations_deployment_localization_and_live_constraints.md",
+    "notes": "Operational truth kept but separated from proof claims."
+  },
+  {
+    "concept_family": "Implementation reality and runtime maturity profiles/gates",
+    "main_source_basis": "v17-v18 current-state protocol material; v24 validation; direct reruns",
+    "outcome": "Preserved directly",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Maintains clear implemented vs target vs proven separation."
+  },
+  {
+    "concept_family": "Residues and runtime-proof tasks",
+    "main_source_basis": "prior canonical audit packages; blocked reruns; remaining closures",
+    "outcome": "Preserved directly",
+    "canonical_destination": "10_residues_and_runtime_proof_tasks.md",
+    "notes": "Explicit anti-overclaim surface."
+  },
+  {
+    "concept_family": "Claim status and proof map",
+    "main_source_basis": "prior canonical family; extension run; current final reruns",
+    "outcome": "Preserved after strengthening",
+    "canonical_destination": "11_claim_status_and_proof_map.md",
+    "notes": "Updated to keep AI stack / research / MCP support explicit."
+  },
+  {
+    "concept_family": "Authoring / retrieval / runtime boundary contract",
+    "main_source_basis": "v24 boundary docs; overlap governance; publish/runtime continuity",
+    "outcome": "Preserved directly",
+    "canonical_destination": "13_authoring_retrieval_and_runtime_boundary_contract.md",
+    "notes": "Protects one-truth model across multi-surface support layers."
+  },
+  {
+    "concept_family": "Governed package lifecycle: findings, revision candidates, preview, evaluation, promotion, rollback, runtime health",
+    "main_source_basis": "older governance/revision MVPs; extension package docs; current admin docs",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "14_governed_package_lifecycle_revision_and_runtime_health.md",
+    "notes": "Already source-supported and important enough to keep first-class."
+  },
+  {
+    "concept_family": "Operational settings, secret discipline, costs, budgets, alerts, control-plane visibility",
+    "main_source_basis": "settings-governance MVPs; repo ops docs; extension package",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "15_operational_settings_secret_cost_and_control_plane_governance.md",
+    "notes": "Kept because losing it misdescribes operator reality."
+  },
+  {
+    "concept_family": "AI stack ownership, LLM/SLM split, bounded research loop, staged MCP support path",
+    "main_source_basis": "ROADMAP_MVP_ENGINE_AND_UI.md; ROADMAP_MVP_RESEARCH_AND_CANON_IMPROVEMENT_SYSTEM.md; ROADMAP_MVP_MCP.md; ai_stack code/tests; MVP doc 71",
+    "outcome": "Strengthened and integrated now",
+    "canonical_destination": "16_ai_stack_bounded_research_and_control_plane_support.md",
+    "notes": "New canonical section added in this pass to prevent subsystem loss."
+  },
+  {
+    "concept_family": "Reference scaffold as executable constitutional proof slice",
+    "main_source_basis": "v21 audit; mvp/reference_scaffold; direct reruns",
+    "outcome": "Preserved directly",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md; audit/test rerun summary",
+    "notes": "Still load-bearing proof, not just tutorial material."
+  },
+  {
+    "concept_family": "Backend transitional retirement posture",
+    "main_source_basis": "v24 validation corpus",
+    "outcome": "Preserved as explicit bounded residue",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md; 10_residues_and_runtime_proof_tasks.md",
+    "notes": "Not silently promoted to closure."
+  },
+  {
+    "concept_family": "Collection-only inherited-proof scope note",
+    "main_source_basis": "collection-only canonical package",
+    "outcome": "Excluded from canonical MVP; preserved as audit context",
+    "canonical_destination": "master_audit_consolidation_report.md",
+    "notes": "Not used as canonical text because this pass performs its own runtime-proof judgment."
+  },
+  {
+    "concept_family": "Lean-package curation rationale",
+    "main_source_basis": "MVP_V24_PACKAGE_NOTE.md; source preservation ledger",
+    "outcome": "Preserved as audit context",
+    "canonical_destination": "source_inventory.md and final report",
+    "notes": "Useful for understanding omissions, but not the main canonical MVP voice."
+  }
+]

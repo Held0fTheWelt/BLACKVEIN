@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "mvp_root": "D:\\WorldOfShadows\\MVP",
+  "file_count": 27890,
+  "list_sha256": "555acfcf8e6ddbe2cde3d83da48b12b9d53ee2392b723430aeacba3894e1b455",
+  "outputs": {
+    "source_baseline_lock": "D:\\WorldOfShadows\\docs\\MVPs\\MVP_World_Of_Shadows_Canonical_Implementation_Bundle\\source_baseline_lock.txt",
+    "manifest": "D:\\WorldOfShadows\\docs\\MVPs\\MVP_World_Of_Shadows_Canonical_Implementation_Bundle\\raw\\mvp_source_file_manifest.tsv",
+    "mvp_source_inventory": "D:\\WorldOfShadows\\docs\\MVPs\\MVP_World_Of_Shadows_Canonical_Implementation_Bundle\\mvp_source_inventory.md",
+    "source_to_destination_mapping_table": "D:\\WorldOfShadows\\docs\\MVPs\\MVP_World_Of_Shadows_Canonical_Implementation_Bundle\\source_to_destination_mapping_table.md"
+  }
+}

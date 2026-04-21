@@ -52,6 +52,7 @@ Audience-first index for **active** documentation. Legacy task, gate, and closur
 
 ## GoC normative contracts (MVP bundle)
 
+- Canonical implementation route: [`docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md`](MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md)
 - [`docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md)
 - [`docs/MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/VERTICAL_SLICE_CONTRACT_GOC.md)
 - [`docs/MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md`](MVPs/MVP_VSL_And_GoC_Contracts/GATE_SCORING_POLICY_GOC.md)

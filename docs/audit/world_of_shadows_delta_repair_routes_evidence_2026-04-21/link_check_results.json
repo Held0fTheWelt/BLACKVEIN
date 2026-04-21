@@ -1,0 +1,284 @@
+[
+  {
+    "source": "docs/README.md",
+    "target": "MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "MVPs/world_of_shadows_canonical_mvp/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/world_of_shadows_canonical_mvp/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "audit/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "audit/world_of_shadows_post_repair_reaudit_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_post_repair_reaudit_2026-04-21"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "start-here/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/start-here/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "INDEX.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/INDEX.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "reference/glossary.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/reference/glossary.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "start-here/glossary.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/start-here/glossary.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "reference/documentation-registry.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/reference/documentation-registry.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "user/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/user/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "admin/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/admin/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "dev/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/dev/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "technical/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/technical/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "presentations/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/presentations"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "governance/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/governance/README.md"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "archive/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/archive"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "audit/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit"
+  },
+  {
+    "source": "docs/README.md",
+    "target": "../governance/V24_SOURCE_PRESERVATION_LEDGER.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/governance/V24_SOURCE_PRESERVATION_LEDGER.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "world_of_shadows_canonical_mvp_repair_implementation_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "world_of_shadows_post_repair_reaudit_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_post_repair_reaudit_2026-04-21"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "world_of_shadows_canonical_mvp_repair_2026-04-20/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "world_of_shadows_canonical_mvp_consolidation_2026-04-20/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "world_of_shadows_canonical_mvp_reaudit_2026-04-20/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_reaudit_2026-04-20"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../../governance/FY_BASELINE_SUMMARY.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/governance/FY_BASELINE_SUMMARY.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../../validation/V24_PACKAGE_VALIDATION.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/validation/V24_PACKAGE_VALIDATION.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../../validation/V24_GOVERNANCE_ATTACHMENT_REPORT.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/validation/V24_GOVERNANCE_ATTACHMENT_REPORT.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../../validation/V24_TOUCHED_GOVERNANCE_LINK_CHECK.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/validation/V24_TOUCHED_GOVERNANCE_LINK_CHECK.md"
+  },
+  {
+    "source": "docs/audit/README.md",
+    "target": "../../governance/V24_SOURCE_PRESERVATION_LEDGER.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/governance/V24_SOURCE_PRESERVATION_LEDGER.md"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/README.md",
+    "target": "active_recomposed_route/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/README.md",
+    "target": "../MVP_VSL_And_GoC_Contracts/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/MVP_VSL_And_GoC_Contracts"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/README.md",
+    "target": "../../audit/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/README.md"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/README.md",
+    "target": "../../audit/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/README.md"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/06_implementation_and_proof_posture.md",
+    "target": "../../../audit/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/README.md"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/06_implementation_and_proof_posture.md",
+    "target": "../../../audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21"
+  },
+  {
+    "source": "docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/06_implementation_and_proof_posture.md",
+    "target": "../../../audit/world_of_shadows_post_repair_reaudit_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_post_repair_reaudit_2026-04-21"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "../world_of_shadows_canonical_mvp_repair_implementation_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "../world_of_shadows_post_repair_reaudit_2026-04-21/",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_post_repair_reaudit_2026-04-21"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "../../MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/README.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "A_MASTER_REPAIR_REPORT.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/A_MASTER_REPAIR_REPORT.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "B_REPAIR_CLAIM_EVIDENCE_MATRIX.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/B_REPAIR_CLAIM_EVIDENCE_MATRIX.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "D_REMAINING_TENSION_RECORD.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/D_REMAINING_TENSION_RECORD.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "E_REVIEWER_CHECKLIST.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/E_REVIEWER_CHECKLIST.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "F_REPAIRED_CANONICAL_MVP_DOCUMENT_SET/README.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/F_REPAIRED_CANONICAL_MVP_DOCUMENT_SET/README.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "G_FINAL_REPAIRED_ARCHIVE_RECORD.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/G_FINAL_REPAIRED_ARCHIVE_RECORD.md"
+  },
+  {
+    "source": "docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/README.md",
+    "target": "H_FINAL_REPAIRED_EXPERIENCE_JUDGMENT.md",
+    "exists": true,
+    "resolved": "/mnt/data/MVP_full_post_repair_2026-04-21/docs/audit/world_of_shadows_canonical_mvp_repair_2026-04-20/H_FINAL_REPAIRED_EXPERIENCE_JUDGMENT.md"
+  }
+]

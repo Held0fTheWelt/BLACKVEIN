@@ -1,0 +1,13 @@
+# Improvement review
+
+| Improvement | Why justified | Source basis | Disposition | Impact |
+|---|---|---|---|---|
+| Expand canonical MVP family from 6 docs to 10 docs | The previous canonical set was useful but too compressed for enduring target layers and runtime-maturity semantics. | prior canonical package plus v9-v18 families | integrated now | Higher completeness without speculative redesign. |
+| Restore enduring target runtime layers as a first-class canonical document | Five-layer runtime, memory framework, emotional/consciousness layers, world-state memory, and recovery intelligence remained source-supported but underrepresented. | v9-v13 master MVP and specialty docs | integrated now | Prevents silent loss of major system intent. |
+| Restore writers' room, authoring analytics, and evaluation surfaces | These appeared repeatedly in earlier complete MVPs and later governance-adjacent repo docs. | v12-v13 writers-room and analytics docs; later governance docs | integrated now | Reinstates WoS as more than a play-only runtime. |
+| Restore operations, deployment, performance, and localization expectations | These concerns were materially present in complete MVPs but barely visible in the prior canonical family. | v9-v13 infrastructure/performance/i18n docs | integrated now | Prevents the canonical MVP from flattening into pure narrative design. |
+| Restore explicit runtime-maturity profile and gate language | v17-v18 sharpened the meaning of a runtime-mature MVP verdict. | v17-v18 runtime maturity and implementation gates | integrated now | Improves closure honesty and future auditability. |
+| Close backend transitional retirement residue now | Strongly justified, but requires implementation/test closure rather than documentation-only integration. | later ledgers and reports | deferred to runtime-proof tasks | Must stay visible as open residue. |
+| Provision backend/frontend environment and rerun higher-level route tests | This re-audit hit a real Flask dependency barrier. | direct rerun block in this pass | deferred to runtime-proof tasks | Needed for stronger replay credibility. |
+| Promote broader memory and authoring ambitions to live proof claims now | The ambitions are real but not equally repo-proven in the active slice. | v9-v13 complete MVP family | rejected as current-claim upgrade | Avoids false completion claims. |
+| Erase writers' room / retrieval overlap by narrative choice | The source set governs the overlap but does not justify pretending it no longer exists. | later overlap ledgers | rejected as false cleanup | Keeps the canonical package contradiction-honest. |

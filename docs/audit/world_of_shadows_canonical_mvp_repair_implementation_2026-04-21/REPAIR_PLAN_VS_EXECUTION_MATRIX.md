@@ -1,0 +1,13 @@
+# Repair Plan vs Execution Matrix
+
+| Issue ID | Repository location(s) | Chosen response | Implementation status | Proof status | Residue / tension |
+|---|---|---|---|---|---|
+| G-01 | `README.md`, `docs/start-here/README.md`, `docs/MVPs/README.md`, `docs/MVPs/world_of_shadows_canonical_mvp/README.md`, `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/` | implement directly + document and bind | implemented | static pointer and link checks passed | detailed split set still exists by design, but first-pass route is clearer |
+| G-02 | `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/02_authority_and_stage_continuity.md`, `frontend/app/routes.py`, `world-engine/tests/*` | document and bind + test and validate | partially implemented in docs/surface posture | world-engine bridge/content/shell tests passed | full cross-service replay remains broader than this pass |
+| G-03 | `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/03_*`, `08_*` | reframe and preserve | implemented | active route file/pointer checks passed | enduring target families remain broader than current active proof |
+| G-04 | `frontend/app/routes.py`, `frontend/templates/session_shell.html`, `frontend/tests/test_routes_extended.py`, `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/04_*` | implement directly + bound explicitly | implemented | AST/template/route checks passed; frontend pytest blocked by missing Flask | help/recap/save-load/accessibility still not replay-proven as fully closed |
+| G-05 | `repo/README.md`, `repo/MIRROR_LANE_NOTICE.md`, root GoC mirror docs | document and bind | implemented | mirror-notice checks passed | mirrors still exist intentionally |
+| G-06 | `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/06_*`, `docs/audit/world_of_shadows_canonical_mvp_repair_implementation_2026-04-21/*` | reframe and preserve + test and validate | implemented | validation record created; world-engine tests passed | frontend/backend reruns still environment-bounded here |
+| G-07 | `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/00_*` | bound as support | implemented in canonical route wording | static pointer checks passed | tooling footprint still exists physically |
+| G-08 | `docs/MVPs/world_of_shadows_canonical_mvp/active_recomposed_route/07_*`, `POST_REPAIR_TENSION_RECORD.md` | leave as explicit named tension | implemented | documentary proof | tensions remain intentionally open |
+| G-09 | `docs/MVPs/README.md`, `docs/MVPs/world_of_shadows_canonical_mvp/README.md`, `active_recomposed_route/08_*` | reframe and preserve | implemented | static pointer checks passed | source-lineage still requires deliberate reading beyond first-pass route |

@@ -1,0 +1,45 @@
+{
+  "commands": [
+    {
+      "command": "/opt/pyvenv/bin/python -m pytest tests/test_routes_extended.py -k 'support_surface or play_observe_returns_authoritative_shell_state_bundle or play_shell_renders_authoritative_status_summary or play_execute_json_returns_runtime_ready_and_observation_source'",
+      "cwd": "frontend",
+      "status": "BLOCKED",
+      "returncode": 4,
+      "stdout_snippet": "",
+      "stderr_snippet": "\u001b[31mImportError while loading conftest '/mnt/data/MVP_repaired_2026-04-21/frontend/tests/conftest.py'.\u001b[0m\n\u001b[31m\u001b[1m\u001b[31m../../mvp_work/original/MVP/frontend/tests/conftest.py\u001b[0m:3: in <module>\u001b[0m\n\u001b[31m    \u001b[0m\u001b[94mfrom\u001b[39;49;00m\u001b[90m \u001b[39;49;00m\u001b[04m\u001b[96mapp\u001b[39;49;00m\u001b[90m \u001b[39;49;00m\u001b[94mimport\u001b[39;49;00m create_app\u001b[90m\u001b[39;49;00m\u001b[0m\n\u001b[31m\u001b[1m\u001b[31mapp/__init__.py\u001b[0m:4: in <module>\u001b[0m\n\u001b[31m    \u001b[0m\u001b[94mfrom\u001b[39;49;00m\u001b[90m \u001b[39;49;00m\u001b[04m\u001b[96mflask\u001b[39;49;00m\u001b[90m \u001b[39;49;00m\u001b[94mimport\u001b[39;49;00m Flask, jsonify, request\u001b[90m\u001b[39;49;00m\u001b[0m\n\u001b[31m\u001b[1m\u001b[31mE   ModuleNotFoundError: No module named 'flask'\u001b[0m\u001b[0m\n",
+      "note": "Blocked by missing Flask dependency in this container environment."
+    },
+    {
+      "command": "/opt/pyvenv/bin/python -m pytest tests/test_backend_content_feed.py tests/test_story_runtime_shell_readout.py -q",
+      "cwd": "world-engine",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_snippet": "\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[33m                                            [100%]\u001b[0m\n\u001b[33m=============================== warnings summary ===============================\u001b[0m\n../../../../opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313\n  /opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313: PendingDeprecationWarning: Please use `import python_multipart` instead.\n    self.loader.exec_module(module)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\u001b[33m\u001b[32m29 passed\u001b[0m, \u001b[33m\u001b[1m1 warning\u001b[0m\u001b[33m in 0.38s\u001b[0m\u001b[0m\n",
+      "stderr_snippet": "",
+      "note": "Stage continuity and shell readout spot-checks passed."
+    },
+    {
+      "command": "/opt/pyvenv/bin/python -m pytest tests/test_backend_bridge_contract.py tests/test_api_contracts.py -q",
+      "cwd": "world-engine",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_snippet": "\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[32m.\u001b[0m\u001b[33m                                   [100%]\u001b[0m\n\u001b[33m=============================== warnings summary ===============================\u001b[0m\n../../../../opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313\n  /opt/pyvenv/lib/python3.13/site-packages/ddtrace/internal/module.py:313: PendingDeprecationWarning: Please use `import python_multipart` instead.\n    self.loader.exec_module(module)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n\u001b[33m\u001b[32m38 passed\u001b[0m, \u001b[33m\u001b[1m1 warning\u001b[0m\u001b[33m in 3.83s\u001b[0m\u001b[0m\n",
+      "stderr_snippet": "",
+      "note": "Backend bridge and API contract spot-checks passed."
+    }
+  ],
+  "static_checks": {
+    "python_ast_parse_modified_files": "PASS",
+    "template_support_surface_tokens": "PASS",
+    "support_surfaces_route_wiring_tokens": "PASS",
+    "markdown_link_check_modified_docs": "PASS",
+    "active_route_pointer_checks": "PASS",
+    "mirror_notice_checks": "PASS"
+  },
+  "environment": {
+    "flask_installed": false,
+    "fastapi_installed": true,
+    "jinja2_installed": true,
+    "pytest_installed": true
+  }
+}

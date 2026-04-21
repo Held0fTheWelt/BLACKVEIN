@@ -1,0 +1,26 @@
+# Source inventory
+
+## Inventory principle
+
+This inventory covers every supplied archive plus the major internal source families that materially informed the canonical reconstruction.
+
+## Audited source inventory
+
+| Artifact | Type | Classification | Why used | Outcome |
+|---|---|---|---|---|
+| wos_complete_mvp_v9.zip | supplied archive | historical but still content-bearing, partial MVP fragment | Earliest supplied complete MVP baseline with integrated product thesis, five-layer runtime framing, UI mockups, early memory and operations posture. | Preserved as early breadth baseline and anti-loss comparator. |
+| wos_complete_mvp_v12.zip | supplied archive | historical but still content-bearing, canonical candidate | Expanded complete MVP family with constitutional runtime, memory framework, world-engine product spec, writers-room platform, admin/inspection surfaces, and test plan. | Preserved as one of the broad-system anchor packages. |
+| wos_complete_mvp_v13.zip | supplied archive | historical but still content-bearing, canonical candidate | Adds implementation truth matrix, degraded-mode safety policy, world-state/counterfactual memory, recovery-intelligence, authoring analytics, and adjacent risk-prevention layers. | Used heavily to restore underrepresented enduring-target material. |
+| world_of_shadows_mvp_v16_package.zip | supplied archive | runtime hardening package, historical but still content-bearing | Sharpens non-removal, canonical contract-home discipline, comfort/ops obligations, and implementation gates. | Used as authority for documentation-governance and non-removal posture. |
+| world_of_shadows_mvp_v17_runtime_reife_package.zip | supplied archive | runtime maturity authority, historical but still content-bearing | Introduces explicit runtime-maturity acceptance profile, publish-bound session birth discipline, and ordinary-player route proof requirements. | Integrated directly into runtime-maturity and proof documents. |
+| world_of_shadows_mvp_v18_runtime_closure_package.zip | supplied archive | runtime closure authority, historical but still content-bearing | Clarifies profile classes, hardened PASS/FAIL triggers, memory and retrieval closure minimums, and story-session durability expectations. | Integrated directly into runtime-maturity and residue/task framing. |
+| world_of_shadows_complete_mvp_v21.zip | supplied archive | canonical candidate, restoration package, implementation evidence | Restores broad package completeness and stronger canonical law wording while keeping executable reference material and repo-adjacent docs. | Used as bridge source between earlier breadth and later repo-centered slice. |
+| world_of_shadows_mvp_v23_fy_governed.zip | supplied archive | implementation evidence, governance-bearing repo state | Repository-centered governed state with fy-suites and slice contracts; useful for checking later structure and governance families. | Used as intermediate comparison source. |
+| world_of_shadows_mvp_v24_lean_finishable.zip | supplied archive | partial MVP fragment, comparison artifact | Lean curation of later repo state; useful for omission detection and drift comparison, but not complete enough alone. | Used as comparison artifact only. |
+| world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip | supplied archive | primary evidence-rich base, canonical candidate, implementation evidence, audit evidence | Richest late-stage archive with broad docs, proof corpus, governance ledgers, GoC closures, authored content, and code/test surfaces. | Used as primary code-and-proof anchor for this re-audit. |
+| world_of_shadows_canonical_mvp_consolidated_2026-04-20.zip | supplied archive | previous canonical attempt, audit evidence | Useful prior consolidation containing a good six-document canonical core and supporting audit folder, but still too compressed in some areas. | Preserved as audited input; improved rather than trusted blindly. |
+| historical mvp/docs and reference scaffold | internal source family | canonical candidate, historical but still content-bearing | Carries broad system target, implementation protocol, memory/emotion/consciousness families, and executable constitutional scaffold. | Preserved as enduring-target layer and direct proof anchor. |
+| later docs/, docs/MVPs/, governance/, validation/ | internal source family | implementation-adjacent docs, governance authority, audit evidence | Carries active slice contracts, proof reports, roadmaps, governance ledgers, and current service-boundary reading. | Preserved as active-slice and proof-bearing layer. |
+| content/modules/god_of_carnage/ | internal source family | authored content, canonical candidate | The actual authored dramatic source for the current slice. | Preserved as the canonical authored source for GoC. |
+| world-engine/, backend/, frontend/, ai_stack/, administration-tool/, writers-room/ | internal source family | implementation evidence | Repository reality for what is implemented now versus only documented. | Used to ground the proof-status judgment. |
+| evidence/raw_test_outputs from this re-audit | new evidence bundle | direct execution evidence | Captures what was rerun directly in this consolidation environment. | Used to keep the final proof judgment honest. |

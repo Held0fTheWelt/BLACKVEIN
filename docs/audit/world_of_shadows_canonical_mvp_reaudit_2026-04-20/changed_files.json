@@ -1,0 +1,22 @@
+{
+  "created": [
+    "MASTER_AUDIT_CONSOLIDATION_REPORT.md",
+    "CHANGED_FILES.txt",
+    "README.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/README.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/01_system_identity_and_player_experience.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/02_authority_architecture_and_runtime_laws.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/03_enduring_target_runtime_layers_and_world_model.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/04_authoring_writers_room_and_module_lifecycle.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/05_content_authoring_publish_and_runtime_continuity.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/06_god_of_carnage_canonical_experience.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/08_operations_deployment_localization_and_live_constraints.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/09_implementation_reality_runtime_maturity_and_proof.md",
+    "docs/MVPs/world_of_shadows_canonical_mvp/10_residues_and_runtime_proof_tasks.md",
+    "docs/audit/world_of_shadows_canonical_mvp_reaudit_2026-04-20/*",
+    "evidence/raw_test_outputs/*"
+  ],
+  "modified_source_files": [],
+  "note": "This package is a new canonical documentation artifact. No user source archive was mutated in place."
+}

@@ -1,0 +1,75 @@
+[
+  {
+    "artifact": "world_of_shadows_complete_mvp_v21.zip",
+    "type": "supplied archive",
+    "classification": [
+      "canonical candidate",
+      "historical but still content-bearing",
+      "broad-system restoration package"
+    ],
+    "why_used": "Strongest directly supplied bridge between earlier complete MVP breadth and later repo-centered proof.",
+    "outcome": "Main broad-system carry-forward source in this pass."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_lean_finishable.zip",
+    "type": "supplied archive",
+    "classification": [
+      "partial MVP fragment",
+      "comparison artifact"
+    ],
+    "why_used": "Useful for drift detection and omission checking against the richer late-stage package.",
+    "outcome": "Comparison artifact only."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip",
+    "type": "supplied archive",
+    "classification": [
+      "primary evidence-rich base",
+      "implementation evidence",
+      "audit evidence",
+      "canonical candidate"
+    ],
+    "why_used": "Strongest later repo-centered source for code reality, validation corpus, GoC closure line, shell re-entry, and runtime authority.",
+    "outcome": "Primary implementation/proof anchor."
+  },
+  {
+    "artifact": "world_of_shadows_canonical_mvp_consolidated_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "previous canonical attempt",
+      "audit evidence"
+    ],
+    "why_used": "Earlier consolidation with a strong six-document spine but still too compressed.",
+    "outcome": "Audited input and anti-loss comparator."
+  },
+  {
+    "artifact": "world_of_shadows_final_consolidated_mvp_archive_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "intermediate canonical package",
+      "partial consolidation"
+    ],
+    "why_used": "Shows a useful widening move but still contains transitional duplication and inconsistent naming.",
+    "outcome": "Used to trace prior restoration attempts."
+  },
+  {
+    "artifact": "world_of_shadows_canonical_mvp_final_consolidated_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "strongest prior canonical candidate",
+      "canonical base"
+    ],
+    "why_used": "Best pre-existing canonical package in the supplied set.",
+    "outcome": "Reconstruction base for this pass."
+  },
+  {
+    "artifact": "ai_stack.zip",
+    "type": "related supplied archive",
+    "classification": [
+      "related implementation archive",
+      "spot-checked duplicate-heavy support surface"
+    ],
+    "why_used": "Spot-check confirmed relevant ai-stack/runtime support material already represented in the v24 full directory.",
+    "outcome": "Related implementation cross-check only."
+  }
+]

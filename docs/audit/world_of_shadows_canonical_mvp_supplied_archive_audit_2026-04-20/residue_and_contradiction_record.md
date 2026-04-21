@@ -1,0 +1,28 @@
+# Residue and contradiction record
+
+## Active residues
+
+- Broad World of Shadows target remains larger than the currently strongest proved GoC slice.
+- Backend transitional retirement remains bounded residue rather than fully closed retirement.
+- Independent Level B closure is still not honestly supported.
+- This audit container cannot directly replay the Flask-backed backend/frontend test slice.
+- The player-facing committed path and live-room / alternate session surfaces are now better classified, but not fully replay-collapsed into one fresh proof surface here.
+- Writers' room / retrieval overlap remains governed residue, not an erased distinction.
+- Broad memory, emotional/consciousness, multi-session, and authoring ambitions remain target truth rather than equally proven live runtime.
+
+## Cross-source contradictions and tensions
+
+- Later slice-centered documents sometimes read narrower than earlier complete MVPs without explicit supersession notes.
+- Evidence-rich late packages prove the active slice strongly while broader target layers remain more documentary.
+- Bounded fallback paths coexist with published-canon primary paths and therefore need constant governance, not silence.
+- Session-facing surfaces can be described too casually as if all live outputs were the same contract, even though the source materials distinguish committed story playback, live-room snapshots, and operator projections.
+
+## Explicit contradiction handling rule
+
+Where the sources do not fully collapse into one settled statement, this package keeps the tension explicit rather than choosing a neat but unsupported simplification.
+That rule applies especially to:
+
+- proof-level claims,
+- multi-surface session behavior,
+- writers' room / retrieval overlap,
+- and broad-target-vs-active-slice readings.

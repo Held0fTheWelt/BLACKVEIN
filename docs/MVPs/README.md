@@ -2,8 +2,14 @@
 
 Each **MVP** lives in its **own folder** under `docs/MVPs/`, with a short `README.md` and the authoritative Markdown files for that initiative.
 
+## Canonical MVP implementation route
+
+- `MVP_World_Of_Shadows_Canonical_Implementation_Bundle/` is the canonical implementation-oriented MVP bundle.
+- Entry point: `docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md`
+
 | Folder | Focus |
 |--------|--------|
+| `MVP_World_Of_Shadows_Canonical_Implementation_Bundle/` | Canonical implementation bundle consolidating former `MVP/` source material |
 | `MVP_VSL_And_GoC_Contracts/` | GoC vertical slice: turn contract, slice contract, gate scoring, freeze ops, VSL/GoC roadmaps, Phase 0 closure note |
 | `MVP_Narrative_Governance_And_Revision_Foundation/` | Narrative governance and revision foundation (multi-file spec) |
 | `MVP_World_Of_Shadows/` | Umbrella platform MVP roadmap |

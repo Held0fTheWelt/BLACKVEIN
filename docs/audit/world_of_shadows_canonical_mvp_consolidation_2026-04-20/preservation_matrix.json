@@ -1,0 +1,142 @@
+[
+  {
+    "Aspect": "World of Shadows product identity",
+    "Source basis": "README.md; docs/start-here/what-is-world-of-shadows.md; mvp/docs/00_MASTER_MVP.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "01_system_identity_and_player_experience.md",
+    "Notes": "Reconciled broad platform identity with current slice-centered docs."
+  },
+  {
+    "Aspect": "Constitutional runtime laws",
+    "Source basis": "mvp/docs/48_CANONICAL_IMPLEMENTATION_PROTOCOL.md; mvp/docs/01_RUNTIME_CONSTITUTION.md; mvp/docs/00_WORLD_OF_SHADOWS_MVP_V21_CANONICAL.md",
+    "Outcome": "preserved after normalization",
+    "Canonical destination": "02_authority_architecture_and_runtime_laws.md",
+    "Notes": "Restored as enduring backbone instead of leaving them buried in the historical MVP tree."
+  },
+  {
+    "Aspect": "Broad system target beyond current slice",
+    "Source basis": "mvp/docs/00_MASTER_MVP.md; historical memory/emotion/consciousness/writers-room specs",
+    "Outcome": "preserved as explicit bounded layer",
+    "Canonical destination": "01_system_identity_and_player_experience.md and 06_implementation_reality_and_proof_status.md",
+    "Notes": "Not falsely presented as fully implemented in the active repository slice."
+  },
+  {
+    "Aspect": "World-engine as sole runtime authority",
+    "Source basis": "docs/technical/runtime/runtime-authority-and-state-flow.md; ADR-0001",
+    "Outcome": "preserved directly",
+    "Canonical destination": "02_authority_architecture_and_runtime_laws.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "Proposal \u2192 validation \u2192 commit \u2192 visible render semantics",
+    "Source basis": "CANONICAL_TURN_CONTRACT_GOC.md; VERTICAL_SLICE_CONTRACT_GOC.md; world_engine_authoritative_narrative_commit.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "02_authority_architecture_and_runtime_laws.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "Scene identity canonical surface",
+    "Source basis": "ADR-0003; ai_stack/goc_scene_identity.py; ai_stack/tests/test_goc_scene_identity.py",
+    "Outcome": "preserved directly",
+    "Canonical destination": "02_authority_architecture_and_runtime_laws.md",
+    "Notes": "Kept as implementation-backed governance, not a side note."
+  },
+  {
+    "Aspect": "Authoring / compiler / publish / runtime continuity",
+    "Source basis": "writers-room-and-publishing-flow.md; god_of_carnage_canonical_path.md; publishing-and-module-activation.md; activation proof reports",
+    "Outcome": "strengthened and integrated now",
+    "Canonical destination": "03_content_authoring_publish_and_runtime_continuity.md",
+    "Notes": "One of the main underrepresented seams restored into a single coherent canonical document."
+  },
+  {
+    "Aspect": "Writers\u2019 Room \u2194 RAG overlap rules",
+    "Source basis": "V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md; writers-room-and-publishing-flow.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "03_content_authoring_publish_and_runtime_continuity.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "GoC authored module structure",
+    "Source basis": "content/modules/god_of_carnage/*; god_of_carnage_module_contract.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "03_content_authoring_publish_and_runtime_continuity.md and 04_god_of_carnage_canonical_experience.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "GoC player-facing experience baseline",
+    "Source basis": "god-of-carnage-as-an-experience.md; god-of-carnage-player-guide.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "04_god_of_carnage_canonical_experience.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "GoC A-line experience hardening",
+    "Source basis": "GoC wave AF-AY reports; GoC vertical slice hardening closure",
+    "Outcome": "strengthened and integrated now",
+    "Canonical destination": "04_god_of_carnage_canonical_experience.md",
+    "Notes": "Previously scattered over many wave reports; now expressed as canonical experience behavior."
+  },
+  {
+    "Aspect": "GoC B-F experience hardening",
+    "Source basis": "GoC wave BA/C1/C2/D1/D2/E1/F1 reports",
+    "Outcome": "strengthened and integrated now",
+    "Canonical destination": "04_god_of_carnage_canonical_experience.md",
+    "Notes": "Restores character/social-performance depth and conversational afterlife."
+  },
+  {
+    "Aspect": "Player shell loop and re-entry behavior",
+    "Source basis": "frontend shell loop proof; authoritative shell re-entry hardening",
+    "Outcome": "preserved directly",
+    "Canonical destination": "05_player_ui_ux_and_operator_surfaces.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "Player-facing UI/UX expectations",
+    "Source basis": "backend/docs/UI_USABILITY.md; ROADMAP_MVP_ENGINE_AND_UI.md; runtime-interactions-player-visible.md",
+    "Outcome": "strengthened and integrated now",
+    "Canonical destination": "05_player_ui_ux_and_operator_surfaces.md",
+    "Notes": "Explicitly restored because this requirement family was source-supported but not canonically consolidated."
+  },
+  {
+    "Aspect": "Admin / diagnostics / inspector surfaces",
+    "Source basis": "docs/admin/*; ROADMAP_MVP_ADMINISTRATION_TOOL_DIAGNOSIS.md",
+    "Outcome": "merged into canonical section",
+    "Canonical destination": "05_player_ui_ux_and_operator_surfaces.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "Backend transitional retirement residue",
+    "Source basis": "backend transitional retirement ledger + resolution report",
+    "Outcome": "preserved as explicit bounded residue",
+    "Canonical destination": "06_implementation_reality_and_proof_status.md and audit residue/task files",
+    "Notes": "Not hidden under a false closure claim."
+  },
+  {
+    "Aspect": "API projection governance",
+    "Source basis": "V24_API_PROJECTION_GOVERNANCE_LEDGER.md; docs/api/*",
+    "Outcome": "merged into another canonical section",
+    "Canonical destination": "02_authority_architecture_and_runtime_laws.md",
+    "Notes": "Kept as a projection-governance concern, not primary runtime truth."
+  },
+  {
+    "Aspect": "Level A vs Level B closure posture",
+    "Source basis": "closure_level_classification_summary.md; gate_summary_matrix.md",
+    "Outcome": "strengthened and integrated now",
+    "Canonical destination": "06_implementation_reality_and_proof_status.md",
+    "Notes": "Runtime-proof judgment now made explicit in the canonical MVP set."
+  },
+  {
+    "Aspect": "Reference scaffold proof layer",
+    "Source basis": "mvp/reference_scaffold/*; V24_PACKAGE_VALIDATION.md",
+    "Outcome": "preserved directly",
+    "Canonical destination": "06_implementation_reality_and_proof_status.md",
+    "Notes": ""
+  },
+  {
+    "Aspect": "Source-preservation anti-loss rules",
+    "Source basis": "V24_SOURCE_PRESERVATION_LEDGER.md",
+    "Outcome": "preserved after normalization",
+    "Canonical destination": "audit outputs and changed-files record",
+    "Notes": "This pass extends the anti-loss posture rather than replacing it."
+  }
+]

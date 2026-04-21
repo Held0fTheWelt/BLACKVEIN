@@ -1,0 +1,69 @@
+# World of Shadows canonical MVP changed / generated files
+
+## Created
+
+- `docs/MVPs/world_of_shadows_canonical_mvp/README.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/01_system_identity_and_player_experience.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/02_authority_architecture_and_runtime_laws.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/03_content_authoring_publish_and_runtime_continuity.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/04_god_of_carnage_canonical_experience.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/05_player_ui_ux_and_operator_surfaces.md`
+- `docs/MVPs/world_of_shadows_canonical_mvp/06_implementation_reality_and_proof_status.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/README.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_consolidation_report.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_source_inventory.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_preservation_matrix.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_improvement_review.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_runtime_proof_tasks.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_residue_and_contradictions.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/world_of_shadows_canonical_mvp_changed_files.md`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/source_inventory.json`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/preservation_matrix.json`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/improvement_review.json`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/runtime_proof_tasks.json`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/residue_record.json`
+- `docs/audit/world_of_shadows_canonical_mvp_consolidation_2026-04-20/changed_files.json`
+
+## Removed as non-material ballast
+
+- `ai_stack/__pycache__/`
+- `ai_stack/.pytest_cache/`
+- `backend/.coverage`
+- `backend/.pytest_cache/`
+- `frontend/.pytest_cache/`
+- `story_runtime_core/__pycache__/`
+- `world-engine/.pytest_cache/`
+- `world-engine/app/__pycache__/`
+- `world-engine/tests/__pycache__/`
+- `world-engine/app/observability/__pycache__/`
+- `world-engine/app/story_runtime/__pycache__/`
+- `mvp/reference_scaffold/.pytest_cache/`
+- `mvp/reference_scaffold/tests/__pycache__/`
+- `mvp/reference_scaffold/wos_mvp/__pycache__/`
+- `frontend/app/__pycache__/`
+- `frontend/tests/__pycache__/`
+- `backend/app/__pycache__/`
+- `backend/tests/__pycache__/`
+- `backend/app/api/__pycache__/`
+- `backend/app/auth/__pycache__/`
+- `backend/app/content/__pycache__/`
+- `backend/app/content/compiler/__pycache__/`
+- `backend/app/contracts/__pycache__/`
+- `backend/app/info/__pycache__/`
+- `backend/app/models/__pycache__/`
+- `backend/app/observability/__pycache__/`
+- `backend/app/runtime/__pycache__/`
+- `backend/app/services/__pycache__/`
+- `backend/app/api/v1/__pycache__/`
+- `world-engine/app/api/__pycache__/`
+- `world-engine/app/content/__pycache__/`
+- `world-engine/app/graph/__pycache__/`
+- `world-engine/app/models/__pycache__/`
+
+## Explicitly retained
+
+- mvp/ historical MVP tree
+- validation/ proof corpus
+- governance/ ledgers
+- docs/VERTICAL_SLICE_CONTRACT_GOC.md and related detailed contracts
+- content/modules/god_of_carnage/ authored source

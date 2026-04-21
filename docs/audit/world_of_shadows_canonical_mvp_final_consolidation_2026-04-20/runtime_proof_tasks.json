@@ -1,0 +1,50 @@
+[
+  {
+    "task": "Provision Flask-capable backend/frontend test environment and rerun targeted route proofs",
+    "proof_target": "Replay backend session-route shell/proxy tests and frontend play-shell framing tests in an environment with required Flask dependencies.",
+    "why": "Current container blocks these route-level proofs with ModuleNotFoundError: flask.",
+    "expected_evidence": "Fresh PASS outputs for the targeted backend and frontend pytest commands, plus any required environment note."
+  },
+  {
+    "task": "Reproduce the full dual-surface player-path contract",
+    "proof_target": "Demonstrate with tests and/or replay evidence which path is canonical for ordinary players, which path is live-room advisory, how they converge, and how audience classification is exposed.",
+    "why": "Committed-path vs live-room/player-visible transport discipline remains a bounded proof seam.",
+    "expected_evidence": "Route-level tests or E2E evidence showing no silent truth divergence across player-visible surfaces."
+  },
+  {
+    "task": "Replay publish -> activation -> shell -> re-entry as one end-to-end chain",
+    "proof_target": "Fresh evidence that the published artifact identity survives activation, session birth, shell hydration, turn progression, resume, and re-entry.",
+    "why": "The chain is strongly source-supported but only partly rerun in this pass.",
+    "expected_evidence": "Integrated route/service/E2E replay with provenance and audience classification visible."
+  },
+  {
+    "task": "Replay preview, evaluation, promotion, rollback, and runtime-health governance flow",
+    "proof_target": "Show the governed lifecycle working end to end, including findings, revision candidates, preview isolation, evaluation deltas, promotion decision, history, rollback reachability, and runtime-health interpretation.",
+    "why": "Canonical lifecycle truth is restored, but fresh live replay is still incomplete.",
+    "expected_evidence": "Admin/operator-facing replay, logs, and validation outputs covering the lifecycle chain."
+  },
+  {
+    "task": "Provision LangGraph/LangChain dependencies and rerun graph-heavy AI-stack proof",
+    "proof_target": "Replay the skipped breadth-playability and fallback/orchestration-heavy AI-stack tests under a fully provisioned environment.",
+    "why": "Graph-heavy proof remains environment-limited in this pass.",
+    "expected_evidence": "PASS or bounded-failure outputs for the graph-heavy test set with explicit dependency context."
+  },
+  {
+    "task": "Demonstrate research/improvement and MCP support without truth-boundary drift",
+    "proof_target": "Show that research findings, improvement proposals, preview tools, and MCP operator tooling remain visible and useful while still subordinate to publish/runtime authority.",
+    "why": "The subsystem is now preserved canonically but not equally product-proven.",
+    "expected_evidence": "Capability-gated flows, traceability, and tests showing no silent canon mutation or second truth boundary."
+  },
+  {
+    "task": "Close backend transitional retirement honestly",
+    "proof_target": "Either prove retirement-safe removal of transitional backend session surfaces or reclassify them explicitly with stable compatibility posture.",
+    "why": "This remains a named residue in the validation corpus.",
+    "expected_evidence": "Updated code, tests, and audit record showing resolved ownership and no hidden fallback truth path."
+  },
+  {
+    "task": "Attempt evaluator-independent higher-level closure only after the above replays pass",
+    "proof_target": "Advance from strong active-slice Level A posture toward a stronger evaluator-independent closure classification.",
+    "why": "Current evidence does not justify skipping directly to that claim.",
+    "expected_evidence": "Independent evaluation package or equivalently strong externalized proof corpus tied to the refreshed runtime evidence."
+  }
+]

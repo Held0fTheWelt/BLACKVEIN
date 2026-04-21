@@ -150,17 +150,17 @@ for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest
 
 echo.
 
-if not "!MISSING!"=="" (
+if "!MISSING!" NEQ "" (
     echo Error: Missing required packages:
     echo   !MISSING!
     echo.
-    echo Try running pip install again from repo root (see setup-test-environment.bat).
+    echo Try running pip install again from repo root - see setup-test-environment.bat
     exit /b 1
 )
 
-echo Verifying ai_stack LangGraph export (RuntimeTurnGraphExecutor^)...
+echo Verifying ai_stack LangGraph export RuntimeTurnGraphExecutor...
 set "PYTHONPATH=%REPO_ROOT%"
-"%PYTHON_EXE%" -c "import langchain_core, langgraph, ai_stack; assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE; from ai_stack import RuntimeTurnGraphExecutor; assert RuntimeTurnGraphExecutor is not None; print('  [OK] ai_stack graph lane')"
+"%PYTHON_EXE%" "%REPO_ROOT%scripts\verify_ai_stack_test_env.py"
 if errorlevel 1 (
     echo Error: ai_stack LangGraph export check failed.
     echo Ensure: pip install -e ./story_runtime_core ^&^& pip install -e "./ai_stack[test]"

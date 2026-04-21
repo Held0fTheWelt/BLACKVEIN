@@ -1,0 +1,38 @@
+[
+  {
+    "Task": "Remove POST-local backend bootstrap residue from `/api/v1/sessions` and its dependent store/service path",
+    "Why it remains open": "The remaining dominant blocker to stronger backend authority closure is still explicit local bootstrap state minted on POST.",
+    "Evidence basis": "backend retirement ledger; post-locality resolution report",
+    "Proof needed": "Route, store, and service tests showing no backend-local runtime-shaped session truth remains except explicitly bounded compatibility shims, plus an updated retirement ledger closing the blocker."
+  },
+  {
+    "Task": "Close Level B evaluator independence",
+    "Why it remains open": "Current audit family supports Level A only; evaluator independence remains insufficient.",
+    "Evidence basis": "closure_level_classification_summary.md; G9B evaluator baseline",
+    "Proof needed": "Independent evaluator process and artifact chain that satisfies G9B without relying on the same authority stack that produced package truth."
+  },
+  {
+    "Task": "Reproduce backend and frontend proof paths directly in the present audit environment",
+    "Why it remains open": "This consolidation could rerun world-engine, ai_stack, and scaffold tests locally, but backend/frontend direct replay in this container stopped at missing Flask.",
+    "Evidence basis": "local reruns; backend quick suite report; engine quick suite report",
+    "Proof needed": "Documented environment bootstrap that allows the targeted backend/frontend replay commands to pass from a fresh audit container without manual dependency ambiguity."
+  },
+  {
+    "Task": "Keep publish/runtime activation proof live after future content or compiler changes",
+    "Why it remains open": "Activation semantics are proven, but only stay trustworthy if rerun after future publish-path changes.",
+    "Evidence basis": "publish/runtime activation reports",
+    "Proof needed": "Repeat the environment-backed activation proof runner on the current package after significant compiler, backend content, or play-service loading changes."
+  },
+  {
+    "Task": "Continue turning the broad historical target layers into repo-proven implementation",
+    "Why it remains open": "The broad WoS target includes memory, emotional, consciousness, and authoring platform layers beyond the current active proof-bearing slice.",
+    "Evidence basis": "historical MVP layer; reference scaffold",
+    "Proof needed": "Owner-component implementations, tests, and validation reports that move these capabilities from spec/scaffold status into repo-truth status."
+  },
+  {
+    "Task": "Re-audit Writers\u2019 Room / RAG overlap after new recommendation, publish, or retrieval mutation work",
+    "Why it remains open": "The seam is intentionally bounded, not eliminated.",
+    "Evidence basis": "V24_WRITERS_ROOM_RAG_OVERLAP_LEDGER.md",
+    "Proof needed": "Evidence that retrieval/context support has not become publish authority or runtime truth by drift."
+  }
+]

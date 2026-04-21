@@ -1,0 +1,21 @@
+{
+  "model_id": "BAAI/bge-small-en-v1.5",
+  "starting_residual": "external model acquisition for fastembed via Hugging Face / DNS",
+  "repair": "repository-controlled offline compatibility fallback in ai_stack.fastembed_compat with automatic fallback from semantic_embedding",
+  "ai_stack_after": {
+    "passed": 222,
+    "skipped": 0
+  },
+  "semantic_embedding_after": {
+    "passed": 8,
+    "skipped": 0
+  },
+  "rag_after": {
+    "passed": 56,
+    "skipped": 0
+  },
+  "world_engine_adjacent_after": {
+    "passed": 8,
+    "skipped": 0
+  }
+}

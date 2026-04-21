@@ -1,0 +1,44 @@
+[
+  {
+    "aspect": "Multi-session continuity",
+    "source_basis": "v21 doc 38",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Was underrepresented previously."
+  },
+  {
+    "aspect": "Learned-policy shadow lane",
+    "source_basis": "v21 doc 38; v21 implementation truth matrix",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Restored as governance discipline, not live proof claim."
+  },
+  {
+    "aspect": "Player-facing transport discipline",
+    "source_basis": "play-shell UX notes; shell re-entry hardening report; route purity rules",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md; 10_residues_and_runtime_proof_tasks.md; 13_authoring_retrieval_and_runtime_boundary_contract.md",
+    "notes": "Previously too implicit."
+  },
+  {
+    "aspect": "Concrete admin inspection domains",
+    "source_basis": "v21 admin/inspection spec",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Restored from broad-system material."
+  },
+  {
+    "aspect": "Capability-gated observe/operate/author consoles",
+    "source_basis": "v21 console wireframes and admin docs",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Operational MVP truth retained."
+  },
+  {
+    "aspect": "Single-file Gesamt MVP reading surface",
+    "source_basis": "intermediate final-consolidated archive plus current canonical family",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "00_world_of_shadows_gesamt_mvp.md",
+    "notes": "Adds usability without discarding the family."
+  }
+]

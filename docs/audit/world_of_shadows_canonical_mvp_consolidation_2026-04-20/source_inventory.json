@@ -1,0 +1,79 @@
+[
+  {
+    "Artifact": "world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip",
+    "Type": "supplied archive",
+    "Classification": "canonical candidate, implementation evidence, audit evidence, ADR / architecture authority, historical but still content-bearing",
+    "Why used": "Primary evidence-rich superset archive with the broad MVP tree, current docs, governance ledgers, proof reports, and more complete code/test surfaces.",
+    "Outcome": "Chosen as primary reconstruction base."
+  },
+  {
+    "Artifact": "world_of_shadows_mvp_v24_lean_finishable.zip",
+    "Type": "supplied archive",
+    "Classification": "partial MVP fragment, historical packaging claim, duplicate / near duplicate",
+    "Why used": "Secondary comparison artifact for omissions, narrowing decisions, and wording drift.",
+    "Outcome": "Used as comparison source only; not sufficient alone as canonical MVP."
+  },
+  {
+    "Artifact": "mvp/docs/* and mvp/reference_scaffold/*",
+    "Type": "historical MVP core",
+    "Classification": "canonical candidate, historical but still content-bearing",
+    "Why used": "Carries the broad system target, constitutional laws, memory/emotion/consciousness layers, writers-room platform, implementation protocol, and executable scaffold.",
+    "Outcome": "Preserved as enduring target-state layer."
+  },
+  {
+    "Artifact": "docs/start-here/*, docs/technical/*, docs/admin/*, docs/user/*",
+    "Type": "current repo documentation",
+    "Classification": "canonical candidate, implementation-adjacent documentation",
+    "Why used": "Best source for current service boundaries, runtime authority, player/admin surfaces, AI stack, publishing flow, and active slice semantics.",
+    "Outcome": "Used as main current-state narrative layer."
+  },
+  {
+    "Artifact": "GoC contract family",
+    "Type": "slice contract family",
+    "Classification": "ADR / architecture authority, canonical candidate",
+    "Why used": "Normative contract family for the God of Carnage slice.",
+    "Outcome": "Folded into the canonical GoC experience and authority docs; originals retained as deep anchors."
+  },
+  {
+    "Artifact": "docs/audit/*",
+    "Type": "closure cockpit baseline",
+    "Classification": "audit evidence",
+    "Why used": "Defines Level A vs Level B closure posture and gate summary.",
+    "Outcome": "Used to set runtime-proof judgment honestly."
+  },
+  {
+    "Artifact": "validation/V24_*",
+    "Type": "validation reports",
+    "Classification": "implementation evidence, audit evidence",
+    "Why used": "Provides wave-by-wave and system-surface proof, especially shell loop, publish/runtime activation, GoC A-F behavior, and quick-suite closure.",
+    "Outcome": "Used as primary proof corpus."
+  },
+  {
+    "Artifact": "governance/V24_*_LEDGER.md",
+    "Type": "governance ledger family",
+    "Classification": "ADR / architecture authority, audit evidence",
+    "Why used": "Carries anti-drift rules around source preservation, backend retirement, API projection governance, and Writers\u2019 Room/RAG overlap.",
+    "Outcome": "Pulled into canonical governance and residue statements."
+  },
+  {
+    "Artifact": "content/modules/god_of_carnage/*",
+    "Type": "authored content",
+    "Classification": "implementation evidence, canonical candidate",
+    "Why used": "Primary authored source for the active slice.",
+    "Outcome": "Preserved as canonical authored source."
+  },
+  {
+    "Artifact": "owner components and tests",
+    "Type": "code and tests",
+    "Classification": "implementation evidence",
+    "Why used": "Repository reality used to judge implemented vs partial vs target-only status.",
+    "Outcome": "Cross-checked against documentation and validation reports."
+  },
+  {
+    "Artifact": "backend/docs/UI_USABILITY.md and docs/ROADMAP_MVP_ENGINE_AND_UI.md",
+    "Type": "UI expectation sources",
+    "Classification": "historical but still content-bearing, partial MVP fragment",
+    "Why used": "Carry player-facing UI/UX requirements that were not fully pulled into a canonical doc.",
+    "Outcome": "Integrated directly into the new canonical UI/UX document."
+  }
+]

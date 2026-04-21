@@ -1,0 +1,58 @@
+[
+  {
+    "improvement": "Add single-file Gesamt MVP",
+    "why": "Direct end-to-end reading surface already justified by intermediate package and current family",
+    "source_basis": "intermediate final-consolidated package plus current canonical family",
+    "disposition": "integrated now",
+    "impact": "Improves usability without changing scope"
+  },
+  {
+    "improvement": "Restore multi-session continuity",
+    "why": "Still preserved as real target discipline in v21 and underrepresented later",
+    "source_basis": "v21 doc 38",
+    "disposition": "integrated now",
+    "impact": "Prevents silent loss of continuity scope rules"
+  },
+  {
+    "improvement": "Restore learned-policy shadow-lane discipline",
+    "why": "Clear governance rule for adaptive logic",
+    "source_basis": "v21 doc 38; v21 implementation truth matrix",
+    "disposition": "integrated now",
+    "impact": "Protects future adaptive work from bypassing release honesty"
+  },
+  {
+    "improvement": "Restore player-facing transport discipline",
+    "why": "Committed, live-room, and operator surfaces must stay classified",
+    "source_basis": "play-shell UX notes; shell re-entry hardening report; route-purity laws",
+    "disposition": "integrated now",
+    "impact": "Reduces future drift and misclassification risk"
+  },
+  {
+    "improvement": "Restore concrete admin inspection domains",
+    "why": "Earlier complete MVP material was more precise than later summaries",
+    "source_basis": "v21 admin/inspection surfaces doc",
+    "disposition": "integrated now",
+    "impact": "Makes operator-surface expectations less vague"
+  },
+  {
+    "improvement": "Close backend transitional retirement now",
+    "why": "Requires implementation/test closure beyond documentation",
+    "source_basis": "v24 retirement reports and ledgers",
+    "disposition": "deferred to runtime-proof tasks",
+    "impact": "Keeps open residue visible"
+  },
+  {
+    "improvement": "Provision Flask-backed backend/frontend replay environment",
+    "why": "Direct reruns blocked for important route tests",
+    "source_basis": "current rerun results",
+    "disposition": "deferred to runtime-proof tasks",
+    "impact": "Needed for stronger route-level replay credibility"
+  },
+  {
+    "improvement": "Declare multi-session continuity live-proofed now",
+    "why": "Source-supported target truth but not current active-slice runtime proof",
+    "source_basis": "v21 broad-system docs vs current proof surface",
+    "disposition": "rejected as current-claim upgrade",
+    "impact": "Avoids false completion claims"
+  }
+]

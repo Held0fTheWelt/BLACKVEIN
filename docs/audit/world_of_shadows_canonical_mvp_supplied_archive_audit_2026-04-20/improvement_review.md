@@ -1,0 +1,15 @@
+# Improvement review
+
+| Improvement | Why justified | Source basis | Disposition | Impact |
+|---|---|---|---|---|
+| Add a single-file Gesamt MVP reading surface | The document family is strong, but direct end-to-end reading was still cumbersome and had existed in an intermediate package already. | intermediate final-consolidated package plus current canonical family | integrated now | Improves usability without changing scope. |
+| Restore multi-session continuity explicitly | v21 still preserved this as a real target discipline and later canonical docs underrepresented it. | v21 doc 38 and related broad-system docs | integrated now | Prevents silent loss of continuity scope rules. |
+| Restore learned-policy shadow-lane discipline explicitly | The v21 package preserved a clear governance rule for adaptive logic that later docs did not carry strongly enough. | v21 doc 38; v21 implementation truth matrix | integrated now | Protects future adaptive work from bypassing release honesty. |
+| Restore player-facing transport discipline | Play-shell materials show distinct committed, live-room, and operator surfaces that must stay classified. | play-shell UX notes; shell re-entry hardening report; route-purity laws | integrated now | Reduces future drift and misclassification risk. |
+| Restore concrete admin inspection domains | Earlier complete MVP material was more precise than later summaries about what operators need to inspect. | v21 admin/inspection surfaces doc | integrated now | Makes operator-surface expectations less vague. |
+| Restore capability-gated console reading | The observe / operate / author split is a real operational concept already present in source material. | v21 console wireframes and admin docs | integrated now | Clarifies console responsibilities without speculative redesign. |
+| Close backend transitional retirement now | Strongly justified, but it requires implementation/test closure rather than documentation-only integration. | v24 retirement reports and ledgers | deferred to runtime-proof tasks | Must stay visible as open residue. |
+| Provision Flask-backed backend/frontend replay environment | Direct reruns are still blocked for important route tests. | current rerun results in this pass | deferred to runtime-proof tasks | Needed for stronger route-level replay credibility. |
+| Declare multi-session continuity as a live-proofed feature now | It is preserved target truth, but not proven as a current active-slice runtime feature. | v21 broad-system docs vs current repo proof surface | rejected as current-claim upgrade | Avoids false completion claims. |
+| Pretend committed player path and live-room path are already one fully replayed contract | The sources show the seam is real; the current evidence does not justify collapsing it by wording. | play-shell UX notes and current proof limits | rejected as false simplification | Keeps the MVP contradiction-honest. |
+| Erase writers' room / retrieval overlap by wording alone | The overlap is governed, not nonexistent. | later governance docs and latest canonical package | rejected as false cleanup | Prevents documentation theater. |

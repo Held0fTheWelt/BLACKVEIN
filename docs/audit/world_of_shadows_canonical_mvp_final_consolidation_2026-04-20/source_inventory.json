@@ -1,0 +1,143 @@
+[
+  {
+    "artifact": "World_of_Shadows_v21_closure_plus_inventory_audit.md",
+    "type": "supplied markdown audit",
+    "classification": [
+      "audit evidence",
+      "historical but still content-bearing",
+      "inventory authority for v21 package breadth"
+    ],
+    "why_used": "Provides a direct written inventory of the v21 canonical closure package and confirms broad-system scope such as memory, authoring, UI, and reference scaffold coverage.",
+    "outcome": "Preserved as evidence for v21 breadth and used as a cross-check against later compressed MVP summaries."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_lean_finishable.zip",
+    "type": "supplied archive",
+    "classification": [
+      "partial MVP fragment",
+      "comparison artifact",
+      "curated lean package"
+    ],
+    "why_used": "Useful for drift detection, omission checking, and understanding what the lean packaging intentionally removed or compressed.",
+    "outcome": "Used as a comparison artifact only, not as the final canonical base."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip",
+    "type": "supplied archive",
+    "classification": [
+      "primary implementation evidence",
+      "audit evidence",
+      "canonical candidate",
+      "experience-proof anchor"
+    ],
+    "why_used": "Strongest repo-centered source for code reality, GoC A-F experience closures, publish/runtime continuity, UI docs, validation corpus, and service boundaries.",
+    "outcome": "Preserved as the primary implementation and proof anchor for this pass."
+  },
+  {
+    "artifact": "world_of_shadows_canonical_mvp_preservation_audit_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "prior supplied-archive audit package",
+      "previous canonical attempt",
+      "audit evidence"
+    ],
+    "why_used": "Carries the earlier preservation-first audit pass and the first subject-based canonical MVP family for this source set.",
+    "outcome": "Preserved as prior consolidation evidence and anti-loss comparator."
+  },
+  {
+    "artifact": "world_of_shadows_final_consolidated_mvp_archive_extended_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "strongest prior canonical candidate",
+      "canonical base",
+      "extension package"
+    ],
+    "why_used": "Already preserved the extended canonical document family, including governed package lifecycle and operational governance seams.",
+    "outcome": "Chosen as the working base for the final consolidation pass."
+  },
+  {
+    "artifact": "world_of_shadows_final_consolidated_mvp_archive_collection_only_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "collection-first canonical attempt",
+      "recovery addendum",
+      "historical but still content-bearing"
+    ],
+    "why_used": "Useful for checking that prior collection work did not recover any still-valid material beyond the extended package, and for identifying where collection scope notes should remain audit context rather than canonical MVP truth.",
+    "outcome": "Used as a cross-check and preserved as audit context, but not taken as the final base because this pass performs its own runtime-proof judgment."
+  },
+  {
+    "artifact": "ai_stack.zip",
+    "type": "related supplied archive",
+    "classification": [
+      "related implementation archive",
+      "duplicate-heavy support surface",
+      "spot-check source"
+    ],
+    "why_used": "Used to verify that the AI-stack, research, and MCP-support surfaces were not merely mentioned in docs but also represented in code and tests.",
+    "outcome": "Used as a related implementation cross-check, not as a separate canonical-document driver."
+  },
+  {
+    "artifact": "embedded mvp/docs family inside supplied archives",
+    "type": "internal source family",
+    "classification": [
+      "historical but still content-bearing",
+      "broad-system canonical source",
+      "superseded but unique"
+    ],
+    "why_used": "Carries the v21-style broad WoS target, memory/world-model depth, writers-room scope, multi-session continuity, and runtime-maturity framing.",
+    "outcome": "Direct carry-forward source for enduring-target restoration."
+  },
+  {
+    "artifact": "docs/MVPs/world_of_shadows_canonical_mvp inside prior canonical archives",
+    "type": "internal source family",
+    "classification": [
+      "normalized canonical reading layer",
+      "canonical candidate"
+    ],
+    "why_used": "Strongest already-normalized subject-based canonical MVP family before this pass.",
+    "outcome": "Preserved and strengthened, not replaced."
+  },
+  {
+    "artifact": "v24 validation corpus under validation/",
+    "type": "internal source family",
+    "classification": [
+      "audit evidence",
+      "experience-proof evidence",
+      "implementation evidence"
+    ],
+    "why_used": "Carries GoC A-F closure reports, shell-loop proof, backend transitional retirement posture, and activation-path evidence.",
+    "outcome": "Preserved as load-bearing packaged proof."
+  },
+  {
+    "artifact": "docs/user, docs/admin, docs/start-here, roadmap docs, and related UX/governance docs",
+    "type": "internal source family",
+    "classification": [
+      "UX authority",
+      "architecture authority",
+      "implementation-adjacent guidance"
+    ],
+    "why_used": "Preserve player-shell clarity, publish/runtime continuity, GoC player-facing expectations, room/object pressure reading, operator journeys, and settings/control-plane governance.",
+    "outcome": "Strengthened and integrated into the canonical MVP family."
+  },
+  {
+    "artifact": "mvp/reference_scaffold/tests, world-engine/tests, ai_stack/tests",
+    "type": "executable proof surfaces",
+    "classification": [
+      "direct execution evidence",
+      "test evidence"
+    ],
+    "why_used": "Available for direct rerun in this container and therefore valuable for fresh reality checking.",
+    "outcome": "Rerun directly in this pass and recorded under final-consolidation raw outputs."
+  },
+  {
+    "artifact": "backend/frontend Flask-backed tests",
+    "type": "execution targets inside supplied archive",
+    "classification": [
+      "important proof surfaces",
+      "environment-limited execution targets"
+    ],
+    "why_used": "High-value route-level proof for session and player-shell seams.",
+    "outcome": "Kept explicit as blocked proof surfaces because Flask is unavailable in this container."
+  }
+]

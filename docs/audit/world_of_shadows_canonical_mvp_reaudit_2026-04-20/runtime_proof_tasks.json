@@ -1,0 +1,56 @@
+[
+  {
+    "task": "Close backend transitional retirement residue",
+    "why": "Needed to move from bounded residue toward full retirement closure.",
+    "done_when": [
+      "ordinary hardened player path no longer depends on backend-local transitional bootstrap",
+      "evidence matrix, ledger, and tests all agree",
+      "closure can be claimed without compatibility caveats doing hidden authority work"
+    ]
+  },
+  {
+    "task": "Provision backend/frontend replay environment",
+    "why": "Current direct reruns were blocked by missing Flask.",
+    "done_when": [
+      "environment recipe is documented",
+      "targeted backend/frontend tests rerun successfully or fail informatively for real code reasons",
+      "results align with package-contained proof claims"
+    ]
+  },
+  {
+    "task": "Reconfirm publish-bound birth and resume provenance",
+    "why": "v17-v18 treat this as a core runtime-maturity law.",
+    "done_when": [
+      "birth uses published artifact identity on hardened path",
+      "resume preserves same provenance bundle",
+      "no silent rebinding across artifact revisions"
+    ]
+  },
+  {
+    "task": "Keep Turn 0 and player-route truth jointly provable",
+    "why": "Core constitutional seam for the whole product identity.",
+    "done_when": [
+      "Turn 0 opening commit remains real",
+      "ordinary player route stays commit-aligned",
+      "route-level tests remain executable in the provisioned environment"
+    ]
+  },
+  {
+    "task": "Continue shell-loop and re-entry proof",
+    "why": "Player-shell continuity is player-facing product value, not just routing hygiene.",
+    "done_when": [
+      "shell re-entry and transcript progression remain tested",
+      "latest committed framing remains visible",
+      "proof survives future refactors"
+    ]
+  },
+  {
+    "task": "Convert more enduring target layers into repo-proven surfaces carefully",
+    "why": "Broad target truth should only be promoted when code and proof exist.",
+    "done_when": [
+      "newly claimed live layers have implementation and validation support",
+      "docs separate live minimum from future breadth",
+      "no target-only layer is promoted by wording alone"
+    ]
+  }
+]

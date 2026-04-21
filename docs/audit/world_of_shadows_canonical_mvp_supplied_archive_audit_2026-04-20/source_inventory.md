@@ -1,0 +1,25 @@
+# Source inventory
+
+## Inventory principle
+
+This inventory covers the directly supplied archives in this pass plus the major internal source families that materially informed the canonical reconstruction.
+
+## Audited source inventory
+
+| Artifact | Type | Classification | Why used | Outcome |
+|---|---|---|---|---|
+| world_of_shadows_complete_mvp_v21.zip | supplied archive | canonical candidate; historical but still content-bearing; broad-system restoration package | Strongest directly supplied bridge between earlier complete MVP breadth and later repo-centered proof. Carries multi-session continuity, shadow-lane, UI, admin, and memory/world-model target truth. | Preserved as the main broad-system carry-forward source in this pass. |
+| world_of_shadows_mvp_v24_lean_finishable.zip | supplied archive | partial MVP fragment; comparison artifact | Useful for drift detection and omission checking against the richer late-stage package. | Used as a comparison artifact only, not as final canonical base. |
+| world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip | supplied archive | primary evidence-rich base; implementation evidence; audit evidence; canonical candidate | Strongest later repo-centered source for code reality, validation corpus, GoC closure line, shell re-entry, and runtime authority. | Preserved as the primary implementation/proof anchor. |
+| world_of_shadows_canonical_mvp_consolidated_2026-04-20.zip | supplied archive | previous canonical attempt; audit evidence | Useful earlier consolidation with a strong six-document spine but still too compressed. | Preserved as an audited input and anti-loss comparator. |
+| world_of_shadows_final_consolidated_mvp_archive_2026-04-20.zip | supplied archive | intermediate canonical package; partial consolidation | Shows a useful widening move but still contains transitional duplication and inconsistent canonical surface naming. | Used to trace prior restoration attempts and avoid regressing them. |
+| world_of_shadows_canonical_mvp_final_consolidated_2026-04-20.zip | supplied archive | strongest prior canonical candidate; canonical base | Best pre-existing canonical package in the supplied set; already normalized most of the MVP family and added anti-loss supplements. | Used as the reconstruction base for this pass. |
+| ai_stack.zip | related supplied archive | related implementation archive; spot-checked duplicate-heavy support surface | Large related archive containing overlapping repo code and tests. Spot-check confirmed relevant ai-stack/runtime support material already represented in the v24 full directory. | Used only as a related implementation cross-check, not as a separate canonical-document driver. |
+| v21 `mvp_v21/docs/` family | internal source family inside supplied archive | canonical candidate; historical but still content-bearing | Carries broad WoS target, multi-session continuity, memory/world-model depth, admin inspection areas, and authoring/evaluation truth. | Direct carry-forward source for enduring-target restoration. |
+| later `docs/MVPs/world_of_shadows_canonical_mvp/` family | internal source family inside supplied canonical archives | canonical reading layer | The strongest already-normalized subject-based canonical MVP family before this pass. | Preserved and extended, not replaced. |
+| v24 validation reports | internal source family inside supplied archive | audit evidence; runtime-proof evidence | Carries shell re-entry hardening, backend transitional retirement posture, activation-path reading, and GoC closure evidence. | Preserved as active proof-bearing evidence. |
+| play-shell UX notes and console wireframes | internal source family inside supplied archive | implementation-adjacent UX authority | Preserve the committed-path vs live-room distinction, player-shell question model, and observe/operate/author console framing. | Strengthened and integrated now. |
+| backend UI usability guide | internal source family inside supplied archive | UX authority; implementation-adjacent guidance | Sharpens the four-question player-shell model and the player-vs-diagnostic layout hierarchy. | Strengthened and integrated now. |
+| `mvp/reference_scaffold/tests`, `world-engine/tests`, `ai_stack/tests` | implementation/test surfaces inside supplied archive | direct execution evidence | Direct rerun surfaces available in this container. | Refreshed directly in this pass. |
+| backend/frontend Flask-backed tests | implementation/test surfaces inside supplied archive | direct execution target; environment-limited | Important higher-level route proof, but blocked in this container due missing Flask. | Preserved as explicit proof gap, not silently treated as rerun. |
+| earlier re-audit docs embedded in latest canonical package | internal audit family | prior audit evidence | Useful source of already-structured preservation work and prior judgments referencing older archive families not re-opened directly here. | Used as embedded prior evidence, not misrepresented as brand-new direct archive audit. |

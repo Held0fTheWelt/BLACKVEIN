@@ -1,0 +1,247 @@
+[
+  {
+    "aspect": "World of Shadows product identity",
+    "source_basis": "v9-v13 master MVPs; v21 roadmap; prior canonical set",
+    "outcome": "preserved directly",
+    "canonical_destination": "01_system_identity_and_player_experience.md",
+    "notes": "Restored broad platform identity plus active slice distinction."
+  },
+  {
+    "aspect": "Constitutional runtime laws",
+    "source_basis": "v21 canonical package; runtime constitution; canonical implementation protocol",
+    "outcome": "preserved after normalization",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md",
+    "notes": "Still the clearest anti-drift compact."
+  },
+  {
+    "aspect": "World-engine as sole live truth host",
+    "source_basis": "historical runtime constitution; later ADR and runtime docs",
+    "outcome": "preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md",
+    "notes": "No alternate truth boundary allowed."
+  },
+  {
+    "aspect": "Proposal \u2192 validation \u2192 commit \u2192 visible render chain",
+    "source_basis": "GoC slice contracts; v21 package; world-engine tests",
+    "outcome": "preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md",
+    "notes": "Core anti-chat seam."
+  },
+  {
+    "aspect": "Scene identity canonical surface",
+    "source_basis": "later GoC docs, ai_stack implementation/tests",
+    "outcome": "preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md",
+    "notes": "Kept as governed anti-drift seam."
+  },
+  {
+    "aspect": "Five-layer runtime target",
+    "source_basis": "v9-v13 master MVP family",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Previously over-compressed in the canonical set."
+  },
+  {
+    "aspect": "Governed memory architecture and named maps",
+    "source_basis": "v12-v13 memory architecture documents",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Preserved as enduring target, not falsely live."
+  },
+  {
+    "aspect": "World-state / relationship / counterfactual memory",
+    "source_basis": "v13 docs 44 and related memory family",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Restored explicit carry-forward."
+  },
+  {
+    "aspect": "Emotional layer responsibilities",
+    "source_basis": "v12-v13 emotional layer spec",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Restored as target-state truth."
+  },
+  {
+    "aspect": "Consciousness layer responsibilities",
+    "source_basis": "v12-v13 consciousness layer spec",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Restored as target-state truth."
+  },
+  {
+    "aspect": "NPC autonomy and world simulation",
+    "source_basis": "v12-v13 NPC/world simulation spec",
+    "outcome": "merged into canonical section",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Preserved without overclaiming current proof."
+  },
+  {
+    "aspect": "Recovery intelligence / failure-as-story",
+    "source_basis": "v13 doc 45",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "03_enduring_target_runtime_layers_and_world_model.md",
+    "notes": "Had been absent from the prior canonical set."
+  },
+  {
+    "aspect": "Structured authored module stance",
+    "source_basis": "historical MVPs; GoC module docs/content tree",
+    "outcome": "preserved directly",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md and 05_content_authoring_publish_and_runtime_continuity.md",
+    "notes": "Kept as source-of-possibility-space rule."
+  },
+  {
+    "aspect": "Writers' room intelligence",
+    "source_basis": "v12-v13 writers' room platform spec; later writers' room docs/ledgers",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md",
+    "notes": "Previously only lightly acknowledged."
+  },
+  {
+    "aspect": "Validation before publish",
+    "source_basis": "writers-room platform spec; later governance docs",
+    "outcome": "merged into canonical section",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md",
+    "notes": "Now explicit canonical truth."
+  },
+  {
+    "aspect": "Authoring analytics / QA / live tuning",
+    "source_basis": "v13 doc 46",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md",
+    "notes": "Restored as enduring target rather than omitted."
+  },
+  {
+    "aspect": "Gold data / annotation / evaluation operations",
+    "source_basis": "v9-v13 evaluation docs",
+    "outcome": "merged into canonical section",
+    "canonical_destination": "04_authoring_writers_room_and_module_lifecycle.md",
+    "notes": "Preserved as evidence-bearing target posture."
+  },
+  {
+    "aspect": "Authoring \u2192 publish \u2192 runtime continuity",
+    "source_basis": "later publish/runtime docs; activation reports; previous canonical set",
+    "outcome": "preserved directly",
+    "canonical_destination": "05_content_authoring_publish_and_runtime_continuity.md",
+    "notes": "Still one of the most important active seams."
+  },
+  {
+    "aspect": "Publish-bound authoritative birth",
+    "source_basis": "v17-v18 runtime maturity packages; v21 package",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "05_content_authoring_publish_and_runtime_continuity.md and 09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Now explicitly carried into the canonical family."
+  },
+  {
+    "aspect": "Fallback governance for GoC",
+    "source_basis": "later GoC path docs and ledgers",
+    "outcome": "preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md and 05_content_authoring_publish_and_runtime_continuity.md",
+    "notes": "Preserved as bounded fallback, not second truth."
+  },
+  {
+    "aspect": "Writers' room / retrieval overlap rules",
+    "source_basis": "later governance ledgers",
+    "outcome": "preserved directly",
+    "canonical_destination": "05_content_authoring_publish_and_runtime_continuity.md and 10_residues_and_runtime_proof_tasks.md",
+    "notes": "Kept visible as governed residue."
+  },
+  {
+    "aspect": "GoC source-to-game transformation",
+    "source_basis": "GoC roadmap and slice contracts",
+    "outcome": "merged into canonical section",
+    "canonical_destination": "06_god_of_carnage_canonical_experience.md",
+    "notes": "Restored as more than a content summary."
+  },
+  {
+    "aspect": "GoC A-F experience hardening",
+    "source_basis": "wave reports and proof corpus",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "06_god_of_carnage_canonical_experience.md",
+    "notes": "Pulled out of wave-only packaging into canonical prose."
+  },
+  {
+    "aspect": "Player shell four-question usability rule",
+    "source_basis": "UI usability guide",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Now canonical rather than side guidance."
+  },
+  {
+    "aspect": "Player/operator route separation",
+    "source_basis": "historical MVPs; v17-v18 packages; later route docs",
+    "outcome": "preserved directly",
+    "canonical_destination": "02_authority_architecture_and_runtime_laws.md and 07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Core law kept explicit."
+  },
+  {
+    "aspect": "Admin / inspection surfaces",
+    "source_basis": "historical admin docs; later inspector/admin docs",
+    "outcome": "merged into canonical section",
+    "canonical_destination": "07_player_ui_ux_admin_and_inspection_surfaces.md",
+    "notes": "Preserved without leaking into player route."
+  },
+  {
+    "aspect": "Operations / deployment baseline",
+    "source_basis": "v12-v13 infrastructure docs",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "08_operations_deployment_localization_and_live_constraints.md",
+    "notes": "Previously omitted from the canonical family."
+  },
+  {
+    "aspect": "Performance budgets and live constraints",
+    "source_basis": "v9-v13 performance budget docs",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "08_operations_deployment_localization_and_live_constraints.md",
+    "notes": "Restored as target constraints."
+  },
+  {
+    "aspect": "Localization and i18n rules",
+    "source_basis": "v9-v13 localization docs",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "08_operations_deployment_localization_and_live_constraints.md",
+    "notes": "Restored as canonical target truth."
+  },
+  {
+    "aspect": "Runtime maturity profile classes",
+    "source_basis": "v17-v18 runtime maturity acceptance profiles",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Previously underrepresented."
+  },
+  {
+    "aspect": "Runtime maturity gate language",
+    "source_basis": "v16-v18 implementation gates",
+    "outcome": "strengthened and integrated now",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Directly restored."
+  },
+  {
+    "aspect": "Level A vs stronger closure distinction",
+    "source_basis": "later closure docs and GoC roadmap",
+    "outcome": "preserved directly",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Still central to honest proof posture."
+  },
+  {
+    "aspect": "Backend transitional retirement residue",
+    "source_basis": "later ledgers and validation reports",
+    "outcome": "preserved as explicit bounded residue",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md and 10_residues_and_runtime_proof_tasks.md",
+    "notes": "Not hidden by documentation cleanup."
+  },
+  {
+    "aspect": "Reference scaffold proof layer",
+    "source_basis": "historical scaffold and direct pytest reruns",
+    "outcome": "preserved directly",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md",
+    "notes": "Directly rerun here."
+  },
+  {
+    "aspect": "Direct rerun evidence from this pass",
+    "source_basis": "new raw test outputs",
+    "outcome": "preserved directly",
+    "canonical_destination": "09_implementation_reality_runtime_maturity_and_proof.md and test_rerun_summary.md",
+    "notes": "Separates direct evidence from accepted package reports."
+  }
+]

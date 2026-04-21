@@ -1,0 +1,65 @@
+[
+  {
+    "title": "Expand canonical MVP family from 6 docs to 10 docs",
+    "justification": "The previous canonical set was useful but too compressed for enduring target layers and runtime-maturity semantics.",
+    "source_basis": "prior canonical package plus v9-v18 families",
+    "disposition": "integrated now",
+    "impact": "Higher completeness without speculative redesign."
+  },
+  {
+    "title": "Restore enduring target runtime layers as a first-class canonical document",
+    "justification": "Five-layer runtime, memory framework, emotional/consciousness layers, world-state memory, and recovery intelligence remained source-supported but underrepresented.",
+    "source_basis": "v9-v13 master MVP and specialty docs",
+    "disposition": "integrated now",
+    "impact": "Prevents silent loss of major system intent."
+  },
+  {
+    "title": "Restore writers' room, authoring analytics, and evaluation surfaces",
+    "justification": "These appeared repeatedly in earlier complete MVPs and later governance-adjacent repo docs.",
+    "source_basis": "v12-v13 writers-room and analytics docs; later governance docs",
+    "disposition": "integrated now",
+    "impact": "Reinstates WoS as more than a play-only runtime."
+  },
+  {
+    "title": "Restore operations, deployment, performance, and localization expectations",
+    "justification": "These concerns were materially present in complete MVPs but barely visible in the prior canonical family.",
+    "source_basis": "v9-v13 infrastructure/performance/i18n docs",
+    "disposition": "integrated now",
+    "impact": "Prevents the canonical MVP from flattening into pure narrative design."
+  },
+  {
+    "title": "Restore explicit runtime-maturity profile and gate language",
+    "justification": "v17-v18 sharpened the meaning of a runtime-mature MVP verdict.",
+    "source_basis": "v17-v18 runtime maturity and implementation gates",
+    "disposition": "integrated now",
+    "impact": "Improves closure honesty and future auditability."
+  },
+  {
+    "title": "Close backend transitional retirement residue now",
+    "justification": "Strongly justified, but requires implementation/test closure rather than documentation-only integration.",
+    "source_basis": "later ledgers and reports",
+    "disposition": "deferred to runtime-proof tasks",
+    "impact": "Must stay visible as open residue."
+  },
+  {
+    "title": "Provision backend/frontend environment and rerun higher-level route tests",
+    "justification": "This re-audit hit a real Flask dependency barrier.",
+    "source_basis": "direct rerun block in this pass",
+    "disposition": "deferred to runtime-proof tasks",
+    "impact": "Needed for stronger replay credibility."
+  },
+  {
+    "title": "Promote broader memory and authoring ambitions to live proof claims now",
+    "justification": "The ambitions are real but not equally repo-proven in the active slice.",
+    "source_basis": "v9-v13 complete MVP family",
+    "disposition": "rejected as current-claim upgrade",
+    "impact": "Avoids false completion claims."
+  },
+  {
+    "title": "Erase writers' room / retrieval overlap by narrative choice",
+    "justification": "The source set governs the overlap but does not justify pretending it no longer exists.",
+    "source_basis": "later overlap ledgers",
+    "disposition": "rejected as false cleanup",
+    "impact": "Keeps the canonical package contradiction-honest."
+  }
+]

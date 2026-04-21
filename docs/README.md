@@ -19,6 +19,10 @@ Audience-first documentation entrypoint.
 - **Stakeholder slides:** [`docs/presentations/`](presentations/)
 - **ADRs:** [`docs/governance/README.md`](governance/README.md)
 
+## MVP canonical route
+
+- Canonical implementation bundle: [`docs/MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md`](MVPs/MVP_World_Of_Shadows_Canonical_Implementation_Bundle/README.md)
+
 ## Optional static site (MkDocs)
 
 From repository root (after `pip install -r requirements-docs.txt`):

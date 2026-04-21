@@ -1,0 +1,185 @@
+{
+  "versions": {
+    "Flask": "3.1.3",
+    "SQLAlchemy": "2.0.49",
+    "Flask-SQLAlchemy": "3.1.1",
+    "Flask-Migrate": "4.1.0",
+    "Flask-Limiter": "3.12",
+    "langchain": "1.2.15",
+    "langchain-core": "1.3.0",
+    "langgraph": "1.1.8",
+    "fastembed": "0.8.0",
+    "world-of-shadows-hub": "0.0.0"
+  },
+  "validation": {
+    "collect_only": {
+      "backend": {
+        "collected": 3681,
+        "seconds": 11.67
+      },
+      "frontend": {
+        "collected": 104,
+        "seconds": 0.06
+      },
+      "administration-tool": {
+        "collected": 1108,
+        "seconds": 0.47
+      },
+      "world-engine": {
+        "collected": 908,
+        "seconds": 3.06
+      },
+      "ai_stack": {
+        "collected": 222,
+        "seconds": 1.62
+      }
+    },
+    "suite_runs": [
+      {
+        "lane": "frontend full suite",
+        "command": "python -m pytest frontend/tests -q",
+        "passed": 104,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "ai_stack full suite",
+        "command": "python -m pytest ai_stack/tests -q",
+        "passed": 208,
+        "failed": 0,
+        "skipped": 14,
+        "note": "remaining skips are embedding-model acquisition, not missing langchain/langgraph"
+      },
+      {
+        "lane": "backend smoke startup",
+        "command": "python -m pytest tests/smoke/test_backend_startup.py -q",
+        "passed": 29,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "admin smoke startup",
+        "command": "python -m pytest tests/smoke/test_admin_startup.py -q",
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "engine smoke startup",
+        "command": "python -m pytest tests/smoke/test_engine_startup.py -q",
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "backend app init",
+        "command": "python -m pytest backend/tests/test_app_init.py -q -o addopts=",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "backend bootstrap staged runtime integration",
+        "command": "python -m pytest backend/tests/test_bootstrap_staged_runtime_integration.py -q -o addopts=",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "backend playservice integration",
+        "command": "python -m pytest backend/tests/test_backend_playservice_integration.py -q -o addopts=",
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "backend GoC full lifecycle",
+        "command": "python -m pytest backend/tests/test_e2e_god_of_carnage_full_lifecycle.py -q -o addopts=",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "writers-room operating contract",
+        "command": "python -m pytest backend/tests/writers_room/test_writers_room_g7_operating_contract.py -q -o addopts=",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "writers-room model routing",
+        "command": "python -m pytest backend/tests/writers_room/test_writers_room_model_routing.py -q -o addopts=",
+        "passed": 24,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "writers-room routes",
+        "command": "python -m pytest backend/tests/writers_room/test_writers_room_routes.py -q -o addopts=",
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "backend game routes",
+        "command": "python -m pytest backend/tests/test_game_routes.py -q -o addopts=",
+        "passed": 29,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "administration app factory",
+        "command": "python -m pytest administration-tool/tests/test_app_factory.py -q",
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "administration manage routes",
+        "command": "python -m pytest administration-tool/tests/test_manage_routes.py -q",
+        "passed": 94,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "administration proxy",
+        "command": "python -m pytest administration-tool/tests/test_proxy.py -q",
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "administration security headers",
+        "command": "python -m pytest administration-tool/tests/test_security_headers.py -q",
+        "passed": 135,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "world-engine story runtime rag runtime",
+        "command": "python -m pytest world-engine/tests/test_story_runtime_rag_runtime.py -q",
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "world-engine story runtime api",
+        "command": "python -m pytest world-engine/tests/test_story_runtime_api.py -q",
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "lane": "world-engine api",
+        "command": "python -m pytest world-engine/tests/test_api.py -q",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "residuals": {
+      "embedding_backend_probe": "available=False, import_ok=True, primary_reason_code=embedding_runtime_error",
+      "embedding_skip_cause": "fastembed model download/cache not available in host DNS context; dependency package itself is installed"
+    }
+  }
+}

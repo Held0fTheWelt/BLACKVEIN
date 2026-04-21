@@ -1,0 +1,164 @@
+[
+  {
+    "artifact": "wos_complete_mvp_v9.zip",
+    "type": "supplied archive",
+    "classification": [
+      "historical but still content-bearing",
+      "partial MVP fragment"
+    ],
+    "why_used": "Earliest supplied complete MVP baseline with integrated product thesis, five-layer runtime framing, UI mockups, early memory and operations posture.",
+    "outcome": "Preserved as early breadth baseline and anti-loss comparator."
+  },
+  {
+    "artifact": "wos_complete_mvp_v12.zip",
+    "type": "supplied archive",
+    "classification": [
+      "historical but still content-bearing",
+      "canonical candidate"
+    ],
+    "why_used": "Expanded complete MVP family with constitutional runtime, memory framework, world-engine product spec, writers-room platform, admin/inspection surfaces, and test plan.",
+    "outcome": "Preserved as one of the broad-system anchor packages."
+  },
+  {
+    "artifact": "wos_complete_mvp_v13.zip",
+    "type": "supplied archive",
+    "classification": [
+      "historical but still content-bearing",
+      "canonical candidate"
+    ],
+    "why_used": "Adds implementation truth matrix, degraded-mode safety policy, world-state/counterfactual memory, recovery-intelligence, authoring analytics, and adjacent risk-prevention layers.",
+    "outcome": "Used heavily to restore underrepresented enduring-target material."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v16_package.zip",
+    "type": "supplied archive",
+    "classification": [
+      "runtime hardening package",
+      "historical but still content-bearing"
+    ],
+    "why_used": "Sharpens non-removal, canonical contract-home discipline, comfort/ops obligations, and implementation gates.",
+    "outcome": "Used as authority for documentation-governance and non-removal posture."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v17_runtime_reife_package.zip",
+    "type": "supplied archive",
+    "classification": [
+      "runtime maturity authority",
+      "historical but still content-bearing"
+    ],
+    "why_used": "Introduces explicit runtime-maturity acceptance profile, publish-bound session birth discipline, and ordinary-player route proof requirements.",
+    "outcome": "Integrated directly into runtime-maturity and proof documents."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v18_runtime_closure_package.zip",
+    "type": "supplied archive",
+    "classification": [
+      "runtime closure authority",
+      "historical but still content-bearing"
+    ],
+    "why_used": "Clarifies profile classes, hardened PASS/FAIL triggers, memory and retrieval closure minimums, and story-session durability expectations.",
+    "outcome": "Integrated directly into runtime-maturity and residue/task framing."
+  },
+  {
+    "artifact": "world_of_shadows_complete_mvp_v21.zip",
+    "type": "supplied archive",
+    "classification": [
+      "canonical candidate",
+      "restoration package",
+      "implementation evidence"
+    ],
+    "why_used": "Restores broad package completeness and stronger canonical law wording while keeping executable reference material and repo-adjacent docs.",
+    "outcome": "Used as bridge source between earlier breadth and later repo-centered slice."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v23_fy_governed.zip",
+    "type": "supplied archive",
+    "classification": [
+      "implementation evidence",
+      "governance-bearing repo state"
+    ],
+    "why_used": "Repository-centered governed state with fy-suites and slice contracts; useful for checking later structure and governance families.",
+    "outcome": "Used as intermediate comparison source."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_lean_finishable.zip",
+    "type": "supplied archive",
+    "classification": [
+      "partial MVP fragment",
+      "comparison artifact"
+    ],
+    "why_used": "Lean curation of later repo state; useful for omission detection and drift comparison, but not complete enough alone.",
+    "outcome": "Used as comparison artifact only."
+  },
+  {
+    "artifact": "world_of_shadows_mvp_v24_f_line_closed_FULL_MVP_DIRECTORY.zip",
+    "type": "supplied archive",
+    "classification": [
+      "primary evidence-rich base",
+      "canonical candidate",
+      "implementation evidence",
+      "audit evidence"
+    ],
+    "why_used": "Richest late-stage archive with broad docs, proof corpus, governance ledgers, GoC closures, authored content, and code/test surfaces.",
+    "outcome": "Used as primary code-and-proof anchor for this re-audit."
+  },
+  {
+    "artifact": "world_of_shadows_canonical_mvp_consolidated_2026-04-20.zip",
+    "type": "supplied archive",
+    "classification": [
+      "previous canonical attempt",
+      "audit evidence"
+    ],
+    "why_used": "Useful prior consolidation containing a good six-document canonical core and supporting audit folder, but still too compressed in some areas.",
+    "outcome": "Preserved as audited input; improved rather than trusted blindly."
+  },
+  {
+    "artifact": "historical mvp/docs and reference scaffold",
+    "type": "internal source family",
+    "classification": [
+      "canonical candidate",
+      "historical but still content-bearing"
+    ],
+    "why_used": "Carries broad system target, implementation protocol, memory/emotion/consciousness families, and executable constitutional scaffold.",
+    "outcome": "Preserved as enduring-target layer and direct proof anchor."
+  },
+  {
+    "artifact": "later docs/, docs/MVPs/, governance/, validation/",
+    "type": "internal source family",
+    "classification": [
+      "implementation-adjacent docs",
+      "governance authority",
+      "audit evidence"
+    ],
+    "why_used": "Carries active slice contracts, proof reports, roadmaps, governance ledgers, and current service-boundary reading.",
+    "outcome": "Preserved as active-slice and proof-bearing layer."
+  },
+  {
+    "artifact": "content/modules/god_of_carnage/",
+    "type": "internal source family",
+    "classification": [
+      "authored content",
+      "canonical candidate"
+    ],
+    "why_used": "The actual authored dramatic source for the current slice.",
+    "outcome": "Preserved as the canonical authored source for GoC."
+  },
+  {
+    "artifact": "world-engine/, backend/, frontend/, ai_stack/, administration-tool/, writers-room/",
+    "type": "internal source family",
+    "classification": [
+      "implementation evidence"
+    ],
+    "why_used": "Repository reality for what is implemented now versus only documented.",
+    "outcome": "Used to ground the proof-status judgment."
+  },
+  {
+    "artifact": "evidence/raw_test_outputs from this re-audit",
+    "type": "new evidence bundle",
+    "classification": [
+      "direct execution evidence"
+    ],
+    "why_used": "Captures what was rerun directly in this consolidation environment.",
+    "outcome": "Used to keep the final proof judgment honest."
+  }
+]
