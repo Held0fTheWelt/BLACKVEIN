@@ -1,0 +1,9 @@
+# Template ID to Content Module ID Mapping
+# Used by play_shell routes to map play launcher template IDs to backend content module IDs.
+# Format: template_id: module_id
+#
+# When a new play template is added to the play service, add an entry here so
+# the frontend can correctly route to the backend content module.
+
+templates:
+  god_of_carnage_solo: god_of_carnage

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
-from flask import flash, jsonify, redirect, render_template, request, session, url_for
+import yaml
+from flask import flash, jsonify, make_response, redirect, render_template, request, session, url_for
 
 from . import player_backend
 from .player_backend import BackendApiError
@@ -20,14 +22,35 @@ TURN_LOG_MAX = 50
 DIAGNOSTICS_MAX_ROWS = 40
 OPERATOR_SESSION_JSON_MAX = 120_000
 
-# World-Engine template_id (play catalog) → YAML module id for POST /api/v1/sessions
-_PLAY_TEMPLATE_TO_CONTENT_MODULE_ID = {
-    "god_of_carnage_solo": "god_of_carnage",
-}
+
+def _load_template_mapping() -> dict[str, str]:
+    """Load template ID to content module ID mapping from config file.
+
+    Falls back to default mapping if config file is not found.
+    """
+    config_path = Path(__file__).resolve().parent.parent / "config" / "template_module_mapping.yaml"
+    if config_path.exists():
+        try:
+            with open(config_path, "r") as f:
+                data = yaml.safe_load(f) or {}
+                return data.get("templates", {})
+        except Exception:
+            pass
+    # Fallback to inline mapping if config not found
+    return {
+        "god_of_carnage_solo": "god_of_carnage",
+    }
+
+
+_PLAY_TEMPLATE_TO_CONTENT_MODULE_ID = _load_template_mapping()
 
 
 def play_template_to_content_module_id(template_id: str) -> str:
-    """Map play launcher template id to backend content module directory id."""
+    """Map play launcher template id to backend content module directory id.
+
+    Uses mapping from frontend/config/template_module_mapping.yaml.
+    Falls back to using template_id as module_id if no mapping found.
+    """
     tid = (template_id or "").strip()
     return _PLAY_TEMPLATE_TO_CONTENT_MODULE_ID.get(tid, tid)
 
@@ -229,10 +252,16 @@ def _player_input_from_request() -> str:
 
 
 def _run_backend_turn(run_id: str, player_input: str) -> tuple[dict[str, Any] | None, str | None]:
-    backend_sessions = session.get("play_shell_backend_sessions", {})
-    if not isinstance(backend_sessions, dict):
-        backend_sessions = {}
-    backend_session_id = backend_sessions.get(run_id)
+    # REPAIR: Check cookies first (survives page reload), then session storage
+    cookie_key = f"wos_backend_session_{run_id}"
+    backend_session_id = request.cookies.get(cookie_key)
+
+    if not backend_session_id:
+        backend_sessions = session.get("play_shell_backend_sessions", {})
+        if not isinstance(backend_sessions, dict):
+            backend_sessions = {}
+        backend_session_id = backend_sessions.get(run_id)
+
     if not backend_session_id:
         return None, "Runtime session is not ready. Re-open the play shell from Play Start."
     text = player_input.strip()
@@ -289,6 +318,8 @@ def play_create():
 @frontend_bp.route("/play/<session_id>")
 @require_login
 def play_shell(session_id: str):
+    from flask import request
+
     user = session.get("current_user") or {}
     response = player_backend.request_backend(
         "POST",
@@ -298,10 +329,18 @@ def play_shell(session_id: str):
     ticket_payload = response.json() if response.ok else {}
     if not response.ok:
         flash(ticket_payload.get("error", "Could not create play ticket."), "error")
-    backend_sessions = session.get("play_shell_backend_sessions", {})
-    if not isinstance(backend_sessions, dict):
-        backend_sessions = {}
-    backend_session_id = backend_sessions.get(session_id)
+
+    # REPAIR: Look for backend_session_id in cookies first (survives page reload),
+    # then in session storage (new sessions), then create if missing.
+    cookie_key = f"wos_backend_session_{session_id}"
+    backend_session_id = request.cookies.get(cookie_key)
+
+    if not backend_session_id:
+        backend_sessions = session.get("play_shell_backend_sessions", {})
+        if not isinstance(backend_sessions, dict):
+            backend_sessions = {}
+        backend_session_id = backend_sessions.get(session_id)
+
     if not backend_session_id:
         run_modules = session.get("play_shell_run_modules", {})
         module_id = run_modules.get(session_id) if isinstance(run_modules, dict) else None
@@ -315,6 +354,9 @@ def play_shell(session_id: str):
                 backend_payload = backend_response.json()
                 backend_session_id = backend_payload.get("session_id")
                 if backend_session_id:
+                    backend_sessions = session.get("play_shell_backend_sessions", {})
+                    if not isinstance(backend_sessions, dict):
+                        backend_sessions = {}
                     backend_sessions[session_id] = backend_session_id
                     session["play_shell_backend_sessions"] = backend_sessions
                     session.modified = True
@@ -334,16 +376,32 @@ def play_shell(session_id: str):
     operator_bundle = op_map.get(session_id) if isinstance(op_map, dict) else None
     play_bootstrap_json = json.dumps({"operator_bundle": operator_bundle or {}})
 
-    return render_template(
-        "session_shell.html",
-        session_id=session_id,
-        ticket=ticket_payload,
-        backend_session_id=backend_session_id,
-        runtime_view=runtime_view,
-        turn_log=turn_log,
-        operator_bundle=operator_bundle,
-        play_bootstrap_json=play_bootstrap_json,
+    # REPAIR: Set persistent cookie for backend_session_id (survives page reload)
+    from datetime import datetime, timedelta
+    response_obj = make_response(
+        render_template(
+            "session_shell.html",
+            session_id=session_id,
+            ticket=ticket_payload,
+            backend_session_id=backend_session_id,
+            runtime_view=runtime_view,
+            turn_log=turn_log,
+            operator_bundle=operator_bundle,
+            play_bootstrap_json=play_bootstrap_json,
+        )
     )
+    if backend_session_id:
+        cookie_key = f"wos_backend_session_{session_id}"
+        # Set cookie to expire in 7 days (typical play session length)
+        response_obj.set_cookie(
+            cookie_key,
+            backend_session_id,
+            max_age=7 * 24 * 60 * 60,
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+        )
+    return response_obj
 
 
 @frontend_bp.route("/play/<session_id>/execute", methods=["POST"])
