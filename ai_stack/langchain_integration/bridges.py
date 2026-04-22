@@ -50,6 +50,12 @@ class RuntimeTurnStructuredOutput(BaseModel):
     proposed_scene_id: str | None = None
     intent_summary: str | None = None
 
+    responder_id: str | None = None
+    function_type: str | None = None
+    emotional_shift: dict | None = None
+    social_outcome: str | None = None
+    dramatic_direction: str | None = None
+
 
 class WritersRoomStructuredOutput(BaseModel):
     """Writers-room review generation output parsed through LangChain parser
@@ -69,9 +75,7 @@ _RUNTIME_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
         ),
         (
             "human",
-            "Player input:\n{player_input}\n\n"
-            "Interpreted input:\n{interpreted_input}\n\n"
-            "Runtime retrieval context:\n{retrieval_context}\n\n"
+            "{full_context}"
             "{correction_block}"
             "Format instructions:\n{format_instructions}",
         ),
@@ -114,6 +118,7 @@ def invoke_runtime_adapter_with_langchain(
     interpreted_input: dict[str, Any],
     retrieval_context: str | None,
     timeout_seconds: float,
+    model_prompt: str | None = None,
     prior_output: str | None = None,
     feedback_codes: list[str] | None = None,
     rewrite_instruction: str | None = None,
@@ -146,10 +151,17 @@ def invoke_runtime_adapter_with_langchain(
             f"Instruction:\n{rewrite_instruction}\n\n"
             f"Feedback codes: {fb}\n\n"
         )
+    if model_prompt:
+        full_context = model_prompt
+    else:
+        interp_str = "\n".join(f"- {k}: {v}" for k, v in interpreted_input.items()) if interpreted_input else "(none)"
+        full_context = (
+            f"Player input:\n{player_input}\n\n"
+            f"Interpreted input:\n{interp_str}\n\n"
+            f"Runtime retrieval context:\n{retrieval_context or '(none)'}"
+        )
     rendered_messages = _RUNTIME_PROMPT_TEMPLATE.format_messages(
-        player_input=player_input,
-        interpreted_input=interpreted_input,
-        retrieval_context=retrieval_context or "(none)",
+        full_context=full_context,
         correction_block=correction_block,
         format_instructions=parser.get_format_instructions(),
     )

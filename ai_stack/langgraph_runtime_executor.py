@@ -364,6 +364,61 @@ class RuntimeTurnGraphExecutor:
         if context_text:
             base = f"{base}\n\n{context_text}"
         prompt = f"{base}\n\n{interpretation_block}"
+
+        additional_context_lines = []
+
+        # Scene Assessment
+        scene_assess = state.get("scene_assessment")
+        if isinstance(scene_assess, dict):
+            assess_summary = scene_assess.get("assessment_summary", "")
+            if assess_summary:
+                additional_context_lines.append("Scene Assessment:")
+                additional_context_lines.append(f"{assess_summary[:256]}")
+
+        # Social State
+        social_rec = state.get("social_state_record")
+        if isinstance(social_rec, dict):
+            rel_states = social_rec.get("relationship_states", {})
+            if rel_states:
+                additional_context_lines.append("\nCurrent Relationship State:")
+                for key, val in list(rel_states.items())[:4]:
+                    additional_context_lines.append(f"- {key}: {val}")
+            emotional = social_rec.get("emotional_state", {})
+            if emotional:
+                additional_context_lines.append("\nEmotional State:")
+                for char, emo in list(emotional.items())[:4]:
+                    additional_context_lines.append(f"- {char}: {emo}")
+
+        # Pacing Directive
+        pacing = state.get("pacing_mode")
+        if isinstance(pacing, str) and pacing.strip():
+            additional_context_lines.append(f"\nPacing Directive: {pacing.strip()}")
+
+        # Responder & Function Selection
+        responders = state.get("selected_responder_set")
+        if isinstance(responders, list) and responders:
+            additional_context_lines.append("\nEligible Responders:")
+            for r in responders[:3]:
+                if isinstance(r, dict):
+                    rid = r.get("responder_id", "?")
+                    rtype = r.get("responder_type", "?")
+                    additional_context_lines.append(f"- {rid} (type: {rtype})")
+
+        # Continuity impacts
+        cont = state.get("prior_continuity_impacts")
+        if isinstance(cont, dict):
+            impacts = cont.get("continuity_constraints", [])
+            if impacts:
+                additional_context_lines.append("\nContinuity Constraints:")
+                for ic in impacts[:3]:
+                    if isinstance(ic, dict):
+                        desc = ic.get("description", "")
+                        if desc:
+                            additional_context_lines.append(f"- {desc[:100]}")
+
+        if additional_context_lines:
+            prompt = f"{prompt}\n\n" + "\n".join(additional_context_lines)
+
         threads = state.get("active_narrative_threads")
         if isinstance(threads, list) and threads:
             lines = ["Prior narrative threads (bounded snapshot, not authoritative diagnostics):"]
@@ -733,6 +788,7 @@ class RuntimeTurnGraphExecutor:
                 "interpreted_input": state.get("interpreted_input", {}) if isinstance(state.get("interpreted_input"), dict) else {},
                 "retrieval_context": state.get("context_text"),
                 "timeout_seconds": float(state.get("selected_timeout", 10.0)),
+                "model_prompt": state.get("model_prompt", ""),
             }
             if api_model:
                 invoke_kw["model_name"] = api_model
