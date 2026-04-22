@@ -75,6 +75,12 @@ class RuntimeTurnState(TypedDict, total=False):
     character_mind_records: list[dict[str, Any]]
     scene_plan_record: dict[str, Any]
     dramatic_effect_outcome: dict[str, Any]
+    # Model-generated structured behavior outputs (Wave 3: extracted from generation["metadata"]["structured_output"]).
+    responder_id: str
+    function_type: str
+    emotional_shift: dict[str, Any]
+    social_outcome: str
+    dramatic_direction: str
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"

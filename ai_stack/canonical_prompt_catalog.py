@@ -104,6 +104,23 @@ Respond with 1-2 sentences that:
 Tone: helpful, not punitive.""",
                 "description": "Explain action failure in engaging, non-punitive narrative.",
                 "variables": ["action", "reason", "game_state"]
+            },
+            "runtime_turn_system": {
+                "id": "runtime_turn_system",
+                "template": """You are the World of Shadows runtime turn model. Return strictly valid JSON matching the requested schema.
+
+NARRATIVE FORMATTING: The narrative_response field should be well-structured prose with multiple paragraphs separated by \\n\\n (double newlines). Break the narrative at natural points: scene setup, action/dialogue, consequences/reflection. Each paragraph should be 2-4 sentences. This creates readable, human-friendly output when displayed.""",
+                "description": "System prompt for World of Shadows runtime turn generation.",
+                "variables": []
+            },
+            "runtime_turn_human": {
+                "id": "runtime_turn_human",
+                "template": """{full_context}{correction_block}IMPORTANT - Narrative Structure: Write the narrative_response as 3-4 short paragraphs separated by \\n\\n (double newlines). Each paragraph should be 2-4 sentences. Structure: (1) scene/setting, (2) action/dialogue, (3) consequence/emotion. This makes the narrative human-readable when displayed.
+
+Format instructions:
+{format_instructions}""",
+                "description": "Human message template for World of Shadows runtime turn generation.",
+                "variables": ["full_context", "correction_block", "format_instructions"]
             }
         }
 
@@ -210,3 +227,25 @@ Tone: helpful, not punitive.""",
         """
         # For MVP: all prompts available for all profiles
         return self.list_prompts()
+
+    def get_runtime_turn_template(self):
+        """Get ChatPromptTemplate for World of Shadows runtime turn generation.
+
+        Returns:
+            ChatPromptTemplate with system and human messages from catalog
+
+        Raises:
+            ImportError: If langchain_core not available
+            KeyError: If runtime turn prompts not in catalog
+        """
+        from langchain_core.prompts import ChatPromptTemplate
+
+        system_prompt = self.get_prompt("runtime_turn_system")["template"]
+        human_prompt = self.get_prompt("runtime_turn_human")["template"]
+
+        return ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                ("human", human_prompt),
+            ]
+        )

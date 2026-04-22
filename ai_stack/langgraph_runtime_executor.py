@@ -1018,6 +1018,17 @@ class RuntimeTurnGraphExecutor:
             meta["structured_output"] = cleaned
             generation["metadata"] = meta
         proposed = structured_output_to_proposed_effects(cleaned)
+        if isinstance(cleaned, dict):
+            if cleaned.get("responder_id"):
+                update["responder_id"] = str(cleaned["responder_id"])
+            if cleaned.get("function_type"):
+                update["function_type"] = str(cleaned["function_type"])
+            if isinstance(cleaned.get("emotional_shift"), dict):
+                update["emotional_shift"] = cleaned["emotional_shift"]
+            if cleaned.get("social_outcome"):
+                update["social_outcome"] = str(cleaned["social_outcome"])
+            if cleaned.get("dramatic_direction"):
+                update["dramatic_direction"] = str(cleaned["dramatic_direction"])
         fallback_markers = list(state.get("fallback_markers") or [])
         fallback_markers.extend(strip_markers)
         update["generation"] = generation
@@ -1149,6 +1160,9 @@ class RuntimeTurnGraphExecutor:
                 module_id=GOC_MODULE_ID,
                 selected_scene_function=str(state.get("selected_scene_function") or ""),
                 proposed_state_effects=proposed,
+                social_outcome=state.get("social_outcome"),
+                emotional_shift=state.get("emotional_shift") if isinstance(state.get("emotional_shift"), dict) else None,
+                dramatic_direction=state.get("dramatic_direction"),
             )
         update["committed_result"] = committed
         update["continuity_impacts"] = continuity

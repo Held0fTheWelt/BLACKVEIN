@@ -81,38 +81,51 @@ def strip_director_overwrites_from_structured_output(
 
 def structured_output_to_proposed_effects(structured: dict[str, Any] | None) -> list[dict[str, Any]]:
     """Map structured output into proposed_state_effects list.
-    
+
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
-    
+
     Args:
         structured: ``structured`` (dict[str, Any] |
             None); meaning follows the type and call sites.
-    
+
     Returns:
         list[dict[str, Any]]:
             Returns a value of type ``list[dict[str, Any]]``; see the function body for structure, error paths, and sentinels.
     """
     if not structured or not isinstance(structured, dict):
         return []
+    effects = []
     raw = structured.get("proposed_state_effects")
     if isinstance(raw, list):
-        return [x for x in raw if isinstance(x, dict)]
-    if structured.get("effect_type") or structured.get("description"):
-        return [
+        effects = [x for x in raw if isinstance(x, dict)]
+    elif structured.get("effect_type") or structured.get("description"):
+        effects = [
             {
                 "effect_type": structured.get("effect_type", "narrative_beat"),
                 "description": str(structured.get("description", "")),
             }
         ]
-    narr = structured.get("narrative_response")
-    if isinstance(narr, str) and narr.strip():
-        return [
-            {
-                "effect_type": "narrative_proposal",
-                "description": narr.strip()[:4096],
-            }
-        ]
-    return []
+    else:
+        narr = structured.get("narrative_response")
+        if isinstance(narr, str) and narr.strip():
+            effects = [
+                {
+                    "effect_type": "narrative_proposal",
+                    "description": narr.strip()[:4096],
+                }
+            ]
+
+    if effects:
+        semantic_meta = {}
+        for key in ("responder_id", "function_type", "social_outcome", "dramatic_direction"):
+            if structured.get(key):
+                semantic_meta[key] = structured[key]
+        if structured.get("emotional_shift") and isinstance(structured["emotional_shift"], dict):
+            semantic_meta["emotional_shift"] = structured["emotional_shift"]
+        if semantic_meta:
+            effects[-1].update(semantic_meta)
+
+    return effects
 
 
 def run_validation_seam(
@@ -726,6 +739,9 @@ def build_goc_continuity_impacts_on_commit(
     module_id: str,
     selected_scene_function: str,
     proposed_state_effects: list[dict[str, Any]],
+    social_outcome: str | None = None,
+    emotional_shift: dict[str, Any] | None = None,
+    dramatic_direction: str | None = None,
 ) -> list[dict[str, Any]]:
     """Emit one or more frozen continuity classes after a successful commit
     (bounded, YAML-vocabulary aligned).
@@ -749,6 +765,28 @@ def build_goc_continuity_impacts_on_commit(
     impacts: list[dict[str, Any]] = [
         {"class": primary, "note": f"committed_scene_function:{selected_scene_function}"},
     ]
+
+    # Model-driven continuity classification (higher precision than keyword scanning)
+    _SOCIAL_OUTCOME_TO_CLASS = {
+        "alliance_possible": "alliance_shift",
+        "alliance_shift": "alliance_shift",
+        "conflict_escalation": "tension_escalation",
+        "conflict_resolution": "repair_attempt",
+        "tension_escalates": "tension_escalation",
+        "tension_escalation": "tension_escalation",
+        "dignity_injury": "dignity_injury",
+        "blame_shift": "blame_pressure",
+        "repair_attempt": "repair_attempt",
+    }
+    if social_outcome:
+        mapped = _SOCIAL_OUTCOME_TO_CLASS.get(social_outcome.lower().strip())
+        if mapped and mapped != primary and len(impacts) < 2:
+            impacts.append({"class": mapped, "note": f"model_social_outcome:{social_outcome}"})
+    if dramatic_direction in ("escalate",) and len(impacts) < 2:
+        impacts.append({"class": "tension_escalation", "note": "model_dramatic_direction:escalate"})
+    elif dramatic_direction in ("defuse", "calm") and len(impacts) < 2:
+        impacts.append({"class": "repair_attempt", "note": f"model_dramatic_direction:{dramatic_direction}"})
+
     blob = " ".join(
         str(e.get("description", "")) for e in proposed_state_effects if isinstance(e, dict)
     ).lower()

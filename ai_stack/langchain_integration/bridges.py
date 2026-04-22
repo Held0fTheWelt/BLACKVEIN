@@ -66,28 +66,46 @@ class WritersRoomStructuredOutput(BaseModel):
     recommendations: list[str] = Field(default_factory=list)
 
 
-_RUNTIME_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are the World of Shadows runtime turn model. "
-            "Return strictly valid JSON matching the requested schema.\n\n"
-            "NARRATIVE FORMATTING: The narrative_response field should be well-structured prose "
-            "with multiple paragraphs separated by \\n\\n (double newlines). "
-            "Break the narrative at natural points: scene setup, action/dialogue, consequences/reflection. "
-            "Each paragraph should be 2-4 sentences. This creates readable, human-friendly output when displayed.",
-        ),
-        (
-            "human",
-            "{full_context}"
-            "{correction_block}"
-            "IMPORTANT - Narrative Structure: Write the narrative_response as 3-4 short paragraphs separated by \\n\\n (double newlines). "
-            "Each paragraph should be 2-4 sentences. Structure: (1) scene/setting, (2) action/dialogue, (3) consequence/emotion. "
-            "This makes the narrative human-readable when displayed.\n\n"
-            "Format instructions:\n{format_instructions}",
-        ),
-    ]
-)
+def _build_runtime_prompt_template() -> ChatPromptTemplate:
+    """Build runtime prompt template from catalog with hardcoded fallback.
+
+    Attempts to load from CanonicalPromptCatalog for governance integration.
+    Falls back to hardcoded template if catalog unavailable.
+
+    Returns:
+        ChatPromptTemplate for runtime turn model invocation
+    """
+    try:
+        from ai_stack.canonical_prompt_catalog import CanonicalPromptCatalog
+        catalog = CanonicalPromptCatalog()
+        return catalog.get_runtime_turn_template()
+    except (ImportError, KeyError, Exception):
+        # Fallback to hardcoded template if catalog fails
+        return ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are the World of Shadows runtime turn model. "
+                    "Return strictly valid JSON matching the requested schema.\n\n"
+                    "NARRATIVE FORMATTING: The narrative_response field should be well-structured prose "
+                    "with multiple paragraphs separated by \\n\\n (double newlines). "
+                    "Break the narrative at natural points: scene setup, action/dialogue, consequences/reflection. "
+                    "Each paragraph should be 2-4 sentences. This creates readable, human-friendly output when displayed.",
+                ),
+                (
+                    "human",
+                    "{full_context}"
+                    "{correction_block}"
+                    "IMPORTANT - Narrative Structure: Write the narrative_response as 3-4 short paragraphs separated by \\n\\n (double newlines). "
+                    "Each paragraph should be 2-4 sentences. Structure: (1) scene/setting, (2) action/dialogue, (3) consequence/emotion. "
+                    "This makes the narrative human-readable when displayed.\n\n"
+                    "Format instructions:\n{format_instructions}",
+                ),
+            ]
+        )
+
+
+_RUNTIME_PROMPT_TEMPLATE = _build_runtime_prompt_template()
 _WRITERS_ROOM_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
     [
         (
