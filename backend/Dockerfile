@@ -35,4 +35,4 @@ RUN mkdir -p /app/instance && chmod +x /app/docker-entrypoint.sh && chown -R app
 USER appuser
 EXPOSE 8000
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "run:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--access-logfile", "-", "run:app"]
