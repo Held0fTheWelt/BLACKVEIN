@@ -71,12 +71,19 @@ _RUNTIME_PROMPT_TEMPLATE = ChatPromptTemplate.from_messages(
         (
             "system",
             "You are the World of Shadows runtime turn model. "
-            "Return strictly valid JSON matching the requested schema.",
+            "Return strictly valid JSON matching the requested schema.\n\n"
+            "NARRATIVE FORMATTING: The narrative_response field should be well-structured prose "
+            "with multiple paragraphs separated by \\n\\n (double newlines). "
+            "Break the narrative at natural points: scene setup, action/dialogue, consequences/reflection. "
+            "Each paragraph should be 2-4 sentences. This creates readable, human-friendly output when displayed.",
         ),
         (
             "human",
             "{full_context}"
             "{correction_block}"
+            "IMPORTANT - Narrative Structure: Write the narrative_response as 3-4 short paragraphs separated by \\n\\n (double newlines). "
+            "Each paragraph should be 2-4 sentences. Structure: (1) scene/setting, (2) action/dialogue, (3) consequence/emotion. "
+            "This makes the narrative human-readable when displayed.\n\n"
             "Format instructions:\n{format_instructions}",
         ),
     ]
