@@ -107,17 +107,51 @@ class GovernedStoryRoutingPolicy:
 
 
 def build_governed_model_adapters(config: dict[str, Any]) -> dict[str, BaseModelAdapter]:
+    import os
+    import httpx
+
     adapters: dict[str, BaseModelAdapter] = {"mock": MockModelAdapter()}
     providers = config.get("providers") if isinstance(config.get("providers"), list) else []
-    credentials = config.get("provider_credentials") if isinstance(config.get("provider_credentials"), dict) else {}
+
+    # Backend internal API config
+    backend_url = os.getenv("BACKEND_RUNTIME_CONFIG_URL", "http://backend:8000").rstrip("/")
+    token = os.getenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+
     for row in providers:
         if not isinstance(row, dict):
             continue
         provider_id = str(row.get("provider_id") or "").strip()
         provider_type = str(row.get("provider_type") or "").strip().lower()
         base_url = str(row.get("base_url") or "").strip() or None
-        # Try direct api_key from provider first (new), fallback to provider_credentials dict (legacy)
-        api_key = str(row.get("api_key") or credentials.get(provider_id) or "").strip() or None
+
+        api_key = None
+        credential_configured = row.get("credential_configured", False)
+
+        # If credential is configured, fetch it via backend API
+        if credential_configured and token:
+            credential_endpoint = row.get("credential_endpoint")
+            if credential_endpoint:
+                endpoint_url = f"{backend_url}{credential_endpoint}"
+                print(f"DEBUG: Fetching credential from {endpoint_url} for {provider_id}", flush=True)
+                try:
+                    with httpx.Client(timeout=5.0) as client:
+                        response = client.get(
+                            endpoint_url,
+                            headers={"X-Internal-Config-Token": token},
+                        )
+                        if response.status_code == 200:
+                            data = response.json()
+                            if isinstance(data, dict) and data.get("ok"):
+                                cred_data = data.get("data", {})
+                                api_key = cred_data.get("api_key")
+                                print(f"DEBUG: Successfully fetched credential for {provider_id}: key={api_key[:20] + '...' if api_key else 'None'}", flush=True)
+                            else:
+                                print(f"DEBUG: Invalid response from credential endpoint for {provider_id}: {response.status_code}", flush=True)
+                        else:
+                            print(f"DEBUG: Failed to fetch credential for {provider_id}: HTTP {response.status_code}", flush=True)
+                except Exception as e:
+                    print(f"DEBUG: Exception fetching credential for {provider_id}: {e}", flush=True)
+
         print(f"DEBUG: Building adapter for {provider_id} ({provider_type}): api_key={api_key[:20] + '...' if api_key else 'None'}", flush=True)
         if provider_type == "openai":
             adapters[provider_id] = OpenAIChatAdapter(base_url=base_url, api_key=api_key)
@@ -125,6 +159,7 @@ def build_governed_model_adapters(config: dict[str, Any]) -> dict[str, BaseModel
             adapters[provider_id] = OllamaAdapter(base_url=base_url)
         elif provider_type == "mock":
             adapters[provider_id] = MockModelAdapter()
+
     return adapters
 
 

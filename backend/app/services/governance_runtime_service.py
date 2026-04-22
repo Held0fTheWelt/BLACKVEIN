@@ -1540,34 +1540,13 @@ def _serialize_provider_rows(providers: list[AIProviderConfig]) -> list[dict]:
     for provider in providers:
         contract = _provider_contract(provider.provider_type)
 
-        # Resolve secret: fetch active credential and decrypt
-        api_key = None
-        if provider.credential_configured:
-            from app.models.governance_core import AIProviderCredential
-            active_cred = AIProviderCredential.query.filter_by(
-                provider_id=provider.provider_id,
-                is_active=True
-            ).first()
-            if active_cred:
-                try:
-                    decrypted = decrypt_secret(
-                        encrypted_secret=active_cred.encrypted_secret,
-                        encrypted_dek=active_cred.encrypted_dek,
-                        secret_nonce=active_cred.secret_nonce,
-                        dek_nonce=active_cred.dek_nonce,
-                    )
-                    api_key = decrypted.get("api_key") if isinstance(decrypted, dict) else str(decrypted)
-                    print(f"DEBUG: Decrypted credential for {provider.provider_id}: api_key={api_key[:20]}..." if api_key else "None", flush=True)
-                except Exception as e:
-                    print(f"DEBUG: Failed to decrypt credential for {provider.provider_id}: {e}", flush=True)
-
         out.append(
             {
                 "provider_id": provider.provider_id,
                 "provider_type": provider.provider_type,
                 "base_url": _normalize_provider_url(provider.base_url, contract),
-                "api_key": api_key,  # Direct API key for world-engine
                 "credential_configured": provider.credential_configured,
+                "credential_endpoint": f"/api/v1/internal/provider-credential/{provider.provider_id}" if provider.credential_configured else None,
                 "is_enabled": True,
                 "health_status": provider.health_status,
                 "auth_mode": contract.get("auth_mode"),
@@ -1969,3 +1948,46 @@ def record_operational_activity(actor_user, action: str, message: str, metadata:
         target_type="operational_settings",
         target_id="runtime",
     )
+
+
+def get_provider_credential_for_runtime(provider_id: str) -> str | None:
+    """Fetch and decrypt provider credential for world-engine runtime use.
+
+    This is called by world-engine via internal API to get live credentials
+    without storing them in config. Logs all steps for debugging.
+    """
+    print(f"DEBUG: get_provider_credential_for_runtime called for {provider_id}", flush=True)
+
+    provider = AIProviderConfig.query.get(provider_id)
+    if provider is None:
+        print(f"DEBUG: Provider {provider_id} not found", flush=True)
+        return None
+
+    if not provider.credential_configured:
+        print(f"DEBUG: Provider {provider_id} has no credential configured", flush=True)
+        return None
+
+    from app.models.governance_core import AIProviderCredential
+
+    active_cred = AIProviderCredential.query.filter_by(
+        provider_id=provider_id,
+        is_active=True
+    ).first()
+
+    if not active_cred:
+        print(f"DEBUG: No active credential found for {provider_id}", flush=True)
+        return None
+
+    try:
+        decrypted = decrypt_secret(
+            encrypted_secret=active_cred.encrypted_secret,
+            encrypted_dek=active_cred.encrypted_dek,
+            secret_nonce=active_cred.secret_nonce,
+            dek_nonce=active_cred.dek_nonce,
+        )
+        api_key = decrypted.get("api_key") if isinstance(decrypted, dict) else str(decrypted)
+        print(f"DEBUG: Successfully decrypted credential for {provider_id}: key={api_key[:20] if api_key else 'None'}...", flush=True)
+        return api_key
+    except Exception as e:
+        print(f"DEBUG: Failed to decrypt credential for {provider_id}: {e}", flush=True)
+        return None

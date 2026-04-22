@@ -19,6 +19,7 @@ from app.services.governance_runtime_service import (
     evaluate_runtime_readiness,
     enforce_budget_guard,
     get_bootstrap_status,
+    get_provider_credential_for_runtime,
     get_runtime_modes,
     ingest_usage_event,
     initialize_bootstrap,
@@ -462,3 +463,28 @@ def internal_runtime_config_reload():
         return ok(build_resolved_runtime_config(persist_snapshot=True, actor="internal"))
     except GovernanceError as err:
         return fail_from_error(err)
+
+
+@api_v1_bp.route("/internal/provider-credential/<provider_id>", methods=["GET"])
+@limiter.limit("300 per minute")
+def internal_provider_credential_get(provider_id: str):
+    """Internal endpoint for world-engine to fetch decrypted provider credentials.
+
+    Requires X-Internal-Config-Token header (same as runtime-config endpoint).
+    Returns the decrypted API key for the specified provider.
+    """
+    token = (request.headers.get("X-Internal-Config-Token") or "").strip()
+    expected = (current_app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN") or "").strip()
+    if not expected or token != expected:
+        print(f"DEBUG: Invalid token for provider credential request: {provider_id}", flush=True)
+        return fail("credential_access_forbidden", "Internal credential token is invalid.", 403, {"provider_id": provider_id})
+
+    print(f"DEBUG: Fetching credential for provider {provider_id} via internal API", flush=True)
+    api_key = get_provider_credential_for_runtime(provider_id)
+
+    if api_key is None:
+        print(f"DEBUG: No credential available for provider {provider_id}", flush=True)
+        return ok({"provider_id": provider_id, "api_key": None})
+
+    print(f"DEBUG: Successfully returned credential for provider {provider_id}", flush=True)
+    return ok({"provider_id": provider_id, "api_key": api_key})
