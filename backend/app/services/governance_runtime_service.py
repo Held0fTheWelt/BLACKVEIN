@@ -711,6 +711,16 @@ def update_provider(provider_id: str, payload: dict, actor: str) -> AIProviderCo
     provider.updated_at = datetime.now(timezone.utc)
     _audit("provider_updated", "ai_runtime", provider.provider_id, actor, "Provider updated.", {})
     db.session.commit()
+
+    # After provider update, trigger world-engine rebind to pick up the change
+    try:
+        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
+        if has_complete_play_service_config():
+            reload_play_story_runtime_governed_config()
+    except Exception as exc:  # noqa: BLE001 — best-effort rebind must not fail the provider update
+        import logging
+        logging.getLogger(__name__).warning("Provider update succeeded but world-engine rebind failed: %s", exc)
+
     return provider
 
 
@@ -990,6 +1000,16 @@ def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
     model.updated_at = datetime.now(timezone.utc)
     _audit("model_updated", "ai_runtime", model_id, actor, "Model updated.", {})
     db.session.commit()
+
+    # After model update, trigger world-engine rebind to pick up the change
+    try:
+        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
+        if has_complete_play_service_config():
+            reload_play_story_runtime_governed_config()
+    except Exception as exc:  # noqa: BLE001 — best-effort rebind must not fail the model update
+        import logging
+        logging.getLogger(__name__).warning("Model update succeeded but world-engine rebind failed: %s", exc)
+
     return model
 
 
@@ -1351,6 +1371,16 @@ def update_route(route_id: str, payload: dict, actor: str) -> AITaskRoute:
     route.updated_at = datetime.now(timezone.utc)
     _audit("route_updated", "ai_runtime", route_id, actor, "Route updated.", {})
     db.session.commit()
+
+    # After route update, trigger world-engine rebind to pick up the change
+    try:
+        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
+        if has_complete_play_service_config():
+            reload_play_story_runtime_governed_config()
+    except Exception as exc:  # noqa: BLE001 — best-effort rebind must not fail the route update
+        import logging
+        logging.getLogger(__name__).warning("Route update succeeded but world-engine rebind failed: %s", exc)
+
     return route
 
 
