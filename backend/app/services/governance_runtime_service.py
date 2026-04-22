@@ -983,6 +983,7 @@ def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
     if model is None:
         raise governance_error("model_not_found", f"Model '{model_id}' not found.", 404, {"model_id": model_id})
     for key in (
+        "model_name",
         "display_name",
         "model_role",
         "is_enabled",
