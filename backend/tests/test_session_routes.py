@@ -263,7 +263,17 @@ class TestExecuteTurnEndpoint:
         )
         monkeypatch.setattr(
             "app.api.v1.session_routes.execute_story_turn_in_engine",
-            lambda **_: {"turn": {"turn_number": 1, "raw_input": "hello"}},
+            lambda **_: {
+                "turn": {
+                    "turn_number": 1,
+                    "turn_kind": "player_action",
+                    "interpreted_input": {"kind": "speech", "intent": "test"},
+                    "narrative_commit": {"visible_text": "hello response"},
+                    "validation_outcome": {"status": "approved"},
+                    "visible_output_bundle": {"narration": "hello response"},
+                    "raw_input": "hello",
+                }
+            },
         )
         monkeypatch.setattr(
             "app.api.v1.session_routes.get_story_state",

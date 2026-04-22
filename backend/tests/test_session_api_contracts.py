@@ -46,7 +46,17 @@ def test_post_execute_turn_proxies_to_world_engine(client, test_user, monkeypatc
     )
     monkeypatch.setattr(
         "app.api.v1.session_routes.execute_story_turn_in_engine",
-        lambda **_: {"turn": {"turn_number": 1, "raw_input": "test action"}},
+        lambda **_: {
+            "turn": {
+                "turn_number": 1,
+                "turn_kind": "player_action",
+                "interpreted_input": {"kind": "action", "intent": "test"},
+                "narrative_commit": {"visible_text": "test response"},
+                "validation_outcome": {"status": "approved"},
+                "visible_output_bundle": {"narration": "test response"},
+                "raw_input": "test action",
+            }
+        },
     )
     monkeypatch.setattr(
         "app.api.v1.session_routes.get_story_state",

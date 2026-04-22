@@ -68,6 +68,7 @@ _TAG_PREFIXES: list[tuple[str, str]] = [
     ("/api/v1/test", "System"),
     ("/api/v1/bootstrap/public-status", "OperationalGovernance"),
     ("/api/v1/internal/runtime-config", "OperationalGovernance"),
+    ("/api/v1/internal/provider-credential", "OperationalGovernance"),
 ]
 
 _TAG_DESCRIPTIONS: dict[str, str] = {

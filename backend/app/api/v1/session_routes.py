@@ -561,7 +561,10 @@ def execute_session_turn(session_id):
     )
 
     # PHASE 2 VALIDATION: Verify turn response contains canonical contract fields
-    _validate_world_engine_turn_contract(turn, trace_id)
+    inner_turn = turn.get("turn") if isinstance(turn, dict) else None
+    if not inner_turn:
+        raise GameServiceError("World-engine response missing 'turn' wrapper")
+    _validate_world_engine_turn_contract(inner_turn, trace_id)
 
     response_body: dict = {
         "session_id": session_id,

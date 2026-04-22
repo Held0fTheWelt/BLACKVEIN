@@ -5452,6 +5452,75 @@ paths:
         required: true
         schema:
           type: string
+  /api/v1/game/player-sessions:
+    post:
+      tags:
+      - GameBootstrap
+      summary: POST /game/player-sessions
+      operationId: post_api_v1_game_player_sessions
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/game/player-sessions/{run_id}:
+    get:
+      tags:
+      - GameBootstrap
+      summary: GET /game/player-sessions/{run_id}
+      operationId: get_api_v1_game_player_sessions_run_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/v1/game/player-sessions/{run_id}/turns:
+    post:
+      tags:
+      - GameBootstrap
+      summary: POST /game/player-sessions/{run_id}/turns
+      operationId: post_api_v1_game_player_sessions_run_id_turns
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: run_id
+        in: path
+        required: true
+        schema:
+          type: string
   /api/v1/game/runs:
     get:
       tags:
@@ -5691,6 +5760,31 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/internal/provider-credential/{provider_id}:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /internal/provider-credential/{provider_id}
+      operationId: get_api_v1_internal_provider_credential_provider_id
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+      parameters:
+      - name: provider_id
+        in: path
+        required: true
+        schema:
+          type: string
   /api/v1/internal/runtime-config:
     get:
       tags:
