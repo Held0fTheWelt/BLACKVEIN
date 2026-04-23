@@ -86,8 +86,8 @@ class TestC11PreferredOrderPacketField:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        assert "preferred_reaction_order" in packet
-        assert packet["preferred_reaction_order"] == ["alice", "bob"]
+        assert "preferred_reaction_order_ids" in packet
+        assert packet["preferred_reaction_order_ids"] == ["alice", "bob"]
 
     def test_preferred_reaction_order_none_when_no_responders(self):
         """Preferred order is empty list when no responders."""
@@ -106,13 +106,13 @@ class TestC11PreferredOrderPacketField:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        assert packet["preferred_reaction_order"] == []
+        assert packet["preferred_reaction_order_ids"] == []
 
 
 class TestC12PreferredOrderDirective:
-    """C1.2 — preferred_reaction_order_directive as explicit normative instruction."""
+    """C1.2 — preferred_reaction_order_instruction as explicit normative instruction."""
 
-    def test_preferred_reaction_order_directive_present_when_multiple_responders(self):
+    def test_preferred_reaction_order_instruction_present_when_multiple_responders(self):
         """Directive is emitted when multiple responders nominated."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
 
@@ -132,12 +132,12 @@ class TestC12PreferredOrderDirective:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        assert "preferred_reaction_order_directive" in packet
-        assert packet["preferred_reaction_order_directive"] is not None
-        assert "alice" in packet["preferred_reaction_order_directive"]
-        assert "bob" in packet["preferred_reaction_order_directive"]
+        assert "preferred_reaction_order_instruction" in packet
+        assert packet["preferred_reaction_order_instruction"] is not None
+        assert "alice" in packet["preferred_reaction_order_instruction"]
+        assert "bob" in packet["preferred_reaction_order_instruction"]
 
-    def test_preferred_reaction_order_directive_none_when_single_responder(self):
+    def test_preferred_reaction_order_instruction_none_when_single_responder(self):
         """Directive is None when only primary responder."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
 
@@ -156,10 +156,10 @@ class TestC12PreferredOrderDirective:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        # When only one responder, preferred_reaction_order_directive is None
-        assert packet["preferred_reaction_order_directive"] is None
+        # When only one responder, preferred_reaction_order_instruction is None
+        assert packet["preferred_reaction_order_instruction"] is None
 
-    def test_preferred_reaction_order_directive_normative_language(self):
+    def test_preferred_reaction_order_instruction_normative_language(self):
         """Directive uses normative language, not absolute."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
 
@@ -179,7 +179,7 @@ class TestC12PreferredOrderDirective:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        directive = packet["preferred_reaction_order_directive"]
+        directive = packet["preferred_reaction_order_instruction"]
         # Should use soft language like "should" not "must"
         assert "should" in directive.lower() or "unless" in directive.lower()
 
@@ -360,8 +360,7 @@ class TestC22DivergenceSignals:
         )
         vitality = telemetry.get("vitality_telemetry_v1", {})
         # Secondary nominated but not realized
-        assert vitality.get("reaction_order_divergence") is True
-        assert vitality.get("reaction_order_divergence_reason") == "preferred_secondary_not_realized"
+        assert vitality.get("reaction_order_divergence") == "secondary_responder_nominated_not_realized_in_output"
 
     def test_divergence_reason_single_actor_only(self):
         """Divergence reason: single_actor_only when only primary realized."""
@@ -391,8 +390,7 @@ class TestC22DivergenceSignals:
         )
         vitality = telemetry.get("vitality_telemetry_v1", {})
         # Single actor realized but multiple preferred
-        assert vitality.get("reaction_order_divergence") is True
-        assert vitality.get("reaction_order_divergence_reason") == "single_actor_only"
+        assert vitality.get("reaction_order_divergence") == "single_actor_only"
 
     def test_no_divergence_when_single_preferred_actor(self):
         """No divergence when only one responder was preferred."""
@@ -435,13 +433,11 @@ class TestC31RenderSupportMarker:
     def test_divergence_marker_in_render_context(self):
         """Render context includes divergence fields."""
         render_context = {
-            "reaction_order_divergence": True,
-            "reaction_order_divergence_reason": "single_actor_only",
-            "preferred_reaction_order": ["alice", "bob"],
+            "reaction_order_divergence": "single_actor_only",
+            "preferred_reaction_order_ids": ["alice", "bob"],
             "realized_actor_order": ["alice"],
         }
-        assert render_context["reaction_order_divergence"] is True
-        assert render_context["reaction_order_divergence_reason"] == "single_actor_only"
+        assert render_context["reaction_order_divergence"] == "single_actor_only"
 
     def test_divergence_marker_structure_in_bundle(self):
         """Divergence marker structure expected in render_support."""
@@ -521,8 +517,8 @@ class TestC4IntegrationSanity:
         packet = _build_dramatic_generation_packet(state)
 
         # Verify field names in packet
-        assert "preferred_reaction_order" in packet
-        assert "preferred_reaction_order_directive" in packet
+        assert "preferred_reaction_order_ids" in packet
+        assert "preferred_reaction_order_instruction" in packet
 
         # Verify prompt references these names
         catalog = CanonicalPromptCatalog()
@@ -539,8 +535,8 @@ class TestC4IntegrationSanity:
 
         # Should not raise
         packet = _build_dramatic_generation_packet(state)
-        assert "preferred_reaction_order" in packet
-        assert packet["preferred_reaction_order"] == []
+        assert "preferred_reaction_order_ids" in packet
+        assert packet["preferred_reaction_order_ids"] == []
 
     def test_full_pipeline_no_regression_healthy_turn(self):
         """Full pipeline: healthy multi-actor turn with aligned order."""
@@ -579,9 +575,8 @@ class TestC4IntegrationSanity:
 
         # Healthy turn should not show divergence
         assert vitality.get("reaction_order_divergence") is None
-        assert vitality.get("reaction_order_divergence_reason") is None
         # But should track the order information
-        assert vitality.get("preferred_reaction_order") == ["alice", "bob"]
+        assert vitality.get("preferred_reaction_order_ids") == ["alice", "bob"]
         assert vitality.get("realized_actor_order") == ["alice", "bob"]
         assert vitality.get("multi_actor_realized") is True
 
@@ -624,7 +619,6 @@ class TestC4IntegrationSanity:
         vitality = telemetry.get("vitality_telemetry_v1", {})
 
         # Interruption causes realized order to differ
-        assert vitality.get("reaction_order_divergence") is True
-        assert vitality.get("reaction_order_divergence_reason") == "realized_order_differs"
-        assert vitality.get("preferred_reaction_order") == ["alice", "bob"]
+        assert vitality.get("reaction_order_divergence") == "realized_order_differs"
+        assert vitality.get("preferred_reaction_order_ids") == ["alice", "bob"]
         assert vitality.get("realized_actor_order") == ["bob", "alice"]
