@@ -1798,3 +1798,157 @@ button.secondary:hover {
     font-family: var(--mono-font);
     font-size: 0.88rem;
 }
+
+/* Phase D: QA Canonical Turn Diagnostics Panel */
+
+.qa-diagnostics-panel {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    width: 500px;
+    max-height: 70vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.qa-diagnostics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--obsidian);
+}
+
+.qa-diagnostics-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--violet-bright);
+}
+
+.qa-diagnostics-close {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.qa-diagnostics-close:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.qa-diagnostics-content {
+    overflow-y: auto;
+    padding: 1rem;
+    font-size: 0.85rem;
+}
+
+.qa-loading {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.qa-diagnostics-view {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.qa-section {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem;
+    background: var(--obsidian);
+}
+
+.qa-section h4 {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+    color: var(--violet-bright);
+}
+
+.qa-section summary {
+    cursor: pointer;
+    color: var(--violet-bright);
+    font-weight: 500;
+    padding: 0.25rem;
+    user-select: none;
+}
+
+.qa-section summary:hover {
+    color: var(--violet);
+}
+
+.qa-section dl {
+    margin: 0.5rem 0 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.5rem 1rem;
+}
+
+.qa-section dt {
+    font-weight: 600;
+    color: var(--text-muted);
+    word-break: break-word;
+}
+
+.qa-section dd {
+    margin: 0;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.qa-section-tier-a {
+    border-color: var(--info);
+    background: rgba(74, 126, 201, 0.05);
+}
+
+.qa-section-tier-b {
+    border-color: var(--success);
+    background: rgba(74, 158, 106, 0.05);
+}
+
+.qa-section-graph {
+    border-color: var(--violet);
+    background: rgba(122, 92, 158, 0.05);
+}
+
+.qa-section-raw {
+    border-color: var(--danger);
+    background: rgba(201, 74, 74, 0.05);
+}
+
+.qa-raw-json {
+    background: var(--void);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.75rem;
+    margin: 0.5rem 0 0;
+    color: var(--text-muted);
+}
+
+.qa-raw-json code {
+    font-family: var(--mono-font);
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .qa-diagnostics-panel {
+        width: calc(100% - 2rem);
+        right: 1rem;
+        left: 1rem;
+        max-height: 50vh;
+    }
+}

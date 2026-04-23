@@ -97,6 +97,7 @@ def _register_api_v1_blueprint_routes() -> None:
     from app.api.v1 import research_domain_governance_routes  # noqa: F401
     from app.api.v1 import player_routes  # noqa: F401
     from app.api.v1 import operator_diagnostics_routes  # noqa: F401
+    from app.api.v1 import play_qa_diagnostics_routes  # noqa: F401
 
 
 _register_api_v1_blueprint_routes()

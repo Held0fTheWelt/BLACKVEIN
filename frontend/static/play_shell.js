@@ -438,4 +438,161 @@
         if (btn) btn.disabled = false;
       });
   });
+
+  // Phase D: QA Canonical Turn Diagnostics Panel
+  var showQaDiagnostics = false;
+  var qaPanel = null;
+
+  function initQaDiagnosticsPanel() {
+    // Check if QA diagnostics should be enabled
+    const params = new URLSearchParams(window.location.search);
+    const qaMode = params.get("diagnostics") === "qa";
+    showQaDiagnostics = qaMode;
+
+    if (!showQaDiagnostics) return;
+
+    // Create QA panel container
+    qaPanel = document.createElement("div");
+    qaPanel.id = "qa-diagnostics-panel";
+    qaPanel.setAttribute("class", "qa-diagnostics-panel");
+    qaPanel.style.display = "none";
+    qaPanel.innerHTML =
+      '<div class="qa-diagnostics-header">' +
+      '<button class="qa-diagnostics-close">Close</button>' +
+      '<h3>QA Canonical Turn Diagnostics</h3>' +
+      '</div>' +
+      '<div class="qa-diagnostics-content">' +
+      '<p class="qa-loading">Loading...</p>' +
+      '</div>';
+
+    shell.appendChild(qaPanel);
+
+    // Close button
+    const closeBtn = qaPanel.querySelector(".qa-diagnostics-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        qaPanel.style.display = "none";
+      });
+    }
+
+    // Fetch canonical turn data
+    const sessionId = shell.getAttribute("data-session-id");
+    if (!sessionId) {
+      updateQaPanelContent("Error: Session ID not found.");
+      return;
+    }
+
+    fetch("/api/v1/play/" + encodeURIComponent(sessionId) + "/qa-diagnostics-canonical-turn?include_raw=0", {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        if (r.status === 403) {
+          return r.json().then(function (data) {
+            updateQaPanelContent("Not authorized for QA diagnostics. Ensure FEATURE_VIEW_QA_CANONICAL_TURN is enabled.");
+          });
+        }
+        if (r.status === 404) {
+          return r.json().then(function (data) {
+            updateQaPanelContent("Session not found or runtime state unavailable.");
+          });
+        }
+        if (!r.ok) {
+          return r.json().then(function (data) {
+            updateQaPanelContent("Error: " + (data.error || "Failed to load QA diagnostics."));
+          });
+        }
+        return r.json().then(function (data) {
+          if (data.ok) {
+            displayQaDiagnostics(data.data);
+          } else {
+            updateQaPanelContent("Error: " + (data.error || "Invalid response."));
+          }
+        });
+      })
+      .catch(function (err) {
+        updateQaPanelContent("Network error: " + (err.message || "Could not reach server."));
+      });
+
+    qaPanel.style.display = "block";
+  }
+
+  function updateQaPanelContent(message) {
+    if (!qaPanel) return;
+    const content = qaPanel.querySelector(".qa-diagnostics-content");
+    if (content) {
+      content.innerHTML = "<p>" + escapeHtml(message) + "</p>";
+    }
+  }
+
+  function displayQaDiagnostics(projection) {
+    if (!qaPanel) return;
+    const content = qaPanel.querySelector(".qa-diagnostics-content");
+    if (!content) return;
+
+    let html = '<div class="qa-diagnostics-view">';
+
+    // Tier A: Primary fields
+    const tierA = projection.tier_a_primary || {};
+    if (Object.keys(tierA).length > 0) {
+      html += '<section class="qa-section qa-section-tier-a">';
+      html += '<h4>Primary Information</h4>';
+      html += formatQaSection(tierA);
+      html += "</section>";
+    }
+
+    // Tier B: Detailed fields (collapsed)
+    const tierB = projection.tier_b_detailed || {};
+    if (Object.keys(tierB).length > 0) {
+      html += '<details class="qa-section qa-section-tier-b">';
+      html += '<summary>Detailed Information (Tier B)</summary>';
+      html += formatQaSection(tierB);
+      html += "</details>";
+    }
+
+    // Graph execution summary
+    const graphSum = projection.graph_execution_summary || {};
+    if (Object.keys(graphSum).length > 0) {
+      html += '<details class="qa-section qa-section-graph">';
+      html += '<summary>Graph Execution (Tier B)</summary>';
+      html += formatQaSection(graphSum);
+      html += "</details>";
+    }
+
+    // Raw JSON toggle
+    if (projection.raw_canonical_record_available) {
+      html +=
+        '<details class="qa-section qa-section-raw">' +
+        '<summary>Raw Canonical Record (JSON)</summary>' +
+        '<pre class="qa-raw-json"><code>Note: Include ?include_raw=1 in URL to fetch full canonical record.</code></pre>' +
+        "</details>";
+    }
+
+    html += "</div>";
+    content.innerHTML = html;
+  }
+
+  function formatQaSection(obj) {
+    let html = "<dl>";
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === null || value === undefined) continue;
+      html += "<dt>" + escapeHtml(String(key)) + "</dt>";
+      if (typeof value === "object") {
+        html +=
+          "<dd><pre><code>" +
+          escapeHtml(JSON.stringify(value, null, 2)) +
+          "</code></pre></dd>";
+      } else {
+        html += "<dd>" + escapeHtml(String(value)) + "</dd>";
+      }
+    }
+    html += "</dl>";
+    return html;
+  }
+
+  // Initialize QA panel if diagnostics=qa is present
+  initQaDiagnosticsPanel();
 })();
