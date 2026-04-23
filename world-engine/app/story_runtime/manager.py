@@ -788,6 +788,31 @@ class StoryRuntimeManager:
         except Exception:
             return 2
 
+    def _story_runtime_experience_policy(self):
+        """Resolve the active Story Runtime Experience policy from governed config.
+
+        Always returns a policy — if the resolved config is missing or the
+        section has not been seeded yet (first boot), canonical defaults are
+        used so the runtime still packages truthfully in recap mode.
+        """
+        from ai_stack.story_runtime_experience import (
+            extract_policy_from_resolved_config,
+        )
+
+        return extract_policy_from_resolved_config(self._governed_runtime_config)
+
+    def _apply_experience_packaging(self, raw_bundle, policy):
+        if not isinstance(raw_bundle, dict):
+            return raw_bundle
+        try:
+            from ai_stack.story_runtime_experience_packaging import (
+                package_bundle_with_policy,
+            )
+
+            return package_bundle_with_policy(raw_bundle, policy)
+        except Exception:  # noqa: BLE001 — packaging must not break the turn
+            return raw_bundle
+
     def _apply_runtime_components(self, governed_runtime_config: dict[str, Any] | None) -> None:
         components = build_governed_story_runtime_components(governed_runtime_config)
         if components is not None:
@@ -897,6 +922,11 @@ class StoryRuntimeManager:
             "authority_version": self._authority_version,
             "authority_applied_at_iso": self._authority_applied_at_iso,
             "runtime_truth_surface": truth_surface,
+            # Story Runtime Experience truth surface: configured vs effective,
+            # degradation markers, and packaging contract version. Operators
+            # rely on this rather than the configured row to know whether the
+            # requested mode is actually honored.
+            "story_runtime_experience": self._story_runtime_experience_policy().to_truth_surface(),
         }
 
     def _compose_runtime_truth_surface(self, *, governed: bool) -> dict[str, Any]:
@@ -1230,6 +1260,14 @@ class StoryRuntimeManager:
                 "pressure_state": bp.pressure_state,
             }
         gov["dramatic_context_summary"] = dramatic_context_summary
+        # Story Runtime Experience packaging: re-pack the visible bundle
+        # according to the governed experience policy. The policy is a real
+        # first-class runtime value pulled from the resolved config, so
+        # recap / dramatic_turn / live modes differ in packaging truth, not
+        # only in prompt wording.
+        raw_bundle = graph_state.get("visible_output_bundle")
+        experience_policy = self._story_runtime_experience_policy()
+        packaged_bundle = self._apply_experience_packaging(raw_bundle, experience_policy)
         event: dict[str, Any] = {
             "turn_number": commit_turn_number,
             "turn_kind": turn_kind or "player",
@@ -1240,7 +1278,8 @@ class StoryRuntimeManager:
             "retrieval": graph_state.get("retrieval", {}),
             "model_route": {**routing, "generation": gen},
             "graph": graph_diag,
-            "visible_output_bundle": graph_state.get("visible_output_bundle"),
+            "visible_output_bundle": packaged_bundle if packaged_bundle is not None else raw_bundle,
+            "story_runtime_experience": experience_policy.to_truth_surface(),
             "dramatic_context_summary": dramatic_context_summary,
             "diagnostics_refs": graph_state.get("diagnostics_refs"),
             "experiment_preview": graph_state.get("experiment_preview"),

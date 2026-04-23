@@ -441,6 +441,16 @@ def ensure_governance_baseline() -> None:
                     )
                 )
     _seed_default_presets()
+    # Seed Story Runtime Experience defaults so fresh docker-up.py boots have
+    # a working governed configuration with no manual admin step.
+    try:
+        from app.services.story_runtime_experience_service import (
+            seed_default_story_runtime_experience,
+        )
+
+        seed_default_story_runtime_experience(actor="system")
+    except Exception:  # noqa: BLE001 — baseline seeding must not block startup
+        pass
     db.session.commit()
 
 
@@ -1576,12 +1586,20 @@ def _serialize_model_rows(models: list[AIModelConfig], selected_provider_ids: se
 
 
 def _collect_scope_settings() -> dict[str, dict]:
+    # Story Runtime Experience is a first-class section — it rides the same
+    # resolved-runtime-config propagation path as the rest of governance, so
+    # the world-engine can honor it without a parallel fetch.
+    from app.services.story_runtime_experience_service import (
+        serialize_for_resolved_runtime_config as _serialize_story_runtime_experience,
+    )
+
     return {
         "backend_settings": read_scope_settings("backend"),
         "world_engine_settings": read_scope_settings("world_engine"),
         "retrieval_settings": read_scope_settings("retrieval"),
         "cost_settings": read_scope_settings("costs"),
         "notification_settings": read_scope_settings("notifications"),
+        "story_runtime_experience": _serialize_story_runtime_experience(),
     }
 
 

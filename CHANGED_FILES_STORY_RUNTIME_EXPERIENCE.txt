@@ -1,0 +1,71 @@
+Story Runtime Experience — changed files
+==========================================
+
+NEW FILES
+---------
+ai_stack/story_runtime_experience.py
+    Canonical settings model (enums, defaults, normalization, validation,
+    StoryRuntimeExperiencePolicy with configured/effective/degradation markers,
+    resolver and config extractor). Shared by backend + world-engine.
+
+ai_stack/story_runtime_experience_packaging.py
+    Experience-aware visible-output bundle packager. Implements real runtime
+    differences between recap, dramatic_turn, and live modes (narration_blocks,
+    action_pulses, spoken_lines, scene_motion_summary, continuation_state,
+    responder_trace, experience_packaging contract metadata).
+
+backend/app/services/story_runtime_experience_service.py
+    Backend service: persistence on scope "story_runtime_experience",
+    idempotent baseline seeding, audited update, admin truth-surface builder,
+    serializer for resolved runtime config embedding.
+
+administration-tool/static/manage_story_runtime_experience.js
+    Admin UI JS: loads truth surface, applies configured values to form,
+    renders degradation markers + validation warnings + effective values,
+    save path PUTs normalized payload.
+
+tests/integration/test_story_runtime_experience.py
+    14 unit tests for config model + policy caps + packaging mode differences.
+
+backend/tests/services/test_story_runtime_experience_service.py
+    6 backend integration tests for DB-backed seed + update + truth surface +
+    resolved-runtime-config propagation.
+
+MODIFIED FILES
+--------------
+backend/app/services/governance_runtime_service.py
+    - _collect_scope_settings() embeds Story Runtime Experience truth surface
+      under the resolved-runtime-config key "story_runtime_experience".
+    - ensure_governance_baseline() seeds the default settings row.
+
+backend/app/api/v1/operational_governance_routes.py
+    + GET  /api/v1/admin/story-runtime-experience
+    + PUT  /api/v1/admin/story-runtime-experience (normalize/validate/persist
+      /rebuild resolved config/return truth surface with update_warnings).
+
+administration-tool/templates/manage/runtime_settings.html
+    + Story Runtime Experience operator-facing section (Mode / Delivery /
+      Character Dynamics / Scene Motion groups).
+    + "Configured vs Observed" + validation warnings + effective values panel.
+    + <script> link to manage_story_runtime_experience.js.
+
+world-engine/app/story_runtime/manager.py
+    + _story_runtime_experience_policy(): pulls effective policy from resolved
+      governed config, falls back to canonical defaults.
+    + _apply_experience_packaging(): re-packages visible_output_bundle with
+      the policy; failures never break the turn.
+    - _finalize_committed_turn() now applies experience packaging and attaches
+      the story_runtime_experience truth surface to the turn event.
+    - runtime_config_status() now exposes the story_runtime_experience truth
+      surface so admin/control-center sees observed runtime state.
+
+ARTIFACTS
+---------
+STORY_RUNTIME_EXPERIENCE_IMPLEMENTATION_REPORT.md
+    Implementation report.
+
+CHANGED_FILES_STORY_RUNTIME_EXPERIENCE.txt
+    This file.
+
+STORY_RUNTIME_EXPERIENCE_TEST_SUMMARY.md
+    Validation summary.

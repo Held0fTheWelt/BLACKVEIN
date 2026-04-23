@@ -105,6 +105,136 @@
         </section>
     </div>
 
+    <section class="panel" style="margin-top:1rem;" data-section="story-runtime-experience">
+        <header class="panel-header"><h2>Story Runtime Experience</h2></header>
+        <p class="muted">Operator-facing scene delivery, NPC behavior, and scene motion controls. Configured values may be capped by the runtime — the "Observed" block below shows what is actually honored.</p>
+
+        <p id="manage-sre-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+        <p id="manage-sre-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+        <div class="manage-grid two-col">
+            <div>
+                <h3 class="manage-eyebrow">Mode</h3>
+                <label class="form-label">Experience Mode
+                    <select id="manage-sre-experience-mode" class="form-input">
+                        <option value="turn_based_narrative_recap">turn_based_narrative_recap</option>
+                        <option value="dramatic_turn">dramatic_turn</option>
+                        <option value="live_dramatic_scene_simulator">live_dramatic_scene_simulator (partial foundation)</option>
+                    </select>
+                </label>
+                <label class="form-label">Delivery Profile
+                    <select id="manage-sre-delivery-profile" class="form-input">
+                        <option value="classic_recap">classic_recap</option>
+                        <option value="lean_dramatic">lean_dramatic</option>
+                        <option value="cinematic_live">cinematic_live</option>
+                        <option value="npc_forward">npc_forward</option>
+                        <option value="operator_custom">operator_custom</option>
+                    </select>
+                </label>
+
+                <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Delivery</h3>
+                <label class="form-label">Prose Density
+                    <select id="manage-sre-prose-density" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Explanation Level
+                    <select id="manage-sre-explanation-level" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Narrator Presence
+                    <select id="manage-sre-narrator-presence" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Dialogue Priority
+                    <select id="manage-sre-dialogue-priority" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Action Visibility
+                    <select id="manage-sre-action-visibility" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Repetition Guard
+                    <select id="manage-sre-repetition-guard" class="form-input">
+                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    </select>
+                </label>
+                <label class="form-label">Motif Handling
+                    <select id="manage-sre-motif-handling" class="form-input">
+                        <option value="strict_suppression">strict_suppression</option>
+                        <option value="controlled_reuse">controlled_reuse</option>
+                        <option value="thematic_reinforcement">thematic_reinforcement</option>
+                    </select>
+                </label>
+            </div>
+            <div>
+                <h3 class="manage-eyebrow">Character Dynamics</h3>
+                <label class="form-label">NPC Verbosity
+                    <select id="manage-sre-npc-verbosity" class="form-input">
+                        <option value="terse">terse</option><option value="balanced">balanced</option><option value="expressive">expressive</option>
+                    </select>
+                </label>
+                <label class="form-label">NPC Initiative
+                    <select id="manage-sre-npc-initiative" class="form-input">
+                        <option value="passive">passive</option><option value="reactive">reactive</option><option value="assertive">assertive</option>
+                    </select>
+                </label>
+                <label class="form-label">Inter-NPC Exchange Intensity
+                    <select id="manage-sre-exchange-intensity" class="form-input">
+                        <option value="off">off</option><option value="light">light</option><option value="medium">medium</option><option value="strong">strong</option>
+                    </select>
+                </label>
+
+                <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Scene Motion</h3>
+                <label class="form-label">Pulse Length
+                    <select id="manage-sre-pulse-length" class="form-input">
+                        <option value="short">short</option><option value="medium">medium</option><option value="long">long</option>
+                    </select>
+                </label>
+                <label class="form-label">Max Scene Pulses Per Response
+                    <input type="number" id="manage-sre-max-pulses" class="form-input" min="1" max="3" value="1" />
+                </label>
+                <label class="form-label">
+                    <input type="checkbox" id="manage-sre-allow-auto-progress" />
+                    Allow Scene Progress Without Player Action
+                </label>
+                <label class="form-label">Beat Progression Speed
+                    <select id="manage-sre-beat-speed" class="form-input">
+                        <option value="slow">slow</option><option value="normal">normal</option><option value="fast">fast</option>
+                    </select>
+                </label>
+
+                <div class="manage-actions-row" style="margin-top:0.75rem;">
+                    <button type="button" class="btn btn-primary" id="manage-sre-save">Save Story Runtime Experience</button>
+                    <button type="button" class="btn" id="manage-sre-refresh">Reload</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="manage-grid two-col" style="margin-top:1rem;">
+            <section class="panel">
+                <header class="panel-header"><h3>Configured vs Observed</h3></header>
+                <p class="muted" id="manage-sre-mode-honored"></p>
+                <h4 class="manage-eyebrow">Degradation markers (runtime caps)</h4>
+                <ul id="manage-sre-degradation-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+                <h4 class="manage-eyebrow" style="margin-top:0.5rem;">Validation warnings</h4>
+                <ul id="manage-sre-warning-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+            </section>
+            <section class="panel">
+                <header class="panel-header"><h3>Effective values</h3></header>
+                <ul id="manage-sre-effective-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+                <details style="margin-top:0.5rem;">
+                    <summary class="muted">Raw payload</summary>
+                    <pre id="manage-sre-json" class="manage-psc-json muted"></pre>
+                </details>
+            </section>
+        </div>
+    </section>
+
     <section class="panel" style="margin-top:1rem;">
         <header class="panel-header"><h2>Recent settings changes</h2></header>
         <ul id="manage-rs-change-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
@@ -129,4 +259,5 @@
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_runtime_settings.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_story_runtime_experience.js') }}"></script>
 {% endblock %}
