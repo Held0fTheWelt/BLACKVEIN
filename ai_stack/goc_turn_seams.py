@@ -164,6 +164,7 @@ def run_validation_seam(
     proposed_state_effects: list[dict[str, Any]],
     generation: dict[str, Any],
     evaluation_context: DramaticEffectEvaluationContext | None = None,
+    actor_lane_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text
     (CANONICAL_TURN_CONTRACT_GOC.md §2.1).
@@ -216,9 +217,10 @@ def run_validation_seam(
             selected_scene_function="establish_pressure",
             pacing_mode="standard",
             silence_brevity_decision={},
+            actor_lane_summary=actor_lane_summary,
         )
     elif ctx.proposed_narrative.strip() != narr.strip():
-        ctx = ctx.model_copy(update={"proposed_narrative": narr})
+        ctx = ctx.model_copy(update={"proposed_narrative": narr, "actor_lane_summary": actor_lane_summary})
 
     gate_out = evaluate_dramatic_effect_gate(ctx)
     gate_dict = gate_out.to_runtime_dict()

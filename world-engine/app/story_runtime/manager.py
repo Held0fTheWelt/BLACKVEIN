@@ -495,6 +495,12 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "dramatic_direction",
         "social_state_summary",
         "continuity_impacts",
+        "realized_secondary_responder_ids",
+        "interruption_actor_id",
+        "spoken_actor_summaries",
+        "action_actor_summaries",
+        "social_pressure_shift",
+        "carry_forward_tension_notes",
     }
     for entry in reversed(session.history or []):
         if not isinstance(entry, dict):

@@ -42,6 +42,19 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
         return legacy
 
     text = ctx.proposed_narrative.strip()
+
+    # Actor-lane fluency override: if lanes are approved and non-empty,
+    # don't reject on prose emptiness or ultra-short prose alone.
+    _actor = ctx.actor_lane_summary or {}
+    if (
+        _actor.get("actor_lane_status") == "approved"
+        and (_actor.get("spoken_line_count", 0) + _actor.get("action_line_count", 0)) > 0
+    ):
+        if not text:
+            text = "(actor-driven turn)"
+        elif len(text) < 40:
+            text = text + " (actor realization present)"
+
     low = text.lower()
     trace: list[DramaticEffectTraceItem] = []
     sf = ctx.selected_scene_function or "establish_pressure"

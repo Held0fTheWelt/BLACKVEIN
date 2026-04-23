@@ -41,6 +41,7 @@ class PlayabilityDecision:
     allow_degraded_commit: bool
     feedback_codes: list[str]
     hard_boundary_failure: bool
+    preserve_actor_lanes: bool = False
 
 
 def _reason(outcome: dict[str, Any] | None) -> str:
@@ -103,6 +104,7 @@ def decide_playability_recovery(
     generation: dict[str, Any] | None,
     proposed_state_effects: list[dict[str, Any]] | None = None,
     allow_degraded_commit_after_retries: bool = True,
+    actor_lane_validation: dict[str, Any] | None = None,
 ) -> PlayabilityDecision:
     hard_boundary = is_hard_boundary_failure(outcome)
     feedback = collect_playability_feedback_codes(
@@ -129,15 +131,34 @@ def decide_playability_recovery(
         and not hard_boundary
         and turn_number <= 12
     )
+    actor_lane_approved = (
+        isinstance(actor_lane_validation, dict)
+        and actor_lane_validation.get("status") == "approved"
+    )
+    prose_only_reject = reason in {
+        "dramatic_alignment_narrative_too_short",
+        "dramatic_effect_reject_empty_fluency",
+        "empty_visible_output",
+    }
+    preserve_actor_lanes = actor_lane_approved and prose_only_reject
     return PlayabilityDecision(
         should_retry=should_retry,
         allow_degraded_commit=allow_degraded,
         feedback_codes=feedback,
         hard_boundary_failure=hard_boundary,
+        preserve_actor_lanes=preserve_actor_lanes,
     )
 
 
-def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list[str] | None = None) -> str:
+def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list[str] | None = None, preserve_actor_lanes: bool = False) -> str:
+    if preserve_actor_lanes:
+        preserve_prefix = (
+            "Your actor lanes (primary_responder_id, spoken_lines, action_lines, initiative_events) are structurally valid — "
+            "do NOT change them. Only improve narration_summary. Do not invent new actors, new dialogue, or new actions. "
+        )
+    else:
+        preserve_prefix = ""
+
     issues = ", ".join(str(x) for x in feedback_codes[:8]) or "quality_improvement_needed"
     base_instruction = (
         "Rewrite the previous runtime turn so it is commit-worthy. "
@@ -155,9 +176,9 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "Populate spoken_lines with speaker_id, action_lines with actor_id, and initiative_events with valid types. "
             "Do not invent new actor IDs."
         )
-        return base_instruction + actor_feedback
+        return preserve_prefix + base_instruction + actor_feedback
 
-    return base_instruction
+    return preserve_prefix + base_instruction
 
 
 def degrade_validation_outcome(

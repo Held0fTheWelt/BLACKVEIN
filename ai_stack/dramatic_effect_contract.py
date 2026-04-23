@@ -125,6 +125,10 @@ class DramaticEffectEvaluationContext(BaseModel):
     primary_character_mind: dict[str, Any] | None = None
     scene_plan_record: dict[str, Any] | None = None
     prior_continuity_impacts: list[dict[str, Any]] = Field(default_factory=list)
+    actor_lane_summary: dict[str, Any] | None = Field(
+        default=None,
+        description="Actor-lane health snapshot: {spoken_line_count, action_line_count, initiative_event_count, actor_lane_status}"
+    )
 
     @field_validator("semantic_move_record", "social_state_record", "primary_character_mind", "scene_plan_record", mode="before")
     @classmethod

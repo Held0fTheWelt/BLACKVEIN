@@ -543,14 +543,24 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
     if not isinstance(prior_social_summary, dict):
         prior_social_summary = {}
 
-    add_line(
-        "actor_precedents",
-        "prior_planner_truth",
+    actor_prec_tokens: list[Any] = [
         prior_planner.get("primary_responder_id"),
         prior_planner.get("responder_id"),
         prior_planner.get("secondary_responder_ids"),
         prior_planner.get("responder_scope"),
         prior_planner.get("last_actor_outcome_summary"),
+        prior_planner.get("realized_secondary_responder_ids"),
+        prior_planner.get("interruption_actor_id"),
+    ]
+    spoken_summaries = prior_planner.get("spoken_actor_summaries")
+    if isinstance(spoken_summaries, list):
+        for summary in spoken_summaries:
+            if isinstance(summary, dict):
+                actor_prec_tokens.append(f"spoke:{summary.get('actor_id')}")
+    add_line(
+        "actor_precedents",
+        "prior_planner_truth",
+        *actor_prec_tokens,
     )
     add_line(
         "responder_precedents",
@@ -570,6 +580,7 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
         prior_planner.get("social_outcome"),
         prior_planner.get("dramatic_direction"),
         prior_planner.get("initiative_summary"),
+        prior_planner.get("social_pressure_shift"),
     )
 
     prior_dramatic = state.get("prior_dramatic_signature")
@@ -605,6 +616,7 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
         prior_social_summary.get("responder_asymmetry_code"),
         prior_planner.get("continuity_impacts"),
         state.get("prior_continuity_impacts"),
+        prior_planner.get("carry_forward_tension_notes"),
     )
 
     prior_thread = state.get("prior_narrative_thread_state")
@@ -1895,6 +1907,7 @@ class RuntimeTurnGraphExecutor:
         generation: dict[str, Any],
         feedback_codes: list[str],
         attempt_index: int,
+        preserve_actor_lanes: bool = False,
     ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
         routing = state.get("routing") if isinstance(state.get("routing"), dict) else {}
         selected_mid = str(routing.get("selected_model") or "").strip()
@@ -1923,7 +1936,7 @@ class RuntimeTurnGraphExecutor:
             timeout_seconds=float(getattr(spec, "timeout_seconds", state.get("selected_timeout", 10.0)) or 10.0),
             prior_output=str(generation.get("content") or generation.get("model_raw_text") or ""),
             feedback_codes=list(feedback_codes),
-            rewrite_instruction=build_rewrite_instruction(list(feedback_codes)),
+            rewrite_instruction=build_rewrite_instruction(list(feedback_codes), preserve_actor_lanes=preserve_actor_lanes),
             model_name=str(provider_model).strip() if provider_model else None,
             dramatic_generation_packet=state.get("dramatic_generation_packet")
             if isinstance(state.get("dramatic_generation_packet"), dict)
@@ -2074,6 +2087,14 @@ class RuntimeTurnGraphExecutor:
             current_proposed: list[dict[str, Any]],
         ) -> dict[str, Any]:
             narr = extract_proposed_narrative_text(current_proposed)
+            meta = current_generation.get("metadata") if isinstance(current_generation.get("metadata"), dict) else {}
+            structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else {}
+            actor_lane_sum = {
+                "spoken_line_count": len(structured.get("spoken_lines") or []),
+                "action_line_count": len(structured.get("action_lines") or []),
+                "initiative_event_count": len(structured.get("initiative_events") or []),
+                "actor_lane_status": "not_evaluated",
+            }
             eval_ctx = build_evaluation_context_from_runtime_state(
                 module_id=str(state.get("module_id") or ""),
                 proposed_narrative=narr,
@@ -2092,12 +2113,14 @@ class RuntimeTurnGraphExecutor:
                 selected_responder_set=list(state.get("selected_responder_set") or [])
                 if isinstance(state.get("selected_responder_set"), list)
                 else [],
+                actor_lane_summary=actor_lane_sum,
             )
             return run_validation_seam(
                 module_id=state.get("module_id") or "",
                 proposed_state_effects=current_proposed,
                 generation=current_generation if isinstance(current_generation, dict) else {},
                 evaluation_context=eval_ctx,
+                actor_lane_summary=actor_lane_sum,
             )
 
         outcome = _run_validation(generation, proposed)
@@ -2114,6 +2137,7 @@ class RuntimeTurnGraphExecutor:
                 generation=generation,
                 proposed_state_effects=proposed,
                 allow_degraded_commit_after_retries=bool(self.allow_degraded_commit_after_retries),
+                actor_lane_validation=actor_lane_validation,
             )
             if not decision.should_retry:
                 if decision.allow_degraded_commit:
@@ -2124,6 +2148,7 @@ class RuntimeTurnGraphExecutor:
                 generation,
                 decision.feedback_codes,
                 attempt_index,
+                preserve_actor_lanes=decision.preserve_actor_lanes,
             )
             self_correction_attempts.append(attempt_record)
             outcome = _run_validation(generation, proposed)
