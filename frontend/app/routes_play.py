@@ -30,6 +30,185 @@ OPERATOR_SESSION_JSON_MAX = 120_000
 _QUALITY_CLASS_VALUES = {"healthy", "weak_but_legal", "degraded", "failed"}
 _DEGRADED_QUALITY_CLASSES = {"degraded", "failed"}
 
+# Flask session key: deep diagnostics strip for play shell (Phase B).
+PLAY_SHELL_DIAGNOSTICS_SESSION_KEY = "play_shell_diagnostics_deep"
+
+# Whitelist: only these logical dramatic-context keys may surface in the player shell.
+# Values are taken from ``dramatic_context_summary`` (story-window shape) plus a few
+# safe fallbacks from ``authority_summary`` — never raw nested blobs or tool payloads.
+_DRAMATIC_CONTEXT_DISPLAY_SPECS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("scene_function", "Scene", ("scene_function", "selected_scene_function")),
+    ("pacing_mode", "Pacing", ("pacing_mode",)),
+    ("silence_mode", "Silence", ("silence_mode",)),
+    ("retrieval_route", "Retrieval route", ("retrieval_route",)),
+    ("retrieval_status", "Retrieval status", ("retrieval_status",)),
+    ("thread_pressure_level", "Thread pressure", ("thread_pressure_level",)),
+    ("social_continuity_status", "Social continuity", ("social_continuity_status",)),
+    ("continuity_classes", "Continuity", ("continuity_classes",)),
+    ("beat_id", "Beat", ("beat_id",)),
+)
+
+
+def _play_shell_diagnostics_deep_from_session() -> bool:
+    return bool(session.get(PLAY_SHELL_DIAGNOSTICS_SESSION_KEY))
+
+
+def _sync_play_shell_diagnostics_from_request() -> None:
+    raw = (request.args.get("diagnostics") or "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        session[PLAY_SHELL_DIAGNOSTICS_SESSION_KEY] = True
+    elif raw in {"0", "false", "no", "off"}:
+        session[PLAY_SHELL_DIAGNOSTICS_SESSION_KEY] = False
+
+
+def _textish(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, (list, tuple)):
+        parts = [_textish(v).strip() for v in value if _textish(v).strip()]
+        return ", ".join(parts[:12])
+    return str(value).strip()
+
+
+def _dramatic_context_whitelist_value(
+    logical_key: str,
+    dramatic_context: dict[str, Any],
+    authority_summary: dict[str, Any] | None,
+) -> str:
+    dc = dramatic_context
+    auth = authority_summary if isinstance(authority_summary, dict) else {}
+    if logical_key == "scene_function":
+        return _textish(dc.get("scene_function") or dc.get("selected_scene_function"))
+    if logical_key == "social_continuity_status":
+        return _textish(dc.get("social_continuity_status") or auth.get("social_continuity_status"))
+    if logical_key == "continuity_classes":
+        return _textish(dc.get("continuity_classes"))
+    if logical_key not in dc:
+        return ""
+    raw = dc.get(logical_key)
+    if raw is None or raw == "" or raw == [] or raw == {}:
+        return ""
+    return _textish(raw)
+
+
+def _build_display_dramatic_context_items(
+    dramatic_context: dict[str, Any],
+    authority_summary: dict[str, Any] | None,
+) -> list[dict[str, str]]:
+    """Bounded whitelist items for diagnostics (no recursive walk, no raw JSON dumps)."""
+    dc = dramatic_context if isinstance(dramatic_context, dict) else {}
+    items: list[dict[str, str]] = []
+    for logical_key, label, _aliases in _DRAMATIC_CONTEXT_DISPLAY_SPECS:
+        value = _dramatic_context_whitelist_value(logical_key, dc, authority_summary)
+        if value:
+            items.append({"key": logical_key, "label": label, "value": value})
+    return items
+
+
+def _build_display_dramatic_context_compact(items: list[dict[str, str]], *, max_len: int = 200) -> str:
+    if not items:
+        return ""
+    parts = [f"{row['label']}: {row['value']}" for row in items]
+    text = " · ".join(parts)
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1].rstrip() + "…"
+
+
+def _build_display_passivity_line(factors: list[str]) -> str:
+    clean = [str(f).strip() for f in factors if str(f).strip()]
+    if not clean:
+        return ""
+    return "Passivity: " + ", ".join(clean[:5])
+
+
+def _build_display_vitality_line(vitality_summary: dict[str, Any]) -> str:
+    if not vitality_summary:
+        return ""
+    bits: list[str] = []
+    if vitality_summary.get("response_present"):
+        bits.append("response")
+    if vitality_summary.get("initiative_present"):
+        bits.append("initiative")
+    if vitality_summary.get("multi_actor_realized"):
+        bits.append("multi-actor")
+    if vitality_summary.get("sparse_input_recovery_applied"):
+        bits.append("sparse-recovery")
+    g = int(vitality_summary.get("rendered_spoken_line_count") or 0)
+    a = int(vitality_summary.get("rendered_action_line_count") or 0)
+    if g or a:
+        bits.append(f"lines {g}s/{a}a")
+    if not bits:
+        return ""
+    return "Vitality: " + ", ".join(bits)
+
+
+def _build_display_actor_turn_line(entry: dict[str, Any]) -> str:
+    ats = entry.get("actor_turn_summary")
+    if not isinstance(ats, dict):
+        return ""
+    parts: list[str] = []
+    lo = ats.get("last_actor_outcome_summary")
+    if lo:
+        parts.append(str(lo).strip())
+    init = ats.get("initiative_summary") if isinstance(ats.get("initiative_summary"), dict) else {}
+    ec = int(init.get("event_count") or 0) if init else 0
+    if ec:
+        parts.append(f"initiative_events={ec}")
+    text = " · ".join(parts) if parts else ""
+    return ("Turn outcome: " + text) if text else ""
+
+
+def _build_display_render_support_warning(entry: dict[str, Any], vitality: dict[str, Any]) -> str:
+    """Player shell: only explicit warn strings (no generic render_support dump)."""
+    messages: list[str] = []
+    rs = entry.get("render_support")
+    if isinstance(rs, dict):
+        floor = rs.get("vitality_floor_warning")
+        if floor:
+            messages.append(str(floor).strip())
+        div = rs.get("reaction_order_divergence")
+        if div:
+            messages.append(str(div).strip())
+    div_v = vitality.get("reaction_order_divergence") if isinstance(vitality, dict) else None
+    if div_v and str(div_v).strip() and str(div_v).strip() not in messages:
+        messages.append(str(div_v).strip())
+    return " · ".join(messages) if messages else ""
+
+
+def _runtime_entry_presentation_fields(
+    entry: dict[str, Any],
+    *,
+    dramatic_context: dict[str, Any],
+    vitality_summary: dict[str, Any],
+    passivity_factors: list[str],
+    role: str,
+    diagnostics_deep: bool,
+) -> dict[str, Any]:
+    if role != "runtime":
+        return {
+            "display_passivity_line": "",
+            "display_vitality_line": "",
+            "display_actor_turn_line": "",
+            "display_render_support_warning": "",
+            "display_dramatic_context_compact": "",
+            "display_dramatic_context_items": [],
+        }
+    auth = entry.get("authority_summary") if isinstance(entry.get("authority_summary"), dict) else {}
+    vitality = _extract_entry_vitality(entry)
+    items = _build_display_dramatic_context_items(dramatic_context, auth)
+    compact = _build_display_dramatic_context_compact(items)
+    return {
+        "display_passivity_line": _build_display_passivity_line(passivity_factors),
+        "display_vitality_line": _build_display_vitality_line(vitality_summary),
+        "display_actor_turn_line": _build_display_actor_turn_line(entry),
+        "display_render_support_warning": _build_display_render_support_warning(entry, vitality),
+        "display_dramatic_context_compact": compact,
+        "display_dramatic_context_items": list(items) if diagnostics_deep else [],
+    }
+
 
 def _coerce_shell_lines(value: Any) -> list[str]:
     if isinstance(value, str):
@@ -170,6 +349,7 @@ def _normalize_story_entries_for_shell(
     story_entries: list[dict[str, Any]],
     *,
     shell_state_view: dict[str, Any] | None = None,
+    diagnostics_deep: bool = False,
 ) -> list[dict[str, Any]]:
     if not isinstance(story_entries, list):
         return []
@@ -235,6 +415,14 @@ def _normalize_story_entries_for_shell(
             "validated_action_line_count": int(vitality.get("validated_action_line_count") or 0),
             "rendered_action_line_count": int(vitality.get("rendered_action_line_count") or 0),
         }
+        presentation = _runtime_entry_presentation_fields(
+            entry,
+            dramatic_context=dramatic_context,
+            vitality_summary=vitality_summary,
+            passivity_factors=passivity_factors,
+            role=role,
+            diagnostics_deep=diagnostics_deep,
+        )
         normalized.append(
             {
                 **entry,
@@ -257,6 +445,7 @@ def _normalize_story_entries_for_shell(
                 "vitality_summary": vitality_summary,
                 "why_turn_felt_passive": passivity_factors,
                 "primary_passivity_factors": passivity_factors[:3],
+                **presentation,
             }
         )
     return normalized
@@ -291,9 +480,12 @@ def _runtime_status_view_from_story_entries(
             "rising_degraded_posture": False,
             "degraded": False,
             "degraded_reasons": [],
+            "degradation_summary": "none",
             "latest_turn_number": None,
             "latest_vitality_summary": {},
             "latest_why_turn_felt_passive": [],
+            "latest_display_passivity_line": "",
+            "latest_display_vitality_line": "",
         }
 
     aggregated_signals: list[str] = []
@@ -313,9 +505,12 @@ def _runtime_status_view_from_story_entries(
         "rising_degraded_posture": _compute_rising_degraded_posture(runtime_entries),
         "degraded": bool(latest_runtime.get("degraded")),
         "degraded_reasons": list(latest_runtime.get("degraded_reasons") or []),
+        "degradation_summary": str(latest_runtime.get("degradation_summary") or "").strip() or "none",
         "latest_turn_number": latest_runtime.get("turn_number"),
         "latest_vitality_summary": latest_runtime.get("vitality_summary") if isinstance(latest_runtime.get("vitality_summary"), dict) else {},
         "latest_why_turn_felt_passive": list(latest_runtime.get("why_turn_felt_passive") or []),
+        "latest_display_passivity_line": str(latest_runtime.get("display_passivity_line") or "").strip(),
+        "latest_display_vitality_line": str(latest_runtime.get("display_vitality_line") or "").strip(),
     }
 
 
@@ -618,9 +813,16 @@ def play_shell(session_id: str):
         error_payload = response.json() if response.content else {}
         flash(error_payload.get("error", "Could not resume player session."), "error")
 
+    _sync_play_shell_diagnostics_from_request()
+    diagnostics_deep = _play_shell_diagnostics_deep_from_session()
+
     raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
-    story_entries = _normalize_story_entries_for_shell(raw_story_entries, shell_state_view=shell_state_view)
+    story_entries = _normalize_story_entries_for_shell(
+        raw_story_entries,
+        shell_state_view=shell_state_view,
+        diagnostics_deep=diagnostics_deep,
+    )
     runtime_status_view = _runtime_status_view_from_story_entries(
         story_entries,
         shell_state_view=shell_state_view,
@@ -633,6 +835,7 @@ def play_shell(session_id: str):
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
+            "show_play_diagnostics": diagnostics_deep,
         }
     )
     return render_template(
@@ -646,6 +849,7 @@ def play_shell(session_id: str):
         runtime_status_view=runtime_status_view,
         governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
         play_bootstrap_json=play_bootstrap_json,
+        show_play_diagnostics=diagnostics_deep,
     )
 
 
@@ -661,10 +865,17 @@ def play_execute(session_id: str):
         flash(err, "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     assert payload is not None
+    _sync_play_shell_diagnostics_from_request()
+    diagnostics_deep = _play_shell_diagnostics_deep_from_session()
+
     interpreted = (((payload.get("turn") or {}).get("interpreted_input") or {}).get("kind") or "unknown").strip()
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
     raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
-    story_entries = _normalize_story_entries_for_shell(raw_story_entries, shell_state_view=shell_state_view)
+    story_entries = _normalize_story_entries_for_shell(
+        raw_story_entries,
+        shell_state_view=shell_state_view,
+        diagnostics_deep=diagnostics_deep,
+    )
     runtime_status_view = _runtime_status_view_from_story_entries(
         story_entries,
         shell_state_view=shell_state_view,
@@ -678,6 +889,7 @@ def play_execute(session_id: str):
                 "story_window": payload.get("story_window") if isinstance(payload.get("story_window"), dict) else {},
                 "shell_state_view": shell_state_view,
                 "runtime_status_view": runtime_status_view,
+                "show_play_diagnostics": diagnostics_deep,
             }
         ), 200
     play_bootstrap_json = json.dumps(
@@ -688,6 +900,7 @@ def play_execute(session_id: str):
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
+            "show_play_diagnostics": diagnostics_deep,
         }
     )
     return render_template(
@@ -701,4 +914,5 @@ def play_execute(session_id: str):
         runtime_status_view=runtime_status_view,
         governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
         play_bootstrap_json=play_bootstrap_json,
+        show_play_diagnostics=diagnostics_deep,
     )

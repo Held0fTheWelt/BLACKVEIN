@@ -2,6 +2,8 @@
   const shell = document.querySelector(".play-shell");
   if (!shell) return;
 
+  var showPlayDiagnostics = false;
+
   function escapeHtml(value) {
     const d = document.createElement("div");
     d.textContent = value == null ? "" : String(value);
@@ -43,6 +45,32 @@
     normalized.degraded = Boolean(normalized.degraded);
     normalized.responder_id = String(normalized.responder_id || "").trim();
     normalized.validation_status = String(normalized.validation_status || "").trim();
+    normalized.quality_class = String(normalized.quality_class || "").trim();
+    normalized.degradation_summary = String(normalized.degradation_summary || "").trim();
+
+    normalized.display_passivity_line = String(normalized.display_passivity_line || "").trim();
+    normalized.display_vitality_line = String(normalized.display_vitality_line || "").trim();
+    normalized.display_actor_turn_line = String(normalized.display_actor_turn_line || "").trim();
+    normalized.display_render_support_warning = String(normalized.display_render_support_warning || "").trim();
+    normalized.display_dramatic_context_compact = String(normalized.display_dramatic_context_compact || "").trim();
+    const ditems = normalized.display_dramatic_context_items;
+    normalized.display_dramatic_context_items = Array.isArray(ditems)
+      ? ditems
+          .filter(function (row) {
+            return row && typeof row === "object";
+          })
+          .map(function (row) {
+            return {
+              key: String(row.key || "").trim(),
+              label: String(row.label || "").trim(),
+              value: String(row.value || "").trim(),
+            };
+          })
+          .filter(function (row) {
+            return row.label && row.value;
+          })
+      : [];
+
     return normalized;
   }
 
@@ -52,6 +80,43 @@
       "No authored opening was returned by the story runtime. The player session is not ready for meaningful play." +
       "</p>"
     );
+  }
+
+  function runtimeDiagnosticsBlockHtml(entry, diagDeep) {
+    if (entry.role !== "runtime") return "";
+    let block = "";
+    if (entry.display_render_support_warning) {
+      block +=
+        '<p class="play-runtime-warn">' + escapeHtml(entry.display_render_support_warning) + "</p>";
+    }
+    if (entry.display_passivity_line) {
+      block +=
+        '<p class="runtime-meta play-runtime-diagnostics__line">' + escapeHtml(entry.display_passivity_line) + "</p>";
+    }
+    if (entry.display_vitality_line) {
+      block +=
+        '<p class="runtime-meta play-runtime-diagnostics__line">' + escapeHtml(entry.display_vitality_line) + "</p>";
+    }
+    if (entry.display_actor_turn_line) {
+      block +=
+        '<p class="runtime-meta play-runtime-diagnostics__line">' + escapeHtml(entry.display_actor_turn_line) + "</p>";
+    }
+    if (entry.display_dramatic_context_compact) {
+      block +=
+        '<p class="runtime-meta play-runtime-diagnostics__line">' +
+        escapeHtml(entry.display_dramatic_context_compact) +
+        "</p>";
+    }
+    if (diagDeep && entry.display_dramatic_context_items.length) {
+      block += '<details class="play-runtime-diagnostics__details">';
+      block += '<summary class="runtime-meta">Dramatic context (diagnostics)</summary>';
+      block += '<dl class="play-runtime-diagnostics__dl">';
+      entry.display_dramatic_context_items.forEach(function (row) {
+        block += "<dt>" + escapeHtml(row.label) + "</dt><dd>" + escapeHtml(row.value) + "</dd>";
+      });
+      block += "</dl></details>";
+    }
+    return block;
   }
 
   function entryHtml(rawEntry) {
@@ -94,6 +159,12 @@
     if (entry.role === "runtime" && entry.responder_id) {
       html += '<p class="runtime-meta">Responder <code>' + escapeHtml(entry.responder_id) + "</code></p>";
     }
+    if (entry.role === "runtime") {
+      const sigs = Array.isArray(entry.degradation_signals) ? entry.degradation_signals : [];
+      const sigText = sigs.length ? " · signals: " + escapeHtml(sigs.join(", ")) : "";
+      html += '<p class="runtime-meta">Quality <code>' + escapeHtml(entry.quality_class || "unknown") + "</code>" + sigText + "</p>";
+      html += runtimeDiagnosticsBlockHtml(entry, showPlayDiagnostics);
+    }
     if (entry.role === "runtime" && entry.degraded) {
       const reason = entry.degraded_reasons.length ? ": " + escapeHtml(entry.degraded_reasons.join(", ")) : "";
       html += '<p class="play-turn-warning">Degraded runtime path' + reason + "</p>";
@@ -103,20 +174,29 @@
   }
 
   function summarizeRuntimeStatus(entries, fallbackStatus) {
-    const status = {};
-    if (fallbackStatus && typeof fallbackStatus === "object") {
-      status.selected_responder_id = String(fallbackStatus.selected_responder_id || "").trim();
-      status.validation_status = String(fallbackStatus.validation_status || "").trim();
-      status.degraded = Boolean(fallbackStatus.degraded);
-      status.degraded_reasons = Array.isArray(fallbackStatus.degraded_reasons)
-        ? fallbackStatus.degraded_reasons.map(normalizeLine).filter(Boolean)
-        : [];
-    } else {
-      status.selected_responder_id = "";
-      status.validation_status = "";
-      status.degraded = false;
-      status.degraded_reasons = [];
-    }
+    const base = {
+      contract: "play_shell_runtime_status.v1",
+      selected_responder_id: "",
+      validation_status: "",
+      quality_class: "healthy",
+      degraded: false,
+      degraded_reasons: [],
+      degradation_summary: "none",
+      latest_display_passivity_line: "",
+      latest_display_vitality_line: "",
+    };
+    const status = Object.assign({}, base, fallbackStatus && typeof fallbackStatus === "object" ? fallbackStatus : {});
+
+    status.selected_responder_id = String(status.selected_responder_id || "").trim();
+    status.validation_status = String(status.validation_status || "").trim();
+    status.quality_class = String(status.quality_class || "healthy").trim() || "healthy";
+    status.degraded = Boolean(status.degraded);
+    status.degraded_reasons = Array.isArray(status.degraded_reasons)
+      ? status.degraded_reasons.map(normalizeLine).filter(Boolean)
+      : [];
+    status.degradation_summary = String(status.degradation_summary || "").trim() || "none";
+    status.latest_display_passivity_line = String(status.latest_display_passivity_line || "").trim();
+    status.latest_display_vitality_line = String(status.latest_display_vitality_line || "").trim();
 
     const runtimeEntries = (entries || []).filter(function (entry) {
       return normalizeEntry(entry).role === "runtime";
@@ -125,34 +205,66 @@
       const latest = normalizeEntry(runtimeEntries[runtimeEntries.length - 1]);
       if (latest.responder_id) status.selected_responder_id = latest.responder_id;
       if (latest.validation_status) status.validation_status = latest.validation_status;
-      if (latest.degraded) {
-        status.degraded = true;
-      }
-      if (latest.degraded_reasons.length) {
-        status.degraded_reasons = latest.degraded_reasons;
-      }
+      if (latest.quality_class) status.quality_class = latest.quality_class;
+      if (latest.degraded) status.degraded = true;
+      if (latest.degraded_reasons.length) status.degraded_reasons = latest.degraded_reasons;
+      if (latest.degradation_summary) status.degradation_summary = latest.degradation_summary;
+      if (latest.display_passivity_line) status.latest_display_passivity_line = latest.display_passivity_line;
+      if (latest.display_vitality_line) status.latest_display_vitality_line = latest.display_vitality_line;
     }
     return status;
   }
 
+  function setElementHidden(el, hidden) {
+    if (!el) return;
+    if (hidden) {
+      el.setAttribute("hidden", "hidden");
+    } else {
+      el.removeAttribute("hidden");
+    }
+  }
+
   function renderRuntimeStatus(status) {
+    const s = status || {};
     const responderEl = document.getElementById("runtime-selected-responder");
     if (responderEl) {
       responderEl.innerHTML =
-        "Responder: <code>" + escapeHtml((status && status.selected_responder_id) || "n/a") + "</code>";
+        "Responder: <code>" + escapeHtml(s.selected_responder_id || "n/a") + "</code>";
     }
     const validationEl = document.getElementById("runtime-validation-status");
     if (validationEl) {
       validationEl.innerHTML =
-        "Validation: <code>" + escapeHtml((status && status.validation_status) || "unknown") + "</code>";
+        "Validation: <code>" + escapeHtml(s.validation_status || "unknown") + "</code>";
+    }
+    const qualityEl = document.getElementById("runtime-quality-class");
+    if (qualityEl) {
+      qualityEl.innerHTML = "Quality: <code>" + escapeHtml(s.quality_class || "unknown") + "</code>";
+    }
+    const degSummaryEl = document.getElementById("runtime-degradation-summary");
+    if (degSummaryEl) {
+      const ds = String(s.degradation_summary || "").trim() || "none";
+      degSummaryEl.innerHTML = "Degradation summary: <code>" + escapeHtml(ds) + "</code>";
+      setElementHidden(degSummaryEl, !ds || ds === "none");
+    }
+    const passEl = document.getElementById("runtime-passivity-line");
+    if (passEl) {
+      const t = String(s.latest_display_passivity_line || "").trim();
+      passEl.textContent = t;
+      setElementHidden(passEl, !t);
+    }
+    const vitEl = document.getElementById("runtime-vitality-line");
+    if (vitEl) {
+      const t = String(s.latest_display_vitality_line || "").trim();
+      vitEl.textContent = t;
+      setElementHidden(vitEl, !t);
     }
     const bannerEl = document.getElementById("runtime-degraded-banner");
     if (bannerEl) {
-      const degraded = Boolean(status && status.degraded);
-      const reasons = Array.isArray(status && status.degraded_reasons) ? status.degraded_reasons : [];
+      const degraded = Boolean(s.degraded);
+      const reasons = Array.isArray(s.degraded_reasons) ? s.degraded_reasons : [];
       const reasonText = reasons.length ? " \u00b7 " + reasons.join(", ") : "";
       bannerEl.textContent = "Degraded runtime path" + reasonText;
-      bannerEl.hidden = !degraded;
+      setElementHidden(bannerEl, !degraded);
     }
   }
 
@@ -202,6 +314,15 @@
     return null;
   }
 
+  function extractShowDiagnosticsFromPayload(payload) {
+    if (!payload || typeof payload !== "object") return null;
+    if (typeof payload.show_play_diagnostics === "boolean") return payload.show_play_diagnostics;
+    if (payload.data && typeof payload.data.show_play_diagnostics === "boolean") {
+      return payload.data.show_play_diagnostics;
+    }
+    return null;
+  }
+
   function parsePayload(raw) {
     if (raw == null) return null;
     if (typeof raw === "string") {
@@ -215,9 +336,20 @@
     return null;
   }
 
+  function applyShowDiagnosticsFromPayload(payload) {
+    const v = extractShowDiagnosticsFromPayload(payload);
+    if (typeof v === "boolean") {
+      showPlayDiagnostics = v;
+      if (shell) {
+        shell.setAttribute("data-show-play-diagnostics", v ? "true" : "false");
+      }
+    }
+  }
+
   function applyRuntimePayload(rawPayload) {
     const payload = parsePayload(rawPayload);
     if (!payload) return false;
+    applyShowDiagnosticsFromPayload(payload);
     const entries = extractEntriesFromPayload(payload);
     const runtimeStatus = extractRuntimeStatusFromPayload(payload);
     if (!entries && !runtimeStatus) return false;
@@ -245,6 +377,10 @@
   const bootstrapEl = document.getElementById("play-shell-bootstrap");
   if (bootstrapEl) {
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
+    applyShowDiagnosticsFromPayload(bootstrapPayload);
+    if (extractShowDiagnosticsFromPayload(bootstrapPayload) === null && shell) {
+      showPlayDiagnostics = shell.getAttribute("data-show-play-diagnostics") === "true";
+    }
     const initialEntries = extractEntriesFromPayload(bootstrapPayload) || [];
     const initialStatus = extractRuntimeStatusFromPayload(bootstrapPayload);
     renderRuntimeStatus(summarizeRuntimeStatus(initialEntries, initialStatus || undefined));
@@ -279,6 +415,12 @@
         if (!res.ok || !res.data.ok) {
           if (executeStatus) executeStatus.textContent = (res.data && res.data.error) || "Turn failed.";
           return;
+        }
+        if (typeof res.data.show_play_diagnostics === "boolean") {
+          showPlayDiagnostics = res.data.show_play_diagnostics;
+          if (shell) {
+            shell.setAttribute("data-show-play-diagnostics", showPlayDiagnostics ? "true" : "false");
+          }
         }
         renderEntries(res.data.story_entries || [], res.data.runtime_status_view || undefined);
         ta.value = "";

@@ -639,6 +639,10 @@ def test_routes_play_normalizes_story_entries_and_runtime_status_view():
     assert status["latest_turn_number"] == 3
     assert isinstance(status["latest_vitality_summary"], dict)
     assert isinstance(status["latest_why_turn_felt_passive"], list)
+    assert "display_passivity_line" in normalized[0]
+    assert "display_vitality_line" in normalized[0]
+    assert status["degradation_summary"] == "fallback_used"
+    assert status["latest_display_passivity_line"]
 
 
 def test_routes_play_weak_but_legal_is_not_marked_degraded():
@@ -878,3 +882,139 @@ def test_routes_play_runtime_status_reports_rising_degraded_posture_and_row_vita
     assert status["rising_degraded_posture"] is True
     assert "fallback_used" in status["aggregated_degradation_signals"]
     assert isinstance(status["latest_vitality_summary"], dict)
+
+
+def test_routes_play_dramatic_whitelist_ignores_non_whitelisted_keys():
+    normalized = routes_play._normalize_story_entries_for_shell(
+        [
+            {
+                "entry_id": "r1",
+                "role": "runtime",
+                "turn_number": 1,
+                "text": "Narration.",
+                "authority_summary": {
+                    "validation_status": "approved",
+                    "social_continuity_status": "tension_escalates",
+                },
+                "dramatic_context_summary": {
+                    "selected_scene_function": "escalate_conflict",
+                    "pacing_mode": "compressed",
+                    "thread_pressure_level": 2,
+                    "continuity_classes": ["blame_pressure"],
+                    "secret_debug_blob": {"nested": "must_not_surface"},
+                    "raw_retrieval_internals": ["ranking", "notes"],
+                },
+            }
+        ],
+        diagnostics_deep=True,
+    )
+    row = normalized[0]
+    keys = {item["key"] for item in row["display_dramatic_context_items"]}
+    assert "secret_debug_blob" not in keys
+    assert "raw_retrieval_internals" not in keys
+    assert "scene_function" in keys
+    assert "pacing_mode" in keys
+    compact = row["display_dramatic_context_compact"]
+    assert "escalate_conflict" in compact or "Scene" in compact
+    assert "must_not_surface" not in compact
+
+
+def test_routes_play_diagnostics_deep_toggle_controls_context_items():
+    shallow = routes_play._normalize_story_entries_for_shell(
+        [
+            {
+                "role": "runtime",
+                "text": "x",
+                "dramatic_context_summary": {"pacing_mode": "thin_edge"},
+                "authority_summary": {"validation_status": "approved"},
+            }
+        ],
+        diagnostics_deep=False,
+    )
+    deep = routes_play._normalize_story_entries_for_shell(
+        [
+            {
+                "role": "runtime",
+                "text": "x",
+                "dramatic_context_summary": {"pacing_mode": "thin_edge"},
+                "authority_summary": {"validation_status": "approved"},
+            }
+        ],
+        diagnostics_deep=True,
+    )
+    assert shallow[0]["display_dramatic_context_items"] == []
+    assert len(deep[0]["display_dramatic_context_items"]) >= 1
+
+
+def test_play_shell_diagnostics_query_sets_session_and_surfaces_details(client, monkeypatch):
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/game/player-sessions/sdiag":
+            return FakeResponse(
+                payload={
+                    "contract": "game_player_session_v1",
+                    "runtime_session_id": "story-1",
+                    "runtime_session_ready": True,
+                    "can_execute": True,
+                    "story_entries": [
+                        {
+                            "entry_id": "o1",
+                            "role": "runtime",
+                            "turn_number": 0,
+                            "text": "Open.",
+                            "authority_summary": {"validation_status": "approved"},
+                            "dramatic_context_summary": {
+                                "selected_scene_function": "probe_motive",
+                                "pacing_mode": "standard",
+                            },
+                        }
+                    ],
+                    "shell_state_view": {"module_id": "god_of_carnage", "current_scene_id": "scene_1", "turn_counter": 0},
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        sess["current_user"] = {"username": "u1"}
+    page = client.get("/play/sdiag?diagnostics=1")
+    assert page.status_code == 200
+    assert b"Dramatic context (diagnostics)" in page.data
+    with client.session_transaction() as sess:
+        assert sess.get(routes_play.PLAY_SHELL_DIAGNOSTICS_SESSION_KEY) is True
+
+
+def test_play_execute_json_includes_show_play_diagnostics_flag(client, monkeypatch):
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/game/player-sessions/sdiag2/turns" and method == "POST":
+            return FakeResponse(
+                payload={
+                    "contract": "game_player_session_v1",
+                    "story_entries": [
+                        {
+                            "role": "runtime",
+                            "turn_number": 0,
+                            "text": "Hello.",
+                            "authority_summary": {"validation_status": "approved"},
+                        }
+                    ],
+                    "shell_state_view": {},
+                    "turn": {"interpreted_input": {"kind": "speech"}},
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        sess[routes_play.PLAY_SHELL_DIAGNOSTICS_SESSION_KEY] = True
+    r = client.post(
+        "/play/sdiag2/execute",
+        data=json.dumps({"player_input": "hi"}),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["show_play_diagnostics"] is True
+    assert "runtime_status_view" in body
+    assert body["runtime_status_view"]["quality_class"] in {"healthy", "weak_but_legal", "degraded", "failed"}

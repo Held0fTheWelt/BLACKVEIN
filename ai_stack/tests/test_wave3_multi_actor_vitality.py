@@ -107,8 +107,8 @@ class TestW31ResponderSetStrengthening:
             "module_id": "god_of_carnage",
             "selected_scene_function": "escalate_conflict",
             "selected_responder_set": [
-                {"actor_id": "veronique_vallon", "role": "primary_responder"},
-                {"actor_id": "michel_longstreet", "role": "secondary_reactor"},
+                {"actor_id": "veronique_vallon", "role": "primary_responder", "preferred_reaction_order": 0},
+                {"actor_id": "michel_longstreet", "role": "secondary_reactor", "preferred_reaction_order": 1},
             ],
             "pacing_mode": "standard",
             "silence_brevity_decision": {},
@@ -120,6 +120,9 @@ class TestW31ResponderSetStrengthening:
         assert "secondary_responder_directive" in packet
         assert packet["secondary_responder_directive"] is not None
         assert "at least one" in packet["secondary_responder_directive"].lower()
+        assert packet.get("preferred_reaction_order_ids") == ["veronique_vallon", "michel_longstreet"]
+        assert packet.get("preferred_reaction_order_instruction")
+        assert "veronique_vallon" in packet["preferred_reaction_order_instruction"]
 
     def test_dramatic_packet_secondary_directive_absent_when_no_secondaries(self):
         """Verify secondary_responder_directive is None when only primary."""

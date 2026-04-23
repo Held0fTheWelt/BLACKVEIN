@@ -128,6 +128,28 @@ def _has_prior_tension(state: dict[str, Any]) -> bool:
     return bool(carry_forward or social_shift in {"escalated", "contested"})
 
 
+def _preferred_reaction_order_ids(responders: list[Any]) -> list[str]:
+    """Stable actor order from ``selected_responder_set`` using ``preferred_reaction_order``."""
+    scored: list[tuple[int, str]] = []
+    for row in responders:
+        if not isinstance(row, dict):
+            continue
+        actor_id = _clean_text(row.get("actor_id") or row.get("responder_id"))
+        if not actor_id:
+            continue
+        try:
+            seq = int(row.get("preferred_reaction_order"))
+        except (TypeError, ValueError):
+            seq = 999
+        scored.append((seq, actor_id))
+    scored.sort(key=lambda item: item[0])
+    ordered: list[str] = []
+    for _, actor_id in scored:
+        if actor_id not in ordered:
+            ordered.append(actor_id)
+    return ordered
+
+
 def _is_sparse_input(state: dict[str, Any]) -> bool:
     raw_input = _clean_text(state.get("raw_input"))
     if raw_input and (len(raw_input) <= 3 or len(raw_input.split()) <= 1):
@@ -291,6 +313,11 @@ def _build_vitality_telemetry_v1(
     initiative_present = initiative_preserved_count > 0
     multi_actor_realized = len(realized_actor_ids) >= 2
 
+    preferred_reaction_order_ids = _preferred_reaction_order_ids(responders)
+    reaction_order_divergence: str | None = None
+    if selected_secondary_responder_ids and response_present and not multi_actor_realized:
+        reaction_order_divergence = "secondary_responder_nominated_not_realized_in_output"
+
     sparse_input_detected = _is_sparse_input(state)
     sparse_input_recovery_applied = bool(
         sparse_input_detected
@@ -334,6 +361,8 @@ def _build_vitality_telemetry_v1(
         "initiative_present": initiative_present,
         "multi_actor_realized": multi_actor_realized,
         "sparse_input_recovery_applied": sparse_input_recovery_applied,
+        "preferred_reaction_order_ids": preferred_reaction_order_ids,
+        "reaction_order_divergence": reaction_order_divergence,
         # Optional diagnostic helper fields (non-required)
         "sparse_input_detected": sparse_input_detected,
         "generated_actor_ids": generated_actor_ids,

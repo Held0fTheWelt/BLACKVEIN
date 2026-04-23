@@ -1647,6 +1647,59 @@ body.dashboard { background: var(--void); }
     font-size: 0.9rem;
 }
 
+.play-runtime-diagnostics__line {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.play-runtime-diagnostics__chrome {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.play-runtime-warn {
+    margin: 0.45rem 0 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 180, 80, 0.55);
+    background: rgba(80, 50, 0, 0.35);
+    color: #ffe8c8;
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+
+.play-runtime-diagnostics__details {
+    margin: 0.45rem 0 0;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+}
+
+.play-runtime-diagnostics__details summary {
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.play-runtime-diagnostics__dl {
+    margin: 0.35rem 0 0;
+    padding-left: 0.5rem;
+    display: grid;
+    grid-template-columns: minmax(6rem, 10rem) 1fr;
+    gap: 0.2rem 0.65rem;
+}
+
+.play-runtime-diagnostics__dl dt {
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.play-runtime-diagnostics__dl dd {
+    margin: 0;
+    color: var(--text);
+}
+
 @keyframes playNarrationReveal {
     from {
         opacity: 0;

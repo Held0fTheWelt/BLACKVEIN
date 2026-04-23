@@ -12,8 +12,8 @@ def _base_state() -> dict:
         "trace_id": "trace-v1",
         "raw_input": "...",
         "selected_responder_set": [
-            {"actor_id": "veronique_vallon", "role": "primary_responder"},
-            {"actor_id": "michel_longstreet", "role": "secondary_reactor"},
+            {"actor_id": "veronique_vallon", "role": "primary_responder", "preferred_reaction_order": 0},
+            {"actor_id": "michel_longstreet", "role": "secondary_reactor", "preferred_reaction_order": 1},
         ],
         "responder_id": "veronique_vallon",
         "secondary_responder_ids": ["michel_longstreet"],
@@ -83,6 +83,8 @@ def test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_r
     assert "michel_longstreet" not in vitality["realized_actor_ids"]
     assert vitality["realized_secondary_responder_ids"] == []
     assert vitality["rendered_actor_ids"] == ["veronique_vallon"]
+    assert vitality["preferred_reaction_order_ids"] == ["veronique_vallon", "michel_longstreet"]
+    assert vitality["reaction_order_divergence"] == "secondary_responder_nominated_not_realized_in_output"
 
 
 def test_stage_counts_do_not_mix_and_quality_distinction_is_visible():

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Play Session{% endblock %}
 {% block content %}
-<div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}">
+<div class="play-shell" data-session-id="{{ session_id }}" data-runtime-session-id="{{ runtime_session_id or '' }}" data-show-play-diagnostics="{{ 'true' if show_play_diagnostics else 'false' }}">
   <section class="panel panel--compact play-shell-meta">
     <h1 class="play-shell-title">World of Shadows</h1>
     <p class="runtime-meta">
@@ -30,6 +30,15 @@
           <p id="runtime-quality-class" class="runtime-meta">
             Quality:
             <code>{{ runtime_status_view.quality_class or "unknown" }}</code>
+          </p>
+          <p id="runtime-degradation-summary" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.degradation_summary or runtime_status_view.degradation_summary == 'none' %}hidden{% endif %}>
+            Degradation summary: <code>{{ runtime_status_view.degradation_summary or "none" }}</code>
+          </p>
+          <p id="runtime-passivity-line" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.latest_display_passivity_line %}hidden{% endif %}>
+            {{ runtime_status_view.latest_display_passivity_line }}
+          </p>
+          <p id="runtime-vitality-line" class="runtime-meta play-runtime-diagnostics__chrome" {% if not runtime_status_view.latest_display_vitality_line %}hidden{% endif %}>
+            {{ runtime_status_view.latest_display_vitality_line }}
           </p>
           <p id="runtime-degraded-banner" class="play-runtime-banner play-runtime-banner--warn" {% if not runtime_status_view.degraded %}hidden{% endif %}>
             Degraded runtime path
@@ -87,6 +96,32 @@
                 · signals: {{ entry.degradation_signals | join(", ") }}
               {% endif %}
             </p>
+            {% if entry.display_render_support_warning %}
+            <p class="play-runtime-warn">{{ entry.display_render_support_warning }}</p>
+            {% endif %}
+            {% if entry.display_passivity_line %}
+            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_passivity_line }}</p>
+            {% endif %}
+            {% if entry.display_vitality_line %}
+            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_vitality_line }}</p>
+            {% endif %}
+            {% if entry.display_actor_turn_line %}
+            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_actor_turn_line }}</p>
+            {% endif %}
+            {% if entry.display_dramatic_context_compact %}
+            <p class="runtime-meta play-runtime-diagnostics__line">{{ entry.display_dramatic_context_compact }}</p>
+            {% endif %}
+            {% if show_play_diagnostics and entry.display_dramatic_context_items %}
+            <details class="play-runtime-diagnostics__details">
+              <summary class="runtime-meta">Dramatic context (diagnostics)</summary>
+              <dl class="play-runtime-diagnostics__dl">
+                {% for row in entry.display_dramatic_context_items %}
+                <dt>{{ row.label }}</dt>
+                <dd>{{ row.value }}</dd>
+                {% endfor %}
+              </dl>
+            </details>
+            {% endif %}
           {% endif %}
           {% if entry.role == "runtime" and entry.degraded %}
             <p class="play-turn-warning">

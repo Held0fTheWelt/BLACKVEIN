@@ -708,6 +708,27 @@ def _invoke_runtime_adapter_with_langchain(**kwargs: Any) -> Any:
     return invoke_runtime_adapter_with_langchain(**kwargs)
 
 
+def _preferred_reaction_order_ids_from_responders(responders: list[Any]) -> list[str]:
+    scored: list[tuple[int, str]] = []
+    for row in responders:
+        if not isinstance(row, dict):
+            continue
+        actor_id = str(row.get("actor_id") or row.get("responder_id") or "").strip()
+        if not actor_id:
+            continue
+        try:
+            seq = int(row.get("preferred_reaction_order"))
+        except (TypeError, ValueError):
+            seq = 999
+        scored.append((seq, actor_id))
+    scored.sort(key=lambda item: item[0])
+    ordered: list[str] = []
+    for _, aid in scored:
+        if aid not in ordered:
+            ordered.append(aid)
+    return ordered
+
+
 def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]:
     """Build the authoritative dramatic packet consumed by generation."""
     responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
@@ -718,6 +739,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         actor_id = str(row.get("actor_id") or row.get("responder_id") or "").strip()
         if actor_id and actor_id not in responder_ids:
             responder_ids.append(actor_id)
+    preferred_reaction_order_ids = _preferred_reaction_order_ids_from_responders(responders)
 
     minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
     compact_minds: list[dict[str, Any]] = []
@@ -759,6 +781,15 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "rank": row.get("rank"),
             }
         )
+    preferred_instruction = None
+    if len(preferred_reaction_order_ids) > 1:
+        order_txt = ", ".join(preferred_reaction_order_ids)
+        preferred_instruction = (
+            "Deliver visible actor beats in this reaction order when multiple responders are nominated: "
+            f"{order_txt}. Secondary and interruption slots should appear when nominated unless validation "
+            "constraints make that impossible."
+        )
+
     packet = {
         "contract": "dramatic_generation_packet.v1",
         "session_id": state.get("session_id"),
@@ -768,6 +799,8 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "selected_responder_set": responders,
         "primary_responder_id": responder_ids[0] if responder_ids else None,
         "secondary_responder_ids": responder_ids[1:] if len(responder_ids) > 1 else [],
+        "preferred_reaction_order_ids": preferred_reaction_order_ids,
+        "preferred_reaction_order_instruction": preferred_instruction,
         "secondary_responder_directive": (
             "When secondary responders are nominated in a high-pressure scene, at least one nominated secondary_responder_id SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible."
             if len(responder_ids) > 1
