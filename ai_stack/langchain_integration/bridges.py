@@ -75,8 +75,9 @@ class RuntimeTurnStructuredOutput(BaseModel):
     narration_summary: str = Field(
         default="",
         description=(
-            "Brief scene-level summary that complements actor lanes (spoken_lines, action_lines, "
-            "initiative_events); not a substitute for structured actor output."
+            "Brief scene-level summary derived from actor lanes (spoken_lines, action_lines, "
+            "initiative_events). Narration is a prose projection of actor realization, not the source of truth—"
+            "actor lanes hold primary authority. Narration should reflect, not invent, actor behavior."
         ),
     )
     proposed_scene_id: str | None = None

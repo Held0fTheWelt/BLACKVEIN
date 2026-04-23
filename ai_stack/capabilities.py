@@ -682,6 +682,11 @@ class CapabilityRegistry:
         """
         self._capabilities: dict[str, CapabilityDefinition] = {}
         self._audit_log: list[dict[str, Any]] = []
+        # AUDIT_LOG_SCOPE: Records capability invocation outcomes (allowed/denied) and result summaries.
+        # Does NOT capture full action explainability (e.g., why an actor passed, why a responder was passive).
+        # Full passivity explanations and detailed decision reasoning belong on operator surfaces (director dashboards,
+        # debug traces), not in the audit log. Audit log is accountability-focused (who invoked what, outcome);
+        # operator surfaces are explainability-focused (why the system chose A over B).
 
     def register(self, definition: CapabilityDefinition) -> None:
         """``register`` — see implementation for behaviour and contracts.

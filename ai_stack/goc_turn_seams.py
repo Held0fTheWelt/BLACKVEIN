@@ -454,8 +454,11 @@ def run_visible_render(
             gm_lines = ["The exchange shifts, and the room adjusts around it."]
 
         # Wave 3: Count distinct actor IDs across lanes (only non-empty, non-None, stripped strings)
-        # NOTE: multi_actor_realized is only emitted in the primary render path (has_commit and approved).
-        # Fallback/live_truth_surface branches do not track multi_actor markers.
+        # SCOPE: multi_actor_realized marker and multi_actor_render bundle are ONLY emitted in the primary render
+        # path (when has_commit=True AND approved=True). Fallback branches (non-commit, non-approved, live_truth_surface)
+        # do not emit multi-actor markers. This preserves the contract that only committed, dramatically validated
+        # turns can claim multi-actor realization. If future code adds multi-actor tracking elsewhere, it violates
+        # this invariant and breaks the actor-lane-as-truth assumption.
         actor_ids_in_render: set[str] = set()
         spoken_items = structured.get("spoken_lines")
         if isinstance(spoken_items, list):
