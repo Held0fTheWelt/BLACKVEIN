@@ -31,26 +31,27 @@ class TestWave1ActorFirstPromptContract:
         catalog = CanonicalPromptCatalog()
         system_prompt = catalog.get_prompt("runtime_turn_system")["template"]
 
-        # Find positions of actor-first contract and narrative formatting
-        actor_contract_pos = system_prompt.find("Populate primary_responder_id")
-        narrative_formatting_pos = system_prompt.find("NARRATIVE FORMATTING")
+        # Find positions of PRIMARY TASK and SECONDARY OUTPUT
+        primary_task_pos = system_prompt.find("PRIMARY TASK")
+        secondary_pos = system_prompt.find("SECONDARY OUTPUT")
 
-        assert actor_contract_pos != -1, "Actor contract not found in system prompt"
-        assert narrative_formatting_pos != -1, "Narrative formatting not found in system prompt"
+        assert primary_task_pos != -1, "PRIMARY TASK section not found in system prompt"
+        assert secondary_pos != -1, "SECONDARY OUTPUT section not found in system prompt"
         assert (
-            actor_contract_pos < narrative_formatting_pos
-        ), "Actor contract should come before narrative formatting"
+            primary_task_pos < secondary_pos
+        ), "Actor realization (PRIMARY) should come before prose (SECONDARY)"
 
     def test_system_prompt_explicitly_defines_actor_lanes(self):
         """System prompt must explicitly define what goes in each actor lane."""
         catalog = CanonicalPromptCatalog()
         system_prompt = catalog.get_prompt("runtime_turn_system")["template"]
 
+        # Check for primary task definition with actor lanes
         required_terms = [
-            "primary_responder_id",
-            "spoken_lines",
+            "Who responds in this turn",
+            "What they say",
+            "What they do",
             "speaker_id",
-            "action_lines",
             "actor_id",
             "initiative_events",
             "state_effects",
@@ -65,15 +66,18 @@ class TestWave1ActorFirstPromptContract:
         catalog = CanonicalPromptCatalog()
         human_prompt = catalog.get_prompt("runtime_turn_human")["template"]
 
-        # Check for numbered steps structure
-        assert "1. Populate primary_responder_id" in human_prompt or "primary_responder_id" in human_prompt
+        # Check for ACTOR REALIZATION TASK section comes before PROSE PROJECTION
+        actor_task_pos = human_prompt.find("ACTOR REALIZATION TASK")
+        prose_projection_pos = human_prompt.find("PROSE PROJECTION")
+
+        assert actor_task_pos != -1, "ACTOR REALIZATION TASK section not found"
+        assert prose_projection_pos != -1, "PROSE PROJECTION section not found"
+        assert actor_task_pos < prose_projection_pos, "Actor realization should come before prose projection"
+
+        # Check for key actor lane terms
         assert "spoken_lines" in human_prompt
         assert "action_lines" in human_prompt
-
-        # Actor lanes should be mentioned before narrative structure
-        actor_pos = human_prompt.find("primary_responder_id")
-        narration_pos = human_prompt.find("Narrative structure:")
-        assert actor_pos < narration_pos, "Actor lanes should be documented before narrative structure"
+        assert "speaker_id" in human_prompt
 
     def test_prompt_narrative_response_is_explicitly_copy_only(self):
         """Prompts must explicitly state narrative_response is a copy, not original."""
@@ -85,6 +89,11 @@ class TestWave1ActorFirstPromptContract:
         assert (
             "copy" in combined.lower()
         ), "Prompt must explicitly reference copying narration_summary to narrative_response"
+
+        # Also check that narrative_response is not described as a primary output
+        assert (
+            "SECONDARY OUTPUT" in system_prompt or "prose projection" in human_prompt.lower()
+        ), "Prompts must indicate narration is secondary, not primary"
 
 
 class TestWave1SchemaSemanticsSharpness:

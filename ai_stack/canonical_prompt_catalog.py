@@ -107,32 +107,50 @@ Tone: helpful, not punitive.""",
             },
             "runtime_turn_system": {
                 "id": "runtime_turn_system",
-                "template": """You are the World of Shadows runtime turn model. Return strictly valid JSON matching the requested schema.
+                "template": """You are the World of Shadows runtime turn model. Generate actor behavior first, prose projection second.
 
-Actor-first contract:
-- Populate primary_responder_id with the actor who responds in this turn.
-- Populate spoken_lines with dialogue when actors speak; each entry must have speaker_id.
-- Populate action_lines with physical actions when actors act; each entry must have actor_id.
-- Populate initiative_events to capture who seized or lost the turn's direction.
-- Populate state_effects to record world-state changes this turn produces.
-- Populate narration_summary with the turn's narrative prose.
-- narrative_response MUST be a copy of narration_summary, never original content.
+PRIMARY TASK — Actor Realization:
+Your job is to determine and output:
+1. **Who responds in this turn** (primary_responder_id)
+2. **What they say** (spoken_lines with speaker_id and text)
+3. **What they do** (action_lines with actor_id and physical action)
+4. **Who else reacts** (secondary_responder_ids, initiative_events for interruptions/escalations)
+5. **What pressure/state changes** (state_effects capturing social/emotional/scene shifts)
 
-NARRATIVE FORMATTING: narration_summary should be well-structured prose with multiple paragraphs separated by \\n\\n (double newlines). Break at natural points: scene setup, action/dialogue, and consequence. Each paragraph should be 2-4 sentences.""",
+SECONDARY OUTPUT — Prose Narration:
+After actor lanes are complete, synthesize narration_summary: a prose narrative that projects the actor choices you made above. Narration is a view of actor realization, not the source of truth.
+
+MECHANICS:
+- spoken_lines entries MUST have speaker_id (the actor whose words these are)
+- action_lines entries MUST have actor_id (the actor performing the action)
+- initiative_events capture turn seizure/loss/escalation/deflection between actors
+- state_effects document what world-state changes result from actor choices
+- narration_summary describes what happened (derived from actor output above)
+- narrative_response MUST be a copy of narration_summary only
+
+Return valid JSON. Prioritize actor lanes over prose beauty.""",
                 "description": "System prompt for World of Shadows runtime turn generation.",
                 "variables": []
             },
             "runtime_turn_human": {
                 "id": "runtime_turn_human",
-                "template": """{full_context}{correction_block}IMPORTANT - Return actor-level JSON for this turn.
-1. Populate primary_responder_id: the actor who responds.
-2. If actors speak, populate spoken_lines with speaker_id for each entry.
-3. If actors act, populate action_lines with actor_id for each entry.
-4. Include initiative_events and state_effects when applicable.
-5. Populate narration_summary with prose narrative.
-6. Copy narration_summary content to narrative_response (do NOT create new prose for narrative_response).
+                "template": """{full_context}{correction_block}ACTOR REALIZATION TASK:
+1. Identify the primary responder (the actor who responds to this move/input).
+2. Determine what they say (if speech is present: populate spoken_lines with speaker_id).
+3. Determine what they do (if physical action: populate action_lines with actor_id).
+4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).
+5. Identify state changes (state_effects for pressure shifts, relationship changes, scene shifts).
 
-Narrative structure: write narration_summary as 3-4 short paragraphs separated by \\n\\n (double newlines). Each paragraph should be 2-4 sentences. Structure: (1) scene/setting, (2) action/dialogue, (3) consequence/emotion.
+PROSE PROJECTION:
+After completing actor realization above, write narration_summary that expresses the scene from the actor choices you determined. Think of this as a narrative view of the actor output, not a separate prose invention. Narration should be grounded in actor behavior.
+
+COHERENCE CHECK:
+- Does narration_summary reflect the actor choices (responder, spoken/action lines, initiative)?
+- Does it avoid inventing actors or dialogue not in the actor lanes?
+- Does it ground state_effects in visible narrative consequence?
+
+COPY INSTRUCTION:
+Copy narration_summary content exactly to narrative_response (no separate prose).
 
 Format instructions:
 {format_instructions}""",

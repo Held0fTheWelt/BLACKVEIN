@@ -157,11 +157,24 @@ class TestPromptVariableBinding:
         catalog = CanonicalPromptCatalog()
         sys_template = catalog.get_prompt("runtime_turn_system")["template"]
         human_template = catalog.get_prompt("runtime_turn_human")["template"]
-        assert "narration_summary" in sys_template
-        assert "spoken_lines" in sys_template
-        assert "narrative_response" in sys_template
-        assert "primary_responder_id" in human_template
-        assert "initiative_events" in human_template
+        combined = sys_template + human_template
+
+        # Actor realization should be present
+        assert "spoken_lines" in combined, "Prompts must mention spoken_lines"
+        assert "action_lines" in combined, "Prompts must mention action_lines"
+        assert "initiative_events" in combined, "Prompts must mention initiative_events"
+        assert "speaker_id" in combined, "Prompts must mention speaker_id"
+        assert "actor_id" in combined, "Prompts must mention actor_id"
+
+        # Narration should be present as secondary
+        assert "narration_summary" in combined, "Prompts must mention narration_summary"
+        assert "narrative_response" in combined, "Prompts must mention narrative_response"
+
+        # Actor-first priority should be clear
+        assert "PRIMARY" in sys_template or "ACTOR REALIZATION" in human_template, \
+            "Prompts should emphasize actor realization as primary"
+        assert "SECONDARY" in sys_template or "prose projection" in human_template.lower(), \
+            "Prompts should indicate prose is secondary"
 
 
 class TestOperationalProfileIntegration:
