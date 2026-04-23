@@ -799,8 +799,8 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "selected_responder_set": responders,
         "primary_responder_id": responder_ids[0] if responder_ids else None,
         "secondary_responder_ids": responder_ids[1:] if len(responder_ids) > 1 else [],
-        "preferred_reaction_order_ids": preferred_reaction_order_ids,
-        "preferred_reaction_order_instruction": preferred_instruction,
+        "preferred_reaction_order": preferred_reaction_order_ids,
+        "preferred_reaction_order_directive": preferred_instruction,
         "secondary_responder_directive": (
             "When secondary responders are nominated in a high-pressure scene, at least one nominated secondary_responder_id SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible."
             if len(responder_ids) > 1

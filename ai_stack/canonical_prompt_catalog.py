@@ -130,6 +130,7 @@ MECHANICS:
 - When prior_initiative_truth shows unresolved tension (initiative_pressure_label contested/floor_claimed), the next turn MUST show an actor response that addresses or escalates that pressure.
 - When secondary_responder_ids are nominated, at least one SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible.
 - When pacing_mode=thin_edge with silence, actors may react briefly but MUST NOT be completely absent if prior carry_forward_tension_notes are present.
+- preferred_reaction_order lists the runtime's preferred dramatic actor order (e.g., [alice, bob, carol]). When present: deliver visible actor beats in that sequence when it is narratively plausible. Interruption, validation constraints, or scene pressure may justify divergence from preferred order—that is acceptable and expected.
 
 Return valid JSON. Prioritize actor lanes over prose beauty.""",
                 "description": "System prompt for World of Shadows runtime turn generation.",
@@ -143,6 +144,7 @@ Return valid JSON. Prioritize actor lanes over prose beauty.""",
 3. Determine what they do (if physical action: populate action_lines with actor_id).
 4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).
 4.5. If prior_initiative_truth is present: emit an initiative_event (seize/counter/escalate/deflect) that reflects who holds or contests the floor this turn.
+4.6. If preferred_reaction_order is present in the packet: realize actors in that order when narratively plausible. Interruption or validation constraints may justify divergence.
 5. Identify state changes (state_effects for pressure shifts, relationship changes, scene shifts).
 
 PROSE PROJECTION:
