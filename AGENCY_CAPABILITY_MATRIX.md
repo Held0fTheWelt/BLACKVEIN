@@ -37,6 +37,7 @@ This matrix describes implemented runtime agency behavior using only committed t
   - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_multi_actor_render_bundle_carries_realized_actor_ids`
 - Known limits:
   - Realization depends on scene pressure and legal validation; nomination is not guaranteed realization.
+  - `multi_actor_realized` and the `multi_actor_render` bundle are emitted only on the **committed + approved** primary render branch in `ai_stack/goc_turn_seams.py` (not on live-truth-surface or other staging-only paths).
 
 ## Capability: Interruption + Initiative Persistence
 - Support level: Supported
@@ -74,8 +75,10 @@ This matrix describes implemented runtime agency behavior using only committed t
   - `backend/tests/test_operator_diagnostics_routes.py::test_operator_turn_history_endpoint_shape`
 - Known limits:
   - Explanations are structured factors, not free-form narrative explanations.
+  - Full operator explainability includes `vitality_breakdown` and related structured fields on operator/history APIs; world-engine JSON audit lines intentionally carry **canonical subsets** only (see `world-engine/app/observability/audit_log.py` projections from `VITALITY_TELEMETRY_REQUIRED_FIELDS` and `PASSIVITY_DIAGNOSIS_REQUIRED_FIELDS`).
 
 ## Contract Rules
 - `vitality_telemetry_v1` is versioned and canonical.
 - Stage counts are never mixed: only `generated_*`, `validated_*`, and `rendered_*` are used.
 - Capability claims in this matrix must reference existing telemetry fields and executable tests.
+- **Operator vs audit:** Operator surfaces are the contract for rich passivity explainability (including `vitality_breakdown` where exposed). Audit logs remain bounded for volume and hygiene; do not assume audit JSON mirrors the full operator payload.

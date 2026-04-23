@@ -229,6 +229,10 @@ Deliver a governed runtime that:
 4. **Frontend churn**  
    Mitigation: ship minimal story panel first, iterate layout later.
 
+## Post-audit scope notes
+
+- `multi_actor_realized` and the `multi_actor_render` bundle are emitted only on the **committed + approved** primary render path in `ai_stack/goc_turn_seams.py`. Authoritative wording lives under **Multi-Actor Realization → Known limits** in `AGENCY_CAPABILITY_MATRIX.md`.
+
 ## Definition of Done
 
 The task is complete only when:

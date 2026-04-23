@@ -184,3 +184,11 @@
 4. Fallback/degraded state is explicit in payload and UI.
 5. Multi-actor and sparse-input scenarios show stronger reactivity.
 6. Operator telemetry can localize where actor behavior is lost.
+
+## Post-audit follow-up (non-blocking)
+
+### Test proof distribution
+
+Proof for runtime agency gates is strongest in a few targeted vertical tests (`ai_stack/tests/test_wave1_closure_actor_contract.py`, `test_wave2_actor_truth_preservation.py`, `test_wave3_multi_actor_vitality.py`, etc.). Over time, when the next implementation phase touches a path, migrate or duplicate **one** high-value assertion per area into an additional gate-adjacent module so coverage is less concentrated in a single file per concern.
+
+Render-path and operator-vs-audit semantics are documented in `AGENCY_CAPABILITY_MATRIX.md` (Multi-Actor Realization known limits; Contract Rules — operator vs audit).

@@ -72,7 +72,13 @@ class RuntimeTurnStructuredOutput(BaseModel):
         value: str | None = None
 
     schema_version: str = Field(default="runtime_actor_turn_v1")
-    narration_summary: str = Field(default="", description="Primary narrative prose for this turn.")
+    narration_summary: str = Field(
+        default="",
+        description=(
+            "Brief scene-level summary that complements actor lanes (spoken_lines, action_lines, "
+            "initiative_events); not a substitute for structured actor output."
+        ),
+    )
     proposed_scene_id: str | None = None
     intent_summary: str | None = None
 
