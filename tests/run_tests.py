@@ -2,18 +2,22 @@
 """
 World of Shadows — multi-component test runner.
 
-Orchestrates pytest for **eight** selectable suites: ``backend``, ``frontend``,
-``administration``, ``engine``, ``database``, ``writers_room``, ``improvement``,
-``ai_stack``. Each suite uses its own working directory (repo root for ``ai_stack``).
+Orchestrates pytest for component and repository suites. Component suites are
+``backend``, ``frontend``, ``administration``, ``engine``, ``database``,
+``writers_room``, ``improvement``, and ``ai_stack``. Repository suites cover
+root ``tests/*`` groups (integration, branching, smoke, and related trees).
+Each pytest suite uses its own working directory (repo root for ``ai_stack`` and
+all ``root_*`` suites).
 
-``--suite all`` runs six suites in order (**backend**, **frontend**, **administration**,
-**engine**, **database**, **ai_stack**). ``writers_room`` and ``improvement`` are **not**
-duplicated as extra runs: their tests live under ``backend/tests/`` and are already
-collected by the backend suite. Use ``--suite writers_room`` or ``--suite improvement``
-for isolated slice runs (e.g. coverage focused on those modules).
+``--suite all`` runs all Python suite groups in deterministic order: component suites
+plus root ``tests/*`` groups. ``writers_room`` and ``improvement`` remain selectable
+isolated slices (their tests are also collected under ``backend/tests``).
 
 Optional ``--scope`` maps to ``pytest -m`` for backend, writers_room, improvement,
 administration, and engine (see ``--help``).
+
+Optional non-Python lanes are opt-in: ``--with-playwright`` and
+``--with-compose-smoke``.
 
 **Invocation** (from repository root)::
 
@@ -48,6 +52,7 @@ import argparse
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -61,6 +66,7 @@ WORLD_ENGINE_DIR = PROJECT_ROOT / "world-engine"
 DATABASE_DIR = PROJECT_ROOT / "database"
 REPORTS_DIR = TESTS_DIR / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+ROOT_TESTS_DIR = PROJECT_ROOT / "tests"
 
 # Authoritative pytest-cov roots (single source of truth). Mirrors component ``pytest.ini``
 # where noted: ``administration-tool`` uses ``--cov=.`` + ``.coveragerc``; ``world-engine`` and
@@ -81,6 +87,16 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "writers_room": "Writers-Room workflow (human-in-the-loop production)",
     "improvement": "Improvement loop (mutation / evaluation / recommendation)",
     "ai_stack": "WOS AI stack (LangGraph runtime, RAG, Writers-Room / improvement seed graphs)",
+    "root_core": "Repository root core tests",
+    "root_integration": "Repository integration tests",
+    "root_branching": "Repository branching tests",
+    "root_smoke": "Repository smoke tests",
+    "root_tools": "Repository tools tests",
+    "root_requirements_hygiene": "Repository requirements hygiene tests",
+    "root_e2e_python": "Repository Python end-to-end tests",
+    "root_experience_scoring": "Repository experience scoring tests",
+    "playwright_e2e": "Playwright browser end-to-end tests",
+    "compose_smoke": "Compose smoke lane",
 }
 
 # CLI --scope value -> pytest ``-m`` marker name (must exist in that component's pytest.ini)
@@ -104,6 +120,9 @@ def marker_filter_for_suite(suite_name: str, scope: str) -> str | None:
     marker = SCOPE_TO_PYTEST_MARKER.get(scope)
     if marker is None:
         return None
+    cfg = SUITE_CONFIGS.get(suite_name)
+    if not cfg or cfg.kind != "pytest" or not cfg.supports_scope:
+        return None
     if suite_name in ("backend", "writers_room", "improvement"):
         return marker
     if suite_name in ("administration", "engine"):
@@ -125,22 +144,50 @@ IMPROVEMENT_COV_FAIL_UNDER = "50"   # Realistic: only 3 modules tested out of ~3
 # administration-tool: use ``--cov=.`` + ``administration-tool/.coveragerc`` (single source
 # trace) — do not list multiple ``--cov=module`` names; Coverage 7.x warns on import order.
 
-# Suite -> (pytest cwd, path argument to pytest, relative to cwd)
-SUITE_PYTEST_TARGETS: dict[str, tuple[Path, str]] = {
-    "backend": (BACKEND_DIR, "tests"),
-    "frontend": (FRONTEND_DIR, "tests"),
-    "administration": (ADMIN_TOOL_DIR, "tests"),
-    "engine": (WORLD_ENGINE_DIR, "tests"),
-    "database": (DATABASE_DIR, "tests"),
-    "writers_room": (BACKEND_DIR, "tests/writers_room"),
-    "improvement": (BACKEND_DIR, "tests/improvement"),
+@dataclass(frozen=True)
+class SuiteConfig:
+    """Configuration for one runnable suite."""
+
+    kind: str  # "pytest" or "external"
+    cwd: Path
+    target: str
+    supports_scope: bool = False
+    supports_coverage: bool = True
+
+
+SUITE_CONFIGS: dict[str, SuiteConfig] = {
+    # Component suites
+    "backend": SuiteConfig(kind="pytest", cwd=BACKEND_DIR, target="tests", supports_scope=True),
+    "frontend": SuiteConfig(kind="pytest", cwd=FRONTEND_DIR, target="tests"),
+    "administration": SuiteConfig(kind="pytest", cwd=ADMIN_TOOL_DIR, target="tests", supports_scope=True),
+    "engine": SuiteConfig(kind="pytest", cwd=WORLD_ENGINE_DIR, target="tests", supports_scope=True),
+    "database": SuiteConfig(kind="pytest", cwd=DATABASE_DIR, target="tests"),
+    "writers_room": SuiteConfig(kind="pytest", cwd=BACKEND_DIR, target="tests/writers_room", supports_scope=True),
+    "improvement": SuiteConfig(kind="pytest", cwd=BACKEND_DIR, target="tests/improvement", supports_scope=True),
     # Writers-Room / improvement seed graphs and runtime turn graph; imports require repo root on PYTHONPATH.
-    "ai_stack": (PROJECT_ROOT, "ai_stack/tests"),
+    "ai_stack": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="ai_stack/tests"),
+    # Root-level Python suites
+    "root_core": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/test_agency_capability_matrix_truth.py", supports_coverage=False),
+    "root_integration": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/integration", supports_coverage=False),
+    "root_branching": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/branching", supports_coverage=False),
+    "root_smoke": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/smoke", supports_coverage=False),
+    "root_tools": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/tools", supports_coverage=False),
+    "root_requirements_hygiene": SuiteConfig(
+        kind="pytest", cwd=PROJECT_ROOT, target="tests/requirements_hygiene", supports_coverage=False
+    ),
+    "root_e2e_python": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/e2e", supports_coverage=False),
+    "root_experience_scoring": SuiteConfig(
+        kind="pytest", cwd=PROJECT_ROOT, target="tests/experience_scoring_cli", supports_coverage=False
+    ),
+    # Optional external lanes
+    "playwright_e2e": SuiteConfig(kind="external", cwd=PROJECT_ROOT / "tests" / "e2e", target="npx playwright test"),
+    "compose_smoke": SuiteConfig(
+        kind="external", cwd=PROJECT_ROOT / "tests" / "smoke" / "compose_smoke", target="./smoke_curl.sh"
+    ),
 }
 
-# Suites run for ``--suite all`` (order preserved). ``writers_room`` / ``improvement`` are
-# omitted here because ``backend`` already runs ``pytest tests``, which collects those
-# subtrees — separate entries would execute the same tests twice.
+# Suites run for ``--suite all`` (order preserved). This now includes all Python
+# suite groups in the repository; optional non-Python lanes remain opt-in flags.
 ALL_SUITE_SEQUENCE: tuple[str, ...] = (
     "backend",
     "frontend",
@@ -148,6 +195,14 @@ ALL_SUITE_SEQUENCE: tuple[str, ...] = (
     "engine",
     "database",
     "ai_stack",
+    "root_core",
+    "root_integration",
+    "root_branching",
+    "root_smoke",
+    "root_tools",
+    "root_requirements_hygiene",
+    "root_e2e_python",
+    "root_experience_scoring",
 )
 
 
@@ -225,7 +280,7 @@ def _probe_ai_stack_langgraph_lane() -> tuple[bool, str]:
     )
 
 
-def check_environment(suites: dict[str, tuple[Path, str]]) -> bool:
+def check_environment(suites: dict[str, SuiteConfig]) -> bool:
     """Verify pytest and runtime deps for the **selected** suites.
 
     The runner's own interpreter only needs ``pytest``. Backend/engine/ai_stack tests
@@ -256,7 +311,23 @@ def check_environment(suites: dict[str, tuple[Path, str]]) -> bool:
 
     # --- Same import surface as backend / database / writers_room / improvement / frontend conftests ---
     needs_backend_stack = bool(
-        labels & {"backend", "frontend", "administration", "writers_room", "improvement", "database"}
+        labels
+        & {
+            "backend",
+            "frontend",
+            "administration",
+            "writers_room",
+            "improvement",
+            "database",
+            "root_core",
+            "root_integration",
+            "root_branching",
+            "root_smoke",
+            "root_tools",
+            "root_requirements_hygiene",
+            "root_e2e_python",
+            "root_experience_scoring",
+        }
     )
     if needs_backend_stack:
         print_info("Probing backend Flask stack (cwd=backend, PYTHONPATH=backend) …")
@@ -449,11 +520,14 @@ def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
     return env
 
 
-def show_test_stats(suites: dict[str, tuple[Path, str]], *, scope: str = "all") -> bool:
+def show_test_stats(suites: dict[str, SuiteConfig], *, scope: str = "all") -> bool:
     """Run collect-only per suite. Returns False if any collection subprocess fails."""
     print_header("Test collection (collect-only)")
     all_ok = True
-    for suite_name, (suite_cwd, test_path) in suites.items():
+    for suite_name, cfg in suites.items():
+        if cfg.kind != "pytest":
+            continue
+        suite_cwd, test_path = cfg.cwd, cfg.target
         test_root = suite_cwd / test_path
         if not (test_root.is_dir() or test_root.is_file()):
             print_info(f"{suite_name}: no tests directory or file ({test_root})")
@@ -499,20 +573,33 @@ def show_test_stats(suites: dict[str, tuple[Path, str]], *, scope: str = "all") 
     return all_ok
 
 
-def get_suite_configs(suite_names: list[str]) -> dict[str, tuple[Path, str]]:
-    all_suites = dict(SUITE_PYTEST_TARGETS)
+def get_suite_configs(
+    suite_names: list[str], *, with_playwright: bool = False, with_compose_smoke: bool = False
+) -> dict[str, SuiteConfig]:
+    all_suites = dict(SUITE_CONFIGS)
     if "all" in suite_names:
-        return {name: all_suites[name] for name in ALL_SUITE_SEQUENCE if name in all_suites}
-    result: dict[str, tuple[Path, str]] = {}
-    for name in suite_names:
-        if name in all_suites:
-            result[name] = all_suites[name]
-        else:
-            print_error(f"Unknown suite: {name}")
-    return result if result else dict(all_suites)
+        result = {name: all_suites[name] for name in ALL_SUITE_SEQUENCE if name in all_suites}
+    else:
+        result: dict[str, SuiteConfig] = {}
+        for name in suite_names:
+            if name in all_suites:
+                result[name] = all_suites[name]
+            else:
+                print_error(f"Unknown suite: {name}")
+        if not result:
+            result = {name: all_suites[name] for name in ALL_SUITE_SEQUENCE if name in all_suites}
+
+    if with_playwright:
+        result["playwright_e2e"] = all_suites["playwright_e2e"]
+    if with_compose_smoke:
+        result["compose_smoke"] = all_suites["compose_smoke"]
+    return result
 
 
 def _cov_fail_under_for_suite(suite_name: str) -> str | None:
+    cfg = SUITE_CONFIGS.get(suite_name)
+    if cfg and not cfg.supports_coverage:
+        return None
     if suite_name == "backend":
         return BACKEND_COV_FAIL_UNDER
     if suite_name == "frontend":
@@ -536,6 +623,9 @@ def _cov_sources_for_suite(suite_name: str) -> list[str]:
     ``database`` suite measures ``backend/app`` because schema tests import ORM models there
     (there is no separate ``database/`` Python package — only ``database/tests``).
     """
+    cfg = SUITE_CONFIGS.get(suite_name)
+    if cfg and not cfg.supports_coverage:
+        return []
     if suite_name in ("backend", "writers_room", "improvement", "database"):
         return [BACKEND_APP_ROOT]
     if suite_name == "frontend":
@@ -551,6 +641,9 @@ def _cov_sources_for_suite(suite_name: str) -> list[str]:
 
 def _append_cov_flags(argv: list[str], suite_name: str) -> None:
     """Append ``--cov=…`` (and administration ``--cov-config``) for the suite."""
+    cfg = SUITE_CONFIGS.get(suite_name)
+    if cfg and not cfg.supports_coverage:
+        return
     if suite_name == "administration":
         argv.append("--cov=.")
         argv.append(f"--cov-config={ADMIN_TOOL_DIR / '.coveragerc'}")
@@ -647,8 +740,89 @@ def run_pytest(
         return False
 
 
+def _external_lane_preflight(suite_name: str, cfg: SuiteConfig) -> tuple[bool, str]:
+    """Return (ready, message) for optional external lanes."""
+    if suite_name == "playwright_e2e":
+        import shutil
+
+        package_json = cfg.cwd / "package.json"
+        config = cfg.cwd / "playwright.config.ts"
+        if not package_json.is_file() or not config.is_file():
+            return False, "Playwright lane not configured (tests/e2e package files missing)."
+        npx_bin = "npx.cmd" if os.name == "nt" else "npx"
+        if shutil.which(npx_bin) is None:
+            return False, "Playwright lane requires npx in PATH."
+        node_bin = "node.exe" if os.name == "nt" else "node"
+        if shutil.which(node_bin) is None:
+            return False, "Playwright lane requires node in PATH."
+        check = subprocess.run(
+            [node_bin, "-e", "require.resolve('@playwright/test')"],
+            cwd=str(cfg.cwd),
+            capture_output=True,
+            text=True,
+        )
+        if check.returncode != 0:
+            return (
+                False,
+                "Playwright dependencies are not installed in tests/e2e. Run `npm install` in tests/e2e first.",
+            )
+        return True, ""
+    if suite_name == "compose_smoke":
+        import shutil
+
+        readme = cfg.cwd / "README.md"
+        script = cfg.cwd / "smoke_curl.sh"
+        if not readme.is_file() or not script.is_file():
+            return False, "Compose smoke lane files are missing."
+        docker_bin = shutil.which("docker")
+        if not docker_bin:
+            return False, "Compose smoke lane requires docker in PATH."
+        probe = subprocess.run([docker_bin, "compose", "version"], capture_output=True, text=True)
+        if probe.returncode != 0:
+            return False, "Compose smoke lane requires Docker Compose v2."
+        return True, ""
+    return True, ""
+
+
+def run_external_lane(suite_name: str, cfg: SuiteConfig) -> bool:
+    ready, reason = _external_lane_preflight(suite_name, cfg)
+    if not ready:
+        print_info(f"Skipping '{suite_name}' lane: {reason}")
+        return True
+
+    if suite_name == "playwright_e2e":
+        cmd = ["npx", "playwright", "test"]
+        if os.name == "nt":
+            cmd = ["npx.cmd", "playwright", "test"]
+    elif suite_name == "compose_smoke":
+        if os.name == "nt":
+            cmd = [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                "./smoke_curl.sh",
+            ]
+        else:
+            cmd = ["bash", "./smoke_curl.sh"]
+    else:
+        print_error(f"Unknown external lane: {suite_name}")
+        return False
+
+    try:
+        result = subprocess.run(cmd, cwd=str(cfg.cwd), timeout=600)
+        return result.returncode == 0
+    except subprocess.TimeoutExpired:
+        print_error(f"External lane '{suite_name}' timed out after 600 seconds.")
+        return False
+    except OSError as exc:
+        print_error(f"Failed to run external lane '{suite_name}': {exc}")
+        return False
+
+
 def run_tests_for_suites(
-    suites: dict[str, tuple[Path, str]],
+    suites: dict[str, SuiteConfig],
     *,
     quick: bool,
     coverage_mode: bool,
@@ -659,15 +833,47 @@ def run_tests_for_suites(
     all_passed = True
     results: dict[str, bool] = {}
 
-    for suite_name, (suite_cwd, test_path) in suites.items():
+    for suite_name, cfg in suites.items():
         display = SUITE_DISPLAY_NAMES.get(suite_name, suite_name)
+        if cfg.kind == "external":
+            title = f"{display} (external lane)"
+            print_header(f"Running: {title}")
+            ok = run_external_lane(suite_name, cfg)
+            results[suite_name] = ok
+            all_passed = all_passed and ok
+            if not ok:
+                print_error(f"{suite_name} lane failed")
+            else:
+                print_success(f"{suite_name} lane passed")
+            print()
+            if not ok and quick and not continue_on_failure:
+                print_info(
+                    "Stopping orchestrator after first failing lane (--quick). "
+                    "Re-run with --continue-on-failure to execute remaining suites anyway."
+                )
+                break
+            continue
+
+        suite_cwd, test_path = cfg.cwd, cfg.target
         m = marker_filter_for_suite(suite_name, scope)
         if scope != "all" and m is None:
             if suite_name in ("administration", "engine") and scope == "e2e":
                 print_info(
                     f"Suite '{suite_name}' has no ``e2e`` marker in pytest.ini; running full tests."
                 )
-            elif suite_name in ("frontend", "database", "ai_stack"):
+            elif suite_name in (
+                "frontend",
+                "database",
+                "ai_stack",
+                "root_core",
+                "root_integration",
+                "root_branching",
+                "root_smoke",
+                "root_tools",
+                "root_requirements_hygiene",
+                "root_e2e_python",
+                "root_experience_scoring",
+            ):
                 print_info(
                     f"Suite '{suite_name}' does not map --scope '{scope}' to a marker; running full tests."
                 )
@@ -706,8 +912,9 @@ def run_tests_for_suites(
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Run pytest per component (backend, frontend, administration-tool, world-engine, "
-            "database, writers-room, improvement, ai_stack)."
+            "Run pytest per component and repository suite groups "
+            "(backend, frontend, administration-tool, world-engine, database, writers-room, improvement, "
+            "ai_stack, and root tests/* groups)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
@@ -731,18 +938,38 @@ Examples (from repository root):
   python tests/run_tests.py --suite ai_stack --quick
   python tests/run_tests.py --suite all --coverage
 
-``--suite all`` runs: backend, frontend, administration, engine, database, ai_stack
-(writers_room + improvement are included inside the backend tree; see tests/TESTING.md).
+``--suite all`` runs all Python suite groups (component suites + root tests/* groups).
+Optional non-Python lanes are opt-in:
+  python tests/run_tests.py --suite all --with-playwright
+  python tests/run_tests.py --suite all --with-compose-smoke
         """,
     )
     parser.add_argument(
         "--suite",
         nargs="+",
         default=["all"],
-        choices=["backend", "frontend", "administration", "engine", "database", "writers_room", "improvement", "ai_stack", "all"],
+        choices=[
+            "backend",
+            "frontend",
+            "administration",
+            "engine",
+            "database",
+            "writers_room",
+            "improvement",
+            "ai_stack",
+            "root_core",
+            "root_integration",
+            "root_branching",
+            "root_smoke",
+            "root_tools",
+            "root_requirements_hygiene",
+            "root_e2e_python",
+            "root_experience_scoring",
+            "all",
+        ],
         help=(
-            "Component test tree to run (default: all). ``all`` runs six suites without "
-            "duplicating writers_room/improvement (they are under backend/tests/)."
+            "Suite groups to run (default: all Python suites). "
+            "Use --with-playwright / --with-compose-smoke to add optional external lanes."
         ),
     )
     parser.add_argument(
@@ -753,7 +980,7 @@ Examples (from repository root):
             "Filter by pytest marker where supported: backend, writers_room, improvement "
             "(contract, integration, e2e, security); administration and engine "
             "(contract, integration, security - no e2e marker). "
-            "frontend, database, and ai_stack ignore --scope and run the full suite."
+            "frontend, database, ai_stack, and root_* suites ignore --scope and run full targets."
         ),
     )
     parser.add_argument(
@@ -777,10 +1004,24 @@ Examples (from repository root):
     )
     parser.add_argument("--coverage", action="store_true", help="Coverage with HTML report")
     parser.add_argument("--verbose", action="store_true", help="Verbose pytest and long tracebacks")
+    parser.add_argument(
+        "--with-playwright",
+        action="store_true",
+        help="Also run Playwright browser lane (tests/e2e, requires npx and Playwright setup).",
+    )
+    parser.add_argument(
+        "--with-compose-smoke",
+        action="store_true",
+        help="Also run compose smoke lane (tests/smoke/compose_smoke).",
+    )
 
     args = parser.parse_args()
 
-    suites = get_suite_configs(args.suite)
+    suites = get_suite_configs(
+        args.suite,
+        with_playwright=args.with_playwright,
+        with_compose_smoke=args.with_compose_smoke,
+    )
     if not suites:
         print_error("No valid suites specified")
         return 1

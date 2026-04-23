@@ -1,168 +1,81 @@
-# Runtime Agency Capability Matrix — WS-1..5 Truth Surface
+# Runtime Agency Capability Matrix (Evidence-Backed)
 
-## Executive Summary
+This matrix describes implemented runtime agency behavior using only committed telemetry fields and executable test evidence.
 
-The World of Shadows runtime supports **actor-driven dramatic action** through five integrated workstreams (WS-1 through WS-5). This document describes what actors **actually do** vs. what the narrator-only fallback provides, and how operators can diagnose where behavior survives or degrades.
+## Capability: Actor-Level Generation
+- Support level: Supported
+- Telemetry fields: `selected_primary_responder_id`, `generated_spoken_line_count`, `generated_action_line_count`, `generated_actor_ids`
+- Proving tests:
+  - `ai_stack/tests/test_vitality_telemetry_v1.py::test_vitality_telemetry_v1_contains_required_fields`
+  - `ai_stack/tests/test_wave1_closure_actor_contract.py::test_telemetry_reads_speaker_id_not_responder_id`
+- Known limits:
+  - Model fallback path may reduce dramatic richness even when actor lanes are present.
 
----
+## Capability: Actor-Level Commit Truth
+- Support level: Supported
+- Telemetry fields: `commit_applied`, `quality_class`, `degradation_signals`, `initiative_preserved_count`
+- Proving tests:
+  - `world-engine/tests/test_story_runtime_narrative_commit.py::test_get_state_exposes_actor_turn_summary_fields`
+  - `world-engine/tests/test_story_runtime_narrative_commit.py::test_execute_turn_propagates_vitality_telemetry_to_event_and_governance`
+- Known limits:
+  - Commit truth remains bounded to canonical committed payloads; non-authoritative diagnostics are excluded from commit authority.
 
-## Capability Levels
+## Capability: Selected vs Realized vs Rendered Actor Truth
+- Support level: Supported
+- Telemetry fields: `selected_secondary_responder_ids`, `realized_actor_ids`, `realized_secondary_responder_ids`, `rendered_actor_ids`
+- Proving tests:
+  - `ai_stack/tests/test_vitality_telemetry_v1.py::test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_realized`
+  - `world-engine/tests/test_story_window_projection.py::test_story_window_projection_includes_vitality_and_passivity_fields`
+- Known limits:
+  - Initiative-only mention does not count as realized actor unless actor appears in spoken/action lanes.
 
-| Level | Status | What Actors Do | Telemetry | Requirements |
-|---|---|---|---|---|
-| **Full Actor Agency** | ✅ Active | Generation succeeded, validation approved, commit applied, output rendered | All telemetry fields populated | None — baseline |
-| **Fallback Active** | ⚠️ Degraded | Generation fell back to fallback model; behavior less sophisticated | `fallback_used: true` | Primary model unavailable |
-| **Validation Constrained** | ⚠️ Degraded | Validation restricted/corrected behavior; original intent was modified | `validation_approved: true` but constraints applied | Continuity or legality constraints |
-| **Commit Blocked** | ⚠️ Degraded | Turn was not persisted; story state unchanged | `commit_applied: false` | Transaction or validation failure |
-| **Narration Only** | ⚠️ Degraded | No spoken lines or action beats; narrator-only output | `spoken_lines_rendered: 0, action_lines_rendered: 0` | Actor was silent or suppressed |
-| **Generation Failed** | ❌ Non-functional | No actor output available; fallback failed | `generation_attempted: false` | Model or provider failure |
+## Capability: Multi-Actor Realization
+- Support level: Supported
+- Telemetry fields: `multi_actor_realized`, `realized_actor_ids`, `realized_secondary_responder_ids`
+- Proving tests:
+  - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_multi_actor_realized_marker_when_two_actors_in_spoken`
+  - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_multi_actor_render_bundle_carries_realized_actor_ids`
+- Known limits:
+  - Realization depends on scene pressure and legal validation; nomination is not guaranteed realization.
 
----
+## Capability: Interruption + Initiative Persistence
+- Support level: Supported
+- Telemetry fields: `initiative_generated_count`, `initiative_preserved_count`, `initiative_seizer_id`, `initiative_loser_id`, `initiative_pressure_label`
+- Proving tests:
+  - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_initiative_pressure_label_contested_on_interrupt`
+  - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_initiative_precedents_line_in_continuity_signal_when_seizer_present`
+- Known limits:
+  - Initiative persistence is bounded to canonical planner/continuity truth; no free-running scene simulation outside turn boundaries.
 
-## Actor Behavior Surface
+## Capability: Sparse-Input Vitality Recovery
+- Support level: Supported
+- Telemetry fields: `sparse_input_detected`, `sparse_input_recovery_applied`, `response_present`, `thin_edge_applied`, `withheld_applied`
+- Proving tests:
+  - `ai_stack/tests/test_vitality_telemetry_v1.py::test_sparse_input_recovery_applied_when_sparse_input_still_gets_response`
+  - `ai_stack/tests/test_wave3_multi_actor_vitality.py::test_thin_edge_silence_withdrawal_with_prior_tension_upgrades_to_probe_motive`
+- Known limits:
+  - Some sparse turns can remain intentionally quiet when legality/pacing policy requires restraint.
 
-When **Full Actor Agency** is active:
+## Capability: Degraded Path Transparency
+- Support level: Supported
+- Telemetry fields: `quality_class`, `degradation_signals`, `fallback_used`, `degraded_commit`, `retry_exhausted`
+- Proving tests:
+  - `frontend/tests/test_routes_extended.py::test_routes_play_normalizes_story_entries_and_runtime_status_view`
+  - `backend/tests/services/test_operator_turn_history_service.py::test_turn_history_row_contains_passivity_explainability_fields`
+  - `backend/tests/test_operator_diagnostics_routes.py::test_operator_diagnostics_session_surface_shape`
+- Known limits:
+  - Weak-but-legal turns are non-degraded but still may feel low-energy; this is surfaced explicitly via passivity factors.
 
-- **Responder Selection**: `selected_responder_set` is non-empty; primary responder identified
-- **Scene Function**: `selected_scene_function` is active (e.g., `escalate_conflict`, `repair_or_stabilize`)
-- **Spoken Lines**: Generated with `responder_id` attribution; rendered in `spoken_lines` output field
-- **Action Beats**: Generated as `action_lines`; rendered in `action_pulses` output field
-- **Initiative**: `initiative_summary` recorded (primary spoke, secondary reacted, interruption occurred, etc.)
-- **Continuity**: Turn advances `beat_progression_speed` and `pressure_state`
-- **Output Contract**: `visible_output_bundle` includes:
-  - `spoken_lines`: list of attributed dialogue
-  - `action_pulses`: short action beats
-  - `responder_trace`: who spoke and when
-  - `continuation_state`: whether scene continues
+## Capability: Passivity Explainability (Operator)
+- Support level: Supported
+- Telemetry fields: `why_turn_felt_passive`, `primary_passivity_factors`, `vitality_breakdown`
+- Proving tests:
+  - `backend/tests/services/test_operator_turn_history_service.py::test_operator_surface_exposes_top_passivity_factors_and_actions`
+  - `backend/tests/test_operator_diagnostics_routes.py::test_operator_turn_history_endpoint_shape`
+- Known limits:
+  - Explanations are structured factors, not free-form narrative explanations.
 
----
-
-## Degradation Diagnosis
-
-### Where Behavior Survives vs. Fails
-
-**Telemetry tracks four seams:**
-
-1. **Generation Seam** (`generation_phase`)
-   - ✅ Survives: Model called, spoke, generated responder output
-   - ⚠️ Degrades: Fallback model used (lower sophistication)
-   - ❌ Fails: No model available
-
-2. **Validation Seam** (`validation_phase`)
-   - ✅ Survives: Output passed actor legality, speaker legality, continuity checks
-   - ⚠️ Degrades: Validation approved but constraints were applied
-   - ❌ Fails: Output rejected (speaker mute, action illegal, continuity broken)
-
-3. **Commit Seam** (`commit_phase`)
-   - ✅ Survives: State effects persisted, story state advanced
-   - ⚠️ Degrades: Partial commit (some effects lost)
-   - ❌ Fails: Commit rolled back (transaction conflict, guard rejected)
-
-4. **Render Seam** (`render_phase`)
-   - ✅ Survives: Spoken lines, action beats, responder trace all present in output
-   - ⚠️ Degrades: Some lines rendered, some suppressed
-   - ❌ Fails: All actor output flattened to narration-only
-
----
-
-## Operator Diagnostics API
-
-### Check Session Agency Health
-
-```bash
-GET /api/v1/operator/diagnostics/session/<session_id>
-```
-
-Returns:
-- Turn-by-turn agency level (`full_actor_agency`, `fallback_active`, `validation_constrained`, etc.)
-- Degradation summary: count of fallback/failed/constrained turns
-- Suggestions for operators ("Generation failed on 3 turns; check provider health")
-- Documented capabilities (what each level means)
-
-### View Turn-History Dashboard
-
-```bash
-GET /api/v1/operator/diagnostics/session/<session_id>/turn-history
-```
-
-Returns:
-- Responder, scene function, validation result per turn
-- Spoken lines generated vs. rendered
-- Fallback status, commit status, agency level
-- Diagnostic hints for each degraded turn
-
----
-
-## Honesty Guarantees
-
-**WS-5 enforces these truth rules:**
-
-1. **Fallback turns are explicitly marked**
-   - `generation_phase.generation_fallback_used: true`
-   - Agency level set to `fallback_active`, not `full_actor_agency`
-   - Operator hints warn about lower sophistication
-
-2. **Validation constraints are visible**
-   - If validation approved but applied corrections, `validation_constrained` is the agency level
-   - Original intent vs. approved output is preserved in telemetry
-
-3. **Commit failures prevent story progression**
-   - If `commit_applied: false`, story state was not updated
-   - Agency level set to `commit_blocked`
-   - Operator hints warn that state may be stale
-
-4. **Narration-only turns are labeled**
-   - If `spoken_lines_rendered: 0`, output is narrator voice, not actor voice
-   - Agency level set to `narration_only`
-   - Operator can see responder was silent or output was suppressed
-
-5. **No false claims of agency**
-   - Dashboard never shows `full_actor_agency` if any degradation occurred
-   - Operator UI surfaces the actual agency level, not the aspiration
-   - Docs match actual capability, not theoretical capability
-
----
-
-## Documented Limits (What's Not Implemented)
-
-These features are **roadmap**, not active:
-
-- ❌ **Autonomous NPC-to-NPC exchange** without player action (bounded under `allow_scene_progress_without_player_action`)
-- ❌ **Free-running scene motion** past `max_scene_pulses_per_response` limit
-- ❌ **Player re-entry into moving scene** (each turn resets scene context)
-- ❌ **Beat state persistence** independent of continuity impacts
-- ❌ **Initiative carry-forward** across multiple turns
-
-These are **in the Story Runtime Experience partial foundation** and will be added in future waves.
-
----
-
-## How Operators Diagnose
-
-**If players report "actor is too quiet":**
-1. Check `/operator/diagnostics/session/<id>/turn-history`
-2. Look for `spoken_lines_rendered: 0` rows
-3. Check `validation_constrained` or `narration_only` levels
-4. Read diagnostic hints: "No spoken lines in final output; responder may have been silent"
-5. **Action:** Check continuity constraints, increase `npc_initiative`, or review scene function
-
-**If players report "stories feel like fallback":**
-1. Check `fallback_active` turn count in agency statistics
-2. If >20%, model provider may be unavailable
-3. **Action:** Check provider health in AI runtime governance
-
-**If actors never speak in live mode:**
-1. Check `agency_level: full_actor_agency` count
-2. If all turns are `narration_only`, check `dialogue_priority` setting
-3. Check `inter_npc_exchange_intensity` (may be `off`)
-4. **Action:** Increase dialogue priority or exchange intensity in Story Runtime Experience settings
-
----
-
-## Integration Points
-
-- **Telemetry Source:** `ai_stack/actor_survival_telemetry.py`
-- **Package Integration:** `ai_stack/langgraph_runtime_package_output.py`
-- **Operator Service:** `backend/app/services/operator_turn_history_service.py`
-- **API Routes:** `backend/app/api/v1/operator_diagnostics_routes.py`
-- **Story Runtime Experience:** Tied to `experience_mode`, `delivery_profile`, and character behavior settings
+## Contract Rules
+- `vitality_telemetry_v1` is versioned and canonical.
+- Stage counts are never mixed: only `generated_*`, `validated_*`, and `rendered_*` are used.
+- Capability claims in this matrix must reference existing telemetry fields and executable tests.

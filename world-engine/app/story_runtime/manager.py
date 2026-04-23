@@ -452,6 +452,29 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
         )
         degraded = quality_class in {QUALITY_CLASS_DEGRADED, QUALITY_CLASS_FAILED}
         degraded_reasons = list(degradation_signals)
+        actor_survival_telemetry = (
+            event.get("actor_survival_telemetry")
+            if isinstance(event.get("actor_survival_telemetry"), dict)
+            else {}
+        )
+        vitality = (
+            actor_survival_telemetry.get("vitality_telemetry_v1")
+            if isinstance(actor_survival_telemetry.get("vitality_telemetry_v1"), dict)
+            else {}
+        )
+        operator_hints = (
+            actor_survival_telemetry.get("operator_diagnostic_hints")
+            if isinstance(actor_survival_telemetry.get("operator_diagnostic_hints"), dict)
+            else {}
+        )
+        vitality_summary = {
+            "response_present": bool(vitality.get("response_present")),
+            "initiative_present": bool(vitality.get("initiative_present")),
+            "multi_actor_realized": bool(vitality.get("multi_actor_realized")),
+            "sparse_input_recovery_applied": bool(vitality.get("sparse_input_recovery_applied")),
+            "realized_actor_ids": list(vitality.get("realized_actor_ids") or []),
+            "rendered_actor_ids": list(vitality.get("rendered_actor_ids") or []),
+        }
 
         if not visible_lines and not spoken_lines and not action_lines and not consequence_lines:
             continue
@@ -473,6 +496,10 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
             "degraded": degraded,
             "degraded_reasons": degraded_reasons,
             "actor_turn_summary": actor_turn_summary,
+            "actor_survival_telemetry": actor_survival_telemetry,
+            "vitality_summary": vitality_summary,
+            "why_turn_felt_passive": list(operator_hints.get("why_turn_felt_passive") or []),
+            "primary_passivity_factors": list(operator_hints.get("primary_passivity_factors") or []),
             "source": "authoritative_story_runtime",
             "runtime_governance_surface": runtime_governance_surface,
             "authority_summary": authority_summary,
@@ -1408,6 +1435,16 @@ class StoryRuntimeManager:
         )
         model_ok = gen.get("success") is True
         outcome = "ok" if model_ok and not errors else "degraded"
+        actor_survival_telemetry = (
+            graph_state.get("actor_survival_telemetry")
+            if isinstance(graph_state.get("actor_survival_telemetry"), dict)
+            else {}
+        )
+        vitality_telemetry_v1 = (
+            actor_survival_telemetry.get("vitality_telemetry_v1")
+            if isinstance(actor_survival_telemetry.get("vitality_telemetry_v1"), dict)
+            else None
+        )
         log_story_turn_event(
             trace_id=trace_id,
             story_session_id=session.session_id,
@@ -1418,6 +1455,7 @@ class StoryRuntimeManager:
             graph_error_count=len(errors),
             quality_class=str(graph_state.get("quality_class") or "") or None,
             degradation_signals=list(graph_state.get("degradation_signals") or []),
+            vitality_telemetry=vitality_telemetry_v1,
         )
         narrative_commit_payload = narrative_commit.model_dump(mode="json")
         turn_thread_metrics = thread_continuity_metrics(session.narrative_threads)
@@ -1559,6 +1597,17 @@ class StoryRuntimeManager:
                 if isinstance(row, dict)
                 and str(row.get("actor_id") or row.get("responder_id") or "").strip()
             ]
+        if vitality_telemetry_v1:
+            gov["vitality_telemetry_v1"] = vitality_telemetry_v1
+            gov["realized_actor_ids"] = list(vitality_telemetry_v1.get("realized_actor_ids") or [])
+            gov["rendered_actor_ids"] = list(vitality_telemetry_v1.get("rendered_actor_ids") or [])
+            operator_hints = (
+                actor_survival_telemetry.get("operator_diagnostic_hints")
+                if isinstance(actor_survival_telemetry.get("operator_diagnostic_hints"), dict)
+                else {}
+            )
+            gov["why_turn_felt_passive"] = list(operator_hints.get("why_turn_felt_passive") or [])
+            gov["primary_passivity_factors"] = list(operator_hints.get("primary_passivity_factors") or [])
         quality_class, degradation_signals, degradation_summary = _canonical_quality_fields_from_surfaces(
             runtime_governance_surface=gov,
             authority_summary={
@@ -1592,6 +1641,7 @@ class StoryRuntimeManager:
             "visibility_class_markers": graph_state.get("visibility_class_markers"),
             "failure_markers": graph_state.get("failure_markers"),
             "self_correction": self_correction,
+            "actor_survival_telemetry": actor_survival_telemetry,
             "actor_turn_summary": actor_turn_summary,
             "runtime_governance_surface": gov,
         }

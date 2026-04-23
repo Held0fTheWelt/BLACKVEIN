@@ -859,6 +859,11 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
         "dramatic_turn_record": build_roadmap_dramatic_turn_record(state),
         # WS-5: Actor-survival telemetry for operator diagnostics
         "actor_survival_telemetry": state.get("actor_survival_telemetry"),
+        "vitality_telemetry_v1": (
+            ((state.get("actor_survival_telemetry") or {}).get("vitality_telemetry_v1"))
+            if isinstance(state.get("actor_survival_telemetry"), dict)
+            else None
+        ),
         "graph_diagnostics_summary": {
             "graph_name": gd.get("graph_name"),
             "graph_version": gd.get("graph_version"),

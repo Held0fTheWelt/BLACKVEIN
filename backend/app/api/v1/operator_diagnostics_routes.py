@@ -31,13 +31,22 @@ def operator_session_diagnostics(session_id: str):
     survived or failed through the turn pipeline.
     """
     try:
-        from app.services.session_service import get_session_by_id
+        from app.services import session_service as _session_service
 
-        session = get_session_by_id(session_id)
+        getter = getattr(_session_service, "get_session_by_id", None)
+        if not callable(getter):
+            getter = getattr(_session_service, "get_session", None)
+        session = getter(session_id) if callable(getter) else None
         if session is None:
             return fail("session_not_found", f"Session {session_id} not found.", 404, {})
 
-        diagnostics = session.diagnostics if hasattr(session, "diagnostics") else []
+        diagnostics = (
+            session.diagnostics
+            if hasattr(session, "diagnostics")
+            else session.get("diagnostics")
+            if isinstance(session, dict)
+            else []
+        )
         diagnostics_list = list(diagnostics) if isinstance(diagnostics, list) else []
 
         surface = operator_diagnostics_surface(diagnostics_list)
@@ -56,14 +65,23 @@ def operator_turn_history(session_id: str):
     agency level.
     """
     try:
-        from app.services.session_service import get_session_by_id
+        from app.services import session_service as _session_service
 
         limit = min(int(request.args.get("limit", "100")), 500)
-        session = get_session_by_id(session_id)
+        getter = getattr(_session_service, "get_session_by_id", None)
+        if not callable(getter):
+            getter = getattr(_session_service, "get_session", None)
+        session = getter(session_id) if callable(getter) else None
         if session is None:
             return fail("session_not_found", f"Session {session_id} not found.", 404, {})
 
-        diagnostics = session.diagnostics if hasattr(session, "diagnostics") else []
+        diagnostics = (
+            session.diagnostics
+            if hasattr(session, "diagnostics")
+            else session.get("diagnostics")
+            if isinstance(session, dict)
+            else []
+        )
         diagnostics_list = list(diagnostics) if isinstance(diagnostics, list) else []
 
         summary = build_turn_history_summary_for_session(diagnostics_list, limit=limit)

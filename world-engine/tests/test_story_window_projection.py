@@ -128,3 +128,54 @@ def test_story_window_projection_preserves_degraded_quality_fields() -> None:
     assert runtime["degradation_signals"] == ["fallback_used"]
     assert runtime["degraded"] is True
     assert runtime["degraded_reasons"] == ["fallback_used"]
+
+
+def test_story_window_projection_includes_vitality_and_passivity_fields() -> None:
+    session = StorySession(
+        session_id="story-3",
+        module_id="god_of_carnage",
+        runtime_projection={"start_scene_id": "scene_1"},
+        current_scene_id="scene_1",
+    )
+    session.diagnostics = [
+        {
+            "turn_number": 1,
+            "turn_kind": "player",
+            "raw_input": "...",
+            "visible_output_bundle": {"gm_narration": ["The room pauses."]},
+            "narrative_commit": {"committed_consequences": ["pressure_holds"]},
+            "committed_turn_authority": {
+                "authority_record_version": "committed_turn_authority.v1",
+                "validation_status": "approved",
+                "commit_applied": True,
+                "quality_class": "degraded",
+                "degradation_signals": ["fallback_used"],
+            },
+            "runtime_governance_surface": {
+                "quality_class": "degraded",
+                "degradation_signals": ["fallback_used"],
+                "fallback_stage_reached": "graph_fallback_executed",
+            },
+            "actor_survival_telemetry": {
+                "vitality_telemetry_v1": {
+                    "schema_version": "vitality_telemetry_v1",
+                    "response_present": False,
+                    "initiative_present": False,
+                    "multi_actor_realized": False,
+                    "sparse_input_recovery_applied": False,
+                    "realized_actor_ids": [],
+                    "rendered_actor_ids": [],
+                },
+                "operator_diagnostic_hints": {
+                    "why_turn_felt_passive": ["single_actor_only", "thin_edge_withheld"],
+                    "primary_passivity_factors": ["single_actor_only"],
+                },
+            },
+        }
+    ]
+    entries = _story_window_entries_for_session(session)
+    runtime = entries[-1]
+    assert runtime["vitality_summary"]["response_present"] is False
+    assert runtime["vitality_summary"]["realized_actor_ids"] == []
+    assert runtime["why_turn_felt_passive"] == ["single_actor_only", "thin_edge_withheld"]
+    assert runtime["primary_passivity_factors"] == ["single_actor_only"]

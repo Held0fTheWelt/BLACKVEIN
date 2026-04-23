@@ -627,16 +627,18 @@ def test_routes_play_normalizes_story_entries_and_runtime_status_view():
         normalized,
         shell_state_view={"player_shell_context": {"responder_id": "annette_reille"}},
     )
-    assert status == {
-        "contract": "play_shell_runtime_status.v1",
-        "selected_responder_id": "annette_reille",
-        "validation_status": "approved",
-        "quality_class": "degraded",
-        "degradation_signals": ["fallback_used"],
-        "degraded": True,
-        "degraded_reasons": ["fallback_used"],
-        "latest_turn_number": 3,
-    }
+    assert status["contract"] == "play_shell_runtime_status.v1"
+    assert status["selected_responder_id"] == "annette_reille"
+    assert status["validation_status"] == "approved"
+    assert status["quality_class"] == "degraded"
+    assert status["degradation_signals"] == ["fallback_used"]
+    assert status["aggregated_degradation_signals"] == ["fallback_used"]
+    assert status["rising_degraded_posture"] is False
+    assert status["degraded"] is True
+    assert status["degraded_reasons"] == ["fallback_used"]
+    assert status["latest_turn_number"] == 3
+    assert isinstance(status["latest_vitality_summary"], dict)
+    assert isinstance(status["latest_why_turn_felt_passive"], list)
 
 
 def test_routes_play_weak_but_legal_is_not_marked_degraded():
@@ -824,3 +826,55 @@ def test_play_shell_backend_error_flashes_and_renders_empty_shell(client, monkey
     assert response.status_code == 200
     assert b"resume failed" in response.data
     assert b"No authored opening was returned" in response.data
+
+
+def test_routes_play_runtime_status_reports_rising_degraded_posture_and_row_vitality():
+    entries = []
+    for idx in range(1, 11):
+        degraded = idx > 5
+        entries.append(
+            {
+                "entry_id": f"r-{idx}",
+                "role": "runtime",
+                "turn_number": idx,
+                "text": f"turn {idx}",
+                "spoken_lines": [{"speaker_id": "annette_reille", "text": "Enough."}] if degraded else [],
+                "runtime_governance_surface": {
+                    "quality_class": "degraded" if degraded else "healthy",
+                    "degradation_signals": ["fallback_used"] if degraded else [],
+                },
+                "actor_survival_telemetry": {
+                    "vitality_telemetry_v1": {
+                        "schema_version": "vitality_telemetry_v1",
+                        "response_present": degraded,
+                        "initiative_present": False,
+                        "multi_actor_realized": False,
+                        "sparse_input_recovery_applied": False,
+                        "selected_primary_responder_id": "annette_reille",
+                        "realized_actor_ids": ["annette_reille"] if degraded else [],
+                        "realized_secondary_responder_ids": [],
+                        "rendered_actor_ids": ["annette_reille"] if degraded else [],
+                        "generated_spoken_line_count": 1 if degraded else 0,
+                        "validated_spoken_line_count": 1 if degraded else 0,
+                        "rendered_spoken_line_count": 1 if degraded else 0,
+                        "generated_action_line_count": 0,
+                        "validated_action_line_count": 0,
+                        "rendered_action_line_count": 0,
+                        "fallback_used": degraded,
+                        "degraded_commit": False,
+                        "retry_exhausted": False,
+                        "quality_class": "degraded" if degraded else "healthy",
+                        "degradation_signals": ["fallback_used"] if degraded else [],
+                    }
+                },
+            }
+        )
+
+    normalized = routes_play._normalize_story_entries_for_shell(entries)
+    assert all("vitality_summary" in row for row in normalized)
+    assert all("why_turn_felt_passive" in row for row in normalized)
+
+    status = routes_play._runtime_status_view_from_story_entries(normalized)
+    assert status["rising_degraded_posture"] is True
+    assert "fallback_used" in status["aggregated_degradation_signals"]
+    assert isinstance(status["latest_vitality_summary"], dict)

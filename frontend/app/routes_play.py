@@ -102,6 +102,61 @@ def _is_runtime_entry_degraded(entry: dict[str, Any]) -> tuple[bool, list[str], 
     return quality in _DEGRADED_QUALITY_CLASSES, deduped_reasons, quality
 
 
+def _extract_entry_vitality(entry: dict[str, Any]) -> dict[str, Any]:
+    telemetry = entry.get("actor_survival_telemetry") if isinstance(entry.get("actor_survival_telemetry"), dict) else {}
+    vitality = telemetry.get("vitality_telemetry_v1") if isinstance(telemetry.get("vitality_telemetry_v1"), dict) else {}
+    if vitality:
+        return vitality
+    governance = entry.get("runtime_governance_surface") if isinstance(entry.get("runtime_governance_surface"), dict) else {}
+    fallback = governance.get("vitality_telemetry_v1") if isinstance(governance.get("vitality_telemetry_v1"), dict) else {}
+    return fallback
+
+
+def _derive_row_passivity_factors(entry: dict[str, Any], vitality: dict[str, Any]) -> list[str]:
+    factors = entry.get("why_turn_felt_passive") if isinstance(entry.get("why_turn_felt_passive"), list) else []
+    if factors:
+        return [str(f).strip() for f in factors if str(f).strip()]
+
+    derived: list[str] = []
+    if vitality.get("fallback_used"):
+        derived.append("fallback_used")
+    if vitality.get("thin_edge_applied") and vitality.get("withheld_applied"):
+        derived.append("thin_edge_withheld")
+    if not vitality.get("response_present"):
+        derived.append("no_visible_actor_response")
+    if (vitality.get("selected_secondary_responder_ids") or []) and not vitality.get("multi_actor_realized"):
+        derived.append("single_actor_only")
+    if vitality.get("quality_class") == "weak_but_legal":
+        derived.append("weak_signal_accepted")
+    if vitality.get("sparse_input_detected") and not vitality.get("sparse_input_recovery_applied"):
+        derived.append("sparse_input_not_recovered")
+
+    deduped: list[str] = []
+    for factor in derived:
+        if factor not in deduped:
+            deduped.append(factor)
+    return deduped
+
+
+def _compute_rising_degraded_posture(story_entries: list[dict[str, Any]]) -> bool:
+    runtime_entries = [
+        row
+        for row in story_entries
+        if isinstance(row, dict) and str(row.get("role") or "").strip() == "runtime"
+    ]
+    flags = [
+        1 if str(row.get("quality_class") or "").strip().lower() in _DEGRADED_QUALITY_CLASSES else 0
+        for row in runtime_entries
+    ]
+    if len(flags) < 6:
+        return False
+    tail = flags[-5:]
+    prior = flags[:-5]
+    if not prior:
+        return False
+    return (sum(tail) / len(tail)) > (sum(prior) / len(prior))
+
+
 def _normalize_story_entries_for_shell(
     story_entries: list[dict[str, Any]],
     *,
@@ -146,6 +201,24 @@ def _normalize_story_entries_for_shell(
             or ""
         ).strip() or None
         degraded, degraded_reasons, quality_class = _is_runtime_entry_degraded(entry) if role == "runtime" else (False, [], "healthy")
+        vitality = _extract_entry_vitality(entry) if role == "runtime" else {}
+        passivity_factors = _derive_row_passivity_factors(entry, vitality) if role == "runtime" else []
+        vitality_summary = {
+            "response_present": bool(vitality.get("response_present")),
+            "initiative_present": bool(vitality.get("initiative_present")),
+            "multi_actor_realized": bool(vitality.get("multi_actor_realized")),
+            "sparse_input_recovery_applied": bool(vitality.get("sparse_input_recovery_applied")),
+            "selected_primary_responder_id": vitality.get("selected_primary_responder_id"),
+            "realized_actor_ids": list(vitality.get("realized_actor_ids") or []),
+            "realized_secondary_responder_ids": list(vitality.get("realized_secondary_responder_ids") or []),
+            "rendered_actor_ids": list(vitality.get("rendered_actor_ids") or []),
+            "generated_spoken_line_count": int(vitality.get("generated_spoken_line_count") or 0),
+            "validated_spoken_line_count": int(vitality.get("validated_spoken_line_count") or 0),
+            "rendered_spoken_line_count": int(vitality.get("rendered_spoken_line_count") or 0),
+            "generated_action_line_count": int(vitality.get("generated_action_line_count") or 0),
+            "validated_action_line_count": int(vitality.get("validated_action_line_count") or 0),
+            "rendered_action_line_count": int(vitality.get("rendered_action_line_count") or 0),
+        }
         normalized.append(
             {
                 **entry,
@@ -163,6 +236,10 @@ def _normalize_story_entries_for_shell(
                 "degradation_summary": str(entry.get("degradation_summary") or "").strip() or (", ".join(degraded_reasons) if degraded_reasons else "none"),
                 "degraded": degraded,
                 "degraded_reasons": degraded_reasons,
+                "vitality_schema_version": vitality.get("schema_version"),
+                "vitality_summary": vitality_summary,
+                "why_turn_felt_passive": passivity_factors,
+                "primary_passivity_factors": passivity_factors[:3],
             }
         )
     return normalized
@@ -179,14 +256,13 @@ def _runtime_status_view_from_story_entries(
         if isinstance(shell.get("player_shell_context"), dict)
         else {}
     )
-    latest_runtime = next(
-        (
-            entry
-            for entry in reversed(story_entries)
-            if isinstance(entry, dict) and str(entry.get("role") or "").strip() == "runtime"
-        ),
-        None,
-    )
+    runtime_entries = [
+        entry
+        for entry in story_entries
+        if isinstance(entry, dict) and str(entry.get("role") or "").strip() == "runtime"
+    ]
+    latest_runtime = runtime_entries[-1] if runtime_entries else None
+
     if not isinstance(latest_runtime, dict):
         return {
             "contract": "play_shell_runtime_status.v1",
@@ -194,19 +270,35 @@ def _runtime_status_view_from_story_entries(
             "validation_status": None,
             "quality_class": "healthy",
             "degradation_signals": [],
+            "aggregated_degradation_signals": [],
+            "rising_degraded_posture": False,
             "degraded": False,
             "degraded_reasons": [],
             "latest_turn_number": None,
+            "latest_vitality_summary": {},
+            "latest_why_turn_felt_passive": [],
         }
+
+    aggregated_signals: list[str] = []
+    for entry in runtime_entries:
+        for signal in (entry.get("degradation_signals") or []):
+            cleaned = str(signal).strip()
+            if cleaned and cleaned not in aggregated_signals:
+                aggregated_signals.append(cleaned)
+
     return {
         "contract": "play_shell_runtime_status.v1",
         "selected_responder_id": latest_runtime.get("responder_id") or player_shell_context.get("responder_id"),
         "validation_status": latest_runtime.get("validation_status"),
         "quality_class": latest_runtime.get("quality_class") or "healthy",
         "degradation_signals": list(latest_runtime.get("degradation_signals") or []),
+        "aggregated_degradation_signals": aggregated_signals,
+        "rising_degraded_posture": _compute_rising_degraded_posture(runtime_entries),
         "degraded": bool(latest_runtime.get("degraded")),
         "degraded_reasons": list(latest_runtime.get("degraded_reasons") or []),
         "latest_turn_number": latest_runtime.get("turn_number"),
+        "latest_vitality_summary": latest_runtime.get("vitality_summary") if isinstance(latest_runtime.get("vitality_summary"), dict) else {},
+        "latest_why_turn_felt_passive": list(latest_runtime.get("why_turn_felt_passive") or []),
     }
 
 

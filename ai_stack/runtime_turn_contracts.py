@@ -80,6 +80,51 @@ DEGRADATION_SIGNAL_VALUES: tuple[DegradationSignal, ...] = (
     DEGRADATION_SIGNAL_RETRY_EXHAUSTED,
 )
 
+# Phase 5 canonical vitality telemetry schema.
+VitalityTelemetrySchemaVersion = Literal["vitality_telemetry_v1"]
+
+VITALITY_TELEMETRY_SCHEMA_VERSION: VitalityTelemetrySchemaVersion = "vitality_telemetry_v1"
+
+# Required top-level fields for the canonical vitality telemetry payload.
+# Stage-specific count fields must remain stage-prefixed and MUST NOT be mixed.
+VITALITY_TELEMETRY_REQUIRED_FIELDS: tuple[str, ...] = (
+    "identity_stage",
+    "schema_version",
+    "turn_number",
+    "trace_id",
+    "selected_primary_responder_id",
+    "selected_secondary_responder_ids",
+    "realized_actor_ids",
+    "realized_secondary_responder_ids",
+    "rendered_actor_ids",
+    "generated_spoken_line_count",
+    "generated_action_line_count",
+    "validated_spoken_line_count",
+    "validated_action_line_count",
+    "rendered_spoken_line_count",
+    "rendered_action_line_count",
+    "initiative_generated_count",
+    "initiative_preserved_count",
+    "initiative_seizer_id",
+    "initiative_loser_id",
+    "initiative_pressure_label",
+    "pacing_mode",
+    "silence_mode",
+    "thin_edge_applied",
+    "withheld_applied",
+    "compressed_applied",
+    "prior_tension_present",
+    "quality_class",
+    "degradation_signals",
+    "fallback_used",
+    "degraded_commit",
+    "retry_exhausted",
+    "response_present",
+    "initiative_present",
+    "multi_actor_realized",
+    "sparse_input_recovery_applied",
+)
+
 RAW_FALLBACK_BYPASS_NOTE = (
     "Graph-managed fallback uses raw adapter.generate (no LangChain structured parse) because the "
     "default mock adapter returns non-JSON text; primary invoke_model still uses LangChain."

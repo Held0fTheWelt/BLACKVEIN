@@ -8,6 +8,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
+from ai_stack.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS
+
 
 class _JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -31,6 +33,18 @@ def _hash_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _sanitize_vitality_telemetry(vitality_telemetry: dict[str, Any]) -> dict[str, Any]:
+    """Project only canonical vitality telemetry fields into audit logs."""
+    out: dict[str, Any] = {}
+    for key in VITALITY_TELEMETRY_REQUIRED_FIELDS:
+        out[key] = vitality_telemetry.get(key)
+
+    # Optional bounded helper fields for audit explainability.
+    if "sparse_input_detected" in vitality_telemetry:
+        out["sparse_input_detected"] = bool(vitality_telemetry.get("sparse_input_detected"))
+    return out
+
+
 def log_story_turn_event(
     *,
     trace_id: str | None,
@@ -43,6 +57,7 @@ def log_story_turn_event(
     graph_error_count: int = 0,
     quality_class: str | None = None,
     degradation_signals: list[str] | None = None,
+    vitality_telemetry: dict[str, Any] | None = None,
 ) -> None:
     entry: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -63,6 +78,8 @@ def log_story_turn_event(
         entry["degradation_signals"] = [str(signal) for signal in degradation_signals if str(signal)]
     if error_code:
         entry["error_code"] = error_code
+    if isinstance(vitality_telemetry, dict) and vitality_telemetry:
+        entry["vitality_telemetry_v1"] = _sanitize_vitality_telemetry(vitality_telemetry)
     _logger().info(entry)
 
 

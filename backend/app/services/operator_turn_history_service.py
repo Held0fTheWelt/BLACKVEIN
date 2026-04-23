@@ -1,8 +1,7 @@
 """Operator-facing turn history and agency diagnostics service.
 
-Provides dashboards and surfaces that let operators see where actor behavior
-survived or degraded through the turn pipeline. Used by the admin UI and
-diagnostics endpoints to help operators diagnose WS-1..4 behavior.
+Phase 5 surfaces canonical vitality telemetry so operators can answer why a turn
+felt passive without reconstructing hidden runtime state.
 """
 
 from __future__ import annotations
@@ -11,15 +10,63 @@ from datetime import datetime, timezone
 from typing import Any
 
 
+def _extract_vitality(event: dict[str, Any]) -> dict[str, Any]:
+    telemetry = event.get("actor_survival_telemetry") if isinstance(event.get("actor_survival_telemetry"), dict) else {}
+    vitality = telemetry.get("vitality_telemetry_v1") if isinstance(telemetry.get("vitality_telemetry_v1"), dict) else {}
+    if vitality:
+        return vitality
+    gov = event.get("runtime_governance_surface") if isinstance(event.get("runtime_governance_surface"), dict) else {}
+    fallback = gov.get("vitality_telemetry_v1") if isinstance(gov.get("vitality_telemetry_v1"), dict) else {}
+    return fallback
+
+
+def _extract_operator_hints(event: dict[str, Any]) -> dict[str, Any]:
+    telemetry = event.get("actor_survival_telemetry") if isinstance(event.get("actor_survival_telemetry"), dict) else {}
+    return telemetry.get("operator_diagnostic_hints") if isinstance(telemetry.get("operator_diagnostic_hints"), dict) else {}
+
+
+def _derive_passivity_factors(vitality: dict[str, Any], quality_class: str, degradation_signals: list[str]) -> list[str]:
+    factors: list[str] = []
+    if vitality.get("fallback_used"):
+        factors.append("fallback_used")
+    if vitality.get("retry_exhausted"):
+        factors.append("retry_exhausted")
+    if vitality.get("degraded_commit"):
+        factors.append("degraded_commit")
+    if vitality.get("thin_edge_applied") and vitality.get("withheld_applied"):
+        factors.append("thin_edge_withheld")
+    if not vitality.get("response_present"):
+        factors.append("no_visible_actor_response")
+    if (vitality.get("selected_secondary_responder_ids") or []) and not vitality.get("multi_actor_realized"):
+        factors.append("single_actor_only")
+    if quality_class == "weak_but_legal" or "weak_signal_accepted" in degradation_signals:
+        factors.append("weak_signal_accepted")
+    if vitality.get("sparse_input_detected") and not vitality.get("sparse_input_recovery_applied"):
+        factors.append("sparse_input_not_recovered")
+
+    deduped: list[str] = []
+    for factor in factors:
+        if factor not in deduped:
+            deduped.append(factor)
+    return deduped
+
+
+def _compute_rising_degraded_posture(rows: list[dict[str, Any]]) -> bool:
+    flags = [1 if str(row.get("quality_class") or "") in {"degraded", "failed"} else 0 for row in rows]
+    if len(flags) < 6:
+        return False
+    tail = flags[-5:]
+    prior = flags[:-5]
+    if not prior:
+        return False
+    return (sum(tail) / len(tail)) > (sum(prior) / len(prior))
+
+
 def build_turn_history_summary_for_session(
     diagnostics: list[dict[str, Any]],
     limit: int = 100,
 ) -> dict[str, Any]:
-    """Build operator-visible turn history summary from session diagnostics.
-
-    Extracts actor-survival telemetry from each turn event and formats it for
-    operator dashboards showing where behavior survived/degraded.
-    """
+    """Build operator-visible turn history summary from session diagnostics."""
     rows = []
     for event in diagnostics[-limit:]:
         if not isinstance(event, dict):
@@ -29,9 +76,10 @@ def build_turn_history_summary_for_session(
             rows.append(row)
 
     return {
-        "turn_history_version": "1.0",
+        "turn_history_version": "2.0",
         "total_turns": len(rows),
         "rows": rows,
+        "rising_degraded_posture": _compute_rising_degraded_posture(rows),
         "agency_statistics": _compute_agency_statistics(rows),
         "degradation_summary": _compute_degradation_summary(rows),
     }
@@ -42,34 +90,68 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
     if not event.get("turn_number"):
         return None
 
-    telemetry = event.get("actor_survival_telemetry") or {}
-    actor_survival = telemetry.get("actor_survival") or {}
-    hints = telemetry.get("operator_diagnostic_hints") or {}
-    bundle = event.get("visible_output_bundle") or {}
-    routing = event.get("routing") or {}
+    vitality = _extract_vitality(event)
+    hints = _extract_operator_hints(event)
+    governance = event.get("runtime_governance_surface") if isinstance(event.get("runtime_governance_surface"), dict) else {}
+
+    quality_class = str(
+        vitality.get("quality_class")
+        or governance.get("quality_class")
+        or ""
+    ).strip().lower() or "healthy"
+
+    degradation_signals = vitality.get("degradation_signals")
+    if not isinstance(degradation_signals, list):
+        degradation_signals = governance.get("degradation_signals") if isinstance(governance.get("degradation_signals"), list) else []
+    signal_list = [str(signal).strip() for signal in degradation_signals if str(signal).strip()]
+
+    passivity = list(hints.get("why_turn_felt_passive") or [])
+    if not passivity:
+        passivity = _derive_passivity_factors(vitality, quality_class, signal_list)
+
+    vitality_breakdown = {
+        "response_present": bool(vitality.get("response_present")),
+        "initiative_present": bool(vitality.get("initiative_present")),
+        "multi_actor_realized": bool(vitality.get("multi_actor_realized")),
+        "selected_secondary_count": len(vitality.get("selected_secondary_responder_ids") or []),
+        "realized_actor_count": len(vitality.get("realized_actor_ids") or []),
+        "rendered_actor_count": len(vitality.get("rendered_actor_ids") or []),
+        "sparse_input_recovery_applied": bool(vitality.get("sparse_input_recovery_applied")),
+    }
 
     return {
         "turn_number": event.get("turn_number"),
         "turn_kind": event.get("turn_kind"),
         "turn_timestamp": event.get("turn_timestamp_iso"),
         "trace_id": event.get("trace_id"),
-        # Actor intent
-        "configured_responder": actor_survival.get("configured_primary_responder"),
-        "configured_scene_function": actor_survival.get("configured_scene_function"),
-        # Pipeline survival
-        "generation_ok": actor_survival.get("generation_phase", {}).get("generation_attempted"),
-        "fallback_used": actor_survival.get("generation_phase", {}).get("generation_fallback_used"),
-        "validation_ok": actor_survival.get("validation_phase", {}).get("validation_approved"),
-        "commit_applied": actor_survival.get("commit_phase", {}).get("commit_applied"),
-        "spoken_lines_generated": actor_survival.get("generation_phase", {}).get("spoken_lines_generated", 0),
-        "spoken_lines_rendered": actor_survival.get("render_phase", {}).get("spoken_lines_rendered", 0),
-        # Degradation
-        "degradation_markers": actor_survival.get("degradation_markers", {}),
-        "agency_level": hints.get("actor_agency_level"),
-        "diagnostic_hints": hints.get("hints", []),
-        # Rendering
-        "output_type": "actor_agency" if bundle.get("responder_trace") else "narration_only",
-        "routing_reason": routing.get("route_reason", "unknown"),
+        "schema_version": vitality.get("schema_version"),
+        "configured_responder": vitality.get("selected_primary_responder_id"),
+        "configured_secondaries": list(vitality.get("selected_secondary_responder_ids") or []),
+        "realized_actor_ids": list(vitality.get("realized_actor_ids") or []),
+        "realized_secondary_responder_ids": list(vitality.get("realized_secondary_responder_ids") or []),
+        "rendered_actor_ids": list(vitality.get("rendered_actor_ids") or []),
+        "quality_class": quality_class,
+        "degradation_signals": signal_list,
+        "generation_ok": bool(vitality.get("generated_ok")),
+        "fallback_used": bool(vitality.get("fallback_used")),
+        "validation_ok": bool(vitality.get("validation_ok")),
+        "commit_applied": bool(vitality.get("commit_applied")),
+        "generated_spoken_line_count": int(vitality.get("generated_spoken_line_count") or 0),
+        "validated_spoken_line_count": int(vitality.get("validated_spoken_line_count") or 0),
+        "rendered_spoken_line_count": int(vitality.get("rendered_spoken_line_count") or 0),
+        "generated_action_line_count": int(vitality.get("generated_action_line_count") or 0),
+        "validated_action_line_count": int(vitality.get("validated_action_line_count") or 0),
+        "rendered_action_line_count": int(vitality.get("rendered_action_line_count") or 0),
+        "initiative_generated_count": int(vitality.get("initiative_generated_count") or 0),
+        "initiative_preserved_count": int(vitality.get("initiative_preserved_count") or 0),
+        "initiative_seizer_id": vitality.get("initiative_seizer_id"),
+        "initiative_loser_id": vitality.get("initiative_loser_id"),
+        "initiative_pressure_label": vitality.get("initiative_pressure_label"),
+        "agency_level": hints.get("actor_agency_level", "unknown"),
+        "diagnostic_hints": list(hints.get("hints") or []),
+        "why_turn_felt_passive": passivity,
+        "primary_passivity_factors": passivity[:3],
+        "vitality_breakdown": vitality_breakdown,
     }
 
 
@@ -79,55 +161,57 @@ def _compute_agency_statistics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         return {}
 
     total = len(rows)
-    full_agency = sum(1 for r in rows if r.get("agency_level") == "full_actor_agency")
-    generation_failed = sum(1 for r in rows if r.get("agency_level") == "generation_failed")
-    fallback_active = sum(1 for r in rows if r.get("agency_level") == "fallback_active")
-    validation_constrained = sum(1 for r in rows if r.get("agency_level") == "validation_constrained")
-    commit_blocked = sum(1 for r in rows if r.get("agency_level") == "commit_blocked")
-    narration_only = sum(1 for r in rows if r.get("agency_level") == "narration_only")
+    full_agency = sum(1 for row in rows if row.get("agency_level") == "full_actor_agency")
+    generation_failed = sum(1 for row in rows if row.get("agency_level") == "generation_failed")
+    fallback_active = sum(1 for row in rows if row.get("agency_level") == "fallback_active")
+    validation_constrained = sum(1 for row in rows if row.get("agency_level") == "validation_constrained")
+    commit_blocked = sum(1 for row in rows if row.get("agency_level") == "commit_blocked")
+    narration_only = sum(1 for row in rows if row.get("agency_level") == "narration_only")
 
-    avg_spoken_generated = sum(r.get("spoken_lines_generated", 0) for r in rows) / total if total else 0
-    avg_spoken_rendered = sum(r.get("spoken_lines_rendered", 0) for r in rows) / total if total else 0
+    avg_generated_spoken = sum(int(row.get("generated_spoken_line_count") or 0) for row in rows) / total
+    avg_validated_spoken = sum(int(row.get("validated_spoken_line_count") or 0) for row in rows) / total
+    avg_rendered_spoken = sum(int(row.get("rendered_spoken_line_count") or 0) for row in rows) / total
 
     return {
         "total_turns": total,
         "full_actor_agency_turns": full_agency,
-        "full_agency_percent": round(100 * full_agency / total, 1) if total else 0,
+        "full_agency_percent": round((100.0 * full_agency / total), 1),
         "generation_failed_turns": generation_failed,
         "fallback_active_turns": fallback_active,
         "validation_constrained_turns": validation_constrained,
         "commit_blocked_turns": commit_blocked,
         "narration_only_turns": narration_only,
-        "avg_spoken_lines_generated": round(avg_spoken_generated, 2),
-        "avg_spoken_lines_rendered": round(avg_spoken_rendered, 2),
+        "avg_generated_spoken_lines": round(avg_generated_spoken, 2),
+        "avg_validated_spoken_lines": round(avg_validated_spoken, 2),
+        "avg_rendered_spoken_lines": round(avg_rendered_spoken, 2),
     }
 
 
 def _compute_degradation_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Identify and summarize degradation patterns in the turn history."""
-    degradations = []
-    degradation_counts = {}
+    degraded_rows = [row for row in rows if str(row.get("quality_class") or "") in {"degraded", "failed"}]
 
+    signal_counts: dict[str, int] = {}
+    factor_counts: dict[str, int] = {}
     for row in rows:
-        markers = row.get("degradation_markers") or {}
-        if any(markers.values()):
-            for key, val in markers.items():
-                if val:
-                    degradation_counts[key] = degradation_counts.get(key, 0) + 1
-            hints = row.get("diagnostic_hints", [])
-            if hints:
-                degradations.append(
-                    {
-                        "turn_number": row.get("turn_number"),
-                        "hints": hints,
-                        "agency_level": row.get("agency_level"),
-                    }
-                )
+        for signal in row.get("degradation_signals") or []:
+            signal_counts[signal] = signal_counts.get(signal, 0) + 1
+        for factor in row.get("why_turn_felt_passive") or []:
+            factor_counts[factor] = factor_counts.get(factor, 0) + 1
 
     return {
-        "total_degraded_turns": len(degradations),
-        "degradation_types": degradation_counts,
-        "most_recent_degradations": degradations[-5:] if degradations else [],
+        "total_degraded_turns": len(degraded_rows),
+        "degradation_signal_counts": signal_counts,
+        "passivity_factor_counts": factor_counts,
+        "latest_degraded_turns": [
+            {
+                "turn_number": row.get("turn_number"),
+                "quality_class": row.get("quality_class"),
+                "degradation_signals": row.get("degradation_signals") or [],
+                "why_turn_felt_passive": row.get("why_turn_felt_passive") or [],
+            }
+            for row in degraded_rows[-5:]
+        ],
     }
 
 
@@ -135,23 +219,17 @@ def operator_diagnostics_surface(
     session_diagnostics: list[dict[str, Any]],
     fallback_marker_check: bool = True,
 ) -> dict[str, Any]:
-    """Build full operator diagnostic surface for agency troubleshooting.
-
-    Surfaces actor-survival telemetry, degradation patterns, and hints so
-    operators can identify where behavior survived or failed through the
-    pipeline.
-    """
+    """Build full operator diagnostic surface for agency troubleshooting."""
     history_summary = build_turn_history_summary_for_session(session_diagnostics)
     rows = history_summary.get("rows", [])
 
-    # Identify fallback/degraded turns for highlight
-    fallback_turns = [r for r in rows if r.get("fallback_used")]
-    failed_turns = [r for r in rows if not r.get("generation_ok")]
-    failed_validation = [r for r in rows if not r.get("validation_ok")]
-    failed_commit = [r for r in rows if not r.get("commit_applied")]
+    fallback_turns = [row for row in rows if row.get("fallback_used")]
+    failed_turns = [row for row in rows if not row.get("generation_ok")]
+    failed_validation = [row for row in rows if not row.get("validation_ok")]
+    failed_commit = [row for row in rows if not row.get("commit_applied")]
 
     return {
-        "diagnostics_version": "1.0",
+        "diagnostics_version": "2.0",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "turn_history": history_summary,
         "critical_issues": {
@@ -160,55 +238,87 @@ def operator_diagnostics_surface(
             "validation_failures": len(failed_validation),
             "commit_failures": len(failed_commit),
         },
+        "vitality_breakdown": {
+            "rows_with_response": sum(1 for row in rows if (row.get("vitality_breakdown") or {}).get("response_present")),
+            "rows_with_initiative": sum(1 for row in rows if (row.get("vitality_breakdown") or {}).get("initiative_present")),
+            "rows_with_multi_actor_realization": sum(
+                1 for row in rows if (row.get("vitality_breakdown") or {}).get("multi_actor_realized")
+            ),
+        },
+        "top_passivity_factors": _top_passivity_factors(rows),
         "operator_actions": _suggest_operator_actions(
-            fallback_turns, failed_turns, failed_validation, failed_commit
+            fallback_turns=fallback_turns,
+            failed_turns=failed_turns,
+            failed_validation=failed_validation,
+            failed_commit=failed_commit,
+            rows=rows,
         ),
         "documented_capabilities": {
-            "full_actor_agency": "Responder speaks and acts; output generated, validated, committed, rendered.",
-            "fallback_active": "Generation used fallback model; agency may be reduced.",
-            "validation_constrained": "Validation restricted actor behavior; original intent was constrained.",
-            "commit_blocked": "Turn was not committed; story state may not reflect intent.",
-            "narration_only": "No spoken lines in output; responder may have been silent or narrator-only.",
-            "generation_failed": "Generation failed entirely; no actor output available.",
+            "full_actor_agency": "Responder output survived generation, validation, commit, and render.",
+            "fallback_active": "Generation used fallback path; quality may be reduced.",
+            "validation_constrained": "Validation constrained actor behavior.",
+            "commit_blocked": "Turn was not committed.",
+            "narration_only": "No actor-lane response reached visible output.",
+            "generation_failed": "Generation failed and no usable actor output survived.",
         },
     }
 
 
+def _top_passivity_factors(rows: list[dict[str, Any]], top_n: int = 5) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        for factor in row.get("why_turn_felt_passive") or []:
+            counts[factor] = counts.get(factor, 0) + 1
+    ranked = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+    return [{"factor": factor, "count": count} for factor, count in ranked[:top_n]]
+
+
 def _suggest_operator_actions(
+    *,
     fallback_turns: list[dict[str, Any]],
     failed_turns: list[dict[str, Any]],
     failed_validation: list[dict[str, Any]],
     failed_commit: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
 ) -> list[str]:
     """Suggest operator actions based on observed degradation patterns."""
-    actions = []
+    actions: list[str] = []
 
     if failed_turns:
         actions.append(
-            f"⚠️ Generation failed on {len(failed_turns)} turns. "
-            "Check model availability and routing configuration."
+            f"Generation failed on {len(failed_turns)} turns; verify provider health and route policy."
         )
-
     if fallback_turns:
         actions.append(
-            f"⚠️ {len(fallback_turns)} turns used fallback model. "
-            "Primary model may be unavailable; check provider health."
+            f"Fallback path executed on {len(fallback_turns)} turns; inspect primary model availability."
         )
-
     if failed_validation:
         actions.append(
-            f"⚠️ {len(failed_validation)} turns failed validation. "
-            "Actor legality or continuity constraints may be too strict."
+            f"Validation failed on {len(failed_validation)} turns; inspect actor-lane and continuity constraints."
         )
-
     if failed_commit:
         actions.append(
-            f"⚠️ {len(failed_commit)} turns failed commit. "
-            "Story state or transaction issues; check world-engine logs."
+            f"Commit failed on {len(failed_commit)} turns; inspect commit seam and persistence diagnostics."
         )
 
-    if not (failed_turns or fallback_turns or failed_validation or failed_commit):
-        actions.append("✅ All turns completed with full actor agency.")
+    single_actor_only_count = sum(
+        1 for row in rows if "single_actor_only" in (row.get("why_turn_felt_passive") or [])
+    )
+    if single_actor_only_count:
+        actions.append(
+            f"{single_actor_only_count} turns nominated secondaries but realized a single actor; inspect responder realization policy."
+        )
+
+    sparse_not_recovered_count = sum(
+        1 for row in rows if "sparse_input_not_recovered" in (row.get("why_turn_felt_passive") or [])
+    )
+    if sparse_not_recovered_count:
+        actions.append(
+            f"Sparse/evasive input failed recovery on {sparse_not_recovered_count} turns; inspect thin-edge and probing recovery behavior."
+        )
+
+    if not actions:
+        actions.append("All sampled turns show healthy actor vitality posture.")
 
     return actions
 

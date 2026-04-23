@@ -181,3 +181,91 @@ def test_off_scope_move_type_vs_scene_hard_reject() -> None:
         )
     )
     assert out.gate_result == DramaticEffectGateResult.rejected_scene_function_mismatch
+
+
+def test_actor_lane_thin_prose_override_adds_rationale_code() -> None:
+    """Approved actor lanes with thin prose must emit explicit override rationale."""
+    sem = {
+        "move_type": "direct_accusation",
+        "social_move_family": "attack",
+        "target_actor_hint": None,
+        "directness": "direct",
+        "pressure_tactic": None,
+        "scene_risk_band": "high",
+        "interpretation_trace": [],
+        "feature_snapshot": {},
+    }
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative="Michel accuses; loud, furious.",
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=sem,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result in (
+        DramaticEffectGateResult.accepted,
+        DramaticEffectGateResult.accepted_with_weak_signal,
+    )
+    assert "actor_lanes_thin_prose_override" in out.effect_rationale_codes
+
+
+def test_without_actor_lane_override_no_thin_prose_rationale_code() -> None:
+    """Same thin prose without actor-lane approval should not report override rationale."""
+    sem = {
+        "move_type": "direct_accusation",
+        "social_move_family": "attack",
+        "target_actor_hint": None,
+        "directness": "direct",
+        "pressure_tactic": None,
+        "scene_risk_band": "high",
+        "interpretation_trace": [],
+        "feature_snapshot": {},
+    }
+    out = evaluate_dramatic_effect_gate(
+        _ctx(
+            narr="Michel accuses; voice loud, furious, slamming table.",
+            scene_fn="escalate_conflict",
+            sem=sem,
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.accepted_with_weak_signal
+    assert "actor_lanes_thin_prose_override" not in out.effect_rationale_codes
+
+
+def test_actor_lanes_do_not_bypass_scene_tags_for_empty_narrative() -> None:
+    """Approved actor lanes still require scene-tag support for empty prose."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative="",
+            selected_scene_function="establish_pressure",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 2,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
+    assert "scene_function_tags_unsatisfied" in out.effect_rationale_codes

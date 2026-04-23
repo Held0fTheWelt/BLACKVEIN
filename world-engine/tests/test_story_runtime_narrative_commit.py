@@ -491,3 +491,70 @@ def test_terminal_scene_sets_terminal_status(manager: StoryRuntimeManager) -> No
     assert nc["allowed"] is True
     assert nc["situation_status"] == "terminal"
     assert nc["is_terminal"] is True
+
+
+def test_execute_turn_propagates_vitality_telemetry_to_event_and_governance(
+    manager: StoryRuntimeManager,
+) -> None:
+    payload = _envelope(
+        interpreted_input={"kind": "speech", "confidence": 0.9},
+        generation={"success": True, "metadata": {}},
+    )
+    payload["actor_survival_telemetry"] = {
+        "vitality_telemetry_v1": {
+            "schema_version": "vitality_telemetry_v1",
+            "selected_primary_responder_id": "annette_reille",
+            "selected_secondary_responder_ids": ["michel_longstreet"],
+            "realized_actor_ids": ["annette_reille"],
+            "realized_secondary_responder_ids": [],
+            "rendered_actor_ids": ["annette_reille"],
+            "generated_spoken_line_count": 1,
+            "validated_spoken_line_count": 1,
+            "rendered_spoken_line_count": 1,
+            "generated_action_line_count": 0,
+            "validated_action_line_count": 0,
+            "rendered_action_line_count": 0,
+            "initiative_generated_count": 1,
+            "initiative_preserved_count": 1,
+            "initiative_seizer_id": "annette_reille",
+            "initiative_loser_id": "veronique_vallon",
+            "initiative_pressure_label": "contested",
+            "pacing_mode": "thin_edge",
+            "silence_mode": "withheld",
+            "thin_edge_applied": True,
+            "withheld_applied": True,
+            "compressed_applied": False,
+            "prior_tension_present": True,
+            "quality_class": "healthy",
+            "degradation_signals": [],
+            "fallback_used": False,
+            "degraded_commit": False,
+            "retry_exhausted": False,
+            "response_present": True,
+            "initiative_present": True,
+            "multi_actor_realized": False,
+            "sparse_input_recovery_applied": True,
+        },
+        "operator_diagnostic_hints": {
+            "why_turn_felt_passive": [],
+            "primary_passivity_factors": [],
+        },
+    }
+    manager.turn_graph = _FakeTurnGraph(payload)
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+
+    manager.execute_turn(session_id=session.session_id, player_input="I answer directly.")
+    diag = manager.get_diagnostics(session.session_id)
+    row = diag["diagnostics"][-1]
+    telemetry = row.get("actor_survival_telemetry") or {}
+    vitality = telemetry.get("vitality_telemetry_v1") or {}
+    assert vitality.get("schema_version") == "vitality_telemetry_v1"
+    gov = row.get("runtime_governance_surface") or {}
+    assert isinstance(gov.get("vitality_telemetry_v1"), dict)
+    assert gov.get("vitality_telemetry_v1", {}).get("selected_primary_responder_id") == "annette_reille"

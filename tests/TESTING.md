@@ -1,6 +1,6 @@
 # Testing guide — World of Shadows
 
-This document describes how to run the **multi-component** test suites using the orchestrator [`run_tests.py`](run_tests.py) in this directory. Pytest trees live in **several repositories** under the monorepo; the runner exposes **eight** named suites (seven distinct pytest cwd/path pairs — `writers_room` and `improvement` share `backend/` as cwd).
+This document describes how to run the consolidated test suites using the orchestrator [`run_tests.py`](run_tests.py) in this directory. Pytest trees live across multiple repository areas; the runner exposes component suites and root `tests/*` suite groups in one canonical entrypoint.
 
 The root `tests/` folder holds the **orchestrator** (`run_tests.py`), smoke assets (`tests/smoke/`), reports (`tests/reports/`), and this file. It does **not** replace each component’s own `tests/` root.
 
@@ -53,12 +53,20 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 | `writers_room` | `backend/` | `tests/writers_room` | **Slice** run: Writers-Room tests only (also collected under full `backend`). |
 | `improvement` | `backend/` | `tests/improvement` | **Slice** run: improvement-loop tests only. |
 | `ai_stack` | **repo root** | `ai_stack/tests` | Requires `PYTHONPATH` including repo root (runner sets this). |
+| `root_core` | **repo root** | `tests/test_agency_capability_matrix_truth.py` | Root canonical truth contract test. |
+| `root_integration` | **repo root** | `tests/integration` | Root integration checks. |
+| `root_branching` | **repo root** | `tests/branching` | Branching behavior checks. |
+| `root_smoke` | **repo root** | `tests/smoke` | Repository smoke checks. |
+| `root_tools` | **repo root** | `tests/tools` | Tooling tests. |
+| `root_requirements_hygiene` | **repo root** | `tests/requirements_hygiene` | Requirements and dependency hygiene checks. |
+| `root_e2e_python` | **repo root** | `tests/e2e` | Python end-to-end verification files. |
+| `root_experience_scoring` | **repo root** | `tests/experience_scoring_cli` | Experience scoring command tests. |
 
 ---
 
 ## `--suite all` semantics
 
-`--suite all` (or default `--suite` omitted) runs **six** suites **in order**:
+`--suite all` (or default `--suite` omitted) runs all Python suite groups in deterministic order:
 
 1. `backend`  
 2. `frontend`  
@@ -66,8 +74,16 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 4. `engine`  
 5. `database`  
 6. `ai_stack`  
+7. `root_core`  
+8. `root_integration`  
+9. `root_branching`  
+10. `root_smoke`  
+11. `root_tools`  
+12. `root_requirements_hygiene`  
+13. `root_e2e_python`  
+14. `root_experience_scoring`  
 
-`writers_room` and `improvement` are **not** separate orchestrator steps here: they are already part of `backend`’s `pytest tests` collection. That avoids **double-running** the same tests when you also had explicit slice suites.
+`writers_room` and `improvement` remain available as dedicated slices for focused execution, but are already covered under full backend collection.
 
 To run **only** Writers-Room or improvement tests (e.g. focused coverage):
 
@@ -92,6 +108,7 @@ python tests/run_tests.py --suite improvement
 | `frontend` | **ignored** — always full suite | | | |
 | `database` | **ignored** — always full suite | | | |
 | `ai_stack` | **ignored** — always full suite | | | |
+| `root_*` suites | **ignored** — always full suite | | | |
 
 When scope is set but not applied, the runner prints an `[INFO]` line (see `run_tests.py`).
 
@@ -139,6 +156,8 @@ Behavior is implemented in [`run_tests.py`](run_tests.py) (`_cov_sources_for_sui
 |--------|---------|
 | `--suite …` | One or more suite names, or `all` (see above). |
 | `--scope …` | Marker filter where supported (see matrix). |
+| `--with-playwright` | Add Playwright lane (`tests/e2e`, external toolchain). |
+| `--with-compose-smoke` | Add compose-smoke lane (`tests/smoke/compose_smoke`). |
 | `--quick` | Fast fail; see table above. |
 | `--stats` | Force collect-only with `--quick`. |
 | `--continue-on-failure` | Run all suites with `--quick` even after a failure. |
@@ -184,9 +203,9 @@ For a **production-narrow** path (real HTTP/WS, services up), see [`smoke/compos
 
 ---
 
-## Optional: Browser E2E (Playwright)
+## Optional: Browser E2E (Playwright lane)
 
-Critical UI flows (login, play shell) are scaffolded under [`e2e/`](e2e/README.md) (`@playwright/test`). Not part of the default `run_tests.py` Python orchestrator.
+Critical UI flows (login, play shell) are scaffolded under [`e2e/`](e2e/README.md) (`@playwright/test`). Use `python tests/run_tests.py --suite all --with-playwright` to include this lane.
 
 ---
 
