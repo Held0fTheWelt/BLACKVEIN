@@ -2384,6 +2384,11 @@ class RuntimeTurnGraphExecutor:
                 "character_profile_snippet": char_snippet,
                 "scene_guidance_snippets": guidance_snip,
                 "carry_forward_tension_notes": (state.get("prior_planner_truth") or {}).get("carry_forward_tension_notes"),
+                # C3: Reaction order divergence for render support surfacing
+                "reaction_order_divergence": state.get("reaction_order_divergence"),
+                "reaction_order_divergence_reason": state.get("reaction_order_divergence_reason"),
+                "preferred_reaction_order": state.get("preferred_reaction_order"),
+                "realized_actor_order": state.get("realized_actor_order"),
             },
         )
         update["generation"] = generation

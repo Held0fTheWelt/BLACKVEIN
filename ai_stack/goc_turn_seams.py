@@ -502,6 +502,25 @@ def run_visible_render(
                 if not isinstance(bundle["render_support"], dict):
                     bundle["render_support"] = {}
                 bundle["render_support"]["vitality_floor_warning"] = "thin_edge_output_empty_with_prior_tension"
+
+        # C3.1: Add reaction order divergence marker to render_support
+        reaction_order_divergence = rc.get("reaction_order_divergence")
+        reaction_order_divergence_reason = rc.get("reaction_order_divergence_reason")
+        if reaction_order_divergence and reaction_order_divergence_reason:
+            if "render_support" not in bundle:
+                bundle["render_support"] = {
+                    "projection_version": "director_surface_hints.v1",
+                    "player_visible": False,
+                    "director_surface_hints": [],
+                }
+            if not isinstance(bundle["render_support"], dict):
+                bundle["render_support"] = {}
+            bundle["render_support"]["reaction_order_divergence"] = {
+                "preferred": rc.get("preferred_reaction_order") or [],
+                "realized": rc.get("realized_actor_order") or [],
+                "reason": reaction_order_divergence_reason,
+            }
+
         if director_surface_hints:
             bundle["render_support"] = {
                 "projection_version": "director_surface_hints.v1",

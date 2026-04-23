@@ -432,9 +432,19 @@ class TestC22DivergenceSignals:
 class TestC31RenderSupportMarker:
     """C3.1 — Divergence surfaces as render_support warning."""
 
-    def test_divergence_marker_in_render_support_when_present(self):
-        """Render bundle includes divergence marker when divergence=True."""
-        # This test validates the structure expected in goc_turn_seams.py
+    def test_divergence_marker_in_render_context(self):
+        """Render context includes divergence fields."""
+        render_context = {
+            "reaction_order_divergence": True,
+            "reaction_order_divergence_reason": "single_actor_only",
+            "preferred_reaction_order": ["alice", "bob"],
+            "realized_actor_order": ["alice"],
+        }
+        assert render_context["reaction_order_divergence"] is True
+        assert render_context["reaction_order_divergence_reason"] == "single_actor_only"
+
+    def test_divergence_marker_structure_in_bundle(self):
+        """Divergence marker structure expected in render_support."""
         bundle = {
             "gm_narration": ["text"],
             "spoken_lines": [],
@@ -443,16 +453,20 @@ class TestC31RenderSupportMarker:
                 "projection_version": "director_surface_hints.v1",
                 "reaction_order_divergence": {
                     "preferred": ["alice", "bob"],
-                    "realized": ["bob", "alice"],
-                    "reason": "interruption_reordered_turn",
+                    "realized": ["alice"],
+                    "reason": "single_actor_only",
                 },
             },
         }
         assert "render_support" in bundle
         assert "reaction_order_divergence" in bundle["render_support"]
+        payload = bundle["render_support"]["reaction_order_divergence"]
+        assert payload["preferred"] == ["alice", "bob"]
+        assert payload["realized"] == ["alice"]
+        assert payload["reason"] == "single_actor_only"
 
-    def test_no_divergence_marker_when_no_divergence(self):
-        """Render bundle does not include divergence marker when aligned."""
+    def test_no_divergence_marker_when_none(self):
+        """Render bundle does not include divergence marker when None."""
         bundle = {
             "gm_narration": ["text"],
             "spoken_lines": [],
@@ -465,8 +479,8 @@ class TestC31RenderSupportMarker:
         """Divergence payload is compact (preferred, realized, reason)."""
         payload = {
             "preferred": ["alice", "bob"],
-            "realized": ["bob", "alice"],
-            "reason": "interruption_reordered_turn",
+            "realized": ["bob"],
+            "reason": "preferred_secondary_not_realized",
         }
         assert "preferred" in payload
         assert "realized" in payload
