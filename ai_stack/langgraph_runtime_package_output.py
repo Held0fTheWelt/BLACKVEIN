@@ -15,6 +15,7 @@ from ai_stack.langgraph_runtime_package_output_sections import (
     build_planner_state_projection,
     compute_experiment_preview_for_package_output,
 )
+from ai_stack.runtime_quality_semantics import canonical_quality_summary
 from ai_stack.langgraph_runtime_state import RuntimeTurnState
 from ai_stack.langgraph_runtime_tracking import _track
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
@@ -57,6 +58,7 @@ def package_runtime_graph_output(
     module_id = state.get("module_id") or ""
     validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
     committed = state.get("committed_result") if isinstance(state.get("committed_result"), dict) else {}
+    quality_surface = canonical_quality_summary(state=state, fallback_taken=fallback_taken)
 
     append_goc_validation_reject_failure_marker(
         module_id=module_id,
@@ -95,6 +97,7 @@ def package_runtime_graph_output(
         "dramatic_review": build_dramatic_review_section(state, vo),
         "planner_state_projection": build_planner_state_projection(state),
         "dramatic_context_summary": dramatic_context_summary,
+        "runtime_quality_surface": quality_surface,
     }
     update["graph_diagnostics"] = gd
     update["dramatic_context_summary"] = dramatic_context_summary
@@ -122,6 +125,9 @@ def package_runtime_graph_output(
     routing_final = dict(state.get("routing") or {})
     routing_final["fallback_stage_reached"] = "graph_fallback_executed" if fallback_taken else "primary_only"
     update["routing"] = routing_final
+    update["quality_class"] = quality_surface["quality_class"]
+    update["degradation_signals"] = list(quality_surface["degradation_signals"])
+    update["degradation_summary"] = quality_surface["degradation_summary"]
 
     # WS-5: Actor-survival telemetry — track where agent behavior survived/degraded
     gen_ok = generation.get("success") is True

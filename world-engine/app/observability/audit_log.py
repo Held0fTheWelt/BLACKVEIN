@@ -41,6 +41,8 @@ def log_story_turn_event(
     outcome: str,
     error_code: str | None = None,
     graph_error_count: int = 0,
+    quality_class: str | None = None,
+    degradation_signals: list[str] | None = None,
 ) -> None:
     entry: dict[str, Any] = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -55,6 +57,10 @@ def log_story_turn_event(
         "outcome": outcome,
         "graph_error_count": graph_error_count,
     }
+    if quality_class:
+        entry["quality_class"] = quality_class
+    if isinstance(degradation_signals, list):
+        entry["degradation_signals"] = [str(signal) for signal in degradation_signals if str(signal)]
     if error_code:
         entry["error_code"] = error_code
     _logger().info(entry)

@@ -27,6 +27,10 @@
             Validation:
             <code>{{ runtime_status_view.validation_status or "unknown" }}</code>
           </p>
+          <p id="runtime-quality-class" class="runtime-meta">
+            Quality:
+            <code>{{ runtime_status_view.quality_class or "unknown" }}</code>
+          </p>
           <p id="runtime-degraded-banner" class="play-runtime-banner play-runtime-banner--warn" {% if not runtime_status_view.degraded %}hidden{% endif %}>
             Degraded runtime path
             {% if runtime_status_view.degraded_reasons %}
@@ -75,6 +79,14 @@
           {% endif %}
           {% if entry.role == "runtime" and entry.responder_id %}
             <p class="runtime-meta">Responder <code>{{ entry.responder_id }}</code></p>
+          {% endif %}
+          {% if entry.role == "runtime" %}
+            <p class="runtime-meta">
+              Quality <code>{{ entry.quality_class or "unknown" }}</code>
+              {% if entry.degradation_signals %}
+                · signals: {{ entry.degradation_signals | join(", ") }}
+              {% endif %}
+            </p>
           {% endif %}
           {% if entry.role == "runtime" and entry.degraded %}
             <p class="play-turn-warning">

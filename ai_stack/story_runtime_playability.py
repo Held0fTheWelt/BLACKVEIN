@@ -34,6 +34,39 @@ HARD_BOUNDARY_REASON_PREFIXES = (
     "canonical_",
 )
 
+# Explicit degraded-commit policy table:
+# - Allowed: legal-but-weak prose outcomes after retries (tagged degraded_commit).
+# - Blocked: structural / legality / parser / empty-structure failures.
+DEGRADED_COMMIT_ALLOWED_REASONS = frozenset(
+    {
+        "dramatic_alignment_narrative_too_short",
+        "dramatic_effect_reject_empty_fluency",
+        "empty_visible_output",
+        "opening_leniency_approved",
+        "insufficient_character_reaction",
+    }
+)
+
+DEGRADED_COMMIT_BLOCK_REASONS = frozenset(
+    {
+        "actor_lane_illegal_actor",
+        "actor_lane_invalid_initiative_type",
+        "actor_lane_scene_function_mismatch",
+        "malformed_proposed_effect",
+        "incomplete_proposed_effect",
+        "model_generation_failed",
+    }
+)
+
+DEGRADED_COMMIT_BLOCK_FEEDBACK_CODES = frozenset(
+    {
+        "parser_error",
+        "model_call_failed",
+        "no_structured_effects",
+        "mock_fallback_output",
+    }
+)
+
 
 @dataclass(slots=True)
 class PlayabilityDecision:
@@ -95,6 +128,24 @@ def collect_playability_feedback_codes(
     return deduped
 
 
+def _degraded_commit_allowed(
+    *,
+    reason: str,
+    feedback: list[str],
+    actor_lane_validation: dict[str, Any] | None,
+) -> bool:
+    """Determine whether degraded commit is legal under explicit policy."""
+    if reason in DEGRADED_COMMIT_BLOCK_REASONS:
+        return False
+    if any(code in DEGRADED_COMMIT_BLOCK_FEEDBACK_CODES for code in feedback):
+        return False
+    if isinstance(actor_lane_validation, dict) and actor_lane_validation.get("status") == "rejected":
+        return False
+    if reason in DEGRADED_COMMIT_ALLOWED_REASONS:
+        return True
+    return False
+
+
 def decide_playability_recovery(
     *,
     turn_number: int,
@@ -130,6 +181,11 @@ def decide_playability_recovery(
         and not should_retry
         and not hard_boundary
         and turn_number <= 12
+        and _degraded_commit_allowed(
+            reason=reason,
+            feedback=feedback,
+            actor_lane_validation=actor_lane_validation,
+        )
     )
     actor_lane_approved = (
         isinstance(actor_lane_validation, dict)

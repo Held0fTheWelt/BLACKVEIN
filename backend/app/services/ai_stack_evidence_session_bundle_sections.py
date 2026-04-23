@@ -84,6 +84,9 @@ def apply_diagnostics_execution_truth_and_retrieval(
         diag_list_for_classifiers = diag_list
         last_turn: dict[str, Any] | None = None
         if isinstance(diag_list, list) and diag_list:
+            quality_aggregation = ev._runtime_quality_aggregation(diag_list)
+            execution_truth["runtime_quality_aggregation"] = quality_aggregation
+            bundle["runtime_quality_aggregation"] = quality_aggregation
             tail = diag_list[-1]
             last_turn = tail if isinstance(tail, dict) else None
         if last_turn is not None:

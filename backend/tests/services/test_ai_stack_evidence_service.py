@@ -10,6 +10,7 @@ from app.services.ai_stack_evidence_service import (
     _committed_narrative_surface,
     _last_turn_graph_mode,
     _degraded_path_signal_list,
+    _runtime_quality_aggregation,
     _improvement_package_recency_timestamp,
     _build_cross_layer_classifiers,
     _improvement_evidence_influence,
@@ -248,6 +249,73 @@ class TestDegradedPathSignalList:
             }
             result = _degraded_path_signal_list(graph)
             assert f"execution_health:{health}" in result
+
+
+class TestRuntimeQualityAggregation:
+    """Tests for _runtime_quality_aggregation function."""
+
+    def test_runtime_quality_counts_and_signals(self):
+        diag_list = [
+            {"turn_number": 1, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {
+                "turn_number": 2,
+                "runtime_governance_surface": {
+                    "quality_class": "weak_but_legal",
+                    "degradation_signals": ["weak_signal_accepted"],
+                },
+            },
+            {
+                "turn_number": 3,
+                "runtime_governance_surface": {
+                    "quality_class": "weak_but_legal",
+                    "degradation_signals": ["thin_prose_override"],
+                },
+            },
+            {
+                "turn_number": 4,
+                "runtime_governance_surface": {
+                    "quality_class": "degraded",
+                    "degradation_signals": ["fallback_used"],
+                },
+            },
+        ]
+        agg = _runtime_quality_aggregation(diag_list)
+        assert agg["quality_class_counts"]["healthy"] == 1
+        assert agg["quality_class_counts"]["weak_but_legal"] == 2
+        assert agg["quality_class_counts"]["degraded"] == 1
+        assert agg["degradation_signal_counts"]["fallback_used"] == 1
+        assert agg["latest_degraded_turns"][-1]["turn_number"] == 4
+
+    def test_runtime_quality_rising_degraded_posture(self):
+        diag_list = [
+            {"turn_number": 1, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {"turn_number": 2, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {"turn_number": 3, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {"turn_number": 4, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {"turn_number": 5, "runtime_governance_surface": {"quality_class": "healthy", "degradation_signals": []}},
+            {
+                "turn_number": 6,
+                "runtime_governance_surface": {"quality_class": "degraded", "degradation_signals": ["fallback_used"]},
+            },
+            {
+                "turn_number": 7,
+                "runtime_governance_surface": {"quality_class": "degraded", "degradation_signals": ["fallback_used"]},
+            },
+            {
+                "turn_number": 8,
+                "runtime_governance_surface": {"quality_class": "degraded", "degradation_signals": ["fallback_used"]},
+            },
+            {
+                "turn_number": 9,
+                "runtime_governance_surface": {"quality_class": "degraded", "degradation_signals": ["fallback_used"]},
+            },
+            {
+                "turn_number": 10,
+                "runtime_governance_surface": {"quality_class": "degraded", "degradation_signals": ["fallback_used"]},
+            },
+        ]
+        agg = _runtime_quality_aggregation(diag_list)
+        assert agg["rising_degraded_posture"] is True
 
 
 class TestImprovementPackageRecencyTimestamp:

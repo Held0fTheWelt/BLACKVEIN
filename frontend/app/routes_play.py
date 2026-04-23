@@ -27,6 +27,9 @@ TURN_LOG_MAX = 50
 DIAGNOSTICS_MAX_ROWS = 40
 OPERATOR_SESSION_JSON_MAX = 120_000
 
+_QUALITY_CLASS_VALUES = {"healthy", "weak_but_legal", "degraded", "failed"}
+_DEGRADED_QUALITY_CLASSES = {"degraded", "failed"}
+
 
 def _coerce_shell_lines(value: Any) -> list[str]:
     if isinstance(value, str):
@@ -52,31 +55,51 @@ def _coerce_shell_lines(value: Any) -> list[str]:
     return lines
 
 
-def _is_runtime_entry_degraded(entry: dict[str, Any]) -> tuple[bool, list[str]]:
+def _is_runtime_entry_degraded(entry: dict[str, Any]) -> tuple[bool, list[str], str]:
     authority = entry.get("authority_summary") if isinstance(entry.get("authority_summary"), dict) else {}
     governance = (
         entry.get("runtime_governance_surface")
         if isinstance(entry.get("runtime_governance_surface"), dict)
         else {}
     )
-    reasons: list[str] = []
+    quality = str(
+        entry.get("quality_class")
+        or governance.get("quality_class")
+        or authority.get("quality_class")
+        or ""
+    ).strip().lower()
+    if quality in _QUALITY_CLASS_VALUES:
+        signals = entry.get("degradation_signals")
+        if not isinstance(signals, list):
+            signals = governance.get("degradation_signals")
+        if not isinstance(signals, list):
+            signals = authority.get("degradation_signals")
+        reasons = [str(s).strip() for s in signals if str(s).strip()]
+        return quality in _DEGRADED_QUALITY_CLASSES, reasons, quality
 
+    reasons: list[str] = []
     validation_status = str(authority.get("validation_status") or "").strip().lower()
     if validation_status and validation_status != "approved":
-        reasons.append(f"validation_{validation_status}")
+        quality = "failed"
 
     fallback_stage = str(governance.get("fallback_stage_reached") or "").strip().lower()
     if fallback_stage and fallback_stage != "primary_only":
-        reasons.append(f"fallback_{fallback_stage}")
+        reasons.append("fallback_used")
 
     if bool(governance.get("mock_output_flag")):
-        reasons.append("mock_output")
+        reasons.append("fallback_used")
 
     failure_markers = entry.get("failure_markers")
     if isinstance(failure_markers, list) and failure_markers:
-        reasons.append("failure_markers_present")
+        reasons.append("non_factual_staging")
 
-    return bool(reasons), reasons
+    if not quality:
+        quality = "degraded" if reasons else "healthy"
+    deduped_reasons: list[str] = []
+    for reason in reasons:
+        if reason not in deduped_reasons:
+            deduped_reasons.append(reason)
+    return quality in _DEGRADED_QUALITY_CLASSES, deduped_reasons, quality
 
 
 def _normalize_story_entries_for_shell(
@@ -122,7 +145,7 @@ def _normalize_story_entries_for_shell(
             )
             or ""
         ).strip() or None
-        degraded, degraded_reasons = _is_runtime_entry_degraded(entry) if role == "runtime" else (False, [])
+        degraded, degraded_reasons, quality_class = _is_runtime_entry_degraded(entry) if role == "runtime" else (False, [], "healthy")
         normalized.append(
             {
                 **entry,
@@ -135,6 +158,9 @@ def _normalize_story_entries_for_shell(
                 "committed_consequences": committed_consequences,
                 "responder_id": responder_id,
                 "validation_status": validation_status,
+                "quality_class": quality_class,
+                "degradation_signals": degraded_reasons,
+                "degradation_summary": str(entry.get("degradation_summary") or "").strip() or (", ".join(degraded_reasons) if degraded_reasons else "none"),
                 "degraded": degraded,
                 "degraded_reasons": degraded_reasons,
             }
@@ -166,6 +192,8 @@ def _runtime_status_view_from_story_entries(
             "contract": "play_shell_runtime_status.v1",
             "selected_responder_id": player_shell_context.get("responder_id"),
             "validation_status": None,
+            "quality_class": "healthy",
+            "degradation_signals": [],
             "degraded": False,
             "degraded_reasons": [],
             "latest_turn_number": None,
@@ -174,6 +202,8 @@ def _runtime_status_view_from_story_entries(
         "contract": "play_shell_runtime_status.v1",
         "selected_responder_id": latest_runtime.get("responder_id") or player_shell_context.get("responder_id"),
         "validation_status": latest_runtime.get("validation_status"),
+        "quality_class": latest_runtime.get("quality_class") or "healthy",
+        "degradation_signals": list(latest_runtime.get("degradation_signals") or []),
         "degraded": bool(latest_runtime.get("degraded")),
         "degraded_reasons": list(latest_runtime.get("degraded_reasons") or []),
         "latest_turn_number": latest_runtime.get("turn_number"),

@@ -17,6 +17,21 @@ from ai_stack import (
     create_default_capability_registry,
 )
 from ai_stack.rag_retrieval_dtos import retrieval_config_from_governed
+from ai_stack.runtime_quality_semantics import canonical_quality_class
+from ai_stack.runtime_turn_contracts import (
+    DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
+    DEGRADATION_SIGNAL_DEGRADED_COMMIT,
+    DEGRADATION_SIGNAL_FALLBACK_USED,
+    DEGRADATION_SIGNAL_NON_FACTUAL_STAGING,
+    DEGRADATION_SIGNAL_PROSE_ONLY_RECOVERY,
+    DEGRADATION_SIGNAL_RETRY_EXHAUSTED,
+    DEGRADATION_SIGNAL_THIN_PROSE_OVERRIDE,
+    DEGRADATION_SIGNAL_VALUES,
+    DEGRADATION_SIGNAL_WEAK_SIGNAL_ACCEPTED,
+    QUALITY_CLASS_DEGRADED,
+    QUALITY_CLASS_FAILED,
+    QUALITY_CLASS_VALUES,
+)
 from ai_stack.story_runtime_playability import is_hard_boundary_failure
 
 from app.config import APP_VERSION
@@ -191,6 +206,66 @@ def _actor_line_count(value: Any) -> int:
     return count
 
 
+def _append_canonical_signal(signals: list[str], signal: str) -> None:
+    if signal not in DEGRADATION_SIGNAL_VALUES:
+        return
+    if signal not in signals:
+        signals.append(signal)
+
+
+def _canonical_quality_fields_from_surfaces(
+    *,
+    runtime_governance_surface: dict[str, Any],
+    authority_summary: dict[str, Any],
+) -> tuple[str, list[str], str]:
+    quality = str(runtime_governance_surface.get("quality_class") or "").strip().lower()
+    signals = runtime_governance_surface.get("degradation_signals")
+    signal_list: list[str] = []
+    if isinstance(signals, list):
+        for signal in signals:
+            _append_canonical_signal(signal_list, str(signal).strip())
+
+    if not signal_list:
+        validation_status = str(authority_summary.get("validation_status") or "").strip().lower()
+        validation_reason = str(runtime_governance_surface.get("validation_reason") or "").strip().lower()
+        fallback_stage = str(runtime_governance_surface.get("fallback_stage_reached") or "").strip().lower()
+        transition_pattern = str(runtime_governance_surface.get("transition_pattern") or "").strip().lower()
+        if fallback_stage and fallback_stage != "primary_only":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_FALLBACK_USED)
+        if bool(runtime_governance_surface.get("mock_output_flag")):
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_FALLBACK_USED)
+        if transition_pattern == "diagnostics_only":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_NON_FACTUAL_STAGING)
+        if validation_reason == "degraded_commit_after_retries":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_DEGRADED_COMMIT)
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_RETRY_EXHAUSTED)
+        if validation_reason == "opening_leniency_approved":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_PROSE_ONLY_RECOVERY)
+        if runtime_governance_surface.get("dramatic_quality_gate") == "effect_gate_weak_signal":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_WEAK_SIGNAL_ACCEPTED)
+        rationale_codes = runtime_governance_surface.get("dramatic_effect_rationale_codes")
+        if isinstance(rationale_codes, list) and "actor_lanes_thin_prose_override" in [str(x) for x in rationale_codes]:
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_THIN_PROSE_OVERRIDE)
+        actor_lane_status = str(runtime_governance_surface.get("actor_lane_validation_status") or "").strip().lower()
+        if actor_lane_status == "rejected":
+            _append_canonical_signal(signal_list, DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED)
+        if validation_status and validation_status != "approved" and quality != QUALITY_CLASS_FAILED:
+            quality = QUALITY_CLASS_FAILED
+
+    if quality not in QUALITY_CLASS_VALUES:
+        validation_status = str(authority_summary.get("validation_status") or "").strip().lower()
+        quality = canonical_quality_class(
+            validation_outcome={"status": validation_status},
+            commit_applied=bool(authority_summary.get("commit_applied")),
+            degradation_signals=signal_list,
+        )
+
+    summary = str(runtime_governance_surface.get("degradation_summary") or "").strip()
+    if not summary:
+        summary = ", ".join(signal_list) if signal_list else "none"
+    return quality, signal_list, summary
+
+
 def _build_actor_turn_summary(
     *,
     graph_state: dict[str, Any],
@@ -342,6 +417,9 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
             "committed_scene_id": authority.get("committed_scene_id") or commit.get("committed_scene_id"),
             "validation_status": authority.get("validation_status") or validation.get("status"),
             "commit_applied": authority.get("commit_applied"),
+            "quality_class": authority.get("quality_class"),
+            "degradation_signals": authority.get("degradation_signals") or [],
+            "degradation_summary": authority.get("degradation_summary"),
             "selected_scene_function": event.get("selected_scene_function"),
             "experiment_preview": event.get("experiment_preview"),
             "visibility_class_markers": event.get("visibility_class_markers") or [],
@@ -368,15 +446,12 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                 )
 
         visible_lines = _visible_lines_from_turn_event(event)
-        degraded_reasons: list[str] = []
-        validation_status = str(authority_summary.get("validation_status") or "").strip().lower()
-        if validation_status and validation_status != "approved":
-            degraded_reasons.append(f"validation_{validation_status}")
-        fallback_stage = str(runtime_governance_surface.get("fallback_stage_reached") or "").strip().lower()
-        if fallback_stage and fallback_stage != "primary_only":
-            degraded_reasons.append(f"fallback_{fallback_stage}")
-        if bool(runtime_governance_surface.get("mock_output_flag")):
-            degraded_reasons.append("mock_output")
+        quality_class, degradation_signals, degradation_summary = _canonical_quality_fields_from_surfaces(
+            runtime_governance_surface=runtime_governance_surface,
+            authority_summary=authority_summary,
+        )
+        degraded = quality_class in {QUALITY_CLASS_DEGRADED, QUALITY_CLASS_FAILED}
+        degraded_reasons = list(degradation_signals)
 
         if not visible_lines and not spoken_lines and not action_lines and not consequence_lines:
             continue
@@ -392,7 +467,10 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
             "committed_consequences": consequence_lines,
             "responder_id": story_dramatic_context.get("responder_id"),
             "validation_status": authority_summary.get("validation_status"),
-            "degraded": bool(degraded_reasons),
+            "quality_class": quality_class,
+            "degradation_signals": degradation_signals,
+            "degradation_summary": degradation_summary,
+            "degraded": degraded,
             "degraded_reasons": degraded_reasons,
             "actor_turn_summary": actor_turn_summary,
             "source": "authoritative_story_runtime",
@@ -777,6 +855,9 @@ def _build_committed_turn_authority(
         "committed_scene_id": committed_scene_id,
         "validation_status": validation.get("status"),
         "commit_applied": bool(graph_commit.get("commit_applied")),
+        "quality_class": graph_state.get("quality_class"),
+        "degradation_signals": list(graph_state.get("degradation_signals") or []),
+        "degradation_summary": graph_state.get("degradation_summary"),
         "graph_commit": graph_commit,
         "narrative_commit": narrative_commit_payload,
         "continuity_impacts": continuity,
@@ -1335,6 +1416,8 @@ class StoryRuntimeManager:
             player_input=player_input,
             outcome=outcome,
             graph_error_count=len(errors),
+            quality_class=str(graph_state.get("quality_class") or "") or None,
+            degradation_signals=list(graph_state.get("degradation_signals") or []),
         )
         narrative_commit_payload = narrative_commit.model_dump(mode="json")
         turn_thread_metrics = thread_continuity_metrics(session.narrative_threads)
@@ -1397,6 +1480,20 @@ class StoryRuntimeManager:
         val = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
         gov["validation_reason"] = val.get("reason")
         gov["mock_output_flag"] = bool(str(gen.get("content") or "").strip().startswith("[mock]"))
+        gov["transition_pattern"] = graph_state.get("transition_pattern")
+        gov["dramatic_quality_gate"] = val.get("dramatic_quality_gate")
+        gate_outcome = val.get("dramatic_effect_gate_outcome") if isinstance(val.get("dramatic_effect_gate_outcome"), dict) else {}
+        gov["dramatic_effect_rationale_codes"] = (
+            list(gate_outcome.get("effect_rationale_codes") or [])
+            if isinstance(gate_outcome, dict)
+            else []
+        )
+        actor_lane_validation = val.get("actor_lane_validation") if isinstance(val.get("actor_lane_validation"), dict) else {}
+        gov["actor_lane_validation_status"] = actor_lane_validation.get("status")
+        gov["actor_lane_validation_reason"] = actor_lane_validation.get("reason")
+        gov["quality_class"] = graph_state.get("quality_class")
+        gov["degradation_signals"] = list(graph_state.get("degradation_signals") or [])
+        gov["degradation_summary"] = graph_state.get("degradation_summary")
         # The live player-turn path always routes through ``run_validation_seam``
         # inside the graph, which populates ``validator_lane``. Publishing it
         # here makes the "which validator ran" question auditable per turn and
@@ -1462,6 +1559,16 @@ class StoryRuntimeManager:
                 if isinstance(row, dict)
                 and str(row.get("actor_id") or row.get("responder_id") or "").strip()
             ]
+        quality_class, degradation_signals, degradation_summary = _canonical_quality_fields_from_surfaces(
+            runtime_governance_surface=gov,
+            authority_summary={
+                "validation_status": val.get("status"),
+                "commit_applied": bool((graph_state.get("committed_result") or {}).get("commit_applied")),
+            },
+        )
+        gov["quality_class"] = quality_class
+        gov["degradation_signals"] = degradation_signals
+        gov["degradation_summary"] = degradation_summary
         event: dict[str, Any] = {
             "turn_number": commit_turn_number,
             "turn_kind": turn_kind or "player",

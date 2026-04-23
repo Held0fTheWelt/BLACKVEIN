@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_stack import build_retrieval_trace
+from ai_stack.runtime_turn_contracts import QUALITY_CLASS_VALUES
 
 from app.runtime.session_store import get_session as get_runtime_session
 from app.services.improvement_service import list_recommendation_packages
@@ -141,6 +142,71 @@ def _degraded_path_signal_list(graph: dict[str, Any]) -> list[str]:
     return active
 
 
+def _runtime_quality_aggregation(diag_list: list[Any] | None) -> dict[str, Any]:
+    """Aggregate canonical quality posture across turn diagnostics."""
+    counts = {quality: 0 for quality in QUALITY_CLASS_VALUES}
+    signal_counts: dict[str, int] = {}
+    degraded_turns: list[dict[str, Any]] = []
+    degraded_flags: list[int] = []
+
+    if not isinstance(diag_list, list):
+        return {
+            "quality_class_counts": counts,
+            "degradation_signal_counts": signal_counts,
+            "latest_degraded_turns": [],
+            "rising_degraded_posture": False,
+            "turns_with_quality": 0,
+        }
+
+    turns_with_quality = 0
+    for row in diag_list:
+        if not isinstance(row, dict):
+            continue
+        gov = row.get("runtime_governance_surface") if isinstance(row.get("runtime_governance_surface"), dict) else {}
+        quality = str(gov.get("quality_class") or "").strip().lower()
+        if quality not in counts:
+            validation = row.get("validation_outcome") if isinstance(row.get("validation_outcome"), dict) else {}
+            v_status = str(validation.get("status") or "").strip().lower()
+            if v_status == "approved":
+                quality = "healthy"
+            elif v_status:
+                quality = "failed"
+        if quality in counts:
+            counts[quality] += 1
+            turns_with_quality += 1
+        signals = gov.get("degradation_signals") if isinstance(gov.get("degradation_signals"), list) else []
+        signal_list = [str(s).strip() for s in signals if str(s).strip()]
+        for signal in signal_list:
+            signal_counts[signal] = signal_counts.get(signal, 0) + 1
+        is_degraded = quality in {"degraded", "failed"}
+        degraded_flags.append(1 if is_degraded else 0)
+        if is_degraded:
+            degraded_turns.append(
+                {
+                    "turn_number": row.get("turn_number"),
+                    "quality_class": quality,
+                    "degradation_signals": signal_list,
+                }
+            )
+
+    rising = False
+    if len(degraded_flags) >= 6:
+        tail = degraded_flags[-5:]
+        prior = degraded_flags[-10:-5] if len(degraded_flags) >= 10 else degraded_flags[:-5]
+        if prior:
+            tail_ratio = sum(tail) / len(tail)
+            prior_ratio = sum(prior) / len(prior)
+            rising = tail_ratio > prior_ratio
+
+    return {
+        "quality_class_counts": counts,
+        "degradation_signal_counts": signal_counts,
+        "latest_degraded_turns": degraded_turns[-5:],
+        "rising_degraded_posture": rising,
+        "turns_with_quality": turns_with_quality,
+    }
+
+
 def _improvement_package_recency_timestamp(package: dict[str, Any]) -> float:
     raw = package.get("generated_at")
     if not isinstance(raw, str) or not raw.strip():
@@ -166,6 +232,7 @@ def _build_cross_layer_classifiers(
     graph_mode = (execution_truth or {}).get("last_turn_graph_mode") if execution_truth else None
     retrieval = (execution_truth or {}).get("retrieval_influence") if execution_truth else None
     tools = (execution_truth or {}).get("tool_influence") if execution_truth else None
+    quality = (execution_truth or {}).get("runtime_quality_aggregation") if execution_truth else None
     tier = retrieval.get("evidence_tier") if isinstance(retrieval, dict) else None
     if not has_last_turn:
         retrieval_class = "no_turn_diagnostics"
@@ -193,6 +260,9 @@ def _build_cross_layer_classifiers(
         "tool_influenced_last_turn": bool(isinstance(tools, dict) and tools.get("material_influence")),
         "bridge_reachability": "ok" if not bridge_errors else "degraded",
         "active_degradation_markers": list(degraded_path_signals),
+        "quality_class_counts": (quality or {}).get("quality_class_counts") if isinstance(quality, dict) else {},
+        "degradation_signal_counts": (quality or {}).get("degradation_signal_counts") if isinstance(quality, dict) else {},
+        "rising_degraded_posture": bool((quality or {}).get("rising_degraded_posture")) if isinstance(quality, dict) else False,
     }
 
 

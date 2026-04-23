@@ -2008,6 +2008,7 @@ class RuntimeTurnGraphExecutor:
             "feedback_codes": list(feedback_codes),
             "success": bool(call.success),
             "parser_error": runtime_result.parser_error,
+            "preserve_actor_lanes": bool(preserve_actor_lanes),
         }
         return rewritten, proposed, attempt
 

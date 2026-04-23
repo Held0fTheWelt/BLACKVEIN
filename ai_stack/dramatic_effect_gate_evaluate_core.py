@@ -44,14 +44,17 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
     # Actor-lane fluency override BEFORE legacy alignment check.
     # If lanes are approved and non-empty, don't reject on prose emptiness or ultra-short prose.
     _actor = ctx.actor_lane_summary or {}
+    thin_prose_override = False
     if (
         _actor.get("actor_lane_status") == "approved"
         and (_actor.get("spoken_line_count", 0) + _actor.get("action_line_count", 0)) > 0
     ):
         if not text:
             text = "(actor-driven turn)"
+            thin_prose_override = True
         elif len(text) < 40:
             text = text + " (actor realization present)"
+            thin_prose_override = True
         ctx = ctx.model_copy(update={"proposed_narrative": text})
 
     if (legacy := try_legacy_alignment(ctx)) is not None:
@@ -86,10 +89,12 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
             pressure_cont=pressure_cont,
             char_post=char_post,
             cont_posture=cont_posture,
+            thin_prose_override=thin_prose_override,
         )
     return outcome_primary_accepted(
         pressure_cont=pressure_cont,
         char_post=char_post,
         cont_posture=cont_posture,
         trace=trace,
+        thin_prose_override=thin_prose_override,
     )

@@ -33,6 +33,53 @@ EXECUTION_HEALTH_VALUES: tuple[ExecutionHealth, ...] = (
     EXECUTION_HEALTH_DEGRADED_GENERATION,
 )
 
+# Canonical per-turn runtime quality posture.
+QualityClass = Literal["healthy", "weak_but_legal", "degraded", "failed"]
+
+QUALITY_CLASS_HEALTHY: QualityClass = "healthy"
+QUALITY_CLASS_WEAK_BUT_LEGAL: QualityClass = "weak_but_legal"
+QUALITY_CLASS_DEGRADED: QualityClass = "degraded"
+QUALITY_CLASS_FAILED: QualityClass = "failed"
+
+QUALITY_CLASS_VALUES: tuple[QualityClass, ...] = (
+    QUALITY_CLASS_HEALTHY,
+    QUALITY_CLASS_WEAK_BUT_LEGAL,
+    QUALITY_CLASS_DEGRADED,
+    QUALITY_CLASS_FAILED,
+)
+
+# Canonical degradation signal taxonomy (controlled, non-free-form).
+DegradationSignal = Literal[
+    "fallback_used",
+    "weak_signal_accepted",
+    "non_factual_staging",
+    "degraded_commit",
+    "actor_lanes_validation_gated",
+    "prose_only_recovery",
+    "thin_prose_override",
+    "retry_exhausted",
+]
+
+DEGRADATION_SIGNAL_FALLBACK_USED: DegradationSignal = "fallback_used"
+DEGRADATION_SIGNAL_WEAK_SIGNAL_ACCEPTED: DegradationSignal = "weak_signal_accepted"
+DEGRADATION_SIGNAL_NON_FACTUAL_STAGING: DegradationSignal = "non_factual_staging"
+DEGRADATION_SIGNAL_DEGRADED_COMMIT: DegradationSignal = "degraded_commit"
+DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED: DegradationSignal = "actor_lanes_validation_gated"
+DEGRADATION_SIGNAL_PROSE_ONLY_RECOVERY: DegradationSignal = "prose_only_recovery"
+DEGRADATION_SIGNAL_THIN_PROSE_OVERRIDE: DegradationSignal = "thin_prose_override"
+DEGRADATION_SIGNAL_RETRY_EXHAUSTED: DegradationSignal = "retry_exhausted"
+
+DEGRADATION_SIGNAL_VALUES: tuple[DegradationSignal, ...] = (
+    DEGRADATION_SIGNAL_FALLBACK_USED,
+    DEGRADATION_SIGNAL_WEAK_SIGNAL_ACCEPTED,
+    DEGRADATION_SIGNAL_NON_FACTUAL_STAGING,
+    DEGRADATION_SIGNAL_DEGRADED_COMMIT,
+    DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
+    DEGRADATION_SIGNAL_PROSE_ONLY_RECOVERY,
+    DEGRADATION_SIGNAL_THIN_PROSE_OVERRIDE,
+    DEGRADATION_SIGNAL_RETRY_EXHAUSTED,
+)
+
 RAW_FALLBACK_BYPASS_NOTE = (
     "Graph-managed fallback uses raw adapter.generate (no LangChain structured parse) because the "
     "default mock adapter returns non-JSON text; primary invoke_model still uses LangChain."

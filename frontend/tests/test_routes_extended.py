@@ -619,7 +619,9 @@ def test_routes_play_normalizes_story_entries_and_runtime_status_view():
     assert normalized[0]["spoken_lines"] == ["annette_reille: Enough. (cutting)"]
     assert normalized[0]["action_lines"] == ["annette_reille: She leans in."]
     assert normalized[0]["degraded"] is True
-    assert "fallback_graph_fallback_executed" in normalized[0]["degraded_reasons"]
+    assert normalized[0]["quality_class"] == "degraded"
+    assert "fallback_used" in normalized[0]["degraded_reasons"]
+    assert "fallback_used" in normalized[0]["degradation_signals"]
 
     status = routes_play._runtime_status_view_from_story_entries(
         normalized,
@@ -629,10 +631,34 @@ def test_routes_play_normalizes_story_entries_and_runtime_status_view():
         "contract": "play_shell_runtime_status.v1",
         "selected_responder_id": "annette_reille",
         "validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["fallback_used"],
         "degraded": True,
-        "degraded_reasons": ["fallback_graph_fallback_executed"],
+        "degraded_reasons": ["fallback_used"],
         "latest_turn_number": 3,
     }
+
+
+def test_routes_play_weak_but_legal_is_not_marked_degraded():
+    normalized = routes_play._normalize_story_entries_for_shell(
+        [
+            {
+                "entry_id": "r2",
+                "role": "runtime",
+                "turn_number": 4,
+                "text": "The answer lands, but softly.",
+                "authority_summary": {"validation_status": "approved"},
+                "runtime_governance_surface": {
+                    "quality_class": "weak_but_legal",
+                    "degradation_signals": ["weak_signal_accepted"],
+                },
+            }
+        ]
+    )
+    assert normalized[0]["quality_class"] == "weak_but_legal"
+    assert normalized[0]["degradation_signals"] == ["weak_signal_accepted"]
+    assert normalized[0]["degraded"] is False
+    assert normalized[0]["degraded_reasons"] == ["weak_signal_accepted"]
 
 
 def test_routes_play_runtime_view_and_opening_projection(capsys):

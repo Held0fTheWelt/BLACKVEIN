@@ -80,6 +80,8 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert entries[2]["action_lines"] == ["Annette folds her arms and leans over the table."]
     assert entries[2]["committed_consequences"] == ["tension_escalates"]
     assert entries[2]["responder_id"] == "annette_reille"
+    assert entries[2]["quality_class"] == "healthy"
+    assert entries[2]["degradation_signals"] == []
     assert entries[2]["degraded"] is False
     assert entries[2]["degraded_reasons"] == []
     assert entries[2]["render_support"]["player_visible"] is False
@@ -89,3 +91,40 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert entries[2]["dramatic_context_summary"]["contract"] == "story_window_dramatic_context.v1"
     assert entries[2]["dramatic_context_summary"]["social_outcome"] == "tension_escalates"
     assert entries[2]["authority_summary"]["dramatic_context"]["social_risk_band"] == "high"
+
+
+def test_story_window_projection_preserves_degraded_quality_fields() -> None:
+    session = StorySession(
+        session_id="story-2",
+        module_id="god_of_carnage",
+        runtime_projection={"start_scene_id": "scene_1"},
+        current_scene_id="scene_1",
+    )
+    session.diagnostics = [
+        {
+            "turn_number": 1,
+            "turn_kind": "player",
+            "raw_input": "I push back.",
+            "visible_output_bundle": {"gm_narration": ["The room stirs."]},
+            "narrative_commit": {"committed_consequences": ["pressure_holds"]},
+            "committed_turn_authority": {
+                "authority_record_version": "committed_turn_authority.v1",
+                "validation_status": "approved",
+                "commit_applied": True,
+                "quality_class": "degraded",
+                "degradation_signals": ["fallback_used"],
+            },
+            "runtime_governance_surface": {
+                "quality_class": "degraded",
+                "degradation_signals": ["fallback_used"],
+                "degradation_summary": "fallback_used",
+                "fallback_stage_reached": "graph_fallback_executed",
+            },
+        }
+    ]
+    entries = _story_window_entries_for_session(session)
+    runtime = entries[-1]
+    assert runtime["quality_class"] == "degraded"
+    assert runtime["degradation_signals"] == ["fallback_used"]
+    assert runtime["degraded"] is True
+    assert runtime["degraded_reasons"] == ["fallback_used"]

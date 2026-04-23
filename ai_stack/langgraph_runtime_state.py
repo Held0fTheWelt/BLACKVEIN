@@ -99,6 +99,9 @@ class RuntimeTurnState(TypedDict, total=False):
     # actors were dropped. Populated by the validate_seam node.
     responder_reconciliation: dict[str, Any]
     actor_lane_validation: dict[str, Any]
+    quality_class: str
+    degradation_signals: list[str]
+    degradation_summary: str
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"

@@ -41,3 +41,32 @@ def test_decide_playability_retry_then_degraded_window() -> None:
     )
     assert d2.should_retry is False
     assert d2.allow_degraded_commit is True
+
+
+def test_degraded_commit_blocked_for_actor_lane_illegal_reason() -> None:
+    decision = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=2,
+        max_attempts=2,
+        outcome={"status": "rejected", "reason": "actor_lane_illegal_actor"},
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"type": "narrative", "text": "y"}],
+        allow_degraded_commit_after_retries=True,
+        actor_lane_validation={"status": "rejected", "reason": "actor_lane_illegal_actor"},
+    )
+    assert decision.should_retry is False
+    assert decision.allow_degraded_commit is False
+
+
+def test_degraded_commit_blocked_for_parser_failure_feedback() -> None:
+    decision = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=2,
+        max_attempts=2,
+        outcome={"status": "rejected", "reason": "dramatic_alignment_narrative_too_short"},
+        generation={"success": True, "content": "x" * 120, "metadata": {"langchain_parser_error": "boom"}},
+        proposed_state_effects=[{"type": "narrative", "text": "y"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    assert decision.should_retry is False
+    assert decision.allow_degraded_commit is False

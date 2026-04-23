@@ -260,6 +260,7 @@ def outcome_weak_signal_accepted(
     pressure_cont: bool,
     char_post: CharacterPlausibilityPosture,
     cont_posture: ContinuitySupportPosture,
+    thin_prose_override: bool = False,
 ) -> DramaticEffectGateOutcome:
     """Describe what ``outcome_weak_signal_accepted`` does in one line
     (verb-led summary for this function).
@@ -275,6 +276,9 @@ def outcome_weak_signal_accepted(
         DramaticEffectGateOutcome:
             Returns a value of type ``DramaticEffectGateOutcome``; see the function body for structure, error paths, and sentinels.
     """
+    effect_codes = ["borderline_narrative_mass_with_tags"]
+    if thin_prose_override:
+        effect_codes.append("actor_lanes_thin_prose_override")
     return DramaticEffectGateOutcome(
         gate_result=DramaticEffectGateResult.accepted_with_weak_signal,
         rejection_reasons=[],
@@ -283,7 +287,7 @@ def outcome_weak_signal_accepted(
         character_plausibility_posture=char_post,
         continuity_support_posture=cont_posture,
         empty_fluency_risk=EmptyFluencyRisk.moderate,
-        effect_rationale_codes=["borderline_narrative_mass_with_tags"],
+        effect_rationale_codes=effect_codes,
         legacy_fallback_used=False,
         diagnostic_trace=[DramaticEffectTraceItem(code="weak_signal", detail="short_but_tagged")],
     )
@@ -295,6 +299,7 @@ def outcome_primary_accepted(
     char_post: CharacterPlausibilityPosture,
     cont_posture: ContinuitySupportPosture,
     trace: list[DramaticEffectTraceItem],
+    thin_prose_override: bool = False,
 ) -> DramaticEffectGateOutcome:
     """Describe what ``outcome_primary_accepted`` does in one line
     (verb-led summary for this function).
@@ -311,6 +316,9 @@ def outcome_primary_accepted(
         DramaticEffectGateOutcome:
             Returns a value of type ``DramaticEffectGateOutcome``; see the function body for structure, error paths, and sentinels.
     """
+    effect_codes = ["primary_gate_pass"]
+    if thin_prose_override:
+        effect_codes.append("actor_lanes_thin_prose_override")
     return DramaticEffectGateOutcome(
         gate_result=DramaticEffectGateResult.accepted,
         supports_scene_function=True,
@@ -318,7 +326,7 @@ def outcome_primary_accepted(
         character_plausibility_posture=char_post,
         continuity_support_posture=cont_posture,
         empty_fluency_risk=EmptyFluencyRisk.low,
-        effect_rationale_codes=["primary_gate_pass"],
+        effect_rationale_codes=effect_codes,
         legacy_fallback_used=False,
         diagnostic_trace=trace,
     )
