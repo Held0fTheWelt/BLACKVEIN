@@ -541,3 +541,90 @@ class TestC4IntegrationSanity:
         packet = _build_dramatic_generation_packet(state)
         assert "preferred_reaction_order" in packet
         assert packet["preferred_reaction_order"] == []
+
+    def test_full_pipeline_no_regression_healthy_turn(self):
+        """Full pipeline: healthy multi-actor turn with aligned order."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},
+            ],
+            "secondary_responder_ids": ["bob"],
+            "spoken_lines": [
+                {"speaker_id": "alice", "text": "Hello"},
+                {"speaker_id": "bob", "text": "Hi back"},
+            ],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [
+                    {"speaker_id": "alice", "text": "Hello"},
+                    {"speaker_id": "bob", "text": "Hi back"},
+                ],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello", "bob: Hi back"],
+                "action_lines": [],
+            },
+        }
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+
+        # Healthy turn should not show divergence
+        assert vitality.get("reaction_order_divergence") is None
+        assert vitality.get("reaction_order_divergence_reason") is None
+        # But should track the order information
+        assert vitality.get("preferred_reaction_order") == ["alice", "bob"]
+        assert vitality.get("realized_actor_order") == ["alice", "bob"]
+        assert vitality.get("multi_actor_realized") is True
+
+    def test_full_pipeline_divergence_interruption(self):
+        """Full pipeline: interruption-style divergence."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        # Scenario: alice was primary, bob nominated secondary, but bob interrupts first
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},
+            ],
+            "secondary_responder_ids": ["bob"],
+            "spoken_lines": [
+                {"speaker_id": "bob", "text": "Hold on!"},  # Bob speaks first (interruption)
+                {"speaker_id": "alice", "text": "What?"},
+            ],
+            "action_lines": [],
+            "initiative_events": [
+                {"actor_id": "bob", "type": "interrupt"},
+            ],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [
+                    {"speaker_id": "bob", "text": "Hold on!"},
+                    {"speaker_id": "alice", "text": "What?"},
+                ],
+                "action_lines": [],
+                "initiative_events": [{"actor_id": "bob", "type": "interrupt"}],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["bob: Hold on!", "alice: What?"],
+                "action_lines": [],
+            },
+        }
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+
+        # Interruption causes realized order to differ
+        assert vitality.get("reaction_order_divergence") is True
+        assert vitality.get("reaction_order_divergence_reason") == "realized_order_differs"
+        assert vitality.get("preferred_reaction_order") == ["alice", "bob"]
+        assert vitality.get("realized_actor_order") == ["bob", "alice"]
