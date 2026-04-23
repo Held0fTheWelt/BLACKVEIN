@@ -313,10 +313,47 @@ def _build_vitality_telemetry_v1(
     initiative_present = initiative_preserved_count > 0
     multi_actor_realized = len(realized_actor_ids) >= 2
 
+    # C2: Realized and preferred actor order tracking
     preferred_reaction_order_ids = _preferred_reaction_order_ids(responders)
+
+    # Build realized order from validated lanes (first-seen, deduplicated)
+    realized_spoken_order = _collect_actor_ids_from_rows(
+        validated_spoken_rows,
+        speaker_key="speaker_id",
+        actor_key="actor_id",
+    )
+    realized_action_order = _collect_actor_ids_from_rows(
+        validated_action_rows,
+        speaker_key="speaker_id",
+        actor_key="actor_id",
+    )
+    realized_actor_order = _dedupe_strings(realized_spoken_order + realized_action_order)
+
+    # C2: Compute reaction order divergence with multiple reasons
     reaction_order_divergence: str | None = None
-    if selected_secondary_responder_ids and response_present and not multi_actor_realized:
-        reaction_order_divergence = "secondary_responder_nominated_not_realized_in_output"
+    reaction_order_divergence_reason: str | None = None
+
+    if preferred_reaction_order_ids:
+        # Check if secondary responders were nominated but not realized (priority 1)
+        secondary_not_realized = [
+            actor_id for actor_id in selected_secondary_responder_ids
+            if actor_id not in realized_actor_order
+        ]
+        if secondary_not_realized and response_present:
+            reaction_order_divergence = True
+            reaction_order_divergence_reason = "preferred_secondary_not_realized"
+        # Check if only single actor realized when multiple preferred (priority 2)
+        elif len(preferred_reaction_order_ids) > 1 and len(realized_actor_order) == 1:
+            reaction_order_divergence = True
+            reaction_order_divergence_reason = "single_actor_only"
+        # Check if order differs (priority 3)
+        elif realized_actor_order and realized_actor_order != preferred_reaction_order_ids:
+            reaction_order_divergence = True
+            reaction_order_divergence_reason = "realized_order_differs"
+        # No response at all (priority 4)
+        elif preferred_reaction_order_ids and not realized_actor_order and response_present is False:
+            reaction_order_divergence = True
+            reaction_order_divergence_reason = "single_actor_only"
 
     sparse_input_detected = _is_sparse_input(state)
     sparse_input_recovery_applied = bool(
@@ -361,8 +398,12 @@ def _build_vitality_telemetry_v1(
         "initiative_present": initiative_present,
         "multi_actor_realized": multi_actor_realized,
         "sparse_input_recovery_applied": sparse_input_recovery_applied,
-        "preferred_reaction_order_ids": preferred_reaction_order_ids,
+        "preferred_reaction_order": preferred_reaction_order_ids,
+        "realized_spoken_order": realized_spoken_order,
+        "realized_action_order": realized_action_order,
+        "realized_actor_order": realized_actor_order,
         "reaction_order_divergence": reaction_order_divergence,
+        "reaction_order_divergence_reason": reaction_order_divergence_reason,
         # Optional diagnostic helper fields (non-required)
         "sparse_input_detected": sparse_input_detected,
         "generated_actor_ids": generated_actor_ids,

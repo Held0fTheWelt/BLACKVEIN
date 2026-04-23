@@ -221,87 +221,207 @@ class TestC1PromptIntegration:
 class TestC21RealizedActorOrder:
     """C2.1 — Compute realized spoken/action order from visible lanes."""
 
-    def test_realized_actor_order_from_spoken_lines(self):
-        """realized_actor_order extracted from spoken_lines speaker_id."""
-        # This is a placeholder test; actual implementation depends on
-        # how telemetry is structured. See actor_survival_telemetry.py.
-        structured = {
+    def test_realized_actor_order_in_telemetry(self):
+        """Telemetry includes realized_spoken_order, realized_action_order, realized_actor_order."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},
+            ],
             "spoken_lines": [
                 {"speaker_id": "alice", "text": "Hello"},
                 {"speaker_id": "bob", "text": "Hi"},
-                {"speaker_id": "alice", "text": "Again"},
-            ]
+            ],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [
+                    {"speaker_id": "alice", "text": "Hello"},
+                    {"speaker_id": "bob", "text": "Hi"},
+                ],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello", "bob: Hi"],
+                "action_lines": [],
+            },
         }
-        # Expected: ["alice", "bob"] (first-seen order, no duplicates)
-        realized = ["alice", "bob"]
-        assert len(realized) == 2
-        assert realized[0] == "alice"
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+
+        # All three order fields should be present
+        assert "realized_spoken_order" in vitality
+        assert "realized_action_order" in vitality
+        assert "realized_actor_order" in vitality
+        assert vitality["realized_spoken_order"] == ["alice", "bob"]
+        assert vitality["realized_action_order"] == []
+        assert vitality["realized_actor_order"] == ["alice", "bob"]
 
     def test_realized_actor_order_excludes_empty_ids(self):
-        """Empty/null speaker_id are excluded from realized order."""
-        structured = {
-            "spoken_lines": [
-                {"speaker_id": "alice", "text": "Hello"},
-                {"speaker_id": "", "text": "Silent"},
-                {"speaker_id": None, "text": "Also silent"},
-                {"speaker_id": "bob", "text": "Hi"},
-            ]
-        }
-        # Expected: ["alice", "bob"]
-        realized = ["alice", "bob"]
-        assert "" not in realized
-        assert None not in realized
+        """Empty/null actor_ids are excluded from realized order."""
+        from ai_stack.actor_survival_telemetry import _collect_actor_ids_from_rows
 
-    def test_realized_actor_order_from_action_lines(self):
-        """realized_actor_order includes actor_id from action_lines."""
-        structured = {
-            "spoken_lines": [{"speaker_id": "alice", "text": "Move"}],
-            "action_lines": [
-                {"actor_id": "bob", "text": "steps forward"},
-                {"actor_id": "carol", "text": "sits down"},
-            ],
-        }
-        # Expected: ["alice", "bob", "carol"] (combined, first-seen order)
-        realized = ["alice", "bob", "carol"]
-        assert len(realized) == 3
+        rows = [
+            {"speaker_id": "alice", "text": "Hello"},
+            {"speaker_id": "", "text": "Silent"},
+            {"speaker_id": None, "text": "Also silent"},
+            {"speaker_id": "bob", "text": "Hi"},
+        ]
+        result = _collect_actor_ids_from_rows(rows, speaker_key="speaker_id", actor_key="actor_id")
+        assert result == ["alice", "bob"]
+        assert "" not in result
+        assert None not in result
+
+    def test_realized_actor_order_deduplicates(self):
+        """Duplicate actor IDs appear only once."""
+        from ai_stack.actor_survival_telemetry import _collect_actor_ids_from_rows
+
+        rows = [
+            {"speaker_id": "alice", "text": "Hello"},
+            {"speaker_id": "bob", "text": "Hi"},
+            {"speaker_id": "alice", "text": "Again"},  # Duplicate
+        ]
+        result = _collect_actor_ids_from_rows(rows, speaker_key="speaker_id", actor_key="actor_id")
+        assert result == ["alice", "bob"]  # alice appears only once
 
 
 class TestC22DivergenceSignals:
     """C2.2 — Compute preferred-vs-realized divergence."""
 
     def test_no_divergence_when_order_matches(self):
-        """Divergence=False when realized order matches preferred order."""
-        preferred = ["alice", "bob"]
-        realized = ["alice", "bob"]
-        divergence = preferred != realized
-        assert divergence is False
+        """Divergence=None when realized order matches preferred order."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
 
-    def test_divergence_when_order_differs(self):
-        """Divergence=True when realized order differs from preferred."""
-        preferred = ["alice", "bob", "carol"]
-        realized = ["bob", "alice", "carol"]
-        divergence = preferred != realized
-        assert divergence is True
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},
+            ],
+            "spoken_lines": [
+                {"speaker_id": "alice", "text": "Hello"},
+                {"speaker_id": "bob", "text": "Hi"},
+            ],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [
+                    {"speaker_id": "alice", "text": "Hello"},
+                    {"speaker_id": "bob", "text": "Hi"},
+                ],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello", "bob: Hi"],
+                "action_lines": [],
+            },
+        }
 
-    def test_no_divergence_on_missing_secondary(self):
-        """Only secondary not realized counts as divergence, not all missing."""
-        preferred = ["alice", "bob"]
-        realized = ["alice"]
-        # Realized is a subset — this is likely secondary not appearing
-        divergence = "preferred_secondary_not_realized"
-        assert divergence is not None
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+        # When order matches, divergence should be None
+        assert vitality.get("reaction_order_divergence") is None
+        assert vitality.get("reaction_order_divergence_reason") is None
 
-    def test_divergence_reason_interruption_reordered(self):
-        """Divergence reason: interruption_reordered_turn."""
-        divergence_reason = "interruption_reordered_turn"
-        assert divergence_reason in ["interruption_reordered_turn", "preferred_secondary_not_realized", "single_actor_only", "realized_order_differs"]
+    def test_divergence_when_secondary_not_realized(self):
+        """Divergence=True when secondary responders nominated but not realized."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},  # Secondary
+            ],
+            "secondary_responder_ids": ["bob"],
+            "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello"],
+                "action_lines": [],
+            },
+        }
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+        # Secondary nominated but not realized
+        assert vitality.get("reaction_order_divergence") is True
+        assert vitality.get("reaction_order_divergence_reason") == "preferred_secondary_not_realized"
 
     def test_divergence_reason_single_actor_only(self):
-        """Divergence reason: single_actor_only when 1 actor in realized."""
-        preferred = ["alice", "bob"]
-        realized = ["alice"]
-        reason = "single_actor_only" if len(realized) == 1 else None
-        assert reason == "single_actor_only"
+        """Divergence reason: single_actor_only when only primary realized."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+                {"actor_id": "bob", "preferred_reaction_order": 1},
+            ],
+            "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello"],
+                "action_lines": [],
+            },
+        }
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+        # Single actor realized but multiple preferred
+        assert vitality.get("reaction_order_divergence") is True
+        assert vitality.get("reaction_order_divergence_reason") == "single_actor_only"
+
+    def test_no_divergence_when_single_preferred_actor(self):
+        """No divergence when only one responder was preferred."""
+        from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+
+        state = {
+            "selected_responder_set": [
+                {"actor_id": "alice", "preferred_reaction_order": 0},
+            ],
+            "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+            "action_lines": [],
+            "initiative_events": [],
+            "generation": {"metadata": {"structured_output": {
+                "spoken_lines": [{"speaker_id": "alice", "text": "Hello"}],
+                "action_lines": [],
+                "initiative_events": [],
+            }}},
+            "visible_output_bundle": {
+                "spoken_lines": ["alice: Hello"],
+                "action_lines": [],
+            },
+        }
+
+        telemetry = build_actor_survival_telemetry(
+            state, generation_ok=True, validation_ok=True, commit_applied=True, fallback_taken=False
+        )
+        vitality = telemetry.get("vitality_telemetry_v1", {})
+        # Single responder, no divergence
+        assert vitality.get("reaction_order_divergence") is None
 
 
 # ============================================================================
