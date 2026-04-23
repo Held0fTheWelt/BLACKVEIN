@@ -1973,6 +1973,7 @@ class RuntimeTurnGraphExecutor:
         self,
         state: RuntimeTurnState,
         generation: dict[str, Any],
+        current_proposed_effects: list[dict[str, Any]],
         feedback_codes: list[str],
         attempt_index: int,
         preserve_actor_lanes: bool = False,
@@ -1992,7 +1993,7 @@ class RuntimeTurnGraphExecutor:
         if adapter is None:
             return (
                 generation,
-                list(state.get("proposed_state_effects") or []),
+                list(current_proposed_effects or []),
                 {"attempt_index": attempt_index, "status": "adapter_missing", "candidate_model": candidate_mid},
             )
         provider_model = getattr(spec, "provider_model_name", None) if spec is not None else None
@@ -2011,6 +2012,37 @@ class RuntimeTurnGraphExecutor:
             else None,
         )
         call = runtime_result.call
+        prior_raw = str(generation.get("content") or generation.get("model_raw_text") or "").strip()
+        prior_success = generation.get("success") is True
+        if not call.success and (prior_success or bool(prior_raw)):
+            preserved = dict(generation)
+            preserved_meta = preserved.get("metadata") if isinstance(preserved.get("metadata"), dict) else {}
+            preserved["metadata"] = {
+                **preserved_meta,
+                "langchain_prompt_used": True,
+                "langchain_parser_error": runtime_result.parser_error,
+                "adapter_invocation_mode": ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
+                "self_correction_attempt_index": attempt_index,
+                "self_correction_feedback_codes": list(feedback_codes),
+                "self_correction_candidate_model": candidate_mid,
+                "dramatic_generation_packet_included": isinstance(
+                    state.get("dramatic_generation_packet"), dict
+                ),
+            }
+            return (
+                preserved,
+                list(current_proposed_effects or []),
+                {
+                    "attempt_index": attempt_index,
+                    "candidate_model": candidate_mid,
+                    "provider": provider,
+                    "feedback_codes": list(feedback_codes),
+                    "success": False,
+                    "parser_error": runtime_result.parser_error,
+                    "preserve_actor_lanes": bool(preserve_actor_lanes),
+                    "status": "rewrite_failed_kept_prior_generation",
+                },
+            )
         rewritten = dict(generation)
         rewritten["attempted"] = True
         rewritten["success"] = call.success
@@ -2215,6 +2247,7 @@ class RuntimeTurnGraphExecutor:
             generation, proposed, attempt_record = self._self_correct_generation(
                 state,
                 generation,
+                proposed,
                 decision.feedback_codes,
                 attempt_index,
                 preserve_actor_lanes=decision.preserve_actor_lanes,

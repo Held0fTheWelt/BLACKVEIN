@@ -12,6 +12,9 @@ from typing import Any
 REWRITEABLE_VALIDATION_REASONS = frozenset(
     {
         "dramatic_alignment_narrative_too_short",
+        "dramatic_alignment_insufficient_mass",
+        "dramatic_alignment_insufficient_mass_thin_or_silence",
+        "dramatic_alignment_withhold_requires_min_beat",
         "opening_leniency_approved",
         "empty_visible_output",
         "meta_output_detected",
@@ -40,6 +43,9 @@ HARD_BOUNDARY_REASON_PREFIXES = (
 DEGRADED_COMMIT_ALLOWED_REASONS = frozenset(
     {
         "dramatic_alignment_narrative_too_short",
+        "dramatic_alignment_insufficient_mass",
+        "dramatic_alignment_insufficient_mass_thin_or_silence",
+        "dramatic_alignment_withhold_requires_min_beat",
         "dramatic_effect_reject_empty_fluency",
         "empty_visible_output",
         "opening_leniency_approved",
@@ -62,8 +68,6 @@ DEGRADED_COMMIT_BLOCK_FEEDBACK_CODES = frozenset(
     {
         "parser_error",
         "model_call_failed",
-        "no_structured_effects",
-        "mock_fallback_output",
     }
 )
 
@@ -133,11 +137,20 @@ def _degraded_commit_allowed(
     reason: str,
     feedback: list[str],
     actor_lane_validation: dict[str, Any] | None,
+    generation: dict[str, Any] | None = None,
 ) -> bool:
     """Determine whether degraded commit is legal under explicit policy."""
     if reason in DEGRADED_COMMIT_BLOCK_REASONS:
         return False
-    if any(code in DEGRADED_COMMIT_BLOCK_FEEDBACK_CODES for code in feedback):
+    gen = generation if isinstance(generation, dict) else {}
+    for code in feedback:
+        if code not in DEGRADED_COMMIT_BLOCK_FEEDBACK_CODES:
+            continue
+        if code == "parser_error" and bool(gen.get("fallback_used")):
+            # Graph-managed fallback prose often carries parser errors by
+            # construction; allow bounded degraded commit for prose-only
+            # outcomes when fallback already succeeded.
+            continue
         return False
     if isinstance(actor_lane_validation, dict) and actor_lane_validation.get("status") == "rejected":
         return False
@@ -185,6 +198,7 @@ def decide_playability_recovery(
             reason=reason,
             feedback=feedback,
             actor_lane_validation=actor_lane_validation,
+            generation=generation,
         )
     )
     actor_lane_approved = (
@@ -193,6 +207,9 @@ def decide_playability_recovery(
     )
     prose_only_reject = reason in {
         "dramatic_alignment_narrative_too_short",
+        "dramatic_alignment_insufficient_mass",
+        "dramatic_alignment_insufficient_mass_thin_or_silence",
+        "dramatic_alignment_withhold_requires_min_beat",
         "dramatic_effect_reject_empty_fluency",
         "empty_visible_output",
     }
