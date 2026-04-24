@@ -73,7 +73,9 @@ def canonical_degradation_signals(
         else {}
     )
 
-    if fallback_taken or bool(generation.get("fallback_used")):
+    # Only mark fallback_used if fallback was actually taken (in nodes_executed)
+    # Don't rely on generation.fallback_used which may be set/unset in various states
+    if fallback_taken:
         _append_signal(signals, DEGRADATION_SIGNAL_FALLBACK_USED)
 
     if (
@@ -93,7 +95,11 @@ def canonical_degradation_signals(
     reason = str(validation.get("reason") or "").strip().lower()
     if reason == "degraded_commit_after_retries":
         _append_signal(signals, DEGRADATION_SIGNAL_DEGRADED_COMMIT)
-        _append_signal(signals, DEGRADATION_SIGNAL_RETRY_EXHAUSTED)
+        # Only mark retry_exhausted if attempts were actually recorded
+        # Don't mark retry_exhausted if attempt_count is null/missing
+        attempts = self_correction.get("attempts") if isinstance(self_correction.get("attempts"), list) else []
+        if attempts:
+            _append_signal(signals, DEGRADATION_SIGNAL_RETRY_EXHAUSTED)
     elif reason == "opening_leniency_approved":
         _append_signal(signals, DEGRADATION_SIGNAL_OPENING_LENIENCY_APPROVED)
     elif reason == "no_structured_actor_output_with_selected_responders":
