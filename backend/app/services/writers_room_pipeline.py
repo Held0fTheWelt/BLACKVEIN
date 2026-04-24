@@ -96,10 +96,10 @@ def _execute_writers_room_workflow_package(
             evidence_tag=evidence_tag,
             lf_trace=lf_trace,
         ).generation
-    _t2a_routing = generation.get("task_2a_routing") if isinstance(generation.get("task_2a_routing"), dict) else {}
-    preflight_trace: dict[str, Any] = (
-        _t2a_routing["preflight"] if isinstance(_t2a_routing.get("preflight"), dict) else {}
-    )
+        _t2a_routing = generation.get("task_2a_routing") if isinstance(generation.get("task_2a_routing"), dict) else {}
+        preflight_trace: dict[str, Any] = (
+            _t2a_routing["preflight"] if isinstance(_t2a_routing.get("preflight"), dict) else {}
+        )
 
         packaging = run_writers_room_packaging_stage(
             review_bundle_tool=workflow.review_bundle_tool,
