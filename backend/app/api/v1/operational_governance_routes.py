@@ -43,6 +43,23 @@ from app.services.governance_runtime_service import (
     upsert_budget,
     write_provider_credential,
 )
+from app.services.diagnosis_gates_mapping_service import (
+    get_check_id_for_gate,
+    get_gate_id_for_check,
+)
+from app.services.readiness_gates_service import (
+    create_or_update_gate,
+    delete_gate,
+    get_all_gates,
+    get_gate,
+    get_gates_by_service,
+    get_gates_by_status,
+    get_summary,
+    update_gate_status,
+)
+from app.services.runtime_config_truth_service import (
+    get_runtime_config_truth,
+)
 
 
 def _actor_identifier() -> str:
@@ -530,3 +547,227 @@ def internal_provider_credential_get(provider_id: str):
 
     print(f"DEBUG: Successfully returned credential for provider {provider_id}", flush=True)
     return ok({"provider_id": provider_id, "api_key": api_key})
+
+
+# ============================================================================
+# Release Readiness Gates — Canonical Schema (Phase 1)
+# ============================================================================
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/gates", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_gates_list():
+    """Get all release readiness gates in canonical schema."""
+    try:
+        status_filter = request.args.get("status", None)
+        service_filter = request.args.get("service", None)
+
+        if status_filter:
+            gates = get_gates_by_status(status_filter)
+        elif service_filter:
+            gates = get_gates_by_service(service_filter)
+        else:
+            gates = get_all_gates()
+
+        summary = get_summary()
+        return ok({"gates": gates, "summary": summary})
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to retrieve gates.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/gates/<gate_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_gate_detail(gate_id: str):
+    """Get details for a specific readiness gate."""
+    try:
+        gate = get_gate(gate_id)
+        return ok(gate)
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to retrieve gate.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/gates", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_gate_create_or_update():
+    """Create or update a readiness gate."""
+    try:
+        body = _body()
+        gate_id = body.get("gate_id")
+        if not gate_id:
+            raise governance_error("gate_id_required", "gate_id is required", 400, {})
+
+        gate = create_or_update_gate(
+            gate_id=gate_id,
+            gate_name=body.get("gate_name", ""),
+            owner_service=body.get("owner_service", ""),
+            status=body.get("status", "open"),
+            reason=body.get("reason", ""),
+            expected_evidence=body.get("expected_evidence", ""),
+            actual_evidence=body.get("actual_evidence"),
+            evidence_path=body.get("evidence_path"),
+            truth_source=body.get("truth_source", "live_endpoint"),
+            remediation=body.get("remediation", ""),
+            remediation_steps=body.get("remediation_steps"),
+            checked_by=_actor_identifier(),
+        )
+        return ok(gate)
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to create/update gate.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/gates/<gate_id>/status", methods=["PATCH"])
+@limiter.limit("30 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_gate_update_status(gate_id: str):
+    """Update a gate's status and evidence."""
+    try:
+        body = _body()
+        status = body.get("status")
+        if not status:
+            raise governance_error("status_required", "status is required", 400, {})
+
+        gate = update_gate_status(
+            gate_id=gate_id,
+            status=status,
+            reason=body.get("reason", ""),
+            actual_evidence=body.get("actual_evidence"),
+            evidence_path=body.get("evidence_path"),
+            checked_by=_actor_identifier(),
+        )
+        return ok(gate)
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to update gate status.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/gates/<gate_id>", methods=["DELETE"])
+@limiter.limit("10 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_gate_delete(gate_id: str):
+    """Delete a readiness gate (cleanup only)."""
+    try:
+        result = delete_gate(gate_id, checked_by=_actor_identifier())
+        return ok(result)
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to delete gate.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/ai-stack/release-readiness/summary", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_readiness_summary():
+    """Get readiness gates summary (closure percentage, gate counts)."""
+    try:
+        summary = get_summary()
+        return ok(summary)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to retrieve summary.", 500, {"error": str(exc)})
+
+
+# ============================================================================
+# Diagnosis ↔ Gates Integration (Phase 2)
+# ============================================================================
+
+
+@api_v1_bp.route("/admin/system-diagnosis/gates", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_diagnosis_gates_mapping():
+    """
+    Get gates mapped to diagnosis checks.
+
+    Returns all gates with their associated diagnosis check_id and check status.
+    Useful for understanding which diagnosis checks drive gate status.
+    """
+    try:
+        gates = get_all_gates()
+        gates_with_checks = []
+
+        for gate in gates:
+            gate_id = gate.get("gate_id")
+            check_id = get_check_id_for_gate(gate_id)
+            gate_with_check = dict(gate)
+            gate_with_check["diagnosis_check_id"] = check_id
+            gates_with_checks.append(gate_with_check)
+
+        return ok({
+            "gates": gates_with_checks,
+            "total_gates": len(gates_with_checks),
+            "gates_with_diagnosis_mapping": sum(1 for g in gates_with_checks if g.get("diagnosis_check_id")),
+        })
+    except Exception as exc:
+        return fail("readiness_error", "Failed to retrieve diagnosis-gates mapping.", 500, {"error": str(exc)})
+
+
+@api_v1_bp.route("/admin/system-diagnosis/gates/<gate_id>", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_diagnosis_gate_detail(gate_id: str):
+    """
+    Get gate detail with associated diagnosis check information.
+
+    Shows which diagnosis check (if any) is linked to this gate.
+    """
+    try:
+        gate = get_gate(gate_id)
+        check_id = get_check_id_for_gate(gate_id)
+
+        result = dict(gate)
+        result["diagnosis_check_id"] = check_id
+        if check_id:
+            result["diagnosis_link"] = f"/api/v1/admin/system-diagnosis?refresh=1#{check_id}"
+
+        return ok(result)
+    except GovernanceError as err:
+        return fail_from_error(err)
+    except Exception as exc:
+        return fail("readiness_error", "Failed to retrieve gate detail.", 500, {"error": str(exc)})
+
+
+# ============================================================================
+# Runtime Config Truth (Phase 5)
+# ============================================================================
+
+
+@api_v1_bp.route("/admin/runtime/config-truth", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_runtime_config_truth():
+    """
+    Get runtime configuration truth snapshot.
+
+    Shows what's actually configured vs. effective vs. loaded:
+    - Backend configured state (from database)
+    - Backend effective config (currently in use)
+    - World-Engine loaded state (from HTTP probe)
+    - Play-Service connectivity (reachable?)
+    - Story Runtime active state (from HTTP probe)
+
+    Helps operators understand whether configured != effective != loaded.
+    """
+    try:
+        truth = get_runtime_config_truth()
+        return ok(truth)
+    except Exception as exc:
+        return fail("config_truth_error", "Failed to retrieve runtime config truth.", 500, {"error": str(exc)})

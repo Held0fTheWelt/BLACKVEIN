@@ -1465,3 +1465,44 @@ textarea:focus-visible {
 .research-governance-page #research-drilldown a {
     color: var(--primary);
 }
+
+/* Readiness Gates styles */
+.readiness-summary-row { display: flex; flex-wrap: wrap; gap: 1rem; }
+.readiness-closure-stat { text-align: center; padding: 0.75rem; }
+.readiness-stat-value { font-size: 1.5rem; font-weight: bold; }
+.readiness-stat-label { font-size: 0.875rem; opacity: 0.7; }
+.readiness-progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.readiness-progress-fill { height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s; }
+.readiness-gates-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.readiness-gate-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; border-radius: 4px; cursor: pointer; }
+.readiness-gate-item:hover { background: var(--border); }
+.readiness-status-badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+.readiness-status-badge--closed { background: #c8e6c9; color: #1b5e20; }
+.readiness-status-badge--partial { background: #fff9c4; color: #f57f17; }
+.readiness-status-badge--open { background: #ffcdd2; color: #b71c1c; }
+.readiness-gate-info { flex: 1; }
+.readiness-gate-name { font-weight: bold; margin: 0; }
+.readiness-gate-meta { font-size: 0.85rem; opacity: 0.7; margin: 0.25rem 0 0; }
+.readiness-gate-owner { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 3px; font-size: 0.75rem; opacity: 0.7; margin-left: 0.5rem; }
+.readiness-detail-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.readiness-detail-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+.readiness-detail-content { position: relative; z-index: 1001; background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+.readiness-detail-close { position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px; padding: 0; border: none; background: transparent; cursor: pointer; font-size: 1.5rem; }
+.readiness-detail-close::before { content: "✕"; }
+.readiness-detail-scroll { overflow-y: auto; flex: 1; padding: 1.5rem; }
+.readiness-detail-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.readiness-detail-header h2 { margin: 0; flex: 1; }
+.readiness-detail-section { margin-bottom: 1.5rem; }
+.readiness-detail-section h3 { margin: 0 0 0.75rem; }
+.readiness-detail-dl { display: grid; grid-template-columns: 120px 1fr; gap: 0.5rem 1rem; }
+.readiness-detail-dl dt { font-weight: bold; }
+.readiness-detail-dl dd { margin: 0; }
+.readiness-detail-steps { margin-left: 1.5rem; opacity: 0.8; }
+.readiness-detail-actions { display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border); }
+.readiness-closure-content { display: flex; flex-direction: column; gap: 0.75rem; }
+.readiness-closure-item { padding: 0.75rem; border-left: 4px solid var(--border); border-radius: 3px; }
+.readiness-closure-item.closed { border-left-color: #4caf50; }
+.readiness-closure-item.partial { border-left-color: #ff9800; }
+.readiness-closure-item.open { border-left-color: #f44336; }
+.readiness-closure-title { font-weight: bold; margin: 0; }
+.readiness-closure-status { font-size: 0.875rem; opacity: 0.7; }

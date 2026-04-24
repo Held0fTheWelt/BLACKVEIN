@@ -125,6 +125,7 @@ def _register_api_v1_blueprint_routes() -> None:
     from app.api.v1 import world_engine_console_routes  # noqa: F401
     from app.api.v1 import mcp_operations_routes  # noqa: F401
     from app.api.v1 import operational_governance_routes  # noqa: F401
+    from app.api.v1 import observability_governance_routes  # noqa: F401
     from app.api.v1 import ai_engineer_suite_routes  # noqa: F401
     from app.api.v1 import research_domain_governance_routes  # noqa: F401
     from app.api.v1 import player_routes  # noqa: F401

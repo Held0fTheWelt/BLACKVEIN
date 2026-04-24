@@ -111,6 +111,8 @@ OPTIONAL_SECRET_KEYS = (
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
     "ANTHROPIC_API_KEY",
+    "LANGFUSE_PUBLIC_KEY",
+    "LANGFUSE_SECRET_KEY",
 )
 
 
@@ -318,6 +320,58 @@ def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
     return exit_code
 
 
+def _initialize_langfuse_in_backend() -> None:
+    """Initialize Langfuse configuration in the backend database from environment variables."""
+    # Read Langfuse config from .env
+    env_dict = _read_env_file(ENV_FILE)
+
+    enabled = env_dict.get("LANGFUSE_ENABLED", "").lower() == "true"
+    public_key = env_dict.get("LANGFUSE_PUBLIC_KEY", "").strip()
+    secret_key = env_dict.get("LANGFUSE_SECRET_KEY", "").strip()
+
+    # Only initialize if Langfuse is enabled and has credentials
+    if not enabled or not secret_key:
+        return
+
+    # Try to initialize Langfuse in the database via internal initialization endpoint
+    try:
+        init_url = "http://localhost:8000/api/v1/internal/observability/initialize"
+        payload = {
+            "enabled": enabled,
+            "public_key": public_key,
+            "secret_key": secret_key,
+            "base_url": env_dict.get("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
+            "environment": env_dict.get("LANGFUSE_ENVIRONMENT", "development"),
+            "release": env_dict.get("LANGFUSE_RELEASE", "unknown"),
+            "sample_rate": float(env_dict.get("LANGFUSE_SAMPLE_RATE", "1.0")),
+            "capture_prompts": env_dict.get("LANGFUSE_CAPTURE_PROMPTS", "true").lower() == "true",
+            "capture_outputs": env_dict.get("LANGFUSE_CAPTURE_OUTPUTS", "true").lower() == "true",
+            "capture_retrieval": env_dict.get("LANGFUSE_CAPTURE_RETRIEVAL", "false").lower() == "true",
+            "redaction_mode": env_dict.get("LANGFUSE_REDACTION_MODE", "strict"),
+        }
+
+        import json
+        data = json.dumps(payload).encode("utf-8")
+        req = Request(
+            init_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                print("✓ Langfuse observability initialized in database.", file=sys.stderr)
+            else:
+                print(f"Warning: Langfuse initialization returned status {response.status}", file=sys.stderr)
+    except URLError as e:
+        # Backend not ready yet, that's OK — initialization will happen on next startup
+        pass
+    except Exception as e:
+        # Silent failure — Langfuse is optional
+        pass
+
+
 def _bootstrap_gate_after_up() -> int:
     """Guide operators through bootstrap setup before normal runtime assumptions."""
     status_url = "http://localhost:8000/api/v1/bootstrap/public-status"
@@ -337,6 +391,12 @@ def _bootstrap_gate_after_up() -> int:
     except Exception as exc:
         print(f"Warning: Could not parse bootstrap status response: {exc}", file=sys.stderr)
         return 0
+
+    # Try to initialize Langfuse in the database (if configured)
+    try:
+        _initialize_langfuse_in_backend()
+    except Exception:
+        pass  # Silent failure — Langfuse initialization is optional
 
     data = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(data, dict):

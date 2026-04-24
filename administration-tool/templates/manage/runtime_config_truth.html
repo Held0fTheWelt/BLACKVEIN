@@ -1,0 +1,198 @@
+{% extends "manage/base.html" %}
+{% block title %}Runtime Config Truth{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="runtime-config-truth">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Runtime</p>
+            <h1>Configuration Truth</h1>
+            <p class="manage-lead">What's configured, what's actually effective, and what the runtime has loaded. Helps identify mismatches between policy and practice.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="config-truth-refresh">Refresh snapshot</button>
+        </div>
+    </div>
+
+    <p id="config-truth-error" class="form-error" style="display:none;" role="alert"></p>
+
+    <!-- Summary Status -->
+    <section class="panel config-truth-summary" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Status Summary</h2></header>
+        <div id="config-truth-summary-content" class="config-truth-status-row">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Backend Configured -->
+    <section class="panel config-truth-section">
+        <header class="panel-header"><h2>Backend Configured State (Database)</h2></header>
+        <p class="muted" style="margin-top:0;">What's stored in the database as policy.</p>
+        <div id="config-truth-configured" class="config-truth-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Backend Effective -->
+    <section class="panel config-truth-section">
+        <header class="panel-header"><h2>Backend Effective Config (In Use)</h2></header>
+        <p class="muted" style="margin-top:0;">What the backend is currently using at runtime.</p>
+        <div id="config-truth-effective" class="config-truth-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- World-Engine State -->
+    <section class="panel config-truth-section">
+        <header class="panel-header"><h2>World-Engine Loaded State (Runtime)</h2></header>
+        <p class="muted" style="margin-top:0;">What the world-engine (story runtime) has loaded.</p>
+        <div id="config-truth-world-engine" class="config-truth-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Play-Service Connectivity -->
+    <section class="panel config-truth-section">
+        <header class="panel-header"><h2>Play-Service Connectivity (Network)</h2></header>
+        <p class="muted" style="margin-top:0;">Whether play-service is reachable via HTTP.</p>
+        <div id="config-truth-play-service" class="config-truth-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Raw JSON -->
+    <section class="panel config-truth-section">
+        <header class="panel-header"><h2>Raw Truth Snapshot (JSON)</h2></header>
+        <details>
+            <summary class="muted">Show raw JSON</summary>
+            <pre id="config-truth-json" class="config-truth-json" style="margin-top:0.5rem;">
+                <!-- Populated by JavaScript -->
+            </pre>
+        </details>
+    </section>
+</section>
+
+<style>
+.config-truth-status-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.config-truth-status-card {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-secondary, #f5f5f5);
+    border-radius: 4px;
+    border-left: 4px solid #ccc;
+}
+
+.config-truth-status-card.ready {
+    border-left-color: #4caf50;
+}
+
+.config-truth-status-card.partial {
+    border-left-color: #ff9800;
+}
+
+.config-truth-status-card.degraded {
+    border-left-color: #f44336;
+}
+
+.config-truth-status-label {
+    font-size: 0.875rem;
+    color: var(--text-muted, #666);
+    margin-bottom: 0.25rem;
+}
+
+.config-truth-status-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-primary, #333);
+}
+
+.config-truth-content {
+    margin-top: 1rem;
+}
+
+.config-truth-field {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    align-items: start;
+}
+
+.config-truth-field-label {
+    font-weight: bold;
+    color: var(--text-primary, #333);
+    word-break: break-word;
+}
+
+.config-truth-field-value {
+    color: var(--text-muted, #666);
+    word-break: break-word;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+}
+
+.config-truth-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.config-truth-status-badge.configured {
+    background: #c8e6c9;
+    color: #1b5e20;
+}
+
+.config-truth-status-badge.loaded {
+    background: #bbdefb;
+    color: #0d47a1;
+}
+
+.config-truth-status-badge.error {
+    background: #ffcdd2;
+    color: #b71c1c;
+}
+
+.config-truth-status-badge.requires-probe {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.config-truth-json {
+    white-space: pre-wrap;
+    font-size: 0.8rem;
+    overflow: auto;
+    max-height: 20rem;
+    background: #fafafa;
+    padding: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin: 0;
+}
+
+.config-truth-issues {
+    list-style: disc;
+    margin: 1rem 0 0 1.5rem;
+    color: var(--text-muted, #666);
+}
+
+.config-truth-issues li {
+    margin: 0.25rem 0;
+}
+
+@media (max-width: 800px) {
+    .config-truth-field {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+}
+</style>
+
+<script src="{{ url_for('static', filename='manage_runtime_config_truth.js') }}"></script>

@@ -264,6 +264,11 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
         """Cost, usage, and budget controls."""
         return render_template("manage/operational_governance.html", active_section="costs")
 
+    @app.route("/manage/ai-stack/release-readiness")
+    def manage_ai_stack_release_readiness():
+        """AI Stack release readiness gates dashboard."""
+        return render_template("manage/ai_stack_release_readiness.html")
+
     @app.route("/manage/runtime-dashboard")
     def manage_runtime_dashboard():
         """Unified AI/runtime dashboard with blocker-first operator summary."""
@@ -283,3 +288,20 @@ def register_manage_operational_governance_pages(app: Flask) -> None:
     def manage_runtime_settings():
         """Controlled presets and bounded advanced runtime settings."""
         return render_template("manage/runtime_settings.html")
+
+    @app.route("/manage/runtime/config-truth")
+    def manage_runtime_config_truth():
+        """Runtime configuration truth — configured vs. effective vs. loaded."""
+        return render_template("manage/runtime_config_truth.html")
+
+
+def register_manage_observability_pages(app: Flask) -> None:
+    @app.route("/manage/observability-settings")
+    def manage_observability_settings():
+        """Langfuse observability service configuration (admin-only)."""
+        return render_template("manage/observability_settings.html")
+
+    @app.route("/manage/observability-settings/langfuse")
+    def manage_observability_langfuse():
+        """Langfuse observability service configuration (alternate URL)."""
+        return render_template("manage/observability_settings.html")

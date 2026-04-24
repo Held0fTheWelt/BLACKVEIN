@@ -22,7 +22,7 @@ def assemble_release_readiness_report_payload(
         writers_room_review=writers_room_review,
         improvement_package=improvement_package,
     )
-    overall = "ready" if all(area["status"] == "ready" for area in areas) else "partial"
+    overall = "ready" if all(area["status"] == "closed" for area in areas) else "partial"
     tail = build_release_readiness_static_tail(trace_id=trace_id)
     return {
         **tail,

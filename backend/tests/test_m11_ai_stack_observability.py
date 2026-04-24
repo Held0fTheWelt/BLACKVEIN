@@ -420,15 +420,15 @@ def test_release_readiness_sparse_env_does_not_claim_ready(client, moderator_hea
 
     # The areas dict must exist and at least one area must report partial
     assert "areas" in payload, "Response must include an 'areas' breakdown"
-    areas_by_name = {area["area"]: area["status"] for area in payload["areas"]}
+    areas_by_name = {area["gate_id"]: area["status"] for area in payload["areas"]}
     assert areas_by_name.get("story_runtime_cross_layer") == "partial"
     assert areas_by_name.get("writers_room_review_artifacts") == "partial"
     assert areas_by_name.get("writers_room_retrieval_evidence_surface") == "partial"
     assert areas_by_name.get("improvement_governance_evidence") == "partial"
     assert areas_by_name.get("improvement_retrieval_evidence_backing") == "partial"
     assert areas_by_name.get("writers_room_langgraph_orchestration_depth") == "partial"
-    assert areas_by_name.get("runtime_turn_graph_contract") == "ready"
-    assert areas_by_name.get("retrieval_subsystem_compact_traces") == "ready"
+    assert areas_by_name.get("runtime_turn_graph_contract") == "closed"
+    assert areas_by_name.get("retrieval_subsystem_compact_traces") == "closed"
     rsum = payload.get("retrieval_readiness_summary") or {}
     assert "strengths" in rsum and "known_degradations" in rsum
     assert "subsystem_maturity" in payload
@@ -452,7 +452,7 @@ def test_release_readiness_writers_room_weak_retrieval_is_not_ready(client, mode
     response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
     assert response.status_code == 200
     payload = response.get_json()
-    areas_by_name = {a["area"]: a for a in payload["areas"]}
+    areas_by_name = {a["gate_id"]: a for a in payload["areas"]}
     wr = areas_by_name["writers_room_retrieval_evidence_surface"]
     assert wr["status"] == "partial"
     assert "weak" in (wr.get("evidence_posture") or "")
@@ -478,8 +478,8 @@ def test_release_readiness_improvement_weak_retrieval_backing_is_partial(client,
     response = client.get("/api/v1/admin/ai-stack/release-readiness", headers=moderator_headers)
     assert response.status_code == 200
     payload = response.get_json()
-    areas_by_name = {a["area"]: a for a in payload["areas"]}
-    assert areas_by_name["improvement_governance_evidence"]["status"] == "ready"
+    areas_by_name = {a["gate_id"]: a for a in payload["areas"]}
+    assert areas_by_name["improvement_governance_evidence"]["status"] == "closed"
     backing = areas_by_name["improvement_retrieval_evidence_backing"]
     assert backing["status"] == "partial"
     assert backing.get("evidence_posture") == "weak_retrieval_backing"

@@ -243,6 +243,64 @@ class CostRollup(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
 
 
+class ObservabilityConfig(db.Model):
+    """Langfuse observability service configuration."""
+
+    __tablename__ = "observability_configs"
+
+    service_id = db.Column(db.String(64), primary_key=True)  # "langfuse"
+    service_type = db.Column(db.String(64), nullable=False)  # "langfuse"
+    display_name = db.Column(db.String(128), nullable=False)  # "Langfuse"
+    base_url = db.Column(db.String(512), nullable=False, default="https://cloud.langfuse.com")
+    is_enabled = db.Column(db.Boolean, nullable=False, default=False)
+
+    environment = db.Column(db.String(64), nullable=False, default="development")
+    release = db.Column(db.String(128), nullable=False, default="unknown")
+    sample_rate = db.Column(db.Float, nullable=False, default=1.0)
+
+    capture_prompts = db.Column(db.Boolean, nullable=False, default=True)
+    capture_outputs = db.Column(db.Boolean, nullable=False, default=True)
+    capture_retrieval = db.Column(db.Boolean, nullable=False, default=False)
+
+    redaction_mode = db.Column(db.String(32), nullable=False, default="strict")
+
+    credential_configured = db.Column(db.Boolean, nullable=False, default=False)
+    credential_fingerprint = db.Column(db.String(256), nullable=True)
+
+    health_status = db.Column(db.String(32), nullable=False, default="unknown")
+    last_tested_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
+
+
+class ObservabilityCredential(db.Model):
+    """Encrypted write-only credentials for observability services (Langfuse, etc.)."""
+
+    __tablename__ = "observability_credentials"
+
+    credential_id = db.Column(db.String(128), primary_key=True)
+    service_id = db.Column(db.String(64), db.ForeignKey("observability_configs.service_id"), nullable=False, index=True)
+
+    secret_name = db.Column(db.String(128), nullable=False)  # "public_key" or "secret_key"
+
+    encrypted_secret = db.Column(db.LargeBinary(), nullable=False)
+    encrypted_dek = db.Column(db.LargeBinary(), nullable=False)
+    secret_nonce = db.Column(db.LargeBinary(), nullable=False)
+    dek_nonce = db.Column(db.LargeBinary(), nullable=False)
+    dek_algorithm = db.Column(db.String(64), nullable=False, default="AES-256-GCM")
+    kek_key_id = db.Column(db.String(128), nullable=True)
+
+    secret_fingerprint = db.Column(db.String(256), nullable=False, index=True)
+
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    rotation_in_progress = db.Column(db.Boolean, nullable=False, default=False)
+    rotated_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
+
+
 class SettingAuditEvent(db.Model):
     """Audit events for governance mutations."""
 
@@ -268,4 +326,51 @@ class SettingAuditEvent(db.Model):
             "changed_at": self.changed_at.isoformat() if self.changed_at else None,
             "summary": self.summary,
             "metadata": self.metadata_json or {},
+        }
+
+
+class ReadinessGate(db.Model):
+    """Canonical release readiness gate definitions and status."""
+
+    __tablename__ = "readiness_gates"
+
+    gate_id = db.Column(db.String(128), primary_key=True)
+    gate_name = db.Column(db.String(256), nullable=False, index=True)
+    owner_service = db.Column(db.String(128), nullable=False, index=True)
+
+    status = db.Column(db.String(32), nullable=False, default="open", index=True)  # closed|partial|open
+    reason = db.Column(db.Text(), nullable=False, default="")
+
+    expected_evidence = db.Column(db.Text(), nullable=False, default="")
+    actual_evidence = db.Column(db.Text(), nullable=True)
+    evidence_path = db.Column(db.String(512), nullable=True)
+
+    truth_source = db.Column(db.String(64), nullable=False, default="live_endpoint")  # live_endpoint|static_policy|file_store|database
+    remediation = db.Column(db.Text(), nullable=False, default="")
+    remediation_steps_json = db.Column(db.JSON, nullable=False, default=list)
+
+    last_checked_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    checked_by = db.Column(db.String(128), nullable=True)
+
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=_utc_now, onupdate=_utc_now)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize gate row to canonical response schema."""
+        return {
+            "gate_id": self.gate_id,
+            "gate_name": self.gate_name,
+            "owner_service": self.owner_service,
+            "status": self.status,
+            "reason": self.reason,
+            "expected_evidence": self.expected_evidence,
+            "actual_evidence": self.actual_evidence,
+            "evidence_path": self.evidence_path,
+            "truth_source": self.truth_source,
+            "remediation": self.remediation,
+            "remediation_steps": self.remediation_steps_json or [],
+            "last_checked_at": self.last_checked_at.isoformat() if self.last_checked_at else None,
+            "checked_by": self.checked_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

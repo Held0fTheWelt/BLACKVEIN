@@ -1,0 +1,162 @@
+{% extends "manage/base.html" %}
+{% block title %}AI Stack Release Readiness{% endblock %}
+{% block content %}
+<section class="manage-section" data-page="ai-stack-release-readiness">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">AI Stack</p>
+            <h1>Release Readiness Gates</h1>
+            <p class="manage-lead">Canonical gate status for AI Stack release readiness. Each gate tracks whether a specific system capability is ready (closed), partially ready (partial), or not ready (open). Green gates close off when all evidence criteria are met.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="readiness-refresh-btn">Refresh gates</button>
+        </div>
+    </div>
+
+    <p id="readiness-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="readiness-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <!-- Closure Summary -->
+    <section class="panel readiness-summary-panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Closure Summary</h2></header>
+        <div class="readiness-summary-row">
+            <div class="readiness-closure-stat">
+                <div class="readiness-stat-value" id="readiness-closure-percent">—</div>
+                <div class="readiness-stat-label">Closure</div>
+            </div>
+            <div class="readiness-closure-stat">
+                <div class="readiness-stat-value" id="readiness-closed-count">—</div>
+                <div class="readiness-stat-label">Closed</div>
+            </div>
+            <div class="readiness-closure-stat">
+                <div class="readiness-stat-value" id="readiness-partial-count">—</div>
+                <div class="readiness-stat-label">Partial</div>
+            </div>
+            <div class="readiness-closure-stat">
+                <div class="readiness-stat-value" id="readiness-open-count">—</div>
+                <div class="readiness-stat-label">Open</div>
+            </div>
+            <div class="readiness-closure-stat">
+                <div class="readiness-stat-value" id="readiness-total-count">—</div>
+                <div class="readiness-stat-label">Total Gates</div>
+            </div>
+        </div>
+        <div class="readiness-progress-bar" style="margin-top:1rem;">
+            <div id="readiness-progress-fill" class="readiness-progress-fill" style="width:0%;"></div>
+        </div>
+        <p id="readiness-last-checked" class="muted" style="margin-top:0.5rem;"></p>
+    </section>
+
+    <!-- Closure Cockpit Summary -->
+    <section class="panel readiness-closure-panel" style="margin-bottom:1rem;" id="readiness-closure-section" style="display:none;">
+        <header class="panel-header"><h2>Closure Cockpit</h2></header>
+        <p class="muted" style="margin-top:0;">AI Stack closure status from canonical audit artifacts.</p>
+        <div id="readiness-closure-content" class="readiness-closure-content">
+            <!-- Populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="panel readiness-filters-panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Filters</h2></header>
+        <div class="manage-grid two-col">
+            <label class="form-label">Gate Status
+                <select id="readiness-filter-status" class="form-input">
+                    <option value="">All statuses</option>
+                    <option value="closed">Closed</option>
+                    <option value="partial">Partial</option>
+                    <option value="open">Open</option>
+                </select>
+            </label>
+            <label class="form-label">Owner Service
+                <select id="readiness-filter-service" class="form-input">
+                    <option value="">All services</option>
+                    <option value="backend">Backend</option>
+                    <option value="play-service">Play Service</option>
+                    <option value="ai-stack">AI Stack</option>
+                </select>
+            </label>
+        </div>
+        <label class="form-label">Search gates
+            <input type="text" id="readiness-search" class="form-input" placeholder="Gate name or ID" />
+        </label>
+    </section>
+
+    <!-- Gates List -->
+    <section class="panel readiness-gates-panel">
+        <header class="panel-header"><h2>Gates</h2></header>
+        <p id="readiness-gate-count-display" class="muted" style="margin-top:0;"></p>
+        <div id="readiness-gates-list" class="readiness-gates-list">
+            <!-- Gates populated by JavaScript -->
+        </div>
+    </section>
+
+    <!-- Gate Detail Modal (hidden by default) -->
+    <div id="readiness-detail-modal" class="readiness-detail-modal" style="display:none;">
+        <div class="readiness-detail-backdrop"></div>
+        <div class="readiness-detail-content">
+            <button type="button" class="readiness-detail-close" id="readiness-detail-close" aria-label="Close detail"></button>
+            <div class="readiness-detail-scroll">
+                <header class="readiness-detail-header">
+                    <h2 id="readiness-detail-name"></h2>
+                    <span id="readiness-detail-status-badge" class="readiness-status-badge"></span>
+                </header>
+
+                <section class="readiness-detail-section">
+                    <h3>Details</h3>
+                    <dl class="readiness-detail-dl">
+                        <dt>Gate ID</dt>
+                        <dd id="readiness-detail-gate-id"></dd>
+                        <dt>Owner Service</dt>
+                        <dd id="readiness-detail-owner"></dd>
+                        <dt>Status</dt>
+                        <dd id="readiness-detail-status"></dd>
+                        <dt>Truth Source</dt>
+                        <dd id="readiness-detail-truth-source"></dd>
+                        <dt>Last Checked</dt>
+                        <dd id="readiness-detail-last-checked"></dd>
+                        <dt>Checked By</dt>
+                        <dd id="readiness-detail-checked-by"></dd>
+                    </dl>
+                </section>
+
+                <section class="readiness-detail-section">
+                    <h3>Evidence</h3>
+                    <dl class="readiness-detail-dl">
+                        <dt>Expected Evidence</dt>
+                        <dd id="readiness-detail-expected"></dd>
+                        <dt>Actual Evidence</dt>
+                        <dd id="readiness-detail-actual"></dd>
+                        <dt>Evidence Path</dt>
+                        <dd id="readiness-detail-evidence-path"></dd>
+                    </dl>
+                </section>
+
+                <section class="readiness-detail-section" id="readiness-detail-reason-section" style="display:none;">
+                    <h3>Reason</h3>
+                    <p id="readiness-detail-reason" class="muted"></p>
+                </section>
+
+                <section class="readiness-detail-section" id="readiness-detail-remediation-section" style="display:none;">
+                    <h3>Remediation</h3>
+                    <p id="readiness-detail-remediation" class="muted"></p>
+                    <div id="readiness-detail-steps" style="margin-top:0.5rem;">
+                        <!-- Steps populated by JavaScript -->
+                    </div>
+                </section>
+
+                <section class="readiness-detail-section" id="readiness-detail-diagnosis-section" style="display:none;">
+                    <h3>Linked Diagnosis Check</h3>
+                    <p id="readiness-detail-diagnosis-check" class="muted"></p>
+                    <a id="readiness-detail-diagnosis-link" href="#" class="btn" style="margin-top:0.5rem;">View in System Diagnosis</a>
+                </section>
+
+                <section class="readiness-detail-actions" style="margin-top:1.5rem;">
+                    <button type="button" class="btn" id="readiness-detail-close-btn">Close</button>
+                </section>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="{{ url_for('static', filename='manage_ai_stack_release_readiness.js') }}"></script>

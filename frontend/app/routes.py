@@ -24,6 +24,11 @@ from .frontend_blueprint import frontend_bp
 from . import routes_play  # noqa: F401, E402 — registers /play* on frontend_bp
 
 
+@frontend_bp.route("/health")
+def health():
+    return jsonify({"status": "ok", "service": "frontend"}), 200
+
+
 def _clear_auth_state() -> None:
     session.pop("access_token", None)
     session.pop("refresh_token", None)

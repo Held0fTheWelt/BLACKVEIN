@@ -23,8 +23,9 @@ def build_readiness_areas_list(
 
     return [
         {
-            "area": "story_runtime_cross_layer",
+            "gate_id": "story_runtime_cross_layer",
             "status": "partial",
+            "truth_source": "static_policy",
             "evidence_posture": "aggregate_only_not_session_scoped",
             "reason": (
                 "This aggregate report does not inspect a live World-Engine session; "
@@ -32,8 +33,9 @@ def build_readiness_areas_list(
             ),
         },
         {
-            "area": "runtime_turn_graph_contract",
-            "status": "ready",
+            "gate_id": "runtime_turn_graph_contract",
+            "status": "closed",
+            "truth_source": "static_policy",
             "evidence_posture": "repository_contract_verified_by_tests",
             "reason": (
                 "Repository implements RuntimeTurnGraphExecutor with execution_health, "
@@ -41,16 +43,18 @@ def build_readiness_areas_list(
             ),
         },
         {
-            "area": "writers_room_review_artifacts",
-            "status": "ready" if wr_governance_ready else "partial",
+            "gate_id": "writers_room_review_artifacts",
+            "status": "closed" if wr_governance_ready else "partial",
+            "truth_source": "static_policy",
             "evidence_posture": "governance_review_state_present" if wr_governance_ready else "missing_review_state",
             "reason": "Persisted writers-room review with review_state"
             if wr_governance_ready
             else "no persisted writers-room review artifacts with review state",
         },
         {
-            "area": "writers_room_retrieval_evidence_surface",
-            "status": "ready" if wr_evidence_ready else "partial",
+            "gate_id": "writers_room_retrieval_evidence_surface",
+            "status": "closed" if wr_evidence_ready else "partial",
+            "truth_source": "static_policy",
             "evidence_posture": wr_evidence_posture,
             "reason": (
                 "Latest writers-room review has retrieval_trace with moderate or strong evidence tier"
@@ -64,8 +68,9 @@ def build_readiness_areas_list(
             ),
         },
         {
-            "area": "writers_room_langgraph_orchestration_depth",
+            "gate_id": "writers_room_langgraph_orchestration_depth",
             "status": "partial",
+            "truth_source": "static_policy",
             "evidence_posture": "seed_stub_intentionally_lightweight",
             "reason": (
                 "Writers-Room workflow uses a LangGraph seed graph stub for workflow_seed; "
@@ -73,8 +78,9 @@ def build_readiness_areas_list(
             ),
         },
         {
-            "area": "improvement_governance_evidence",
-            "status": "ready" if improvement_governance_ready else "partial",
+            "gate_id": "improvement_governance_evidence",
+            "status": "closed" if improvement_governance_ready else "partial",
+            "truth_source": "static_policy",
             "evidence_posture": (
                 "comparison_and_governance_bundle_id_present"
                 if improvement_governance_ready
@@ -89,14 +95,16 @@ def build_readiness_areas_list(
             ),
         },
         {
-            "area": "improvement_retrieval_evidence_backing",
-            "status": "ready" if improvement_retrieval_backing_ready else "partial",
+            "gate_id": "improvement_retrieval_evidence_backing",
+            "status": "closed" if improvement_retrieval_backing_ready else "partial",
+            "truth_source": "static_policy",
             "evidence_posture": imp_backing_posture,
             "reason": imp_backing_reason,
         },
         {
-            "area": "retrieval_subsystem_compact_traces",
-            "status": "ready",
+            "gate_id": "retrieval_subsystem_compact_traces",
+            "status": "closed",
+            "truth_source": "static_policy",
             "evidence_posture": "task4_trace_schema_and_calibrated_tier",
             "reason": (
                 "build_retrieval_trace adds evidence_lane_mix, readiness_label, policy/dedup hints, and "

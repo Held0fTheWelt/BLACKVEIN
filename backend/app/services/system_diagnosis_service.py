@@ -15,6 +15,7 @@ from sqlalchemy import text
 
 from app.extensions import db
 from app.services.ai_stack_evidence_service import build_release_readiness_report
+from app.services.diagnosis_gates_mapping_service import enrich_diagnosis_with_gates
 from app.services.game_content_service import list_published_experience_payloads
 from app.services.game_service import has_complete_play_service_config
 from app.services.system_diagnosis_play_http import (
@@ -569,6 +570,8 @@ def get_system_diagnosis(app, *, self_base_url: str, refresh: bool, trace_id: st
             return out
 
     payload = _build_diagnosis(app, self_base_url, trace_id)
+    # Enrich diagnosis with gate information (gate_id, gate_status, partial_gate_count)
+    payload = enrich_diagnosis_with_gates(payload, checked_by="system_diagnosis")
     payload["cached"] = False
     payload["stale_seconds"] = 0
     with _cache_lock:

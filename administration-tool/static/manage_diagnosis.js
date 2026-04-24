@@ -53,11 +53,53 @@
             "</span></div>";
     }
 
+    function renderCheckDetails(c) {
+        var html = "";
+        if (c.details && typeof c.details === "object") {
+            html += "<details class=\"manage-dx-check-details\">";
+            html += "<summary class=\"muted\">Details</summary>";
+            html += "<pre class=\"manage-dx-details-json muted\">" + escapeHtml(JSON.stringify(c.details, null, 2)) + "</pre>";
+            html += "</details>";
+        }
+        return html;
+    }
+
+    function renderGateLink(c) {
+        var html = "";
+        if (c.gate_id) {
+            var gateBadgeClass = "manage-dx-gate-badge";
+            var gateStatus = c.gate_status || "unknown";
+            if (gateStatus === "closed") gateBadgeClass += " manage-dx-gate-badge--closed";
+            else if (gateStatus === "partial") gateBadgeClass += " manage-dx-gate-badge--partial";
+            else if (gateStatus === "open") gateBadgeClass += " manage-dx-gate-badge--open";
+
+            html += "<p class=\"manage-dx-gate-info\">";
+            html += "Readiness gate: <strong>" + escapeHtml(c.gate_id) + "</strong>";
+            html += " <span class=\"" + gateBadgeClass + "\">" + escapeHtml(gateStatus) + "</span>";
+            html += " <a href=\"/manage/ai-stack/release-readiness\" class=\"manage-dx-gate-link\">View all gates →</a>";
+            html += "</p>";
+        }
+        return html;
+    }
+
     function renderGroups(data) {
         var root = document.getElementById("manage-diagnosis-groups");
         if (!root) return;
         var groups = data.groups || [];
         var html = "";
+
+        // Show partial gate count if available
+        if (typeof data.partial_gate_count === "number") {
+            html += "<section class=\"panel manage-dx-gates-summary\">";
+            html += "<header class=\"panel-header\"><h2>Readiness Status</h2></header>";
+            html += "<p class=\"muted\" style=\"margin:0;\">Partial gates: <strong>" + data.partial_gate_count + "</strong>";
+            if (data.partial_gate_count > 0) {
+                html += " <a href=\"/manage/ai-stack/release-readiness?status=partial\">View partial gates →</a>";
+            }
+            html += "</p>";
+            html += "</section>";
+        }
+
         for (var g = 0; g < groups.length; g++) {
             var grp = groups[g];
             html += "<section class=\"panel manage-dx-group\">";
@@ -82,6 +124,10 @@
                 if (c.source) {
                     html += "<p class=\"manage-dx-detail muted\">Source: " + escapeHtml(c.source) + "</p>";
                 }
+                // Add gate information
+                html += renderGateLink(c);
+                // Add expandable details
+                html += renderCheckDetails(c);
                 html += "</li>";
             }
             html += "</ul></section>";
