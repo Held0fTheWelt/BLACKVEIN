@@ -6,17 +6,19 @@ Equally important: AI outputs are **proposals**, not truth. The AI may propose n
 
 Not everything already exists as a perfect final architecture.
 
-| Topic | Status |
-| --- | --- |
-| World-Engine as authoritative runtime | directly evidenced |
-| LangGraph as turn orchestration | directly evidenced |
-| LangChain as prompt / parser / adapter bridge | directly evidenced |
-| RAG in the runtime turn | directly evidenced |
-| AI output only as proposal until validation | directly evidenced |
-| Narrator as its own class | not clearly evidenced; evidenced as a runtime role through Scene Director / Visible Render / Commit logic |
-| NPC thinking as autonomous agents | not clearly evidenced; evidenced as deterministic CharacterMind / SceneDirector / Responder logic |
-| Full persistent world-state simulation | not fully evidenced; currently bounded story session state, history, scene progression, diagnostics, narrative threads |
-| Demand-driven RAG skipping | useful in the ideal flow; in the current runtime graph, retrieval is present as its own standard node |
+
+| Topic                                         | Status                                                                                                                 |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| World-Engine as authoritative runtime         | directly evidenced                                                                                                     |
+| LangGraph as turn orchestration               | directly evidenced                                                                                                     |
+| LangChain as prompt / parser / adapter bridge | directly evidenced                                                                                                     |
+| RAG in the runtime turn                       | directly evidenced                                                                                                     |
+| AI output only as proposal until validation   | directly evidenced                                                                                                     |
+| Narrator as its own class                     | not clearly evidenced; evidenced as a runtime role through Scene Director / Visible Render / Commit logic              |
+| NPC thinking as autonomous agents             | not clearly evidenced; evidenced as deterministic CharacterMind / SceneDirector / Responder logic                      |
+| Full persistent world-state simulation        | not fully evidenced; currently bounded story session state, history, scene progression, diagnostics, narrative threads |
+| Demand-driven RAG skipping                    | useful in the ideal flow; in the current runtime graph, retrieval is present as its own standard node                  |
+
 
 ---
 
@@ -62,35 +64,37 @@ The risks lie exactly at the interfaces: missing context, wrong runtime configur
 
 ## 3. Technical Explanation in Plain Language
 
-| Term | Explanation in the Play-Service context | Example from repository or ideal flow |
-| --- | --- | --- |
-| AI | Umbrella term for model calls, retrieval, orchestration, and proposal logic. | `ai_stack/langgraph_runtime.py`, `ai_stack/rag.py` |
-| LLM | Large model for complex narrative or social generation. | Backend routing names `narrative_formulation`, `scene_direction`, and `conflict_synthesis` as LLM-adjacent tasks. |
-| SLM | Smaller model for fast, narrower tasks such as classification or preflight. | `backend/app/runtime/model_routing.py` names `classification`, `ranking`, and `cheap_preflight`. Live provider assignment is not fully clearly evidenced. |
-| RAG | Retrieval-Augmented Generation: context is searched from project/runtime knowledge and inserted into the prompt. | `ai_stack/rag.py`, `docs/technical/ai/RAG.md`, `_retrieve_context` in the runtime graph. |
-| LangChain | Helps with prompt templates, structured parsers, and adapter calls. | `ai_stack/langchain_integration/bridges.py`. |
-| LangGraph | Orchestrates the turn as a graph of multiple steps. | `RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py`. |
-| Retrieval | Searches relevant context chunks for the current turn. | `RetrievalRequest(domain=runtime, profile=runtime_turn_support)`. |
-| Embeddings | Optional dense search index for semantic search. | `.wos/rag/runtime_embeddings.npz`, optional `fastembed`; not necessarily always active. |
-| Vector Store | No external production vector DB service is evidenced in the current state; local dense artifacts are evidenced. | `.wos/rag/runtime_corpus.json`, `.npz` dense index. |
-| Prompt | The text sent to the model. | LangChain runtime prompt with player input, interpretation, and retrieval context. |
-| Prompt Context | Combined context from session, scene, retrieval, and interpretation. | `model_prompt`, `context_text` in LangGraph state. |
-| Tool Call | Controlled access to capabilities. | Capability Registry / LangChain tool bridge is evidenced; a complete tool loop is not clearly evidenced as the main path. |
-| Guardrail | Protection rule against invalid, lore-breaking, or unsuitable outputs. | `dramatic_effect_gate.py`, validation seams, backend validators. |
-| Validation | Check whether an AI proposal may be accepted. | `run_validation_seam`, `validators.py`, `commit_models.py`. |
-| Runtime Config | Effective runtime / routing / adapter configuration. | Distributed in code through env, `RoutingPolicy`, `ModelRegistry`, `game_service.py`; no single complete `RuntimeConfig` truth is clearly evidenced. |
-| Session State | State of a running story session. | `StorySession` in `world-engine/app/story_runtime/manager.py`. |
-| World State | Authoritative game/story truth. | Bounded in story runtime code: scene, history, diagnostics, narrative threads, continuity impacts. A full persistent simulation is not fully evidenced. |
-| Turn Context | Short-lived context for one player turn. | LangGraph `RuntimeTurnState`, backend `ShortTermTurnContext`. |
-| Narrator | Runtime role for scene assessment, consequence, and visible narration. | Scene Director, Visible Render, Narrative Commit; no single `Narrator` class is clearly evidenced. |
-| NPC Decision Logic | Logic for selecting responders, posture, and scene function. | `scene_director_goc.py`, `character_mind_goc.py`, `social_state_contract.py`. |
-| Decision Tree | Distributed decision logic made of graph, policies, rules, routing, and validation. | LangGraph nodes, commit resolver, scene director. |
-| Policy | Rule set that decides what is allowed or how routing works. | `decision_policy.py`, `mutation_policy.py`, `model_routing.py`, `reference_policy.py`. |
-| State Machine | State sequence of a turn or session. | LangGraph flow and turn state. |
-| Delta Proposal | Change proposed by AI or normalization. | Live: `proposed_state_effects`; backend: delta validation. |
-| Accepted Delta | Validated and applied change. | `committed_result`, `StoryNarrativeCommitRecord.allowed`. |
-| Rejected Delta | Rejected change. | `validation_outcome` rejected, blocked commit reason. |
-| Diagnostics Envelope | Structured diagnostic information per turn. | `session.diagnostics`, graph diagnostics, `/api/story/sessions/{id}/diagnostics`. |
+
+| Term                 | Explanation in the Play-Service context                                                                          | Example from repository or ideal flow                                                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI                   | Umbrella term for model calls, retrieval, orchestration, and proposal logic.                                     | `ai_stack/langgraph_runtime.py`, `ai_stack/rag.py`                                                                                                        |
+| LLM                  | Large model for complex narrative or social generation.                                                          | Backend routing names `narrative_formulation`, `scene_direction`, and `conflict_synthesis` as LLM-adjacent tasks.                                         |
+| SLM                  | Smaller model for fast, narrower tasks such as classification or preflight.                                      | `backend/app/runtime/model_routing.py` names `classification`, `ranking`, and `cheap_preflight`. Live provider assignment is not fully clearly evidenced. |
+| RAG                  | Retrieval-Augmented Generation: context is searched from project/runtime knowledge and inserted into the prompt. | `ai_stack/rag.py`, `docs/technical/ai/RAG.md`, `_retrieve_context` in the runtime graph.                                                                  |
+| LangChain            | Helps with prompt templates, structured parsers, and adapter calls.                                              | `ai_stack/langchain_integration/bridges.py`.                                                                                                              |
+| LangGraph            | Orchestrates the turn as a graph of multiple steps.                                                              | `RuntimeTurnGraphExecutor` in `ai_stack/langgraph_runtime.py`.                                                                                            |
+| Retrieval            | Searches relevant context chunks for the current turn.                                                           | `RetrievalRequest(domain=runtime, profile=runtime_turn_support)`.                                                                                         |
+| Embeddings           | Optional dense search index for semantic search.                                                                 | `.wos/rag/runtime_embeddings.npz`, optional `fastembed`; not necessarily always active.                                                                   |
+| Vector Store         | No external production vector DB service is evidenced in the current state; local dense artifacts are evidenced. | `.wos/rag/runtime_corpus.json`, `.npz` dense index.                                                                                                       |
+| Prompt               | The text sent to the model.                                                                                      | LangChain runtime prompt with player input, interpretation, and retrieval context.                                                                        |
+| Prompt Context       | Combined context from session, scene, retrieval, and interpretation.                                             | `model_prompt`, `context_text` in LangGraph state.                                                                                                        |
+| Tool Call            | Controlled access to capabilities.                                                                               | Capability Registry / LangChain tool bridge is evidenced; a complete tool loop is not clearly evidenced as the main path.                                 |
+| Guardrail            | Protection rule against invalid, lore-breaking, or unsuitable outputs.                                           | `dramatic_effect_gate.py`, validation seams, backend validators.                                                                                          |
+| Validation           | Check whether an AI proposal may be accepted.                                                                    | `run_validation_seam`, `validators.py`, `commit_models.py`.                                                                                               |
+| Runtime Config       | Effective runtime / routing / adapter configuration.                                                             | Distributed in code through env, `RoutingPolicy`, `ModelRegistry`, `game_service.py`; no single complete `RuntimeConfig` truth is clearly evidenced.      |
+| Session State        | State of a running story session.                                                                                | `StorySession` in `world-engine/app/story_runtime/manager.py`.                                                                                            |
+| World State          | Authoritative game/story truth.                                                                                  | Bounded in story runtime code: scene, history, diagnostics, narrative threads, continuity impacts. A full persistent simulation is not fully evidenced.   |
+| Turn Context         | Short-lived context for one player turn.                                                                         | LangGraph `RuntimeTurnState`, backend `ShortTermTurnContext`.                                                                                             |
+| Narrator             | Runtime role for scene assessment, consequence, and visible narration.                                           | Scene Director, Visible Render, Narrative Commit; no single `Narrator` class is clearly evidenced.                                                        |
+| NPC Decision Logic   | Logic for selecting responders, posture, and scene function.                                                     | `scene_director_goc.py`, `character_mind_goc.py`, `social_state_contract.py`.                                                                             |
+| Decision Tree        | Distributed decision logic made of graph, policies, rules, routing, and validation.                              | LangGraph nodes, commit resolver, scene director.                                                                                                         |
+| Policy               | Rule set that decides what is allowed or how routing works.                                                      | `decision_policy.py`, `mutation_policy.py`, `model_routing.py`, `reference_policy.py`.                                                                    |
+| State Machine        | State sequence of a turn or session.                                                                             | LangGraph flow and turn state.                                                                                                                            |
+| Delta Proposal       | Change proposed by AI or normalization.                                                                          | Live: `proposed_state_effects`; backend: delta validation.                                                                                                |
+| Accepted Delta       | Validated and applied change.                                                                                    | `committed_result`, `StoryNarrativeCommitRecord.allowed`.                                                                                                 |
+| Rejected Delta       | Rejected change.                                                                                                 | `validation_outcome` rejected, blocked commit reason.                                                                                                     |
+| Diagnostics Envelope | Structured diagnostic information per turn.                                                                      | `session.diagnostics`, graph diagnostics, `/api/story/sessions/{id}/diagnostics`.                                                                         |
+
 
 ---
 
@@ -149,6 +153,8 @@ flowchart TD
     rejectedDelta --> responseToPlayer
     responseToPlayer --> writeDiagnostics["Diagnostics, logs, and evidence"]
 ```
+
+
 
 ---
 
@@ -209,6 +215,8 @@ sequenceDiagram
     frontend-->>player: Visible narrative response
 ```
 
+
+
 ---
 
 ## 6. State Diagram for a Player Turn
@@ -252,6 +260,8 @@ stateDiagram-v2
     errorHandled --> responseReturned
     responseReturned --> [*]
 ```
+
+
 
 This diagram means: a turn is not a single function call, but a controlled state machine. Authoritative runtime state may change only after session, context, generation, and validation have successfully run.
 
@@ -322,22 +332,26 @@ flowchart LR
     worldEngineHttpApi --> diagnosticsEvidence
 ```
 
+
+
 Component roles:
 
-| Component | Role |
-| --- | --- |
-| Frontend | Request entry point for players |
-| Backend | Integration, proxy, auth/policy, module compilation |
-| World-Engine | Authoritative turn execution |
-| StoryRuntimeManager | Session and turn orchestration on the runtime side |
-| LangGraph | Turn flow control |
-| RAG | Context provider |
-| LangChain | Prompt / parser / adapter bridge |
-| Scene Director | Narrator-adjacent planning |
-| CharacterMind / SocialState | NPC-adjacent planning |
-| Validator / Guardrails | Protection layer before commit |
-| Commit Resolver | Decides what is authoritatively accepted |
-| Diagnostics | Traceability |
+
+| Component                   | Role                                                |
+| --------------------------- | --------------------------------------------------- |
+| Frontend                    | Request entry point for players                     |
+| Backend                     | Integration, proxy, auth/policy, module compilation |
+| World-Engine                | Authoritative turn execution                        |
+| StoryRuntimeManager         | Session and turn orchestration on the runtime side  |
+| LangGraph                   | Turn flow control                                   |
+| RAG                         | Context provider                                    |
+| LangChain                   | Prompt / parser / adapter bridge                    |
+| Scene Director              | Narrator-adjacent planning                          |
+| CharacterMind / SocialState | NPC-adjacent planning                               |
+| Validator / Guardrails      | Protection layer before commit                      |
+| Commit Resolver             | Decides what is authoritatively accepted            |
+| Diagnostics                 | Traceability                                        |
+
 
 ---
 
@@ -345,16 +359,18 @@ Component roles:
 
 ### 8.1 Function Chain Table
 
-| Function chain | Starting point | Involved components | Purpose | Result | Risk |
-| --- | --- | --- | --- | --- | --- |
-| Player input → Request handling → Session load → Runtime config → AI routing → Generation → Validation → Response | Player action | Frontend, Backend, World-Engine, LangGraph, LangChain, Validator | Complete main turn path | Response + optional commit | Provider error, missing session, validation reject |
-| Player input → Intent detection → NPC selection → NPC decision → Dialogue / action → World-state update | Interpreted input | `interpret_input`, semantic planner, Scene Director, CharacterMind, SocialState | Determine relevant NPC reaction | Responder, scene function, visible reaction | NPC feels passive or lore-breaking |
-| Player input → Retrieval decision → RAG query → Context assembly → Prompt build → LLM response | Context need | RAG, ContextPackAssembler, LangChain prompt | Add missing context | Prompt contains relevant lore/memory | Retrieval finds nothing or wrong context |
-| Narrator turn → Scene state → Dramatic pressure → Narrative intent → Generated output → Guardrails | Scene assessment | Scene Director, Dramatic Effect Gate, Visible Render | Lead the scene narratively | Narrative text, consequence, pressure | Narrator remains too generic/passive |
-| NPC turn → Character traits → Relationship state → Goal evaluation → Decision tree → Action / dialogue | NPC-adjacent reaction | CharacterMind, SocialState, SemanticMove, Scene Director | Plausible character reaction | Dialogue/action proposal | Goals/relationships are modeled too weakly |
-| Runtime config → Provider selection → LLM/SLM routing → Fallback handling | Turn routing | RoutingPolicy, Registry, Adapter, LangChain | Choose suitable model | Primary model or fallback | Wrong model, cost/latency, no fallbacks |
-| AI output → Structured delta proposal → Validation → Accepted/rejected changes → Committed world state | Model response | LangChain parser, proposal_normalize, validation seam, commit seam | Control AI proposal | Commit or reject | Hallucination would otherwise become truth |
-| Failure path → Missing context / provider error / validation failure → Fallback / error response / diagnostic evidence | Error case | LangGraph fallback, Diagnostics, Logs | Degrade in a controlled way | Degraded response + evidence | Error remains invisible or UX breaks |
+
+| Function chain                                                                                                         | Starting point        | Involved components                                                             | Purpose                         | Result                                      | Risk                                               |
+| ---------------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- | -------------------------------------------------- |
+| Player input → Request handling → Session load → Runtime config → AI routing → Generation → Validation → Response      | Player action         | Frontend, Backend, World-Engine, LangGraph, LangChain, Validator                | Complete main turn path         | Response + optional commit                  | Provider error, missing session, validation reject |
+| Player input → Intent detection → NPC selection → NPC decision → Dialogue / action → World-state update                | Interpreted input     | `interpret_input`, semantic planner, Scene Director, CharacterMind, SocialState | Determine relevant NPC reaction | Responder, scene function, visible reaction | NPC feels passive or lore-breaking                 |
+| Player input → Retrieval decision → RAG query → Context assembly → Prompt build → LLM response                         | Context need          | RAG, ContextPackAssembler, LangChain prompt                                     | Add missing context             | Prompt contains relevant lore/memory        | Retrieval finds nothing or wrong context           |
+| Narrator turn → Scene state → Dramatic pressure → Narrative intent → Generated output → Guardrails                     | Scene assessment      | Scene Director, Dramatic Effect Gate, Visible Render                            | Lead the scene narratively      | Narrative text, consequence, pressure       | Narrator remains too generic/passive               |
+| NPC turn → Character traits → Relationship state → Goal evaluation → Decision tree → Action / dialogue                 | NPC-adjacent reaction | CharacterMind, SocialState, SemanticMove, Scene Director                        | Plausible character reaction    | Dialogue/action proposal                    | Goals/relationships are modeled too weakly         |
+| Runtime config → Provider selection → LLM/SLM routing → Fallback handling                                              | Turn routing          | RoutingPolicy, Registry, Adapter, LangChain                                     | Choose suitable model           | Primary model or fallback                   | Wrong model, cost/latency, no fallbacks            |
+| AI output → Structured delta proposal → Validation → Accepted/rejected changes → Committed world state                 | Model response        | LangChain parser, proposal_normalize, validation seam, commit seam              | Control AI proposal             | Commit or reject                            | Hallucination would otherwise become truth         |
+| Failure path → Missing context / provider error / validation failure → Fallback / error response / diagnostic evidence | Error case            | LangGraph fallback, Diagnostics, Logs                                           | Degrade in a controlled way     | Degraded response + evidence                | Error remains invisible or UX breaks               |
+
 
 ### 8.2 Most Important Function Chain in the Ideal State
 
@@ -401,6 +417,8 @@ flowchart TD
     committedWorldState --> responseToPlayerChain["Response to player"]
     degradedResponseDiagnostics --> responseToPlayerChain
 ```
+
+
 
 ---
 
@@ -466,6 +484,8 @@ flowchart TD
     rejectBlockedDiagnostics --> responseDiagnostics
 ```
 
+
+
 ### 9.3 Decision Tree for NPCs
 
 ```mermaid
@@ -496,6 +516,8 @@ flowchart TD
     npcProposalApproved -- "Yes" --> visibleNpcReaction["Visible NPC reaction / possible commit"]
     npcProposalApproved -- "No" --> npcRejectedDiagnostics["Rejected / diagnostics_only"]
 ```
+
+
 
 ### 9.4 Decision Tree for the Narrator
 
@@ -533,6 +555,8 @@ flowchart TD
     recapOutput --> validationGuardrailsNarrator
     dramaticVisibleScene --> validationGuardrailsNarrator
 ```
+
+
 
 ### 9.5 Presentation Text for Decision Logic
 
@@ -591,6 +615,8 @@ flowchart TD
     narratorOutputValid -- "No" --> narratorFallbackDiagnostics["Fallback / diagnostics_only"]
 ```
 
+
+
 ---
 
 ## 11. NPC Thinking Model
@@ -638,6 +664,8 @@ flowchart TD
     npcAccepted -- "No" --> npcRejectedFallback["Rejected / adjusted / fallback"]
 ```
 
+
+
 ---
 
 ## 12. RAG in the Play-Service
@@ -662,6 +690,8 @@ flowchart TD
     ragAnswerValid -- "No" --> adjustRagAnswer["Adjust answer / fallback / diagnostics"]
 ```
 
+
+
 RAG is helpful when:
 
 - relevant lore is not in the current prompt,
@@ -681,17 +711,19 @@ If retrieval finds nothing, the model must not simply invent truth. The answer m
 
 ## 13. LLM vs. SLM
 
-| Task | Suitable model | Why? | Risk if chosen incorrectly |
-| --- | --- | --- | --- |
-| Narrative formulation | LLM | Requires language, context, social nuance | SLM feels flat or implausible |
-| Scene direction | LLM | Complex dramaturgical judgment | Wrong tone, wrong escalation |
-| Conflict synthesis | LLM | Multiple character interests at once | Conflict becomes oversimplified |
-| Ambiguity resolution | LLM or escalation | Unclear player intent requires interpretation | Wrong intent is committed |
-| Classification | SLM | Narrow, fast task | LLM would be more expensive/slower |
-| Trigger extraction | SLM | Structured signal detection | LLM may overthink |
-| Ranking / preflight | SLM | Cheaper and faster | LLM adds unnecessary latency/cost |
-| High-stakes continuity judgment | LLM + validation | Risk of lore/state break | Wrong world-state change |
-| Fallback response | Small model or mock fallback | Must respond in a controlled degraded way | Player receives broken or meaningless response |
+
+| Task                            | Suitable model               | Why?                                          | Risk if chosen incorrectly                     |
+| ------------------------------- | ---------------------------- | --------------------------------------------- | ---------------------------------------------- |
+| Narrative formulation           | LLM                          | Requires language, context, social nuance     | SLM feels flat or implausible                  |
+| Scene direction                 | LLM                          | Complex dramaturgical judgment                | Wrong tone, wrong escalation                   |
+| Conflict synthesis              | LLM                          | Multiple character interests at once          | Conflict becomes oversimplified                |
+| Ambiguity resolution            | LLM or escalation            | Unclear player intent requires interpretation | Wrong intent is committed                      |
+| Classification                  | SLM                          | Narrow, fast task                             | LLM would be more expensive/slower             |
+| Trigger extraction              | SLM                          | Structured signal detection                   | LLM may overthink                              |
+| Ranking / preflight             | SLM                          | Cheaper and faster                            | LLM adds unnecessary latency/cost              |
+| High-stakes continuity judgment | LLM + validation             | Risk of lore/state break                      | Wrong world-state change                       |
+| Fallback response               | Small model or mock fallback | Must respond in a controlled degraded way     | Player receives broken or meaningless response |
+
 
 In the repository, LLM/SLM routing principles are especially evidenced in `backend/app/runtime/model_routing.py` and the routing contracts. In the live path of the World-Engine, model routing is evidenced through registry, RoutingPolicy, and adapters; concrete provider parity is not clearly evidenced in every detail.
 
@@ -752,36 +784,40 @@ flowchart TD
     nodeRenderVisible --> nodePackageOutput["package_output"]
 ```
 
+
+
 ---
 
 ## 15. Essential Data Structures and Design Requirements
 
 ### 15.1 Essential Data Structures
 
-| Data structure | Purpose | Created by | Read by | Why required? |
-| --- | --- | --- | --- | --- |
-| Session State | Holds the running story session | `StoryRuntimeManager.create_session` | World-Engine API, Manager, Diagnostics | Without a session, no authoritative turn exists |
-| World State | Authoritative truth of the game world | Engine commit | Runtime, UI, Diagnostics | Separates truth from AI proposal |
-| Player Input / Action | Trigger of a turn | Player/Frontend | Backend, World-Engine, LangGraph | Starting point of every decision |
-| Turn Context | Short-lived context of a turn | LangGraph / Runtime Manager | Model routing, Validator, Renderer | Prevents contextless generation |
-| Runtime Config | Providers, routing, secrets, URLs | Env/Config/Registry | Backend, World-Engine | Wrong config breaks integration |
-| Model Routing Config | Model choice per task | RoutingPolicy / Contracts | LangGraph, Adapter | Controls cost, latency, and quality |
-| Retrieval Query | Search request for context | Runtime graph / RAG | Retriever | Makes RAG targeted and useful |
-| Retrieved Context | Found context | Retriever / Assembler | Prompt builder / LangChain | Adds knowledge outside the prompt |
-| Prompt Context | Model input text | LangGraph + LangChain | LLM/SLM provider | Controlled model request |
-| AI Decision / AI Proposal | Proposal from the model | LLM/SLM via adapter | Validator, Commit Seam | AI may propose, not directly commit |
-| Narrator Output | Visible narration | Visible render / model | Player, Diagnostics | Creates experience and consequence |
-| NPC State | Character-related state | Canonical YAML / CharacterMind | Scene Director, Validator | Makes reactions plausible |
-| NPC Goal / Motivation | Character intent | CharacterMind / YAML-adjacent logic | NPC decision logic | Not fully evidenced as a persistent goal system |
-| Relationship State | Relationship context | SocialState / Runtime Context | NPC/Narrator logic | Not fully clearly evidenced as a rich relationship system |
-| Scene State | Current scene and phase | Runtime projection / Session | Scene Director, Commit Resolver | Scene logic and transitions need state |
-| Decision Tree / Policy Node | Decision logic | Code rules / graph nodes | Runtime | Makes the flow controllable |
-| Validation Result | Result of the check | Validator / Validation Seam | Commit Seam, Diagnostics | Prevents invalid mutations |
-| Guardrail Result | Protective decision | Dramatic Effect Gate / Policies | Runtime graph | Protection against lore/tone/state breaks |
-| Accepted Delta | Allowed change | Commit Seam / Resolver | Session Store | Only accepted change becomes truth |
-| Rejected Delta | Rejected change | Validator / Commit Resolver | Diagnostics, Response | Makes errors visible instead of silently mutating |
-| Runtime Event Log | Turn evidence | StoryRuntimeManager | Operators, Tests, Debug | Traceability |
-| Diagnostics Envelope | Structured diagnostics | LangGraph + Manager | Admin/Ops/Debug | Explains what happened and why |
+
+| Data structure              | Purpose                               | Created by                           | Read by                                | Why required?                                             |
+| --------------------------- | ------------------------------------- | ------------------------------------ | -------------------------------------- | --------------------------------------------------------- |
+| Session State               | Holds the running story session       | `StoryRuntimeManager.create_session` | World-Engine API, Manager, Diagnostics | Without a session, no authoritative turn exists           |
+| World State                 | Authoritative truth of the game world | Engine commit                        | Runtime, UI, Diagnostics               | Separates truth from AI proposal                          |
+| Player Input / Action       | Trigger of a turn                     | Player/Frontend                      | Backend, World-Engine, LangGraph       | Starting point of every decision                          |
+| Turn Context                | Short-lived context of a turn         | LangGraph / Runtime Manager          | Model routing, Validator, Renderer     | Prevents contextless generation                           |
+| Runtime Config              | Providers, routing, secrets, URLs     | Env/Config/Registry                  | Backend, World-Engine                  | Wrong config breaks integration                           |
+| Model Routing Config        | Model choice per task                 | RoutingPolicy / Contracts            | LangGraph, Adapter                     | Controls cost, latency, and quality                       |
+| Retrieval Query             | Search request for context            | Runtime graph / RAG                  | Retriever                              | Makes RAG targeted and useful                             |
+| Retrieved Context           | Found context                         | Retriever / Assembler                | Prompt builder / LangChain             | Adds knowledge outside the prompt                         |
+| Prompt Context              | Model input text                      | LangGraph + LangChain                | LLM/SLM provider                       | Controlled model request                                  |
+| AI Decision / AI Proposal   | Proposal from the model               | LLM/SLM via adapter                  | Validator, Commit Seam                 | AI may propose, not directly commit                       |
+| Narrator Output             | Visible narration                     | Visible render / model               | Player, Diagnostics                    | Creates experience and consequence                        |
+| NPC State                   | Character-related state               | Canonical YAML / CharacterMind       | Scene Director, Validator              | Makes reactions plausible                                 |
+| NPC Goal / Motivation       | Character intent                      | CharacterMind / YAML-adjacent logic  | NPC decision logic                     | Not fully evidenced as a persistent goal system           |
+| Relationship State          | Relationship context                  | SocialState / Runtime Context        | NPC/Narrator logic                     | Not fully clearly evidenced as a rich relationship system |
+| Scene State                 | Current scene and phase               | Runtime projection / Session         | Scene Director, Commit Resolver        | Scene logic and transitions need state                    |
+| Decision Tree / Policy Node | Decision logic                        | Code rules / graph nodes             | Runtime                                | Makes the flow controllable                               |
+| Validation Result           | Result of the check                   | Validator / Validation Seam          | Commit Seam, Diagnostics               | Prevents invalid mutations                                |
+| Guardrail Result            | Protective decision                   | Dramatic Effect Gate / Policies      | Runtime graph                          | Protection against lore/tone/state breaks                 |
+| Accepted Delta              | Allowed change                        | Commit Seam / Resolver               | Session Store                          | Only accepted change becomes truth                        |
+| Rejected Delta              | Rejected change                       | Validator / Commit Resolver          | Diagnostics, Response                  | Makes errors visible instead of silently mutating         |
+| Runtime Event Log           | Turn evidence                         | StoryRuntimeManager                  | Operators, Tests, Debug                | Traceability                                              |
+| Diagnostics Envelope        | Structured diagnostics                | LangGraph + Manager                  | Admin/Ops/Debug                        | Explains what happened and why                            |
+
 
 Status notes:
 
@@ -816,18 +852,20 @@ Status notes:
 
 ### 15.3 Architecture Requirements Matrix
 
-| Design requirement | Why important? | Affected components | Required data structure | Risk if violated |
-| --- | --- | --- | --- | --- |
-| AI Proposal ≠ Engine Truth | Protection against hallucination | AI Stack, Validator, Engine | AI Proposal, Validation Result, Commit Record | Model overwrites world |
-| Traceable decisions | Debugging and trust | LangGraph, Diagnostics | RuntimeTurnState, Diagnostics Envelope | Error cannot be explained |
-| Deterministic validation | Lore/state safety | Validator, Commit Resolver | Validation Result, Scene State | Invalid progress |
-| Unified config | Stable runtime | Backend, World-Engine | Runtime Config, Routing Config | Wrong provider/endpoint |
-| Diagnostics | Operation and demo safety | Logs, Admin, Backend | Runtime Event Log | Black box |
-| API contracts | Frontend/backend/engine parity | APIs, Schemas | Runtime Projection, Turn Event | Schema drift |
-| Fallbacks | Controlled degradation | LangGraph, Adapter | Fallback Metadata | Hard failure |
-| Targeted RAG | Quality without overhead | RAG, Prompt Builder | Retrieval Query, Retrieved Context | Irrelevant context |
-| Role separation | Clear responsibility | Narrator, NPC, Validator | Scene Plan, CharacterMind | Mixed logic |
-| Testability | Provable quality | Tests, CI | Fixtures, Contracts | Regressions |
+
+| Design requirement         | Why important?                   | Affected components         | Required data structure                       | Risk if violated          |
+| -------------------------- | -------------------------------- | --------------------------- | --------------------------------------------- | ------------------------- |
+| AI Proposal ≠ Engine Truth | Protection against hallucination | AI Stack, Validator, Engine | AI Proposal, Validation Result, Commit Record | Model overwrites world    |
+| Traceable decisions        | Debugging and trust              | LangGraph, Diagnostics      | RuntimeTurnState, Diagnostics Envelope        | Error cannot be explained |
+| Deterministic validation   | Lore/state safety                | Validator, Commit Resolver  | Validation Result, Scene State                | Invalid progress          |
+| Unified config             | Stable runtime                   | Backend, World-Engine       | Runtime Config, Routing Config                | Wrong provider/endpoint   |
+| Diagnostics                | Operation and demo safety        | Logs, Admin, Backend        | Runtime Event Log                             | Black box                 |
+| API contracts              | Frontend/backend/engine parity   | APIs, Schemas               | Runtime Projection, Turn Event                | Schema drift              |
+| Fallbacks                  | Controlled degradation           | LangGraph, Adapter          | Fallback Metadata                             | Hard failure              |
+| Targeted RAG               | Quality without overhead         | RAG, Prompt Builder         | Retrieval Query, Retrieved Context            | Irrelevant context        |
+| Role separation            | Clear responsibility             | Narrator, NPC, Validator    | Scene Plan, CharacterMind                     | Mixed logic               |
+| Testability                | Provable quality                 | Tests, CI                   | Fixtures, Contracts                           | Regressions               |
+
 
 ### 15.4 Data Flow Diagram
 
@@ -855,6 +893,8 @@ flowchart LR
     retrievedContextData --> diagnosticsData
     aiProposalData --> diagnosticsData
 ```
+
+
 
 ### 15.5 Natural Spoken Explanation
 
@@ -895,26 +935,30 @@ flowchart TD
     validationDiagnostics --> responseToPlayer["Response to player"]
 ```
 
+
+
 Rejected deltas are not committed anyway. Instead, diagnostic information is produced, and the response may be degraded, blocked, or fallback-based.
 
 ---
 
 ## 17. Problems and Risks
 
-| Problem | When does it occur? | Impact | Ideal solution |
-| --- | --- | --- | --- |
-| Missing retrieval context | RAG finds nothing or the wrong profile | Answer becomes thin or hallucinates | Make hit status visible and answer cautiously |
-| Wrong runtime config | Backend/World-Engine URLs, secrets, or providers are wrong | Session start or turn breaks | Readiness checks + admin visibility |
-| Provider unavailable | Model/adapter fails | Fallback or degraded output | Controlled fallback with diagnostics |
-| LLM hallucinates | Model invents lore/state | Lore break | Validation + retrieval + reject |
-| NPC contradicts lore | CharacterMind/SocialState unclear | Character feels wrong | Stronger character contracts |
-| Narrator remains too passive | Scene pressure or render is weak | Scene feels lifeless | Dramatic Effect Gate + better pacing controls |
-| Validation fails | Proposal violates rules | No commit | Useful blocked/fallback response |
-| World state not synchronized | Backend volatile state instead of World-Engine truth | UI shows wrong state | Treat World-Engine state as the only runtime truth |
-| Decision tree is too coarse | Responder/scene function is wrong | Wrong reaction | Finer policies and tests |
-| Data structure missing or drifting | API/runtime shapes change | Consumers break | Contract tests |
-| Diagnostics show too little detail | Error in graph/provider/validation | Debugging is hard | Expand diagnostics envelope |
-| Fallback is not expressive enough | Provider or validation error | Poor UX | Narrative fallbacks instead of only technical errors |
+
+| Problem                            | When does it occur?                                        | Impact                              | Ideal solution                                       |
+| ---------------------------------- | ---------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| Missing retrieval context          | RAG finds nothing or the wrong profile                     | Answer becomes thin or hallucinates | Make hit status visible and answer cautiously        |
+| Wrong runtime config               | Backend/World-Engine URLs, secrets, or providers are wrong | Session start or turn breaks        | Readiness checks + admin visibility                  |
+| Provider unavailable               | Model/adapter fails                                        | Fallback or degraded output         | Controlled fallback with diagnostics                 |
+| LLM hallucinates                   | Model invents lore/state                                   | Lore break                          | Validation + retrieval + reject                      |
+| NPC contradicts lore               | CharacterMind/SocialState unclear                          | Character feels wrong               | Stronger character contracts                         |
+| Narrator remains too passive       | Scene pressure or render is weak                           | Scene feels lifeless                | Dramatic Effect Gate + better pacing controls        |
+| Validation fails                   | Proposal violates rules                                    | No commit                           | Useful blocked/fallback response                     |
+| World state not synchronized       | Backend volatile state instead of World-Engine truth       | UI shows wrong state                | Treat World-Engine state as the only runtime truth   |
+| Decision tree is too coarse        | Responder/scene function is wrong                          | Wrong reaction                      | Finer policies and tests                             |
+| Data structure missing or drifting | API/runtime shapes change                                  | Consumers break                     | Contract tests                                       |
+| Diagnostics show too little detail | Error in graph/provider/validation                         | Debugging is hard                   | Expand diagnostics envelope                          |
+| Fallback is not expressive enough  | Provider or validation error                               | Poor UX                             | Narrative fallbacks instead of only technical errors |
+
 
 Especially critical for a live demo:
 
@@ -937,98 +981,106 @@ That turns AI in the game from an uncontrolled text machine into a controllable,
 
 ## 19. Slide Structure for 10 Minutes
 
-| Slide | Title | Key message | Visual / diagram | Speaker hint |
-| --- | --- | --- | --- | --- |
-| 1 | What is the Play-Service? | Authoritative story runtime in the `world-engine` | Component overview | “Not backend and not chatbot: the World-Engine is runtime truth.” |
-| 2 | The path of a player input | Input runs through several runtime stages | Sequence diagram | “A turn is a chain, not a single prompt.” |
-| 3 | The most important function chains | Context, routing, generation, validation, commit | Function-chain flowchart | “This shows why the system remains controllable.” |
-| 4 | AI in the system | LangGraph controls, LangChain invokes models structurally, RAG provides context | Orchestration diagram | “LangGraph is the execution plan; LangChain is the model bridge.” |
-| 5 | Decision tree | Rules + state + AI + validation | Player-turn decision tree | “The AI does not decide alone.” |
-| 6 | Narrator thinking model | Narrator is a runtime role for scene, pressure, consequence | Narrator tree | “Technically, the Narrator frames the scene through context and pressure.” |
-| 7 | NPC thinking model | NPCs react through CharacterMind, SocialState, and scene function | NPC tree | “NPCs are not free; they are role-bound and scene-bound.” |
-| 8 | Data structures | State, context, proposal, validation hold the world together | Data flow diagram | “This is memory and control system.” |
-| 9 | Validation & guardrails | Only checked proposals become truth | Validation diagram | “Proposal is not the same as commit.” |
-| 10 | Ideal flow without problems | Clean runtime from input to diagnostics | Main flow diagram | “This is how the demo path should look.” |
-| 11 | Typical risks and diagnostics | Errors are expected but must be visible | Risk table | “The point is not that nothing ever goes wrong, but that it happens in a controlled way.” |
-| 12 | Conclusion | More than ChatGPT: runtime + AI + validation | 5 key statements | “AI is embedded, not released unchecked.” |
+
+| Slide | Title                              | Key message                                                                     | Visual / diagram          | Speaker hint                                                                              |
+| ----- | ---------------------------------- | ------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| 1     | What is the Play-Service?          | Authoritative story runtime in the `world-engine`                               | Component overview        | “Not backend and not chatbot: the World-Engine is runtime truth.”                         |
+| 2     | The path of a player input         | Input runs through several runtime stages                                       | Sequence diagram          | “A turn is a chain, not a single prompt.”                                                 |
+| 3     | The most important function chains | Context, routing, generation, validation, commit                                | Function-chain flowchart  | “This shows why the system remains controllable.”                                         |
+| 4     | AI in the system                   | LangGraph controls, LangChain invokes models structurally, RAG provides context | Orchestration diagram     | “LangGraph is the execution plan; LangChain is the model bridge.”                         |
+| 5     | Decision tree                      | Rules + state + AI + validation                                                 | Player-turn decision tree | “The AI does not decide alone.”                                                           |
+| 6     | Narrator thinking model            | Narrator is a runtime role for scene, pressure, consequence                     | Narrator tree             | “Technically, the Narrator frames the scene through context and pressure.”                |
+| 7     | NPC thinking model                 | NPCs react through CharacterMind, SocialState, and scene function               | NPC tree                  | “NPCs are not free; they are role-bound and scene-bound.”                                 |
+| 8     | Data structures                    | State, context, proposal, validation hold the world together                    | Data flow diagram         | “This is memory and control system.”                                                      |
+| 9     | Validation & guardrails            | Only checked proposals become truth                                             | Validation diagram        | “Proposal is not the same as commit.”                                                     |
+| 10    | Ideal flow without problems        | Clean runtime from input to diagnostics                                         | Main flow diagram         | “This is how the demo path should look.”                                                  |
+| 11    | Typical risks and diagnostics      | Errors are expected but must be visible                                         | Risk table                | “The point is not that nothing ever goes wrong, but that it happens in a controlled way.” |
+| 12    | Conclusion                         | More than ChatGPT: runtime + AI + validation                                    | 5 key statements          | “AI is embedded, not released unchecked.”                                                 |
+
 
 ---
 
 ## 20. Speaker Notes
 
-| Slide | Speaker Notes |
-| --- | --- |
-| 1 | “The Play-Service is the running game instance. It decides what actually happens in a story session.” |
-| 2 | “Player input goes through frontend and backend into the World-Engine. The backend is important, but runtime truth lives in the World-Engine.” |
-| 3 | “Here we see the chains: input, context, routing, model, checking, commit. Each chain can be diagnosed.” |
-| 4 | “LangGraph is the execution plan of the turn. LangChain builds and parses the model call. RAG provides context when the scene needs more knowledge.” |
-| 5 | “The decision tree is distributed. Rules decide hard facts, AI formulates proposals, validation decides acceptance.” |
-| 6 | “Technically, the Narrator is the role that makes scene, pressure, and consequence visible. It is not a magical voice, but a runtime role.” |
-| 7 | “NPCs react through posture, social pressure, scene, and player input. This keeps characters more consistent.” |
-| 8 | “Without data structures, everything would be just prompt. Session state, world state, and turn context make this a real runtime.” |
-| 9 | “The most important protection: an AI proposal must not automatically become truth.” |
-| 10 | “In the ideal case, every step is traceable: why this model, why this NPC, why this delta was accepted.” |
-| 11 | “Risks sit at interfaces: config, providers, retrieval, validation, and UI contracts.” |
-| 12 | “The core idea is: the system uses AI, but the engine remains responsible.” |
+
+| Slide | Speaker Notes                                                                                                                                        |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | “The Play-Service is the running game instance. It decides what actually happens in a story session.”                                                |
+| 2     | “Player input goes through frontend and backend into the World-Engine. The backend is important, but runtime truth lives in the World-Engine.”       |
+| 3     | “Here we see the chains: input, context, routing, model, checking, commit. Each chain can be diagnosed.”                                             |
+| 4     | “LangGraph is the execution plan of the turn. LangChain builds and parses the model call. RAG provides context when the scene needs more knowledge.” |
+| 5     | “The decision tree is distributed. Rules decide hard facts, AI formulates proposals, validation decides acceptance.”                                 |
+| 6     | “Technically, the Narrator is the role that makes scene, pressure, and consequence visible. It is not a magical voice, but a runtime role.”          |
+| 7     | “NPCs react through posture, social pressure, scene, and player input. This keeps characters more consistent.”                                       |
+| 8     | “Without data structures, everything would be just prompt. Session state, world state, and turn context make this a real runtime.”                   |
+| 9     | “The most important protection: an AI proposal must not automatically become truth.”                                                                 |
+| 10    | “In the ideal case, every step is traceable: why this model, why this NPC, why this delta was accepted.”                                             |
+| 11    | “Risks sit at interfaces: config, providers, retrieval, validation, and UI contracts.”                                                               |
+| 12    | “The core idea is: the system uses AI, but the engine remains responsible.”                                                                          |
+
 
 ---
 
 ## 21. Repository Evidence
 
-| File | Why relevant |
-| --- | --- |
-| `docs/ADR/adr-0001-runtime-authority-in-world-engine.md` | Evidences World-Engine as authoritative runtime. |
-| `docs/ADR/adr-0004-runtime-model-output-proposal-only-until-validator-approval.md` | Evidences AI output as proposal until validator/engine approval. |
-| `docs/technical/runtime/runtime-authority-and-state-flow.md` | Evidences ownership: World-Engine, Backend, story_runtime_core, ai_stack. |
-| `docs/technical/architecture/canonical_runtime_contract.md` | Evidences API/runtime contract and `runtime_projection`. |
-| `docs/technical/ai/RAG.md` | Evidences RAG purpose, domains, storage, and runtime profile. |
-| `docs/technical/integration/LangChain.md` | Evidences LangChain as adapter/prompt/parser harness. |
-| `docs/archive/architecture-legacy/langgraph_in_world_of_shadows.md` | Evidences LangGraph as a turn orchestration concept; the current code form is extended. |
-| `world-engine/app/api/http.py` | Evidences Play-Service HTTP APIs, story session endpoints, and internal API key. |
-| `world-engine/app/story_runtime/manager.py` | Evidences `StoryRuntimeManager`, `StorySession`, turn execution, diagnostics, LangGraph integration. |
-| `world-engine/app/story_runtime/commit_models.py` | Evidences deterministic narrative commit resolver and bounded scene progression. |
-| `ai_stack/langgraph_runtime.py` | Evidences active runtime turn graph with retrieval, routing, invoke, fallback, validation, commit, render. |
-| `ai_stack/langchain_integration/bridges.py` | Evidences LangChain prompt templates, Pydantic parser, adapter invocation, retriever bridge. |
-| `ai_stack/rag.py` | Evidences retrieval data structures, corpus, hybrid/sparse retrieval, runtime retriever. |
-| `ai_stack/scene_director_goc.py` | Evidences GoC scene assessment, responder selection, scene function, pacing. |
-| `ai_stack/character_mind_contract.py` | Evidences CharacterMind as a bounded tactical identity model. |
-| `ai_stack/character_mind_goc.py` | Evidences GoC-specific CharacterMind derivation. |
-| `ai_stack/social_state_contract.py` | Evidences SocialState as a derived, non-authoritative social projection. |
-| `ai_stack/semantic_move_contract.py` | Evidences semantic player-move classification. |
-| `ai_stack/scene_plan_contract.py` | Evidences ScenePlan as advisory until validation/commit. |
-| `ai_stack/dramatic_effect_gate.py` | Evidences guardrail for dramatic effect and plausibility. |
-| `backend/app/api/v1/session_routes.py` | Evidences backend as non-authoritative bridge/proxy to the World-Engine. |
-| `backend/app/services/game_service.py` | Evidences Play-Service contract client, config check, and error handling. |
-| `backend/app/api/v1/game_routes.py` | Evidences game/Play-Service integration through backend API. |
-| `backend/app/runtime/model_routing.py` | Evidences LLM/SLM-adjacent routing principles in the backend context. |
-| `backend/app/runtime/model_routing_contracts.py` | Evidences model routing data structures and task categories. |
-| `backend/app/runtime/decision_policy.py` | Evidences AI action taxonomy and policy principle. |
-| `backend/app/runtime/validators.py` | Evidences validation of AI proposals in the backend runtime context. |
-| `backend/app/runtime/reference_policy.py` | Evidences reference checks for characters, scenes, triggers. |
-| `backend/app/runtime/mutation_policy.py` | Evidences mutation whitelist/blocking principle. |
-| `backend/app/runtime/short_term_context.py` | Evidences Short-Term Turn Context as a bounded context structure. |
-| `ai_stack/tests/test_langgraph_runtime.py` | Test reference for LangGraph runtime. |
-| `ai_stack/tests/test_langchain_integration.py` | Test reference for LangChain integration. |
-| `ai_stack/tests/test_rag.py` | Test reference for RAG. |
-| `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py` | Test reference for GoC graph seams and diagnostics. |
-| `ai_stack/tests/test_character_mind_goc.py` | Test reference for CharacterMind. |
-| `ai_stack/tests/test_dramatic_effect_gate.py` | Test reference for guardrail / Dramatic Effect Gate. |
+
+| File                                                                               | Why relevant                                                                                               |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `docs/ADR/adr-0001-runtime-authority-in-world-engine.md`                           | Evidences World-Engine as authoritative runtime.                                                           |
+| `docs/ADR/adr-0004-runtime-model-output-proposal-only-until-validator-approval.md` | Evidences AI output as proposal until validator/engine approval.                                           |
+| `docs/technical/runtime/runtime-authority-and-state-flow.md`                       | Evidences ownership: World-Engine, Backend, story_runtime_core, ai_stack.                                  |
+| `docs/technical/architecture/canonical_runtime_contract.md`                        | Evidences API/runtime contract and `runtime_projection`.                                                   |
+| `docs/technical/ai/RAG.md`                                                         | Evidences RAG purpose, domains, storage, and runtime profile.                                              |
+| `docs/technical/integration/LangChain.md`                                          | Evidences LangChain as adapter/prompt/parser harness.                                                      |
+| `docs/archive/architecture-legacy/langgraph_in_world_of_shadows.md`                | Evidences LangGraph as a turn orchestration concept; the current code form is extended.                    |
+| `world-engine/app/api/http.py`                                                     | Evidences Play-Service HTTP APIs, story session endpoints, and internal API key.                           |
+| `world-engine/app/story_runtime/manager.py`                                        | Evidences `StoryRuntimeManager`, `StorySession`, turn execution, diagnostics, LangGraph integration.       |
+| `world-engine/app/story_runtime/commit_models.py`                                  | Evidences deterministic narrative commit resolver and bounded scene progression.                           |
+| `ai_stack/langgraph_runtime.py`                                                    | Evidences active runtime turn graph with retrieval, routing, invoke, fallback, validation, commit, render. |
+| `ai_stack/langchain_integration/bridges.py`                                        | Evidences LangChain prompt templates, Pydantic parser, adapter invocation, retriever bridge.               |
+| `ai_stack/rag.py`                                                                  | Evidences retrieval data structures, corpus, hybrid/sparse retrieval, runtime retriever.                   |
+| `ai_stack/scene_director_goc.py`                                                   | Evidences GoC scene assessment, responder selection, scene function, pacing.                               |
+| `ai_stack/character_mind_contract.py`                                              | Evidences CharacterMind as a bounded tactical identity model.                                              |
+| `ai_stack/character_mind_goc.py`                                                   | Evidences GoC-specific CharacterMind derivation.                                                           |
+| `ai_stack/social_state_contract.py`                                                | Evidences SocialState as a derived, non-authoritative social projection.                                   |
+| `ai_stack/semantic_move_contract.py`                                               | Evidences semantic player-move classification.                                                             |
+| `ai_stack/scene_plan_contract.py`                                                  | Evidences ScenePlan as advisory until validation/commit.                                                   |
+| `ai_stack/dramatic_effect_gate.py`                                                 | Evidences guardrail for dramatic effect and plausibility.                                                  |
+| `backend/app/api/v1/session_routes.py`                                             | Evidences backend as non-authoritative bridge/proxy to the World-Engine.                                   |
+| `backend/app/services/game_service.py`                                             | Evidences Play-Service contract client, config check, and error handling.                                  |
+| `backend/app/api/v1/game_routes.py`                                                | Evidences game/Play-Service integration through backend API.                                               |
+| `backend/app/runtime/model_routing.py`                                             | Evidences LLM/SLM-adjacent routing principles in the backend context.                                      |
+| `backend/app/runtime/model_routing_contracts.py`                                   | Evidences model routing data structures and task categories.                                               |
+| `backend/app/runtime/decision_policy.py`                                           | Evidences AI action taxonomy and policy principle.                                                         |
+| `backend/app/runtime/validators.py`                                                | Evidences validation of AI proposals in the backend runtime context.                                       |
+| `backend/app/runtime/reference_policy.py`                                          | Evidences reference checks for characters, scenes, triggers.                                               |
+| `backend/app/runtime/mutation_policy.py`                                           | Evidences mutation whitelist/blocking principle.                                                           |
+| `backend/app/runtime/short_term_context.py`                                        | Evidences Short-Term Turn Context as a bounded context structure.                                          |
+| `ai_stack/tests/test_langgraph_runtime.py`                                         | Test reference for LangGraph runtime.                                                                      |
+| `ai_stack/tests/test_langchain_integration.py`                                     | Test reference for LangChain integration.                                                                  |
+| `ai_stack/tests/test_rag.py`                                                       | Test reference for RAG.                                                                                    |
+| `ai_stack/tests/test_goc_runtime_graph_seams_and_diagnostics.py`                   | Test reference for GoC graph seams and diagnostics.                                                        |
+| `ai_stack/tests/test_character_mind_goc.py`                                        | Test reference for CharacterMind.                                                                          |
+| `ai_stack/tests/test_dramatic_effect_gate.py`                                      | Test reference for guardrail / Dramatic Effect Gate.                                                       |
+
 
 Markers:
 
-| Statement | Status |
-| --- | --- |
-| World-Engine is the authoritative runtime | directly evidenced by ADR, docs, and code |
-| AI output is proposal until validation | directly evidenced by ADR, docs, and code |
-| LangGraph is runtime orchestration | directly evidenced by code |
-| LangChain is prompt / parser / adapter bridge | directly evidenced by code |
-| RAG is the runtime context provider | directly evidenced by code and docs |
-| Narrator as a single class | not clearly evidenced |
-| Narrator as a runtime role | evidenced by Scene Director, Render, Commit, and Diagnostics |
-| NPCs as fully autonomous agents | not clearly evidenced |
-| NPC-adjacent decision logic | evidenced by CharacterMind, SocialState, SemanticMove, and Scene Director |
-| RAG only when needed | ideal flow; current skipping is not clearly evidenced |
-| Full persistent world-state simulation | not fully evidenced; bounded story runtime state is evidenced |
+
+| Statement                                     | Status                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------- |
+| World-Engine is the authoritative runtime     | directly evidenced by ADR, docs, and code                                 |
+| AI output is proposal until validation        | directly evidenced by ADR, docs, and code                                 |
+| LangGraph is runtime orchestration            | directly evidenced by code                                                |
+| LangChain is prompt / parser / adapter bridge | directly evidenced by code                                                |
+| RAG is the runtime context provider           | directly evidenced by code and docs                                       |
+| Narrator as a single class                    | not clearly evidenced                                                     |
+| Narrator as a runtime role                    | evidenced by Scene Director, Render, Commit, and Diagnostics              |
+| NPCs as fully autonomous agents               | not clearly evidenced                                                     |
+| NPC-adjacent decision logic                   | evidenced by CharacterMind, SocialState, SemanticMove, and Scene Director |
+| RAG only when needed                          | ideal flow; current skipping is not clearly evidenced                     |
+| Full persistent world-state simulation        | not fully evidenced; bounded story runtime state is evidenced             |
+
 
 ---
 
