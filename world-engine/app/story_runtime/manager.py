@@ -1491,8 +1491,8 @@ class StoryRuntimeManager:
         # Build commit details
         commit_details = {
             "committed": narrative_commit is not None,
-            "degraded": narrative_commit.is_degraded if narrative_commit else False,
-            "degradation_reason": narrative_commit.degradation_reason if narrative_commit else None,
+            "degraded": outcome == "degraded",
+            "degradation_reason": str(errors[0]) if errors else None,
         }
 
         # Build retrieval details if available
