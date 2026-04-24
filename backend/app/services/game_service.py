@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -11,6 +12,14 @@ from urllib.parse import urlparse
 
 import httpx
 from flask import current_app
+
+
+# Keep module identity stable across ``app.services...`` and
+# ``backend.app.services...`` import paths so exception classes are shared.
+if __name__ == "app.services.game_service":
+    sys.modules.setdefault("backend.app.services.game_service", sys.modules[__name__])
+elif __name__ == "backend.app.services.game_service":
+    sys.modules.setdefault("app.services.game_service", sys.modules[__name__])
 
 
 class GameServiceError(RuntimeError):

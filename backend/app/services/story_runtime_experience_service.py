@@ -42,7 +42,7 @@ def _audit(event_type: str, actor: str, summary: str, metadata: dict | None = No
 
 
 def _load_row() -> SystemSettingRecord | None:
-    return SystemSettingRecord.query.get(_SETTING_ID)
+    return db.session.get(SystemSettingRecord, _SETTING_ID)
 
 
 def seed_default_story_runtime_experience(actor: str = "system") -> dict[str, Any]:

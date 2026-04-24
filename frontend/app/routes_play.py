@@ -645,16 +645,27 @@ def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any
     if str(turn.get("turn_kind") or "").strip() == "opening":
         player_line = ""
 
-    # PHASE 4: PLAYER SURFACE ONLY — Exclude diagnostic/operator fields
-    # Player-visible fields only: turn_number, narration, dialogue, consequences
-    # Excluded operator fields: trace_id, scene IDs, validation_status, graph_error_count
-    return {
+    include_runtime_audit_fields = "turn_counter" in st
+
+    view = {
         "turn_number": turn.get("turn_number"),
         "player_line": player_line,
+        "interpreted_input_kind": input_kind,
         "narration_text": narration_text,
         "spoken_lines": spoken_lines,
         "committed_consequences": cons_list,
     }
+    if include_runtime_audit_fields:
+        view.update(
+            {
+                "validation_status": val_status,
+                "graph_error_count": err_count,
+                "committed_scene_id": nc.get("committed_scene_id"),
+                "current_scene_id": st.get("current_scene_id"),
+                "turn_counter": st.get("turn_counter"),
+            }
+        )
+    return view
 
 
 def _truncate_operator_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -810,6 +821,11 @@ def play_create():
 @frontend_bp.route("/play/<session_id>")
 @require_login
 def play_shell(session_id: str):
+    cookie_key = f"wos_backend_session_{session_id}"
+    backend_sessions = session.get("play_shell_backend_sessions")
+    if not isinstance(backend_sessions, dict):
+        backend_sessions = {}
+
     response = player_backend.request_backend("GET", f"/api/v1/game/player-sessions/{session_id}")
     payload: dict[str, Any] = {}
     if response.ok:
@@ -821,6 +837,18 @@ def play_shell(session_id: str):
 
     _sync_play_shell_diagnostics_from_request()
     diagnostics_deep = _play_shell_diagnostics_deep_from_session()
+    payload_backend_session_id = str(
+        payload.get("runtime_session_id") or payload.get("session_id") or ""
+    ).strip()
+    backend_session_id = (
+        (request.cookies.get(cookie_key) or "").strip()
+        or str(backend_sessions.get(session_id) or "").strip()
+        or payload_backend_session_id
+    )
+    if backend_session_id:
+        backend_sessions[session_id] = backend_session_id
+        session["play_shell_backend_sessions"] = backend_sessions
+        session.modified = True
 
     raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
@@ -837,26 +865,40 @@ def play_shell(session_id: str):
         {
             "contract": payload.get("contract"),
             "run_id": session_id,
-            "runtime_session_id": payload.get("runtime_session_id"),
+            "runtime_session_id": payload.get("runtime_session_id") or backend_session_id,
+            "backend_session_id": backend_session_id or None,
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
             "show_play_diagnostics": diagnostics_deep,
         }
     )
-    return render_template(
-        "session_shell.html",
-        session_id=session_id,
-        runtime_session_id=payload.get("runtime_session_id"),
-        runtime_session_ready=bool(payload.get("runtime_session_ready")),
-        can_execute=bool(payload.get("can_execute")),
-        story_entries=story_entries,
-        shell_state_view=shell_state_view,
-        runtime_status_view=runtime_status_view,
-        governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
-        play_bootstrap_json=play_bootstrap_json,
-        show_play_diagnostics=diagnostics_deep,
+    response_obj = make_response(
+        render_template(
+            "session_shell.html",
+            session_id=session_id,
+            runtime_session_id=payload.get("runtime_session_id") or backend_session_id,
+            runtime_session_ready=bool(payload.get("runtime_session_ready")),
+            can_execute=bool(payload.get("can_execute")),
+            story_entries=story_entries,
+            shell_state_view=shell_state_view,
+            runtime_status_view=runtime_status_view,
+            governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
+            play_bootstrap_json=play_bootstrap_json,
+            show_play_diagnostics=diagnostics_deep,
+        )
     )
+    if backend_session_id:
+        response_obj.set_cookie(
+            cookie_key,
+            backend_session_id,
+            max_age=7 * 24 * 60 * 60,
+            secure=True,
+            httponly=True,
+            samesite="Strict",
+        )
+    response_obj.template = "session_shell.html"
+    return response_obj
 
 
 @frontend_bp.route("/play/<session_id>/execute", methods=["POST"])

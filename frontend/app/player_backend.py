@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from app.api_client import BackendApiError, request_backend, require_success
+from .api_client import BackendApiError, request_backend, require_success
 
 __all__ = ["BackendApiError", "request_backend", "require_success"]

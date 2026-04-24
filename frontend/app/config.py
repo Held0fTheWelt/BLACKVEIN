@@ -33,6 +33,7 @@ class Config:
     SESSION_COOKIE_SECURE = env_bool("PREFER_HTTPS", False)
     ENFORCE_HTTPS = env_bool("PREFER_HTTPS", False)
     TESTING = False
+    BYPASS_LOGIN_FOR_TESTS = False
 
 
 class TestingConfig(Config):
@@ -40,3 +41,4 @@ class TestingConfig(Config):
     SECRET_KEY = "frontend-test-secret"
     BACKEND_API_URL = "http://backend.example.test"
     PLAY_SERVICE_PUBLIC_URL = "http://play.example.test"
+    BYPASS_LOGIN_FOR_TESTS = True

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Flask, jsonify, request
 
-from .config import Config
+from .config import Config, TestingConfig
 from .routes import frontend_bp
 
 
@@ -11,13 +11,16 @@ def _wants_json() -> bool:
     return request.path.startswith("/api/")
 
 
-def create_app(config_object=None) -> Flask:
+def create_app(config_object=None, *, testing: bool | None = None) -> Flask:
     app = Flask(
         __name__,
         template_folder="../templates",
         static_folder="../static",
     )
-    app.config.from_object(config_object or Config)
+    resolved_config = config_object
+    if resolved_config is None and testing is True:
+        resolved_config = TestingConfig
+    app.config.from_object(resolved_config or Config)
 
     if not app.config.get("SECRET_KEY"):
         raise ValueError("FRONTEND_SECRET_KEY (or SECRET_KEY) must be configured for frontend service.")

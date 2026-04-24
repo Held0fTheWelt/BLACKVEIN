@@ -6,7 +6,7 @@ from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 
 from app.api import register_api
-from app.config import Config
+from app.config import Config, TestingConfig
 from app.extensions import init_app as init_extensions, limiter
 from app.factory_background import schedule_token_blacklist_cleanup
 from app.factory_http_shell import register_http_shell
@@ -15,9 +15,12 @@ from app.info import info_bp
 from app.web import web_bp
 
 
-def create_app(config_object=None):
+def create_app(config_object=None, *, testing: bool | None = None):
     app = Flask(__name__)
-    app.config.from_object(config_object or Config)
+    resolved_config = config_object
+    if resolved_config is None and testing is True:
+        resolved_config = TestingConfig
+    app.config.from_object(resolved_config or Config)
     configure_app_secrets_jwt_and_logging(app)
 
     init_extensions(app)

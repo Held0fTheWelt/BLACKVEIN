@@ -328,7 +328,7 @@ def _audit(event_type: str, scope: str, target_ref: str, changed_by: str, summar
 
 def _seed_default_presets() -> None:
     for preset_payload in _DEFAULT_PRESETS:
-        if BootstrapPreset.query.get(preset_payload["preset_id"]) is not None:
+        if db.session.get(BootstrapPreset, preset_payload["preset_id"]) is not None:
             continue
         db.session.add(BootstrapPreset(**preset_payload, is_builtin=True))
 
@@ -428,7 +428,7 @@ def ensure_governance_baseline() -> None:
     for scope, values in defaults.items():
         for setting_key, setting_value in values.items():
             setting_id = _slug(f"{scope}_{setting_key}")
-            if SystemSettingRecord.query.get(setting_id) is None:
+            if db.session.get(SystemSettingRecord, setting_id) is None:
                 db.session.add(
                     SystemSettingRecord(
                         setting_id=setting_id,
@@ -487,7 +487,7 @@ def initialize_bootstrap(payload: dict, actor: str) -> dict:
         raise governance_error("bootstrap_already_initialized", "Bootstrap is already initialized and locked.", 409, {})
 
     preset_id = (payload.get("selected_preset") or "").strip()
-    preset = BootstrapPreset.query.get(preset_id)
+    preset = db.session.get(BootstrapPreset, preset_id)
     if preset is None:
         raise governance_error(
             "preset_not_found",
@@ -666,7 +666,7 @@ def create_provider(payload: dict, actor: str) -> AIProviderConfig:
             {"provider_type": provider_type},
         )
     provider_id = _slug(payload.get("provider_id") or f"{provider_type}_{display_name}")
-    existing = AIProviderConfig.query.get(provider_id)
+    existing = db.session.get(AIProviderConfig, provider_id)
     if existing:
         return existing
     provider = AIProviderConfig(
@@ -688,7 +688,7 @@ def create_provider(payload: dict, actor: str) -> AIProviderConfig:
 
 
 def update_provider(provider_id: str, payload: dict, actor: str) -> AIProviderConfig:
-    provider = AIProviderConfig.query.get(provider_id)
+    provider = db.session.get(AIProviderConfig, provider_id)
     if provider is None:
         raise governance_error("provider_not_found", f"Provider '{provider_id}' not found.", 404, {"provider_id": provider_id})
     if "provider_type" in payload:
@@ -736,7 +736,7 @@ def update_provider(provider_id: str, payload: dict, actor: str) -> AIProviderCo
 
 def write_provider_credential(provider_id: str, payload: dict, actor: str) -> dict:
     """Write/replace provider credential in write-only mode."""
-    provider = AIProviderConfig.query.get(provider_id)
+    provider = db.session.get(AIProviderConfig, provider_id)
     if provider is None:
         raise governance_error("provider_not_found", f"Provider '{provider_id}' not found.", 404, {"provider_id": provider_id})
     api_key = (payload.get("api_key") or payload.get("new_api_key") or "").strip()
@@ -776,7 +776,7 @@ def write_provider_credential(provider_id: str, payload: dict, actor: str) -> di
 
 def test_provider_connection(provider_id: str, actor: str) -> dict:
     """Run provider-aware health checks and persist normalized status."""
-    provider = AIProviderConfig.query.get(provider_id)
+    provider = db.session.get(AIProviderConfig, provider_id)
     if provider is None:
         raise governance_error("provider_not_found", f"Provider '{provider_id}' not found.", 404, {"provider_id": provider_id})
     contract = _provider_contract(provider.provider_type)
@@ -950,7 +950,7 @@ def list_models() -> list[dict]:
 
 def create_model(payload: dict, actor: str) -> AIModelConfig:
     provider_id = (payload.get("provider_id") or "").strip()
-    provider = AIProviderConfig.query.get(provider_id)
+    provider = db.session.get(AIProviderConfig, provider_id)
     if provider is None:
         raise governance_error("provider_not_found", f"Provider '{provider_id}' not found.", 404, {"provider_id": provider_id})
     if not provider.is_enabled:
@@ -964,7 +964,7 @@ def create_model(payload: dict, actor: str) -> AIModelConfig:
     if not model_name:
         raise governance_error("setting_value_invalid", "model_name is required.", 400, {})
     model_id = _slug(payload.get("model_id") or f"{provider_id}_{model_name}")
-    model = AIModelConfig.query.get(model_id)
+    model = db.session.get(AIModelConfig, model_id)
     if model:
         return model
     model = AIModelConfig(
@@ -991,7 +991,7 @@ def create_model(payload: dict, actor: str) -> AIModelConfig:
 def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
     print(f"DEBUG: update_model called: model_id={model_id} payload={payload}", flush=True)
 
-    model = AIModelConfig.query.get(model_id)
+    model = db.session.get(AIModelConfig, model_id)
     if model is None:
         raise governance_error("model_not_found", f"Model '{model_id}' not found.", 404, {"model_id": model_id})
 
@@ -1353,7 +1353,7 @@ def evaluate_runtime_readiness() -> dict:
 def _ensure_model_exists(model_id: str | None) -> None:
     if model_id is None:
         return
-    model = AIModelConfig.query.get(model_id)
+    model = db.session.get(AIModelConfig, model_id)
     if model is None or not model.is_enabled:
         raise governance_error("route_invalid_model_reference", "Route references missing or disabled model.", 409, {"model_id": model_id})
 
@@ -1362,7 +1362,7 @@ def create_route(payload: dict, actor: str) -> AITaskRoute:
     route_id = _slug(payload.get("route_id") or f"{payload.get('task_kind','task')}_{payload.get('workflow_scope','global')}")
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
         _ensure_model_exists(payload.get(field))
-    route = AITaskRoute.query.get(route_id)
+    route = db.session.get(AITaskRoute, route_id)
     if route:
         return route
     route = AITaskRoute(
@@ -1382,7 +1382,7 @@ def create_route(payload: dict, actor: str) -> AITaskRoute:
 
 
 def update_route(route_id: str, payload: dict, actor: str) -> AITaskRoute:
-    route = AITaskRoute.query.get(route_id)
+    route = db.session.get(AITaskRoute, route_id)
     if route is None:
         raise governance_error("route_not_found", f"Route '{route_id}' not found.", 404, {"route_id": route_id})
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
@@ -1468,11 +1468,11 @@ def _validate_runtime_modes(modes: dict) -> None:
     for route in routes:
         for mid in (route.preferred_model_id, route.fallback_model_id):
             if mid:
-                model = AIModelConfig.query.get(mid)
+                model = db.session.get(AIModelConfig, mid)
                 if model and model.provider_id in real_provider_ids and model.is_enabled:
                     route_models.add(mid)
         if route.mock_model_id:
-            model = AIModelConfig.query.get(route.mock_model_id)
+            model = db.session.get(AIModelConfig, route.mock_model_id)
             if model and model.is_enabled and model.model_role == "mock":
                 has_mock_fallback = True
     if generation_mode in {"ai_only", "routed_llm_slm"} and (not real_provider_ids or not route_models):
@@ -1689,7 +1689,7 @@ def get_active_runtime_snapshot() -> dict | None:
 
 
 def _ensure_default_mock_path(actor: str) -> None:
-    provider = AIProviderConfig.query.get("mock_default")
+    provider = db.session.get(AIProviderConfig, "mock_default")
     if provider is None:
         provider = AIProviderConfig(
             provider_id="mock_default",
@@ -1702,7 +1702,7 @@ def _ensure_default_mock_path(actor: str) -> None:
             health_status="healthy",
         )
         db.session.add(provider)
-    model = AIModelConfig.query.get("mock_deterministic")
+    model = db.session.get(AIModelConfig, "mock_deterministic")
     if model is None:
         model = AIModelConfig(
             model_id="mock_deterministic",
@@ -1718,7 +1718,7 @@ def _ensure_default_mock_path(actor: str) -> None:
         db.session.add(model)
     for task_kind in _REQUIRED_TASK_KINDS:
         route_id = f"{task_kind}_global"
-        if AITaskRoute.query.get(route_id) is None:
+        if db.session.get(AITaskRoute, route_id) is None:
             db.session.add(
                 AITaskRoute(
                     route_id=route_id,
@@ -1742,7 +1742,7 @@ def read_scope_settings(scope: str) -> dict:
 def update_scope_settings(scope: str, payload: dict, actor: str) -> dict:
     for setting_key, setting_value in payload.items():
         setting_id = _slug(f"{scope}_{setting_key}")
-        row = SystemSettingRecord.query.get(setting_id)
+        row = db.session.get(SystemSettingRecord, setting_id)
         if row is None:
             row = SystemSettingRecord(
                 setting_id=setting_id,
@@ -1816,7 +1816,7 @@ def upsert_budget(policy_id: str | None, payload: dict, actor: str) -> CostBudge
     if warning < 1 or warning > 100:
         raise governance_error("budget_invalid_threshold", "warning_threshold_percent must be between 1 and 100.", 400, {"warning_threshold_percent": warning})
     budget_policy_id = policy_id or f"budget_{uuid4().hex}"
-    budget = CostBudgetPolicy.query.get(budget_policy_id)
+    budget = db.session.get(CostBudgetPolicy, budget_policy_id)
     if budget is None:
         budget = CostBudgetPolicy(
             budget_policy_id=budget_policy_id,
@@ -1976,7 +1976,7 @@ def get_provider_credential_for_runtime(provider_id: str) -> str | None:
     """
     print(f"DEBUG: get_provider_credential_for_runtime called for {provider_id}", flush=True)
 
-    provider = AIProviderConfig.query.get(provider_id)
+    provider = db.session.get(AIProviderConfig, provider_id)
     if provider is None:
         print(f"DEBUG: Provider {provider_id} not found", flush=True)
         return None

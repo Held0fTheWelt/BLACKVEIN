@@ -268,8 +268,30 @@ def api_proxy(subpath: str):
         json_data=payload if request.method in ("POST", "PUT", "PATCH", "DELETE") else None,
         params=request.args.to_dict(flat=True),
     )
-    content_type = response.headers.get("Content-Type", "application/json")
-    return Response(response.content, status=response.status_code, content_type=content_type)
+    raw_status = getattr(response, "status_code", None)
+    if isinstance(raw_status, int):
+        status_code = raw_status
+    else:
+        status_code = 200 if bool(getattr(response, "ok", False)) else 502
+
+    headers = getattr(response, "headers", None)
+    content_type = "application/json"
+    if hasattr(headers, "get"):
+        content_type = headers.get("Content-Type", "application/json")
+
+    raw_content = getattr(response, "content", None)
+    if isinstance(raw_content, (bytes, bytearray)):
+        return Response(bytes(raw_content), status=status_code, content_type=content_type)
+    if isinstance(raw_content, str):
+        return Response(raw_content, status=status_code, content_type=content_type)
+
+    if hasattr(response, "json"):
+        try:
+            return jsonify(response.json()), status_code
+        except Exception:
+            pass
+
+    return jsonify({}), status_code
 
 
 @frontend_bp.errorhandler(BackendApiError)

@@ -1,12 +1,44 @@
 from flask import Blueprint, request, g
 from flask_jwt_extended import get_jwt_identity
 import time
+import sys
 
 from app.services.user_service import update_user_last_seen
 from app.observability.trace import ensure_trace_id, get_trace_id, reset_trace_id
 from app.observability.audit_log import log_api_endpoint
 
 api_v1_bp = Blueprint("api_v1", __name__)
+
+
+def _sync_module_aliases() -> None:
+    """Keep ``app.api.v1`` and ``backend.app.api.v1`` import paths unified.
+
+    Some test modules import route helpers via ``backend.app...`` while the app
+    runtime imports via ``app...``. Without aliasing, Python can execute route
+    modules twice under different module keys, which re-attaches route
+    decorators after the blueprint has already been registered.
+    """
+    canonical = "app.api.v1"
+    alternate = "backend.app.api.v1"
+    this_module = sys.modules.get(__name__)
+    if this_module is None:
+        return
+    if __name__ == canonical:
+        sys.modules.setdefault(alternate, this_module)
+        source_prefix = f"{canonical}."
+        target_prefix = f"{alternate}."
+    elif __name__ == alternate:
+        sys.modules.setdefault(canonical, this_module)
+        source_prefix = f"{alternate}."
+        target_prefix = f"{canonical}."
+    else:
+        return
+
+    for name, module in list(sys.modules.items()):
+        if not name.startswith(source_prefix):
+            continue
+        suffix = name[len(source_prefix) :]
+        sys.modules.setdefault(f"{target_prefix}{suffix}", module)
 
 
 @api_v1_bp.before_request
@@ -101,3 +133,4 @@ def _register_api_v1_blueprint_routes() -> None:
 
 
 _register_api_v1_blueprint_routes()
+_sync_module_aliases()
