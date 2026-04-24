@@ -2302,6 +2302,8 @@ class RuntimeTurnGraphExecutor:
         turn_number = int(state.get("turn_number") or 0)
         max_attempts = max(0, int(self.max_self_correction_attempts))
         self_correction_attempts: list[dict[str, Any]] = []
+        # Disable degraded commits for opening turns to prevent silent failures on game start
+        allow_degraded = self.allow_degraded_commit_after_retries and turn_number > 1
         for attempt_index in range(1, max_attempts + 1):
             actor_lane_validation = _actor_lane_validation(state, generation)
             decision = decide_playability_recovery(
@@ -2311,7 +2313,7 @@ class RuntimeTurnGraphExecutor:
                 outcome=outcome,
                 generation=generation,
                 proposed_state_effects=proposed,
-                allow_degraded_commit_after_retries=bool(self.allow_degraded_commit_after_retries),
+                allow_degraded_commit_after_retries=bool(allow_degraded),
                 actor_lane_validation=actor_lane_validation,
             )
             if not decision.should_retry:

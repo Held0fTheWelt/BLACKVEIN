@@ -360,13 +360,10 @@ def run_visible_render(
     # Gate actor lanes on actor_lane_validation status
     actor_lane_validation = validation_outcome.get("actor_lane_validation") if isinstance(validation_outcome, dict) else None
     actor_lanes_rejected = False
-    actor_lane_reason = ""
-    if isinstance(actor_lane_validation, dict):
-        actor_lanes_rejected = actor_lane_validation.get("status") == "rejected"
-        actor_lane_reason = actor_lane_validation.get("reason", "")
+    if isinstance(actor_lane_validation, dict) and actor_lane_validation.get("status") == "rejected":
+        actor_lanes_rejected = True
 
-    # Suppress output only if there's no structured actor output at all; otherwise render available lanes
-    if actor_lanes_rejected and actor_lane_reason == "no_structured_actor_output_with_selected_responders":
+    if actor_lanes_rejected:
         structured_spoken_lines: list[str] = []
         structured_action_lines: list[str] = []
     else:
