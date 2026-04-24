@@ -11,14 +11,29 @@ from .experience_template_models import (
 
 
 def goc_solo_role_templates() -> list[RoleTemplate]:
+    # MVP1: visitor removed from live solo path (GLOBAL PROHIBITION).
+    # annette and alain are selectable human roles; the player chooses one via
+    # selected_player_role at create_run time (preferred_role_id in _bootstrap_instance).
+    # The unselected role's lobby seat remains open; the story runtime treats
+    # all non-human-occupied canonical characters as NPC dramatic actors.
     return [
         RoleTemplate(
-            id="visitor",
-            display_name="Visitor",
-            description="The human viewpoint role entering the apartment to discuss the violence between two children.",
+            id="annette",
+            display_name="Annette",
+            description="Trying to remain composed while the room tightens around her.",
             mode=ParticipantMode.HUMAN,
             initial_room_id="hallway",
             can_join=True,
+            npc_voice="polite, brittle, quietly overwhelmed",
+        ),
+        RoleTemplate(
+            id="alain",
+            display_name="Alain",
+            description="Half in the room, half on the phone, professionally detached.",
+            mode=ParticipantMode.HUMAN,
+            initial_room_id="hallway",
+            can_join=True,
+            npc_voice="cool, dismissive, distracted by work",
         ),
         RoleTemplate(
             id="veronique",
@@ -35,22 +50,6 @@ def goc_solo_role_templates() -> list[RoleTemplate]:
             mode=ParticipantMode.NPC,
             initial_room_id="living_room",
             npc_voice="warm, practical, increasingly irritated",
-        ),
-        RoleTemplate(
-            id="annette",
-            display_name="Annette",
-            description="Trying to remain composed while the room tightens around her.",
-            mode=ParticipantMode.NPC,
-            initial_room_id="living_room",
-            npc_voice="polite, brittle, quietly overwhelmed",
-        ),
-        RoleTemplate(
-            id="alain",
-            display_name="Alain",
-            description="Half in the room, half on the phone, professionally detached.",
-            mode=ParticipantMode.NPC,
-            initial_room_id="living_room",
-            npc_voice="cool, dismissive, distracted by work",
         ),
     ]
 

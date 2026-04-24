@@ -526,15 +526,19 @@ def game_create_run():
     try:
         user = _require_game_user()
         data = request.get_json(silent=True) or {}
-        template_id = (data.get("template_id") or "").strip()
-        if not template_id:
-            return jsonify({"error": "template_id is required."}), route_status_codes.bad_request
+        template_id = (data.get("template_id") or "").strip() or None
+        runtime_profile_id = (data.get("runtime_profile_id") or "").strip() or None
+        selected_player_role = (data.get("selected_player_role") or "").strip() or None
+        if not template_id and not runtime_profile_id:
+            return jsonify({"error": "template_id or runtime_profile_id is required."}), route_status_codes.bad_request
         identity = _resolve_identity_context(user, data)
         result = create_play_run(
             template_id=template_id,
             account_id=str(user.id),
             character_id=identity["character_id"],
             display_name=identity["display_name"],
+            runtime_profile_id=runtime_profile_id,
+            selected_player_role=selected_player_role,
         )
         if identity["character_id"]:
             touch_character_last_used(user.id, int(identity["character_id"]))
@@ -556,15 +560,19 @@ def game_player_session_create():
         template_id = (data.get("template_id") or "").strip()
         trace_id = (data.get("trace_id") or "").strip() or g.get("trace_id")
         run_payload: dict[str, Any] | None = None
+        runtime_profile_id = (data.get("runtime_profile_id") or "").strip() or None
+        selected_player_role = (data.get("selected_player_role") or "").strip() or None
         if not run_id:
-            if not template_id:
-                return jsonify({"error": "template_id or run_id is required."}), route_status_codes.bad_request
+            if not template_id and not runtime_profile_id:
+                return jsonify({"error": "template_id, runtime_profile_id, or run_id is required."}), route_status_codes.bad_request
             identity = _resolve_identity_context(user, data)
             run_payload = create_play_run(
-                template_id=template_id,
+                template_id=template_id or None,
                 account_id=str(user.id),
                 character_id=identity["character_id"],
                 display_name=identity["display_name"],
+                runtime_profile_id=runtime_profile_id,
+                selected_player_role=selected_player_role,
             )
             run_id = _run_id(run_payload)
             if identity["character_id"]:

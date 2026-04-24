@@ -35,7 +35,9 @@ class IdentityPayload(BaseModel):
 
 
 class CreateRunRequest(IdentityPayload):
-    template_id: str
+    template_id: str | None = None
+    runtime_profile_id: str | None = None
+    selected_player_role: str | None = None
 
 
 class TicketRequest(IdentityPayload):
@@ -156,22 +158,61 @@ def get_run_details(run_id: str, manager: RuntimeManager = Depends(get_manager))
 
 @router.post("/runs")
 def create_run(payload: CreateRunRequest, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    from app.runtime.profiles import (
+        RuntimeProfileError,
+        build_actor_ownership,
+        resolve_runtime_profile,
+        validate_selected_player_role,
+    )
+
+    runtime_profile = None
+    selected_role: str | None = None
+    actor_ownership: dict[str, Any] = {}
+
+    if payload.runtime_profile_id:
+        try:
+            runtime_profile = resolve_runtime_profile(payload.runtime_profile_id)
+            selected_role = validate_selected_player_role(payload.selected_player_role, runtime_profile)
+            actor_ownership = build_actor_ownership(selected_role, runtime_profile)
+        except RuntimeProfileError as exc:
+            raise HTTPException(status_code=400, detail=exc.to_dict()) from exc
+        template_id = payload.runtime_profile_id
+    else:
+        if not payload.template_id:
+            raise HTTPException(status_code=400, detail="template_id or runtime_profile_id is required.")
+        template_id = payload.template_id
+
     try:
         instance = manager.create_run(
-            payload.template_id,
+            template_id,
             display_name=payload.resolved_display_name(),
             account_id=payload.account_id,
             character_id=payload.character_id,
+            preferred_role_id=selected_role,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Unknown template id") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {
+
+    response: dict[str, Any] = {
         "run": manager.get_instance(instance.id).model_dump(mode="json"),
         "store": manager.store.describe(),
         "hint": "Use POST /api/tickets, POST /api/internal/join-context, or the integrated backend launcher to join the run over WebSocket.",
     }
+
+    if runtime_profile and selected_role:
+        response.update({
+            "contract": "create_run_response.v1",
+            "content_module_id": runtime_profile.content_module_id,
+            "runtime_profile_id": runtime_profile.runtime_profile_id,
+            "runtime_module_id": runtime_profile.runtime_module_id,
+            "runtime_mode": runtime_profile.runtime_mode,
+            "selected_player_role": selected_role,
+            **actor_ownership,
+        })
+
+    return response
 
 
 @router.post("/tickets")

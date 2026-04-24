@@ -172,13 +172,13 @@ def test_create_run_with_malformed_json_returns_422(client):
 
 @pytest.mark.unit
 @pytest.mark.contract
-def test_create_run_with_missing_template_id_returns_422(client):
-    """Verify that POST /api/runs without template_id returns 422."""
+def test_create_run_with_missing_template_id_returns_error(client):
+    """Verify that POST /api/runs without template_id or runtime_profile_id returns an error."""
     response = client.post(
         "/api/runs",
         json={"display_name": "Test User"},
     )
-    assert response.status_code == 422
+    assert response.status_code in (400, 422)
 
 
 @pytest.mark.unit

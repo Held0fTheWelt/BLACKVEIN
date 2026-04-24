@@ -146,6 +146,7 @@ class RuntimeManager:
         display_name: str,
         account_id: str | None = None,
         character_id: str | None = None,
+        preferred_role_id: str | None = None,
     ) -> RuntimeInstance:
         template = self.get_template(template_id)
         return self._bootstrap_instance(
@@ -153,6 +154,7 @@ class RuntimeManager:
             owner_display_name=display_name,
             owner_account_id=account_id,
             owner_character_id=character_id,
+            preferred_role_id=preferred_role_id,
         )
 
     def _bootstrap_instance(
@@ -162,6 +164,7 @@ class RuntimeManager:
         owner_account_id: str | None = None,
         owner_character_id: str | None = None,
         forced_run_id: str | None = None,
+        preferred_role_id: str | None = None,
     ) -> RuntimeInstance:
         instance = RuntimeInstance(
             id=forced_run_id or uuid4().hex,
@@ -208,7 +211,14 @@ class RuntimeManager:
             joinable_roles = [role for role in template.roles if role.mode == ParticipantMode.HUMAN and role.can_join]
             if not joinable_roles:
                 raise ValueError(f"Template {template.id} has no joinable human roles")
-            role = joinable_roles[0]
+            if preferred_role_id:
+                role = next((r for r in joinable_roles if r.id == preferred_role_id), None)
+                if role is None:
+                    raise ValueError(
+                        f"Preferred role {preferred_role_id!r} is not a joinable human role in template {template.id!r}."
+                    )
+            else:
+                role = joinable_roles[0]
             participant = self._attach_human_participant(
                 instance,
                 role,

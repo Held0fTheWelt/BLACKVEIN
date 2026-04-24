@@ -225,23 +225,32 @@ def list_runs() -> list[dict]:
     return _coerce_json_object_list(payload, ("runs", "items"))
 
 
-def create_run(*, template_id: str, account_id: str, display_name: str, character_id: str | None = None) -> dict:
+def create_run(
+    *,
+    template_id: str | None = None,
+    account_id: str,
+    display_name: str,
+    character_id: str | None = None,
+    runtime_profile_id: str | None = None,
+    selected_player_role: str | None = None,
+) -> dict:
     if not current_app.config.get("PLAY_SERVICE_ALLOW_NEW_SESSIONS", True):
         raise GameServiceError(
             "New play runs are disabled by operator control (Play-Service allow_new_sessions=false).",
             status_code=502,
         )
-    payload = _request(
-        "POST",
-        "/api/runs",
-        json_payload={
-            "template_id": template_id,
-            "account_id": str(account_id),
-            "character_id": character_id,
-            "display_name": display_name,
-        },
-        internal=True,
-    )
+    json_payload: dict = {
+        "account_id": str(account_id),
+        "character_id": character_id,
+        "display_name": display_name,
+    }
+    if runtime_profile_id:
+        json_payload["runtime_profile_id"] = runtime_profile_id
+        if selected_player_role:
+            json_payload["selected_player_role"] = selected_player_role
+    else:
+        json_payload["template_id"] = template_id
+    payload = _request("POST", "/api/runs", json_payload=json_payload, internal=True)
     return _parse_create_run_v1(payload)
 
 
