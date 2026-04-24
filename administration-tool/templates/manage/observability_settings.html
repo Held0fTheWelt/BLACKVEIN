@@ -1,0 +1,155 @@
+{% extends "manage/base.html" %}
+
+{% block title %}Observability Settings - Langfuse{% endblock %}
+
+{% block content %}
+<section class="manage-section" data-page="observability-settings">
+    <div class="manage-section-header">
+        <div>
+            <p class="manage-eyebrow">Operations</p>
+            <h1>Observability Configuration</h1>
+            <p class="manage-lead">Configure <strong>Langfuse</strong> for AI/runtime tracing and operator diagnostics.
+                All credentials are encrypted and never displayed in plaintext after saving.</p>
+        </div>
+        <div class="manage-actions-row">
+            <button type="button" class="btn" id="manage-obs-refresh">Reload settings</button>
+        </div>
+    </div>
+
+    <p id="manage-obs-banner" class="form-error" hidden role="status" aria-live="polite"></p>
+    <p id="manage-obs-success" class="manage-state manage-state--ok" hidden role="status" aria-live="polite"></p>
+
+    <section class="panel manage-obs-status-panel">
+        <header class="panel-header"><h2>Current Status</h2></header>
+        <div id="manage-obs-status-row" hidden>
+            <p id="manage-obs-status-headline" class="manage-lead"></p>
+            <div class="manage-grid two-col">
+                <div>
+                    <p class="manage-eyebrow">Status</p>
+                    <p id="manage-obs-status-enabled" class="muted">—</p>
+                </div>
+                <div>
+                    <p class="manage-eyebrow">Credential</p>
+                    <p id="manage-obs-status-credential" class="muted">—</p>
+                </div>
+            </div>
+            <div class="manage-grid two-col manage-obs-status-grid-spaced">
+                <div>
+                    <p class="manage-eyebrow">Health</p>
+                    <p id="manage-obs-status-health" class="muted">—</p>
+                </div>
+                <div>
+                    <p class="manage-eyebrow">Last Test</p>
+                    <p id="manage-obs-status-tested" class="muted">—</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <header class="panel-header"><h2>Public Configuration</h2></header>
+        <p class="muted">Non-secret settings for Langfuse observability service.</p>
+
+        <fieldset class="manage-obs-fieldset">
+            <label class="form-label">
+                <input type="checkbox" id="manage-obs-enabled" />
+                Enable Langfuse observability
+            </label>
+
+            <label class="form-label">Base URL
+                <input type="url" id="manage-obs-base-url" class="form-input" value="https://cloud.langfuse.com" />
+                <small class="muted">Langfuse API endpoint (https://cloud.langfuse.com for cloud, http://localhost:3000 for self-hosted)</small>
+            </label>
+
+            <label class="form-label">Environment
+                <select id="manage-obs-environment" class="form-input">
+                    <option value="development">development</option>
+                    <option value="staging">staging</option>
+                    <option value="production">production</option>
+                </select>
+            </label>
+
+            <label class="form-label">Release version
+                <input type="text" id="manage-obs-release" class="form-input" value="unknown" placeholder="e.g., 1.0.0 or git-abc123f" />
+            </label>
+
+            <label class="form-label">Sample rate (0.0–1.0)
+                <input type="number" id="manage-obs-sample-rate" class="form-input" min="0" max="1" step="0.1" value="1.0" />
+                <small class="muted">Fraction of traces to send to Langfuse (0.0 = none, 1.0 = all)</small>
+            </label>
+
+            <fieldset class="manage-obs-capture-fieldset">
+                <legend class="manage-obs-capture-legend">Capture toggles</legend>
+                <label class="form-label">
+                    <input type="checkbox" id="manage-obs-capture-prompts" checked />
+                    Capture prompts sent to AI models
+                </label>
+                <label class="form-label">
+                    <input type="checkbox" id="manage-obs-capture-outputs" checked />
+                    Capture outputs from AI models
+                </label>
+                <label class="form-label">
+                    <input type="checkbox" id="manage-obs-capture-retrieval" />
+                    Capture retrieval queries and results
+                </label>
+            </fieldset>
+
+            <label class="form-label">Redaction mode
+                <select id="manage-obs-redaction-mode" class="form-input">
+                    <option value="strict" selected>strict (default: maximum privacy)</option>
+                    <option value="relaxed">relaxed (fewer masks)</option>
+                    <option value="none">none (test-only: no masking)</option>
+                </select>
+                <small class="muted">Controls how secrets and PII are masked in traces</small>
+            </label>
+
+            <div class="manage-actions-row">
+                <button type="button" class="btn btn-primary" id="manage-obs-save-config">Save configuration</button>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="panel">
+        <header class="panel-header"><h2>Credentials (Write-Only, Encrypted)</h2></header>
+        <p class="muted">Enter credentials to enable tracing. After saving, only fingerprints are displayed.
+            Secrets are stored encrypted and never logged.</p>
+
+        <fieldset class="manage-obs-fieldset">
+            <label class="form-label">Langfuse Public Key (pk_...)
+                <input type="password" id="manage-obs-public-key" class="form-input" autocomplete="new-password" />
+                <small class="muted">From https://cloud.langfuse.com/settings/api-keys</small>
+            </label>
+
+            <label class="form-label">Langfuse Secret Key (sk_...)
+                <input type="password" id="manage-obs-secret-key" class="form-input" autocomplete="new-password" />
+                <small class="muted">Required to enable tracing</small>
+            </label>
+
+            <p id="manage-obs-credential-status" class="muted manage-obs-credential-status"></p>
+
+            <div class="manage-actions-row">
+                <button type="button" class="btn btn-primary" id="manage-obs-save-credential">Update credentials</button>
+                <button type="button" class="btn" id="manage-obs-test-connection">Test connection</button>
+            </div>
+        </fieldset>
+    </section>
+
+    <section class="panel manage-obs-danger-panel">
+        <header class="panel-header manage-obs-danger-header"><h2 class="manage-obs-danger-title">Danger Zone</h2></header>
+        <p class="muted">Disables Langfuse and permanently clears all configuration and credentials.</p>
+
+        <div class="manage-actions-row">
+            <button type="button" class="btn btn-danger" id="manage-obs-disable">Disable Langfuse</button>
+        </div>
+    </section>
+
+    <details class="manage-obs-technical-audit">
+        <summary class="manage-obs-technical-summary">Technical audit: full configuration JSON</summary>
+        <pre id="manage-obs-config-json" class="manage-psc-json manage-obs-config-json">No data loaded yet.</pre>
+    </details>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='manage_observability_settings.js') }}"></script>
+{% endblock %}

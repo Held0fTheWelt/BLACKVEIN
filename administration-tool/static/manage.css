@@ -458,6 +458,80 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     font-size: 0.85rem;
 }
 
+.manage-dx-gate-info {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.manage-dx-gate-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.manage-dx-gate-badge--closed {
+    background: #c8e6c9;
+    color: #1b5e20;
+}
+
+.manage-dx-gate-badge--partial {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.manage-dx-gate-badge--open {
+    background: #ffcdd2;
+    color: #b71c1c;
+}
+
+.manage-dx-gate-link {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+    color: #2196f3;
+}
+
+.manage-dx-gate-link:hover {
+    text-decoration: underline;
+}
+
+.manage-dx-check-details {
+    margin: 0.5rem 0 0 0;
+}
+
+.manage-dx-check-details summary {
+    cursor: pointer;
+    padding: 0.35rem 0;
+    font-size: 0.85rem;
+}
+
+.manage-dx-check-details summary:hover {
+    text-decoration: underline;
+}
+
+.manage-dx-details-json {
+    margin: 0.35rem 0 0 1rem;
+    padding: 0.5rem;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    max-height: 10rem;
+    overflow: auto;
+}
+
+.manage-dx-gates-summary {
+    margin-bottom: 1rem;
+}
+
 /* Play-Service control (/manage/play-service-control) */
 .manage-state--ok {
     color: #2ea043;
@@ -917,6 +991,102 @@ textarea.form-input { min-height: 100px; resize: vertical; }
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+}
+
+/* Observability settings page */
+.manage-obs-status-panel {
+    margin-bottom: 0.25rem;
+}
+
+.manage-obs-status-grid-spaced {
+    margin-top: 1rem;
+}
+
+.manage-obs-fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+}
+
+.manage-obs-fieldset > .manage-actions-row {
+    margin-top: 0.35rem;
+}
+
+.manage-obs-capture-fieldset {
+    margin-top: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.85rem;
+}
+
+.manage-obs-capture-legend {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0 0.35rem;
+}
+
+.manage-obs-credential-status {
+    margin-top: 0.7rem;
+    min-height: 1.25rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(11, 17, 29, 0.65);
+}
+
+.manage-obs-danger-panel {
+    border-color: rgba(227, 90, 114, 0.65);
+}
+
+.manage-obs-danger-header {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(227, 90, 114, 0.4);
+}
+
+.manage-obs-danger-title {
+    color: var(--danger);
+}
+
+.manage-obs-technical-audit {
+    margin-top: 0.25rem;
+}
+
+.manage-obs-technical-summary {
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.manage-obs-config-json {
+    margin-top: 0.65rem;
+    min-height: 10rem;
+}
+
+.manage-obs-ok {
+    color: var(--success, #5dbb87);
+}
+
+.manage-obs-muted {
+    color: var(--text-muted);
+}
+
+.manage-obs-danger-text {
+    color: var(--danger);
+}
+
+.manage-obs-health-healthy {
+    color: var(--success, #5dbb87);
+}
+
+.manage-obs-health-unhealthy {
+    color: var(--danger);
+}
+
+.manage-obs-health-unknown {
+    color: var(--text-muted);
 }
 
 .form-label,
