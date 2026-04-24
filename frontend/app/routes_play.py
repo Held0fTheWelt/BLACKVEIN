@@ -836,20 +836,26 @@ def play_create():
     except BackendApiError as exc:
         # Extract error details from exception
         error_code = exc.payload.get("error_code") if isinstance(exc.payload, dict) else None
+        backend_url = exc.payload.get("backend_url") if isinstance(exc.payload, dict) else None
         error_code = error_code or str(exc).split(":")[0][:50] if str(exc) else "UNKNOWN"
         error_detail = str(exc)[:200] if str(exc) else "Unknown error"
 
         # Check if this is a JSON request
         if _wants_json_response():
-            return jsonify({
+            response_data = {
                 "error": "Could not start game session",
                 "error_code": error_code,
                 "error_detail": error_detail,
                 "debug_id": trace_id,
-            }), 400
+            }
+            if backend_url:
+                response_data["backend_url"] = backend_url
+            return jsonify(response_data), 400
 
         # For HTML requests, show error code and debug ID in flash message
         error_msg = f"Could not start game session.\nError code: {error_code}\nDebug ID: {trace_id}"
+        if backend_url:
+            error_msg += f"\nBackend URL: {backend_url}"
         flash(error_msg, "error")
         return redirect(url_for("frontend.play_start"))
     run_id = payload.get("run_id") or payload.get("run", {}).get("id")

@@ -26,7 +26,9 @@ def env_bool(name: str, default: bool = False) -> bool:
 
 class Config:
     SECRET_KEY = os.environ.get("FRONTEND_SECRET_KEY") or os.environ.get("SECRET_KEY")
-    BACKEND_API_URL = (os.environ.get("BACKEND_API_URL") or "http://127.0.0.1:5000").rstrip("/")
+    # In Docker, backend service is at http://backend:8000 (not 127.0.0.1)
+    # For local development, use http://127.0.0.1:5000
+    BACKEND_API_URL = (os.environ.get("BACKEND_API_URL") or "http://backend:8000").rstrip("/")
     PLAY_SERVICE_PUBLIC_URL = (os.environ.get("PLAY_SERVICE_PUBLIC_URL") or "http://127.0.0.1:8001").rstrip("/")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"

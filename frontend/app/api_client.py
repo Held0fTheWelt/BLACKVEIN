@@ -56,23 +56,46 @@ def request_backend(
     params: dict[str, Any] | None = None,
     allow_refresh: bool = True,
 ) -> requests.Response:
-    response = requests.request(
-        method=method.upper(),
-        url=_api_url(path),
-        headers={**_auth_headers(), "Content-Type": "application/json"},
-        json=json_data,
-        params=params,
-        timeout=20,
-    )
-    if response.status_code == 401 and allow_refresh and _refresh_tokens():
+    url = _api_url(path)
+    try:
         response = requests.request(
             method=method.upper(),
-            url=_api_url(path),
+            url=url,
             headers={**_auth_headers(), "Content-Type": "application/json"},
             json=json_data,
             params=params,
             timeout=20,
         )
+    except (requests.ConnectionError, requests.Timeout) as exc:
+        # Backend is unreachable - include the URL in the error for diagnostics
+        raise BackendApiError(
+            f"Backend API Unavailable ({url}): {str(exc)[:100]}",
+            status_code=503,
+            payload={"error_code": "BACKEND_UNAVAILABLE", "backend_url": url},
+        ) from exc
+    except requests.RequestException as exc:
+        raise BackendApiError(
+            f"Backend API Error ({url}): {str(exc)[:100]}",
+            status_code=502,
+            payload={"error_code": "BACKEND_REQUEST_ERROR", "backend_url": url},
+        ) from exc
+
+    if response.status_code == 401 and allow_refresh and _refresh_tokens():
+        try:
+            response = requests.request(
+                method=method.upper(),
+                url=url,
+                headers={**_auth_headers(), "Content-Type": "application/json"},
+                json=json_data,
+                params=params,
+                timeout=20,
+            )
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            raise BackendApiError(
+                f"Backend API Unavailable ({url}): {str(exc)[:100]}",
+                status_code=503,
+                payload={"error_code": "BACKEND_UNAVAILABLE", "backend_url": url},
+            ) from exc
     return response
 
 

@@ -1,10 +1,13 @@
 """Frontend Flask application factory."""
 from __future__ import annotations
 
+import logging
 from flask import Flask, jsonify, request
 
 from .config import Config, TestingConfig
 from .routes import frontend_bp
+
+logger = logging.getLogger(__name__)
 
 
 def _wants_json() -> bool:
@@ -57,5 +60,9 @@ def create_app(config_object=None, *, testing: bool | None = None) -> Flask:
             "form-action 'self'"
         )
         return response
+
+    # Log backend configuration for diagnostics
+    backend_url = app.config.get("BACKEND_API_URL", "unknown")
+    app.logger.info(f"[FRONTEND] Backend API URL configured as: {backend_url}")
 
     return app
