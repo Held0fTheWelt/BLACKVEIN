@@ -1,0 +1,14 @@
+{
+  "schema": "goc_g9b_evaluator_artifact_manifest_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "description": "Index only. Level A single-evaluator mode; no Level B independence package.",
+  "audit_run_id": "g9_level_a_20260408",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "evaluator_mode_declared": "level_a_single_evaluator",
+  "known_limitation": "Single evaluator only; no independent second scorer; no Level B closure claim.",
+  "artifacts": {
+    "raw_score_sheet_ref": "tests/reports/evidence/g9_level_a_20260408/g9b_raw_score_sheet.json",
+    "score_delta_record_ref": "tests/reports/evidence/g9_level_a_20260408/g9b_score_delta_record.json",
+    "reconciliation_optional_ref": null
+  }
+}

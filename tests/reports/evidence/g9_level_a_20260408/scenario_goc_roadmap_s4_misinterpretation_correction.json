@@ -1,0 +1,527 @@
+{
+  "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+  "automated_trace_anchor": "trace-p3-b1 through trace-p3-b4",
+  "pytest_anchor": "test_phase3_run_b_continuity_changes_later_behavior_more_than_once",
+  "roadmap_s4_evidence": {
+    "roadmap_s4_status": "insufficiently_evidenced_for_roadmap_s4",
+    "pytest_anchor": "test_phase3_run_b_continuity_changes_later_behavior_more_than_once",
+    "trace_ids_observed": [
+      "trace-p3-b1",
+      "trace-p3-b2",
+      "trace-p3-b3",
+      "trace-p3-b4"
+    ],
+    "evidence_notes": "Pytest anchor test_phase3_run_b_continuity_changes_later_behavior_more_than_once shows the same surface player line in a later scene yields a different primary responder ('michel_longstreet' vs 'alain_reille') under continuity carry-forward \u2014 state-dependent staging, not an explicit misinterpretation of player intent followed by a player correction turn.",
+    "continuity_restaging_observed": true
+  },
+  "turns": [
+    {
+      "trace_id": "trace-p3-b1",
+      "session_id": "s-p3-b",
+      "player_input": "I blame Michel for this fault at the table.",
+      "current_scene_id": "living_room",
+      "selected_scene_function": "redirect_blame",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "blame_pressure",
+          "note": "committed_scene_function:redirect_blame"
+        }
+      ],
+      "prior_dramatic_signature_used": null,
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Michel reacts immediately.",
+          "{\"narrative_response\": \"You blame Michel directly, accuse him of fault, and insist he is responsible for the damage tonight.\", \"proposed_scene_id\": null, \"intent_summary\": \"g9_evidence_capture\"}"
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "redirect_blame",
+          "responder": "michel_longstreet",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "redirect_blame"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_2_moral_negotiation",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "redirect_blame"
+          ],
+          "implied_continuity_by_function": {
+            "redirect_blame": "blame_pressure"
+          },
+          "chosen_scene_function": "redirect_blame",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=[]); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "keyword:blame->redirect_blame"
+          ]
+        }
+      }
+    },
+    {
+      "trace_id": "trace-p3-b2",
+      "session_id": "s-p3-b",
+      "player_input": "I watch the table without naming anyone.",
+      "current_scene_id": "living_room",
+      "selected_scene_function": "redirect_blame",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "blame_pressure",
+          "note": "committed_scene_function:redirect_blame"
+        }
+      ],
+      "prior_dramatic_signature_used": {
+        "scene_function": "redirect_blame",
+        "responder": "michel_longstreet",
+        "pacing_mode": "standard",
+        "silence_mode": "normal",
+        "player_intent": "uncertain"
+      },
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Michel reacts immediately.",
+          "{\"narrative_response\": \"Michel hears the blame still circling him; he denies fault and argues that your accusation remains unfair.\", \"proposed_scene_id\": null, \"intent_summary\": \"g9_evidence_capture\"}"
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "redirect_blame",
+          "responder": "michel_longstreet",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": true,
+        "pattern_repetition_note": "same_scene_function_and_responder_under_similar_intent",
+        "multi_pressure_chosen": "redirect_blame"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_2_moral_negotiation",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "redirect_blame"
+          ],
+          "implied_continuity_by_function": {
+            "redirect_blame": "blame_pressure"
+          },
+          "chosen_scene_function": "redirect_blame",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['blame_pressure']); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "continuity:blame_pressure_fallback->redirect_blame"
+          ]
+        }
+      }
+    },
+    {
+      "trace_id": "trace-p3-b3",
+      "session_id": "s-p3-b",
+      "player_input": "I am sorry, we need to stop this now.",
+      "current_scene_id": "phase_3",
+      "selected_scene_function": "repair_or_stabilize",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "repair_attempt",
+          "note": "committed_scene_function:repair_or_stabilize"
+        }
+      ],
+      "prior_dramatic_signature_used": {
+        "scene_function": "redirect_blame",
+        "responder": "michel_longstreet",
+        "pacing_mode": "standard",
+        "silence_mode": "normal",
+        "player_intent": "uncertain"
+      },
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Michel reacts immediately.",
+          "{\"narrative_response\": \"Alain says sorry and asks everyone to calm down, calling for a truce before the room breaks again.\", \"proposed_scene_id\": null, \"intent_summary\": \"g9_evidence_capture\"}"
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "repair_or_stabilize",
+          "responder": "michel_longstreet",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "repair_or_stabilize"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_3_faction_shifts",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "repair_or_stabilize"
+          ],
+          "implied_continuity_by_function": {
+            "repair_or_stabilize": "repair_attempt"
+          },
+          "chosen_scene_function": "repair_or_stabilize",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['blame_pressure']); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "keyword:repair->repair_or_stabilize"
+          ]
+        }
+      }
+    },
+    {
+      "trace_id": "trace-p3-b4",
+      "session_id": "s-p3-b",
+      "player_input": "I watch the table without naming anyone.",
+      "current_scene_id": "phase_3",
+      "selected_scene_function": "redirect_blame",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "blame_pressure",
+          "note": "committed_scene_function:redirect_blame"
+        }
+      ],
+      "prior_dramatic_signature_used": {
+        "scene_function": "repair_or_stabilize",
+        "responder": "michel_longstreet",
+        "pacing_mode": "standard",
+        "silence_mode": "normal",
+        "player_intent": "uncertain"
+      },
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Alain reacts immediately.",
+          "{\"narrative_response\": \"The room tightens; blame remains in the air as Alain pushes calm language to keep a fragile truce alive.\", \"proposed_scene_id\": null, \"intent_summary\": \"g9_evidence_capture\"}"
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "redirect_blame",
+          "responder": "alain_reille",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "redirect_blame"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_3_faction_shifts",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "redirect_blame"
+          ],
+          "implied_continuity_by_function": {
+            "redirect_blame": "blame_pressure"
+          },
+          "chosen_scene_function": "redirect_blame",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['blame_pressure', 'repair_attempt']); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "continuity:blame_pressure_fallback->redirect_blame"
+          ]
+        }
+      }
+    }
+  ],
+  "dramatic_turn_record_excerpts": [
+    {
+      "turn_id": "trace-p3-b1",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    },
+    {
+      "turn_id": "trace-p3-b2",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    },
+    {
+      "turn_id": "trace-p3-b3",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    },
+    {
+      "turn_id": "trace-p3-b4",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    }
+  ]
+}

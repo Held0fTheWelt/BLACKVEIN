@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.233" timestamp="2026-04-23T16:01:56.418247+02:00" hostname="Hollywood"><testcase classname="" name="tests.branching.test_branching_turn_executor" time="0.000"><error message="collection failure">ImportError while importing test module 'D:\WorldOfShadows\tests\branching\test_branching_turn_executor.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\YvesT\AppData\Local\Programs\Python\Python314\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\branching\test_branching_turn_executor.py:12: in &lt;module&gt;
+    from world_engine.app.runtime.branching_turn_executor import (
+E   ModuleNotFoundError: No module named 'world_engine'</error></testcase></testsuite></testsuites>

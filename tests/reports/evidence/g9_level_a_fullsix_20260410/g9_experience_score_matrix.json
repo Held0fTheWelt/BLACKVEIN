@@ -1,0 +1,137 @@
+{
+  "schema": "goc_g9_experience_score_matrix_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.9",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "scorer_role": "single_evaluator_repository_audit_session",
+  "scored_at_utc": "2026-04-10T00:20:00Z",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "evidence_bundle": "tests/reports/evidence/g9_level_a_fullsix_20260410/",
+  "roadmap_s4_note": "Scenario 4 scored against canonical S4 chain: roadmap_s4_status meets_roadmap_s4_misinterpretation_correction_bar (scenario_goc_roadmap_s4_misinterpretation_correction.json in this bundle).",
+  "criteria": [
+    "dramatic_responsiveness",
+    "truth_consistency",
+    "character_credibility",
+    "conflict_continuity",
+    "graceful_degradation"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "goc_roadmap_s1_direct_provocation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-escalate",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player fight provocation maps to escalate_conflict with standard pacing; visible bundle carries adapter escalation line (scenario_goc_roadmap_s1_direct_provocation.json, this run).",
+        "truth_consistency": "Validation approved; committed path; diagnostics dramatic_quality pass — no contradiction with staged scene function.",
+        "character_credibility": "Responder line matches Michel table confrontation tone in fixture narrative.",
+        "conflict_continuity": "Single-turn slice; continuity_impacts record situational_pressure from committed escalate_conflict.",
+        "graceful_degradation": "Primary path succeeded; fallback_stage_reached primary_only; no degradation required."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s2_deflection_brevity",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-thin",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Thin-edge input yields pacing_mode thin_edge, withhold_or_evade, silence_brevity_decision mode withheld; matches brevity scenario intent (scenario_goc_roadmap_s2_deflection_brevity.json).",
+        "truth_consistency": "Approved commit; bounded_ambiguity visibility; diagnostics pass.",
+        "character_credibility": "Silence narration is minimal by design; still coherent table reaction.",
+        "conflict_continuity": "Single-turn; withhold beat does not resolve arc — acceptable for this scenario slice.",
+        "graceful_degradation": "Clean non-preview path without fallback."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s3_pressure_escalation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-multi",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "multi_pressure pacing; scene_assessment.multi_pressure_resolution chooses reveal_surface; dramatic_review.multi_pressure_chosen matches (scenario_goc_roadmap_s3_pressure_escalation.json).",
+        "truth_consistency": "Approved commit; pressure diagnostics align with player apology+pressure line.",
+        "character_credibility": "Fixture narrative matches demand-for-truth beat.",
+        "conflict_continuity": "Pressure lane resolved to explicit reveal_surface with recorded rationale.",
+        "graceful_degradation": "Primary generation succeeded; no forced degradation."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-roadmap-s4-t1-misroute | trace-roadmap-s4-t2-correction | trace-roadmap-s4-t3-incorporation",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Three-turn arc: T1 misroute to Michel, T2 correction re-homes on Veronique, T3 sustained host pressure; roadmap_s4_evidence.dramatic_liveness_after_correction and visible gm_narration excerpts (scenario_goc_roadmap_s4_misinterpretation_correction.json).",
+        "truth_consistency": "roadmap_s4_evidence.stable_truth_after_correction; validation approved on all turns; no silent revert of corrected addressee.",
+        "character_credibility": "Michel defensive T1, room pivot T2, Veronique sharp T3 — aligned with fixture stubs and dramatic_signature responder shifts.",
+        "conflict_continuity": "roadmap_s4_evidence.correction_incorporation_evidence: primary responder michel_longstreet then veronique_vallon on T2–T3; misread–correction–incorporation chain explicit.",
+        "graceful_degradation": "All turns fallback_stage_reached primary_only; no model failure path in this chain."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+      "failure_oriented": true,
+      "automated_trace_anchor": "trace-p3-c3",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "After primary generation failure, graph fallback produces committed gm_narration with a sustained blame-table beat (two lines including confrontational Annette reply) — not preview-only staging (failure_turn.visible_output_bundle in scenario_goc_roadmap_s5_primary_failure_fallback.json).",
+        "truth_consistency": "routing.fallback_stage_reached graph_fallback_executed with validation_outcome approved and dramatic_review.run_classification pass; failure path and recovery are explicit in the same turn record.",
+        "character_credibility": "Fallback narrative matches Annette as responder (dramatic_signature) with in-character refusal of scapegoating.",
+        "conflict_continuity": "redirect_blame retained with continuity_impacts blame_pressure and prior_dramatic_signature_used from the chain.",
+        "graceful_degradation": "Primary path failed then mock-backed fallback recovered to pass classification; meets failure-scenario graceful-degradation bar (≥3.5) with margin (scenario JSON + pytest anchor in bundle)."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s6_retrieval_heavy",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-roadmap-s6-retrieval-heavy",
+      "scores": {
+        "dramatic_responsiveness": 4,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Retrieval context referenced in fixture narrative; scene function establish_pressure with governance-visible retrieval (scenario_goc_roadmap_s6_retrieval_heavy.json).",
+        "truth_consistency": "retrieval_governance_summary present with authored_truth_refs and derived_artifact_refs; hit_count >= 1 in evidence.",
+        "character_credibility": "Host reaction line reflects retrieved-notes framing; acceptable for fixture-driven run.",
+        "conflict_continuity": "Single-turn probe; pressure established, not full table arc resolution.",
+        "graceful_degradation": "Primary path succeeded; retrieval ok."
+      }
+    }
+  ],
+  "threshold_check": {
+    "computed": true,
+    "notes": "See g9_threshold_validator_output.json from scripts/g9_threshold_validator.py on this file. Complete grid: pass/fail is threshold arithmetic, not incompleteness."
+  }
+}

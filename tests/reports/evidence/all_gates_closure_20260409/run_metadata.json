@@ -1,0 +1,16 @@
+{
+  "audit_run_id": "all_gates_closure_20260409",
+  "timestamp_utc": "2026-04-09T11:44:39Z",
+  "python_version": "3.13.12",
+  "git_commit_or_worktree": {
+    "commit": "90bc22505dae21495ed5d96f08e3f6b0dd351937",
+    "working_tree_dirty": false,
+    "porcelain_line_count": 0
+  },
+  "scope": "canonical_execution_rerun_and_authoritative_evidence_validation",
+  "g9_g9b_g10_policy": "preserve_existing_authoritative_evidence_unless_truth_requires_regeneration",
+  "preserved_authoritative_bundles": [
+    "tests/reports/evidence/g9_level_a_fullsix_20260410",
+    "tests/reports/evidence/g10_backend_e2e_20260409"
+  ]
+}

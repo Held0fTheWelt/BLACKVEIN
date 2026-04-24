@@ -1,0 +1,48 @@
+{
+  "schema": "goc_g9b_evaluator_b_declaration_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "evaluator_b_id": "evaluator_b_claude_system_20260409",
+  "scoring_pass_label": "evaluator_b_external_independent_raw_matrix",
+  "scored_at_utc": "2026-04-09T12:30:00Z",
+  "pre_scoring_visibility_statement": "This evaluation was performed as an automated pass with access to the frozen scenario JSON files and instruction materials supplied in the handoff package (documents/, templates/, scenarios/). Before and during scoring: (1) Evaluator A matrix g9_experience_score_matrix.json was NOT viewed. (2) Evaluator A per-cell rationales were NOT viewed. (3) Any A-vs-B delta (g9b_score_delta_record.json) was NOT viewed. (4) Any reconciliation drafts were NOT viewed. (5) No prior Evaluator B matrix from the repository was accessed before scoring. (6) No documented exception was required; this pass proceeded under strict-blind default protocol. The scoring and rationale generation were completed without exposure to prior evaluation results, delta analysis, or reconciliation content. Grounding was limited to the six scenario JSON files, the scoring instruction documents (02_SCORING_INSTRUCTIONS_CRITERIA.md), and the evaluation templates.",
+  "evaluator_a_matrix_ref": "",
+  "evaluator_b_matrix_ref": "./g9_experience_score_matrix_evaluator_b.json",
+  "independence_assessment": "automated_system_evaluator_strict_blind_limited_grounding",
+  "level_b_readiness": "not_claimed",
+  "source_grounding": {
+    "primary_evidence": "Frozen scenario JSON files supplied in the handoff package for audit_run_id g9_level_a_fullsix_20260410.",
+    "scenario_filenames_scored": [
+      "scenario_goc_roadmap_s1_direct_provocation.json",
+      "scenario_goc_roadmap_s2_deflection_brevity.json",
+      "scenario_goc_roadmap_s3_pressure_escalation.json",
+      "scenario_goc_roadmap_s4_misinterpretation_correction.json",
+      "scenario_goc_roadmap_s5_primary_failure_fallback.json",
+      "scenario_goc_roadmap_s6_retrieval_heavy.json"
+    ],
+    "actual_script_pdf_path_rel": "resources/Script-God-Of-Carnage-Script-by-Yazmina-Reza.pdf",
+    "script_grounding_note": "Yasmina Reza God of Carnage script was not accessed during this evaluation pass. Scoring relied solely on scenario JSON staging directions, character registrations, and dramatic signatures embedded in the JSON evidence. Grounding was disciplined to named character roles and scene functions as documented in the handoff scenarios.",
+    "supplementary_repo_sources_used": [],
+    "supplementary_repo_sources_allowed_but_not_used": [
+      "content/modules/god_of_carnage/",
+      "docs/MVPs/MVP_VSL_And_GoC_Contracts/CANONICAL_TURN_CONTRACT_GOC.md"
+    ]
+  },
+  "score_delta_record_ref": "",
+  "repository_task_b_post_return_bundle_linkage": {
+    "note": "Added by repository Task B on ingest for bundle traceability only. The external return package left evaluator_a_matrix_ref and score_delta_record_ref empty; these paths were not supplied by the external evaluator.",
+    "evaluator_a_matrix_ref": "./g9_experience_score_matrix.json",
+    "score_delta_record_ref": "./g9b_score_delta_record.json"
+  },
+  "independence_and_process": {
+    "evaluator_role_type": "automated_system_evaluator_second_pass",
+    "authorship_of_handoff_instructions": "Repository maintainer (internal package ownership); external blind protocol established per PLAN_G9B_STRICT_BLIND_EXTERNAL_EVALUATOR_B_RUN.md",
+    "who_generated_scores_and_rationales": "Claude Code system (automated evaluator instance), scored during April 9, 2026 session",
+    "process_note": "Evaluation conducted in single session by reading all six scenario JSON files, scoring instructions, and instruction documents (01_EVALUATOR_B_HANDOUT.md, 02_SCORING_INSTRUCTIONS_CRITERIA.md, 03_FROZEN_SOURCE_MANIFEST.md, 04_BLINDNESS_CONTAMINATION_CHECKLIST.md). Each scenario analyzed for five criteria (dramatic_responsiveness, truth_consistency, character_credibility, conflict_continuity, graceful_degradation) using 1-5 integer scale. Rationales anchored to named JSON paths (visible_output_bundle, validation_outcome, routing, dramatic_review, retrieval, roadmap_s4_evidence, etc.) and direct quotes or paraphrases from scenario JSON. Matrix frozen immediately after raw scoring completion. No re-scoring, adjustment, or external feedback applied after initial completion.",
+    "authorship_process_separation_note": "Handoff instructions authored by repository internal process. Scoring performed in isolated automated session without access to prior evaluation results. No cross-contamination between instruction generation and scoring phase.",
+    "english_limitation_statement": "Evaluation performed by automated system with English-language scenario materials. No time, language, or repository-access constraints applied. Script PDF was not accessed, but detailed character staging and scene direction information was embedded in scenario JSON, providing sufficient grounding for the evaluation within the blind package scope.",
+    "no_level_b_closure_claim": true,
+    "no_g10_or_mvp_closure_claim": true,
+    "evaluator_a_artifacts_unmodified_declaration": true
+  }
+}

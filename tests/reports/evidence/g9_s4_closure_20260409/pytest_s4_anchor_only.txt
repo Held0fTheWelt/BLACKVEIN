@@ -1,0 +1,5 @@
+# Pytest witness for Roadmap S4 anchor only (not a six-scenario G9 bundle).
+# CI runs the full suite via: python -m pytest ai_stack/tests -q --tb=short
+# This file documents the dedicated S4 node for audit_run_id g9_s4_closure_20260409.
+
+ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py::test_roadmap_s4_misinterpretation_correction_chain

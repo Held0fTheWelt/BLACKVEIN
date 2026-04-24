@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="1.590" timestamp="2026-04-21T18:12:28.611318+02:00" hostname="Hollywood"><testcase classname="" name="tests.test_ai_integration_with_session" time="0.000"><error message="collection failure">ImportError while importing test module '/mnt/d/WorldOfShadows/ai_stack/tests/test_ai_integration_with_session.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/lib/python3.10/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+ai_stack/tests/test_ai_integration_with_session.py:18: in &lt;module&gt;
+    from ai_stack.langgraph_orchestrator import GameOrchestrator
+ai_stack/langgraph_orchestrator.py:20: in &lt;module&gt;
+    from ai_stack.langgraph_agent_nodes import (
+ai_stack/langgraph_agent_nodes.py:14: in &lt;module&gt;
+    from ai_stack.mcp_agent_interface import MCPAgentInterface
+ai_stack/mcp_agent_interface.py:15: in &lt;module&gt;
+    from datetime import datetime, UTC
+E   ImportError: cannot import name 'UTC' from 'datetime' (/usr/lib/python3.10/datetime.py)</error></testcase></testsuite></testsuites>

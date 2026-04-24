@@ -1,0 +1,90 @@
+{
+  "snapshot_date": "2026-04-24",
+  "test_files_related_to_readiness": {
+    "backend": [
+      {
+        "path": "backend/tests/test_system_diagnosis.py",
+        "purpose": "System diagnosis health check endpoints",
+        "status": "EXISTS",
+        "integrated": true
+      },
+      {
+        "path": "backend/tests/test_m11_ai_stack_observability.py",
+        "purpose": "AI Stack M11 observability verification",
+        "status": "EXISTS",
+        "integrated": true
+      },
+      {
+        "path": "backend/tests/test_observability/test_admin_config.py",
+        "purpose": "Observability admin configuration (NEW from this session)",
+        "status": "NEW",
+        "integrated": true
+      }
+    ],
+    "administration_tool": [
+      {
+        "path": ".claude/worktrees/coverage-improvement/administration-tool/tests/test_manage_diagnosis.py",
+        "purpose": "Diagnosis UI test",
+        "status": "IN_WORKTREE",
+        "integrated": false
+      }
+    ],
+    "other_locations": [
+      {
+        "path": "./.claude/worktrees/coverage-improvement/backend/tests/test_system_diagnosis_service.py",
+        "purpose": "System diagnosis service tests (worktree)",
+        "status": "IN_WORKTREE",
+        "integrated": false
+      },
+      {
+        "path": "fy_platform/tests/test_ai_suite_cli_release_readiness.py",
+        "purpose": "Release readiness CLI (fy suites)",
+        "status": "LEGACY",
+        "integrated": false
+      }
+    ]
+  },
+  "ci_cd_integration": {
+    "latest_test_runs": {
+      "backend": {
+        "timestamp": "2026-04-24T02:10:53Z",
+        "status": "PASS"
+      },
+      "ai_stack": {
+        "timestamp": "2026-04-24T02:05:55Z",
+        "status": "PASS"
+      },
+      "administration": {
+        "timestamp": "2026-04-24T02:02:33Z",
+        "status": "PASS"
+      },
+      "database": {
+        "timestamp": "2026-04-24T02:05:28Z",
+        "status": "PASS"
+      },
+      "engine": {
+        "timestamp": "2026-04-24T02:03:23Z",
+        "status": "PASS"
+      },
+      "frontend": {
+        "timestamp": "2026-04-24T02:02:31Z",
+        "status": "PASS"
+      }
+    }
+  },
+  "observability_new_tests": {
+    "path": "backend/tests/test_observability/",
+    "files": [
+      "test_admin_config.py"
+    ],
+    "tests_added": "Langfuse governance configuration and credential management",
+    "status": "ACTIVE"
+  },
+  "summary": {
+    "core_readiness_tests": 3,
+    "tests_in_ci_cd": 3,
+    "tests_in_worktrees": 2,
+    "legacy_tests": 7,
+    "pass_rate": "STABLE (latest runs all passing)"
+  }
+}

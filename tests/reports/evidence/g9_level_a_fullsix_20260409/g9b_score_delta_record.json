@@ -1,0 +1,12 @@
+{
+  "schema": "goc_g9b_score_delta_record_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260409",
+  "not_applicable_level_a": true,
+  "evaluator_a_id": "single_evaluator_g9_level_a_repo_audit",
+  "evaluator_b_id": null,
+  "raw_sheet_a_ref": "tests/reports/evidence/g9_level_a_fullsix_20260409/g9b_raw_score_sheet.json",
+  "raw_sheet_b_ref": null,
+  "per_cell_delta": {},
+  "note": "Level A: score deltas between independent evaluators are not applicable; no evaluator B."
+}

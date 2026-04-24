@@ -1,0 +1,20 @@
+{
+  "schema": "goc_g9b_evaluator_artifact_manifest_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "description": "Index for audit_run_id g9_level_a_fullsix_20260410: Evaluator A and B raw matrices preserved separately; full per-cell delta computed; independence evidence remains below roadmap Level B (see g9b_level_b_attempt_record.json, g9b_evaluator_b_declaration.json).",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "evaluator_mode_declared": "level_b_attempt_insufficient_independence",
+  "evaluator_b_present": true,
+  "closure_level_status_gate_g9b_reported": "level_a_capable",
+  "known_limitation": "Two scoring passes (A and B) and g9b_score_delta_record.json are present; roadmap Level B is not met: Evaluator B is an automated second pass (evaluator_b_claude_system_20260409) per g9b_evaluator_b_declaration.json, not a second human adjudicator, with insufficient process separation for §6.10 Level B despite claimed pre-scoring blindness to Evaluator A artifacts. closure_level_status remains level_a_capable.",
+  "level_b_attempt_record_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_level_b_attempt_record.json",
+  "independence_declaration_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_evaluator_independence_declaration.md",
+  "artifacts": {
+    "raw_score_sheet_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet.json",
+    "raw_score_sheet_evaluator_a_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet.json",
+    "raw_score_sheet_evaluator_b_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet_evaluator_b.json",
+    "score_delta_record_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_score_delta_record.json",
+    "reconciliation_optional_ref": null
+  }
+}

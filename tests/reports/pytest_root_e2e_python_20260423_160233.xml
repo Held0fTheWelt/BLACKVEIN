@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.502" timestamp="2026-04-23T16:02:35.413300+02:00" hostname="Hollywood"><testcase classname="tests.e2e.test_gameplay_seam_repairs.TestSessionPersistenceCookie" name="test_backend_session_id_stored_in_cookie" time="0.247"><error message="failed on setup with &quot;TypeError: create_app() got an unexpected keyword argument 'testing'&quot;">C:\Users\YvesT\AppData\Local\Programs\Python\Python314\Lib\site-packages\pytest_asyncio\plugin.py:728: in pytest_fixture_setup
+    return (yield)
+            ^^^^^
+tests\e2e\conftest.py:27: in frontend_app
+    app = create_frontend_app(testing=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_app() got an unexpected keyword argument 'testing'</error></testcase></testsuite></testsuites>

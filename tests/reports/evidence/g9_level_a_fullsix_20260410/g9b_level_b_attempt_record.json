@@ -1,0 +1,36 @@
+{
+  "schema": "goc_g9b_level_b_attempt_record_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "level_b_attempt_status": "failed_insufficient_independence",
+  "reason_codes": [
+    "independence_evidence_insufficient_for_level_b",
+    "assistant_mediated_not_second_human_adjudicator",
+    "insufficient_process_separation",
+    "insufficient_authorship_separation",
+    "failed_or_incomplete_independence_evidence"
+  ],
+  "independence_classification_primary": "insufficient_process_separation",
+  "independence_classification_secondary": [
+    "failed_or_incomplete_independence_evidence"
+  ],
+  "summary": "Strict-blind external handoff return ingested: g9_experience_score_matrix_evaluator_b.json from evaluator_b_claude_system_20260409 replaces the prior internal B matrix. g9b_score_delta_record.json recomputed from frozen Evaluator A matrix and the new B matrix (score_a minus score_b; 11 nonzero cells). Repository Task B added repository_task_b_post_return_bundle_linkage in g9b_evaluator_b_declaration.json only for bundle traceability; top-level evaluator_a_matrix_ref and score_delta_record_ref remain empty as returned. No task_b_independence_class enum is forced in the declaration JSON (schema allows only strict_blind | documented_exception | contaminated). Task B review: primary classification insufficient_process_separation (automated second pass, not roadmap-independent adjudication); secondary failed_or_incomplete_independence_evidence (return omitted top-level A/delta refs). This does not establish PLAN_G9B_STRICT_BLIND_EXTERNAL_EVALUATOR_B_RUN strict-blind submission status and does not support level_b_capable. G9B closure_level_status_gate_g9b_reported remains level_a_capable.",
+  "evaluator_a": {
+    "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+    "g9_matrix_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9_experience_score_matrix.json",
+    "g9b_raw_score_sheet_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet.json"
+  },
+  "evaluator_b": {
+    "evaluator_id": "evaluator_b_claude_system_20260409",
+    "g9_matrix_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9_experience_score_matrix_evaluator_b.json",
+    "g9b_raw_score_sheet_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet_evaluator_b.json",
+    "evaluator_b_declaration_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_evaluator_b_declaration.json"
+  },
+  "expected_evaluator_b_artifacts_when_complete": {
+    "g9_matrix_file": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9_experience_score_matrix_evaluator_b.json",
+    "g9b_raw_score_sheet_file": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet_evaluator_b.json",
+    "independence_declaration_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_evaluator_independence_declaration.md"
+  },
+  "closure_level_status_gate_g9b_reported": "level_a_capable",
+  "level_b_capable_evidence_bar": "Actual independence in process, authorship, and score generation; separate raw sheets and full per-cell deltas; declaration must be evidentially sufficient—structural presence of two files alone is insufficient."
+}

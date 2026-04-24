@@ -1,0 +1,407 @@
+{
+  "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+  "evidence_run_scope": "g9_level_a_capture_all_script_scenarios",
+  "partial_run_disclaimer": null,
+  "automated_trace_anchor": "trace-roadmap-s4-t1-misroute | trace-roadmap-s4-t2-correction | trace-roadmap-s4-t3-incorporation",
+  "pytest_anchor": "test_roadmap_s4_misinterpretation_correction_chain",
+  "pytest_anchor_module": "ai_stack/tests/test_goc_roadmap_s4_misinterpretation_correction.py",
+  "roadmap_s4_evidence": {
+    "roadmap_s4_status": "meets_roadmap_s4_misinterpretation_correction_bar",
+    "pytest_anchor": "test_roadmap_s4_misinterpretation_correction_chain",
+    "trace_ids_observed": [
+      "trace-roadmap-s4-t1-misroute",
+      "trace-roadmap-s4-t2-correction",
+      "trace-roadmap-s4-t3-incorporation"
+    ],
+    "misunderstanding_evidence": "Turn 1 player line uses pronominal accountability ('She') without naming Veronique; scene director selects primary responder michel_longstreet under phase_3 default routing (actor_id='michel_longstreet'), while structured interpretation shows intent='uncertain' and move_class='ambiguous'. Visible narration stub centers Michel's defensive stance \u2014 misaligned primary addressee relative to host-as-she reading.",
+    "correction_evidence": "Turn 2 player line names Veronique as the party who must answer and rejects the man who had just taken the floor (Michel) without spelling 'michel' (name-order routing). interpreted_move: intent='dialogue'.",
+    "correction_incorporation_evidence": "Primary responder shifts to veronique_vallon on turn 2 (actor_id='veronique_vallon') and remains veronique_vallon on turn 3 (actor_id='veronique_vallon'). Turn 2 narration references the correction re-homing the question; turn 3 narration names Veronique and sustains tension (visible excerpts: t1=['Michel reacts immediately.', 'Michel snaps forward as if the challenge lands on him; he insists he already told what he saw and refuses to be treated as the only accountable adult here.'], t2=['Veronique reacts immediately.', \"The room pivots; eyes drag toward Veronique as your correction lands, and Michel's shoulders drop a fraction while the question re-homes on the host.\"], t3=['Veronique reacts immediately.', \"Veronique's smile thins; she meets your stare, voice sharp and alive, and says she will not be cornered into a confession the room can use as a weapon tonight.\"]).",
+    "stable_truth_after_correction": "No contradictory committed outcomes across turns in this chain; continuity carry-forward does not silently revert the corrected addressee. Turn 3 interpreted_move intent='uncertain'.",
+    "dramatic_liveness_after_correction": "Turn 3 visible output retains confrontational host voice in the stub narrative under continued player pressure; gate_dramatic_quality passes on all three turns."
+  },
+  "turns": [
+    {
+      "trace_id": "trace-roadmap-s4-t1-misroute",
+      "session_id": "s-roadmap-s4-misinterpretation",
+      "player_input": "She owes everyone a straight answer about Bruno tonight.",
+      "current_scene_id": "phase_3",
+      "selected_scene_function": "establish_pressure",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "situational_pressure",
+          "note": "committed_scene_function:establish_pressure"
+        }
+      ],
+      "prior_dramatic_signature_used": null,
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Michel reacts immediately.",
+          "Michel snaps forward as if the challenge lands on him; he insists he already told what he saw and refuses to be treated as the only accountable adult here."
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "establish_pressure",
+          "responder": "michel_longstreet",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "establish_pressure"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_3_faction_shifts",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "establish_pressure"
+          ],
+          "implied_continuity_by_function": {
+            "establish_pressure": "situational_pressure"
+          },
+          "chosen_scene_function": "establish_pressure",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=[]); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "default->establish_pressure"
+          ]
+        }
+      }
+    },
+    {
+      "trace_id": "trace-roadmap-s4-t2-correction",
+      "session_id": "s-roadmap-s4-misinterpretation",
+      "player_input": "Say directly: Veronique must answer as host \u2014 I did not mean the man who just spoke should carry this for her.",
+      "current_scene_id": "phase_3",
+      "selected_scene_function": "establish_pressure",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "dialogue",
+        "move_class": "speech"
+      },
+      "continuity_impacts": [
+        {
+          "class": "situational_pressure",
+          "note": "committed_scene_function:establish_pressure"
+        }
+      ],
+      "prior_dramatic_signature_used": {
+        "scene_function": "establish_pressure",
+        "responder": "michel_longstreet",
+        "pacing_mode": "standard",
+        "silence_mode": "normal",
+        "player_intent": "uncertain"
+      },
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Veronique reacts immediately.",
+          "The room pivots; eyes drag toward Veronique as your correction lands, and Michel's shoulders drop a fraction while the question re-homes on the host."
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "establish_pressure",
+          "responder": "veronique_vallon",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "establish_pressure"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_3_faction_shifts",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "establish_pressure"
+          ],
+          "implied_continuity_by_function": {
+            "establish_pressure": "situational_pressure"
+          },
+          "chosen_scene_function": "establish_pressure",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['situational_pressure']); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "default->establish_pressure"
+          ]
+        }
+      }
+    },
+    {
+      "trace_id": "trace-roadmap-s4-t3-incorporation",
+      "session_id": "s-roadmap-s4-misinterpretation",
+      "player_input": "Veronique \u2014 stay with me. Do you deny you knew more than you admitted?",
+      "current_scene_id": "phase_3",
+      "selected_scene_function": "reveal_surface",
+      "pacing_mode": "standard",
+      "interpreted_move": {
+        "player_intent": "uncertain",
+        "move_class": "ambiguous"
+      },
+      "continuity_impacts": [
+        {
+          "class": "revealed_fact",
+          "note": "committed_scene_function:reveal_surface"
+        }
+      ],
+      "prior_dramatic_signature_used": {
+        "scene_function": "establish_pressure",
+        "responder": "veronique_vallon",
+        "pacing_mode": "standard",
+        "silence_mode": "normal",
+        "player_intent": "dialogue"
+      },
+      "visible_output_bundle": {
+        "gm_narration": [
+          "Veronique reacts immediately.",
+          "Veronique's smile thins; she meets your stare, voice sharp and alive, and says she will not be cornered into a confession the room can use as a weapon tonight."
+        ]
+      },
+      "routing": {
+        "route_reason_code": "role_matrix_primary",
+        "policy_id_used": "story_runtime_core.RoutingPolicy",
+        "fallback_chain": [
+          "openai:gpt-4o-mini",
+          "ollama:llama3.2"
+        ],
+        "fallback_stage_reached": "primary_only"
+      },
+      "validation_outcome": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "validator_lane": "goc_rule_engine_v1"
+      },
+      "dramatic_review": {
+        "dramatic_quality_status": "pass",
+        "run_classification": "pass",
+        "dramatic_signature": {
+          "scene_function": "reveal_surface",
+          "responder": "veronique_vallon",
+          "pacing_mode": "standard",
+          "silence_mode": "normal"
+        },
+        "pattern_repetition_risk": false,
+        "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+        "multi_pressure_chosen": "reveal_surface"
+      },
+      "retrieval": {
+        "hit_count": 1,
+        "status": "ok",
+        "retrieval_governance_summary": {
+          "source_row_count": 1,
+          "lane_counts": {
+            "draft_working": 1
+          },
+          "visibility_counts": {
+            "writers_working": 1
+          },
+          "content_class_counts": {
+            "authored_module": 1
+          },
+          "authored_truth_refs": [
+            {
+              "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+              "source_path": "content/god_of_carnage.md",
+              "content_class": "authored_module",
+              "source_evidence_lane": "draft_working",
+              "source_visibility_class": "writers_working"
+            }
+          ],
+          "derived_artifact_refs": [],
+          "dominant_visibility_class": "writers_working",
+          "retrieval_policy_version": "task3_source_governance_v1"
+        }
+      },
+      "weak_run_explanation": null,
+      "silence_brevity_decision": {
+        "mode": "normal",
+        "reason": "default_verbal_density"
+      },
+      "scene_assessment_excerpt": {
+        "guidance_phase_key": "phase_3_faction_shifts",
+        "canonical_setting": "Paris apartment, evening dinner party",
+        "multi_pressure_resolution": {
+          "candidates": [
+            "reveal_surface",
+            "probe_motive"
+          ],
+          "implied_continuity_by_function": {
+            "reveal_surface": "revealed_fact",
+            "probe_motive": "situational_pressure"
+          },
+          "chosen_scene_function": "reveal_surface",
+          "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['situational_pressure']); tie-break lexicographic smallest label.",
+          "heuristic_trace": [
+            "keyword:reveal->reveal_surface",
+            "interpreted_move:question_nudge->probe_motive"
+          ]
+        }
+      }
+    }
+  ],
+  "dramatic_turn_record_excerpts": [
+    {
+      "turn_id": "trace-roadmap-s4-t1-misroute",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    },
+    {
+      "turn_id": "trace-roadmap-s4-t2-correction",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    },
+    {
+      "turn_id": "trace-roadmap-s4-t3-incorporation",
+      "routing_record": {
+        "route_reason_code": null,
+        "fallback_stage_reached": "primary_only"
+      },
+      "retrieval_record": {
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:86dfa760e388e4a9::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "retrieval_visibility_class": "writers_working"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "goc_g9b_raw_score_sheet_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "evaluator_id": "evaluator_b_claude_system_20260409",
+  "frozen_g9_matrix_file_ref": "./g9_experience_score_matrix_evaluator_b.json",
+  "inline_matrix": null,
+  "frozen_at_utc": "2026-04-09T12:30:00Z",
+  "integrity_note": "Raw matrix scoring pass complete. All 30 score cells (6 scenarios × 5 criteria) filled with integer 1-5 values. All 30 cell_rationale fields filled with substantive grounded rationales anchored to scenario JSON evidence.",
+  "declaration_ref": "./g9b_evaluator_b_declaration.json"
+}

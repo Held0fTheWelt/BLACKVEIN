@@ -1,0 +1,15 @@
+{
+  "audit_run_id": "g9_s5_targeted_20260409",
+  "timestamp_utc": "2026-04-08T23:01:56Z",
+  "git_commit_or_worktree": {
+    "commit": "b9382ecd7c597593173ca44f5a377ea09c205b7f",
+    "working_tree_dirty": true,
+    "porcelain_line_count": 56
+  },
+  "python_version": "3.13.12",
+  "active_environment_path": "C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3312.0_x64__qbz5n2kfra8p0",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "repo_root": "C:\\Users\\YvesT\\PycharmProjects\\WorldOfShadows",
+  "evidence_run_scope": "s5_targeted_partial",
+  "evidence_run_note": "S5-targeted partial improvement run (primary model failure + graph mock fallback recovery). Not a full six-scenario G9 Level A matrix or threshold validation run."
+}

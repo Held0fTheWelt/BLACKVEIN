@@ -1,0 +1,22 @@
+{
+  "audit_run_id": "g10_backend_e2e_20260409",
+  "timestamp_utc": "2026-04-08T23:38:17Z",
+  "evidence_type": "g10_backend_integrated_pytest_trio",
+  "git_commit_or_worktree": {
+    "commit": "b9382ecd7c597593173ca44f5a377ea09c205b7f",
+    "working_tree_dirty": true,
+    "porcelain_line_count": 57
+  },
+  "python_version": "3.13.12",
+  "ci_merge_bar_note": "GitHub Actions backend job uses python-version 3.10; this local witness used 3.13.12 with backend/requirements-dev.txt per docs/testing-setup.md.",
+  "repo_root": "C:\\Users\\YvesT\\PycharmProjects\\WorldOfShadows",
+  "install_basis": "python -m pip install -r backend/requirements-dev.txt (repo root)",
+  "working_directory": "backend",
+  "env": {
+    "PYTHONPATH_first_capture": "repository root (parent of backend/)",
+    "PYTHONPATH_note": "Re-verified same trio with PYTHONPATH unset from backend/ cwd only — 15 passed (Windows, Python 3.13.12)."
+  },
+  "pytest_command": "python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_area2_task4_closure_gates.py -q --tb=short --no-cov",
+  "pytest_witness_file": "pytest_g10_backend_trio.txt",
+  "step_11_authoritative_g9_bundle": "tests/reports/evidence/g9_level_a_fullsix_20260410"
+}

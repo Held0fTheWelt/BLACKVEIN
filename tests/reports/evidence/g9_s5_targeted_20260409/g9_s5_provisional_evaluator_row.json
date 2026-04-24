@@ -1,0 +1,22 @@
+{
+  "disclaimer": "Provisional S5-only evaluator row for this partial bundle. Not the canonical 6x5 G9 matrix; does not imply scripts/g9_threshold_validator.py pass_all or roadmap G9 closure.",
+  "audit_run_id": "g9_s5_targeted_20260409",
+  "evidence_artifact": "scenario_goc_roadmap_s5_primary_failure_fallback.json",
+  "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+  "failure_oriented": true,
+  "scenario_average_1_to_5": 4.6,
+  "scores": {
+    "dramatic_responsiveness": 4,
+    "truth_consistency": 5,
+    "character_credibility": 4,
+    "conflict_continuity": 5,
+    "graceful_degradation": 5
+  },
+  "cell_rationale": {
+    "dramatic_responsiveness": "Committed redirect_blame beat with readable gm_narration (Annette + blame pushback); primary failure did not collapse the turn.",
+    "truth_consistency": "validation_outcome approved; routing shows graph_fallback_executed consistent with mock recovery; no contradiction with dramatic_signature.",
+    "character_credibility": "Fixture narrative matches Annette / table-blame register; not thin preview-only staging.",
+    "conflict_continuity": "continuity_impacts include blame_pressure committed from redirect_blame; prior signature carried from chain.",
+    "graceful_degradation": "Primary path failed; graph fallback_model recovered with approved validation; failure-oriented bar (>=3.5) clearly met."
+  }
+}

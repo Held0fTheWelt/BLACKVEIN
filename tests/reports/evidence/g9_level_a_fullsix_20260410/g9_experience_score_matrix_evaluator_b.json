@@ -1,0 +1,137 @@
+{
+  "schema": "goc_g9_experience_score_matrix_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.9",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "evaluator_b_id": "evaluator_b_claude_system_20260409",
+  "scorer_role": "independent_evaluator_b_external",
+  "scored_at_utc": "2026-04-09T12:30:00Z",
+  "evidence_bundle": "tests/reports/evidence/g9_level_a_fullsix_20260410/",
+  "roadmap_s4_note": "Scenario 4: score the full misinterpretation/correction/incorporation chain in scenario_goc_roadmap_s4_misinterpretation_correction.json (roadmap_s4_evidence, trace ids). See docs/audit/gate_G9_experience_acceptance_baseline.md.",
+  "criteria": [
+    "dramatic_responsiveness",
+    "truth_consistency",
+    "character_credibility",
+    "conflict_continuity",
+    "graceful_degradation"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "goc_roadmap_s1_direct_provocation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-escalate",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player expresses direct anger and conflict intent ('I am so angry I want to fight and shout at Michel now'). Selected scene function 'escalate_conflict' directly matches provocation intent. Visible narration (Michel's voice rises sharply, he accuses player of insulting his judgment, slams hand on table, furious) demonstrates escalation response that lands as theatre-of-manners under strain. Pacing mode 'standard' sustains dramatic beat without deflection.",
+        "truth_consistency": "Validation outcome approved with goc_default_validator_pass. Routing record shows primary_only path reached with no fallback. Dramatic review status passes. Committed visible_output_bundle (gm_narration) aligns with routing decision and validation approval. No contradictions between JSON fields and committed output.",
+        "character_credibility": "Michel's defensive reaction (insists he already told what he saw, refuses to be sole accountable adult) fits his character role as defensive responder in phase 2. However, narration could be more distinctive to Michel's specific relationship dynamics with player and other characters; response reads as defensiveness-in-general rather than Michel-specific accusatory stance.",
+        "conflict_continuity": "Continuity impact 'situational_pressure' with committed scene function 'escalate_conflict' is preserved. Dramatic signature records scene function and pacing mode (standard, normal silence) without reset. No pattern repetition risk detected. Pressure escalation carries forward cleanly.",
+        "graceful_degradation": "Primary-only fallback stage reached cleanly; no degradation path triggered. Dramatic quality status passes. Validation passes. Response is clean and direct without unnecessary collapse or technical hedging. Handles escalation intent without system stress."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s2_deflection_brevity",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-thin",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player input 'thin edge silent say nothing' paired with pacing_mode 'thin_edge' and silence_brevity_decision mode 'withheld' produces exactly the evasive dramatic beat appropriate to deflection. Visible output ('You stay silent at the table; you say nothing aloud while others watch you hold still and quiet') delivers a minimal, credible thin-edge moment. Director staging notes reinforce intellectual combatant and contemptuous tonal pressure, matching the withhold pattern.",
+        "truth_consistency": "Silence brevity decision mode 'withheld' matches visible output (silence and withholding). Routing primary_only, validation approved. Dramatic review passes. Narration and JSON staging directions cohere without contradiction. Continuity impact 'silent_carry' aligns with scene function 'withhold_or_evade'.",
+        "character_credibility": "Responder Annette reacts immediately. Director register notes (guest, intellectual combatant, cynic; intellectually engaged, amused, slightly contemptuous, provocative) establish character frame. Narration itself is minimal and generic to silence handling; character-specific voice and distinctive intellectual position could be more evident in the committed narration.",
+        "conflict_continuity": "Silence/withhold continuity class is preserved and explicitly named. Scene function 'withhold_or_evade' carried forward. Thin-edge pacing sustained. No pattern repetition risk. Conflict state remains coherent across the beat.",
+        "graceful_degradation": "Thin-edge + withheld silence mode handled cleanly on primary path. Validation passes, dramatic quality passes. No fallback required. System responds to constraint (thin-edge, silence) without collapse or loss of playability."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s3_pressure_escalation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-multi",
+      "scores": {
+        "dramatic_responsiveness": 4,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player input 'I'm sorry but you must reveal the truth now multi pressure' contains repair (apology, 'must reveal') and reveal keywords. Multi-pressure resolution selects 'reveal_surface' as chosen scene function. Visible narration emphasizes reveal ('you must reveal the truth now and admit what you knew') but repair-attempt continuity impact is less foregrounded in the response. Response addresses one pressure axis (reveal) more clearly than the tension between repair and escalation.",
+        "truth_consistency": "Validation approved, dramatic quality passes. Multi-pressure resolution candidates (repair_or_stabilize, reveal_surface) are documented. Chosen function 'reveal_surface' maps to continuity impact 'revealed_fact'. Narration aligns with selection. No contradiction between JSON staging and committed output.",
+        "character_credibility": "Responder Annette. Director register notes mention idealism vs cynicism axis explicitly ('Introduce idealism vs cynicism explicitly (Veronique vs Annette)'). Narration does not strongly distinguish Annette's cynical position in this beat; her voice could more sharply reflect intellectual combatant stance and cynical pressure.",
+        "conflict_continuity": "Multi-pressure chosen (reveal_surface) maps to revealed_fact continuity. However, repair_attempt continuity (also listed as candidate) is not prominently carried forward in the committed narration. Conflict state shows reveal escalation but repair tension de-emphasized. Continuity is present but incomplete relative to multi-pressure input.",
+        "graceful_degradation": "Primary-only fallback stage. Validation passes, dramatic quality passes. Multi-pressure input handled on primary path without system degradation. No fallback triggered. Clean response to constraint."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-roadmap-s4-t1-misroute | trace-roadmap-s4-t2-correction | trace-roadmap-s4-t3-incorporation",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Three-turn chain demonstrates full misinterpretation→correction→incorporation arc. Turn 1: pronominal 'She' without naming Veronique routes to Michel (defensive, 'insists he already told'); dramatic misalignment. Turn 2: explicit correction ('Veronique must answer as host') re-homes question; narration ('eyes drag toward Veronique, Michel's shoulders drop') shows room-level dramatic pivot. Turn 3: sustained pressure on Veronique ('smile thins, voice sharp and alive') continues the corrected beat. Each turn responds to current dramatic state with appropriate escalation or pressure shift.",
+        "truth_consistency": "roadmap_s4_evidence explicitly documents the chain: misunderstanding_evidence (pronominal ambiguity, routing to Michel), correction_evidence (explicit Veronique naming), correction_incorporation_evidence (responder shift T1→T2→T3 and narration references correction). stable_truth_after_correction confirms 'no contradictory committed outcomes across turns.' Turn 3 validated as approved. No silent reversions of corrected addressee across turns.",
+        "character_credibility": "Michel (T1): defensive snap appropriate to phase_3_faction_shifts context. Veronique (T2-T3): sharp voice, thin smile, refusal to be cornered fits host-under-pressure archetype. Actor_id shift from michel_longstreet (T1) to veronique_vallon (T2-T3) supported by committed narration. Character responses align with prior_dramatic_signature carried forward in T2 and T3 fields.",
+        "conflict_continuity": "Situational pressure continuity class carried across all three turns (T1 continuity_impacts records 'situational_pressure'; T2 carry_forward_classes=['situational_pressure']; T3 implicit continuation). prior_dramatic_signature_used field in T2 and T3 tracks carry-forward. Correction incorporation does not reset pressure or lose thread; blame/accountability pressure persists.",
+        "graceful_degradation": "No failure in this scenario; all three turns validate cleanly on primary paths (primary_only fallback stage across all). The complexity of the three-turn correction chain is handled without system collapse. Dramatic review passes all turns. Handling of misroute detection and correction under phase pressure demonstrates robust behavior."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+      "failure_oriented": true,
+      "automated_trace_anchor": "trace-p3-c3",
+      "scores": {
+        "dramatic_responsiveness": 4,
+        "truth_consistency": 4,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 4
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player input 'I blame you for what happened.' Failure turn has fallback_stage_reached: 'graph_fallback_executed', indicating primary path failed. Despite fallback, visible_output_bundle delivers Annette's counter ('refuses to carry fault alone, snaps that table will not scapegoat her, forces accusation back into open air'). Response is dramatically responsive but achieved through fallback path, not primary generation. Strong narration salvages dramatic beat despite underlying failure.",
+        "truth_consistency": "JSON explicitly marks graph_fallback_executed, showing primary path did not succeed. Validation outcome approved despite fallback. Dramatic review status passes. Committed narration is coherent with fallback state (narration shows Annette meeting blame head-on rather than collapse or non-response). Truth is that primary failed and fallback provided output, which is honestly recorded and not contradicted in visible_output_bundle.",
+        "character_credibility": "Annette's refusal to be sole scapegoat and forcing accountability back on the group is deeply credible to her sharp, combative character in phase_3_faction_shifts context. Her insistence that 'the table will not scapegoat her' and forcing 'accusation back into open air where everyone must answer' aligns with her intellectual combatant and slightly contemptuous stance across prior scenarios.",
+        "conflict_continuity": "Continuity impact 'blame_pressure' with scene function 'redirect_blame' preserves conflict state. Blame is not dropped or reversed; it is re-distributed. Fallback narration continues conflict thread (Annette's refusal and counter-pressure) rather than abandoning structure. Pressure flows forward into group accountability.",
+        "graceful_degradation": "Graceful degradation is the core of this scenario. Primary path failed (graph_fallback_executed confirmed). Fallback path activated and delivered coherent dramatic narration. Player receives usable beat (Annette's sharp counter) not only technical 'okay' status. Dramatic review passes despite fallback. Score reflects successful degradation: fallback is strong, narration is vivid, table-conflict beat sustained, but underlying path failure prevents higher score."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s6_retrieval_heavy",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-roadmap-s6-retrieval-heavy",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player input 'Explain what everyone at this table already knows from the written record about the incident.' Scene function 'establish_pressure' selected. Visible narration explicitly shows retrieval integration: 'The table goes quiet; retrieved notes on prior insults shape how the host answers you.' Retrieved context (content/goc_segment_09.md chunk) is governance-visible and incorporated into narration. Response demonstrates that player can feel the retrieved context affecting the dramatic beat, not hidden or ignored.",
+        "truth_consistency": "Retrieval record documents authored_truth_refs (content/goc_segment_09.md). Validation approved. Dramatic quality passes. Narration directly acknowledges retrieval ('retrieved notes on prior insults shape how the host answers'). Retrieval governance summary shows source_row_count=1, visibility_class 'writers_working'. No contradiction between retrieval facts and committed narration.",
+        "character_credibility": "Responder Annette. Director staging note frames her as challenging Veronique's moral framework and enjoying the debate. Narration provides staging direction but does not strongly instantiate Annette's distinctive intellectual voice in the committed text. The retrieval context shapes 'how the host answers' but the distinctive cynic-vs-idealist tone could be more pronounced in the actual response line.",
+        "conflict_continuity": "Continuity impact 'situational_pressure' with scene function 'establish_pressure' maps forward. Retrieved facts feed into pressure arc; prior insults add weight to current accusation. Conflict state maintained as established pressure with retrieved context enriching the tension.",
+        "graceful_degradation": "Primary-only fallback stage. Retrieval integration clean and approved. Validation passes. Retrieval governance visible without system collapse. No degradation required. Response handles retrieval-heavy constraint on primary path with clear evidence chain."
+      }
+    }
+  ],
+  "threshold_check": {
+    "computed": false,
+    "notes": "Evaluator B: after all scores are integers 1-5, maintainers may run scripts/g9_threshold_validator.py on this file for structural threshold arithmetic. Your engagement may not require you to run it."
+  }
+}

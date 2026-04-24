@@ -1,0 +1,72 @@
+{
+  "schema": "goc_g9b_score_delta_record_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "not_applicable_level_a": false,
+  "evaluator_a_id": "single_evaluator_g9_level_a_repo_audit",
+  "evaluator_b_id": "evaluator_b_claude_system_20260409",
+  "raw_sheet_a_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet.json",
+  "raw_sheet_b_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9b_raw_score_sheet_evaluator_b.json",
+  "per_cell_delta": {
+    "goc_roadmap_s1_direct_provocation": {
+      "dramatic_responsiveness": 0,
+      "truth_consistency": 0,
+      "character_credibility": 1,
+      "conflict_continuity": -1,
+      "graceful_degradation": 0
+    },
+    "goc_roadmap_s2_deflection_brevity": {
+      "dramatic_responsiveness": 0,
+      "truth_consistency": 0,
+      "character_credibility": 0,
+      "conflict_continuity": -1,
+      "graceful_degradation": 0
+    },
+    "goc_roadmap_s3_pressure_escalation": {
+      "dramatic_responsiveness": 1,
+      "truth_consistency": 0,
+      "character_credibility": 1,
+      "conflict_continuity": 1,
+      "graceful_degradation": 0
+    },
+    "goc_roadmap_s4_misinterpretation_correction": {
+      "dramatic_responsiveness": 0,
+      "truth_consistency": 0,
+      "character_credibility": 0,
+      "conflict_continuity": 0,
+      "graceful_degradation": 0
+    },
+    "goc_roadmap_s5_primary_failure_fallback": {
+      "dramatic_responsiveness": 1,
+      "truth_consistency": 1,
+      "character_credibility": 0,
+      "conflict_continuity": 0,
+      "graceful_degradation": 1
+    },
+    "goc_roadmap_s6_retrieval_heavy": {
+      "dramatic_responsiveness": -1,
+      "truth_consistency": 0,
+      "character_credibility": 0,
+      "conflict_continuity": -1,
+      "graceful_degradation": 0
+    }
+  },
+  "disagreement_summary": {
+    "nonzero_cell_count": 11,
+    "nonzero_cells": [
+      "goc_roadmap_s1_direct_provocation:character_credibility",
+      "goc_roadmap_s1_direct_provocation:conflict_continuity",
+      "goc_roadmap_s2_deflection_brevity:conflict_continuity",
+      "goc_roadmap_s3_pressure_escalation:dramatic_responsiveness",
+      "goc_roadmap_s3_pressure_escalation:character_credibility",
+      "goc_roadmap_s3_pressure_escalation:conflict_continuity",
+      "goc_roadmap_s5_primary_failure_fallback:dramatic_responsiveness",
+      "goc_roadmap_s5_primary_failure_fallback:truth_consistency",
+      "goc_roadmap_s5_primary_failure_fallback:graceful_degradation",
+      "goc_roadmap_s6_retrieval_heavy:dramatic_responsiveness",
+      "goc_roadmap_s6_retrieval_heavy:conflict_continuity"
+    ],
+    "semantics": "score_a_minus_score_b; nonzero entries are inter-evaluator score differences only"
+  },
+  "note": "Per-cell delta is score_a minus score_b from the frozen matrix files named in raw_sheet_a_ref / raw_sheet_b_ref (pointer chain to g9_experience_score_matrix*.json). Full grid preserved; disagreement_summary is additive, not a substitute."
+}

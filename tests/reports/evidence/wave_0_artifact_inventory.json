@@ -1,0 +1,54 @@
+{
+  "snapshot_date": "2026-04-24",
+  "artifact_storage": {
+    "writers_room_reviews": {
+      "path": "backend/var/writers_room/reviews/",
+      "count": 1778,
+      "total_size_mb": 144,
+      "latest_timestamp": "2026-04-24T02:15:00Z",
+      "sample_files": [
+        "review_00065a205d80405280e7897a71ea9eff.json",
+        "review_0006989007e34128a77d5d540b3e6880.json",
+        "review_000d4cb96fa04e0caac90dbf7dd8e530.json"
+      ],
+      "status": "ACTIVE"
+    },
+    "improvement_recommendations": {
+      "path": "backend/var/improvement/recommendations/",
+      "count": 1351,
+      "status": "ACTIVE"
+    },
+    "improvement_experiments": {
+      "path": "backend/var/improvement/experiments/",
+      "count": 1351,
+      "status": "ACTIVE"
+    }
+  },
+  "test_reports": {
+    "latest_runs": {
+      "backend": {
+        "file": "pytest_backend_20260424_021053.xml",
+        "timestamp": "2026-04-24T02:10:53Z"
+      },
+      "ai_stack": {
+        "file": "pytest_ai_stack_20260424_020555.xml",
+        "timestamp": "2026-04-24T02:05:55Z"
+      },
+      "administration": {
+        "file": "pytest_administration_20260424_020233.xml",
+        "timestamp": "2026-04-24T02:02:33Z"
+      },
+      "engine": {
+        "file": "pytest_engine_20260424_020323.xml",
+        "timestamp": "2026-04-24T02:03:23Z"
+      }
+    },
+    "total_historical_test_reports": 150,
+    "test_pass_status": "STABLE"
+  },
+  "summary": {
+    "total_artifacts_in_system": 4480,
+    "last_update": "2026-04-24T02:15:00Z",
+    "observation": "Artifact storage is active and growing, particularly writers_room reviews"
+  }
+}

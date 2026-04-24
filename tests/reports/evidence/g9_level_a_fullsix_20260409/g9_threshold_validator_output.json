@@ -1,0 +1,20 @@
+{
+  "complete": true,
+  "min_cell": 3.0,
+  "min_scenario_average": 3.8,
+  "min_criterion_average": 4.333333333333333,
+  "min_graceful_degradation_failure_scenarios": 4.0,
+  "failure_oriented_indices_checked": [
+    4
+  ],
+  "rules": {
+    "no_criterion_below_3": true,
+    "per_scenario_avg_ge_4": false,
+    "per_criterion_avg_ge_4": true,
+    "graceful_degradation_ge_3_5_failure_scenarios": true
+  },
+  "pass_all": false,
+  "failure_oriented_scenario_ids_checked": [
+    "goc_roadmap_s5_primary_failure_fallback"
+  ]
+}

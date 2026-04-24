@@ -1,0 +1,137 @@
+{
+  "schema": "goc_g9_experience_score_matrix_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.9",
+  "audit_run_id": "g9_level_a_20260408",
+  "scorer_role": "single_evaluator_repository_audit_session",
+  "scored_at_utc": "2026-04-08T21:45:00Z",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "evidence_bundle": "tests/reports/evidence/g9_level_a_20260408/",
+  "roadmap_s4_note": "Scenario 4 scores are null: roadmap Misunderstanding/correction is not evidenced by the run_b anchor (see scenario_goc_roadmap_s4_misinterpretation_correction.json roadmap_s4_evidence).",
+  "criteria": [
+    "dramatic_responsiveness",
+    "truth_consistency",
+    "character_credibility",
+    "conflict_continuity",
+    "graceful_degradation"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "goc_roadmap_s1_direct_provocation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-escalate",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Player fight provocation maps to escalate_conflict with standard pacing; visible bundle carries adapter escalation line (scenario_goc_roadmap_s1_direct_provocation.json).",
+        "truth_consistency": "Validation approved; committed path; diagnostics dramatic_quality pass — no contradiction with staged scene function.",
+        "character_credibility": "Responder line matches Michel table confrontation tone in fixture narrative.",
+        "conflict_continuity": "Single-turn slice; continuity_impacts record situational_pressure from committed escalate_conflict.",
+        "graceful_degradation": "Primary path succeeded; fallback_stage_reached primary_only; no degradation required."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s2_deflection_brevity",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-thin",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Thin-edge input yields pacing_mode thin_edge, withhold_or_evade, silence_brevity_decision mode withheld; matches brevity scenario intent.",
+        "truth_consistency": "Approved commit; bounded_ambiguity visibility; diagnostics pass.",
+        "character_credibility": "Silence narration is minimal by design; still coherent table reaction.",
+        "conflict_continuity": "Single-turn; withhold beat does not resolve arc — acceptable for this scenario slice.",
+        "graceful_degradation": "Clean non-preview path without fallback."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s3_pressure_escalation",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p2-multi",
+      "scores": {
+        "dramatic_responsiveness": 5,
+        "truth_consistency": 5,
+        "character_credibility": 5,
+        "conflict_continuity": 5,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "multi_pressure pacing; scene_assessment.multi_pressure_resolution chooses reveal_surface; dramatic_review.multi_pressure_chosen matches.",
+        "truth_consistency": "Approved commit; pressure diagnostics align with player apology+pressure line.",
+        "character_credibility": "Fixture narrative matches demand-for-truth beat.",
+        "conflict_continuity": "Pressure lane resolved to explicit reveal_surface with recorded rationale.",
+        "graceful_degradation": "Primary generation succeeded; no forced degradation."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-p3-b1 through trace-p3-b4",
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Not scored: roadmap_s4_status insufficiently_evidenced_for_roadmap_s4 — anchor shows continuity-driven responder change for repeated surface move, not explicit misinterpretation plus player correction.",
+        "truth_consistency": "Not scored: same reason as dramatic_responsiveness; see scenario_goc_roadmap_s4_misinterpretation_correction.json roadmap_s4_evidence.",
+        "character_credibility": "Not scored: same.",
+        "conflict_continuity": "Not scored: same.",
+        "graceful_degradation": "Not scored: same."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+      "failure_oriented": true,
+      "automated_trace_anchor": "trace-p3-c3",
+      "scores": {
+        "dramatic_responsiveness": 3,
+        "truth_consistency": 5,
+        "character_credibility": 3,
+        "conflict_continuity": 4,
+        "graceful_degradation": 4
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "After ErrorAdapter, visible_output_bundle is preview-staging only; limited in-scene voice versus full commit path (scenario_goc_roadmap_s5_primary_failure_fallback.json).",
+        "truth_consistency": "validation_outcome status rejected with model_generation_failed; dramatic_review run_classification degraded_explainable — honest system signal.",
+        "character_credibility": "Preview staging line is thin versus normal committed narration depth.",
+        "conflict_continuity": "redirect_blame still selected with prior signature carry-forward from chain; arc partially preserved.",
+        "graceful_degradation": "fallback_stage_reached graph_fallback_executed; degraded_explainable meets operator-visible failure handling though visible player text is minimal."
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s6_retrieval_heavy",
+      "failure_oriented": false,
+      "automated_trace_anchor": "trace-roadmap-s6-retrieval-heavy",
+      "scores": {
+        "dramatic_responsiveness": 4,
+        "truth_consistency": 5,
+        "character_credibility": 4,
+        "conflict_continuity": 4,
+        "graceful_degradation": 5
+      },
+      "cell_rationale": {
+        "dramatic_responsiveness": "Retrieval context referenced in fixture narrative; scene function establish_pressure with governance-visible retrieval (scenario_goc_roadmap_s6_retrieval_heavy.json).",
+        "truth_consistency": "retrieval_governance_summary present with authored_truth_refs and derived_artifact_refs; hit_count >= 1 in evidence.",
+        "character_credibility": "Host reaction line reflects retrieved-notes framing; acceptable for fixture-driven run.",
+        "conflict_continuity": "Single-turn probe; pressure established, not full table arc resolution.",
+        "graceful_degradation": "Primary path succeeded; retrieval ok."
+      }
+    }
+  ],
+  "threshold_check": {
+    "computed": false,
+    "notes": "Scores incomplete on S4 (nulls by design — roadmap evidence gap). Run scripts/g9_threshold_validator.py after policy change or new S4 anchor."
+  }
+}

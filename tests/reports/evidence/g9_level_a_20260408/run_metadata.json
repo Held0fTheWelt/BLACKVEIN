@@ -1,0 +1,13 @@
+{
+  "audit_run_id": "g9_level_a_20260408",
+  "timestamp_utc": "2026-04-08T21:43:47Z",
+  "git_commit_or_worktree": {
+    "commit": "b9382ecd7c597593173ca44f5a377ea09c205b7f",
+    "working_tree_dirty": true,
+    "porcelain_line_count": 51
+  },
+  "python_version": "3.13.5",
+  "active_environment_path": "C:\\Users\\YvesT\\PycharmProjects\\WorldOfShadows\\.venv",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "repo_root": "C:\\Users\\YvesT\\PycharmProjects\\WorldOfShadows"
+}

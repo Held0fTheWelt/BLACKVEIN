@@ -1,0 +1,130 @@
+{
+  "scenario_id": "goc_roadmap_s2_deflection_brevity",
+  "automated_trace_anchor": "trace-p2-thin",
+  "pytest_anchor": "test_scenario_thin_edge_silence_non_preview",
+  "summary": {
+    "trace_id": "trace-p2-thin",
+    "session_id": "s-p2-thin",
+    "player_input": "thin edge silent say nothing",
+    "current_scene_id": "living_room",
+    "selected_scene_function": "withhold_or_evade",
+    "pacing_mode": "thin_edge",
+    "interpreted_move": {
+      "player_intent": "dialogue",
+      "move_class": "speech"
+    },
+    "continuity_impacts": [
+      {
+        "class": "silent_carry",
+        "note": "committed_scene_function:withhold_or_evade"
+      }
+    ],
+    "prior_dramatic_signature_used": null,
+    "visible_output_bundle": {
+      "gm_narration": [
+        "Annette reacts immediately.",
+        "You stay silent at the table; you say nothing aloud while others watch you hold still and quiet.",
+        "(Director staging \u2014 phase context) The incident is now openly discussed. Disagreement centers on parental responsibility:",
+        "(Director register \u2014 responder role) Guest, intellectual combatant, cynic",
+        "(Director register \u2014 tonal pressure) Intellectually engaged, amused, slightly contemptuous, provocative"
+      ]
+    },
+    "routing": {
+      "route_reason_code": "role_matrix_primary",
+      "policy_id_used": "story_runtime_core.RoutingPolicy",
+      "fallback_chain": [
+        "openai:gpt-4o-mini",
+        "ollama:llama3.2"
+      ],
+      "fallback_stage_reached": "primary_only"
+    },
+    "validation_outcome": {
+      "status": "approved",
+      "reason": "goc_default_validator_pass",
+      "validator_lane": "goc_rule_engine_v1"
+    },
+    "dramatic_review": {
+      "dramatic_quality_status": "pass",
+      "run_classification": "pass",
+      "dramatic_signature": {
+        "scene_function": "withhold_or_evade",
+        "responder": "annette_reille",
+        "pacing_mode": "thin_edge",
+        "silence_mode": "withheld"
+      },
+      "pattern_repetition_risk": false,
+      "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+      "multi_pressure_chosen": "withhold_or_evade"
+    },
+    "retrieval": {
+      "hit_count": 1,
+      "status": "ok",
+      "retrieval_governance_summary": {
+        "source_row_count": 1,
+        "lane_counts": {
+          "draft_working": 1
+        },
+        "visibility_counts": {
+          "writers_working": 1
+        },
+        "content_class_counts": {
+          "authored_module": 1
+        },
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "dominant_visibility_class": "writers_working",
+        "retrieval_policy_version": "task3_source_governance_v1"
+      }
+    },
+    "weak_run_explanation": null,
+    "silence_brevity_decision": {
+      "mode": "withheld",
+      "reason": "thin_edge_plus_withheld"
+    },
+    "scene_assessment_excerpt": {
+      "guidance_phase_key": "phase_2_moral_negotiation",
+      "canonical_setting": "Paris apartment, evening dinner party",
+      "multi_pressure_resolution": {
+        "candidates": [
+          "withhold_or_evade"
+        ],
+        "implied_continuity_by_function": {
+          "withhold_or_evade": "silent_carry"
+        },
+        "chosen_scene_function": "withhold_or_evade",
+        "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=[]); tie-break lexicographic smallest label.",
+        "heuristic_trace": [
+          "thin_edge:silence_keyword->withhold_or_evade"
+        ]
+      }
+    }
+  },
+  "dramatic_turn_record_excerpt": {
+    "turn_id": "trace-p2-thin",
+    "routing_record": {
+      "route_reason_code": null,
+      "fallback_stage_reached": "primary_only"
+    },
+    "retrieval_record": {
+      "authored_truth_refs": [
+        {
+          "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+          "source_path": "content/god_of_carnage.md",
+          "content_class": "authored_module",
+          "source_evidence_lane": "draft_working",
+          "source_visibility_class": "writers_working"
+        }
+      ],
+      "derived_artifact_refs": [],
+      "retrieval_visibility_class": "writers_working"
+    }
+  }
+}

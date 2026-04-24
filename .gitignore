@@ -29,12 +29,8 @@ build/
 Task.md
 .clockwork_integration
 /.ollama
-/tests/reports
 # Contractify local JSON exports are ephemeral (regenerate tracked markdown with: python .scripts/regenerate_contract_audit.py)
 **/contractify/reports/*.json
-/tests/e2e/node_modules/
-/tests/e2e/playwright-report/
-/tests/e2e/test-results/
 /patch
 /world-engine/app/var/runs
 /world-engine/app/var/story_sessions

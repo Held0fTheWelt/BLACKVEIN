@@ -1,0 +1,122 @@
+{
+  "snapshot_date": "2026-04-24",
+  "readiness_endpoints": {
+    "release_readiness": {
+      "route": "GET /api/v1/admin/ai-stack/release-readiness",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "AI Stack release readiness gates",
+      "status": "EXISTS",
+      "accessible": "JWT_REQUIRED",
+      "response_expected_schema": {
+        "gates": [
+          {
+            "gate_id": "string",
+            "status": "string (closed|partial|open)",
+            "reason": "string"
+          }
+        ]
+      }
+    },
+    "system_diagnosis": {
+      "route": "GET /api/v1/admin/system-diagnosis",
+      "auth": "JWT + feature flag",
+      "query_params": {
+        "refresh": "1 (trigger live checks)"
+      },
+      "purpose": "System health checks across all services",
+      "status": "EXISTS",
+      "accessible": "JWT_REQUIRED",
+      "response_expected_schema": {
+        "checks": [
+          {
+            "status": "string",
+            "label": "string",
+            "message": "string",
+            "latency": "number",
+            "source": "string",
+            "details": "object (missing in current implementation)"
+          }
+        ]
+      }
+    },
+    "runtime_readiness": {
+      "route": "GET /api/v1/admin/ai/runtime-readiness",
+      "auth": "JWT + feature flag",
+      "purpose": "Story runtime readiness status",
+      "status": "EXISTS",
+      "accessible": "JWT_REQUIRED"
+    },
+    "resolved_configuration": {
+      "route": "GET /api/v1/admin/runtime/resolved-config",
+      "auth": "JWT + feature flag",
+      "purpose": "Effective runtime configuration state",
+      "status": "EXISTS",
+      "accessible": "JWT_REQUIRED"
+    },
+    "world_engine_control_center": {
+      "route": "GET /api/v1/admin/world-engine/control-center",
+      "auth": "JWT + feature flag",
+      "purpose": "World-Engine runtime status and control",
+      "status": "EXISTS",
+      "accessible": "JWT_REQUIRED"
+    }
+  },
+  "observability_endpoints_new": {
+    "status": {
+      "route": "GET /api/v1/admin/observability/status",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "Get Langfuse observability configuration",
+      "rate_limit": "60 per minute",
+      "status": "NEW_IMPLEMENTED"
+    },
+    "update": {
+      "route": "POST /api/v1/admin/observability/update",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "Update Langfuse public configuration",
+      "rate_limit": "30 per minute",
+      "status": "NEW_IMPLEMENTED"
+    },
+    "credential": {
+      "route": "POST /api/v1/admin/observability/credential",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "Write/rotate Langfuse credentials",
+      "rate_limit": "30 per minute",
+      "returns": "Fingerprints only (write-only endpoint)",
+      "status": "NEW_IMPLEMENTED"
+    },
+    "test_connection": {
+      "route": "POST /api/v1/admin/observability/test-connection",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "Test Langfuse connection health",
+      "rate_limit": "10 per minute",
+      "status": "NEW_IMPLEMENTED"
+    },
+    "disable": {
+      "route": "DELETE /api/v1/admin/observability/disable",
+      "auth": "JWT + FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE",
+      "purpose": "Disable Langfuse and clear configuration",
+      "rate_limit": "10 per minute",
+      "status": "NEW_IMPLEMENTED"
+    },
+    "internal_initialize": {
+      "route": "POST /api/v1/internal/observability/initialize",
+      "auth": "NONE (internal only, network-restricted)",
+      "purpose": "Bootstrap Langfuse configuration from docker-up.py",
+      "rate_limit": "5 per minute",
+      "caller": "docker-up.py bootstrap gate",
+      "status": "NEW_IMPLEMENTED"
+    }
+  },
+  "access_status": {
+    "note": "All readiness endpoints require JWT authentication",
+    "current_issue": "Cannot fetch endpoint responses via unauthenticated curl",
+    "remediation": "Phase 1-8 should implement public gate summary view or internal diagnostic endpoints"
+  },
+  "summary": {
+    "readiness_endpoints_existing": 5,
+    "observability_endpoints_new": 6,
+    "total_endpoints": 11,
+    "all_requiring_jwt": true,
+    "public_summary_endpoints": 0
+  }
+}

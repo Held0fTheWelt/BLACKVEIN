@@ -1,0 +1,322 @@
+{
+  "snapshot_date": "2026-04-24",
+  "missing_components": {
+    "admin_ui": [
+      {
+        "component": "/manage/ai-stack/release-readiness",
+        "type": "PAGE",
+        "purpose": "Gate-level readiness diagnostics dashboard",
+        "phase": 3,
+        "files_needed": [
+          "administration-tool/templates/manage/ai_stack_release_readiness.html",
+          "administration-tool/static/manage_ai_stack_release_readiness.js",
+          "administration-tool/routes/manage.py (add route)"
+        ],
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Runtime Config Truth",
+        "type": "PAGE",
+        "purpose": "Distinguish between configured vs. effective vs. loaded config",
+        "phase": 5,
+        "files_needed": [
+          "administration-tool/templates/manage/runtime_config_truth.html",
+          "administration-tool/static/manage_runtime_config_truth.js"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "component": "Closure Cockpit Integration",
+        "type": "UI_FEATURE",
+        "purpose": "Integrate existing closure-cockpit endpoint into release-readiness page",
+        "phase": 6,
+        "files_needed": [
+          "administration-tool/static/manage_ai_stack_release_readiness.js (update)"
+        ],
+        "priority": "MEDIUM"
+      }
+    ],
+    "database_schema": [
+      {
+        "component": "ReadinessGate model",
+        "type": "MODEL",
+        "purpose": "Canonical gate definitions with evidence linking",
+        "phase": 1,
+        "files_needed": [
+          "backend/app/models/readiness_gates.py (NEW)",
+          "backend/migrations/versions/045_readiness_gates.py (NEW)"
+        ],
+        "schema_fields": [
+          "gate_id",
+          "gate_name",
+          "owner_service",
+          "status (closed|partial|open)",
+          "reason",
+          "expected_evidence",
+          "actual_evidence",
+          "evidence_path",
+          "truth_source (enum)",
+          "remediation",
+          "last_checked_at",
+          "created_at",
+          "updated_at"
+        ],
+        "priority": "CRITICAL"
+      }
+    ],
+    "service_layer": [
+      {
+        "component": "Readiness Gate Service",
+        "type": "SERVICE",
+        "purpose": "Manage gate status, evidence linking, and schema canonicalization",
+        "phase": 1,
+        "files_needed": [
+          "backend/app/services/readiness_gates_service.py (NEW)"
+        ],
+        "functions_needed": [
+          "get_all_gates()",
+          "get_gate(gate_id)",
+          "update_gate_status(gate_id, status, reason, evidence_path)",
+          "list_gates_by_status(status)",
+          "get_partial_gates()",
+          "get_remediation(gate_id)"
+        ],
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "System Diagnosis Enhanced",
+        "type": "SERVICE",
+        "purpose": "Connect diagnosis checks with gate-level details",
+        "phase": 2,
+        "files_needed": [
+          "backend/app/services/system_diagnosis_service.py (update)"
+        ],
+        "changes_needed": [
+          "Add gate_id to each check response",
+          "Add partial_gate_count to check details",
+          "Include evidence_path references",
+          "Mark truth_source for each result"
+        ],
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Runtime Config Truth Service",
+        "type": "SERVICE",
+        "purpose": "Provide granular runtime configuration state",
+        "phase": 5,
+        "files_needed": [
+          "backend/app/services/runtime_config_truth_service.py (NEW)"
+        ],
+        "fields_needed": [
+          "backend_configured",
+          "backend_effective_config",
+          "world_engine_loaded_config",
+          "story_runtime_active",
+          "play_service_http_ready"
+        ],
+        "priority": "HIGH"
+      }
+    ],
+    "api_routes": [
+      {
+        "component": "Release Readiness Gates Endpoint",
+        "type": "API",
+        "route": "GET /api/v1/admin/ai-stack/release-readiness/gates",
+        "purpose": "Return all gates with canonical schema",
+        "phase": 1,
+        "files_needed": [
+          "backend/app/api/v1/operational_governance_routes.py (update)"
+        ],
+        "response_schema": "canonical gate schema with truth_source and evidence_path",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "Gate Detail Endpoint",
+        "type": "API",
+        "route": "GET /api/v1/admin/ai-stack/release-readiness/gates/{gate_id}",
+        "purpose": "Return detailed gate status with remediation guidance",
+        "phase": 3,
+        "files_needed": [
+          "backend/app/api/v1/operational_governance_routes.py (update)"
+        ],
+        "priority": "HIGH"
+      },
+      {
+        "component": "Runtime Config Truth Endpoint",
+        "type": "API",
+        "route": "GET /api/v1/admin/runtime/config-truth",
+        "purpose": "Expose granular runtime configuration state",
+        "phase": 5,
+        "files_needed": [
+          "backend/app/api/v1/operational_governance_routes.py (update)"
+        ],
+        "priority": "HIGH"
+      }
+    ],
+    "schema_definitions": [
+      {
+        "schema": "Canonical Gate Response",
+        "phase": 1,
+        "needed_by": [
+          "API endpoints",
+          "Admin UI",
+          "Tests"
+        ],
+        "fields": {
+          "gate_id": "string (unique identifier)",
+          "gate_name": "string (human-readable)",
+          "owner_service": "string (which service owns this gate)",
+          "status": "enum (closed|partial|open)",
+          "reason": "string (why gate is in this status)",
+          "expected_evidence": "string (what evidence should exist)",
+          "actual_evidence": "string (what evidence was found)",
+          "evidence_path": "string (where to find evidence)",
+          "truth_source": "enum (live_endpoint|static_policy|file_store|database)",
+          "remediation": "string (how to fix if gate is open)",
+          "last_checked_at": "timestamp",
+          "remediation_steps": "array of strings"
+        },
+        "priority": "CRITICAL"
+      },
+      {
+        "schema": "System Diagnosis Enhanced",
+        "phase": 2,
+        "extends": "Current diagnosis check",
+        "new_fields": [
+          "gate_id (link to canonical gate)",
+          "partial_gate_count (how many gates in partial state)",
+          "truth_source (where this check comes from)",
+          "evidence_path (where the evidence file is)"
+        ],
+        "priority": "CRITICAL"
+      }
+    ],
+    "data_contract_fixes": [
+      {
+        "producer": "ai_stack_release_readiness_report_sections.py",
+        "consumer": "admin UI / tests",
+        "issue": "Uses 'area' instead of 'gate_id'",
+        "phase": 7,
+        "fix": "Rename area → gate_id, add truth_source field",
+        "priority": "CRITICAL"
+      },
+      {
+        "producer": "system_diagnosis_service.py",
+        "consumer": "manage_diagnosis.js",
+        "issue": "details object not properly rendered, missing gate_id",
+        "phase": 2,
+        "fix": "Add gate_id and partial_gate_count to check details",
+        "priority": "CRITICAL"
+      },
+      {
+        "producer": "Various readiness endpoints",
+        "consumer": "Tests",
+        "issue": "Inconsistent field names and missing evidence handling",
+        "phase": 7,
+        "fix": "Enforce canonical gate schema in all producers",
+        "priority": "HIGH"
+      }
+    ]
+  },
+  "phase_breakdown": {
+    "phase_0": {
+      "status": "COMPLETE",
+      "outputs": [
+        "WAVE_0_ADMINISTRATION_TOOL_READINESS_TRUTH_SNAPSHOT.md",
+        "wave_0_artifact_inventory.json",
+        "wave_0_test_files_inventory.json",
+        "wave_0_api_endpoints.json",
+        "wave_0_missing_components.json"
+      ]
+    },
+    "phase_1": {
+      "title": "Extend Canonical Readiness Schema",
+      "tasks": [
+        "Create ReadinessGate model",
+        "Create migration 045",
+        "Create readiness_gates_service.py",
+        "Create GET /api/v1/admin/ai-stack/release-readiness/gates endpoint",
+        "Document canonical gate schema"
+      ],
+      "critical_path": true
+    },
+    "phase_2": {
+      "title": "Connect System Diagnosis with Gate Details",
+      "depends_on": ["phase_1"],
+      "tasks": [
+        "Update system_diagnosis_service.py to include gate_id",
+        "Add partial_gate_count to responses",
+        "Update API response schema",
+        "Update tests"
+      ]
+    },
+    "phase_3": {
+      "title": "Create Admin Release Readiness Page",
+      "depends_on": ["phase_1"],
+      "tasks": [
+        "Create ai_stack_release_readiness.html",
+        "Create manage_ai_stack_release_readiness.js",
+        "Implement gate detail view",
+        "Implement filter and search"
+      ]
+    },
+    "phase_4": {
+      "title": "Improve Diagnosis Page",
+      "depends_on": ["phase_2"],
+      "tasks": [
+        "Update diagnosis.html to show gate details",
+        "Add gate ID display",
+        "Add link to /manage/ai-stack/release-readiness",
+        "Show details expandable"
+      ]
+    },
+    "phase_5": {
+      "title": "Runtime Config Truth",
+      "depends_on": ["phase_2"],
+      "tasks": [
+        "Create runtime_config_truth_service.py",
+        "Create runtime config endpoint",
+        "Create admin UI page",
+        "Document truth sources"
+      ]
+    },
+    "phase_6": {
+      "title": "Closure Cockpit Integration",
+      "depends_on": ["phase_3"],
+      "tasks": [
+        "Integrate closure cockpit into release-readiness page",
+        "Add closure cockpit details display",
+        "Link from gates to closure data"
+      ]
+    },
+    "phase_7": {
+      "title": "Contract/Schema Drift Repair",
+      "depends_on": ["phase_1"],
+      "tasks": [
+        "Rename area → gate_id in all producers",
+        "Add truth_source field consistently",
+        "Fix missing evidence handling",
+        "Update all tests"
+      ]
+    },
+    "phase_8": {
+      "title": "Comprehensive Testing",
+      "depends_on": ["phase_1-7"],
+      "tasks": [
+        "Create readiness gate tests",
+        "Create admin UI integration tests",
+        "Create schema validation tests",
+        "Create contract tests for producers/consumers"
+      ]
+    }
+  },
+  "summary": {
+    "total_files_to_create": 15,
+    "total_files_to_modify": 8,
+    "database_migrations_needed": 1,
+    "new_services_needed": 3,
+    "new_endpoints_needed": 3,
+    "new_admin_pages_needed": 2,
+    "critical_phase": "Phase 1 (canonical schema)"
+  }
+}

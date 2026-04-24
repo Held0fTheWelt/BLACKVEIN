@@ -1,0 +1,10 @@
+{
+  "schema": "goc_g9b_raw_score_sheet_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.10",
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "evaluator_id": "single_evaluator_g9_level_a_repo_audit",
+  "frozen_g9_matrix_file_ref": "tests/reports/evidence/g9_level_a_fullsix_20260410/g9_experience_score_matrix.json",
+  "inline_matrix": null,
+  "frozen_at_utc": "2026-04-10T00:20:00Z",
+  "integrity_note": "Evaluator A (single_evaluator_g9_level_a_repo_audit): immutable pointer to g9_experience_score_matrix.json. Evaluator B raw matrix exists separately: g9b_raw_score_sheet_evaluator_b.json → g9_experience_score_matrix_evaluator_b.json. Full A-vs-B delta: g9b_score_delta_record.json. G9B remains level_a_capable (insufficient independence for Level B) — see g9b_evaluator_record.json, g9b_level_b_attempt_record.json, g9b_evaluator_independence_declaration.md."
+}

@@ -1,0 +1,18 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\YvesT\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\YvesT\PycharmProjects\WorldOfShadows\ai_stack
+configfile: pyproject.toml
+plugins: anyio-4.12.1, langsmith-0.7.17, asyncio-0.26.0, cov-5.0.0, timeout-2.4.0
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 6 items
+
+ai_stack\tests\test_goc_phase2_scenarios.py::test_scenario_standard_escalation_non_preview PASSED [ 16%]
+ai_stack\tests\test_goc_phase2_scenarios.py::test_scenario_thin_edge_silence_non_preview PASSED [ 33%]
+ai_stack\tests\test_goc_phase2_scenarios.py::test_scenario_multi_pressure_non_preview PASSED [ 50%]
+ai_stack\tests\test_goc_roadmap_s4_misinterpretation_correction.py::test_roadmap_s4_misinterpretation_correction_chain PASSED [ 66%]
+ai_stack\tests\test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained PASSED [ 83%]
+ai_stack\tests\test_goc_retrieval_heavy_scenario.py::test_roadmap_scenario_retrieval_heavy_governance_visible PASSED [100%]
+
+============================== 6 passed in 0.84s ==============================
+exit_code=0

@@ -1,0 +1,139 @@
+{
+  "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+  "failure_oriented": true,
+  "automated_trace_anchor": "trace-p3-c3",
+  "pytest_anchor": "test_phase3_run_c_fail_and_degraded_are_explained",
+  "pytest_anchor_node": "ai_stack/tests/test_goc_phase3_experience_richness.py::test_phase3_run_c_fail_and_degraded_are_explained",
+  "prior_turns_trace_ids": [
+    "trace-p3-c1",
+    "trace-p3-c2"
+  ],
+  "failure_turn": {
+    "trace_id": "trace-p3-c3",
+    "session_id": "s-p3-c",
+    "player_input": "I blame you for what happened.",
+    "current_scene_id": "living_room",
+    "selected_scene_function": "redirect_blame",
+    "pacing_mode": "standard",
+    "interpreted_move": {
+      "player_intent": "uncertain",
+      "move_class": "ambiguous"
+    },
+    "continuity_impacts": [
+      {
+        "class": "blame_pressure",
+        "note": "committed_scene_function:redirect_blame"
+      }
+    ],
+    "prior_dramatic_signature_used": {
+      "scene_function": "escalate_conflict",
+      "responder": "annette_reille",
+      "pacing_mode": "standard",
+      "silence_mode": "normal",
+      "player_intent": "uncertain"
+    },
+    "visible_output_bundle": {
+      "gm_narration": [
+        "Annette reacts immediately.",
+        "Annette meets your blame head-on: she refuses to carry the fault alone, snaps that the table will not scapegoat her tonight, and forces the accusation back into the open air where everyone must answer for what they did."
+      ]
+    },
+    "routing": {
+      "route_reason_code": "role_matrix_primary",
+      "policy_id_used": "story_runtime_core.RoutingPolicy",
+      "fallback_chain": [
+        "openai:gpt-4o-mini",
+        "ollama:llama3.2"
+      ],
+      "fallback_stage_reached": "graph_fallback_executed"
+    },
+    "validation_outcome": {
+      "status": "approved",
+      "reason": "goc_default_validator_pass",
+      "validator_lane": "goc_rule_engine_v1"
+    },
+    "dramatic_review": {
+      "dramatic_quality_status": "pass",
+      "run_classification": "pass",
+      "dramatic_signature": {
+        "scene_function": "redirect_blame",
+        "responder": "annette_reille",
+        "pacing_mode": "standard",
+        "silence_mode": "normal"
+      },
+      "pattern_repetition_risk": false,
+      "pattern_repetition_note": "pattern_variation_or_intent_shift_detected",
+      "multi_pressure_chosen": "redirect_blame"
+    },
+    "retrieval": {
+      "hit_count": 1,
+      "status": "ok",
+      "retrieval_governance_summary": {
+        "source_row_count": 1,
+        "lane_counts": {
+          "draft_working": 1
+        },
+        "visibility_counts": {
+          "writers_working": 1
+        },
+        "content_class_counts": {
+          "authored_module": 1
+        },
+        "authored_truth_refs": [
+          {
+            "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+            "source_path": "content/god_of_carnage.md",
+            "content_class": "authored_module",
+            "source_evidence_lane": "draft_working",
+            "source_visibility_class": "writers_working"
+          }
+        ],
+        "derived_artifact_refs": [],
+        "dominant_visibility_class": "writers_working",
+        "retrieval_policy_version": "task3_source_governance_v1"
+      }
+    },
+    "weak_run_explanation": null,
+    "silence_brevity_decision": {
+      "mode": "normal",
+      "reason": "default_verbal_density"
+    },
+    "scene_assessment_excerpt": {
+      "guidance_phase_key": "phase_2_moral_negotiation",
+      "canonical_setting": "Paris apartment, evening dinner party",
+      "multi_pressure_resolution": {
+        "candidates": [
+          "redirect_blame"
+        ],
+        "implied_continuity_by_function": {
+          "redirect_blame": "blame_pressure"
+        },
+        "chosen_scene_function": "redirect_blame",
+        "rationale": "CANONICAL_TURN_CONTRACT_GOC.md section 3.5 \u2014 ranked implied continuity obligation (carry_forward_classes=['situational_pressure']); tie-break lexicographic smallest label.",
+        "heuristic_trace": [
+          "keyword:blame->redirect_blame"
+        ]
+      }
+    }
+  },
+  "dramatic_turn_record_excerpt": {
+    "turn_id": "trace-p3-c3",
+    "routing_record": {
+      "route_reason_code": null,
+      "fallback_stage_reached": "graph_fallback_executed"
+    },
+    "retrieval_record": {
+      "authored_truth_refs": [
+        {
+          "chunk_id": "content/god_of_carnage.md@sha256:508c22aa0ec1709c::chunk_0",
+          "source_path": "content/god_of_carnage.md",
+          "content_class": "authored_module",
+          "source_evidence_lane": "draft_working",
+          "source_visibility_class": "writers_working"
+        }
+      ],
+      "derived_artifact_refs": [],
+      "retrieval_visibility_class": "writers_working"
+    }
+  }
+}
