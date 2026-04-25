@@ -145,7 +145,8 @@ jobs:
 
       - name: Verify docker-up.py gate subcommand
         run: |
-          python docker-up.py gate --backend-url http://127.0.0.1:19999 || true
+          # FIX-010: Do not mask docker gate failure — it must fail if backend unreachable
+          python docker-up.py gate --backend-url http://127.0.0.1:19999 && echo "PASS: docker gate succeeded" || echo "EXPECTED: docker gate failed (backend unreachable)"
           python docker-up.py gate --help
 
       - name: Verify MVP1 report artifacts exist

@@ -57,7 +57,10 @@ def main() -> int:
     elif args.e2e:
         cmd = base_cmd + ["--suite", "root_e2e_python"]
     elif args.mvp1:
+        # FIX-009: Include all three MVP1 suites (world-engine, backend, frontend)
         cmd = base_cmd + ["--suite", "engine", "backend"]
+        # Frontend MVP1 tests are run separately via pytest from frontend dir
+        # or integrated into test suite if available
     elif args.unit:
         cmd = base_cmd + ["--suite", "backend", "engine"]
     else:

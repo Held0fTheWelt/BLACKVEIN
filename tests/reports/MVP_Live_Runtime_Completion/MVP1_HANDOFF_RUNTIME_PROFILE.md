@@ -140,7 +140,7 @@ The `selected_player_role` field is required when `runtime_profile_id=god_of_car
 | Backend profile forwarding | `backend/app/services/game_service.py` | `create_run()` |
 | Backend route forwarding | `backend/app/api/v1/game_routes.py` | `game_create_run()`, `game_player_session_create()` |
 
-## What MVP 2 Can Assume
+## What MVP 2 Can Assume (FIX-012: Proven State)
 
 1. `runtime_profile_id=god_of_carnage_solo` is always bound to `content_module_id=god_of_carnage`
 2. `selected_player_role` is always `"annette"` or `"alain"` — never `"visitor"` or any other value
@@ -148,6 +148,13 @@ The `selected_player_role` field is required when `runtime_profile_id=god_of_car
 4. `npc_actor_ids` contains all other three canonical GoC actors (no visitor)
 5. `actor_lanes` is a dict of actor_id → "human"|"npc"
 6. `visitor_present=False` is always guaranteed
-7. The `annette` and `alain` roles in the ExperienceTemplate are both `HUMAN+can_join`, starting in `hallway`
-8. The runtime profile resolver validates before any instance is created
-9. Profile contains no story truth (characters, scenes, etc.)
+7. **Nested runtime state (FIX-003, FIX-006)**:
+   - Selected human actor exists in `run.participants` with `mode="human"`
+   - Unselected guest actors exist in `run.participants` with `mode="npc"` (converted by _bootstrap_instance via FIX-003)
+   - All NPC actors have `connected=True` and `current_room_id` set to their initial room
+   - `run.lobby_seats[selected_role]` has `ready=True`
+   - No visitor appears in participants, lobby_seats, or actor_lanes (FIX-007)
+8. The `annette` and `alain` roles in the ExperienceTemplate are both HUMAN+can_join, starting in hallway
+9. Template story truth (beats, props, actions) is empty — all derived from canonical content (FIX-002)
+10. Runtime profile resolver validates before any instance is created and fails if content missing (FIX-004)
+11. Profile contains no story truth (characters, scenes, etc.) (FIX-005)

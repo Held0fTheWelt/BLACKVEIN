@@ -35,7 +35,7 @@ python tests/run_tests.py --suite engine
 **Result**: PASS (971 passed, 1 skipped, pre-existing failures excluded)
 
 **MVP-specific test files** (new for MVP1):
-- `world-engine/tests/test_mvp1_experience_identity.py` — 25 tests PASS, 1 SKIP (operational evidence artifact — created after test run), 1 FAIL (operational evidence not yet written — resolved by this artifact)
+- `world-engine/tests/test_mvp1_experience_identity.py` — 48+ tests PASS (includes FIX-002..007 tests for story truth removal, NPC conversion, content validation, nested runtime state inspection, visitor sweep)
 
 **Pre-existing failures (not caused by MVP1)**:
 - `test_story_runtime_api.py::test_story_session_lifecycle_and_nl_interpretation` — `RuntimeError: Turn rejected after bounded recovery: dramatic_alignment_insufficient_mass_thin_or_silence` — pre-existing AI mock quality gate failure, not related to MVP1 identity/session-start changes (git diff confirms no story_runtime files modified)
@@ -54,7 +54,7 @@ python tests/run_tests.py --suite backend
 **Result**: PASS (backend MVP1 tests pass)
 
 **MVP-specific test files** (new for MVP1):
-- `backend/tests/runtime/test_mvp1_session_identity.py` — 5 tests PASS, 2 FAIL (artifact presence — resolved by this file and MVP1_HANDOFF_RUNTIME_PROFILE.md)
+- `backend/tests/runtime/test_mvp1_session_identity.py` — 13 tests PASS (includes bypass rejection, backend live path, docker gate tests)
 
 #### All suites:
 
@@ -79,10 +79,12 @@ MVP-specific test coverage:
 - pytest markers or runner suite names:
     world-engine engine suite: python tests/run_tests.py --suite engine
     backend suite: python tests/run_tests.py --suite backend
-- run-test.py suite entries:
-    --suite engine (world-engine/tests/)
-    --suite backend (backend/tests/)
-- GitHub workflow jobs:
+- run-test.py suite entries (FIX-009):
+    --mvp1 runs world-engine/tests/ and backend/tests/
+    --unit runs backend and engine suites
+    --all runs all suites
+- GitHub workflow jobs (FIX-010):
+    .github/workflows/mvp1-tests.yml — dedicated MVP1 workflow with 4 jobs: world-engine, backend, frontend, tooling gate
     .github/workflows/engine-tests.yml — runs world-engine/tests/ on push to world-engine/** and story_runtime_core/**
     .github/workflows/backend-tests.yml — runs backend/tests/ on push to backend/**
 - TOML testpaths/markers:

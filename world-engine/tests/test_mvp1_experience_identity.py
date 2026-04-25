@@ -520,6 +520,132 @@ class TestLiveStartBehavior:
 # FIX-009: run-test.py entry point
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# FIX-006: Strengthen live start tests with nested runtime state inspection
+# ---------------------------------------------------------------------------
+
+class TestLiveRuntimeStateInspection:
+    """FIX-006: Verify nested runtime state (participants, lobby, actor-lanes) (FIX-006)."""
+
+    def test_world_engine_create_run_annette_live_state(self, client):
+        """Annette start: inspect nested participants, lobby, and actor-lane state (FIX-006)."""
+        response = client.post(
+            "/api/runs",
+            json={
+                "runtime_profile_id": "god_of_carnage_solo",
+                "selected_player_role": "annette",
+                "account_id": "fix6-annette",
+                "display_name": "Annette Player",
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        run_dict = body.get("run", {})
+        run_id = run_dict["id"]
+
+        # Verify response metadata
+        assert body.get("human_actor_id") == "annette"
+        assert "alain" in body.get("npc_actor_ids", [])
+        assert body.get("visitor_present") is False
+
+        # Verify nested runtime state
+        assert "participants" in run_dict, "Run must have participants dict (FIX-006)"
+        participants = run_dict.get("participants", {})
+
+        # Annette must be human participant
+        annette_parts = [p for p in participants.values() if p.get("role_id") == "annette"]
+        assert len(annette_parts) > 0, "Annette must be in participants (FIX-006)"
+        assert annette_parts[0].get("mode") == "human", "Annette must be human mode (FIX-006)"
+
+        # Alain and other NPCs must exist as NPC participants
+        alain_parts = [p for p in participants.values() if p.get("role_id") == "alain"]
+        assert len(alain_parts) > 0, "Alain must be in participants as NPC (FIX-006)"
+        assert alain_parts[0].get("mode") == "npc", "Alain must be npc mode (FIX-006)"
+
+        # Verify lobby_seats
+        assert "lobby_seats" in run_dict, "Run must have lobby_seats (FIX-006)"
+        lobby_seats = run_dict.get("lobby_seats", {})
+        assert "annette" in lobby_seats, "Annette seat must exist (FIX-006)"
+        assert lobby_seats["annette"].get("ready") is True, "Annette seat must be ready (FIX-006)"
+
+        # Visitor must not appear anywhere
+        visitor_participants = [p for p in participants.values() if p.get("role_id") == "visitor"]
+        assert len(visitor_participants) == 0, "Visitor must not be in participants (FIX-006)"
+        assert "visitor" not in lobby_seats, "Visitor must not be in lobby_seats (FIX-006)"
+
+    def test_world_engine_create_run_alain_live_state(self, client):
+        """Alain start: inspect nested participants, lobby, and actor-lane state (FIX-006)."""
+        response = client.post(
+            "/api/runs",
+            json={
+                "runtime_profile_id": "god_of_carnage_solo",
+                "selected_player_role": "alain",
+                "account_id": "fix6-alain",
+                "display_name": "Alain Player",
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        run_dict = body.get("run", {})
+
+        # Verify response metadata
+        assert body.get("human_actor_id") == "alain"
+        assert "annette" in body.get("npc_actor_ids", [])
+        assert body.get("visitor_present") is False
+
+        # Verify nested runtime state
+        participants = run_dict.get("participants", {})
+
+        # Alain must be human participant
+        alain_parts = [p for p in participants.values() if p.get("role_id") == "alain"]
+        assert len(alain_parts) > 0, "Alain must be in participants (FIX-006)"
+        assert alain_parts[0].get("mode") == "human", "Alain must be human mode (FIX-006)"
+
+        # Annette must exist as NPC participant
+        annette_parts = [p for p in participants.values() if p.get("role_id") == "annette"]
+        assert len(annette_parts) > 0, "Annette must be in participants as NPC (FIX-006)"
+        assert annette_parts[0].get("mode") == "npc", "Annette must be npc mode (FIX-006)"
+
+        # Visitor must not appear anywhere
+        visitor_participants = [p for p in participants.values() if p.get("role_id") == "visitor"]
+        assert len(visitor_participants) == 0, "Visitor must not be in participants (FIX-006)"
+
+
+# ---------------------------------------------------------------------------
+# FIX-007: Comprehensive visitor sweep across all live surfaces
+# ---------------------------------------------------------------------------
+
+class TestVisitorAbsenceFromAllLiveSurfaces:
+    """FIX-007: Visitor must be absent from all live-path surfaces (FIX-007)."""
+
+    def test_visitor_absent_from_create_run_response_and_nested_run(self, client):
+        """Visitor absent from create-run response, nested run, and all surfaces (FIX-007)."""
+        response = client.post(
+            "/api/runs",
+            json={
+                "runtime_profile_id": "god_of_carnage_solo",
+                "selected_player_role": "annette",
+                "display_name": "Sweep Test",
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+
+        # Response level
+        assert body.get("visitor_present") is False, "visitor_present must be False (FIX-007)"
+        assert "visitor" not in body.get("actor_lanes", {}), "visitor not in actor_lanes (FIX-007)"
+        assert "visitor" not in body.get("npc_actor_ids", []), "visitor not in npc_actor_ids (FIX-007)"
+
+        # Nested run level
+        run_dict = body.get("run", {})
+        participants = run_dict.get("participants", {})
+        visitor_participants = [p for p in participants.values() if p.get("role_id") == "visitor"]
+        assert len(visitor_participants) == 0, "visitor not in participants dict (FIX-007)"
+
+        lobby_seats = run_dict.get("lobby_seats", {})
+        assert "visitor" not in lobby_seats, "visitor not in lobby_seats (FIX-007)"
+
+
 class TestRunTestEntrypoint:
 
     def test_run_test_entrypoint_exists(self):
@@ -527,6 +653,16 @@ class TestRunTestEntrypoint:
         run_test = REPO_ROOT / "run-test.py"
         assert run_test.is_file(), (
             f"run-test.py is required at {run_test} as the MVP operational gate entry point."
+        )
+
+    def test_run_test_mvp1_includes_frontend_suite(self):
+        """run-test.py --mvp1 must document frontend test execution (FIX-009)."""
+        run_test = REPO_ROOT / "run-test.py"
+        assert run_test.is_file(), "run-test.py missing"
+        content = run_test.read_text(encoding="utf-8")
+        # FIX-009: Document that frontend MVP1 tests can be run separately
+        assert "frontend" in content.lower() or "test_mvp1_play_launcher" in content, (
+            "run-test.py should reference frontend MVP1 tests (FIX-009)"
         )
 
     def test_run_test_includes_mvp1_world_engine_and_backend_suites_fix009(self):

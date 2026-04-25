@@ -30,8 +30,10 @@ The God of Carnage solo experience had no formal separation between its content 
 ## Consequences
 
 - Any session creation for God of Carnage solo must supply `runtime_profile_id=god_of_carnage_solo` and `selected_player_role=annette|alain`
-- Sessions using only `template_id=god_of_carnage_solo` (legacy path) still work but do not get the profile-aware response fields
-- `visitor` must never be reintroduced in any role, prompt, lobby seat, or compatibility fallback
+- Live path (FIX-004) rejects `template_id=god_of_carnage_solo` directly — profile resolution is mandatory
+- `visitor` must never be reintroduced in any role, prompt, lobby seat, or compatibility fallback (FIX-007 validates all surfaces)
+- Unselected guest roles converted to NPC participants in solo story runtime (FIX-003)
+- Template story truth (beats, props, actions) must be empty — all derived from canonical content (FIX-002)
 
 ## Alternatives Considered
 
