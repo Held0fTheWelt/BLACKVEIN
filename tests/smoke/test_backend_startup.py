@@ -293,7 +293,7 @@ class TestBackendEnvironmentSetup:
         """Required environment variables are documented in .env.example."""
         import os
         env_example = os.path.join(
-            os.path.dirname(__file__), '../../../.env.example'
+            os.path.dirname(__file__), '../../.env.example'
         )
         assert os.path.exists(env_example), (
             ".env.example must exist to document required environment variables"

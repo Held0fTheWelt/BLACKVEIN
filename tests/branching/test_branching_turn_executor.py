@@ -5,14 +5,21 @@ Verifies the four seams (proposal, validation, commit, render) work correctly
 and that branching integrates cleanly with turn execution.
 """
 
+import importlib.util
 import pytest
 from unittest.mock import Mock, MagicMock
 from datetime import datetime, timezone
+from pathlib import Path
 
-from world_engine.app.runtime.branching_turn_executor import (
-    BranchingTurnExecutor, BranchingTurnResult, TurnSeam,
-    BranchingTurnExecutorFactory
-)
+# Load from world-engine by file path to avoid namespace collision with backend/app.
+_BTE_PATH = Path(__file__).resolve().parent.parent.parent / "world-engine" / "app" / "runtime" / "branching_turn_executor.py"
+_bte_spec = importlib.util.spec_from_file_location("_we_branching_turn_executor", _BTE_PATH)
+_bte_mod = importlib.util.module_from_spec(_bte_spec)
+_bte_spec.loader.exec_module(_bte_mod)
+BranchingTurnExecutor = _bte_mod.BranchingTurnExecutor
+BranchingTurnResult = _bte_mod.BranchingTurnResult
+TurnSeam = _bte_mod.TurnSeam
+BranchingTurnExecutorFactory = _bte_mod.BranchingTurnExecutorFactory
 from story_runtime_core.branching import (
     DecisionPoint, DecisionPointType, DecisionOption,
     DecisionPointRegistry, PathStateManager, ConsequenceFilter,

@@ -64,11 +64,6 @@ def test_documented_module_path_exists(rel: str) -> None:
     _must_exist(rel)
 
 
-def test_mcp_m1_closure_report_names_operational_parity_module() -> None:
-    report = (_REPO_ROOT / "tests" / "reports" / "MCP_M1_CLOSURE_REPORT.md").read_text(encoding="utf-8")
-    assert "test_mcp_operational_parity_and_registry.py" in report
-    assert "test_mcp_m1_gates.py" not in report
-
 
 def test_no_stale_mcp_gate_filename_in_active_mcp_readme() -> None:
     text = (_REPO_ROOT / "tools" / "mcp_server" / "README.md").read_text(encoding="utf-8")

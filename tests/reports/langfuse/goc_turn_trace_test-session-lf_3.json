@@ -1,0 +1,25 @@
+{
+  "contract": "langfuse_real_trace_evidence.v1",
+  "evidence_type": "local_trace_export",
+  "generated_by_test": "test_mvp04_langfuse_trace_created_when_enabled",
+  "source_test_run_id": "pytest-run-2026-04-26T11-47-44Z",
+  "generated_at": "2026-04-26T11:47:44.814313+00:00",
+  "story_session_id": "test-session-lf",
+  "run_id": "",
+  "turn_number": 3,
+  "trace_id": "trace-test-lf-123",
+  "export_path": "D:\\WorldOfShadows\\tests\\reports\\langfuse\\goc_turn_trace_test-session-lf_3.json",
+  "metadata_match": true,
+  "static_fixture": false,
+  "same_test_run_as_live_response": true,
+  "required_spans_present": [
+    "story.turn.execute",
+    "actor_lane_context",
+    "live_dramatic_scene_simulator",
+    "actor_lane_validation",
+    "dramatic_validation",
+    "commit_seam",
+    "package_output"
+  ],
+  "langfuse_status": "disabled"
+}

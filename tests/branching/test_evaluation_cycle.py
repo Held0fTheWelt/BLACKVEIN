@@ -13,9 +13,16 @@ from story_runtime_core.branching import (
 from story_runtime_core.branching.phase5_scenario_definitions import (
     build_scenario_c_registry, get_scenario_paths
 )
-from world_engine.app.runtime.branching_turn_executor import (
-    BranchingTurnExecutor, BranchingTurnResult
-)
+import importlib.util
+from pathlib import Path
+
+# Load from world-engine by file path to avoid namespace collision with backend/app.
+_BTE_PATH = Path(__file__).resolve().parent.parent.parent / "world-engine" / "app" / "runtime" / "branching_turn_executor.py"
+_bte_spec = importlib.util.spec_from_file_location("_we_branching_turn_executor", _BTE_PATH)
+_bte_mod = importlib.util.module_from_spec(_bte_spec)
+_bte_spec.loader.exec_module(_bte_mod)
+BranchingTurnExecutor = _bte_mod.BranchingTurnExecutor
+BranchingTurnResult = _bte_mod.BranchingTurnResult
 from tests.branching.evaluation_framework import (
     EvaluationProtocol, SessionTranscript, EvaluatorFeedback, DivergenceAnalysis,
     ReplayabilityEvaluator, DeterminismVerifier, EvaluationReport, EvaluationMetric

@@ -47,7 +47,7 @@ MVP1 established `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooli
 
 ## Alternatives Considered
 
-- Running MVP2 tests only from CI without `run-test.py` integration: rejected — the operational gate requires `run-test.py` to be the canonical entry point
+- Running MVP2 tests only from CI without canonical runner integration: rejected — the operational gate requires `tests/run_tests.py` to be the canonical entry point
 - Merging MVP2 tests into the MVP1 test file: rejected — separate files per MVP keep gate evidence clean
 
 ## Validation Evidence

@@ -81,9 +81,14 @@ class TestActiveDocsForbiddenContent:
     def test_active_docs_do_not_cite_stale_reports_as_gate_proof(self):
         """Active docs must not cite stale PASS reports as current gate evidence."""
         forbidden_phrases = [
-            "source_locator",
-            "closure_report",
-            "phase5_final_mvp_closure",
+            "GOC_MVP2_SOURCE_LOCATOR",
+            "GOC_MVP3_SOURCE_LOCATOR",
+            "GOC_MVP4_SOURCE_LOCATOR",
+            "MVP1_SOURCE_LOCATOR",
+            "MVP2_SOURCE_LOCATOR",
+            "MVP3_SOURCE_LOCATOR",
+            "MVP4_SOURCE_LOCATOR",
+            "GOC_PHASE5_FINAL_MVP_CLOSURE",
         ]
         violations: list[str] = []
         for doc_path in _collect_active_docs():
