@@ -18,7 +18,7 @@ from app.runtime.visibility import RuntimeVisibilityPolicy
 from app.utils.html_sanitizer import sanitize_wiki_html
 
 
-def _solo_instance(template_id: str = "god_of_carnage_solo") -> RuntimeInstance:
+def _solo_instance(template_id: str = "god_of_carnage") -> RuntimeInstance:
     template = load_builtin_templates()[template_id]
     humans = [r for r in template.roles if r.mode == ParticipantMode.HUMAN]
     human_role = humans[0]
@@ -90,7 +90,7 @@ def test_manager_normalize_instance_restores_lobby_seats(tmp_path: Path):
 
 def test_manager_find_or_join_returns_existing_participant(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Alice", account_id="acc-1", character_id="c1")
+    run = mgr.create_run("god_of_carnage", "Alice", account_id="acc-1", character_id="c1")
     rid = run.id
     p1 = mgr.find_or_join_run(rid, "Alice Renamed", account_id="acc-1", character_id="c1")
     p2 = mgr.find_or_join_run(rid, "Alice Renamed", account_id="acc-1", character_id="c1")
@@ -113,7 +113,7 @@ def test_engine_group_lobby_payload_and_move_blocked_in_lobby():
 
 
 def test_engine_solo_say_emote_and_unknown_command():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
     inst = _solo_instance()
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
@@ -133,7 +133,7 @@ def test_engine_solo_say_emote_and_unknown_command():
 
 
 def test_engine_move_invalid_exit():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
     inst = _solo_instance()
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
@@ -142,7 +142,7 @@ def test_engine_move_invalid_exit():
 
 
 def test_engine_set_ready_rejected_for_solo():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
     inst = _solo_instance()
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
@@ -151,7 +151,7 @@ def test_engine_set_ready_rejected_for_solo():
 
 
 def test_engine_start_run_rejected_for_solo_story():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
     inst = _solo_instance()
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
@@ -161,7 +161,7 @@ def test_engine_start_run_rejected_for_solo_story():
 
 
 def test_engine_use_action_unknown_id():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
     inst = _solo_instance()
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
@@ -359,7 +359,7 @@ def test_engine_steady_breath_effect_sets_flag_and_single_use():
 
 
 def test_engine_npc_instance_getter_raises_without_cycle_binding():
-    engine = RuntimeEngine(load_builtin_templates()["god_of_carnage_solo"])
+    engine = RuntimeEngine(load_builtin_templates()["god_of_carnage"])
     with pytest.raises(RuntimeError, match="NPC cycle"):
         _ = engine._npc_instance
 
@@ -367,29 +367,29 @@ def test_engine_npc_instance_getter_raises_without_cycle_binding():
 def test_manager_list_templates_and_get_run_details(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
     assert mgr.list_templates()
-    run = mgr.create_run("god_of_carnage_solo", "Host", account_id="h1")
+    run = mgr.create_run("god_of_carnage", "Host", account_id="h1")
     details = mgr.get_run_details(run.id)
     assert details["run"]["id"] == run.id
-    assert details["template"]["id"] == "god_of_carnage_solo"
+    assert details["template"]["id"] == "god_of_carnage"
 
 
 def test_manager_list_runs_includes_created_run(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Listed", account_id="l1")
+    run = mgr.create_run("god_of_carnage", "Listed", account_id="l1")
     summaries = mgr.list_runs()
     assert any(s.id == run.id for s in summaries)
 
 
 def test_manager_find_or_join_same_display_name_without_account(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Sam", account_id=None)
+    run = mgr.create_run("god_of_carnage", "Sam", account_id=None)
     again = mgr.find_or_join_run(run.id, "Sam", account_id=None)
     assert again.display_name == "Sam"
 
 
 def test_manager_find_or_join_owner_only_denies_stranger(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Owner", account_id="owner-acc")
+    run = mgr.create_run("god_of_carnage", "Owner", account_id="owner-acc")
     rid = run.id
     with pytest.raises(PermissionError):
         mgr.find_or_join_run(rid, "Stranger", account_id="other-acc")
@@ -397,7 +397,7 @@ def test_manager_find_or_join_owner_only_denies_stranger(tmp_path: Path):
 
 def test_manager_owner_only_rejects_wrong_display_name_when_no_owner_account(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "SoloHost", account_id=None)
+    run = mgr.create_run("god_of_carnage", "SoloHost", account_id=None)
     rid = run.id
     with pytest.raises(PermissionError):
         mgr.find_or_join_run(rid, "SomeoneElse", account_id=None)
@@ -415,7 +415,7 @@ def test_manager_find_or_join_preferred_role_invalid_raises(tmp_path: Path):
 @pytest.mark.asyncio
 async def test_manager_broadcast_snapshot_no_connections_is_noop(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "P", account_id="p1")
+    run = mgr.create_run("god_of_carnage", "P", account_id="p1")
     await mgr.broadcast_snapshot(run.id)
 
 
@@ -457,7 +457,7 @@ def test_engine_group_lobby_set_ready_and_start_run(tmp_path: Path):
 
 def test_manager_sync_seat_skips_when_lobby_seat_row_missing(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "A", account_id="a1")
+    run = mgr.create_run("god_of_carnage", "A", account_id="a1")
     inst = mgr.instances[run.id]
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     inst.lobby_seats.pop(human.role_id, None)
@@ -467,7 +467,7 @@ def test_manager_sync_seat_skips_when_lobby_seat_row_missing(tmp_path: Path):
 @pytest.mark.asyncio
 async def test_manager_connect_process_rejected_command_broadcast(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Player", account_id="p1")
+    run = mgr.create_run("god_of_carnage", "Player", account_id="p1")
     inst = mgr.instances[run.id]
     pid = next(p.id for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
 
@@ -498,7 +498,7 @@ async def test_manager_connect_process_rejected_command_broadcast(tmp_path: Path
 @pytest.mark.asyncio
 async def test_manager_disconnect(tmp_path: Path):
     mgr = RuntimeManager(tmp_path)
-    run = mgr.create_run("god_of_carnage_solo", "Player", account_id="p2")
+    run = mgr.create_run("god_of_carnage", "Player", account_id="p2")
     pid = next(p.id for p in mgr.instances[run.id].participants.values() if p.mode == ParticipantMode.HUMAN)
     ws = AsyncMock()
     await mgr.connect(run.id, pid, ws)

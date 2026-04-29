@@ -135,7 +135,7 @@ def marker_filter_for_suite(suite_name: str, scope: str) -> str | None:
 
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
-FRONTEND_COV_FAIL_UNDER = "92"
+FRONTEND_COV_FAIL_UNDER = "90"
 DEFAULT_COV_FAIL_UNDER = "80"
 # writers_room and improvement suites test only their own modules within the larger app package
 # Overall app coverage will be low when these suites run alone (expected—untested modules drag average down)

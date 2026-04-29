@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -24,6 +25,30 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
+# Narrator validation patterns (Phase 2: aligned with LDSS narrator voice contract)
+_NARRATOR_DIALOGUE_SUMMARY_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\b(argue|discuss|debate|argue about)\b", re.IGNORECASE),
+    re.compile(r"\b(Véronique|Veronique|Alain|Michel|Annette)\s+(and|says?|told|ask)\b", re.IGNORECASE),
+    re.compile(r"\bwhile\s+\w+\s+becomes?\s+\b", re.IGNORECASE),
+]
+
+_NARRATOR_FORCED_STATE_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\bYou\s+(decide|feel|know|realize|understand|think|believe)\s+that\b", re.IGNORECASE),
+    re.compile(r"\bYou\s+(are|were)\s+(right|wrong|ashamed|angry|happy)\b", re.IGNORECASE),
+]
+
+_NARRATOR_HIDDEN_INTENT_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"\b\w+\s+(secretly|actually|really|truly)\s+(wants?|plans?|intends?)\b", re.IGNORECASE),
+    re.compile(r"\bYou\s+can\s+see\s+through\s+\w+\b", re.IGNORECASE),
+]
+
+# Valid narrator voice patterns (observational, not forced)
+_NARRATOR_OBSERVATIONAL_PATTERNS: list[str] = [
+    "notice", "observe", "witness", "perceive", "sense", "detect",
+    "pause", "shift", "hesitation", "tension", "pressure",
+    "atmosphere", "weight", "silence", "undertone",
+]
+
 
 class NarrativeEventKind(Enum):
     """Event types emitted by NarrativeRuntimeAgent."""
@@ -31,6 +56,8 @@ class NarrativeEventKind(Enum):
     RUHEPUNKT_REACHED = "ruhepunkt_reached"
     STREAMING_COMPLETE = "streaming_complete"
     ERROR = "error"
+    TRACE_SCAFFOLD_EMITTED = "trace_scaffold_emitted"  # Phase 6: tracing disabled signal
+    TRACE_SCAFFOLD_SUMMARY = "trace_scaffold_summary"  # Phase 6: trace metadata summary
 
 
 @dataclass
@@ -86,11 +113,13 @@ class NarrativeRuntimeAgent:
     3. Streams events to client while input is queued
     4. Signals ruhepunkt when NPC initiatives exhausted
     5. Respects narrative validation rules (no force, no prediction, no hidden intent)
+    6. Optionally emits Langfuse trace scaffolds (Phase 6)
     """
 
     def __init__(self, config: Optional[NarrativeRuntimeAgentConfig] = None):
         self.config = config or NarrativeRuntimeAgentConfig()
         self._event_sequence = 0
+        self._trace_scaffold = {}  # Collect trace metadata when tracing disabled
 
     def stream_narrator_blocks(
         self,
@@ -103,6 +132,9 @@ class NarrativeRuntimeAgent:
         and sends to client (via SSE or WebSocket). When ruhepunkt_reached event is
         yielded, input queue can be processed.
 
+        When enable_langfuse_tracing=False (default), emits trace scaffold events
+        showing what would be instrumented if Langfuse were enabled (Phase 6).
+
         Args:
             agent_input: NarrativeRuntimeAgentInput with runtime state, NPC plans, etc.
 
@@ -111,6 +143,10 @@ class NarrativeRuntimeAgent:
         """
         block_count = 0
         try:
+            # Phase 6: Emit trace scaffold start (if tracing disabled)
+            if not agent_input.enable_langfuse_tracing:
+                yield self._emit_trace_scaffold_emitted_event(agent_input.session_id)
+
             # Analyze NPC motivation pressure and remaining initiatives
             motivation_analysis = self._analyze_motivation_pressure(agent_input)
 
@@ -135,6 +171,18 @@ class NarrativeRuntimeAgent:
                     )
                     return
 
+                # Phase 6: Record trace scaffold for this narrator block
+                if not agent_input.enable_langfuse_tracing:
+                    self._record_trace_scaffold(
+                        event_type="narrator_block_generation",
+                        metadata={
+                            "block_id": narrator_block.get("block_id"),
+                            "atmospheric_tone": narrator_block.get("atmospheric_tone"),
+                            "block_sequence": block_count,
+                            "pressure_score": narrator_block.get("pressure_score"),
+                        },
+                    )
+
                 # Emit narrator block event
                 yield self._emit_narrator_event(narrator_block, block_sequence=block_count)
                 block_count += 1
@@ -150,6 +198,13 @@ class NarrativeRuntimeAgent:
                 motivation_analysis=motivation_analysis,
             )
 
+            # Phase 6: Emit trace scaffold summary (if tracing disabled)
+            if not agent_input.enable_langfuse_tracing:
+                yield self._emit_trace_scaffold_summary_event(
+                    session_id=agent_input.session_id,
+                    block_count=block_count,
+                )
+
             # Emit streaming complete event
             yield self._emit_streaming_complete_event(agent_input.session_id, block_count)
 
@@ -157,6 +212,7 @@ class NarrativeRuntimeAgent:
             logger.error(
                 f"NarrativeRuntimeAgent streaming failed: {exc}",
                 extra={"session_id": agent_input.session_id, "trace_id": agent_input.trace_id},
+                exc_info=True,
             )
             yield self._emit_error_event(
                 session_id=agent_input.session_id,
@@ -177,25 +233,38 @@ class NarrativeRuntimeAgent:
         - initiative_actors: list of NPCs with pending initiatives
         - motivation_summary: human-readable pressure summary
         """
-        npc_plan = agent_input.npc_agency_plan or {}
-        initiatives = npc_plan.get("initiatives", [])
+        npc_plan = agent_input.npc_agency_plan
+        if not isinstance(npc_plan, dict):
+            npc_plan = {}
 
-        # Count unresolved initiatives
-        remaining = len([i for i in initiatives if not i.get("resolved")])
+        initiatives = npc_plan.get("initiatives", [])
+        if not isinstance(initiatives, list):
+            initiatives = []
+
+        # Count unresolved initiatives (filter for valid dicts)
+        remaining = 0
+        initiative_actors = set()
+        all_actors = set()
+
+        for initiative in initiatives:
+            if not isinstance(initiative, dict):
+                continue
+            all_actors.add(initiative.get("actor_id", "unknown"))
+            if not initiative.get("resolved"):
+                remaining += 1
+                initiative_actors.add(initiative.get("actor_id", "unknown"))
 
         # Calculate pressure score based on motivation intensity and count
         pressure = 0.0
-        initiative_actors = []
         if remaining > 0:
             pressure = min(1.0, remaining * 0.1 + 0.3)  # Simple heuristic
-            initiative_actors = list({i.get("actor_id") for i in initiatives if not i.get("resolved")})
 
         return {
             "remaining_initiatives": remaining,
             "pressure_score": pressure,
-            "initiative_actors": initiative_actors,
+            "initiative_actors": list(initiative_actors),
             "motivation_summary": (
-                f"{remaining} unresolved initiatives from {len(set(i.get('actor_id') for i in initiatives))}"
+                f"{remaining} unresolved initiatives from {len(all_actors)}"
                 if remaining > 0
                 else "All NPC initiatives resolved"
             ),
@@ -208,37 +277,138 @@ class NarrativeRuntimeAgent:
         block_sequence: int,
     ) -> dict[str, Any]:
         """
-        Generate a narrator block based on current motivation pressure.
+        Generate a narrator block based on current motivation pressure (Phase 2).
 
         Narrator blocks convey inner perception/orientation only:
-        - Scene atmosphere and emotional tone
-        - Player's subjective sense of tension/calm
+        - Scene atmosphere and emotional tone (observable)
+        - Player's subjective sense of tension/calm from NPC motivation
         - Narrative thread connections visible to player
         - NPC emotional states (observable from behavior, not hidden intent)
 
-        Does NOT:
-        - Force player state or emotion
-        - Predict player choice
-        - Reveal hidden NPC motivations or plans
+        Generation strategy:
+        1. Analyze motivation pressure and NPC actors
+        2. Generate observational language about scene atmosphere
+        3. Reference visible dramatic context and narrative threads
+        4. Validate output against narrator voice rules
         """
-        # Stub implementation: generates deterministic narrator block
-        # In Phase 2, will integrate with actual narrator generation from ai_stack
-
         block_id = str(uuid4())
-        narrator_text = (
-            f"The tension in the room shifts subtly. "
-            f"({motivation_analysis['motivation_summary']}. "
-            f"Block {block_sequence + 1}.)"
+
+        # Extract dramatic context
+        dramatic_sig = agent_input.dramatic_signature or {}
+        primary_tension = dramatic_sig.get("primary_tension", "unresolved")
+        runtime_state = agent_input.runtime_state or {}
+        npc_count = len(motivation_analysis.get("initiative_actors", []))
+
+        # Build narrator text based on motivation pressure and dramatic context
+        pressure_score = motivation_analysis.get("pressure_score", 0.5)
+        atmospheric_tone = self._determine_atmospheric_tone(pressure_score, primary_tension)
+
+        # Phase 2: Generate context-aware narrator text with observational language
+        narrator_text = self._synthesize_narrator_text(
+            pressure_analysis=motivation_analysis,
+            dramatic_context=dramatic_sig,
+            narrative_threads=agent_input.narrative_threads,
+            atmospheric_tone=atmospheric_tone,
+            block_sequence=block_sequence,
+        )
+
+        # Reference narrative threads visible to player
+        threads_referenced = self._select_visible_threads(
+            agent_input.narrative_threads,
+            motivation_analysis.get("initiative_actors", []),
+            max_threads=2,
         )
 
         return {
             "block_id": block_id,
             "sequence": block_sequence,
             "narrator_text": narrator_text,
-            "narrative_threads_referenced": agent_input.narrative_threads[:2] if agent_input.narrative_threads else [],
-            "atmospheric_tone": "anticipatory",
+            "narrative_threads_referenced": threads_referenced,
+            "atmospheric_tone": atmospheric_tone,
+            "pressure_score": pressure_score,
+            "npc_actors_involved": motivation_analysis.get("initiative_actors", []),
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
+
+    def _determine_atmospheric_tone(self, pressure_score: float, primary_tension: str) -> str:
+        """Determine atmospheric tone based on pressure and dramatic context."""
+        if pressure_score > 0.8:
+            return "escalating_tension"
+        elif pressure_score > 0.5:
+            return "mounting_pressure"
+        elif pressure_score > 0.3:
+            return "simmering_conflict"
+        else:
+            return "cautious_calm"
+
+    def _synthesize_narrator_text(
+        self,
+        pressure_analysis: dict[str, Any],
+        dramatic_context: dict[str, Any],
+        narrative_threads: list[dict[str, Any]] | None,
+        atmospheric_tone: str,
+        block_sequence: int,
+    ) -> str:
+        """
+        Synthesize narrator text using observational language (Phase 2).
+
+        Valid patterns (from ADR-MVP3-013):
+        - "You notice the pause..."
+        - "The tension in the room..."
+        - Perception-based: "A weight settles..."
+        - Observable behavior: "Alain's expression hardens..."
+        """
+        remaining_initiatives = pressure_analysis.get("remaining_initiatives", 0)
+        primary_tension = dramatic_context.get("primary_tension", "unresolved")
+
+        # Build observational sentences based on tone and context
+        sentences = []
+
+        # Atmospheric opening (observational, not forced)
+        if atmospheric_tone == "escalating_tension":
+            sentences.append("The atmosphere grows denser with each passing moment.")
+        elif atmospheric_tone == "mounting_pressure":
+            sentences.append("A quiet weight settles over the space between you.")
+        elif atmospheric_tone == "simmering_conflict":
+            sentences.append("Beneath the surface, something shifts and tightens.")
+        else:
+            sentences.append("There is a pause—a measured quality to the air.")
+
+        # Narrative thread connection (if available)
+        if narrative_threads and isinstance(narrative_threads, list) and len(narrative_threads) > 0:
+            first_thread = narrative_threads[0]
+            if isinstance(first_thread, dict):
+                thread_name = first_thread.get("thread_id", "the unfolding dynamic")
+                sentences.append(f"You perceive the depth of {thread_name} threading through the moment.")
+
+        # Tension source (observational, not secret intent revelation)
+        if remaining_initiatives > 0:
+            sentences.append(
+                f"There is movement in the undertone—others are gathering energy for what comes next."
+            )
+
+        return " ".join(sentences)
+
+    def _select_visible_threads(
+        self,
+        narrative_threads: list[dict[str, Any]] | None,
+        initiative_actors: list[str],
+        max_threads: int = 2,
+    ) -> list[dict[str, Any]]:
+        """Select narrative threads that are visible to player (not hidden intent)."""
+        if not narrative_threads or not isinstance(narrative_threads, list):
+            return []
+
+        visible = []
+        for thread in narrative_threads[:max_threads]:
+            if not isinstance(thread, dict):
+                continue
+            thread_copy = dict(thread)
+            # Remove any hidden/internal fields
+            thread_copy.pop("hidden_intent", None)
+            thread_copy.pop("secret", None)
+            visible.append(thread_copy)
+        return visible
 
     def _validate_narrative_output(
         self,
@@ -246,39 +416,112 @@ class NarrativeRuntimeAgent:
         agent_input: NarrativeRuntimeAgentInput,
     ) -> Optional[str]:
         """
-        Validate narrator block against narrative voice rules.
+        Validate narrator block against narrative voice rules (Phase 2).
+
+        Enforces ADR-MVP3-013 narrator voice contract using regex patterns.
+
+        Three rejected modes:
+        1. dialogue_summary: Recaps what characters said/discussed
+        2. forced_player_state: Tells player how they feel/decide
+        3. hidden_npc_intent: Reveals undisclosed motivations
 
         Returns error message if validation fails, None if valid.
-
-        Rules:
-        1. No player state forcing (modal language like "you feel", "you realize")
-        2. No player choice prediction (conditional future like "if you...")
-        3. No hidden NPC intent revelation (internal motivations not observable)
-        4. Inner perception only (atmosphere, observable behavior, narrative connections)
-        5. Respects player agency (audience to events, not subject of description)
         """
-        text = narrator_block.get("narrator_text", "").lower()
+        text = narrator_block.get("narrator_text", "")
 
-        # Check for modal language that forces player state
-        force_patterns = [
-            "you feel ", "you realize ", "you know ", "you understand ",
-            "you sense ", "you notice ", "you see ", "you hear ",
-            "you think ", "you believe ",
-        ]
-        for pattern in force_patterns:
-            if pattern in text:
-                return f"Narrative validation failed: modal language forces player state ('{pattern.strip()}')"
+        # Check for dialogue summary (cannot recap what characters discussed)
+        for pattern in _NARRATOR_DIALOGUE_SUMMARY_PATTERNS:
+            if pattern.search(text):
+                return (
+                    "Narrative validation failed: "
+                    "narrator cannot summarize or recap dialogue between characters "
+                    f"(pattern: {pattern.pattern})"
+                )
 
-        # Check for hidden intent revelation (npc internal states)
-        intent_patterns = [
-            "secretly ", "intends to ", "plans to ", "wants to ",
-            "hidden agenda", "true goal", "real motive",
-        ]
-        for pattern in intent_patterns:
-            if pattern in text:
-                return f"Narrative validation failed: reveals hidden NPC intent ('{pattern.strip()}')"
+        # Check for forced player state (cannot tell player how they feel/decide)
+        for pattern in _NARRATOR_FORCED_STATE_PATTERNS:
+            if pattern.search(text):
+                return (
+                    "Narrative validation failed: "
+                    "narrator cannot force player emotional or decision state "
+                    f"(pattern: {pattern.pattern})"
+                )
+
+        # Check for hidden intent revelation (cannot reveal undisclosed NPC motivations)
+        for pattern in _NARRATOR_HIDDEN_INTENT_PATTERNS:
+            if pattern.search(text):
+                return (
+                    "Narrative validation failed: "
+                    "narrator cannot reveal undisclosed NPC internal motivations "
+                    f"(pattern: {pattern.pattern})"
+                )
 
         return None
+
+    def _record_trace_scaffold(self, event_type: str, metadata: dict[str, Any]) -> None:
+        """
+        Record trace scaffold entry (Phase 6).
+
+        Collects metadata about what would be traced if Langfuse were enabled.
+        Used when enable_langfuse_tracing=False to provide observability scaffolds.
+        """
+        if event_type not in self._trace_scaffold:
+            self._trace_scaffold[event_type] = []
+
+        self._trace_scaffold[event_type].append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "metadata": metadata,
+            "trace_status": "scaffold_only",
+        })
+
+    def _emit_trace_scaffold_emitted_event(
+        self,
+        session_id: str,
+    ) -> NarrativeRuntimeAgentEvent:
+        """
+        Emit trace scaffold emitted event at start of streaming (Phase 6).
+
+        Signals to client that tracing is disabled and JSON scaffolds will be provided.
+        """
+        self._event_sequence += 1
+        return NarrativeRuntimeAgentEvent(
+            event_id=str(uuid4()),
+            event_kind=NarrativeEventKind.TRACE_SCAFFOLD_EMITTED,
+            timestamp=datetime.now(timezone.utc),
+            sequence_number=self._event_sequence,
+            data={
+                "trace_status": "scaffolds_only",
+                "reason": "enable_langfuse_tracing=False",
+                "session_id": session_id,
+            },
+        )
+
+    def _emit_trace_scaffold_summary_event(
+        self,
+        session_id: str,
+        block_count: int,
+    ) -> NarrativeRuntimeAgentEvent:
+        """
+        Emit trace scaffold summary event at end of streaming (Phase 6).
+
+        Provides collected trace metadata that would have been used for live Langfuse spans.
+        """
+        self._event_sequence += 1
+        total_scaffolds = sum(len(v) for v in self._trace_scaffold.values())
+
+        return NarrativeRuntimeAgentEvent(
+            event_id=str(uuid4()),
+            event_kind=NarrativeEventKind.TRACE_SCAFFOLD_SUMMARY,
+            timestamp=datetime.now(timezone.utc),
+            sequence_number=self._event_sequence,
+            data={
+                "total_scaffolds": total_scaffolds,
+                "scaffold_types": list(self._trace_scaffold.keys()),
+                "trace_scaffold": self._trace_scaffold,
+                "blocks_streamed": block_count,
+                "session_id": session_id,
+            },
+        )
 
     def _emit_narrator_event(
         self,

@@ -148,7 +148,7 @@ def _import_manager_module(monkeypatch):
 
 def test_json_run_store_roundtrip_and_invalid_files(tmp_path):
     store = JsonRunStore(tmp_path)
-    instance = _runtime_instance_for("god_of_carnage_solo")
+    instance = _runtime_instance_for("god_of_carnage")
     store.save(instance)
     assert store.path_for(instance.id).exists()
 
@@ -165,7 +165,7 @@ def test_json_run_store_roundtrip_and_invalid_files(tmp_path):
 def test_sqlalchemy_run_store_roundtrip_and_factory(tmp_path):
     url = f"sqlite:///{tmp_path / 'runtime.sqlite'}"
     store = SqlAlchemyRunStore(url)
-    first = _runtime_instance_for("god_of_carnage_solo")
+    first = _runtime_instance_for("god_of_carnage")
     second = _runtime_instance_for("apartment_confrontation_group")
     second.id = "run-2"
     store.save(first)
@@ -254,12 +254,12 @@ def test_runtime_model_defaults_and_npc_director_cycles():
         return [event]
 
     templates = load_builtin_templates()
-    solo_instance = _runtime_instance_for("god_of_carnage_solo")
-    # god_of_carnage_solo is a runtime profile with no story truth (initial_beat_id="").
+    solo_instance = _runtime_instance_for("god_of_carnage")
+    # god_of_carnage is a runtime profile with no story truth (initial_beat_id="").
     # The canonical beat_id comes from the god_of_carnage content module at session start.
     # For unit-testing the NPC director cycle, set the canonical initial beat explicitly.
     solo_instance.beat_id = "courtesy"
-    solo_director = RuntimeNpcDirector(templates["god_of_carnage_solo"], emit)
+    solo_director = RuntimeNpcDirector(templates["god_of_carnage"], emit)
     solo_events = solo_director.run_cycle(solo_instance)
     assert solo_events == []
 
@@ -391,7 +391,7 @@ def test_runtime_manager_core_flow(monkeypatch, tmp_path):
 
     assert any(run_id.startswith("public-") for run_id in manager.instances)
 
-    solo = manager.create_run("god_of_carnage_solo", display_name="Alice", account_id="acct-1", character_id="char-1")
+    solo = manager.create_run("god_of_carnage", display_name="Alice", account_id="acct-1", character_id="char-1")
     assert solo.status == RunStatus.RUNNING
     assert solo.owner_player_name == "Alice"
 
@@ -400,7 +400,7 @@ def test_runtime_manager_core_flow(monkeypatch, tmp_path):
 
     details = manager.get_run_details(solo.id)
     assert details["store"]["backend"] == "json"
-    assert details["template"]["id"] == "god_of_carnage_solo"
+    assert details["template"]["id"] == "god_of_carnage"
 
     joined = manager.find_or_join_run(solo.id, display_name="Alice", account_id="acct-1")
     assert joined.display_name == "Alice"
@@ -419,7 +419,7 @@ def test_runtime_manager_core_flow(monkeypatch, tmp_path):
 async def test_runtime_manager_connect_disconnect_and_process(monkeypatch, tmp_path):
     manager_module = _import_manager_module(monkeypatch)
     manager = manager_module.RuntimeManager(tmp_path, store_backend="json")
-    run = manager.create_run("god_of_carnage_solo", display_name="Alice", account_id="acct-1")
+    run = manager.create_run("god_of_carnage", display_name="Alice", account_id="acct-1")
     participant_id = next(pid for pid, p in run.participants.items() if p.mode == ParticipantMode.HUMAN)
 
     ws = _FakeWebSocket()

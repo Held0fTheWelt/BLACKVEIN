@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+import json
+from typing import Any, Generator
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import PLAY_SERVICE_INTERNAL_API_KEY
@@ -511,6 +513,44 @@ def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager
     if envelope is None:
         return {"session_id": session_id, "diagnostics_envelope": None, "warning": "no_turns_yet"}
     return {"session_id": session_id, "diagnostics_envelope": envelope}
+
+
+@router.get("/story/sessions/{session_id}/stream-narrator")
+def stream_narrator_blocks(session_id: str, manager: StoryRuntimeManager = Depends(get_story_manager)) -> StreamingResponse:
+    """Stream narrator blocks as Server-Sent Events (SSE) while narrator is generating.
+
+    Returns a streaming response that emits NarrativeRuntimeAgentEvent objects as JSON.
+    Client receives events until ruhepunkt_signal is received, then input can be queued.
+
+    Returns:
+        StreamingResponse: SSE stream of narrator block events
+
+    Status codes:
+        - 404: Session not found or no narrator streaming active
+        - 200: Streaming started (event stream)
+    """
+    def generate() -> Generator[str, None, None]:
+        """Generate SSE events from narrator agent stream."""
+        try:
+            agent = manager.narrative_agents.get(session_id)
+
+            if not agent:
+                yield f"data: {json.dumps({'error': 'no_narrator_streaming', 'session_id': session_id})}\n\n"
+                return
+
+            # Stream narrator events
+            for event in agent.stream_narrator_blocks(agent.current_input):
+                yield f"data: {event.to_json()}\n\n"
+
+        except Exception as exc:
+            error_event = {
+                "error": "streaming_failed",
+                "message": str(exc),
+                "session_id": session_id,
+            }
+            yield f"data: {json.dumps(error_event)}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 @router.get("/story/runtime/narrative-gov-summary", dependencies=[Depends(_require_internal_api_key)])

@@ -43,6 +43,7 @@ from ai_stack.diagnostics_envelope import (
     build_diagnostics_envelope,
     build_narrative_gov_summary,
 )
+from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 
 from app.config import APP_VERSION
 from app.repo_root import resolve_wos_repo_root
@@ -963,6 +964,89 @@ def _build_ldss_scene_envelope(
     return envelope.to_dict()
 
 
+# MVP3: NarrativeRuntimeAgent orchestration helpers (called from _finalize_committed_turn)
+def _orchestrate_narrative_agent(
+    manager: "StoryRuntimeManager",
+    session_id: str,
+    ldss_output: dict[str, Any] | None,
+    runtime_state: dict[str, Any],
+    dramatic_signature: dict[str, Any],
+    narrative_threads: list[dict[str, Any]],
+    turn_number: int,
+    trace_id: str | None = None,
+) -> bool:
+    """
+    Start NarrativeRuntimeAgent streaming narrator blocks (Phase 3).
+
+    Called after LDSS execution. Creates agent, marks streaming as active.
+    Returns True if orchestration started, False if LDSS output not available.
+    """
+    if not ldss_output or not ldss_output.get("npc_agency_plan"):
+        return False
+
+    npc_agency_plan = ldss_output.get("npc_agency_plan", {})
+
+    # Create agent input from committed state
+    agent_input = NarrativeRuntimeAgentInput(
+        runtime_state=runtime_state,
+        npc_agency_plan=npc_agency_plan,
+        dramatic_signature=dramatic_signature,
+        narrative_threads=narrative_threads or [],
+        session_id=session_id,
+        turn_number=turn_number,
+        trace_id=trace_id,
+        enable_langfuse_tracing=manager._get_tracing_config(session_id),
+    )
+
+    # Create and store agent with input for streaming endpoint to access
+    agent = NarrativeRuntimeAgent()
+    agent.current_input = agent_input  # Store for streaming endpoint
+    manager.narrative_agents[session_id] = agent
+    manager.input_queues[session_id] = []
+    manager._narrative_streaming_active[session_id] = True
+
+    return True
+
+
+def _check_ruhepunkt_signal(
+    manager: "StoryRuntimeManager",
+    session_id: str,
+    agent: NarrativeRuntimeAgent | None = None,
+) -> bool:
+    """
+    Check if NarrativeRuntimeAgent has signaled ruhepunkt (rest point).
+
+    Ruhepunkt = remaining NPC initiatives = 0, input can be processed.
+    Returns True if ruhepunkt reached, False otherwise.
+    """
+    if not agent:
+        agent = manager.narrative_agents.get(session_id)
+
+    if not agent:
+        return False
+
+    # In MVP3, ruhepunkt is signaled when motivation analysis shows 0 remaining initiatives
+    # This is a simplified check - full implementation in Phase 4-5 involves
+    # streaming state from the agent
+    return manager._narrative_streaming_active.get(session_id, False) is False
+
+
+def _process_input_queue(
+    manager: "StoryRuntimeManager",
+    session_id: str,
+) -> list[str]:
+    """
+    Process queued player inputs after ruhepunkt signal.
+
+    Returns list of queued inputs that should be processed next.
+    Clears queue after returning.
+    """
+    queue = manager.input_queues.get(session_id, [])
+    if queue:
+        manager.input_queues[session_id] = []
+    return queue
+
+
 class StoryRuntimeManager:
     def __init__(
         self,
@@ -998,6 +1082,10 @@ class StoryRuntimeManager:
             "live_execution_blocked": False,
         }
         self.turn_graph: RuntimeTurnGraphExecutor | None = None
+        # MVP3: Narrative agent orchestration (streaming narrator blocks)
+        self.narrative_agents: dict[str, NarrativeRuntimeAgent] = {}
+        self.input_queues: dict[str, list[str]] = {}  # session_id -> list of queued player inputs
+        self._narrative_streaming_active: dict[str, bool] = {}  # session_id -> is narrator streaming?
         # Isolated tests inject custom adapters/registry; skip Turn-0 graph opening there (fixtures are not
         # full GoC-shaped). Production and API tests construct the manager without injected adapters.
         self._skip_graph_opening_on_create = registry is not None or adapters is not None
@@ -1099,6 +1187,30 @@ class StoryRuntimeManager:
         if self._session_store is None:
             return
         self._session_store.save(session.session_id, story_session_to_payload(session))
+
+    # MVP3: Narrative agent configuration and input queue management
+    def _get_tracing_config(self, session_id: str) -> bool:
+        """Get Langfuse tracing config for session (deferred to MVP4 admin UI)."""
+        # MVP3: Always return False (use JSON scaffold by default)
+        # MVP4: Will read from admin UI toggle per session
+        return False
+
+    def queue_player_input(self, session_id: str, player_input: str) -> None:
+        """Queue player input while narrator is streaming."""
+        if session_id not in self.input_queues:
+            self.input_queues[session_id] = []
+        self.input_queues[session_id].append(player_input)
+
+    def get_queued_inputs(self, session_id: str) -> list[str]:
+        """Get and clear queued player inputs after ruhepunkt signal."""
+        queue = self.input_queues.get(session_id, [])
+        if queue:
+            self.input_queues[session_id] = []
+        return queue
+
+    def is_narrative_streaming(self, session_id: str) -> bool:
+        """Check if narrator is currently streaming for session."""
+        return self._narrative_streaming_active.get(session_id, False)
 
     def _max_self_correction_attempts(self) -> int:
         settings = (
@@ -1811,6 +1923,40 @@ class StoryRuntimeManager:
             )
             if scene_turn_envelope:
                 event["scene_turn_envelope"] = scene_turn_envelope
+
+            # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan)
+            runtime_state = {
+                "session_id": session.session_id,
+                "current_scene_id": session.current_scene_id,
+                "actor_positions": graph_state.get("actor_positions", {}),
+                "narrative_threads": [t.model_dump() if hasattr(t, 'model_dump') else t
+                                     for t in (session.narrative_threads.active if hasattr(session.narrative_threads, 'active') else [])],
+            }
+            dramatic_context = (
+                graph_state.get("dramatic_context_summary", {})
+                if isinstance(graph_state.get("dramatic_context_summary"), dict)
+                else {}
+            )
+            narrative_threads_list = [t.model_dump() if hasattr(t, 'model_dump') else t
+                                     for t in (session.narrative_threads.active if hasattr(session.narrative_threads, 'active') else [])]
+
+            streaming_started = _orchestrate_narrative_agent(
+                manager=self,
+                session_id=session.session_id,
+                ldss_output=scene_turn_envelope,
+                runtime_state=runtime_state,
+                dramatic_signature=dramatic_context,
+                narrative_threads=narrative_threads_list,
+                turn_number=commit_turn_number,
+                trace_id=trace_id,
+            )
+
+            if streaming_started:
+                event["narrative_agent_started"] = True
+                event["narrator_streaming"] = {
+                    "status": "streaming",
+                    "session_id": session.session_id,
+                }
 
         # MVP4: Build DiagnosticsEnvelope from committed state only.
         # Never exposes raw AI proposals as committed truth.

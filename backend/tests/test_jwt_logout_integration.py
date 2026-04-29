@@ -45,7 +45,7 @@ def test_jwt_logout_integration():
         # Test 1: Create valid JWT token
         print("\n[TEST 1] Create JWT token")
         access_token = create_access_token(identity=str(user.id))
-        print(f"✓ Token created: {access_token[:20]}...")
+        print(f"[OK] Token created: {access_token[:20]}...")
 
         # Decode token to verify structure
         decoded = decode_token(access_token)
@@ -64,7 +64,7 @@ def test_jwt_logout_integration():
             )
             assert response.status_code == 200, f"Expected 200, got {response.status_code}"
             data = response.get_json()
-            print(f"✓ /api/v1/auth/me returned {response.status_code}")
+            print(f"[OK] /api/v1/auth/me returned {response.status_code}")
             print(f"  - User ID: {data.get('id')}")
             print(f"  - Username: {data.get('username')}")
 
@@ -77,14 +77,14 @@ def test_jwt_logout_integration():
             )
             assert response.status_code == 200, f"Expected 200, got {response.status_code}"
             data = response.get_json()
-            print(f"✓ /api/v1/auth/logout returned {response.status_code}")
+            print(f"[OK] /api/v1/auth/logout returned {response.status_code}")
             print(f"  - Message: {data.get('message')}")
 
         # Test 4: Verify token is in blacklist
         print("\n[TEST 4] Verify token is blacklisted in database")
         blacklist_entry = db.session.query(TokenBlacklist).filter_by(jti=jti).first()
         assert blacklist_entry is not None, "Token should be in blacklist"
-        print(f"✓ Token found in blacklist")
+        print(f"[OK] Token found in blacklist")
         print(f"  - JTI: {blacklist_entry.jti}")
         print(f"  - User ID: {blacklist_entry.user_id}")
         print(f"  - Blacklisted at: {blacklist_entry.blacklisted_at}")
@@ -94,7 +94,7 @@ def test_jwt_logout_integration():
         print("\n[TEST 5] Verify token is blacklisted by TokenBlacklist.is_blacklisted()")
         is_blacklisted = TokenBlacklist.is_blacklisted(jti)
         assert is_blacklisted is True, "Token should be reported as blacklisted"
-        print(f"✓ TokenBlacklist.is_blacklisted('{jti[:8]}...') = {is_blacklisted}")
+        print(f"[OK] TokenBlacklist.is_blacklisted('{jti[:8]}...') = {is_blacklisted}")
 
         # Test 6: Try to use token after logout (should fail)
         print("\n[TEST 6] Try to use token after logout (should get 401)")
@@ -104,7 +104,7 @@ def test_jwt_logout_integration():
                 headers={"Authorization": f"Bearer {access_token}"}
             )
             assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-            print(f"✓ /api/v1/auth/me returned {response.status_code} (unauthorized)")
+            print(f"[OK] /api/v1/auth/me returned {response.status_code} (unauthorized)")
             data = response.get_json()
             if data.get("error"):
                 print(f"  - Error: {data.get('error')}")
@@ -121,7 +121,7 @@ def test_jwt_logout_integration():
                 headers={"Authorization": f"Bearer {new_token}"}
             )
             assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-            print(f"✓ New token works: {response.status_code}")
+            print(f"[OK] New token works: {response.status_code}")
             print(f"  - New JTI: {new_jti[:8]}...")
 
         # Test 8: Cleanup expired tokens
@@ -130,7 +130,7 @@ def test_jwt_logout_integration():
         old_jti = "old-token-expired-jti"
         old_expires = datetime.now(timezone.utc) - timedelta(hours=1)
         old_entry = TokenBlacklist.add(jti=old_jti, user_id=user.id, expires_at=old_expires)
-        print(f"✓ Added old expired token: {old_jti}")
+        print(f"[OK] Added old expired token: {old_jti}")
 
         # Verify it's in the database
         before_cleanup = db.session.query(TokenBlacklist).count()
@@ -138,7 +138,7 @@ def test_jwt_logout_integration():
 
         # Run cleanup
         deleted = TokenBlacklist.cleanup_expired()
-        print(f"✓ cleanup_expired() deleted {deleted} expired entries")
+        print(f"[OK] cleanup_expired() deleted {deleted} expired entries")
 
         # Verify expired token is gone
         after_cleanup = db.session.query(TokenBlacklist).count()
@@ -157,14 +157,14 @@ def test_jwt_logout_integration():
         print("ALL INTEGRATION TESTS PASSED!")
         print("=" * 70)
         print("\nSummary:")
-        print("  ✓ JWT tokens with 'jti' claim are generated correctly")
-        print("  ✓ Protected endpoints work with valid tokens")
-        print("  ✓ Logout endpoint adds token to blacklist")
-        print("  ✓ Blacklisted tokens are stored in database with proper timezone")
-        print("  ✓ TokenBlacklist.is_blacklisted() correctly identifies blacklisted tokens")
-        print("  ✓ Blacklisted tokens receive 401 Unauthorized on protected endpoints")
-        print("  ✓ New tokens continue to work independently")
-        print("  ✓ Cleanup of expired blacklist entries works correctly")
+        print("  [OK] JWT tokens with 'jti' claim are generated correctly")
+        print("  [OK] Protected endpoints work with valid tokens")
+        print("  [OK] Logout endpoint adds token to blacklist")
+        print("  [OK] Blacklisted tokens are stored in database with proper timezone")
+        print("  [OK] TokenBlacklist.is_blacklisted() correctly identifies blacklisted tokens")
+        print("  [OK] Blacklisted tokens receive 401 Unauthorized on protected endpoints")
+        print("  [OK] New tokens continue to work independently")
+        print("  [OK] Cleanup of expired blacklist entries works correctly")
         print()
 
 
