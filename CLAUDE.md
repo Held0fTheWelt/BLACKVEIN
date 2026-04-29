@@ -84,6 +84,75 @@ Only after ruling out environment issues should you:
 
 ---
 
+## Indexing for Search & Diagnostics — Use semantic codebase search for exploration and problem-solving
+
+**Rule:** For any search, diagnostic, or exploration work, use semantic codebase indexing (`mcp__claude-context__search_code`) instead of naive grep/glob. The codebase is semantically indexed and ready for natural language queries.
+
+**When to use indexing:**
+- "Where is X defined?" (function, class, constant, symbol)
+- "What files reference Y?" (searching for usages)
+- "Find all places where Z happens" (logic search)
+- "Diagnose why this is failing" (understand codebase context before fixing)
+- "Legacy content audit" (find all instances of old patterns)
+- "Scope analysis" (what code is affected by this change?)
+
+**When NOT to use indexing:**
+- You already know the exact file path → just `Read` it directly
+- Simple pattern matching in a single known file → use `Grep` on that file
+- File enumeration in a small directory → use `Glob` on that path
+
+**How to use:**
+
+```bash
+# Search the indexed codebase
+mcp__claude-context__search_code(
+  path: "D:\WorldOfShadows",
+  query: "runtime profile resolver for MVP1",
+  limit: 10
+)
+
+# If codebase isn't indexed yet, index it first
+mcp__claude-context__index_codebase(
+  path: "D:\WorldOfShadows",
+  splitter: "ast",  # Use AST splitter for Python
+  force: false
+)
+
+# Check indexing status
+mcp__claude-context__get_indexing_status(
+  path: "D:\WorldOfShadows"
+)
+```
+
+**Example queries:**
+
+| Task | Query |
+|------|-------|
+| Find runtime profile implementation | "runtime profile resolver implementation" |
+| Locate actor lane enforcement | "actor lane validation and enforcement" |
+| Find visitor prohibition logic | "visitor removal prohibition GLOBAL" |
+| Understand passivity validation | "passivity validation scene block" |
+| Diagnose legacy Area 2 references | "Area 2 Task 4 closure validation" |
+| Audit capability evidence usage | "capability evidence source anchor" |
+
+**Why use indexing:**
+- **Semantic search:** Finds code by meaning, not just text matching (understands "role selection" finds both "validate_selected_player_role" and "build_actor_ownership")
+- **Large codebase:** 6400+ files indexed efficiently; naive grep is slow and loses context
+- **Context-aware:** Results include surrounding code, not just matching lines
+- **Exploration:** Enables quick 3-tool-call discovery (search → read → understand) without manual grep iterations
+- **Diagnostic:** Understand what code is affected before making changes
+
+**Workflow:**
+
+1. **Explore:** Use `search_code` for natural language queries
+2. **Understand:** `Read` the top 2-3 results to get context
+3. **Diagnose:** Identify root cause before modifying code
+4. **Execute:** Only then make changes (see Execution vs Exploration discipline)
+
+**Scope:** Applied to all search, diagnostic, and exploration work. Codebase is pre-indexed; queries are fast and semantically aware.
+
+---
+
 ## Gate & Status Reporting — Report exact pass/fail counts + command output; required ADRs before MVP completion
 
 **Rule:** When reporting gate verification results or MVP completion status, always include exact test counts and command evidence. ADRs are required before any MVP can be marked complete.
