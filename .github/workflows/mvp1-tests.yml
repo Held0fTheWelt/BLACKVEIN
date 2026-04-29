@@ -142,7 +142,7 @@ jobs:
         run: |
           test -f tests/run_tests.py || (echo "FAIL: tests/run_tests.py missing" && exit 1)
           python tests/run_tests.py --help
-          test ! -f run-test.py || (echo "FAIL: forbidden root runner run-test.py is present" && exit 1)
+          test ! -f tests/run_tests.py || (echo "FAIL: forbidden root runner tests/run_tests.py is present" && exit 1)
           echo "PASS: canonical runner present; root runner absent"
 
       - name: Verify docker-up.py gate subcommand

@@ -8,9 +8,9 @@
 
 | File | Status | Action |
 |------|--------|--------|
-| run-test.py (repo root) | DELETED | Removed — forbidden root runner |
+| tests/run_tests.py (repo root) | DELETED | Removed — forbidden root runner |
 
-`run-test.py` was a wrapper around `tests/run_tests.py` that violated the single-runner
+`tests/run_tests.py` was a wrapper around `tests/run_tests.py` that violated the single-runner
 requirement. It has been deleted. All test invocation must use `tests/run_tests.py` directly.
 
 ---
@@ -53,7 +53,7 @@ to verify that CI mirrors `tests/run_tests.py --suite all` exactly and does not 
 
 | Pattern | Status |
 |---------|--------|
-| run-test.py | DELETED |
+| tests/run_tests.py | DELETED |
 | run-tests.py | NOT FOUND (was never present) |
 | run_tests.py (root) | NOT FOUND (was never present) |
 | tests/run_tests.py | ACTIVE — canonical |

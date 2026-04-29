@@ -405,7 +405,7 @@ class TestLiveStartBehavior:
 
 
 # ---------------------------------------------------------------------------
-# FIX-009: run-test.py entry point
+# FIX-009: tests/run_tests.py entry point
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -537,31 +537,31 @@ class TestVisitorAbsenceFromAllLiveSurfaces:
 class TestRunTestEntrypoint:
 
     def test_run_test_entrypoint_exists(self):
-        """run-test.py must exist at repo root as MVP operational gate entry point (FIX-009)."""
-        run_test = REPO_ROOT / "run-test.py"
+        """tests/run_tests.py must exist as MVP operational gate entry point (FIX-009)."""
+        run_test = REPO_ROOT / "tests" / "run_tests.py"
         assert run_test.is_file(), (
-            f"run-test.py is required at {run_test} as the MVP operational gate entry point."
+            f"tests/run_tests.py is required at {run_test} as the MVP operational gate entry point."
         )
 
     def test_run_test_mvp1_includes_frontend_suite(self):
-        """run-test.py --mvp1 must document frontend test execution (FIX-009)."""
-        run_test = REPO_ROOT / "run-test.py"
-        assert run_test.is_file(), "run-test.py missing"
+        """tests/run_tests.py --mvp1 must document frontend test execution (FIX-009)."""
+        run_test = REPO_ROOT / "tests" / "run_tests.py"
+        assert run_test.is_file(), "tests/run_tests.py missing"
         content = run_test.read_text(encoding="utf-8")
         # FIX-009: Document that frontend MVP1 tests can be run separately
         assert "frontend" in content.lower() or "test_mvp1_play_launcher" in content, (
-            "run-test.py should reference frontend MVP1 tests (FIX-009)"
+            "tests/run_tests.py should reference frontend MVP1 tests (FIX-009)"
         )
 
     def test_run_test_includes_mvp1_world_engine_and_backend_suites_fix009(self):
-        """run-test.py must include engine and backend suites (FIX-009)."""
-        run_test = REPO_ROOT / "run-test.py"
-        assert run_test.is_file(), "run-test.py missing"
+        """tests/run_tests.py must include engine and backend suites (FIX-009)."""
+        run_test = REPO_ROOT / "tests" / "run_tests.py"
+        assert run_test.is_file(), "tests/run_tests.py missing"
         content = run_test.read_text(encoding="utf-8")
-        assert "engine" in content, "run-test.py must reference engine suite"
-        assert "backend" in content, "run-test.py must reference backend suite"
-        assert "tests/run_tests.py" in content or "run_tests" in content, (
-            "run-test.py must delegate to tests/run_tests.py"
+        assert "engine" in content, "tests/run_tests.py must reference engine suite"
+        assert "backend" in content, "tests/run_tests.py must reference backend suite"
+        assert "run_tests" in content, (
+            "tests/run_tests.py must reference run_tests suite orchestration"
         )
 
 

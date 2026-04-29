@@ -30,7 +30,7 @@ A real `live_dramatic_scene_simulator` runs in the live play path and renders a 
 
 The player chooses Annette or Alain. The selected character is human-controlled. The other canonical God of Carnage characters are free NPC dramatic actors. NPCs speak, act, pursue their own line, interact with other NPCs, and interact with the environment through canonical, typical, or `similar_allowed` affordances. NPCs may use admitted objects with or against other actors when valid and non-coercive. The Narrator is the player's inner perception/orientation voice, not a dialogue summarizer.
 
-Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the live runtime path. `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooling configs remain fully functional. Partial foundation is not acceptable.
+Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the live runtime path. `docker-up.py`, `tests/run_tests.py`, GitHub workflows, and TOML/tooling configs remain fully functional. Partial foundation is not acceptable.
 
 ### Global Prohibitions
 
@@ -41,7 +41,7 @@ Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the
 - Do not accept legacy blob output as canonical final output.
 - Do not accept mock-only Langfuse or hand-written trace JSON as final proof.
 - Do not accept field presence as behavior.
-- Do not close the MVP if `docker-up.py`, `run-test.py`, GitHub workflows, or TOML/tooling are broken.
+- Do not close the MVP if `docker-up.py`, `tests/run_tests.py`, GitHub workflows, or TOML/tooling are broken.
 - Do not implement later MVPs except for explicit scaffolds and handoff contracts named in this guide.
 
 ## Final Target Dependency
@@ -102,7 +102,7 @@ trace/export cross-check
 - `backend/app/api/v1/game_routes.py` and `backend/app/services/game_service.py` — if frontend calls backend proxy.
 - `world-engine/app/api/http.py` — response shape consumed by frontend.
 - `administration-tool/*` Narrative Gov route/template tests for final cross-check.
-- `run-test.py`, `.github/workflows/*.yml`, `pyproject.toml`, service TOMLs.
+- `tests/run_tests.py`, `.github/workflows/*.yml`, `pyproject.toml`, service TOMLs.
 
 ## Do Not Touch
 
@@ -142,7 +142,7 @@ Before patching, fill this matrix in the implementation report. Do not continue 
 | reports | `tests/reports/` | fill during implementation | report artifact | found/not_present |
 | ADRs | `docs/ADR/` | fill during implementation | ADR filename | found/not_present |
 | docker-up.py | `docker-up.py` | fill during implementation | entrypoint | found/not_present |
-| run-test.py | `run-test.py` | fill during implementation | suite registry | found/not_present |
+| tests/run_tests.py | `tests/run_tests.py` | fill during implementation | suite registry | found/not_present |
 | GitHub workflows | `.github/workflows/*.yml` | fill during implementation | job/matrix | found/not_present |
 | TOML/tooling | `pyproject.toml` and service TOMLs | fill during implementation | testpaths/markers/pythonpath | found/not_present |
 
@@ -217,7 +217,7 @@ test_source_locator_artifact_exists_for_mvp
 | MVP5-P04 | Accessibility | renderer/config/CSS | Reduced motion disables typewriter and preserves content order. | `test_accessibility_mode_disables_typewriter` |
 | MVP5-P05 | Legacy fallback policy | renderer and diagnostics consumer | Adapt legacy output only as degraded; fail final E2E if used. | `test_frontend_legacy_blob_fallback_is_marked_degraded`, `test_frontend_legacy_fallback_not_final` |
 | MVP5-P06 | Final E2E | browser tests/reports | Run Annette and Alain end-to-end with transcript, screenshots, trace links, Narrative Gov cross-check. | `test_final_annette_e2e_evidence`, `test_final_alain_e2e_evidence` |
-| MVP5-P07 | Operational wiring | `run-test.py`, workflows, TOMLs | Include frontend JS, browser/E2E, and final report suites. | operational checks |
+| MVP5-P07 | Operational wiring | `tests/run_tests.py`, workflows, TOMLs | Include frontend JS, browser/E2E, and final report suites. | operational checks |
 
 ## Data Contracts
 
@@ -504,7 +504,7 @@ Before implementation, fill this table with concrete repository paths.
 |---|---|---|
 | frontend renderer file | `<fill>` | function/class that renders scene blocks |
 | frontend template/route | `<fill>` | route/template used by play shell |
-| JS/unit test config | `<fill>` | command included in `run-test.py` |
+| JS/unit test config | `<fill>` | command included in `tests/run_tests.py` |
 | browser/E2E framework | `<fill>` | Playwright/Selenium/other actual command |
 | browser config file | `<fill>` | config path and browser mode |
 | screenshot output directory | `<fill>` | linked from final artifact index |
@@ -568,7 +568,7 @@ No major architectural or behavior-changing repair is complete unless the matchi
 | ADR-013 Narrator Inner Voice Contract | MVP 3 | Narrator as perception/orientation voice, not summary/puppeteer. |
 | ADR-014 Interactive Text-Adventure Frontend | MVP 5 | Structured staged block renderer and typewriter delivery. |
 | ADR-015 Canonical, Typical, and Similar Environment Affordances | MVP 2/3 | Object admission and affordance tiers. |
-| ADR-016 Operational Test and Startup Gates | all | `docker-up.py`, `run-test.py`, GitHub, TOML/tooling hard gates. |
+| ADR-016 Operational Test and Startup Gates | all | `docker-up.py`, `tests/run_tests.py`, GitHub, TOML/tooling hard gates. |
 
 Each ADR must include status, context, decision, affected services/files, consequences, alternatives considered, validation evidence, related audit finding IDs, tests proving the decision, and operational gate impact.
 
@@ -580,10 +580,10 @@ Required command evidence:
 
 ```text
 python docker-up.py
-python run-test.py --unit
-python run-test.py --integration
-python run-test.py --e2e
-python run-test.py --all
+python tests/run_tests.py --unit
+python tests/run_tests.py --integration
+python tests/run_tests.py --e2e
+python tests/run_tests.py --all
 ```
 
 If the repository uses different command names, document the exact equivalent and why it is equivalent.
@@ -613,7 +613,7 @@ MVP-specific test coverage:
 - integration test files:
 - e2e/browser test files:
 - pytest markers or runner suite names:
-- run-test.py suite entries:
+- tests/run_tests.py suite entries:
 - GitHub workflow jobs:
 - TOML testpaths/markers:
 ```
@@ -644,7 +644,7 @@ tests/reports/MVP_Live_Runtime_Completion/MVP<NUMBER>_OPERATIONAL_EVIDENCE.md
 The artifact must include:
 
 - exact `docker-up.py` command and result
-- exact `run-test.py` commands and result
+- exact `tests/run_tests.py` commands and result
 - unit/integration/e2e/browser suite names
 - concrete test files added or modified
 - pytest markers or runner suite names
@@ -673,7 +673,7 @@ Presence-only checks fail the gate. The implementation report must include:
 ```text
 Operational Gate:
 - docker-up.py status:
-- run-test.py status:
+- tests/run_tests.py status:
 - GitHub workflows status:
 - TOML/tooling status:
 - commands run:
@@ -696,7 +696,7 @@ Required operational evidence artifact schema:
     "evidence_path": "tests/reports/<mvp>/docker-up.log"
   },
   "run_test": {
-    "commands": ["python run-test.py --all"],
+    "commands": ["python tests/run_tests.py --all"],
     "status": "passed|failed",
     "included_suites": ["unit", "integration", "e2e"],
     "skipped_required_suites": [],
@@ -721,7 +721,7 @@ Required operational evidence artifact schema:
 
 | Area | Required Patch | Proof |
 |---|---|---|
-| `run-test.py` | include frontend JS tests, browser/E2E tests, final transcript/report checks | run-test log |
+| `tests/run_tests.py` | include frontend JS tests, browser/E2E tests, final transcript/report checks | run-test log |
 | GitHub workflows | include frontend/browser suites and do not silently skip E2E | workflow anchors |
 | TOML/tooling | include frontend/e2e test markers and required browser config | config assertions |
 | `docker-up.py` | start all four services for final E2E | startup log and final report |
@@ -772,7 +772,7 @@ backend/app/api/v1/game_routes.py
 backend/app/services/game_service.py
 world-engine/app/api/http.py
 administration-tool/*
-run-test.py
+tests/run_tests.py
 .github/workflows/*.yml
 pyproject.toml
 ```

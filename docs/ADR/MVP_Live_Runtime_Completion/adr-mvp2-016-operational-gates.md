@@ -6,11 +6,11 @@
 
 ## Context
 
-MVP1 established `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooling as mandatory operational gates. MVP2 adds new test suites and artifacts that must be covered by the same infrastructure. A partial implementation (feature code present, test runner not updated) does not satisfy the gate.
+MVP1 established `docker-up.py`, `tests/run_tests.py`, GitHub workflows, and TOML/tooling as mandatory operational gates. MVP2 adds new test suites and artifacts that must be covered by the same infrastructure. A partial implementation (feature code present, test runner not updated) does not satisfy the gate.
 
 ## Decision
 
-1. **`run-test.py --mvp2`** runs the world-engine engine suite, which includes all MVP2 test files:
+1. **`tests/run_tests.py --mvp2`** runs the world-engine engine suite, which includes all MVP2 test files:
    - `test_mvp2_runtime_state_actor_lanes.py` (Waves 2.1–2.2)
    - `test_mvp2_npc_coercion_state_delta.py` (Wave 2.3)
    - `test_mvp2_object_admission.py` (Wave 2.4)
@@ -34,7 +34,7 @@ MVP1 established `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooli
 
 ## Affected Services/Files
 
-- `run-test.py` — `--mvp2` flag added
+- `tests/run_tests.py` — `--mvp2` flag added
 - `.github/workflows/mvp2-tests.yml` — new workflow
 - `world-engine/pyproject.toml` — `testpaths = ["tests"]` (unchanged; picks up MVP2 files)
 - `world-engine/tests/test_mvp2_operational_gate.py` — operational gate tests
@@ -42,7 +42,7 @@ MVP1 established `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooli
 ## Consequences
 
 - Any MVP2 test file removed or renamed without updating `mvp2-tests.yml` will break the workflow
-- `run-test.py --mvp2` delegates to `tests/run_tests.py --suite engine`, which runs all world-engine tests including MVP2 files
+- `tests/run_tests.py --mvp2` delegates to `tests/run_tests.py --suite engine`, which runs all world-engine tests including MVP2 files
 - The operational evidence artifact must list concrete test files and markers, not just suite names
 
 ## Alternatives Considered

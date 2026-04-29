@@ -86,7 +86,17 @@ def create_app(config_object=None, *, testing: bool | None = None):
 def _initialize_observability(app: Flask) -> None:
     """Initialize Langfuse observability adapter from database configuration."""
     try:
-        from app.observability.langfuse_adapter import LangfuseAdapter, LangfuseConfig
+        from sqlalchemy import inspect as _sa_inspect
+        from app.observability.langfuse_adapter import LangfuseAdapter
+        from app.extensions import db
+
+        _inspector = _sa_inspect(db.engine)
+        if not _inspector.has_table("observability_configs"):
+            # Table not yet created (e.g., test environment before db.create_all())
+            app.langfuse_adapter = LangfuseAdapter.get_instance()
+            return
+
+        from app.observability.langfuse_adapter import LangfuseConfig
         from app.services.observability_governance_service import (
             get_observability_config,
             get_observability_credential_for_runtime,
@@ -95,12 +105,10 @@ def _initialize_observability(app: Flask) -> None:
         db_config = get_observability_config()
 
         if not db_config.get("is_enabled"):
-            # Disabled: use no-op adapter (defaults from env)
             app.langfuse_adapter = LangfuseAdapter.get_instance()
             print("[INFO] Langfuse observability is disabled (no-op mode)")
             return
 
-        # Enabled: fetch credentials and initialize with custom config
         secret_key = get_observability_credential_for_runtime("secret_key")
         if not secret_key:
             print("[WARN] Langfuse enabled but secret_key not configured; using no-op adapter")
@@ -109,7 +117,6 @@ def _initialize_observability(app: Flask) -> None:
 
         public_key = get_observability_credential_for_runtime("public_key")
 
-        # Create config object from database settings
         config = LangfuseConfig()
         config.enabled = True
         config.public_key = public_key or ""

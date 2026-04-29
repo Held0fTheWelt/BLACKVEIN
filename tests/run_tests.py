@@ -1033,8 +1033,39 @@ Optional non-Python lanes are opt-in:
         action="store_true",
         help="Also run compose smoke lane (tests/smoke/compose_smoke).",
     )
+    parser.add_argument(
+        "--mvp1",
+        action="store_true",
+        help="MVP1 suite preset: backend, engine, frontend.",
+    )
+    parser.add_argument(
+        "--mvp2",
+        action="store_true",
+        help="MVP2 suite preset: backend, engine, ai_stack.",
+    )
+    parser.add_argument(
+        "--mvp3",
+        action="store_true",
+        help="MVP3 suite preset: backend, engine, ai_stack, story_runtime_core.",
+    )
+    parser.add_argument(
+        "--mvp4",
+        action="store_true",
+        help="MVP4 suite preset: backend, engine, ai_stack, story_runtime_core, gates.",
+    )
 
     args = parser.parse_args()
+
+    # Resolve MVP-scoped suite presets (only when --suite is at default "all")
+    if args.suite == ["all"]:
+        if args.mvp4:
+            args.suite = ["backend", "engine", "ai_stack", "story_runtime_core", "gates"]
+        elif args.mvp3:
+            args.suite = ["backend", "engine", "ai_stack", "story_runtime_core"]
+        elif args.mvp2:
+            args.suite = ["backend", "engine", "ai_stack"]
+        elif args.mvp1:
+            args.suite = ["backend", "engine", "frontend"]
 
     suites = get_suite_configs(
         args.suite,

@@ -12,7 +12,7 @@ The one canonical test runner is:
 tests/run_tests.py
 ```
 
-No other root-level runner may remain active. `run-test.py`, `run-tests.py`, and any
+No other root-level runner may remain active. `tests/run_tests.py`, `run-tests.py`, and any
 root-level `run_tests.py` are legacy artifacts and must be absent from the repository root.
 
 ---

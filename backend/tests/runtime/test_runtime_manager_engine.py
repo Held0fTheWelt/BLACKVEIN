@@ -170,9 +170,9 @@ def test_engine_use_action_unknown_id():
 
 
 def test_engine_use_action_prop_not_in_room_rejected():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
-    inst = _solo_instance()
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     assert human.current_room_id == "hallway"
     res = engine.apply_command(inst, human.id, {"action": "use_action", "action_id": "inspect_tulips"})
@@ -180,9 +180,9 @@ def test_engine_use_action_prop_not_in_room_rejected():
 
 
 def test_engine_ring_again_adds_tension():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
-    inst = _solo_instance()
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     before = inst.tension
     assert engine.apply_command(inst, human.id, {"action": "use_action", "action_id": "ring_again"}).accepted is True
@@ -190,9 +190,9 @@ def test_engine_ring_again_adds_tension():
 
 
 def test_engine_offer_apology_advances_beat():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
-    inst = _solo_instance()
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     assert engine.apply_command(inst, human.id, {"action": "move", "target_room_id": "living_room"}).accepted is True
     assert engine.apply_command(inst, human.id, {"action": "use_action", "action_id": "offer_apology"}).accepted is True
@@ -267,8 +267,8 @@ def test_wiki_html_sanitizer_guards_and_bleach_path():
 
 def test_runtime_visibility_policy_all_methods():
     """RuntimeVisibilityPolicy maps template rooms, occupants, transcript tail, inspect rules."""
-    template = load_builtin_templates()["god_of_carnage_solo"]
-    inst = _solo_instance()
+    template = load_builtin_templates()["god_of_carnage"]
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     policy = RuntimeVisibilityPolicy(template)
 
@@ -299,9 +299,9 @@ def test_runtime_visibility_policy_all_methods():
 
 def test_engine_solo_move_sets_flag_inspect_prop_and_room_npc_cycle():
     """Solo move to living_room, inspect targets, prop-linked actions, NPC cycle emits events."""
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
-    inst = _solo_instance()
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
 
     move = engine.apply_command(inst, human.id, {"action": "move", "target_room_id": "living_room"})
@@ -347,9 +347,9 @@ def test_engine_group_use_action_blocked_in_lobby():
 
 
 def test_engine_steady_breath_effect_sets_flag_and_single_use():
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = RuntimeEngine(template)
-    inst = _solo_instance()
+    inst = _solo_instance("god_of_carnage")
     human = next(p for p in inst.participants.values() if p.mode == ParticipantMode.HUMAN)
     first = engine.apply_command(inst, human.id, {"action": "use_action", "action_id": "steady_breath"})
     assert first.accepted is True

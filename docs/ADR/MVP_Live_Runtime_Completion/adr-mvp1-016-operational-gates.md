@@ -6,7 +6,7 @@
 
 ## Context
 
-The MVP_Live_Runtime_Completion guide requires that every MVP prove its implementation through operational gates: docker-up.py, run-test.py (tests/run_tests.py), GitHub workflows, and TOML/tooling. Without these gates, documentation and test results in isolation cannot prove the live path works.
+The MVP_Live_Runtime_Completion guide requires that every MVP prove its implementation through operational gates: docker-up.py, tests/run_tests.py (tests/run_tests.py), GitHub workflows, and TOML/tooling. Without these gates, documentation and test results in isolation cannot prove the live path works.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The following operational gate requirements apply to MVP1 and all subsequent MVP
 
 1. **`docker-up.py`**: Must exist and start backend, frontend, play-service. Must report failed services and exit nonzero. MVP1 does not modify docker-up.py but confirms it exists.
 
-2. **`tests/run_tests.py`** (equivalent of guide's `run-test.py`): Must include MVP1 tests in the engine and backend suites. MVP1 tests are placed in `world-engine/tests/` and `backend/tests/` which are covered by `--suite engine` and `--suite backend`.
+2. **`tests/run_tests.py`** (equivalent of guide's `tests/run_tests.py`): Must include MVP1 tests in the engine and backend suites. MVP1 tests are placed in `world-engine/tests/` and `backend/tests/` which are covered by `--suite engine` and `--suite backend`.
 
 3. **GitHub workflows**: Must include MVP1 tests or equivalent suites:
    - `.github/workflows/engine-tests.yml` — covers `world-engine/tests/` (includes `test_mvp1_experience_identity.py`)

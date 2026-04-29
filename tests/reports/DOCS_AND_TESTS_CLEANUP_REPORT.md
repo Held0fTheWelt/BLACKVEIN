@@ -11,13 +11,13 @@
 
 All primary legacy artifacts have been addressed. The repository now has:
 - One canonical test runner (`tests/run_tests.py`)
-- No root-level runner variants (`run-test.py` deleted)
+- No root-level runner variants (`tests/run_tests.py` deleted)
 - No pure-stub test files in primary suites
 - Zero `assert True` stubs in tests/
 - All required architecture and testing docs created
 - All root-level session reports archived
 - `gates` and `story_runtime_core` suites added to canonical runner AND CI
-- MVP1/MVP2 CI workflows fixed (removed `run-test.py` references)
+- MVP1/MVP2 CI workflows fixed (removed `tests/run_tests.py` references)
 - Pre-deployment workflow updated to run gates and story_runtime_core
 - `tests/smoke/test_docs_truth.py` added (active docs content inspection)
 - GoC smoke tests extended with visitor-absence and Annette/Alain-playability assertions
@@ -114,7 +114,7 @@ No primary gate tests were found using pure file-presence or string-only asserti
 
 | Check | Status |
 |-------|--------|
-| run-test.py at root | DELETED |
+| tests/run_tests.py at root | DELETED |
 | run-tests.py at root | NOT PRESENT |
 | run_tests.py at root | NOT PRESENT |
 | tests/run_tests.py | PRESENT — canonical |

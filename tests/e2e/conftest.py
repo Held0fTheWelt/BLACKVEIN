@@ -22,10 +22,11 @@ pytest_plugins = ['backend.tests.conftest']
 
 @pytest.fixture
 def frontend_app():
-    """Create Flask app for frontend E2E testing."""
+    """Create Flask app for frontend E2E testing with login bypassed."""
     from frontend.app import create_app as create_frontend_app
 
     app = create_frontend_app(testing=True)
+    app.config["BYPASS_LOGIN_FOR_TESTS"] = True
     return app
 
 
@@ -88,3 +89,32 @@ def client(frontend_app):
 def runner(frontend_app):
     """CLI test runner."""
     return frontend_app.test_cli_runner()
+
+
+@pytest.fixture
+def player_backend_mock(mocker):
+    """Mock player backend requests for testing."""
+    mocker.patch(
+        "frontend.app.player_backend.request_backend",
+        return_value=mocker.MagicMock(
+            ok=True,
+            json=lambda: {
+                "run": {"id": "test_run_123"},
+                "session_id": "test_session_456",
+                "opening_turn": {"turn_kind": "opening", "turn_number": 0},
+                "turn": {
+                    "turn_number": 1,
+                    "turn_kind": "player",
+                    "interpreted_input": {"kind": "action"},
+                    "visible_output_bundle": {"gm_narration": ["Test narration."]},
+                    "validation_outcome": {"status": "approved"},
+                    "narrative_commit": {"committed_scene_id": "test_scene"},
+                },
+                "state": {
+                    "current_scene_id": "test_scene",
+                    "committed_state": {},
+                },
+                "diagnostics": {},
+            },
+        ),
+    )

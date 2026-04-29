@@ -551,7 +551,9 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     turn = ldss_input.turn_number
 
     primary = _select_primary_responder(npc_ids, human_id)
-    secondary_ids = [n for n in npc_ids if n != primary and n != human_id and n != "visitor"]
+    # Fallback to first available NPC if primary is empty (edge case defensive handling)
+    effective_primary = primary if primary else (npc_ids[0] if npc_ids else "")
+    secondary_ids = [n for n in npc_ids if n != effective_primary and n != human_id and n != "visitor"]
     secondary = secondary_ids[0] if secondary_ids else ""
 
     blocks: list[SceneBlock] = []
@@ -571,9 +573,9 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     ))
 
     # Primary NPC actor_line
-    if primary:
-        label = _GOC_DISPLAY_NAMES.get(primary, primary.capitalize())
-        lines = _GOC_NPC_LINES.get(primary, [f"{label} considers the situation."])
+    if effective_primary:
+        label = _GOC_DISPLAY_NAMES.get(effective_primary, effective_primary.capitalize())
+        lines = _GOC_NPC_LINES.get(effective_primary, [f"{label} considers the situation."])
         line_text = lines[turn % len(lines)]
         # Target: first other NPC or human context (not AI control of human)
         target = human_id if human_id else (secondary or None)
@@ -581,7 +583,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
             id=f"turn-{turn}-block-2",
             block_type="actor_line",
             speaker_label=label,
-            actor_id=primary,
+            actor_id=effective_primary,
             target_actor_id=target,
             text=line_text,
         ))

@@ -18,10 +18,10 @@ tests/run_tests.py
 
 | Before | After |
 |--------|-------|
-| run-test.py present at repo root | DELETED |
+| tests/run_tests.py present at repo root | DELETED |
 | tests/run_tests.py | ACTIVE |
 
-`run-test.py` was deleted on 2026-04-26.
+`tests/run_tests.py` was deleted on 2026-04-26.
 
 ---
 
@@ -69,7 +69,7 @@ To verify single runner enforcement:
 
 ```bash
 # Verify root runner is absent
-ls run-test.py 2>/dev/null && echo "ERROR: root runner present" || echo "OK: root runner absent"
+ls tests/run_tests.py 2>/dev/null && echo "ERROR: root runner present" || echo "OK: root runner absent"
 ls run-tests.py 2>/dev/null && echo "ERROR: root runner present" || echo "OK: root runner absent"
 ls run_tests.py 2>/dev/null && echo "ERROR: root runner present" || echo "OK: root runner absent"
 

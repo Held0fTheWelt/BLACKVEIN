@@ -12,7 +12,7 @@ The package preserves the final implementation target:
 - A real `live_dramatic_scene_simulator` runs in the live play path.
 - The final output is structured staged dramatic/chat blocks, not legacy blob text.
 - Diagnostics, Narrative Gov, and Langfuse or deterministic trace export must prove the live runtime path.
-- `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooling configs remain mandatory operational gates.
+- `docker-up.py`, `tests/run_tests.py`, GitHub workflows, and TOML/tooling configs remain mandatory operational gates.
 
 ## Execution Mode
 

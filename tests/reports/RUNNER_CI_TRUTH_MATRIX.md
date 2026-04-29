@@ -56,7 +56,7 @@ use `continue-on-error` for required primary suites.
 
 | Check | Result |
 |-------|--------|
-| run-test.py at root | ABSENT (deleted 2026-04-26) |
+| tests/run_tests.py at root | ABSENT (deleted 2026-04-26) |
 | run-tests.py at root | ABSENT |
 | run_tests.py at root | ABSENT |
 | tests/run_tests.py | PRESENT — canonical |
@@ -67,5 +67,5 @@ use `continue-on-error` for required primary suites.
 
 1. **Added story_runtime_core to CI** — `engine-tests.yml` and `pre-deployment.yml`
 2. **Added gates to CI** — `engine-tests.yml` (architecture-gates job) and `pre-deployment.yml`
-3. **Fixed MVP1/MVP2 CI** — removed `run-test.py` references; replaced with canonical runner checks
+3. **Fixed MVP1/MVP2 CI** — removed `tests/run_tests.py` references; replaced with canonical runner checks
 4. **MVP3/MVP4 gates now included** — `tests/gates/` covers all 3 gate files via architecture-gates job

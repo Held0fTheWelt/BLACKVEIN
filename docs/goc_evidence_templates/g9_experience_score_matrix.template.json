@@ -1,0 +1,80 @@
+{
+  "schema": "goc_g9_experience_score_matrix_v1",
+  "roadmap_reference": "docs/MVPs/MVP_VSL_And_GoC_Contracts/ROADMAP_MVP_GoC.md section 6.9",
+  "audit_run_id": null,
+  "criteria": [
+    "dramatic_responsiveness",
+    "truth_consistency",
+    "character_credibility",
+    "conflict_continuity",
+    "graceful_degradation"
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "goc_roadmap_s1_direct_provocation",
+      "failure_oriented": false,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s2_deflection_brevity",
+      "failure_oriented": false,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s3_pressure_escalation",
+      "failure_oriented": false,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s4_misinterpretation_correction",
+      "failure_oriented": false,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s5_primary_failure_fallback",
+      "failure_oriented": true,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    },
+    {
+      "scenario_id": "goc_roadmap_s6_retrieval_heavy",
+      "failure_oriented": false,
+      "scores": {
+        "dramatic_responsiveness": null,
+        "truth_consistency": null,
+        "character_credibility": null,
+        "conflict_continuity": null,
+        "graceful_degradation": null
+      }
+    }
+  ]
+}

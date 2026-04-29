@@ -131,7 +131,7 @@ No TXT duplicates, no `no-loss`, no `expanded`, no `v2`, and no renamed guide fi
 
 ## 9. Operational Gate Coverage
 
-| MVP | docker-up.py | run-test.py | GitHub | TOML/tooling |
+| MVP | docker-up.py | tests/run_tests.py | GitHub | TOML/tooling |
 |---|---|---|---|---|
 | MVP 1 | command evidence required; failed services must fail gate | role/session/visitor tests included | workflows include MVP 1 suites | testpaths/pythonpath include backend/world-engine/frontend tests |
 | MVP 2 | command evidence required after runtime model changes | actor-lane/object/state suites included | workflows include MVP 2 suites | world-engine/ai_stack paths and markers covered |

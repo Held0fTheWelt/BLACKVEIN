@@ -56,7 +56,7 @@
 
 ## Root Runner Deleted
 
-### run-test.py (repo root)
+### tests/run_tests.py (repo root)
 - **Classification:** forbidden_root_runner, legacy_runner
 - **Reason:** Violates B7 single-runner requirement. Root runner wraps `tests/run_tests.py`
   but creates confusion about canonical entry point. Documentation cited it as "canonical"

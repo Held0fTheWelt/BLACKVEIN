@@ -1,0 +1,10 @@
+{
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "level_b_attempt_status": "failed_insufficient_independence",
+  "reason_codes": [
+    "independence_evidence_insufficient_for_level_b"
+  ],
+  "independence_classification_primary": "insufficient_process_separation",
+  "attempt_date": "2026-04-10",
+  "notes": "Evaluator independence could not be established. Generator and evaluator share context window."
+}

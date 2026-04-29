@@ -4,7 +4,9 @@ from story_runtime_core.adapters import MockModelAdapter, OpenAIChatAdapter, bui
 def test_mock_adapter_returns_success():
     result = MockModelAdapter().generate("hello")
     assert result.success is True
-    assert result.content.startswith("[mock]")
+    import json
+    parsed = json.loads(result.content)
+    assert "narrative_response" in parsed
 
 
 def test_openai_adapter_handles_missing_key():

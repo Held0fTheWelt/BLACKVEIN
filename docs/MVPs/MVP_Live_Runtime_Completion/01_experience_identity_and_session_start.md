@@ -29,7 +29,7 @@ A real `live_dramatic_scene_simulator` runs in the live play path and renders a 
 
 The player chooses Annette or Alain. The selected character is human-controlled. The other canonical God of Carnage characters are free NPC dramatic actors. NPCs speak, act, pursue their own line, interact with other NPCs, and interact with the environment through canonical, typical, or `similar_allowed` affordances. NPCs may use admitted objects with or against other actors when valid and non-coercive. The Narrator is the player's inner perception/orientation voice, not a dialogue summarizer.
 
-Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the live runtime path. `docker-up.py`, `run-test.py`, GitHub workflows, and TOML/tooling configs remain fully functional. Partial foundation is not acceptable.
+Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the live runtime path. `docker-up.py`, `tests/run_tests.py`, GitHub workflows, and TOML/tooling configs remain fully functional. Partial foundation is not acceptable.
 
 ### Global Prohibitions
 
@@ -40,7 +40,7 @@ Diagnostics, Narrative Gov, and Langfuse or deterministic trace export prove the
 - Do not accept legacy blob output as canonical final output.
 - Do not accept mock-only Langfuse or hand-written trace JSON as final proof.
 - Do not accept field presence as behavior.
-- Do not close the MVP if `docker-up.py`, `run-test.py`, GitHub workflows, or TOML/tooling are broken.
+- Do not close the MVP if `docker-up.py`, `tests/run_tests.py`, GitHub workflows, or TOML/tooling are broken.
 - Do not implement later MVPs except for explicit scaffolds and handoff contracts named in this guide.
 
 ## Final Target Dependency
@@ -101,7 +101,7 @@ MVP 2 consumes:
 - `world-engine/app/runtime/profiles*` or closest equivalent — runtime profile registry/resolver.
 - `frontend/static/play_shell.js` and actual launcher route/template — role selection and create-run payload.
 - `tests/` — existing runtime/session/start tests.
-- `.github/workflows/*.yml`, `pyproject.toml`, service TOMLs, `docker-up.py`, `run-test.py`.
+- `.github/workflows/*.yml`, `pyproject.toml`, service TOMLs, `docker-up.py`, `tests/run_tests.py`.
 
 ## Do Not Touch
 
@@ -117,7 +117,7 @@ MVP 2 consumes:
 rg "god_of_carnage_solo|visitor|selected_player_role|runtime_profile" -n backend world-engine frontend administration-tool ai_stack tests docs
 rg "CreateRunRequest|CreateRunResponse|create_run|_bootstrap_instance|RuntimeInstance" -n world-engine backend tests
 rg "Annette|Alain|annette|alain|annette_reille|alain_reille" -n backend world-engine ai_stack frontend tests docs
-rg "docker-up|run-test|pytest|testpaths|pythonpath" -n .github pyproject.toml */pyproject.toml docker-up.py run-test.py
+rg "docker-up|run-test|pytest|testpaths|pythonpath" -n .github pyproject.toml */pyproject.toml docker-up.py tests/run_tests.py
 ```
 
 ### Source Locator Matrix
@@ -140,7 +140,7 @@ Before patching, fill this matrix in the implementation report. Do not continue 
 | reports | `tests/reports/` | fill during implementation | report artifact | found/not_present |
 | ADRs | `docs/ADR/` | fill during implementation | ADR filename | found/not_present |
 | docker-up.py | `docker-up.py` | fill during implementation | entrypoint | found/not_present |
-| run-test.py | `run-test.py` | fill during implementation | suite registry | found/not_present |
+| tests/run_tests.py | `tests/run_tests.py` | fill during implementation | suite registry | found/not_present |
 | GitHub workflows | `.github/workflows/*.yml` | fill during implementation | job/matrix | found/not_present |
 | TOML/tooling | `pyproject.toml` and service TOMLs | fill during implementation | testpaths/markers/pythonpath | found/not_present |
 
@@ -214,7 +214,7 @@ test_source_locator_artifact_exists_for_mvp
 | MVP1-P03 | Role selection | backend route, world-engine create-run API, frontend launcher | Require `selected_player_role`=`annette|alain` before session start. | `test_session_creation_requires_selected_player_role`, `test_valid_annette_start`, `test_valid_alain_start` |
 | MVP1-P04 | Visitor removal | backend/world-engine/frontend/ai_stack tests | Sweep and reject `visitor` in participants, prompts, responders, lobby seats, frontend state. | `test_visitor_absent_from_prompts_responders_lobby` |
 | MVP1-P05 | Capability evidence | report generator / diagnostics scaffold | Capability report must include real file/symbol anchors or `missing`; no static success. | `test_ldss_capability_added_to_e0_report_requires_source_anchor` |
-| MVP1-P06 | Operational wiring | `docker-up.py`, `run-test.py`, workflows, TOMLs | Include new MVP 1 tests and fail on missing/skipped suites. | operational checks listed below |
+| MVP1-P06 | Operational wiring | `docker-up.py`, `tests/run_tests.py`, workflows, TOMLs | Include new MVP 1 tests and fail on missing/skipped suites. | operational checks listed below |
 
 ## Data Contracts
 
@@ -482,7 +482,7 @@ No major architectural or behavior-changing repair is complete unless the matchi
 | ADR-013 Narrator Inner Voice Contract | MVP 3 | Narrator as perception/orientation voice, not summary/puppeteer. |
 | ADR-014 Interactive Text-Adventure Frontend | MVP 5 | Structured staged block renderer and typewriter delivery. |
 | ADR-015 Canonical, Typical, and Similar Environment Affordances | MVP 2/3 | Object admission and affordance tiers. |
-| ADR-016 Operational Test and Startup Gates | all | `docker-up.py`, `run-test.py`, GitHub, TOML/tooling hard gates. |
+| ADR-016 Operational Test and Startup Gates | all | `docker-up.py`, `tests/run_tests.py`, GitHub, TOML/tooling hard gates. |
 
 Each ADR must include status, context, decision, affected services/files, consequences, alternatives considered, validation evidence, related audit finding IDs, tests proving the decision, and operational gate impact.
 
@@ -494,10 +494,10 @@ Required command evidence:
 
 ```text
 python docker-up.py
-python run-test.py --unit
-python run-test.py --integration
-python run-test.py --e2e
-python run-test.py --all
+python tests/run_tests.py --suite backend engine frontend
+python tests/run_tests.py --suite backend engine ai_stack
+python tests/run_tests.py --suite backend engine ai_stack story_runtime_core
+python tests/run_tests.py --suite backend engine ai_stack story_runtime_core gates
 ```
 
 If the repository uses different command names, document the exact equivalent and why it is equivalent.
@@ -527,7 +527,7 @@ MVP-specific test coverage:
 - integration test files:
 - e2e/browser test files:
 - pytest markers or runner suite names:
-- run-test.py suite entries:
+- tests/run_tests.py suite entries:
 - GitHub workflow jobs:
 - TOML testpaths/markers:
 ```
@@ -558,7 +558,7 @@ tests/reports/MVP_Live_Runtime_Completion/MVP<NUMBER>_OPERATIONAL_EVIDENCE.md
 The artifact must include:
 
 - exact `docker-up.py` command and result
-- exact `run-test.py` commands and result
+- exact `tests/run_tests.py` commands and result
 - unit/integration/e2e/browser suite names
 - concrete test files added or modified
 - pytest markers or runner suite names
@@ -587,7 +587,7 @@ Presence-only checks fail the gate. The implementation report must include:
 ```text
 Operational Gate:
 - docker-up.py status:
-- run-test.py status:
+- tests/run_tests.py status:
 - GitHub workflows status:
 - TOML/tooling status:
 - commands run:
@@ -610,7 +610,7 @@ Required operational evidence artifact schema:
     "evidence_path": "tests/reports/<mvp>/docker-up.log"
   },
   "run_test": {
-    "commands": ["python run-test.py --all"],
+    "commands": ["python tests/run_tests.py --all"],
     "status": "passed|failed",
     "included_suites": ["unit", "integration", "e2e"],
     "skipped_required_suites": [],
@@ -636,7 +636,7 @@ Required operational evidence artifact schema:
 | Area | Required Patch | Proof |
 |---|---|---|
 | `docker-up.py` | starts backend, frontend, admin, play-service; reports failed service and exits nonzero | command log and `test_docker_up_reports_failed_service` |
-| `run-test.py` | includes MVP 1 tests in unit/integration/e2e/all suites; fails on skipped required suites | run-test log and inclusion test |
+| `tests/run_tests.py` | includes MVP 1 tests in unit/integration/e2e/all suites; fails on skipped required suites | run-test log and inclusion test |
 | GitHub workflows | execute MVP 1 unit/integration/e2e tests or exact equivalents | workflow file anchors |
 | TOML/tooling | testpaths/pythonpath include backend, world-engine, frontend, tests needed by MVP 1 | config assertions |
 
@@ -665,7 +665,7 @@ Stop only when:
 2. Missing/invalid roles and `visitor` are rejected with contract errors.
 3. `god_of_carnage_solo` cannot be loaded as content and contains no story truth.
 4. The capability evidence report uses real anchors or honest `missing` statuses.
-5. MVP 1 tests run through `run-test.py` and are included in GitHub workflows/TOML tooling.
+5. MVP 1 tests run through `tests/run_tests.py` and are included in GitHub workflows/TOML tooling.
 6. Operational evidence is written with command logs and report paths.
 7. Handoff artifact to MVP 2 exists.
 
@@ -682,7 +682,7 @@ world-engine/app/api/http.py
 world-engine/app/runtime/manager.py
 world-engine/app/runtime/models.py
 frontend/static/play_shell.js
-run-test.py
+tests/run_tests.py
 docker-up.py
 .github/workflows/*.yml
 pyproject.toml

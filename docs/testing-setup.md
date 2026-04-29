@@ -444,23 +444,6 @@ python -m pytest tests/runtime/test_runtime_routing_registry_composed_proofs.py 
 
 ---
 
-## Area 2 Task 4 full closure validation (canonical)
-
-**Gates:** **G-T4-01** (E2E truth, three surfaces), **G-T4-02** (bootstrap validation), **G-T4-03** (cross-surface contract), **G-T4-04** (negative/degraded honesty), **G-T4-05** (drift resistance), **G-T4-06** (validation-command reality), **G-T4-07** (required proof-suite stability via subprocess), **G-T4-08** (documentation truth). Gate table: [`docs/archive/architecture-legacy/area2_task4_closure_gates.md`](archive/architecture-legacy/area2_task4_closure_gates.md). Closure report: [`docs/archive/architecture-legacy/area2_validation_hardening_closure_report.md`](archive/architecture-legacy/area2_validation_hardening_closure_report.md).
-
-**Command surface (code):** [`backend/app/runtime/area2_validation_commands.py`](../backend/app/runtime/area2_validation_commands.py) — `AREA2_TASK4_FULL_CLOSURE_PYTEST_MODULES`, `area2_task4_full_closure_pytest_invocation()`.
-
-**Working directory:** `backend/` (same as dual-workstream: `pytest.ini` `pythonpath` and `testpaths`).
-
-**Module list (must match code, in order):** `tests/runtime/test_runtime_routing_registry_composed_proofs.py`, `tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py`, `tests/runtime/test_runtime_startup_profiles_operator_truth.py`, `tests/runtime/test_cross_surface_operator_audit_contract.py`, `tests/test_bootstrap_staged_runtime_integration.py`, `tests/runtime/test_model_inventory_bootstrap.py`, `tests/runtime/test_runtime_operator_comparison_cross_surface.py`, `tests/runtime/test_runtime_ai_turn_degraded_paths_tool_loop.py`, `tests/runtime/test_runtime_drift_resistance.py`, `tests/runtime/test_runtime_staged_orchestration.py`, `tests/runtime/test_runtime_model_ranking_synthesis_contracts.py`, `tests/improvement/test_improvement_model_routing_denied.py`, `tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace`, `tests/runtime/test_runtime_validation_commands_orchestration.py`.
-
-```bash
-cd backend
-python -m pytest tests/runtime/test_runtime_routing_registry_composed_proofs.py tests/runtime/test_runtime_operational_bootstrap_and_routing_registry.py tests/runtime/test_runtime_startup_profiles_operator_truth.py tests/runtime/test_cross_surface_operator_audit_contract.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_model_inventory_bootstrap.py tests/runtime/test_runtime_operator_comparison_cross_surface.py tests/runtime/test_runtime_ai_turn_degraded_paths_tool_loop.py tests/runtime/test_runtime_drift_resistance.py tests/runtime/test_runtime_staged_orchestration.py tests/runtime/test_runtime_model_ranking_synthesis_contracts.py tests/improvement/test_improvement_model_routing_denied.py tests/runtime/test_ai_turn_executor.py::test_agent_orchestration_executes_real_separate_subagents_and_logs_trace tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
-```
-
----
-
 ## Running Broader Test Subsets
 
 ### All Backend Tests (with coverage)

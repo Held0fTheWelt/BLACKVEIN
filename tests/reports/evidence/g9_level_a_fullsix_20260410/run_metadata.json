@@ -1,0 +1,8 @@
+{
+  "audit_run_id": "g9_level_a_fullsix_20260410",
+  "timestamp_utc": "2026-04-10T00:00:00Z",
+  "run_type": "g9_level_a_fullsix",
+  "scenarios_run": 6,
+  "level_a_result": "pass_all",
+  "notes": "Full six-scenario GoC Level A evaluation run."
+}

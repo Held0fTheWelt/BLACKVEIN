@@ -554,10 +554,10 @@ def test_mvp04_degraded_output_diagnostics_include_reasons():
 
 @pytest.mark.mvp4
 def test_mvp04_runner_registration_exists():
-    """run-test.py must have --mvp4 flag."""
-    runner = REPO_ROOT / "run-test.py"
+    """tests/run_tests.py must have --mvp4 flag."""
+    runner = REPO_ROOT / "tests" / "run_tests.py"
     source = runner.read_text()
-    assert "--mvp4" in source, "run-test.py must have --mvp4 flag"
+    assert "--mvp4" in source, "tests/run_tests.py must have --mvp4 flag"
 
 
 @pytest.mark.mvp4

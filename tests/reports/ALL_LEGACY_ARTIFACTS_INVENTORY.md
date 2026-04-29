@@ -10,7 +10,7 @@
 | Category | Total Found | Action Taken | Remaining |
 |----------|-------------|--------------|-----------|
 | Root-level session reports | 38 | Moved to archive | 0 active |
-| Root runner (run-test.py) | 1 | Deleted | 0 |
+| Root runner (tests/run_tests.py) | 1 | Deleted | 0 |
 | Stub smoke tests | 2 | Deleted | 0 |
 | Stub e2e test files | 3 | Deleted | 0 |
 | Stub gate test methods | 3 | Rewritten | 0 |
@@ -92,7 +92,7 @@ These were historical session reports moved to `docs/archive/session-reports-202
 
 | File | Classification | Action |
 |------|---------------|--------|
-| run-test.py | forbidden root runner | deleted |
+| tests/run_tests.py | forbidden root runner | deleted |
 
 ---
 

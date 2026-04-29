@@ -255,6 +255,10 @@ def test_runtime_model_defaults_and_npc_director_cycles():
 
     templates = load_builtin_templates()
     solo_instance = _runtime_instance_for("god_of_carnage_solo")
+    # god_of_carnage_solo is a runtime profile with no story truth (initial_beat_id="").
+    # The canonical beat_id comes from the god_of_carnage content module at session start.
+    # For unit-testing the NPC director cycle, set the canonical initial beat explicitly.
+    solo_instance.beat_id = "courtesy"
     solo_director = RuntimeNpcDirector(templates["god_of_carnage_solo"], emit)
     solo_events = solo_director.run_cycle(solo_instance)
     assert solo_events == []
@@ -290,9 +294,9 @@ def test_runtime_model_defaults_and_npc_director_cycles():
 
 def test_runtime_engine_commands_and_snapshot(monkeypatch):
     engine_module = _import_engine_module(monkeypatch)
-    template = load_builtin_templates()["god_of_carnage_solo"]
+    template = load_builtin_templates()["god_of_carnage"]
     engine = engine_module.RuntimeEngine(template)
-    instance = _runtime_instance_for("god_of_carnage_solo")
+    instance = _runtime_instance_for("god_of_carnage")
     actor = next(iter(instance.participants.values()))
 
     available = engine.available_actions(instance, actor)
