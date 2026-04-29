@@ -173,8 +173,7 @@ def _check_human_actor_violations(
     action_lines, emotional_shift, or responder nominations. Returns None
     if no violation is found.
 
-    Error codes produced: ai_controlled_human_actor, human_actor_selected_as_responder,
-    invalid_visitor_runtime_reference.
+    Error codes produced: ai_controlled_human_actor, human_actor_selected_as_responder.
     """
     if not ai_forbidden_actor_ids:
         return None
@@ -182,13 +181,9 @@ def _check_human_actor_violations(
     def _forbidden(actor_id: str) -> bool:
         if not actor_id:
             return False
-        if actor_id == "visitor":
-            return True
         return actor_id in ai_forbidden_actor_ids
 
     def _error_code(actor_id: str, block_kind: str) -> str:
-        if actor_id == "visitor":
-            return "invalid_visitor_runtime_reference"
         if block_kind == "responder_nomination":
             return "human_actor_selected_as_responder"
         return "ai_controlled_human_actor"
@@ -268,8 +263,7 @@ def run_validation_seam(
     BEFORE the dramatic-effect gate. Rejects AI output that speaks, acts,
     emotes, or nominates the selected human actor.
 
-    Error codes: ai_controlled_human_actor, human_actor_selected_as_responder,
-    invalid_visitor_runtime_reference.
+    Error codes: ai_controlled_human_actor, human_actor_selected_as_responder.
     """
     # MVP2: Actor-lane enforcement runs before dramatic-effect gate and before commit.
     if actor_lane_context and isinstance(actor_lane_context, dict):

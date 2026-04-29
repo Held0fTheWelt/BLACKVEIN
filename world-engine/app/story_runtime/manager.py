@@ -935,7 +935,7 @@ def _build_ldss_scene_envelope(
 
     npc_ids = proj.get("npc_actor_ids")
     npc_actor_ids = sorted(
-        str(a) for a in (npc_ids or []) if isinstance(a, str) and a.strip() and a != "visitor"
+        str(a) for a in (npc_ids or []) if isinstance(a, str) and a.strip()
     )
     selected_player_role = str(proj.get("selected_player_role") or "").strip()
 
@@ -2308,7 +2308,7 @@ class StoryRuntimeManager:
                 last_human_actor = str(proj.get("human_actor_id") or "").strip()
                 last_npc_actors = [
                     str(a) for a in (proj.get("npc_actor_ids") or [])
-                    if str(a).strip() and str(a) != "visitor"
+                    if str(a).strip()
                 ]
                 for event in reversed(session.diagnostics):
                     if not isinstance(event, dict):

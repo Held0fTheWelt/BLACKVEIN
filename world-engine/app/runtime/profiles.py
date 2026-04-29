@@ -172,7 +172,7 @@ def resolve_runtime_profile(runtime_profile_id: str | None) -> RuntimeProfile:
 def validate_selected_player_role(selected_player_role: str | None, profile: RuntimeProfile) -> str:
     """Validate the selected player role against the profile's allowed roles.
 
-    Raises RuntimeProfileError for missing, invalid, or visitor roles.
+    Raises RuntimeProfileError for missing or invalid roles.
     Returns the validated role slug.
     """
     allowed = [r.role_slug for r in profile.selectable_player_roles]
@@ -187,16 +187,6 @@ def validate_selected_player_role(selected_player_role: str | None, profile: Run
         )
 
     role = selected_player_role.strip()
-
-    if role == "visitor":
-        raise RuntimeProfileError(
-            code="invalid_visitor_runtime_reference",
-            message=(
-                "visitor is not a canonical God of Carnage actor and is not valid "
-                "in the live solo runtime path."
-            ),
-            location="create_run.selected_player_role",
-        )
 
     if role not in _SELECTABLE_ROLE_SLUGS:
         raise RuntimeProfileError(
@@ -226,15 +216,8 @@ def validate_selected_player_role(selected_player_role: str | None, profile: Run
 def build_actor_ownership(selected_player_role: str, profile: RuntimeProfile) -> dict[str, Any]:
     """Build human_actor_id, npc_actor_ids, and actor_lanes from selected role.
 
-    Uses content-resolved canonical actors. Raises RuntimeProfileError if visitor appears.
+    Uses content-resolved canonical actors.
     """
-    if selected_player_role == "visitor":
-        raise RuntimeProfileError(
-            code="invalid_visitor_runtime_reference",
-            message="visitor is not valid in the live God of Carnage solo runtime path.",
-            location="actor_ownership",
-        )
-
     human_actor_id = profile.role_slug_to_canonical_actor_id(selected_player_role)
     if human_actor_id is None:
         raise RuntimeProfileError(
@@ -245,14 +228,6 @@ def build_actor_ownership(selected_player_role: str, profile: RuntimeProfile) ->
     # Resolve all canonical actors from content (FIX-007)
     canonical_actors, content_hash = _resolve_goc_content()
     npc_actor_ids = [a for a in canonical_actors if a != human_actor_id]
-
-    for npc_id in npc_actor_ids:
-        if npc_id == "visitor":
-            raise RuntimeProfileError(
-                code="invalid_visitor_runtime_reference",
-                message="visitor found in NPC actor list — not a canonical God of Carnage actor.",
-                location="npc_actor_ids",
-            )
 
     actor_lanes: dict[str, str] = {human_actor_id: "human"}
     for npc_id in npc_actor_ids:

@@ -6,11 +6,10 @@ world-engine/app/story_runtime/manager.py (_finalize_committed_turn).
 
 Validation order (enforced before commit / before response packaging):
   1. actor_lane_blocks — reject human actor as AI speaker/actor
-  2. visitor_absence   — reject visitor in any block
-  3. dramatic_mass     — require at least one visible NPC actor response
-  4. narrator_voice    — reject dialogue recap / forced player state / hidden intent
-  5. passivity         — require visible NPC actor_line/action/env unless terminal
-  6. affordance        — validate object admission tiers
+  2. dramatic_mass     — require at least one visible NPC actor response
+  3. narrator_voice    — reject dialogue recap / forced player state / hidden intent
+  4. passivity         — require visible NPC actor_line/action/env unless terminal
+  5. affordance        — validate object admission tiers
 
 Deterministic mock output is produced when no real AI adapter is present.
 Fallback output is produced when proposal generation fails.
@@ -296,7 +295,7 @@ def validate_actor_lane_blocks(
     *,
     ai_forbidden_actor_ids: list[str] | None = None,
 ) -> LDSSValidationResult:
-    """Reject any block where AI controls the human actor or visitor appears.
+    """Reject any block where AI controls the human actor.
 
     Must be called before commit and before response packaging.
     """
@@ -304,14 +303,6 @@ def validate_actor_lane_blocks(
 
     for idx, block in enumerate(blocks):
         actor = block.actor_id or ""
-        if actor == "visitor":
-            return LDSSValidationResult(
-                status="rejected",
-                error_code="invalid_visitor_runtime_reference",
-                message="visitor cannot appear as actor in live scene blocks",
-                block_index=idx,
-                actor_id="visitor",
-            )
         if actor and actor in forbidden:
             return LDSSValidationResult(
                 status="rejected",
@@ -324,20 +315,6 @@ def validate_actor_lane_blocks(
                 actor_id=actor,
             )
 
-    return LDSSValidationResult(status="approved")
-
-
-def validate_visitor_absent_from_blocks(blocks: list[SceneBlock]) -> LDSSValidationResult:
-    """Visitor must not appear anywhere in block actor/target fields."""
-    for idx, block in enumerate(blocks):
-        if block.actor_id == "visitor" or block.target_actor_id == "visitor":
-            return LDSSValidationResult(
-                status="rejected",
-                error_code="invalid_visitor_runtime_reference",
-                message="visitor is absent from all valid live scene paths",
-                block_index=idx,
-                actor_id="visitor",
-            )
     return LDSSValidationResult(status="approved")
 
 
@@ -471,7 +448,7 @@ def validate_responder_candidates(
     secondary_responder_ids: list[str],
     human_actor_id: str,
 ) -> LDSSValidationResult:
-    """Human actor and visitor must not be in responder candidates."""
+    """Human actor must not be in responder candidates."""
     all_responders = [primary_responder_id] + secondary_responder_ids
     for rid in all_responders:
         if rid == human_actor_id:
@@ -479,13 +456,6 @@ def validate_responder_candidates(
                 status="rejected",
                 error_code="human_actor_selected_as_responder",
                 message=f"Human actor {human_actor_id!r} cannot be a responder candidate.",
-                actor_id=rid,
-            )
-        if rid == "visitor":
-            return LDSSValidationResult(
-                status="rejected",
-                error_code="invalid_visitor_runtime_reference",
-                message="visitor cannot be a responder candidate.",
                 actor_id=rid,
             )
     return LDSSValidationResult(status="approved")
@@ -531,7 +501,7 @@ def _select_primary_responder(npc_ids: list[str], human_actor_id: str) -> str:
         if npc in npc_ids and npc != human_actor_id:
             return npc
     for npc_id in npc_ids:
-        if npc_id != human_actor_id and npc_id != "visitor":
+        if npc_id != human_actor_id:
             return npc_id
     return ""
 
@@ -544,7 +514,6 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     - at least one NPC actor_line
     - at least one NPC actor_action (from secondary NPC when available)
     - No human actor control
-    - No visitor
     """
     npc_ids = ldss_input.ai_allowed_actor_ids
     human_id = ldss_input.human_actor_id
@@ -553,7 +522,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     primary = _select_primary_responder(npc_ids, human_id)
     # Fallback to first available NPC if primary is empty (edge case defensive handling)
     effective_primary = primary if primary else (npc_ids[0] if npc_ids else "")
-    secondary_ids = [n for n in npc_ids if n != effective_primary and n != human_id and n != "visitor"]
+    secondary_ids = [n for n in npc_ids if n != effective_primary and n != human_id]
     secondary = secondary_ids[0] if secondary_ids else ""
 
     blocks: list[SceneBlock] = []
@@ -685,15 +654,6 @@ def run_ldss(ldss_input: LDSSInput) -> LDSSOutput:
             ldss_input=ldss_input,
             error_code=lane_result.error_code or "actor_lane_validation_failed",
             message=lane_result.message or "Actor lane validation rejected proposal.",
-        )
-
-    # Validate visitor absence
-    visitor_result = validate_visitor_absent_from_blocks(ldss_output.visible_scene_output.blocks)
-    if not visitor_result.approved:
-        return _build_rejected_ldss_output(
-            ldss_input=ldss_input,
-            error_code=visitor_result.error_code or "invalid_visitor_runtime_reference",
-            message=visitor_result.message or "Visitor rejected from live scene.",
         )
 
     # Validate dramatic mass (before commit)

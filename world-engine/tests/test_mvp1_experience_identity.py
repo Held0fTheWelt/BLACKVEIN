@@ -164,7 +164,7 @@ class TestVisitorRemoval:
         profile = resolve_runtime_profile("god_of_carnage_solo")
         with pytest.raises(RuntimeProfileError) as exc_info:
             validate_selected_player_role("visitor", profile)
-        assert exc_info.value.code == "invalid_visitor_runtime_reference"
+        assert exc_info.value.code == "invalid_selected_player_role"
 
     def test_visitor_absent_from_prompts_responders_lobby(self):
         """visitor must not appear in the GoC solo template roles."""
@@ -191,7 +191,7 @@ class TestVisitorRemoval:
         profile = resolve_runtime_profile("god_of_carnage_solo")
         with pytest.raises(RuntimeProfileError) as exc_info:
             build_actor_ownership("visitor", profile)
-        assert exc_info.value.code == "invalid_visitor_runtime_reference"
+        assert exc_info.value.code == "selected_player_role_not_canonical_character"
 
 
 # ---------------------------------------------------------------------------

@@ -179,22 +179,6 @@ def test_actor_lane_context_uses_mvp1_handoff():
     assert "visitor" not in ctx.ai_forbidden_actor_ids
 
 
-def test_actor_lane_context_excludes_visitor():
-    """Visitor must never appear in actor lanes."""
-    poisoned = {
-        **_ANNETTE_OWNERSHIP,
-        "actor_lanes": {**_ANNETTE_OWNERSHIP["actor_lanes"], "visitor": "npc"},
-    }
-    with pytest.raises((ValueError, Exception)) as exc_info:
-        build_actor_lane_context(
-            poisoned,
-            selected_player_role="annette",
-            runtime_profile_id="god_of_carnage_solo",
-            content_module_id="god_of_carnage",
-        )
-    assert "visitor" in str(exc_info.value).lower()
-
-
 def test_actor_lane_context_alain_npc_list():
     ctx = build_actor_lane_context(
         _ALAIN_OWNERSHIP,
@@ -423,21 +407,6 @@ def test_human_actor_cannot_be_secondary_responder():
     assert result.status == "rejected"
     assert result.error_code == "human_actor_selected_as_responder"
     assert result.actor_id == "annette"
-
-
-def test_visitor_cannot_be_responder():
-    ctx = _annette_ctx()
-    for field in ["primary_responder_id", "responder_id"]:
-        result = validate_responder_plan({field: "visitor"}, ctx)
-        assert result.status == "rejected"
-        assert result.error_code == "invalid_visitor_runtime_reference"
-
-    result = validate_responder_plan(
-        {"primary_responder_id": "alain", "secondary_responder_ids": ["visitor"]},
-        ctx,
-    )
-    assert result.status == "rejected"
-    assert result.error_code == "invalid_visitor_runtime_reference"
 
 
 def test_valid_npc_responder_plan_approved():

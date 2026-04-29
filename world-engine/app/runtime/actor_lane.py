@@ -24,23 +24,9 @@ def build_actor_lane_context(
     runtime_profile_id: str,
     content_module_id: str,
 ) -> ActorLaneContext:
-    """Build ActorLaneContext from MVP1 build_actor_ownership() output.
-
-    Raises ValueError with code invalid_visitor_runtime_reference if visitor
-    appears anywhere in actor_lanes.
-    """
+    """Build ActorLaneContext from MVP1 build_actor_ownership() output."""
     human_actor_id: str = actor_ownership["human_actor_id"]
     actor_lanes: dict[str, str] = dict(actor_ownership["actor_lanes"])
-
-    for actor_id in actor_lanes:
-        if actor_id == "visitor":
-            raise ValueError(
-                "invalid_visitor_runtime_reference: visitor cannot appear in actor lanes"
-            )
-    if human_actor_id == "visitor":
-        raise ValueError(
-            "invalid_visitor_runtime_reference: visitor cannot be the human actor"
-        )
 
     ai_allowed = sorted(aid for aid, lane in actor_lanes.items() if lane == "npc")
     ai_forbidden = [human_actor_id]
@@ -159,7 +145,6 @@ def validate_actor_lane_output(
 
     Error codes:
       ai_controlled_human_actor  — AI output targets the human actor
-      invalid_visitor_runtime_reference — visitor appears as actor
       actor_lane_validation_too_late — called after commit (detected via flag)
     """
     if candidate.get("_already_committed"):
@@ -178,15 +163,6 @@ def validate_actor_lane_output(
 
     if not actor_id:
         return approved_result(actor_lane_context)
-
-    if actor_id == "visitor":
-        return rejected_result(
-            error_code="invalid_visitor_runtime_reference",
-            actor_id=actor_id,
-            block_kind=block_kind,
-            human_actor_id=actor_lane_context.human_actor_id,
-            message="visitor is not valid in the live solo runtime path.",
-        )
 
     if actor_lane_context.is_ai_forbidden(actor_id):
         return rejected_result(
@@ -361,7 +337,6 @@ def validate_responder_plan(
 
     Error codes:
       human_actor_selected_as_responder — human actor nominated as responder
-      invalid_visitor_runtime_reference — visitor nominated as responder
     """
     primary = str(
         responder_plan.get("primary_responder_id")
@@ -370,14 +345,6 @@ def validate_responder_plan(
     ).strip()
 
     if primary:
-        if primary == "visitor":
-            return rejected_result(
-                error_code="invalid_visitor_runtime_reference",
-                actor_id=primary,
-                block_kind="responder_nomination",
-                human_actor_id=actor_lane_context.human_actor_id,
-                message="visitor cannot be a responder.",
-            )
         if actor_lane_context.is_ai_forbidden(primary):
             return rejected_result(
                 error_code="human_actor_selected_as_responder",
@@ -396,14 +363,6 @@ def validate_responder_plan(
         sid = sid.strip()
         if not sid:
             continue
-        if sid == "visitor":
-            return rejected_result(
-                error_code="invalid_visitor_runtime_reference",
-                actor_id=sid,
-                block_kind="responder_nomination",
-                human_actor_id=actor_lane_context.human_actor_id,
-                message="visitor cannot be a secondary responder.",
-            )
         if actor_lane_context.is_ai_forbidden(sid):
             return rejected_result(
                 error_code="human_actor_selected_as_responder",

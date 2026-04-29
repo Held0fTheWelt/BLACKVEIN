@@ -42,7 +42,6 @@ from ai_stack.live_dramatic_scene_simulator import (
     build_scene_turn_envelope_v2,
     run_ldss,
     validate_actor_lane_blocks,
-    validate_visitor_absent_from_blocks,
     validate_dramatic_mass,
     validate_narrator_voice,
     validate_passivity,
@@ -240,25 +239,14 @@ def test_mvp3_gate_visitor_absent_from_live_turn():
         assert block.actor_id != "visitor", "visitor must not appear as actor in live turn"
         assert block.target_actor_id != "visitor", "visitor must not appear as target in live turn"
 
-    # Verify visitor rejected by validate_visitor_absent_from_blocks
-    visitor_block = SceneBlock(
-        id="test-visitor-block",
-        block_type="actor_line",
-        actor_id="visitor",
-        text="Some visitor line",
-    )
-    result = validate_visitor_absent_from_blocks([visitor_block])
-    assert result.status == "rejected"
-    assert result.error_code == "invalid_visitor_runtime_reference"
-
 
 # ---------------------------------------------------------------------------
 # Responder candidate validation
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp3
-def test_mvp3_gate_responder_candidates_exclude_human_and_visitor():
-    """Human actor and visitor must not be responder candidates."""
+def test_mvp3_gate_responder_candidates_exclude_human():
+    """Human actor must not be a responder candidate."""
     # Human actor as primary responder is rejected
     result = validate_responder_candidates(
         primary_responder_id="annette",
@@ -268,22 +256,13 @@ def test_mvp3_gate_responder_candidates_exclude_human_and_visitor():
     assert result.status == "rejected"
     assert result.error_code == "human_actor_selected_as_responder"
 
-    # Visitor as secondary responder is rejected
-    result2 = validate_responder_candidates(
-        primary_responder_id="veronique",
-        secondary_responder_ids=["visitor"],
-        human_actor_id="annette",
-    )
-    assert result2.status == "rejected"
-    assert result2.error_code == "invalid_visitor_runtime_reference"
-
     # Valid plan: only NPCs
-    result3 = validate_responder_candidates(
+    result2 = validate_responder_candidates(
         primary_responder_id="veronique",
         secondary_responder_ids=["alain"],
         human_actor_id="annette",
     )
-    assert result3.status == "approved"
+    assert result2.status == "approved"
 
     # NPC agency plan from deterministic mock excludes human
     ldss_input = _annette_ldss_input()
@@ -291,10 +270,8 @@ def test_mvp3_gate_responder_candidates_exclude_human_and_visitor():
     plan = ldss_output.npc_agency_plan
     assert plan is not None
     assert plan.primary_responder_id != "annette"
-    assert plan.primary_responder_id != "visitor"
     for sec in plan.secondary_responder_ids:
         assert sec != "annette"
-        assert sec != "visitor"
 
 
 # ---------------------------------------------------------------------------
@@ -499,10 +476,6 @@ def test_mvp3_gate_fallback_output_satisfies_validation():
         ai_forbidden_actor_ids=["annette"],
     )
     assert lane_result.status == "approved", f"Lane validation failed: {lane_result.message}"
-
-    # Visitor absence passes
-    visitor_result = validate_visitor_absent_from_blocks(blocks)
-    assert visitor_result.status == "approved"
 
     # Dramatic mass passes
     mass_result = validate_dramatic_mass(blocks)
