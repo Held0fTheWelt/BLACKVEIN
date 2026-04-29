@@ -95,6 +95,8 @@ Only after ruling out environment issues should you:
 - "Diagnose why this is failing" (understand codebase context before fixing)
 - "Legacy content audit" (find all instances of old patterns)
 - "Scope analysis" (what code is affected by this change?)
+- "Test reference audit" (find all tests that import or reference a deleted module)
+- "Cross-file consistency" (find all docs that reference deleted/renamed code)
 
 **When NOT to use indexing:**
 - You already know the exact file path → just `Read` it directly
