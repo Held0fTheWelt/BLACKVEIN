@@ -86,7 +86,7 @@ Only after ruling out environment issues should you:
 
 ## Indexing for Search & Diagnostics — Use semantic codebase search for exploration and problem-solving
 
-**Rule:** For any search, diagnostic, or exploration work, use semantic codebase indexing (`mcp__claude-context__search_code`) instead of naive grep/glob. The codebase is semantically indexed and ready for natural language queries.
+**Rule:** Use semantic codebase indexing (`mcp__claude-context__search_code`) for **almost everything** where you need to find out what is happening and why. The codebase is semantically indexed and ready for natural language queries. This is your default tool for understanding code behavior, dependencies, and root causes.
 
 **When to use indexing:**
 - "Where is X defined?" (function, class, constant, symbol)
