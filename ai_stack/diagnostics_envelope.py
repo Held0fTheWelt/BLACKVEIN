@@ -61,6 +61,32 @@ def _hash_text(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# DegradationEvent
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DegradationEvent:
+    marker: str
+    severity: str
+    timestamp: str
+    recovery_successful: bool
+    recovery_latency_ms: int | None = None
+    context_snapshot: dict = field(default_factory=dict)
+    span_ids: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "marker": self.marker,
+            "severity": self.severity,
+            "timestamp": self.timestamp,
+            "recovery_successful": self.recovery_successful,
+            "recovery_latency_ms": self.recovery_latency_ms,
+            "context_snapshot": self.context_snapshot,
+            "span_ids": self.span_ids,
+        }
+
+
+# ---------------------------------------------------------------------------
 # TraceableDecision
 # ---------------------------------------------------------------------------
 
@@ -144,6 +170,11 @@ class DiagnosticsEnvelope:
     npc_agency: dict[str, Any] = field(default_factory=dict)
     frontend_render_contract: dict[str, Any] = field(default_factory=dict)
     quality: dict[str, Any] = field(default_factory=dict)
+    degradation_timeline: list[DegradationEvent] = field(default_factory=list)
+    cost_summary: dict[str, Any] = field(default_factory=lambda: {
+        "input_tokens": 0, "output_tokens": 0, "cost_usd": 0.0
+    })
+    debug_payload: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -186,7 +217,35 @@ class DiagnosticsEnvelope:
             "npc_agency": dict(self.npc_agency),
             "frontend_render_contract": dict(self.frontend_render_contract),
             "quality": dict(self.quality),
+            "degradation_timeline": [e.to_dict() for e in self.degradation_timeline],
+            "cost_summary": dict(self.cost_summary),
+            "debug_payload": self.debug_payload,
         }
+
+    def to_response(self, context: str = "operator") -> dict[str, Any]:
+        """Build response dict based on consumer context.
+
+        context="operator"    → tiered visibility (hashes + costs redacted)
+        context="langfuse"    → full technical data (debug_payload excluded)
+        context="super_admin" → everything unredacted
+        """
+        base = self.to_dict()
+        if context == "super_admin":
+            return base
+        # debug_payload NIEMALS in Langfuse oder Operator
+        base.pop("debug_payload", None)
+        if context == "langfuse":
+            return base
+        # Operator: hashes und costs redacten
+        if "live_dramatic_scene_simulator" in base:
+            base["live_dramatic_scene_simulator"]["input_hash"] = "[REDACTED]"
+            base["live_dramatic_scene_simulator"]["output_hash"] = "[REDACTED]"
+        base["player_input_hash"] = "[REDACTED]"
+        base["cost_summary"] = "[REDACTED]"
+        # degradation_timeline: span_ids redacten
+        for event in base.get("degradation_timeline", []):
+            event["span_ids"] = "[REDACTED]"
+        return base
 
     def validate_evidence_consistency(self) -> tuple[bool, str | None]:
         """Check that the envelope has non-placeholder evidence.
@@ -385,6 +444,7 @@ def build_diagnostics_envelope(
     scene_turn_envelope: dict[str, Any] | None,
     langfuse_trace_id: str = "",
     langfuse_enabled: bool = False,
+    degradation_events: list[DegradationEvent] | None = None,
 ) -> DiagnosticsEnvelope:
     """Build a DiagnosticsEnvelope from committed turn data.
 
@@ -559,6 +619,7 @@ def build_diagnostics_envelope(
         npc_agency=npc_agency_diag,
         frontend_render_contract=frontend_contract,
         quality=quality_diag,
+        degradation_timeline=degradation_events or [],
     )
 
 
@@ -621,6 +682,36 @@ def build_local_trace_export(
 # ---------------------------------------------------------------------------
 # NarrativeGovSummary builder
 # ---------------------------------------------------------------------------
+
+def envelope_dict_to_response(envelope_dict: dict[str, Any], context: str = "operator") -> dict[str, Any]:
+    """Apply to_response logic to an envelope dict (without reconstructing the object).
+
+    context="operator"    → tiered visibility (hashes + costs redacted)
+    context="langfuse"    → full technical data (debug_payload excluded)
+    context="super_admin" → everything unredacted
+    """
+    result = envelope_dict.copy()
+    if context == "super_admin":
+        return result
+    # debug_payload NIEMALS in Langfuse oder Operator
+    result.pop("debug_payload", None)
+    if context == "langfuse":
+        return result
+    # Operator: hashes und costs redacten
+    if "live_dramatic_scene_simulator" in result:
+        result["live_dramatic_scene_simulator"] = result["live_dramatic_scene_simulator"].copy()
+        result["live_dramatic_scene_simulator"]["input_hash"] = "[REDACTED]"
+        result["live_dramatic_scene_simulator"]["output_hash"] = "[REDACTED]"
+    result["player_input_hash"] = "[REDACTED]"
+    result["cost_summary"] = "[REDACTED]"
+    # degradation_timeline: span_ids redacten
+    if "degradation_timeline" in result:
+        result["degradation_timeline"] = [
+            {**event, "span_ids": "[REDACTED]"}
+            for event in result.get("degradation_timeline", [])
+        ]
+    return result
+
 
 def build_narrative_gov_summary(
     *,
