@@ -66,9 +66,32 @@ MVP 3 is the final behavior core. LDSS is non-optional and final. A narrator-onl
 | Trace scaffold | MVP 4 | span names, decision IDs, validation outcomes | trace scaffold artifact |
 | Frontend render contract scaffold | MVP 5 | block IDs, block types, delivery hints | response fixture |
 
+## Deferred from MVP 2: Object Admission and State Delta Boundary Admin Overrides
+
+The following infrastructure decisions were **locked in MVP 2** (Option B: Admin Pattern with Audit Trail), but the **operator UI is deferred to MVP 4**:
+
+### Object Admission Override Admin Surface
+- **Decision Source**: ADR-MVP2-015 (Canonical, Typical, and Similar Environment Affordances)
+- **Infrastructure Present**: `admit_object()` validator and `ObjectAdmissionRecord` tier enforcement (all tests PASS)
+- **Admin UI Deferred**: Operator interface to override admission tier (e.g., canonical→temporary) not implemented in MVP 3
+- **Will be implemented in MVP 4** alongside Narrative Gov operator surfaces
+
+### State Delta Boundary Override Admin Surface  
+- **Decision Source**: ADR-MVP2-003 (NPC Coercion), ADR-MVP2-016 (Operational Gates)
+- **Infrastructure Present**: `validate_state_delta()` enforces protected paths with audit intent (all tests PASS)
+- **Admin UI Deferred**: Operator interface for breakglass unlocking of protected paths not implemented in MVP 3
+- **Will be implemented in MVP 4** alongside Narrative Gov operator surfaces
+
+**Why deferred?**
+- MVP 3 focuses on live LDSS behavior proof; admin overrides are operational fine-tuning
+- MVP 4 consolidates all operator surfaces (Narrative Gov health + Object Admission + State Delta overrides) in administration-tool
+- Both validator functions exist and are tested; only UI implementation is deferred
+
+**Handoff reference**: `tests/reports/MVP_Live_Runtime_Completion/GOC_MVP2_HANDOFF_TO_MVP3.md` documents deferred admin UIs with implementation checklist for MVP 4.
+
 ## Consumed By Next MVP
 
-MVP 4 consumes LDSS live path, scene blocks, simulator diagnostics scaffold, trace scaffold, validation outcomes, passivity status, and degradation signals.
+MVP 4 consumes LDSS live path, scene blocks, simulator diagnostics scaffold, trace scaffold, validation outcomes, passivity status, and degradation signals. MVP 4 also implements the deferred Object Admission and State Delta Boundary admin override surfaces.
 
 ## Services Touched
 
