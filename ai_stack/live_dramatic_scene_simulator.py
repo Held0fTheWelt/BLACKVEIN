@@ -21,6 +21,7 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from typing import Any
+from backend.app.observability.langfuse_adapter import LangfuseAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -628,7 +629,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
 # ---------------------------------------------------------------------------
 
 def run_ldss(ldss_input: LDSSInput) -> LDSSOutput:
-    """Run the Live Dramatic Scene Simulator.
+    """Run the Live Dramatic Scene Simulator with Langfuse span tracking.
 
     Produces validated structured output from a God of Carnage solo turn.
     Uses deterministic mock output (no external AI call required for tests).
@@ -639,42 +640,110 @@ def run_ldss(ldss_input: LDSSInput) -> LDSSOutput:
     3. Validate dramatic mass (before commit)
     4. Validate passivity (before commit)
     5. Return validated output
+
+    Returns output with embedded cost/token info for Phase B aggregation.
     """
-    ldss_output = build_deterministic_ldss_output(ldss_input)
+    # Phase B: Create Langfuse span for LDSS simulation
+    adapter = LangfuseAdapter.get_instance()
+    parent_span = adapter.get_active_span()
+    ldss_span = None
 
-    # Validate actor lanes (must run before commit)
-    lane_result = validate_actor_lane_blocks(
-        ldss_output.visible_scene_output.blocks,
-        human_actor_id=ldss_input.human_actor_id,
-        ai_forbidden_actor_ids=ldss_input.ai_forbidden_actor_ids,
-    )
-    if not lane_result.approved:
-        # Return degraded output with validation error — do not commit illegal blocks
-        return _build_rejected_ldss_output(
-            ldss_input=ldss_input,
-            error_code=lane_result.error_code or "actor_lane_validation_failed",
-            message=lane_result.message or "Actor lane validation rejected proposal.",
+    if parent_span:
+        ldss_span = adapter.create_child_span(
+            name="live_dramatic_scene_simulator",
+            input_data={
+                "scene_id": ldss_input.current_scene_id,
+                "turn_number": ldss_input.turn_number,
+                "actor_ids": ldss_input.npc_actor_ids,
+            },
+            metadata={
+                "scene_id": ldss_input.current_scene_id,
+                "turn_number": ldss_input.turn_number,
+            },
+            parent_span=parent_span
         )
 
-    # Validate dramatic mass (before commit)
-    mass_result = validate_dramatic_mass(ldss_output.visible_scene_output.blocks)
-    if not mass_result.approved:
-        return _build_rejected_ldss_output(
-            ldss_input=ldss_input,
-            error_code=mass_result.error_code or "dramatic_alignment_insufficient_mass",
-            message=mass_result.message or "Insufficient dramatic mass.",
-        )
+    try:
+        ldss_output = build_deterministic_ldss_output(ldss_input)
 
-    # Validate passivity (before commit)
-    passivity_result = validate_passivity(ldss_output.visible_scene_output.blocks)
-    if not passivity_result.approved:
-        return _build_rejected_ldss_output(
-            ldss_input=ldss_input,
-            error_code=passivity_result.error_code or "no_visible_actor_response",
-            message=passivity_result.message or "Passivity validation failed.",
+        # Validate actor lanes (must run before commit)
+        lane_result = validate_actor_lane_blocks(
+            ldss_output.visible_scene_output.blocks,
+            human_actor_id=ldss_input.human_actor_id,
+            ai_forbidden_actor_ids=ldss_input.ai_forbidden_actor_ids,
         )
+        if not lane_result.approved:
+            # Return degraded output with validation error — do not commit illegal blocks
+            if ldss_span:
+                ldss_span.update(
+                    output={"status": "rejected", "error": lane_result.error_code},
+                    metadata={"validation_failed": True, "error_code": lane_result.error_code}
+                )
+            return _build_rejected_ldss_output(
+                ldss_input=ldss_input,
+                error_code=lane_result.error_code or "actor_lane_validation_failed",
+                message=lane_result.message or "Actor lane validation rejected proposal.",
+            )
 
-    return ldss_output
+        # Validate dramatic mass (before commit)
+        mass_result = validate_dramatic_mass(ldss_output.visible_scene_output.blocks)
+        if not mass_result.approved:
+            if ldss_span:
+                ldss_span.update(
+                    output={"status": "rejected", "error": mass_result.error_code},
+                    metadata={"validation_failed": True, "error_code": mass_result.error_code}
+                )
+            return _build_rejected_ldss_output(
+                ldss_input=ldss_input,
+                error_code=mass_result.error_code or "dramatic_alignment_insufficient_mass",
+                message=mass_result.message or "Insufficient dramatic mass.",
+            )
+
+        # Validate passivity (before commit)
+        passivity_result = validate_passivity(ldss_output.visible_scene_output.blocks)
+        if not passivity_result.approved:
+            if ldss_span:
+                ldss_span.update(
+                    output={"status": "rejected", "error": passivity_result.error_code},
+                    metadata={"validation_failed": True, "error_code": passivity_result.error_code}
+                )
+            return _build_rejected_ldss_output(
+                ldss_input=ldss_input,
+                error_code=passivity_result.error_code or "no_visible_actor_response",
+                message=passivity_result.message or "Passivity validation failed.",
+            )
+
+        # Phase B: Update span with LDSS output metrics
+        if ldss_span:
+            ldss_span.update(
+                output={
+                    "block_count": len(ldss_output.visible_scene_output.blocks),
+                    "decision_count": ldss_output.decision_count,
+                    "status": "approved"
+                },
+                metadata={
+                    "block_count": len(ldss_output.visible_scene_output.blocks),
+                    "decision_count": ldss_output.decision_count,
+                    "input_tokens": 0,  # Mock output: 0 tokens
+                    "output_tokens": 0,  # Mock output: 0 tokens
+                    "cost_usd": 0.0,  # Mock output: no cost
+                    "model": "mock",
+                }
+            )
+
+        return ldss_output
+
+    except Exception as e:
+        if ldss_span:
+            ldss_span.update(
+                output={"error": str(e)},
+                metadata={"error": True, "error_type": type(e).__name__}
+            )
+        raise
+
+    finally:
+        if ldss_span:
+            ldss_span.end()
 
 
 def _build_rejected_ldss_output(

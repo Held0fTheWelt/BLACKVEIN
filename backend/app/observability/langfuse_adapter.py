@@ -15,8 +15,12 @@ from typing import Any, Optional
 from functools import wraps
 import logging
 from datetime import datetime
+from contextvars import ContextVar
 
 logger = logging.getLogger(__name__)
+
+# Context variable for tracking active span
+_active_span_context: ContextVar[Optional[Any]] = ContextVar('active_span', default=None)
 
 # Attempt to import Langfuse; gracefully degrade if not available
 try:
@@ -451,6 +455,90 @@ class LangfuseAdapter:
             )
         except Exception as e:
             logger.warning(f"Failed to add score: {e}")
+
+    def create_child_span(
+        self,
+        name: str,
+        input: Optional[dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
+        parent_span: Optional[Any] = None,
+    ) -> Optional[Any]:
+        """Create a child span of the current active span.
+
+        Args:
+            name: Child span name
+            input: Input to the span
+            metadata: Additional metadata
+            parent_span: Parent span (defaults to active span context)
+
+        Returns:
+            Child span object if enabled, None otherwise.
+        """
+        if not self.is_enabled():
+            return None
+
+        try:
+            parent = parent_span or _active_span_context.get()
+            if not parent:
+                return None
+
+            span_input = self._sanitize_metadata(input) if input and self.config.capture_prompts else None
+            span_metadata = self._sanitize_metadata(metadata) if metadata else None
+
+            child_span = parent.start_observation(
+                as_type="span",
+                name=name,
+                input=span_input,
+                metadata=span_metadata,
+            )
+            return child_span
+        except Exception as e:
+            logger.warning(f"Failed to create child span: {e}")
+            return None
+
+    def set_active_span(self, span: Optional[Any]) -> Optional[Any]:
+        """Set the active span in context."""
+        return _active_span_context.set(span)
+
+    def get_active_span(self) -> Optional[Any]:
+        """Get the current active span from context."""
+        return _active_span_context.get()
+
+    def calculate_token_cost(
+        self,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+    ) -> float:
+        """Calculate cost for a given model and token counts.
+
+        Args:
+            model: Model name (e.g., 'claude-3-sonnet', 'gpt-4')
+            input_tokens: Number of input tokens
+            output_tokens: Number of output tokens
+
+        Returns:
+            Estimated cost in USD (or 0.0 if model not recognized)
+        """
+        # Token pricing (as of April 2026 - update as needed)
+        pricing = {
+            "claude-3-sonnet": {"input": 0.003, "output": 0.015},  # per 1k tokens
+            "claude-3-opus": {"input": 0.015, "output": 0.075},
+            "claude-3-haiku": {"input": 0.00025, "output": 0.00125},
+            "gpt-4": {"input": 0.03, "output": 0.06},
+            "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+            "gpt-3.5-turbo": {"input": 0.0005, "output": 0.0015},
+        }
+
+        model_lower = model.lower()
+        for model_key, rates in pricing.items():
+            if model_key in model_lower:
+                input_cost = (input_tokens / 1000) * rates["input"]
+                output_cost = (output_tokens / 1000) * rates["output"]
+                return round(input_cost + output_cost, 6)
+
+        # Default: assume similar to gpt-3.5 if model not recognized
+        return 0.0
 
     def flush(self) -> None:
         """Flush pending traces."""

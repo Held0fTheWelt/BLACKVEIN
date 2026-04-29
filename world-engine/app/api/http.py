@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from ai_stack.diagnostics_envelope import envelope_dict_to_response
+from backend.app.observability.langfuse_adapter import LangfuseAdapter
 from app.config import PLAY_SERVICE_INTERNAL_API_KEY
 from app.repo_root import resolve_wos_repo_root
 from app.narrative.corrective_retry import apply_corrective_retry
@@ -474,17 +476,69 @@ def execute_story_turn(
     manager: StoryRuntimeManager = Depends(get_story_manager),
 ) -> dict[str, Any]:
     trace_id = getattr(request.state, "trace_id", None)
+
+    # Initialize Langfuse adapter and create root span
+    adapter = LangfuseAdapter.get_instance()
+    root_span = None
+
+    if adapter.is_enabled():
+        root_span = adapter.start_trace(
+            name="story.turn.execute",
+            session_id=session_id,
+            metadata={
+                "turn_number": 0,  # Will be updated after execution
+                "player_input_length": len(payload.player_input) if payload.player_input else 0,
+                "environment": adapter.config.environment,
+            }
+        )
+        if root_span:
+            adapter.set_active_span(root_span)
+
     try:
         turn = manager.execute_turn(
             session_id=session_id,
             player_input=payload.player_input,
             trace_id=trace_id if isinstance(trace_id, str) else None,
         )
+
+        # Update root span with turn results
+        if root_span and turn:
+            turn_number = turn.get("turn_number", 0)
+            root_span.update(
+                output={
+                    "turn_number": turn_number,
+                    "session_id": session_id,
+                    "success": True,
+                },
+                metadata={
+                    "turn_number": turn_number,
+                    "environment": adapter.config.environment,
+                }
+            )
+
+        return {"session_id": session_id, "turn": turn}
+
     except KeyError as exc:
+        if root_span:
+            root_span.update(output={"error": str(exc)}, metadata={"error": "session_not_found"})
         raise HTTPException(status_code=404, detail="Story session not found") from exc
+
     except LiveStoryGovernanceError as exc:
+        if root_span:
+            root_span.update(output={"error": str(exc)}, metadata={"error": "governance_error"})
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    return {"session_id": session_id, "turn": turn}
+
+    except Exception as exc:
+        if root_span:
+            root_span.update(output={"error": str(exc)}, metadata={"error": "unknown_error"})
+        raise
+
+    finally:
+        # End root span and flush Langfuse
+        if root_span:
+            root_span.end()
+        if adapter.is_enabled():
+            adapter.flush()
 
 
 @router.get("/story/sessions/{session_id}/state", dependencies=[Depends(_require_internal_api_key)])
@@ -512,7 +566,8 @@ def get_story_diagnostics_envelope(session_id: str, manager: StoryRuntimeManager
         raise HTTPException(status_code=404, detail="Story session not found") from exc
     if envelope is None:
         return {"session_id": session_id, "diagnostics_envelope": None, "warning": "no_turns_yet"}
-    return {"session_id": session_id, "diagnostics_envelope": envelope}
+    envelope_dict = envelope_dict_to_response(envelope, context="operator")
+    return {"session_id": session_id, "diagnostics_envelope": envelope_dict}
 
 
 @router.get("/story/sessions/{session_id}/stream-narrator")

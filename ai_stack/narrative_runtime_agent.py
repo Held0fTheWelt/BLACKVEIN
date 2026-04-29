@@ -151,45 +151,106 @@ class NarrativeRuntimeAgent:
             motivation_analysis = self._analyze_motivation_pressure(agent_input)
 
             # Stream narrator blocks while initiatives pending
+            # Lazy import to avoid circular dependency with backend modules
+            try:
+                from backend.app.observability.langfuse_adapter import LangfuseAdapter
+                adapter = LangfuseAdapter()
+            except ImportError:
+                adapter = None
+
             while (
                 block_count < self.config.max_narrator_blocks
                 and motivation_analysis["remaining_initiatives"] > 0
             ):
-                narrator_block = self._generate_narrator_block(
-                    agent_input=agent_input,
-                    motivation_analysis=motivation_analysis,
-                    block_sequence=block_count,
-                )
+                # Get parent span from context and create narrator block span
+                narrator_span = None
+                if adapter:
+                    parent_span = adapter.get_active_span()
+                    if parent_span:
+                        narrator_span = adapter.create_child_span(
+                            name="narrator.narrate_block",
+                            input={
+                                "block_sequence": block_count,
+                                "pressure_score": motivation_analysis.get("pressure_score"),
+                                "remaining_initiatives": motivation_analysis.get("remaining_initiatives"),
+                            },
+                            metadata={
+                                "block_sequence": block_count,
+                                "turn_number": agent_input.turn_number,
+                                "session_id": agent_input.session_id,
+                            },
+                        )
 
-                # Validate narrator voice (no force, prediction, hidden intent)
-                validation_error = self._validate_narrative_output(narrator_block, agent_input)
-                if validation_error:
-                    yield self._emit_error_event(
-                        session_id=agent_input.session_id,
-                        error_code="narrative_validation_failed",
-                        error_message=validation_error,
-                    )
-                    return
-
-                # Phase 6: Record trace scaffold for this narrator block
-                if not agent_input.enable_langfuse_tracing:
-                    self._record_trace_scaffold(
-                        event_type="narrator_block_generation",
-                        metadata={
-                            "block_id": narrator_block.get("block_id"),
-                            "atmospheric_tone": narrator_block.get("atmospheric_tone"),
-                            "block_sequence": block_count,
-                            "pressure_score": narrator_block.get("pressure_score"),
-                        },
+                try:
+                    narrator_block = self._generate_narrator_block(
+                        agent_input=agent_input,
+                        motivation_analysis=motivation_analysis,
+                        block_sequence=block_count,
                     )
 
-                # Emit narrator block event
-                yield self._emit_narrator_event(narrator_block, block_sequence=block_count)
-                block_count += 1
+                    # Validate narrator voice (no force, prediction, hidden intent)
+                    validation_error = self._validate_narrative_output(narrator_block, agent_input)
+                    if validation_error:
+                        if narrator_span:
+                            narrator_span.update(
+                                output={"status": "rejected", "error": validation_error},
+                                metadata={"validation_failed": True}
+                            )
+                            narrator_span.end()
+                        yield self._emit_error_event(
+                            session_id=agent_input.session_id,
+                            error_code="narrative_validation_failed",
+                            error_message=validation_error,
+                        )
+                        return
 
-                # Check ruhepunkt after each block (optional: recalculate pressure)
-                if block_count % self.config.ruhepunkt_check_interval == 0:
-                    motivation_analysis = self._analyze_motivation_pressure(agent_input)
+                    # Update span with block metrics
+                    if narrator_span:
+                        narrator_span.update(
+                            output={
+                                "block_id": narrator_block.get("block_id"),
+                                "atmospheric_tone": narrator_block.get("atmospheric_tone"),
+                                "text_length": len(narrator_block.get("narrator_text", "")),
+                            },
+                            metadata={
+                                "input_tokens": 0,
+                                "output_tokens": 0,
+                                "model": "mock",
+                                "cost_usd": 0.0,
+                                "atmospheric_tone": narrator_block.get("atmospheric_tone"),
+                                "narrative_threads_referenced": len(narrator_block.get("narrative_threads_referenced", [])),
+                            },
+                        )
+                        narrator_span.end()
+
+                    # Phase 6: Record trace scaffold for this narrator block
+                    if not agent_input.enable_langfuse_tracing:
+                        self._record_trace_scaffold(
+                            event_type="narrator_block_generation",
+                            metadata={
+                                "block_id": narrator_block.get("block_id"),
+                                "atmospheric_tone": narrator_block.get("atmospheric_tone"),
+                                "block_sequence": block_count,
+                                "pressure_score": narrator_block.get("pressure_score"),
+                            },
+                        )
+
+                    # Emit narrator block event
+                    yield self._emit_narrator_event(narrator_block, block_sequence=block_count)
+                    block_count += 1
+
+                    # Check ruhepunkt after each block (optional: recalculate pressure)
+                    if block_count % self.config.ruhepunkt_check_interval == 0:
+                        motivation_analysis = self._analyze_motivation_pressure(agent_input)
+
+                except Exception as e:
+                    if narrator_span:
+                        narrator_span.update(
+                            output={"status": "error", "error": str(e)},
+                            metadata={"error": True}
+                        )
+                        narrator_span.end()
+                    raise
 
             # Signal ruhepunkt (rest point) - input can now be processed
             yield self._emit_ruhepunkt_event(

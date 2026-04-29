@@ -40,9 +40,11 @@ from ai_stack.live_dramatic_scene_simulator import (
     run_ldss,
 )
 from ai_stack.diagnostics_envelope import (
+    DegradationEvent,
     build_diagnostics_envelope,
     build_narrative_gov_summary,
 )
+from backend.app.observability.langfuse_adapter import LangfuseAdapter
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 
 from app.config import APP_VERSION
@@ -1962,6 +1964,48 @@ class StoryRuntimeManager:
         # Never exposes raw AI proposals as committed truth.
         if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
             try:
+                # Phase B: Collect degradation events
+                degradation_events = []
+                signals = graph_state.get("degradation_signals") or []
+                for signal in signals:
+                    severity = "critical" if signal in ("execution_error", "graph_error") \
+                               else "moderate" if "fallback" in signal \
+                               else "minor"
+                    degradation_events.append(DegradationEvent(
+                        marker=signal.upper(),
+                        severity=severity,
+                        timestamp=datetime.now(timezone.utc).isoformat(),
+                        recovery_successful=graph_state.get("committed_result", {}).get("commit_applied", False),
+                        context_snapshot={"turn_number": commit_turn_number},
+                    ))
+
+                # Phase B: Aggregate costs from graph state phases
+                # (Will be populated by LDSS, Narrator, and other phases in Steps 3-4)
+                graph_costs = graph_state.get("phase_costs", {})
+                total_input_tokens = 0
+                total_output_tokens = 0
+                total_cost_usd = 0.0
+                cost_breakdown = {}
+
+                # Aggregate phase costs
+                for phase_name, phase_cost_data in graph_costs.items():
+                    if isinstance(phase_cost_data, dict):
+                        input_tokens = phase_cost_data.get("input_tokens", 0)
+                        output_tokens = phase_cost_data.get("output_tokens", 0)
+                        cost_usd = phase_cost_data.get("cost_usd", 0.0)
+
+                        total_input_tokens += input_tokens
+                        total_output_tokens += output_tokens
+                        total_cost_usd += cost_usd
+                        cost_breakdown[phase_name] = cost_usd
+
+                cost_summary = {
+                    "input_tokens": total_input_tokens,
+                    "output_tokens": total_output_tokens,
+                    "cost_usd": round(total_cost_usd, 6),
+                    "cost_breakdown": cost_breakdown,
+                }
+
                 diag_envelope = build_diagnostics_envelope(
                     session_id=session.session_id,
                     turn_number=commit_turn_number,
@@ -1971,7 +2015,10 @@ class StoryRuntimeManager:
                     graph_state=graph_state,
                     scene_turn_envelope=scene_turn_envelope,
                     langfuse_enabled=False,
+                    degradation_events=degradation_events,
                 )
+                # Update cost_summary in the envelope
+                diag_envelope.cost_summary = cost_summary
                 event["diagnostics_envelope"] = diag_envelope.to_dict()
             except Exception:
                 pass  # diagnostics must never break turn execution
