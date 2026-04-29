@@ -49,7 +49,6 @@ def load_builtin_templates() -> dict[str, ExperienceTemplate]:
     # primary runtime content authority; published backend feed remains canonical.
     templates = [
         build_god_of_carnage_solo(),
-        build_god_of_carnage_content_template(),
         build_apartment_confrontation_group(),
         build_better_tomorrow_district_open_world(),
     ]

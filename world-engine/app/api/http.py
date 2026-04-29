@@ -516,7 +516,7 @@ def execute_story_turn(
                 },
                 metadata={
                     "turn_number": turn_number,
-                    "environment": adapter.config.environment,
+                    "environment": adapter.config.environment if adapter else "unknown",
                 }
             )
 
@@ -541,7 +541,7 @@ def execute_story_turn(
         # End root span and flush Langfuse
         if root_span:
             root_span.end()
-        if adapter.is_enabled():
+        if adapter and adapter.is_enabled():
             adapter.flush()
 
 
