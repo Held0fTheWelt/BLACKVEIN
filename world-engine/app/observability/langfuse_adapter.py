@@ -53,11 +53,10 @@ class LangfuseAdapter:
             self.client = Langfuse(
                 public_key=public_key,
                 secret_key=secret_key,
-                baseUrl=base_url,
+                base_url=base_url,
                 environment=os.getenv("LANGFUSE_ENVIRONMENT", "development"),
                 release=os.getenv("LANGFUSE_RELEASE", "unknown"),
                 sample_rate=float(os.getenv("LANGFUSE_SAMPLE_RATE", "1.0")),
-                flushInterval=1.0,
                 enabled=True,
             )
             self.is_ready = True

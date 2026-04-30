@@ -48,7 +48,7 @@ class LangfuseConfig:
         self.public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "") or self._get_credential_from_db("public_key") or ""
         self.secret_key = os.getenv("LANGFUSE_SECRET_KEY", "") or self._get_credential_from_db("secret_key") or ""
 
-        self.host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+        self.base_url = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
         self.environment = os.getenv("LANGFUSE_ENVIRONMENT", "development")
         self.release = os.getenv("LANGFUSE_RELEASE", "unknown")
         self.sample_rate = float(os.getenv("LANGFUSE_SAMPLE_RATE", "1.0"))
@@ -120,12 +120,12 @@ class LangfuseAdapter:
                 self._client = Langfuse(
                     public_key=self.config.public_key,
                     secret_key=self.config.secret_key,
-                    host=self.config.host,
+                    base_url=self.config.base_url,
                     environment=self.config.environment,
                     release=self.config.release,
                     sample_rate=self.config.sample_rate,
                 )
-                logger.info(f"Langfuse initialized: {self.config.environment}@{self.config.host}")
+                logger.info(f"Langfuse initialized: {self.config.environment}@{self.config.base_url}")
             except Exception as e:
                 logger.warning(f"Failed to initialize Langfuse: {e}. Tracing disabled.")
                 self._client = None
