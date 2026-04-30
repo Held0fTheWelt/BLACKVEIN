@@ -124,10 +124,12 @@ class LangfuseAdapter:
             return None
 
         try:
-            span = self.client.span(
+            trace_metadata = metadata or {}
+            trace_metadata.setdefault("session_id", session_id)
+            span = self.client.start_observation(
+                as_type="span",
                 name=name,
-                input={"session_id": session_id},
-                metadata=metadata or {},
+                metadata=trace_metadata,
             )
             return span
         except Exception as e:
