@@ -9,6 +9,7 @@ import pytest
 
 from app.runtime.model_routing_contracts import (
     AdapterModelSpec,
+    CostClass,
     LatencyBudget,
     LatencyClass,
     LLMOrSLM,
@@ -47,24 +48,31 @@ class TestRunRoutedBoundedCallWithAdapter:
 
     def test_run_routed_bounded_call_adapter_success_populates_excerpt(self):
         """Successful adapter call populates excerpt field."""
-        specs = build_writers_room_model_route_specs()
-        # Ensure we have at least one spec to work with
-        if not specs:
-            pytest.skip("No specs available for testing")
-
-        adapter_name = specs[0].adapter_name
-        adapters = {adapter_name: StubModelAdapter(success=True, excerpt="Generated interpretation")}
-
-        try:
-            req = RoutingRequest(
-                workflow_phase=WorkflowPhase.revision,
-                task_kind=TaskKind.revision_synthesis,
-                requires_structured_output=False,
-                latency_budget=LatencyBudget.normal,
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
             )
-        except TypeError:
-            # LatencyBudget.normal may not exist, use a different value
-            pytest.skip("LatencyBudget configuration issue")
+        ]
+        assert specs, "Forced adapter spec must be available"
+
+        adapters = {"stub_adapter": StubModelAdapter(success=True, excerpt="Generated interpretation")}
+
+        req = RoutingRequest(
+            workflow_phase=WorkflowPhase.revision,
+            task_kind=TaskKind.revision_synthesis,
+            requires_structured_output=False,
+            latency_budget=LatencyBudget.normal,
+        )
 
         trace, excerpt = _run_routed_bounded_call(
             stage="synthesis",
@@ -78,22 +86,31 @@ class TestRunRoutedBoundedCallWithAdapter:
             timeout_seconds=5.0,
         )
 
-        # If routed to our adapter, excerpt should be populated
-        if trace.get("adapter_key") == adapter_name:
-            assert trace["bounded_model_call"] is True
-            assert excerpt == "Generated interpretation"
-        else:
-            # Routing may select a different adapter, that's ok
-            assert isinstance(trace, dict)
+        # Router must select our forced spec
+        assert trace["adapter_key"] == "stub_adapter"
+        assert trace["bounded_model_call"] is True
+        assert excerpt == "Generated interpretation"
 
     def test_run_routed_bounded_call_adapter_failure_sets_call_error(self):
         """Failed adapter call sets call_error in trace."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
-        adapter_name = specs[0].adapter_name
-        adapters = {adapter_name: StubModelAdapter(success=False, excerpt="")}
+        adapters = {"stub_adapter": StubModelAdapter(success=False, excerpt="")}
 
         req = RoutingRequest(
             workflow_phase=WorkflowPhase.preflight,
@@ -114,25 +131,34 @@ class TestRunRoutedBoundedCallWithAdapter:
             timeout_seconds=1.0,
         )
 
-        # If routed to our failing adapter, should have call_error
-        if trace.get("adapter_key") == adapter_name:
-            assert "call_error" in trace or trace.get("call_success") is False
-        else:
-            assert isinstance(trace, dict)
+        # Router must select our forced spec
+        assert trace["adapter_key"] == "stub_adapter"
+        assert "call_error" in trace or trace.get("call_success") is False
 
     def test_run_routed_bounded_call_adapter_exception_sets_call_error(self):
         """Adapter raising exception sets call_error."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
-
-        adapter_name = specs[0].adapter_name
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
         class FailingAdapter:
             def generate(self, *args, **kwargs):
                 raise RuntimeError("Adapter crash")
 
-        adapters = {adapter_name: FailingAdapter()}
+        adapters = {"stub_adapter": FailingAdapter()}
 
         req = RoutingRequest(
             workflow_phase=WorkflowPhase.revision,
@@ -152,10 +178,10 @@ class TestRunRoutedBoundedCallWithAdapter:
             timeout_seconds=5.0,
         )
 
-        # If routed to our crashing adapter, should catch and set call_error
-        if trace.get("adapter_key") == adapter_name:
-            assert "call_error" in trace
-            assert "Adapter crash" in trace["call_error"]
+        # Router must select our forced spec
+        assert trace["adapter_key"] == "stub_adapter"
+        assert "call_error" in trace
+        assert "Adapter crash" in trace["call_error"]
 
 
 class TestEnrichImprovementPackage:
@@ -163,13 +189,25 @@ class TestEnrichImprovementPackage:
 
     def test_enrich_improvement_package_with_injected_stub_adapters(self):
         """Enrich with stub adapters populates task_2a_routing."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
-        adapter_name = specs[0].adapter_name
         adapters = {
-            adapter_name: StubModelAdapter(success=True, excerpt="Preflight ok")
+            "stub_adapter": StubModelAdapter(success=True, excerpt="Preflight ok")
         }
 
         package_response: dict[str, Any] = {
@@ -194,12 +232,24 @@ class TestEnrichImprovementPackage:
 
     def test_enrich_improvement_package_missing_deterministic_base_falls_back(self):
         """Enrich without deterministic base falls back to recommendation_summary."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
-        adapter_name = specs[0].adapter_name
-        adapters = {adapter_name: StubModelAdapter()}
+        adapters = {"stub_adapter": StubModelAdapter()}
 
         package_response: dict[str, Any] = {
             "recommendation_summary": "Use summary as fallback",
@@ -221,12 +271,24 @@ class TestEnrichImprovementPackage:
 
     def test_enrich_sets_operator_audit_key(self):
         """Enrich populates operator_audit."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
-        adapter_name = specs[0].adapter_name
-        adapters = {adapter_name: StubModelAdapter()}
+        adapters = {"stub_adapter": StubModelAdapter()}
 
         package_response: dict[str, Any] = {
             "recommendation_summary": "Test summary",
@@ -247,12 +309,24 @@ class TestEnrichImprovementPackage:
 
     def test_enrich_sets_area2_truth_key(self):
         """Enrich populates governance_truth (Area2)."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
-        adapter_name = specs[0].adapter_name
-        adapters = {adapter_name: StubModelAdapter()}
+        adapters = {"stub_adapter": StubModelAdapter()}
 
         package_response: dict[str, Any] = {
             "recommendation_summary": "Area2 test",
@@ -272,9 +346,22 @@ class TestEnrichImprovementPackage:
 
     def test_enrich_with_empty_adapters_still_produces_valid_output(self):
         """Enrich with empty adapters dict still produces valid traces."""
-        specs = build_writers_room_model_route_specs()
-        if not specs:
-            pytest.skip("No specs available for testing")
+        # Use forced spec that supports all phases and kinds
+        specs = [
+            AdapterModelSpec(
+                adapter_name="stub_adapter",
+                provider_name="test_provider",
+                model_name="stub-model",
+                llm_or_slm=LLMOrSLM.llm,
+                model_tier=ModelTier.standard,
+                cost_class=CostClass.low,
+                supported_phases=frozenset(WorkflowPhase),
+                supported_task_kinds=frozenset(TaskKind),
+                latency_class=LatencyClass.medium,
+                structured_output_reliability=StructuredOutputReliability.high,
+            )
+        ]
+        assert specs, "Forced adapter spec must be available"
 
         package_response: dict[str, Any] = {
             "recommendation_summary": "Test with no adapters",

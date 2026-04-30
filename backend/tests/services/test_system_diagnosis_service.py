@@ -292,7 +292,7 @@ class TestRunWithTimeout:
             mock_executor_class.return_value.__enter__.return_value = mock_executor
 
             result = _run_with_timeout(slow_func, 0.1)
-            assert result is None or result is not None  # Depends on implementation
+            assert result is None
 
 
 class TestPrerequiteSkips:
@@ -390,8 +390,8 @@ class TestBuildDiagnosis:
             with patch("app.services.system_diagnosis_service._check_database_bounded") as mock_db:
                 with patch("app.services.system_diagnosis_service._check_play_service_configuration") as mock_play_cfg:
                     with patch("app.services.system_diagnosis_service._build_diagnosis") as mock_build:
-                        mock_backend.return_value = {"id": "backend", "status": "running"}
-                        mock_db.return_value = {"id": "database", "status": "running"}
+                        mock_backend.return_value = {"id": "backend", "status": "running", "critical": True}
+                        mock_db.return_value = {"id": "database", "status": "running", "critical": True}
                         mock_play_cfg.return_value = {"id": "play_cfg", "status": "ok"}
                         mock_build.return_value = {
                             "checks": [],
@@ -403,7 +403,9 @@ class TestBuildDiagnosis:
                         result = _build_diagnosis(app, "https://localhost:5000", "trace-123")
 
                         assert isinstance(result, dict)
-                        assert "checks" in result or result.get("overall_status")
+                        assert result.get("overall_status") == "ok"
+                        assert "timestamp" in result
+                        assert "checks" in result
 
 
 class TestGetSystemDiagnosis:
@@ -431,9 +433,10 @@ class TestGetSystemDiagnosis:
                 trace_id="trace-123"
             )
 
-            # With caching, both should return results
+            # With caching, build should be called only once
             assert isinstance(result1, dict)
             assert isinstance(result2, dict)
+            assert mock_build.call_count == 1
 
     def test_get_system_diagnosis_force_refresh(self):
         """Test diagnosis with forced refresh."""
@@ -454,6 +457,18 @@ class TestGetSystemDiagnosis:
 
     def test_reset_diagnosis_cache_for_tests(self):
         """Test cache reset function."""
-        reset_diagnosis_cache_for_tests()
-        # Should not raise
-        assert True
+        # Verify reset doesn't raise and cache is cleared
+        with patch("app.services.system_diagnosis_service._build_diagnosis") as mock_build:
+            mock_build.return_value = {"status": "ok"}
+
+            # Fill cache
+            app = MagicMock()
+            get_system_diagnosis(app, self_base_url="https://localhost:5000", refresh=False, trace_id="trace-1")
+            initial_call_count = mock_build.call_count
+
+            # Reset should clear cache
+            reset_diagnosis_cache_for_tests()
+
+            # Next call should rebuild (not from cache)
+            get_system_diagnosis(app, self_base_url="https://localhost:5000", refresh=False, trace_id="trace-1")
+            assert mock_build.call_count > initial_call_count

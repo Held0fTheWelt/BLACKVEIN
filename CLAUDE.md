@@ -136,77 +136,36 @@ Only after ruling out environment issues should you:
 
 ---
 
-## Indexing for Search & Diagnostics — Use semantic codebase search for exploration and problem-solving
+## Search — Use claude-context MCP for all code discovery
 
-**Rule:** Use semantic codebase indexing (`mcp__claude-context__search_code`) for **almost everything** where you need to find out what is happening and why. The codebase is semantically indexed and ready for natural language queries. This is your default tool for understanding code behavior, dependencies, and root causes.
+**Rule:** Use `mcp__claude-context__search_code` for all code searches. Do NOT use Glob/Grep/Read for exploration.
 
-**When to use indexing:**
+**When:**
+- Looking for where a function is defined
+- Finding all references to a symbol or pattern
+- Understanding why code is failing
+- Auditing old patterns or legacy content
+- Identifying scope of a change
 
-- "Where is X defined?" (function, class, constant, symbol)
-- "What files reference Y?" (searching for usages)
-- "Find all places where Z happens" (logic search)
-- "Diagnose why this is failing" (understand codebase context before fixing)
-- "Legacy content audit" (find all instances of old patterns)
-- "Scope analysis" (what code is affected by this change?)
-- "Test reference audit" (find all tests that import or reference a deleted module)
-- "Cross-file consistency" (find all docs that reference deleted/renamed code)
-
-**When NOT to use indexing:**
-
-- Just always use claude-index, when possible. you always gain knowledge
-
-**How to use:**
-
+**How:**
 ```bash
-# Search the indexed codebase
 mcp__claude-context__search_code(
   path: "D:\WorldOfShadows",
-  query: "runtime profile resolver for MVP1",
+  query: "what you're looking for",
   limit: 10
-)
-
-# If codebase isn't indexed yet, index it first
-mcp__claude-context__index_codebase(
-  path: "D:\WorldOfShadows",
-  splitter: "ast",  # Use AST splitter for Python
-  force: false
-)
-
-# Check indexing status
-mcp__claude-context__get_indexing_status(
-  path: "D:\WorldOfShadows"
 )
 ```
 
 **Example queries:**
 
+| Task | Query |
+|------|-------|
+| Find function definition | "function_name implementation" |
+| Find usages | "where is X called" |
+| Understand pattern | "pattern_name behavior and flow" |
+| Audit legacy | "old_pattern instances" |
 
-| Task                                | Query                                     |
-| ----------------------------------- | ----------------------------------------- |
-| Find runtime profile implementation | "runtime profile resolver implementation" |
-| Locate actor lane enforcement       | "actor lane validation and enforcement"   |
-| Find visitor prohibition logic      | "visitor removal prohibition GLOBAL"      |
-| Understand passivity validation     | "passivity validation scene block"        |
-| Diagnose legacy Area 2 references   | "Area 2 Task 4 closure validation"        |
-| Audit capability evidence usage     | "capability evidence source anchor"       |
-
-
-**Why use indexing:**
-
-- **Semantic search:** Finds code by meaning, not just text matching (understands "role selection" finds both "validate_selected_player_role" and "build_actor_ownership")
-- **Large codebase:** 6400+ files indexed efficiently; naive grep is slow and loses context
-- **Context-aware:** Results include surrounding code, not just matching lines
-- **Exploration:** Enables quick 3-tool-call discovery (search → read → understand) without manual grep iterations
-- **Diagnostic:** Understand what code is affected before making changes
-
-**Workflow:**
-
-1. **Explore:** Use `search_code` for natural language queries
-2. **Understand:** `Read` the top 2-3 results to get context
-3. **Diagnose:** Identify root cause before modifying code
-4. **Execute:** Only then make changes (see Execution vs Exploration discipline)
-
-**Scope:** Applied to all search, diagnostic, and exploration work. Codebase is pre-indexed; queries are fast and semantically aware.
+**Scope:** All search, diagnostic, and exploration work. Codebase is indexed; queries are semantic and context-aware.
 
 ---
 

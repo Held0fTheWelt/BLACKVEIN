@@ -373,6 +373,7 @@ def write_observability_credential(
         fingerprints["secret_key"] = sk_fingerprint
         config.credential_configured = True
         config.credential_fingerprint = sk_fingerprint
+        config.is_enabled = True
 
     db.session.commit()
     logger.info(f"Observability credential written by {actor}")
