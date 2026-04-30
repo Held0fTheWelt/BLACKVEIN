@@ -257,7 +257,12 @@ class CostDashboard:
 
 
 def get_observability_config() -> dict[str, Any]:
-    """Get current Langfuse observability configuration."""
+    """Get current Langfuse observability configuration.
+
+    Validates health_status against current credential state:
+    - If enabled but no credentials → health_status is "unconfigured"
+    - If credentials missing → is_enabled is automatically False
+    """
     from app.models.governance_core import ObservabilityConfig
     from app.extensions import db
 
@@ -277,14 +282,28 @@ def get_observability_config() -> dict[str, Any]:
             "redaction_mode": "strict",
             "credential_configured": False,
             "credential_fingerprint": None,
-            "health_status": "unknown",
+            "health_status": "unconfigured",
         }
+
+    # Validate health_status against current credential state
+    is_enabled = config.is_enabled
+    credential_configured = config.credential_configured
+    health_status = config.health_status
+
+    # If enabled but credentials missing → not actually enabled and health is unconfigured
+    if is_enabled and not credential_configured:
+        is_enabled = False
+        health_status = "unconfigured"
+
+    # If not enabled → health is disabled (not unknown)
+    if not is_enabled and health_status not in ("unconfigured", "disabled"):
+        health_status = "disabled"
 
     return {
         "service_id": config.service_id,
         "service_type": config.service_type,
         "display_name": config.display_name,
-        "is_enabled": config.is_enabled,
+        "is_enabled": is_enabled,
         "base_url": config.base_url,
         "environment": config.environment,
         "release": config.release,
@@ -293,9 +312,9 @@ def get_observability_config() -> dict[str, Any]:
         "capture_outputs": config.capture_outputs,
         "capture_retrieval": config.capture_retrieval,
         "redaction_mode": config.redaction_mode,
-        "credential_configured": config.credential_configured,
+        "credential_configured": credential_configured,
         "credential_fingerprint": config.credential_fingerprint,
-        "health_status": config.health_status,
+        "health_status": health_status,
     }
 
 

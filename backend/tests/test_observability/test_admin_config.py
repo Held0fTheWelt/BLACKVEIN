@@ -30,7 +30,7 @@ class TestObservabilityConfigStatus:
         data = resp_data["data"]
         assert data["is_enabled"] is False
         assert data["credential_configured"] is False
-        assert data["health_status"] == "unknown"
+        assert data["health_status"] == "unconfigured"
         assert data["service_id"] == "langfuse"
 
     def test_status_has_no_plaintext_secrets(self, client, admin_jwt, db_session):
