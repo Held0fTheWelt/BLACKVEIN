@@ -9,12 +9,14 @@ Project-specific instructions for Claude Code working in this repository. Overri
 **Rule:** `tests/run_tests.py` is the single canonical test runner for this project. Do not create wrapper scripts, aliases, or alternate test entry points.
 
 **Why:** Multiple test runners cause:
+
 - Inconsistent test discovery and execution order
 - Hidden dependencies in documentation and workflows
 - Friction when different parts of the codebase reference different runners
 - CI/CD pipeline ambiguity (which runner does the workflow actually use?)
 
 **How to apply:**
+
 - Always invoke tests via: `python tests/run_tests.py [args]`
 - Use suite flags for scoped runs: `--suite mvp1`, `--suite backend`, `--suite engine`
 - Use MVP presets for focused work: `--mvp1`, `--mvp2`, `--mvp3`, `--mvp4`
@@ -38,6 +40,7 @@ Project-specific instructions for Claude Code working in this repository. Overri
 6. **File permissions**: Do test fixtures have the right file access?
 
 Only after ruling out environment issues should you:
+
 - Modify test code
 - Change application logic
 - Update dependencies
@@ -45,6 +48,7 @@ Only after ruling out environment issues should you:
 **Why:** 90% of "test failures" are environment misconfigurations, not code bugs. Fixing code when the issue is a missing venv wastes time and introduces false fixes.
 
 **How to apply:**
+
 - Always start with: "What environment is this test running in?"
 - Ask questions: "Is the venv active?" "Are all deps installed?" "Is Docker running?"
 - Verify before coding: `pip list | grep <package>`, `docker ps`, `python --version`
@@ -60,21 +64,25 @@ Only after ruling out environment issues should you:
 **Rule:** Execution mode (when you have a written plan or user has specified exactly what to do) is fundamentally different from exploration mode (when you're investigating or designing).
 
 **Execution Mode — Do not explore:**
+
 - User has provided a plan or detailed instructions
 - Plan includes specific file paths, function names, line numbers
 - You know what to change and why
 - **Action:** Execute directly. Make the changes. Do not run discovery searches first.
 
 **Exploration Mode — Capped at 3 tool calls:**
+
 - User asks an open question: "What files handle X?" "Where is the bug?"
 - You need to understand the codebase before making changes
 - **Action:** Run up to 3 Glob/Grep/Read calls to gather context. If you need more, use Agent with `subagent_type=Explore` instead of self-executing 10+ searches.
 
 **Why:** 
+
 - **Execution mode:** Planning already consumed the discovery cost. Searching again delays implementation and wastes context on redundant lookups.
 - **Exploration mode cap:** Self-executing many searches floods the conversation with tool results and context. Agent delegates efficiently; you keep working.
 
 **How to apply:**
+
 - **When starting work:** Ask yourself: "Do I have a specific plan, or am I exploring?"
 - **If you have a plan:** Open the files mentioned, make changes, test. Do not search.
 - **If you're exploring:** Ask yourself after 3 tool calls: "Do I have enough context?" If no, spawn `Agent(subagent_type=Explore, ...)` instead of continuing.
@@ -89,6 +97,7 @@ Only after ruling out environment issues should you:
 **Rule:** Use semantic codebase indexing (`mcp__claude-context__search_code`) for **almost everything** where you need to find out what is happening and why. The codebase is semantically indexed and ready for natural language queries. This is your default tool for understanding code behavior, dependencies, and root causes.
 
 **When to use indexing:**
+
 - "Where is X defined?" (function, class, constant, symbol)
 - "What files reference Y?" (searching for usages)
 - "Find all places where Z happens" (logic search)
@@ -99,9 +108,8 @@ Only after ruling out environment issues should you:
 - "Cross-file consistency" (find all docs that reference deleted/renamed code)
 
 **When NOT to use indexing:**
-- You already know the exact file path → just `Read` it directly
-- Simple pattern matching in a single known file → use `Grep` on that file
-- File enumeration in a small directory → use `Glob` on that path
+
+- Just always use claude-index, when possible. you always gain knowledge
 
 **How to use:**
 
@@ -128,16 +136,19 @@ mcp__claude-context__get_indexing_status(
 
 **Example queries:**
 
-| Task | Query |
-|------|-------|
+
+| Task                                | Query                                     |
+| ----------------------------------- | ----------------------------------------- |
 | Find runtime profile implementation | "runtime profile resolver implementation" |
-| Locate actor lane enforcement | "actor lane validation and enforcement" |
-| Find visitor prohibition logic | "visitor removal prohibition GLOBAL" |
-| Understand passivity validation | "passivity validation scene block" |
-| Diagnose legacy Area 2 references | "Area 2 Task 4 closure validation" |
-| Audit capability evidence usage | "capability evidence source anchor" |
+| Locate actor lane enforcement       | "actor lane validation and enforcement"   |
+| Find visitor prohibition logic      | "visitor removal prohibition GLOBAL"      |
+| Understand passivity validation     | "passivity validation scene block"        |
+| Diagnose legacy Area 2 references   | "Area 2 Task 4 closure validation"        |
+| Audit capability evidence usage     | "capability evidence source anchor"       |
+
 
 **Why use indexing:**
+
 - **Semantic search:** Finds code by meaning, not just text matching (understands "role selection" finds both "validate_selected_player_role" and "build_actor_ownership")
 - **Large codebase:** 6400+ files indexed efficiently; naive grep is slow and loses context
 - **Context-aware:** Results include surrounding code, not just matching lines
@@ -162,11 +173,13 @@ mcp__claude-context__get_indexing_status(
 **Gate Verification Format (never vague):**
 
 ❌ Bad:
+
 - "tests pass"
 - "all gate requirements met"
 - "verified successfully"
 
 ✅ Good:
+
 - "19 passed, 0 failed, 0 skipped, 0 errors"
 - "Gate: mvp1-operational-evidence PASS [19/19 tests]"
 - Include command used: `python tests/run_tests.py --suite mvp1`
@@ -203,6 +216,7 @@ python tests/run_tests.py --suite {suite}
 **ADR Requirements:**
 
 Before marking any MVP complete:
+
 1. All required ADRs must exist in `docs/ADR/MVP_Live_Runtime_Completion/`
 2. Each ADR must include: context, decision, consequences, test evidence, operational gate impact
 3. Each ADR must be marked `ACCEPTED` (status frontmatter)
@@ -211,6 +225,7 @@ Before marking any MVP complete:
 6. Handoff must specify contracts consumed by next MVP
 
 **How to apply:**
+
 - When you complete a gate, use `/gate-check {gate-name}` to auto-generate ADR
 - Report numbers, not opinions: show `pytest --tb=short` output, not interpretations
 - Before declaring MVP complete, verify all 3 artifact files exist and are populated
