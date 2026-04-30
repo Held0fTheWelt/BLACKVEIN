@@ -59,6 +59,50 @@ Only after ruling out environment issues should you:
 
 ---
 
+## Test Debugging Discipline — Diagnose root cause, not surface symptoms; use semantic search to understand test intent
+
+**Rule:** When a test fails diagnose the root cause before modifying test code.
+
+**Root causes for repeated test failures:**
+
+1. **Instance/Data State**: Test creates object with wrong initial state (e.g., `RunStatus.LOBBY` when `RUNNING` is required)
+2. **Template Mismatch**: Test uses template name A but asserts resources from template B (e.g., testing "apartment_confrontation_group" but checking for rooms/props from "god_of_carnage_solo")
+3. **Missing Prerequisites**: Test skips setup steps (e.g., setting instance status before applying commands)
+4. **Stale Assertions**: Test was copied from one template but not updated when template changed
+
+**How to diagnose (before touching test code):**
+
+1. **Understand test intent**: Use `mcp__claude-context__search_code` with query like "test_X what is it testing" or look at test name and structure
+2. **Identify what template/objects are used**: Check what `_runtime_instance_for()` or `load_builtin_templates()` returns
+3. **Verify resources exist**: Search for "template_name rooms/props/actions definitions" to confirm test assertions match actual template
+4. **Check object state**: Understand required states (LOBBY vs RUNNING, initial beat_id, participant status)
+5. **Read related tests**: Look for similar tests that work—see how they handle the same template
+
+**How to apply:**
+
+- When test fails: "What environment state does this test need?"
+- Not: "How do I make this assertion pass?"
+- Search for: template definitions, action names, prop IDs, room layouts
+- Compare against: working tests with same template, recent template changes, template documentation
+- Only then: modify test to match actual template behavior
+
+**Why:** A test that patches around mismatch teaches false confidence. A test aligned with actual template structure:
+
+- Documents how the template actually works
+- Catches regressions when template changes
+- Prevents copy-paste errors in future tests
+- Provides a reference implementation for template usage
+
+**Example:** A test using "apartment_confrontation_group" but testing for "living_room" (not in template) means either:
+
+- Test was copied from "god_of_carnage_solo" and not updated → fix by using actual rooms (foyer, parlor)
+- Template recently changed → fix by updating assertions OR reverting template
+- Test was written against wrong template → fix by switching to correct template
+
+**Scope:** Applied to any test that fails or with cascading errors. Use semantic search to understand context before patching.
+
+---
+
 ## Execution vs Exploration — When given a prepared plan, execute directly; cap discovery at 3 tool calls
 
 **Rule:** Execution mode (when you have a written plan or user has specified exactly what to do) is fundamentally different from exploration mode (when you're investigating or designing).

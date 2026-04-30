@@ -297,6 +297,7 @@ def test_runtime_engine_commands_and_snapshot(monkeypatch):
     template = load_builtin_templates()["apartment_confrontation_group"]
     engine = engine_module.RuntimeEngine(template)
     instance = _runtime_instance_for("apartment_confrontation_group")
+    instance.status = RunStatus.RUNNING
     actor = next(iter(instance.participants.values()))
 
     available = engine.available_actions(instance, actor)
@@ -306,36 +307,50 @@ def test_runtime_engine_commands_and_snapshot(monkeypatch):
     assert snapshot.viewer_display_name == "Owner"
     assert snapshot.metadata["store_backend"] == "unknown"
 
+    # Test invalid command handling
     assert engine.apply_command(instance, actor.id, {"action": "unknown"}).accepted is False
     assert engine.apply_command(instance, actor.id, {"action": "say", "text": ""}).reason == "Say what?"
     assert engine.apply_command(instance, actor.id, {"action": "emote", "text": ""}).reason == "Emote what?"
 
-    moved = engine.apply_command(instance, actor.id, {"action": "move", "target_room_id": "living_room"})
-    assert moved.accepted is True
-    assert actor.current_room_id == "living_room"
-    assert "entered_living_room" in instance.flags
+    # Test movement between rooms (foyer ↔ parlor in apartment_confrontation_group)
+    starting_room = actor.current_room_id
+    target_room = "parlor" if starting_room == "foyer" else "foyer"
 
-    inspect_prop = engine.apply_command(instance, actor.id, {"action": "inspect", "target_id": "tulips"})
+    moved = engine.apply_command(instance, actor.id, {"action": "move", "target_room_id": target_room})
+    assert moved.accepted is True
+    assert actor.current_room_id == target_room
+
+    # Test prop inspection (case_file exists in parlor)
+    inspect_prop = engine.apply_command(instance, actor.id, {"action": "inspect", "target_id": "case_file"})
     assert inspect_prop.accepted is True
 
-    inspect_room = engine.apply_command(instance, actor.id, {"action": "inspect", "target_id": "living_room"})
+    # Test room inspection
+    inspect_room = engine.apply_command(instance, actor.id, {"action": "inspect", "target_id": target_room})
     assert inspect_room.accepted is True
 
+    # Test inspection of non-existent target
     blocked = engine.apply_command(instance, actor.id, {"action": "inspect", "target_id": "missing"})
     assert blocked.accepted is False
 
-    used = engine.apply_command(instance, actor.id, {"action": "use_action", "action_id": "steady_breath"})
-    assert used.accepted is True
-    assert "used:steady_breath" in instance.flags
-    assert engine.apply_command(instance, actor.id, {"action": "use_action", "action_id": "steady_breath"}).accepted is False
+    # Test room-scoped action (group_ready_check sets ready_ping flag)
+    ready_result = engine.apply_command(instance, actor.id, {"action": "use_action", "action_id": "group_ready_check"})
+    assert ready_result.accepted is True
+    assert "ready_ping" in instance.flags
 
+    # Test prop action (open_minibar)
+    open_bar = engine.apply_command(instance, actor.id, {"action": "use_action", "action_id": "open_minibar"})
+    assert open_bar.accepted is True
+    assert instance.props["minibar"].state == "open"
+
+    # Test unknown action
     unknown_action = engine.apply_command(instance, actor.id, {"action": "use_action", "action_id": "missing"})
     assert unknown_action.reason == "Unknown action."
 
-    instance.flags.add("patrol_pattern_seen")
+    # Test NPC cycle on different template
     npc_events = engine.run_npc_cycle(_runtime_instance_for("better_tomorrow_district_alpha"))
     assert npc_events == [] or isinstance(npc_events, list)
 
+    # Test that NPC instance binding works
     with pytest.raises(RuntimeError, match="NPC cycle invoked"):
         _ = engine._npc_instance
 
