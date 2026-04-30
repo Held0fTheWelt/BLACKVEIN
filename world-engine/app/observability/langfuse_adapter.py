@@ -69,7 +69,7 @@ class LangfuseAdapter:
         """Fetch Langfuse credentials from backend database."""
         try:
             import httpx
-            backend_url = os.getenv("BACKEND_INTERNAL_URL", "http://localhost:5000")
+            backend_url = os.getenv("BACKEND_RUNTIME_CONFIG_URL") or os.getenv("BACKEND_INTERNAL_URL", "http://localhost:5000")
             internal_token = os.getenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
 
             logger.info(f"Backend URL: {backend_url}")
