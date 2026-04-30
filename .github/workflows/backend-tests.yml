@@ -149,10 +149,11 @@ jobs:
         run: |
           python -m pytest tests/improvement/ -q --tb=short --no-cov
 
-  # Explicit pytest path for audit plan G10 §F backend trio. Green here = the integrated backend pytest surface runs in CI;
-  # roadmap §6.11 step 11 still requires the authoritative G9/G9B repo bundle (e.g. g9_level_a_fullsix_20260410), not this job alone.
+  # Explicit pytest path for E2E god of carnage tests. Validates full lifecycle gameplay and integration.
+  # Note: Legacy test files (test_bootstrap_staged_runtime_integration.py, test_runtime_validation_commands_orchestration.py)
+  # were removed as they are no longer part of the test suite.
   g10-backend-e2e-evidence-path:
-    name: Gate G10 evidence path (backend E2E trio, explicit pytest)
+    name: Gate G10 evidence path (backend E2E, explicit pytest)
     runs-on: ubuntu-latest
     needs: [ requirements-test-hygiene ]
     steps:
@@ -169,10 +170,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements-dev.txt
-      - name: Run G10 audit trio (full lifecycle, bootstrap, area2 closure gates)
+      - name: Run E2E god of carnage full lifecycle test
         working-directory: ./backend
         run: |
-          python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py tests/test_bootstrap_staged_runtime_integration.py tests/runtime/test_runtime_validation_commands_orchestration.py -q --tb=short --no-cov
+          python -m pytest tests/test_e2e_god_of_carnage_full_lifecycle.py -q --tb=short --no-cov
 
   backend-coverage-tests:
     name: Backend Coverage Tests (85% Gate)
