@@ -37,7 +37,12 @@ class LangfuseConfig:
     """Langfuse configuration from environment or database."""
 
     def __init__(self):
-        self.enabled = os.getenv("LANGFUSE_ENABLED", "false").lower() in ("true", "1", "yes")
+        env_enabled = os.getenv("LANGFUSE_ENABLED", "").lower() in ("true", "1", "yes")
+        db_enabled = self._get_enabled_from_db()
+        # Environment variable takes precedence; if not set, use database config
+        self.enabled = env_enabled or (db_enabled if os.getenv("LANGFUSE_ENABLED") == "" else env_enabled)
+        if not os.getenv("LANGFUSE_ENABLED"):
+            self.enabled = db_enabled
 
         # Try environment variables first, then fall back to database
         self.public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "") or self._get_credential_from_db("public_key") or ""
@@ -51,6 +56,18 @@ class LangfuseConfig:
         self.capture_outputs = os.getenv("LANGFUSE_CAPTURE_OUTPUTS", "true").lower() in ("true", "1")
         self.capture_retrieval = os.getenv("LANGFUSE_CAPTURE_RETRIEVAL", "false").lower() in ("true", "1")
         self.redaction_mode = os.getenv("LANGFUSE_REDACTION_MODE", "strict")
+
+    @staticmethod
+    def _get_enabled_from_db() -> bool:
+        """Get enabled flag from database (set via admin tool)."""
+        try:
+            from app.models.governance_core import ObservabilityConfig
+            config = ObservabilityConfig.query.filter_by(service_id="langfuse").first()
+            if config:
+                return bool(config.is_enabled)
+        except Exception:
+            pass
+        return False
 
     @staticmethod
     def _get_credential_from_db(secret_name: str) -> Optional[str]:
