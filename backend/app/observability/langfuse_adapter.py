@@ -34,12 +34,15 @@ except ImportError:
 
 
 class LangfuseConfig:
-    """Langfuse configuration from environment."""
+    """Langfuse configuration from environment or database."""
 
     def __init__(self):
         self.enabled = os.getenv("LANGFUSE_ENABLED", "false").lower() in ("true", "1", "yes")
-        self.public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "")
-        self.secret_key = os.getenv("LANGFUSE_SECRET_KEY", "")
+
+        # Try environment variables first, then fall back to database
+        self.public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "") or self._get_credential_from_db("public_key") or ""
+        self.secret_key = os.getenv("LANGFUSE_SECRET_KEY", "") or self._get_credential_from_db("secret_key") or ""
+
         self.host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
         self.environment = os.getenv("LANGFUSE_ENVIRONMENT", "development")
         self.release = os.getenv("LANGFUSE_RELEASE", "unknown")
@@ -48,6 +51,25 @@ class LangfuseConfig:
         self.capture_outputs = os.getenv("LANGFUSE_CAPTURE_OUTPUTS", "true").lower() in ("true", "1")
         self.capture_retrieval = os.getenv("LANGFUSE_CAPTURE_RETRIEVAL", "false").lower() in ("true", "1")
         self.redaction_mode = os.getenv("LANGFUSE_REDACTION_MODE", "strict")
+
+    @staticmethod
+    def _get_credential_from_db(secret_name: str) -> Optional[str]:
+        """Get credential from database (stored via admin tool)."""
+        try:
+            from app.models.governance_core import ObservabilityCredential
+            cred = ObservabilityCredential.query.filter_by(
+                service_id="langfuse",
+                secret_name=secret_name,
+                is_active=True,
+            ).first()
+            if cred:
+                try:
+                    return cred.encrypted_secret.decode()
+                except Exception:
+                    return None
+        except Exception:
+            return None
+        return None
 
     @property
     def is_valid(self) -> bool:

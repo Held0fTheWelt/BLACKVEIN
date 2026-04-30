@@ -95,10 +95,10 @@ class TestPlayQaDiagnosticsRoutes:
         # Verify tier-A fields are present and have correct values
         assert "tier_a_primary" in projection
         tier_a = projection["tier_a_primary"]
-        assert tier_a["session_id"] == "test-session-123"
-        assert tier_a["turn_number"] == 5
+        assert tier_a["turn_metadata"]["session_id"] == "test-session-123"
+        assert tier_a["turn_metadata"]["turn_number"] == 5
         assert tier_a["quality_class"] == "healthy"
-        assert tier_a["primary_responder_id"] == "alice"
+        assert tier_a["responder_selection"]["primary_responder_id"] == "alice"
 
         assert "tier_b_detailed" in projection
 
@@ -132,10 +132,9 @@ class TestPlayQaDiagnosticsRoutes:
         assert raw_record is not None
         # Verify content structure
         assert isinstance(raw_record, dict)
-        assert "session_id" in raw_record
-        assert raw_record["session_id"] == "test-session-123"
-        assert "turn_number" in raw_record
-        assert raw_record["turn_number"] == 5
+        assert "turn_metadata" in raw_record
+        assert raw_record["turn_metadata"]["session_id"] == "test-session-123"
+        assert raw_record["turn_metadata"]["turn_number"] == 5
 
     def test_endpoint_rate_limited(self, client, admin_headers, monkeypatch):
         """Endpoint enforces rate limiting (30 per minute)."""
