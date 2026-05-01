@@ -19,26 +19,27 @@ def upgrade():
     conn = op.get_bind()
     insp = inspect(conn)
     cols = {c["name"] for c in insp.get_columns("users")}
-    if "last_seen_at" not in cols:
-        op.add_column(
-            "users",
-            sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=True),
-        )
-    if "created_at" not in cols:
-        op.add_column(
-            "users",
-            sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
-        )
-        conn.execute(sa.text("UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
-    else:
-        conn.execute(sa.text("UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
+
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        if "last_seen_at" not in cols:
+            batch_op.add_column(
+                sa.Column("last_seen_at", sa.DateTime(timezone=True), nullable=True),
+            )
+        if "created_at" not in cols:
+            batch_op.add_column(
+                sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
+            )
+
+    conn.execute(sa.text("UPDATE users SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"))
 
 
 def downgrade():
     conn = op.get_bind()
     insp = inspect(conn)
     cols = {c["name"] for c in insp.get_columns("users")}
-    if "created_at" in cols:
-        op.drop_column("users", "created_at")
-    if "last_seen_at" in cols:
-        op.drop_column("users", "last_seen_at")
+
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        if "created_at" in cols:
+            batch_op.drop_column("created_at")
+        if "last_seen_at" in cols:
+            batch_op.drop_column("last_seen_at")

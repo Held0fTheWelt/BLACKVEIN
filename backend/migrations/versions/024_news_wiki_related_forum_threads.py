@@ -27,22 +27,18 @@ def upgrade():
             sa.Column(
                 "article_id",
                 sa.Integer(),
-                sa.ForeignKey("news_articles.id", ondelete="CASCADE"),
+                sa.ForeignKey("news_articles.id", name="fk_news_article_forum_threads_article_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column(
                 "thread_id",
                 sa.Integer(),
-                sa.ForeignKey("forum_threads.id", ondelete="CASCADE"),
+                sa.ForeignKey("forum_threads.id", name="fk_news_article_forum_threads_thread_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column("relation_type", sa.String(length=32), nullable=False, server_default="related"),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        )
-        op.create_unique_constraint(
-            "uq_news_article_forum_threads_article_thread",
-            "news_article_forum_threads",
-            ["article_id", "thread_id"],
+            sa.UniqueConstraint("article_id", "thread_id", name="uq_news_article_forum_threads_article_thread"),
         )
         op.create_index(
             "ix_news_article_forum_threads_article_id",
@@ -64,22 +60,18 @@ def upgrade():
             sa.Column(
                 "page_id",
                 sa.Integer(),
-                sa.ForeignKey("wiki_pages.id", ondelete="CASCADE"),
+                sa.ForeignKey("wiki_pages.id", name="fk_wiki_page_forum_threads_page_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column(
                 "thread_id",
                 sa.Integer(),
-                sa.ForeignKey("forum_threads.id", ondelete="CASCADE"),
+                sa.ForeignKey("forum_threads.id", name="fk_wiki_page_forum_threads_thread_id", ondelete="CASCADE"),
                 nullable=False,
             ),
             sa.Column("relation_type", sa.String(length=32), nullable=False, server_default="related"),
             sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        )
-        op.create_unique_constraint(
-            "uq_wiki_page_forum_threads_page_thread",
-            "wiki_page_forum_threads",
-            ["page_id", "thread_id"],
+            sa.UniqueConstraint("page_id", "thread_id", name="uq_wiki_page_forum_threads_page_thread"),
         )
         op.create_index(
             "ix_wiki_page_forum_threads_page_id",

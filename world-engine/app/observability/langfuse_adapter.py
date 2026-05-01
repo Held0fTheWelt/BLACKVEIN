@@ -32,9 +32,9 @@ class LangfuseAdapter:
 
         # Check if Langfuse is enabled
         enabled = os.getenv("LANGFUSE_ENABLED", "").lower() == "true"
-        logger.info(f"Langfuse ENABLED env var: {enabled}")
+        logger.info(f"[LANGFUSE] __init__ called: ENABLED={enabled}")
         if not enabled:
-            logger.info("Langfuse not enabled")
+            logger.info("[LANGFUSE] Not enabled - skipping initialization")
             return
 
         # Fetch credentials from backend database
@@ -67,11 +67,11 @@ class LangfuseAdapter:
                 sample_rate=float(os.getenv("LANGFUSE_SAMPLE_RATE", "1.0")),
             )
             self.is_ready = True
-            logger.info("✓ Langfuse adapter initialized successfully for world-engine")
+            logger.info(f"[LANGFUSE] ✓ Adapter initialized successfully: is_ready=True, client={type(self.client).__name__}")
         except ImportError as e:
-            logger.warning(f"Langfuse SDK not available: {e}")
+            logger.warning(f"[LANGFUSE] SDK not available: {e}")
         except Exception as e:
-            logger.error(f"Failed to initialize Langfuse: {str(e)}", exc_info=True)
+            logger.error(f"[LANGFUSE] Failed to initialize: {str(e)}", exc_info=True)
 
     def _fetch_credentials_from_backend(self) -> Optional[dict[str, str]]:
         """Fetch Langfuse credentials from backend database."""
@@ -128,6 +128,7 @@ class LangfuseAdapter:
     ) -> Optional[Any]:
         """Start a new trace root span (Langfuse SDK v4.x API)."""
         if not self.is_enabled():
+            logger.info(f"[LANGFUSE] start_trace skipped: adapter not enabled")
             return None
 
         try:
@@ -140,9 +141,10 @@ class LangfuseAdapter:
                 name=name,
                 metadata=trace_metadata,
             )
+            logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
         except Exception as e:
-            logger.error(f"Failed to start trace: {str(e)}", exc_info=True)
+            logger.error(f"[LANGFUSE] Failed to start trace: {str(e)}", exc_info=True)
             return None
 
     @property
@@ -152,10 +154,15 @@ class LangfuseAdapter:
 
     def get_active_span(self) -> Optional[Any]:
         """Get the currently active span for child operations."""
-        return _active_span_context.get()
+        span = _active_span_context.get()
+        logger.debug(f"[LANGFUSE] get_active_span: {span}")
+        return span
 
     def set_active_span(self, span: Optional[Any]) -> None:
         """Set the currently active span for child operations (thread-safe via ContextVar)."""
+        span_name = getattr(span, 'name', 'unknown') if span else None
+        span_id = getattr(span, 'span_id', 'unknown') if span else None
+        logger.info(f"[LANGFUSE] set_active_span: name={span_name}, span_id={span_id}")
         _active_span_context.set(span)
 
     def create_child_span(
@@ -166,28 +173,36 @@ class LangfuseAdapter:
     ) -> Optional[Any]:
         """Create a child span under the currently active parent span."""
         if not self.is_enabled():
+            logger.debug(f"[LANGFUSE] create_child_span skipped: adapter not enabled")
             return None
 
         parent_span = _active_span_context.get()
         if not parent_span:
-            logger.debug(f"No active parent span to create child '{name}'")
+            logger.warning(f"[LANGFUSE] No active parent span to create child '{name}' - check if root span was set_active_span()")
             return None
 
         try:
-            child_span = parent_span.span(
+            # Langfuse SDK v4: use start_observation to create child spans
+            child_span = parent_span.start_observation(
+                as_type="span",
                 name=name,
                 input=input or {},
                 metadata=metadata or {},
             )
+            logger.info(f"[LANGFUSE] child span created: name={name}, span_id={getattr(child_span, 'span_id', 'unknown')}, parent_span_id={getattr(parent_span, 'span_id', 'unknown')}")
             return child_span
         except Exception as e:
-            logger.error(f"Failed to create child span '{name}': {str(e)}", exc_info=True)
+            logger.error(f"[LANGFUSE] Failed to create child span '{name}': {str(e)}", exc_info=True)
             return None
 
     def flush(self) -> None:
         """Flush pending traces to Langfuse."""
         if self.client:
+            logger.info(f"[LANGFUSE] Flushing pending traces to Langfuse...")
             try:
                 self.client.flush()
+                logger.info(f"[LANGFUSE] Flush completed successfully")
             except Exception as e:
-                logger.error(f"Failed to flush Langfuse traces: {str(e)}", exc_info=True)
+                logger.error(f"[LANGFUSE] Failed to flush Langfuse traces: {str(e)}", exc_info=True)
+        else:
+            logger.warning(f"[LANGFUSE] Flush called but client is None")

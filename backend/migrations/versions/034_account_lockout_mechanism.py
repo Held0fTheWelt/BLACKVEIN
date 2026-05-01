@@ -16,20 +16,22 @@ depends_on = None
 
 
 def upgrade():
-    # Add failed_login_attempts column with default value 0
-    op.add_column('users', sa.Column('failed_login_attempts', sa.Integer(), nullable=False, server_default='0'))
+    with op.batch_alter_table('users', schema=None) as batch_op:
+        # Add failed_login_attempts column with default value 0
+        batch_op.add_column(sa.Column('failed_login_attempts', sa.Integer(), nullable=False, server_default='0'))
 
-    # Add locked_until column (nullable datetime for tracking lock expiration)
-    op.add_column('users', sa.Column('locked_until', sa.DateTime(timezone=True), nullable=True))
+        # Add locked_until column (nullable datetime for tracking lock expiration)
+        batch_op.add_column(sa.Column('locked_until', sa.DateTime(timezone=True), nullable=True))
 
-    # Create index on locked_until for efficient lock status checks
-    op.create_index('ix_users_locked_until', 'users', ['locked_until'], unique=False)
+        # Create index on locked_until for efficient lock status checks
+        batch_op.create_index('ix_users_locked_until', ['locked_until'], unique=False)
 
 
 def downgrade():
-    # Remove the index
-    op.drop_index('ix_users_locked_until', table_name='users')
+    with op.batch_alter_table('users', schema=None) as batch_op:
+        # Remove the index
+        batch_op.drop_index('ix_users_locked_until')
 
-    # Remove columns
-    op.drop_column('users', 'locked_until')
-    op.drop_column('users', 'failed_login_attempts')
+        # Remove columns
+        batch_op.drop_column('locked_until')
+        batch_op.drop_column('failed_login_attempts')

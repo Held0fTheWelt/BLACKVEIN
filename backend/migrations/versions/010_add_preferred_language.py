@@ -19,11 +19,12 @@ def upgrade():
     conn = op.get_bind()
     insp = inspect(conn)
     if not any(c["name"] == "preferred_language" for c in insp.get_columns("users")):
-        op.add_column(
-            "users",
-            sa.Column("preferred_language", sa.String(length=10), nullable=True),
-        )
+        with op.batch_alter_table("users", schema=None) as batch_op:
+            batch_op.add_column(
+                sa.Column("preferred_language", sa.String(length=10), nullable=True),
+            )
 
 
 def downgrade():
-    op.drop_column("users", "preferred_language")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("preferred_language")

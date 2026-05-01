@@ -28,52 +28,56 @@ def upgrade():
     inspector = sa.inspect(bind)
 
     if not _has_column(inspector, "wiki_pages", "discussion_thread_id"):
-        op.add_column(
-            "wiki_pages",
-            sa.Column(
-                "discussion_thread_id",
-                sa.Integer(),
-                sa.ForeignKey("forum_threads.id", ondelete="SET NULL"),
-                nullable=True,
-            ),
-        )
-        if not _has_index(inspector, "wiki_pages", "ix_wiki_pages_discussion_thread_id"):
-            op.create_index(
-                "ix_wiki_pages_discussion_thread_id",
-                "wiki_pages",
-                ["discussion_thread_id"],
-                unique=False,
+        with op.batch_alter_table("wiki_pages", schema=None) as batch_op:
+            batch_op.add_column(
+                sa.Column(
+                    "discussion_thread_id",
+                    sa.Integer(),
+                    sa.ForeignKey("forum_threads.id", ondelete="SET NULL", name="fk_wiki_pages_discussion_thread_id"),
+                    nullable=True,
+                ),
             )
+            if not _has_index(inspector, "wiki_pages", "ix_wiki_pages_discussion_thread_id"):
+                batch_op.create_index(
+                    "ix_wiki_pages_discussion_thread_id",
+                    ["discussion_thread_id"],
+                    unique=False,
+                )
 
     if not _has_column(inspector, "news_articles", "discussion_thread_id"):
-        op.add_column(
-            "news_articles",
-            sa.Column(
-                "discussion_thread_id",
-                sa.Integer(),
-                sa.ForeignKey("forum_threads.id", ondelete="SET NULL"),
-                nullable=True,
-            ),
-        )
-        if not _has_index(inspector, "news_articles", "ix_news_articles_discussion_thread_id"):
-            op.create_index(
-                "ix_news_articles_discussion_thread_id",
-                "news_articles",
-                ["discussion_thread_id"],
-                unique=False,
+        with op.batch_alter_table("news_articles", schema=None) as batch_op:
+            batch_op.add_column(
+                sa.Column(
+                    "discussion_thread_id",
+                    sa.Integer(),
+                    sa.ForeignKey("forum_threads.id", ondelete="SET NULL", name="fk_news_articles_discussion_thread_id"),
+                    nullable=True,
+                ),
             )
+            if not _has_index(inspector, "news_articles", "ix_news_articles_discussion_thread_id"):
+                batch_op.create_index(
+                    "ix_news_articles_discussion_thread_id",
+                    ["discussion_thread_id"],
+                    unique=False,
+                )
 
 
 def downgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    if _has_index(inspector, "news_articles", "ix_news_articles_discussion_thread_id"):
-        op.drop_index("ix_news_articles_discussion_thread_id", table_name="news_articles")
     if _has_column(inspector, "news_articles", "discussion_thread_id"):
-        op.drop_column("news_articles", "discussion_thread_id")
+        with op.batch_alter_table("news_articles", schema=None) as batch_op:
+            if _has_index(inspector, "news_articles", "ix_news_articles_discussion_thread_id"):
+                batch_op.drop_index("ix_news_articles_discussion_thread_id")
+            # Drop the foreign key constraint by name
+            batch_op.drop_constraint("fk_news_articles_discussion_thread_id", type_="foreignkey")
+            batch_op.drop_column("discussion_thread_id")
 
-    if _has_index(inspector, "wiki_pages", "ix_wiki_pages_discussion_thread_id"):
-        op.drop_index("ix_wiki_pages_discussion_thread_id", table_name="wiki_pages")
     if _has_column(inspector, "wiki_pages", "discussion_thread_id"):
-        op.drop_column("wiki_pages", "discussion_thread_id")
+        with op.batch_alter_table("wiki_pages", schema=None) as batch_op:
+            if _has_index(inspector, "wiki_pages", "ix_wiki_pages_discussion_thread_id"):
+                batch_op.drop_index("ix_wiki_pages_discussion_thread_id")
+            # Drop the foreign key constraint by name
+            batch_op.drop_constraint("fk_wiki_pages_discussion_thread_id", type_="foreignkey")
+            batch_op.drop_column("discussion_thread_id")

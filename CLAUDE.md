@@ -103,6 +103,50 @@ Only after ruling out environment issues should you:
 
 ---
 
+## No Mock Tests for Integration Features
+
+**Rule:** Never use mocks for integration tests. Mock tests hide whether the actual integration works. They test the test, not the code.
+
+**When NOT to mock:**
+- Langfuse/observability features
+- Backend → World-Engine communication
+- Any feature that depends on multi-process or multi-service interaction
+- Tests that should produce observable side effects (traces, logs, database records)
+
+**Why:** Mock tests:
+- Hide real failures (mocked code never executes the actual tracer calls)
+- Produce false confidence (assertions pass, but nothing actually works)
+- Prevent verification in external systems (traces never appear in Langfuse dashboard)
+- Waste time (debugging "passing" tests that are actually broken)
+
+**How to apply:**
+- Write integration tests that execute real code paths end-to-end
+- Let tests fail if dependencies aren't running (that's correct behavior—tells you to start the stack)
+- Verify by checking actual external systems: Langfuse dashboard, database, logs
+- For local testing: start both Backend and World-Engine with `docker-compose up -d`, then run tests
+- For CI/CD: use docker-compose or equivalent to spin up full stack before test run
+
+**Example (WRONG):**
+```python
+# ❌ DON'T: This hides whether execute_story_turn_in_engine actually calls the tracer
+monkeypatch.setattr("execute_story_turn_in_engine", lambda **_: {...})
+adapter.start_trace(...)  # Never actually called by mocked function
+assert trace_created  # False positive; trace never sent to Langfuse
+```
+
+**Example (RIGHT):**
+```python
+# ✅ DO: Let the real code run
+response = client.post(f"/api/v1/sessions/{session_id}/turns", json={"player_input": "test"})
+# If Backend running but World-Engine not: get 502 error—that's correct, tells you to start WE
+# If both running: trace actually appears in Langfuse dashboard
+# Verify by checking dashboard, not assertions
+```
+
+**Scope:** All integration tests. Unit tests can mock (they test one function in isolation). Integration tests must execute real code.
+
+---
+
 ## Execution vs Exploration — When given a prepared plan, execute directly; cap discovery at 3 tool calls
 
 **Rule:** Execution mode (when you have a written plan or user has specified exactly what to do) is fundamentally different from exploration mode (when you're investigating or designing).

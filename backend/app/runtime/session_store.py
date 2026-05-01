@@ -1,17 +1,16 @@
-"""DEPRECATED (transitional): volatile in-memory registry for W2 ``RuntimeSession`` wrappers.
+"""Backend runtime session storage with multi-worker support.
 
-Maps ``session_id`` → in-process ``SessionState`` for operator/MCP routes and tests.
-**Not** authoritative for live play (World Engine owns runs). **Not** a durable or
-global registry — data is lost on restart. Rationale: bridge until engine-only
-execution and persistence subsume these endpoints.
+Provides session persistence across worker processes via database + in-memory cache.
+In-process sessions are stored in both places for fast local access and reliability
+across Flask worker restarts in Docker deployments.
 
-**Threading/async:** The registry is a plain dict on a process-local singleton; no
-locks. Only use from the same event loop / request worker as other Flask/async
-session routes; not safe for concurrent mutation across threads without external
-synchronization.
+**Not** authoritative for live play (World Engine owns runs). Sessions are volatile
+and used only as a bridge until engine-only execution and persistence subsume
+these endpoints.
 
-All session entries are accessed through ``RuntimeSessionRegistry``; do not bypass
-the registry with a raw module-level dict.
+**Threading/async:** Uses database for consistency across workers; in-memory registry
+is a process-local cache only. Database provides the single source of truth for
+cross-worker retrieval.
 """
 
 from __future__ import annotations
@@ -88,6 +87,9 @@ def get_runtime_session_registry() -> RuntimeSessionRegistry:
 def create_session(session_id: str, initial_state: SessionState, module: ContentModule) -> RuntimeSession:
     """Create and register a new runtime session.
 
+    Stores in both in-memory registry (for fast local access) and database
+    (for cross-worker access in multi-process deployments).
+
     Args:
         session_id: Unique session identifier
         initial_state: Initial SessionState from W2
@@ -103,11 +105,23 @@ def create_session(session_id: str, initial_state: SessionState, module: Content
         turn_counter=0,
     )
     _runtime_registry.put(session_id, runtime_session)
+
+    # Also persist to database for cross-worker access
+    try:
+        _persist_session_to_database(runtime_session, initial_state)
+    except Exception as e:
+        # Log but don't fail if database persistence fails
+        import sys
+        print(f"[WARNING] Failed to persist session to database: {e}", file=sys.stderr)
+
     return runtime_session
 
 
 def get_session(session_id: str) -> RuntimeSession | None:
     """Retrieve a runtime session by session_id.
+
+    Checks in-memory registry first (fast), then falls back to database
+    (for cross-worker retrieval in Docker deployments with multiple workers).
 
     Args:
         session_id: Unique session identifier
@@ -115,7 +129,24 @@ def get_session(session_id: str) -> RuntimeSession | None:
     Returns:
         RuntimeSession if found, None otherwise
     """
-    return _runtime_registry.get(session_id)
+    # Fast path: check in-memory registry first
+    session = _runtime_registry.get(session_id)
+    if session:
+        return session
+
+    # Fallback: retrieve from database (for cross-worker access)
+    try:
+        session = _retrieve_session_from_database(session_id)
+        if session:
+            # Cache in memory for future accesses
+            _runtime_registry.put(session_id, session)
+            return session
+    except Exception as e:
+        # Log but don't fail if database retrieval fails
+        import sys
+        print(f"[WARNING] Failed to retrieve session from database: {e}", file=sys.stderr)
+
+    return None
 
 
 def update_session(session_id: str, updated_state: SessionState) -> RuntimeSession | None:
@@ -154,3 +185,171 @@ def delete_session(session_id: str) -> bool:
 def clear_registry() -> None:
     """Clear all sessions from the registry. Used for testing."""
     _runtime_registry.clear()
+
+
+def _persist_session_to_database(runtime_session: RuntimeSession, state: SessionState) -> None:
+    """Persist a runtime session to the database for cross-worker access.
+
+    Args:
+        runtime_session: The RuntimeSession to persist
+        state: The SessionState with canonical data
+    """
+    try:
+        from flask import current_app
+        from app.extensions import db
+        import json
+        import sys
+
+        # Only persist if we have a Flask app context
+        if not current_app:
+            print(f"[SESSION_STORE] No Flask app context for persistence", file=sys.stderr)
+            return
+
+        # Create table if it doesn't exist (first-run initialization)
+        _ensure_runtime_sessions_table_exists()
+
+        # Use raw SQL for maximum compatibility with SQLite
+        session_dict = {
+            "session_id": runtime_session.session_id,
+            "module_id": state.module_id,
+            "module_version": state.module_version,
+            "current_scene_id": state.current_scene_id,
+            "status": state.status.value if hasattr(state.status, 'value') else str(state.status),
+            "turn_counter": runtime_session.turn_counter,
+            "canonical_state": json.dumps(state.canonical_state or {}),
+            "session_metadata": json.dumps(state.metadata or {}),
+        }
+
+        # Try INSERT, fall back to UPDATE
+        try:
+            db.session.execute(db.text("""
+                INSERT INTO runtime_sessions
+                (session_id, module_id, module_version, current_scene_id, status, turn_counter, canonical_state, session_metadata, created_at, updated_at)
+                VALUES (:session_id, :module_id, :module_version, :current_scene_id, :status, :turn_counter, :canonical_state, :session_metadata, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """), session_dict)
+            print(f"[SESSION_STORE] Persisted session {runtime_session.session_id} (INSERT)", file=sys.stderr)
+        except Exception as e:
+            # Session already exists, update it
+            print(f"[SESSION_STORE] Session {runtime_session.session_id} exists, updating: {e}", file=sys.stderr)
+            db.session.execute(db.text("""
+                UPDATE runtime_sessions
+                SET current_scene_id = :current_scene_id, status = :status, turn_counter = :turn_counter,
+                    canonical_state = :canonical_state, session_metadata = :session_metadata, updated_at = CURRENT_TIMESTAMP
+                WHERE session_id = :session_id
+            """), session_dict)
+
+        db.session.commit()
+        print(f"[SESSION_STORE] Committed session {runtime_session.session_id} to database", file=sys.stderr)
+    except Exception as e:
+        # Silently fail - the in-memory registry is sufficient as a fallback
+        print(f"[SESSION_STORE] Failed to persist session {runtime_session.session_id}: {e}", file=sys.stderr)
+
+
+def _ensure_runtime_sessions_table_exists() -> None:
+    """Create runtime_sessions table if it doesn't exist."""
+    try:
+        from app.extensions import db
+
+        # Try to query the table - if it fails, create it
+        db.session.execute(db.text("SELECT 1 FROM runtime_sessions LIMIT 1"))
+    except:
+        # Table doesn't exist, create it
+        try:
+            db.session.execute(db.text("""
+                CREATE TABLE IF NOT EXISTS runtime_sessions (
+                    session_id VARCHAR(64) PRIMARY KEY,
+                    module_id VARCHAR(120) NOT NULL,
+                    module_version VARCHAR(32) DEFAULT '1.0.0',
+                    current_scene_id VARCHAR(120) NOT NULL,
+                    status VARCHAR(32) DEFAULT 'active',
+                    turn_counter INTEGER DEFAULT 0,
+                    canonical_state JSON,
+                    session_metadata JSON,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            db.session.commit()
+        except:
+            pass
+
+
+def _retrieve_session_from_database(session_id: str) -> RuntimeSession | None:
+    """Retrieve a runtime session from the database.
+
+    Used for cross-worker access when session is not in in-memory registry.
+
+    Args:
+        session_id: The session ID to retrieve
+
+    Returns:
+        RuntimeSession if found and can be reconstructed, None otherwise
+    """
+    try:
+        from flask import current_app
+        from app.extensions import db
+        import json
+        import sys
+
+        # Only retrieve if we have a Flask app context
+        if not current_app:
+            print(f"[SESSION_STORE] No Flask app context for retrieval of {session_id}", file=sys.stderr)
+            return None
+
+        # Ensure table exists first
+        _ensure_runtime_sessions_table_exists()
+
+        # Query the database using raw SQL for compatibility
+        row = db.session.execute(
+            db.text("SELECT * FROM runtime_sessions WHERE session_id = :session_id"),
+            {"session_id": session_id}
+        ).fetchone()
+
+        if not row:
+            print(f"[SESSION_STORE] No row found in database for {session_id}", file=sys.stderr)
+            return None
+
+        print(f"[SESSION_STORE] Found session {session_id} in database, reconstructing...", file=sys.stderr)
+
+        # Reconstruct SessionState from database record
+        canonical_state = json.loads(row.canonical_state) if row.canonical_state else {}
+        session_metadata = json.loads(row.session_metadata) if row.session_metadata else {}
+
+        print(f"[SESSION_STORE] Creating SessionState for {session_id}", file=sys.stderr)
+        session_state = SessionState(
+            session_id=session_id,
+            module_id=row.module_id,
+            module_version=row.module_version,
+            current_scene_id=row.current_scene_id,
+            status=row.status,
+            turn_counter=row.turn_counter,
+            canonical_state=canonical_state,
+            metadata=session_metadata,
+        )
+        print(f"[SESSION_STORE] SessionState created, loading module {row.module_id}", file=sys.stderr)
+
+        # Reconstruct ContentModule
+        from app.content.module_loader import load_module
+        module = load_module(row.module_id)
+        if not module:
+            print(f"[SESSION_STORE] Failed to load module {row.module_id}", file=sys.stderr)
+            return None
+
+        print(f"[SESSION_STORE] Module loaded, creating RuntimeSession", file=sys.stderr)
+        # Reconstruct RuntimeSession
+        runtime_session = RuntimeSession(
+            session_id=session_id,
+            current_runtime_state=session_state,
+            module=module,
+            turn_counter=row.turn_counter,
+        )
+
+        print(f"[SESSION_STORE] Successfully reconstructed session {session_id}", file=sys.stderr)
+        return runtime_session
+    except Exception as e:
+        # If database access fails, return None
+        # Caller will get appropriate error response
+        print(f"[SESSION_STORE] Exception during reconstruction of {session_id}: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        return None

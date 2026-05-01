@@ -24,7 +24,8 @@ def upgrade():
     columns = [col['name'] for col in inspector.get_columns('users')]
 
     if 'password_history' not in columns:
-        op.add_column('users', sa.Column('password_history', sa.Text(), nullable=True))
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.add_column(sa.Column('password_history', sa.Text(), nullable=True))
 
 
 def downgrade():
@@ -34,4 +35,5 @@ def downgrade():
     columns = [col['name'] for col in inspector.get_columns('users')]
 
     if 'password_history' in columns:
-        op.drop_column('users', 'password_history')
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.drop_column('password_history')

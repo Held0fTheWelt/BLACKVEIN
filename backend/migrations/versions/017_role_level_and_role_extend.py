@@ -20,10 +20,11 @@ def upgrade():
     insp = inspect(conn)
 
     # roles: add description, default_role_level
-    if not any(c["name"] == "description" for c in insp.get_columns("roles")):
-        op.add_column("roles", sa.Column("description", sa.String(length=512), nullable=True))
-    if not any(c["name"] == "default_role_level" for c in insp.get_columns("roles")):
-        op.add_column("roles", sa.Column("default_role_level", sa.Integer(), nullable=True))
+    with op.batch_alter_table("roles", schema=None) as batch_op:
+        if not any(c["name"] == "description" for c in insp.get_columns("roles")):
+            batch_op.add_column(sa.Column("description", sa.String(length=512), nullable=True))
+        if not any(c["name"] == "default_role_level" for c in insp.get_columns("roles")):
+            batch_op.add_column(sa.Column("default_role_level", sa.Integer(), nullable=True))
 
     # Set default_role_level for existing roles
     op.execute(
@@ -48,10 +49,10 @@ def upgrade():
 
     # users: add role_level (SQLite does not support ALTER COLUMN SET NOT NULL; add with server_default)
     if not any(c["name"] == "role_level" for c in insp.get_columns("users")):
-        op.add_column(
-            "users",
-            sa.Column("role_level", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        )
+        with op.batch_alter_table("users", schema=None) as batch_op:
+            batch_op.add_column(
+                sa.Column("role_level", sa.Integer(), nullable=False, server_default=sa.text("0")),
+            )
         # Backfill from role default
         op.execute(
             sa.text(
@@ -62,6 +63,8 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("users", "role_level")
-    op.drop_column("roles", "default_role_level")
-    op.drop_column("roles", "description")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("role_level")
+    with op.batch_alter_table("roles", schema=None) as batch_op:
+        batch_op.drop_column("default_role_level")
+        batch_op.drop_column("description")

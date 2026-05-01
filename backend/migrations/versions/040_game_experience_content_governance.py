@@ -33,22 +33,28 @@ def _game_experience_template_index_names(bind) -> set[str]:
 def upgrade():
     bind = op.get_bind()
     cols = _game_experience_template_column_names(bind)
+    idx = _game_experience_template_index_names(bind)
 
-    if "content_lifecycle" not in cols:
-        op.add_column(
-            "game_experience_templates",
-            sa.Column("content_lifecycle", sa.String(length=32), nullable=False, server_default="draft"),
-        )
-    if "governance_provenance_json" not in cols:
-        op.add_column(
-            "game_experience_templates",
-            sa.Column(
-                "governance_provenance_json",
-                sa.JSON(),
-                nullable=False,
-                server_default="{}",
-            ),
-        )
+    with op.batch_alter_table("game_experience_templates", schema=None) as batch_op:
+        if "content_lifecycle" not in cols:
+            batch_op.add_column(
+                sa.Column("content_lifecycle", sa.String(length=32), nullable=False, server_default="draft"),
+            )
+        if "governance_provenance_json" not in cols:
+            batch_op.add_column(
+                sa.Column(
+                    "governance_provenance_json",
+                    sa.JSON(),
+                    nullable=False,
+                    server_default="{}",
+                ),
+            )
+
+        if "ix_game_experience_templates_content_lifecycle" not in idx:
+            batch_op.create_index(
+                "ix_game_experience_templates_content_lifecycle",
+                ["content_lifecycle"],
+            )
 
     if bind.dialect.name == "postgresql":
         op.execute(
@@ -65,22 +71,16 @@ def upgrade():
             )
         )
 
-    idx = _game_experience_template_index_names(bind)
-    if "ix_game_experience_templates_content_lifecycle" not in idx:
-        op.create_index(
-            "ix_game_experience_templates_content_lifecycle",
-            "game_experience_templates",
-            ["content_lifecycle"],
-        )
-
 
 def downgrade():
     bind = op.get_bind()
     idx = _game_experience_template_index_names(bind)
-    if "ix_game_experience_templates_content_lifecycle" in idx:
-        op.drop_index("ix_game_experience_templates_content_lifecycle", table_name="game_experience_templates")
     cols = _game_experience_template_column_names(bind)
-    if "governance_provenance_json" in cols:
-        op.drop_column("game_experience_templates", "governance_provenance_json")
-    if "content_lifecycle" in cols:
-        op.drop_column("game_experience_templates", "content_lifecycle")
+
+    with op.batch_alter_table("game_experience_templates", schema=None) as batch_op:
+        if "ix_game_experience_templates_content_lifecycle" in idx:
+            batch_op.drop_index("ix_game_experience_templates_content_lifecycle")
+        if "governance_provenance_json" in cols:
+            batch_op.drop_column("governance_provenance_json")
+        if "content_lifecycle" in cols:
+            batch_op.drop_column("content_lifecycle")

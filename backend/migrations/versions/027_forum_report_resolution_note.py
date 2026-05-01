@@ -16,11 +16,10 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        "forum_reports",
-        sa.Column("resolution_note", sa.Text(), nullable=True),
-    )
+    with op.batch_alter_table("forum_reports", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("resolution_note", sa.Text(), nullable=True))
 
 
 def downgrade():
-    op.drop_column("forum_reports", "resolution_note")
+    with op.batch_alter_table("forum_reports", schema=None) as batch_op:
+        batch_op.drop_column("resolution_note")

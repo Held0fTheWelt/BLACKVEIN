@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Generator
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
@@ -474,34 +477,60 @@ def execute_story_turn(
     request: Request,
     manager: StoryRuntimeManager = Depends(get_story_manager),
 ) -> dict[str, Any]:
-    # Initialize Langfuse adapter and create root span
+    print(f">>> execute_story_turn CALLED for session {session_id}", flush=True)
+    # Extract trace_id from Backend (via X-WoS-Trace-Id header)
     trace_id = getattr(request.state, "trace_id", None)
+    adapter = None
+    root_span = None
+    use_existing_trace = False
+
     try:
         from app.observability.langfuse_adapter import LangfuseAdapter
         adapter = LangfuseAdapter.get_instance()
+        logger.info(f"[HTTP] Adapter loaded: is_ready={adapter.is_ready}, is_enabled={adapter.is_enabled()}")
     except Exception as e:
-        print(f"ERROR: Failed to load Langfuse adapter: {type(e).__name__}: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
+        logger.error(f"[HTTP] ERROR: Failed to load Langfuse adapter: {type(e).__name__}: {e}", exc_info=True)
         adapter = None
 
-    root_span = None
-
-    if adapter and adapter.is_enabled():
-        root_span = adapter.start_trace(
-            name="story.turn.execute",
-            session_id=session_id,
-            metadata={
-                "turn_number": 0,  # Will be updated after execution
-                "player_input_length": len(payload.player_input) if payload.player_input else 0,
-                "environment": adapter.config.environment,
-            }
-        )
-        if root_span:
-            adapter.set_active_span(root_span)
-            # Use Langfuse trace_id as the authoritative trace_id
-            if hasattr(root_span, "trace_id"):
-                trace_id = root_span.trace_id
+    if adapter and adapter.is_ready and adapter.is_enabled():
+        if trace_id:
+            # Backend passed trace_id: link to existing trace
+            logger.info(f"[HTTP] Received trace_id from Backend: {trace_id}")
+            use_existing_trace = True
+            # Create a root span under the existing trace by using client.trace()
+            try:
+                langfuse_trace = adapter.client.trace(id=trace_id)
+                root_span = langfuse_trace.span(
+                    name="world-engine.turn.execute",
+                    input={"session_id": session_id, "player_input_length": len(payload.player_input) if payload.player_input else 0},
+                    metadata={"stage": "world_engine_turn_execution"},
+                )
+                logger.info(f"[HTTP] Created child span under existing trace {trace_id}")
+                adapter.set_active_span(root_span)
+            except Exception as e:
+                logger.error(f"[HTTP] Failed to create child span under existing trace: {e}", exc_info=True)
+                root_span = None
+        else:
+            # No trace_id from Backend: create new root span (direct world-engine call)
+            logger.info(f"[HTTP] No trace_id from Backend - creating new root span")
+            root_span = adapter.start_trace(
+                name="world-engine.turn.execute",
+                session_id=session_id,
+                metadata={
+                    "turn_number": 0,  # Will be updated after execution
+                    "player_input_length": len(payload.player_input) if payload.player_input else 0,
+                    "environment": adapter.config.environment,
+                }
+            )
+            if root_span:
+                logger.info(f"[HTTP] Root span created, setting as active context")
+                adapter.set_active_span(root_span)
+                # Use Langfuse trace_id as the authoritative trace_id
+                if hasattr(root_span, "trace_id"):
+                    trace_id = root_span.trace_id
+                    logger.info(f"[HTTP] Langfuse trace_id: {trace_id}")
+            else:
+                logger.warning(f"[HTTP] Failed to create root span for session {session_id}")
 
     try:
         turn = manager.execute_turn(
@@ -513,6 +542,7 @@ def execute_story_turn(
         # Update root span with turn results
         if root_span and turn:
             turn_number = turn.get("turn_number", 0)
+            logger.info(f"[HTTP] Updating root span with turn_number={turn_number}")
             root_span.update(
                 output={
                     "turn_number": turn_number,
@@ -524,6 +554,7 @@ def execute_story_turn(
                     "environment": adapter.config.environment if adapter else "unknown",
                 }
             )
+            logger.info(f"[HTTP] Root span updated")
 
         return {"session_id": session_id, "turn": turn}
 
@@ -545,9 +576,15 @@ def execute_story_turn(
     finally:
         # End root span and flush Langfuse
         if root_span:
+            logger.info(f"[HTTP] Ending root span")
             root_span.end()
+            logger.info(f"[HTTP] Root span ended")
         if adapter and adapter.is_enabled():
+            logger.info(f"[HTTP] Flushing Langfuse adapter")
             adapter.flush()
+            logger.info(f"[HTTP] Langfuse flush complete")
+        else:
+            logger.info(f"[HTTP] Adapter not enabled or not initialized, skipping flush")
 
 
 @router.get("/story/sessions/{session_id}/state", dependencies=[Depends(_require_internal_api_key)])

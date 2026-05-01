@@ -167,6 +167,7 @@ class NarrativeRuntimeAgent:
                 if adapter:
                     parent_span = adapter.get_active_span()
                     if parent_span:
+                        logger.info(f"[NARRATOR] Creating narrator.narrate_block span (block #{block_count}) for session {agent_input.session_id}")
                         narrator_span = adapter.create_child_span(
                             name="narrator.narrate_block",
                             input={
@@ -180,6 +181,12 @@ class NarrativeRuntimeAgent:
                                 "session_id": agent_input.session_id,
                             },
                         )
+                        if narrator_span:
+                            logger.info(f"[NARRATOR] narrator.narrate_block span created successfully")
+                    else:
+                        logger.warning(f"[NARRATOR] No active parent span - narrator blocks won't be traced")
+                else:
+                    logger.debug(f"[NARRATOR] Adapter not available - narrator blocks won't be traced")
 
                 try:
                     narrator_block = self._generate_narrator_block(
@@ -206,6 +213,7 @@ class NarrativeRuntimeAgent:
 
                     # Update span with block metrics
                     if narrator_span:
+                        logger.info(f"[NARRATOR] Updating narrator.narrate_block span with block_id={narrator_block.get('block_id')}")
                         narrator_span.update(
                             output={
                                 "block_id": narrator_block.get("block_id"),
@@ -221,7 +229,9 @@ class NarrativeRuntimeAgent:
                                 "narrative_threads_referenced": len(narrator_block.get("narrative_threads_referenced", [])),
                             },
                         )
+                        logger.info(f"[NARRATOR] Ending narrator.narrate_block span")
                         narrator_span.end()
+                        logger.info(f"[NARRATOR] narrator.narrate_block span ended")
 
                     # Phase 6: Record trace scaffold for this narrator block
                     if not agent_input.enable_langfuse_tracing:

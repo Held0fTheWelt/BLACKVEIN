@@ -22,77 +22,71 @@ def upgrade():
 
     # Get existing columns
     columns = {col["name"] for col in inspector.get_columns("forum_reports")}
-
-    # Add priority (enum: low, normal, high, critical) with default 'normal'
-    if "priority" not in columns:
-        op.add_column(
-            "forum_reports",
-            sa.Column(
-                "priority",
-                sa.String(16),
-                nullable=False,
-                server_default="normal"
-            ),
-        )
-
-    # Add escalation_reason (text field)
-    if "escalation_reason" not in columns:
-        op.add_column(
-            "forum_reports",
-            sa.Column("escalation_reason", sa.Text, nullable=True),
-        )
-
-    # Add assigned_to (FK to users, nullable)
-    if "assigned_to" not in columns:
-        op.add_column(
-            "forum_reports",
-            sa.Column(
-                "assigned_to",
-                sa.Integer,
-                nullable=True,
-            ),
-        )
-
-    # Add escalated_at (timestamp)
-    if "escalated_at" not in columns:
-        op.add_column(
-            "forum_reports",
-            sa.Column(
-                "escalated_at",
-                sa.DateTime(timezone=True),
-                nullable=True,
-            ),
-        )
-
-    # Add index on assigned_to for quick lookup of reports assigned to a moderator
     existing_indexes = {
         ix["name"] for ix in inspector.get_indexes("forum_reports")
     }
-    if "ix_forum_reports_assigned_to" not in existing_indexes:
-        op.create_index(
-            "ix_forum_reports_assigned_to",
-            "forum_reports",
-            ["assigned_to"],
-            unique=False,
-        )
 
-    # Add index on priority + escalated_at for escalation queue queries
-    if "ix_forum_reports_priority_escalated" not in existing_indexes:
-        op.create_index(
-            "ix_forum_reports_priority_escalated",
-            "forum_reports",
-            ["priority", "escalated_at"],
-            unique=False,
-        )
+    with op.batch_alter_table("forum_reports", schema=None) as batch_op:
+        # Add priority (enum: low, normal, high, critical) with default 'normal'
+        if "priority" not in columns:
+            batch_op.add_column(
+                sa.Column(
+                    "priority",
+                    sa.String(16),
+                    nullable=False,
+                    server_default="normal"
+                ),
+            )
 
-    # Add index on status + created_at for review queue queries
-    if "ix_forum_reports_status_created" not in existing_indexes:
-        op.create_index(
-            "ix_forum_reports_status_created",
-            "forum_reports",
-            ["status", "created_at"],
-            unique=False,
-        )
+        # Add escalation_reason (text field)
+        if "escalation_reason" not in columns:
+            batch_op.add_column(
+                sa.Column("escalation_reason", sa.Text, nullable=True),
+            )
+
+        # Add assigned_to (FK to users, nullable)
+        if "assigned_to" not in columns:
+            batch_op.add_column(
+                sa.Column(
+                    "assigned_to",
+                    sa.Integer,
+                    nullable=True,
+                ),
+            )
+
+        # Add escalated_at (timestamp)
+        if "escalated_at" not in columns:
+            batch_op.add_column(
+                sa.Column(
+                    "escalated_at",
+                    sa.DateTime(timezone=True),
+                    nullable=True,
+                ),
+            )
+
+        # Add index on assigned_to for quick lookup of reports assigned to a moderator
+        if "ix_forum_reports_assigned_to" not in existing_indexes:
+            batch_op.create_index(
+                "ix_forum_reports_assigned_to",
+                ["assigned_to"],
+                unique=False,
+            )
+
+        # Add index on priority + escalated_at for escalation queue queries
+        if "ix_forum_reports_priority_escalated" not in existing_indexes:
+            batch_op.create_index(
+                "ix_forum_reports_priority_escalated",
+                ["priority", "escalated_at"],
+                unique=False,
+            )
+
+        # Add index on status + created_at for review queue queries
+        if "ix_forum_reports_status_created" not in existing_indexes:
+            batch_op.create_index(
+                "ix_forum_reports_status_created",
+                ["status", "created_at"],
+                unique=False,
+            )
 
 
 def downgrade():
@@ -100,24 +94,27 @@ def downgrade():
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    # Drop indexes
+    # Get existing columns and indexes
     existing_indexes = {
         ix["name"] for ix in inspector.get_indexes("forum_reports")
     }
-    if "ix_forum_reports_status_created" in existing_indexes:
-        op.drop_index("ix_forum_reports_status_created", table_name="forum_reports")
-    if "ix_forum_reports_priority_escalated" in existing_indexes:
-        op.drop_index("ix_forum_reports_priority_escalated", table_name="forum_reports")
-    if "ix_forum_reports_assigned_to" in existing_indexes:
-        op.drop_index("ix_forum_reports_assigned_to", table_name="forum_reports")
-
-    # Drop columns
     columns = {col["name"] for col in inspector.get_columns("forum_reports")}
-    if "escalated_at" in columns:
-        op.drop_column("forum_reports", "escalated_at")
-    if "assigned_to" in columns:
-        op.drop_column("forum_reports", "assigned_to")
-    if "escalation_reason" in columns:
-        op.drop_column("forum_reports", "escalation_reason")
-    if "priority" in columns:
-        op.drop_column("forum_reports", "priority")
+
+    with op.batch_alter_table("forum_reports", schema=None) as batch_op:
+        # Drop indexes
+        if "ix_forum_reports_status_created" in existing_indexes:
+            batch_op.drop_index("ix_forum_reports_status_created")
+        if "ix_forum_reports_priority_escalated" in existing_indexes:
+            batch_op.drop_index("ix_forum_reports_priority_escalated")
+        if "ix_forum_reports_assigned_to" in existing_indexes:
+            batch_op.drop_index("ix_forum_reports_assigned_to")
+
+        # Drop columns
+        if "escalated_at" in columns:
+            batch_op.drop_column("escalated_at")
+        if "assigned_to" in columns:
+            batch_op.drop_column("assigned_to")
+        if "escalation_reason" in columns:
+            batch_op.drop_column("escalation_reason")
+        if "priority" in columns:
+            batch_op.drop_column("priority")

@@ -19,11 +19,12 @@ def upgrade():
     conn = op.get_bind()
     if any(c["name"] == "email_verified_at" for c in inspect(conn).get_columns("users")):
         return
-    op.add_column(
-        "users",
-        sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True),
-    )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.add_column(
+            sa.Column("email_verified_at", sa.DateTime(timezone=True), nullable=True),
+        )
 
 
 def downgrade():
-    op.drop_column("users", "email_verified_at")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("email_verified_at")

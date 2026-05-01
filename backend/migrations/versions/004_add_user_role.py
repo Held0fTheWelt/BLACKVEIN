@@ -19,11 +19,12 @@ def upgrade():
     conn = op.get_bind()
     if any(c["name"] == "role" for c in inspect(conn).get_columns("users")):
         return
-    op.add_column(
-        "users",
-        sa.Column("role", sa.String(length=20), nullable=False, server_default="editor"),
-    )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.add_column(
+            sa.Column("role", sa.String(length=20), nullable=False, server_default="editor"),
+        )
 
 
 def downgrade():
-    op.drop_column("users", "role")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("role")

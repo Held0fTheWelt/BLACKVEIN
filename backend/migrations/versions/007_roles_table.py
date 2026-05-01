@@ -31,32 +31,30 @@ def upgrade():
     op.execute("INSERT INTO roles (name) VALUES ('editor')")
     op.execute("INSERT INTO roles (name) VALUES ('admin')")
 
-    op.add_column(
-        "users",
-        sa.Column("role_id", sa.Integer(), nullable=True),
-    )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("role_id", sa.Integer(), nullable=True))
+        batch_op.create_foreign_key("fk_users_role_id", "roles", ["role_id"], ["id"])
+
     op.execute(
         sa.text("UPDATE users SET role_id = (SELECT id FROM roles WHERE roles.name = users.role)")
     )
-    op.alter_column(
-        "users",
-        "role_id",
-        existing_type=sa.Integer(),
-        nullable=False,
-    )
-    op.create_foreign_key("fk_users_role_id", "users", "roles", ["role_id"], ["id"])
-    op.drop_column("users", "role")
+
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.alter_column("role_id", existing_type=sa.Integer(), nullable=False)
+        batch_op.drop_column("role")
 
 
 def downgrade():
-    op.add_column(
-        "users",
-        sa.Column("role", sa.String(length=20), nullable=True),
-    )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.add_column(sa.Column("role", sa.String(length=20), nullable=True))
+        batch_op.drop_constraint("fk_users_role_id", type_="foreignkey")
+        batch_op.drop_column("role_id")
+
     op.execute(
         sa.text("UPDATE users SET role = (SELECT name FROM roles WHERE roles.id = users.role_id)")
     )
-    op.alter_column("users", "role", nullable=False)
-    op.drop_constraint("fk_users_role_id", "users", type_="foreignkey")
-    op.drop_column("users", "role_id")
+
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.alter_column("role", nullable=False)
+
     op.drop_table("roles")

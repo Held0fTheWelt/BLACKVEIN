@@ -36,6 +36,7 @@ from app.services.game_service import (
 )
 from app.observability.trace import get_trace_id
 from app.observability.audit_log import log_world_engine_bridge
+from app.observability.langfuse_adapter import LangfuseAdapter
 from app.runtime.input_interpreter import interpret_player_input
 from app.config.route_constants import route_session_config, route_status_codes
 
@@ -505,7 +506,22 @@ def execute_session_turn(session_id):
     trace_id = g.get("trace_id") or get_trace_id()
 
     created: dict | None = None
+    adapter = LangfuseAdapter.get_instance()
+    root_span = None
+
     try:
+        # Create root span for this turn execution
+        root_span = adapter.start_trace(
+            name="backend.turn.execute",
+            session_id=session_id,
+            turn_id=str(runtime_session.turn_counter) if hasattr(runtime_session, 'turn_counter') else None,
+            module_id=state.module_id if state else None,
+            metadata={
+                "player_input_length": len(player_input),
+                "stage": "turn_execution",
+            }
+        )
+
         if not engine_story_session_id:
             compiled = compile_module(state.module_id)
             created = create_story_session(
@@ -531,7 +547,22 @@ def execute_session_turn(session_id):
         )
         diagnostics = get_story_diagnostics(engine_story_session_id, trace_id=trace_id)
         current_state = get_story_state(engine_story_session_id, trace_id=trace_id)
+
+        # Update root span with results
+        if root_span:
+            root_span.update(output={
+                "turn_number": runtime_session.turn_counter if hasattr(runtime_session, 'turn_counter') else None,
+                "status": "completed",
+            })
     except GameServiceError as exc:
+        # Update root span with error
+        if root_span:
+            root_span.update(output={
+                "status": "error",
+                "failure_class": "world_engine_unreachable",
+                "status_code": exc.status_code,
+            })
+
         log_world_engine_bridge(
             trace_id,
             operation="execute_or_fetch_story",
@@ -551,6 +582,11 @@ def execute_session_turn(session_id):
                 "status_hint": exc.status_code,
             }
         ), 502
+    finally:
+        # End root span and flush
+        if root_span:
+            adapter.end_trace(root_span)
+        adapter.flush()
 
     log_world_engine_bridge(
         trace_id,

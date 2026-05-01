@@ -23,27 +23,26 @@ def _users_has_column(conn, name):
 def upgrade():
     conn = op.get_bind()
     if not _users_has_column(conn, "email"):
-        op.add_column(
-            "users",
-            sa.Column("email", sa.String(length=254), nullable=True),
-        )
-        op.create_unique_constraint("uq_users_email", "users", ["email"])
+        with op.batch_alter_table("users", schema=None) as batch_op:
+            batch_op.add_column(sa.Column("email", sa.String(length=254), nullable=True))
+            batch_op.create_unique_constraint("uq_users_email", ["email"])
 
     if not inspect(conn).has_table("password_reset_tokens"):
         op.create_table(
             "password_reset_tokens",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("token_hash", sa.String(length=128), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("token_hash"),
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+            sa.Column("user_id", sa.Integer(), nullable=False),
+            sa.Column("token_hash", sa.String(length=128), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+            sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("token_hash"),
         )
 
 
 def downgrade():
     op.drop_table("password_reset_tokens")
-    op.drop_constraint("uq_users_email", "users", type_="unique")
-    op.drop_column("users", "email")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_constraint("uq_users_email", type_="unique")
+        batch_op.drop_column("email")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import threading
 from dataclasses import dataclass, field
@@ -7,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+logger = logging.getLogger(__name__)
 
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
@@ -1917,12 +1920,54 @@ class StoryRuntimeManager:
         # LDSS runs after validation/commit, from committed state only.
         scene_turn_envelope: dict[str, Any] | None = None
         if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
-            scene_turn_envelope = _build_ldss_scene_envelope(
-                session=session,
-                graph_state=graph_state,
-                player_input=player_input,
-                turn_number=commit_turn_number,
-            )
+            # MVP4: Create child span for LDSS phase
+            ldss_span = None
+            try:
+                from app.observability.langfuse_adapter import LangfuseAdapter
+                adapter = LangfuseAdapter.get_instance()
+                if adapter and adapter.is_enabled():
+                    logger.info(f"[MANAGER] Creating LDSS phase span for session {session.session_id}, turn {commit_turn_number}")
+                    ldss_span = adapter.create_child_span(
+                        name="story.phase.ldss",
+                        input={
+                            "session_id": session.session_id,
+                            "turn_number": commit_turn_number,
+                            "player_input_length": len(player_input) if player_input else 0,
+                        },
+                        metadata={
+                            "phase": "ldss",
+                            "turn_number": commit_turn_number,
+                            "session_id": session.session_id,
+                        }
+                    )
+                    if ldss_span:
+                        logger.info(f"[MANAGER] LDSS phase span created successfully")
+                    else:
+                        logger.warning(f"[MANAGER] LDSS phase span creation returned None")
+            except Exception as e:
+                logger.error(f"[MANAGER] Exception creating LDSS phase span: {e}", exc_info=True)
+
+            try:
+                scene_turn_envelope = _build_ldss_scene_envelope(
+                    session=session,
+                    graph_state=graph_state,
+                    player_input=player_input,
+                    turn_number=commit_turn_number,
+                )
+                if scene_turn_envelope and ldss_span:
+                    ldss_span.update(
+                        output={
+                            "block_count": scene_turn_envelope.get("visible_scene_output", {}).get("blocks", []) if isinstance(scene_turn_envelope.get("visible_scene_output"), dict) else 0,
+                            "decision_count": scene_turn_envelope.get("decision_count", 0) if isinstance(scene_turn_envelope, dict) else 0,
+                            "status": "approved"
+                        }
+                    )
+            finally:
+                if ldss_span:
+                    logger.info(f"[MANAGER] Ending LDSS phase span")
+                    ldss_span.end()
+                    logger.info(f"[MANAGER] LDSS phase span ended")
+
             if scene_turn_envelope:
                 event["scene_turn_envelope"] = scene_turn_envelope
 
@@ -1942,16 +1987,58 @@ class StoryRuntimeManager:
             narrative_threads_list = [t.model_dump() if hasattr(t, 'model_dump') else t
                                      for t in (session.narrative_threads.active if hasattr(session.narrative_threads, 'active') else [])]
 
-            streaming_started = _orchestrate_narrative_agent(
-                manager=self,
-                session_id=session.session_id,
-                ldss_output=scene_turn_envelope,
-                runtime_state=runtime_state,
-                dramatic_signature=dramatic_context,
-                narrative_threads=narrative_threads_list,
-                turn_number=commit_turn_number,
-                trace_id=trace_id,
-            )
+            # MVP4: Create child span for Narrator phase
+            narrator_span = None
+            try:
+                from app.observability.langfuse_adapter import LangfuseAdapter
+                adapter = LangfuseAdapter.get_instance()
+                if adapter and adapter.is_enabled():
+                    logger.info(f"[MANAGER] Creating Narrator phase span for session {session.session_id}, turn {commit_turn_number}")
+                    narrator_span = adapter.create_child_span(
+                        name="story.phase.narrator",
+                        input={
+                            "session_id": session.session_id,
+                            "turn_number": commit_turn_number,
+                            "npc_agency_plan": scene_turn_envelope.get("npc_agency_plan") if isinstance(scene_turn_envelope, dict) else None,
+                        },
+                        metadata={
+                            "phase": "narrator",
+                            "turn_number": commit_turn_number,
+                            "session_id": session.session_id,
+                        }
+                    )
+                    # Set as active span so NarrativeRuntimeAgent can create child spans
+                    if narrator_span:
+                        logger.info(f"[MANAGER] Narrator phase span created, setting as active context")
+                        adapter.set_active_span(narrator_span)
+                    else:
+                        logger.warning(f"[MANAGER] Narrator phase span creation returned None")
+            except Exception as e:
+                logger.error(f"[MANAGER] Exception creating Narrator phase span: {e}", exc_info=True)
+
+            try:
+                streaming_started = _orchestrate_narrative_agent(
+                    manager=self,
+                    session_id=session.session_id,
+                    ldss_output=scene_turn_envelope,
+                    runtime_state=runtime_state,
+                    dramatic_signature=dramatic_context,
+                    narrative_threads=narrative_threads_list,
+                    turn_number=commit_turn_number,
+                    trace_id=trace_id,
+                )
+
+                if streaming_started and narrator_span:
+                    narrator_span.update(
+                        output={
+                            "status": "streaming_started"
+                        }
+                    )
+            finally:
+                if narrator_span:
+                    logger.info(f"[MANAGER] Ending Narrator phase span")
+                    narrator_span.end()
+                    logger.info(f"[MANAGER] Narrator phase span ended")
 
             if streaming_started:
                 event["narrative_agent_started"] = True

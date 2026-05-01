@@ -19,21 +19,19 @@ def upgrade():
     conn = op.get_bind()
     insp = inspect(conn)
 
-    if not any(c["name"] == "is_banned" for c in insp.get_columns("users")):
-        op.add_column(
-            "users",
-            sa.Column("is_banned", sa.Boolean(), nullable=False, server_default=sa.text("0")),
-        )
-    if not any(c["name"] == "banned_at" for c in insp.get_columns("users")):
-        op.add_column(
-            "users",
-            sa.Column("banned_at", sa.DateTime(timezone=True), nullable=True),
-        )
-    if not any(c["name"] == "ban_reason" for c in insp.get_columns("users")):
-        op.add_column(
-            "users",
-            sa.Column("ban_reason", sa.String(length=512), nullable=True),
-        )
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        if not any(c["name"] == "is_banned" for c in insp.get_columns("users")):
+            batch_op.add_column(
+                sa.Column("is_banned", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+            )
+        if not any(c["name"] == "banned_at" for c in insp.get_columns("users")):
+            batch_op.add_column(
+                sa.Column("banned_at", sa.DateTime(timezone=True), nullable=True),
+            )
+        if not any(c["name"] == "ban_reason" for c in insp.get_columns("users")):
+            batch_op.add_column(
+                sa.Column("ban_reason", sa.String(length=512), nullable=True),
+            )
 
     # Migrate users with editor role to moderator (editor role is being removed)
     op.execute(
@@ -45,6 +43,7 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column("users", "ban_reason")
-    op.drop_column("users", "banned_at")
-    op.drop_column("users", "is_banned")
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("ban_reason")
+        batch_op.drop_column("banned_at")
+        batch_op.drop_column("is_banned")
