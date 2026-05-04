@@ -1,72 +1,23 @@
 #!/usr/bin/env python3
 """
-Run Docker Compose for this repository: bring the stack up with image rebuilds, stop, etc.
+Bootstrap and run the World of Shadows stack via docker compose.
 
-This is the supported entry point if you prefer Python over typing ``docker compose``;
-it always uses the **repository root** as the Compose working directory (same as
-``docker compose -f docker-compose.yml`` from the repo root).
+Usage:
+  python docker-up.py init-env     Create .env with generated secrets
+  python docker-up.py up            Start containers with full bootstrap
+  python docker-up.py build         Build images only
+  python docker-up.py restart       Restart running containers
+  python docker-up.py stop          Stop containers
+  python docker-up.py down          Remove containers
 
-**Local environment & secrets:**
-
-The stack requires stable local secrets in ``.env`` (repo root). ``docker-up.py`` writes
-those values **before** Docker Compose runs (including ``docker compose build``): they are
-not generated inside Dockerfiles (images stay secret-free).
-
-Use ``init-env`` to create or refresh ``.env`` from ``.env.example`` with generated platform
-secrets (SECRET_KEY, JWT_SECRET_KEY, SECRETS_KEK, PLAY_SERVICE_SHARED_SECRET,
-INTERNAL_RUNTIME_CONFIG_TOKEN, etc.). A plain ``python docker-up.py`` / ``up`` / ``build`` /
-``restart`` also ensures missing or placeholder secrets exist **before** compose executes.
-
-Existing non-placeholder values are preserved; missing or example placeholders are replaced.
-
-After ``init-env``, edit ``.env`` keys as needed:
-
-  - ``OPENAI_API_KEY`` for OpenAI
-  - ``OPENROUTER_API_KEY`` for OpenRouter
-  - ``ANTHROPIC_API_KEY`` for Anthropic
-
-Ollama does not require an API key by default.
-
-For normal startup, the default behavior ensures ``.env`` is ready:
-
-  python docker-up.py                    # Default: up -d --build with env check
-  python docker-up.py up --no-build      # Start with rebuild disabled
-
-**Typical URLs after startup:**
-  - Player frontend: http://localhost:5002
-  - Backend API:     http://localhost:8000
-  - Play service:    http://localhost:8001  (world-engine; browser / WebSocket base)
-
-The backend image includes ``content/modules``; compose sets ``WOS_CONTENT_MODULES_ROOT``
-and play-service INTERNAL vs PUBLIC URLs for container vs browser access.
-
-**RAG / AI Engineer Suite:** The backend Dockerfile uses a slim tree under ``/app`` (``app/`` package, no top-level
-``backend/`` directory). Compose sets ``WOS_REPO_ROOT=/app`` so RAG ``.wos/`` persistence and ingestion resolve
-reliably inside the container. For **host-only** runs (no Docker), set ``WOS_REPO_ROOT`` in ``.env`` to your
-World of Shadows **repository root** (the directory that contains ``backend/app/``).
-
-Default (no subcommand): ``docker compose up -d --build`` - images are built and containers
-are recreated/started (typical local rebuild workflow). Build contexts in
-``docker-compose.yml`` are repo-root (backend and world-engine Dockerfiles expect ``.``).
-
-Subcommands:
-  init-env        Initialize local ``.env`` with auto-generated stable secrets.
-  ensure-env      Alias for ``init-env``.
-  up, start       ``up -d``; by default with ``--build`` (same as running without COMMAND).
-  build           ``build`` only (optional ``--no-cache`` / ``--pull``).
-  restart         ``restart`` (no build, processes only).
-  stop            ``stop``
-  down            ``down`` (optional ``--volumes``)
-  reset           Remove local Docker state (containers, images, volumes); preserve ``.env``.
-
-Flags:
-  --no-build      Omit ``--build`` on default/up (faster when images are current).
-  --force         For ``init-env``: regenerate all secrets (overwrite existing).
-                  For ``reset``: remove state without confirmation.
-  -f FILE         Compose file; may be given multiple times. Relative paths are resolved
-                  from the repository root (not the shell cwd).
-
-Requires ``docker compose`` (v2) or legacy ``docker-compose``.
+Exit codes (up command):
+  0 = Success (containers healthy, admin user created)
+  1 = Docker compose failed
+  2 = Backend migrations failed
+  3 = Admin user creation failed
+  4 = Langfuse initialization failed (when LANGFUSE_ENABLED=true)
+  5 = Backend health check failed
+  6 = Environment (.env) validation failed
 """
 from __future__ import annotations
 
@@ -289,7 +240,7 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
         created = _ensure_env_secrets()
         if created:
             print(
-                f"\n✓ Created {ENV_FILE} with auto-generated stable secrets.\n"
+                f"\n[OK] Created {ENV_FILE} with auto-generated stable secrets.\n"
                 f"  IMPORTANT: Set provider keys in {ENV_FILE} (OPENAI_API_KEY / OPENROUTER_API_KEY / ANTHROPIC_API_KEY) as needed.\n"
                 f"  Other secrets are already generated and should not be changed.\n",
                 file=sys.stderr,
@@ -299,7 +250,7 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
         updated = _ensure_env_secrets()
         if updated:
             print(
-                f"\n✓ Updated {ENV_FILE} with missing stable secrets.\n"
+                f"\n[OK] Updated {ENV_FILE} with missing stable secrets.\n"
                 f"  Review {ENV_FILE} to ensure provider API keys are set where needed.\n",
                 file=sys.stderr,
             )
@@ -320,8 +271,68 @@ def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
     return exit_code
 
 
+def _initialize_admin_user_in_backend() -> None:
+    """Create default admin user 'admin' with password 'Admin123' if it doesn't exist.
+
+    Silently returns if backend is not yet ready (URLError). This is normal on first startup
+    when migrations are still running. Raises only on actual database/constraint errors.
+
+    Raises:
+        RuntimeError: If HTTP 500 or database error occurs (not URLError).
+    """
+    try:
+        init_url = "http://localhost:8000/api/v1/internal/bootstrap/admin-user"
+        payload = {
+            "username": "admin",
+            "password": "Admin123",
+            "create_if_missing": True,
+        }
+
+        import json
+        data = json.dumps(payload).encode("utf-8")
+        req = Request(
+            init_url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urlopen(req, timeout=5) as response:
+            response_data = json.loads(response.read().decode("utf-8"))
+
+            if response.status == 200:
+                if response_data.get("data", {}).get("created"):
+                    print("[OK] Admin user created (admin / Admin123).", file=sys.stderr)
+                else:
+                    # User already exists (idempotent)
+                    print("[OK] Admin user already exists.", file=sys.stderr)
+            else:
+                # Unexpected status code
+                raise RuntimeError(f"Admin user initialization returned unexpected status {response.status}")
+
+    except URLError as e:
+        # Backend not ready yet (still initializing/running migrations). This is normal.
+        # Silently return; admin user will be created on next startup attempt.
+        return
+
+    except json.JSONDecodeError as e:
+        # Backend responded but with invalid JSON — this is a real error
+        raise RuntimeError(f"Backend returned invalid JSON during admin user creation: {str(e)}")
+
+    except Exception as e:
+        # Database error, constraint violation, or other backend error
+        raise RuntimeError(f"Admin user creation failed: {str(e)}")
+
+
 def _initialize_langfuse_in_backend() -> None:
-    """Initialize Langfuse configuration in the backend database from environment variables."""
+    """Initialize Langfuse configuration in the backend database from environment variables.
+
+    If LANGFUSE_ENABLED=true but initialization fails, raises RuntimeError (no silent failures on configured features).
+    If LANGFUSE_ENABLED=false, returns silently.
+
+    Raises:
+        RuntimeError: If Langfuse is enabled but initialization fails.
+    """
     # Read Langfuse config from .env
     env_dict = _read_env_file(ENV_FILE)
 
@@ -329,11 +340,14 @@ def _initialize_langfuse_in_backend() -> None:
     public_key = env_dict.get("LANGFUSE_PUBLIC_KEY", "").strip()
     secret_key = env_dict.get("LANGFUSE_SECRET_KEY", "").strip()
 
-    # Only initialize if Langfuse is enabled and has credentials
-    if not enabled or not secret_key:
+    # If Langfuse not enabled, return silently
+    if not enabled:
         return
 
-    # Try to initialize Langfuse in the database via internal initialization endpoint
+    # Langfuse is enabled, so we MUST initialize successfully
+    if not secret_key:
+        raise RuntimeError("Langfuse is enabled (LANGFUSE_ENABLED=true) but LANGFUSE_SECRET_KEY is not set in .env")
+
     try:
         init_url = "http://localhost:8000/api/v1/internal/observability/initialize"
         payload = {
@@ -360,63 +374,101 @@ def _initialize_langfuse_in_backend() -> None:
         )
 
         with urlopen(req, timeout=5) as response:
-            if response.status == 200:
-                print("✓ Langfuse observability initialized in database.", file=sys.stderr)
+            response_data = json.loads(response.read().decode("utf-8"))
+
+            if response.status == 200 and response_data.get("ok"):
+                print("[OK] Langfuse observability initialized in database.", file=sys.stderr)
             else:
-                print(f"Warning: Langfuse initialization returned status {response.status}", file=sys.stderr)
+                raise RuntimeError(f"Backend rejected Langfuse initialization: {response_data.get('error', {}).get('message', 'Unknown error')}")
+
     except URLError as e:
-        # Backend not ready yet, that's OK — initialization will happen on next startup
-        pass
+        raise RuntimeError(f"Langfuse initialization failed: backend unreachable ({str(e)})")
+
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Langfuse initialization failed: backend returned invalid JSON ({str(e)})")
+
     except Exception as e:
-        # Silent failure — Langfuse is optional
-        pass
+        raise RuntimeError(f"Langfuse initialization failed: {str(e)}")
 
 
 def _bootstrap_gate_after_up() -> int:
-    """Guide operators through bootstrap setup before normal runtime assumptions."""
+    """Check backend health, create admin user, initialize Langfuse, and guide bootstrap.
+
+    Exit codes (per ADR-0030):
+        0: Success (bootstrap complete or required—either way, stack is operational)
+        2: Migrations failed (inferred from admin user creation table-not-found error)
+        3: Admin user creation failed (database error, constraints, etc.)
+        4: Langfuse initialization failed (configured but failed)
+        5: Backend healthcheck timeout or unresponsive
+        6: Bootstrap status check failed (unexpected response)
+    """
+    # Step 1: Check bootstrap status
     status_url = "http://localhost:8000/api/v1/bootstrap/public-status"
     req = Request(status_url, headers={"Accept": "application/json"})
+
     try:
         with urlopen(req, timeout=2.5) as response:
             payload = json.loads(response.read().decode("utf-8"))
-    except URLError:
+    except URLError as e:
         print(
-            "Notice: Backend bootstrap status is currently unreachable.\n"
-            "If this is the first startup, open the Administration Tool and complete bootstrap:\n"
-            "  - Recommended web setup: http://localhost:5002/manage/operational-governance/bootstrap\n"
-            "  - CLI fallback: set BOOTSTRAP_RECOVERY_TOKEN + call /api/v1/admin/bootstrap/initialize via curl\n",
+            "ERROR: Backend is not responding to health checks.\n"
+            "Check: docker ps | grep backend\n"
+            "If backend is running, check logs: docker logs worldofshadows-backend-1\n",
             file=sys.stderr,
         )
-        return 0
+        return 5  # Exit code 5: Backend unreachable
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: Backend returned invalid JSON: {exc}", file=sys.stderr)
+        return 6  # Exit code 6: Unexpected response
     except Exception as exc:
-        print(f"Warning: Could not parse bootstrap status response: {exc}", file=sys.stderr)
-        return 0
+        print(f"ERROR: Unexpected error checking bootstrap status: {exc}", file=sys.stderr)
+        return 6
 
-    # Try to initialize Langfuse in the database (if configured)
+    # Step 2: Create admin user for bootstrap access (CRITICAL)
+    try:
+        _initialize_admin_user_in_backend()
+    except RuntimeError as e:
+        error_msg = str(e)
+        # Distinguish between migration failure and other errors
+        if "users" in error_msg.lower() or "table" in error_msg.lower():
+            print(f"ERROR: Database migrations incomplete: {error_msg}", file=sys.stderr)
+            print("Recovery: Restart containers so migrations re-run:\n  docker-compose down && python docker-up.py up\n", file=sys.stderr)
+            return 2  # Exit code 2: Migrations failed
+        else:
+            print(f"ERROR: Admin user creation failed: {error_msg}", file=sys.stderr)
+            print("Recovery: Check backend logs and retry:\n  docker logs worldofshadows-backend-1\n  python docker-up.py up\n", file=sys.stderr)
+            return 3  # Exit code 3: Admin user creation failed
+
+    # Step 3: Initialize Langfuse (if configured—MUST succeed if enabled)
     try:
         _initialize_langfuse_in_backend()
-    except Exception:
-        pass  # Silent failure — Langfuse initialization is optional
+    except RuntimeError as e:
+        print(f"ERROR: Langfuse initialization failed: {str(e)}", file=sys.stderr)
+        print("Recovery: Check LANGFUSE_* credentials in .env, or set LANGFUSE_ENABLED=false and restart:\n  python docker-up.py up\n", file=sys.stderr)
+        return 4  # Exit code 4: Langfuse failed
 
+    # Step 4: Report final bootstrap status
     data = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(data, dict):
+        print("WARNING: Bootstrap status response format unexpected", file=sys.stderr)
         return 0
+
     if data.get("bootstrap_required"):
         print(
             "Bootstrap is required before normal operation is considered complete.\n"
             "Containers are up; finish bootstrap when you are ready.\n"
             "Next steps:\n"
-            "  1) Open web setup: http://localhost:5002/manage/operational-governance/bootstrap\n"
+            "  1) Open web setup: http://localhost:5001/manage/operational-governance/bootstrap\n"
             "  2) Select preset + initialize trust-anchor/first provider\n"
             "  3) After bootstrap, reload resolved runtime config from Administration Center so play-service can bind\n"
             "CLI fallback (if web unavailable):\n"
             "  - POST /api/v1/admin/bootstrap/initialize with admin JWT\n",
             file=sys.stderr,
         )
-        # Do not fail the docker-up.py process: compose already exited 0; exit 2 breaks scripts/CI that treat non-zero as a broken stack.
-        return 0
-    print("Bootstrap already initialized. Stack is ready.")
-    return 0
+        return 0  # Not an error; operator must use web UI
+
+    print("[OK] Stack is ready.")
+    return 0  # Success
 
 
 def shlex_quote(s: str) -> str:
@@ -487,13 +539,13 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
             k for k in REQUIRED_SECRETS if k not in existing or _platform_secret_needs_generation(existing.get(k))
         ]
         if not missing:
-            print(f"✓ {ENV_FILE} already exists with all required secrets.")
+            print(f"[OK] {ENV_FILE} already exists with all required secrets.")
             print(f"  To regenerate secrets, use: python docker-up.py init-env --force")
             return 0
 
     created = _ensure_env_secrets(force=force)
     if created or force:
-        print(f"\n{'✓ Created' if not ENV_FILE.is_file() else '✓ Updated'} {ENV_FILE}")
+        print(f"\n{'[OK] Created' if not ENV_FILE.is_file() else '[OK] Updated'} {ENV_FILE}")
         print(f"\nNext steps:")
         print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic)")
         print(f"  2. Run: python docker-up.py up")
@@ -584,7 +636,7 @@ def cmd_reset(args: argparse.Namespace, services: list[str]) -> int:
     print("$", " ".join(cmd), flush=True)
     exit_code = subprocess.call(cmd, cwd=REPO_ROOT)
     if exit_code == 0:
-        print(f"\n✓ Reset complete. .env preserved.", file=sys.stderr)
+        print(f"\n[OK] Reset complete. .env preserved.", file=sys.stderr)
         print(f"  To restart: python docker-up.py up", file=sys.stderr)
     return exit_code
 
