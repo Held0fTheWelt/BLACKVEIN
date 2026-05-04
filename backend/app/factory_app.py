@@ -84,8 +84,9 @@ def create_app(config_object=None, *, testing: bool | None = None):
 
 
 def _initialize_observability(app: Flask) -> None:
-    """Initialize Langfuse observability adapter from database configuration."""
+    """Initialize Langfuse observability adapter from database configuration, with env var fallback."""
     try:
+        import os
         from sqlalchemy import inspect as _sa_inspect
         from app.observability.langfuse_adapter import LangfuseAdapter
         from app.extensions import db
@@ -104,6 +105,31 @@ def _initialize_observability(app: Flask) -> None:
 
         db_config = get_observability_config()
 
+        # Check environment variables as fallback for local development/testing
+        env_enabled = os.getenv("LANGFUSE_ENABLED", "").lower() in ("true", "1", "yes")
+        env_secret_key = os.getenv("LANGFUSE_SECRET_KEY", "").strip()
+        env_public_key = os.getenv("LANGFUSE_PUBLIC_KEY", "").strip()
+        env_base_url = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com").strip()
+
+        # Use env vars if database config is disabled but env vars are provided
+        if not db_config.get("is_enabled") and (env_enabled or env_secret_key):
+            config = LangfuseConfig()
+            config.enabled = env_enabled or bool(env_secret_key)
+            config.public_key = env_public_key
+            config.secret_key = env_secret_key
+            config.base_url = env_base_url
+            config.environment = os.getenv("LANGFUSE_ENVIRONMENT", "development")
+            config.release = os.getenv("LANGFUSE_RELEASE", "unknown")
+            config.sample_rate = float(os.getenv("LANGFUSE_SAMPLE_RATE", "1.0"))
+            config.capture_prompts = os.getenv("LANGFUSE_CAPTURE_PROMPTS", "true").lower() in ("true", "1")
+            config.capture_outputs = os.getenv("LANGFUSE_CAPTURE_OUTPUTS", "true").lower() in ("true", "1")
+            config.capture_retrieval = os.getenv("LANGFUSE_CAPTURE_RETRIEVAL", "false").lower() in ("true", "1")
+            config.redaction_mode = os.getenv("LANGFUSE_REDACTION_MODE", "strict")
+
+            app.langfuse_adapter = LangfuseAdapter.get_instance(config)
+            print("[INFO] Langfuse observability initialized from environment variables")
+            return
+
         if not db_config.get("is_enabled"):
             app.langfuse_adapter = LangfuseAdapter.get_instance()
             print("[INFO] Langfuse observability is disabled (no-op mode)")
@@ -121,7 +147,7 @@ def _initialize_observability(app: Flask) -> None:
         config.enabled = True
         config.public_key = public_key or ""
         config.secret_key = secret_key
-        config.host = db_config.get("base_url", "https://cloud.langfuse.com")
+        config.base_url = db_config.get("base_url", "https://cloud.langfuse.com")
         config.environment = db_config.get("environment", "development")
         config.release = db_config.get("release", "unknown")
         config.sample_rate = float(db_config.get("sample_rate", 1.0))

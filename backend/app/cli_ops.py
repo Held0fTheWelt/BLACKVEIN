@@ -8,6 +8,29 @@ from app.models.area import assign_user_area_all, ensure_areas_seeded
 from app.models.role import ensure_roles_seeded
 
 
+def seed_base_governance_setup() -> str:
+    """
+    Seed foundational governance data: presets, mock provider, mock models, default routes.
+
+    Called automatically by docker-entrypoint.sh after migrations.
+    Returns summary message. Safe to call multiple times (idempotent).
+    """
+    ensure_roles_seeded()
+    ensure_areas_seeded()
+
+    # Import here to avoid circular imports
+    from app.services.governance_runtime_service import (
+        _seed_default_presets,
+        _ensure_default_mock_path,
+    )
+
+    _seed_default_presets()
+    _ensure_default_mock_path("system")
+    db.session.commit()
+
+    return "Base governance setup seeded: presets, mock provider, mock models, default routes."
+
+
 def ensure_superadmin_for_username(username: str) -> str:
     """
     Promote existing user: admin role, role_level 100, attach area 'all'.

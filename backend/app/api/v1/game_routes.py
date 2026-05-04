@@ -60,6 +60,7 @@ from app.services.game_service import (
     list_templates as list_play_templates,
     resolve_join_context,
 )
+from app.observability.langfuse_adapter import LangfuseAdapter
 from app.config.route_constants import route_status_codes, route_pagination_config
 
 
@@ -624,22 +625,61 @@ def game_player_session_turn(run_id: str):
         runtime_session_id = str(bundle.get("runtime_session_id") or "").strip()
         if not runtime_session_id:
             raise GameServiceError("Canonical player session is not ready.", status_code=502)
-        turn_payload = execute_story_turn_in_engine(
-            session_id=runtime_session_id,
-            player_input=player_input,
-            trace_id=g.get("trace_id"),
-        )
-        turn = turn_payload.get("turn") if isinstance(turn_payload.get("turn"), dict) else {}
-        state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
-        refreshed = _player_session_bundle(
-            run_id=run_id,
-            template_id=str(bundle.get("template_id") or ""),
-            module_id=str(bundle.get("module_id") or ""),
-            runtime_session_id=runtime_session_id,
-            state=state,
-            turn=turn,
-        )
-        return jsonify(refreshed), route_status_codes.ok
+
+        trace_id = g.get("trace_id")
+        adapter = LangfuseAdapter.get_instance()
+        root_span = None
+
+        try:
+            # Create root span for this turn execution
+            root_span = adapter.start_trace(
+                name="backend.turn.execute",
+                session_id=run_id,
+                module_id=str(bundle.get("module_id") or ""),
+                metadata={
+                    "player_input_length": len(player_input),
+                    "stage": "turn_execution",
+                    "route": "/game/player-sessions/<run_id>/turns",
+                }
+            )
+
+            turn_payload = execute_story_turn_in_engine(
+                session_id=runtime_session_id,
+                player_input=player_input,
+                trace_id=trace_id,
+            )
+            turn = turn_payload.get("turn") if isinstance(turn_payload.get("turn"), dict) else {}
+            state = get_story_state(runtime_session_id, trace_id=trace_id)
+
+            # Update root span with results
+            if root_span:
+                root_span.update(output={
+                    "status": "completed",
+                })
+
+            refreshed = _player_session_bundle(
+                run_id=run_id,
+                template_id=str(bundle.get("template_id") or ""),
+                module_id=str(bundle.get("module_id") or ""),
+                runtime_session_id=runtime_session_id,
+                state=state,
+                turn=turn,
+            )
+            return jsonify(refreshed), route_status_codes.ok
+        except GameServiceError as exc:
+            # Update root span with error
+            if root_span:
+                root_span.update(output={
+                    "status": "error",
+                    "failure_class": "world_engine_unreachable",
+                    "status_code": exc.status_code,
+                })
+            raise
+        finally:
+            # End root span and flush
+            if root_span:
+                adapter.end_trace(root_span)
+            adapter.flush()
     except Exception as exc:  # pragma: no cover - centralized mapper
         return _error_response(exc)
 

@@ -25,11 +25,15 @@ _active_span_context: ContextVar[Optional[Any]] = ContextVar('active_span', defa
 # Attempt to import Langfuse; gracefully degrade if not available
 try:
     from langfuse import Langfuse
-    from langfuse.openai import OpenAI as LangfuseOpenAI
     LANGFUSE_AVAILABLE = True
 except ImportError:
     LANGFUSE_AVAILABLE = False
     Langfuse = None
+
+# Optional: OpenAI integration (requires openai package)
+try:
+    from langfuse.openai import OpenAI as LangfuseOpenAI
+except ImportError:
     LangfuseOpenAI = None
 
 

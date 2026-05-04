@@ -296,6 +296,21 @@ def seed_news():
         print(f"Seed news: {created} new entries created (total example entries: {len(entries)}).")
 
 
+@app.cli.command("seed-base-governance-setup")
+def seed_base_governance():
+    """Seed foundational governance data: presets, mock provider, models, default routes.
+
+    Called automatically by docker-entrypoint.sh after migrations.
+    Safe to call multiple times (idempotent).
+    """
+    from app.cli_ops import seed_base_governance_setup
+
+    with app.app_context():
+        db.create_all()
+        message = seed_base_governance_setup()
+        print(message)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = env_bool("FLASK_DEBUG", False)
