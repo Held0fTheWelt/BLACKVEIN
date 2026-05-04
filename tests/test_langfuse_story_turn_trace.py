@@ -4,11 +4,10 @@
 This test requires:
 1. Backend running (with Langfuse credentials configured)
 2. World-Engine running
-3. LANGFUSE_ENABLED=true in environment
-4. Real Langfuse credentials in backend database or env vars
+3. Real Langfuse credentials enabled in the backend database
 
 Run with:
-  LANGFUSE_ENABLED=true python tests/test_langfuse_story_turn_trace.py
+  python tests/test_langfuse_story_turn_trace.py
 """
 
 import os
@@ -20,7 +19,6 @@ from pathlib import Path
 # Get configuration
 BACKEND_URL = os.getenv("BACKEND_API_URL", "http://localhost:5000")
 WORLD_ENGINE_URL = os.getenv("WORLD_ENGINE_URL", "http://localhost:8000")
-LANGFUSE_ENABLED = os.getenv("LANGFUSE_ENABLED", "").lower() == "true"
 INTERNAL_TOKEN = os.getenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
 
 print("=" * 80)
@@ -28,13 +26,8 @@ print("LANGFUSE STORY TURN TRACE TEST")
 print("=" * 80)
 print(f"Backend URL: {BACKEND_URL}")
 print(f"World-Engine URL: {WORLD_ENGINE_URL}")
-print(f"Langfuse Enabled: {LANGFUSE_ENABLED}")
 print(f"Internal Token: {INTERNAL_TOKEN[:20]}..." if INTERNAL_TOKEN else "Internal Token: NOT SET")
 print()
-
-if not LANGFUSE_ENABLED:
-    print("[SKIP] LANGFUSE_ENABLED not set to 'true'")
-    sys.exit(0)
 
 if not INTERNAL_TOKEN:
     print("[WARN] INTERNAL_RUNTIME_CONFIG_TOKEN not set - tracing may not work")

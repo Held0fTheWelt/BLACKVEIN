@@ -17,10 +17,8 @@ print("=" * 70)
 public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
 secret_key = os.getenv("LANGFUSE_SECRET_KEY")
 base_url = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
-enabled = os.getenv("LANGFUSE_ENABLED", "").lower() == "true"
 
 print(f"\n[CONFIG]")
-print(f"  LANGFUSE_ENABLED: {enabled}")
 print(f"  LANGFUSE_BASE_URL: {base_url}")
 print(f"  Public Key: {public_key[:20] if public_key else 'MISSING'}...")
 print(f"  Secret Key: {secret_key[:20] if secret_key else 'MISSING'}...")

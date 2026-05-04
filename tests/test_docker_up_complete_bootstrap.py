@@ -225,20 +225,17 @@ class TestDockerUpBootstrapErrorHandling:
     )
     @pytest.mark.integration
     @pytest.mark.slow
-    def test_langfuse_enabled_but_fails_exit_4(self):
+    def test_langfuse_partial_env_credentials_fail_exit_4(self):
         """
-        Test: If LANGFUSE_ENABLED=true but initialization fails, exit code is 4 (NOT silent).
+        Test: If partial Langfuse env credentials are configured, exit code is 4 (NOT silent).
 
-        Setup: Set LANGFUSE_ENABLED=true with invalid credentials.
+        Setup: Set only one Langfuse credential.
         Acceptance: Exit code is 4, error message mentions "langfuse"
         """
-        # Update .env to enable Langfuse with bad credentials
+        # Update .env with incomplete Langfuse settings
         env_lines = ENV_FILE.read_text().split("\n")
-        # Add Langfuse settings
         langfuse_lines = [
-            "LANGFUSE_ENABLED=true",
             "LANGFUSE_SECRET_KEY=invalid_key_12345",
-            "LANGFUSE_PUBLIC_KEY=invalid_pk"
         ]
         env_content = "\n".join(env_lines + langfuse_lines)
         ENV_FILE.write_text(env_content)

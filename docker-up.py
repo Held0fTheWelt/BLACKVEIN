@@ -15,7 +15,7 @@ Exit codes (up command):
   1 = Docker compose failed
   2 = Backend migrations failed
   3 = Admin user creation failed
-  4 = Langfuse initialization failed (when LANGFUSE_ENABLED=true)
+  4 = Langfuse initialization failed (when LANGFUSE_* credentials are provided)
   5 = Backend health check failed
   6 = Environment (.env) validation failed
 """
@@ -325,33 +325,31 @@ def _initialize_admin_user_in_backend() -> None:
 
 
 def _initialize_langfuse_in_backend() -> None:
-    """Initialize Langfuse configuration in the backend database from environment variables.
+    """Initialize Langfuse configuration in the backend database from optional environment credentials.
 
-    If LANGFUSE_ENABLED=true but initialization fails, raises RuntimeError (no silent failures on configured features).
-    If LANGFUSE_ENABLED=false, returns silently.
+    Runtime settings normally come from the backend database/admin UI. This bootstrap only imports
+    LANGFUSE_* credentials when they are explicitly present in .env.
 
     Raises:
-        RuntimeError: If Langfuse is enabled but initialization fails.
+        RuntimeError: If provided Langfuse credentials are incomplete or initialization fails.
     """
     # Read Langfuse config from .env
     env_dict = _read_env_file(ENV_FILE)
 
-    enabled = env_dict.get("LANGFUSE_ENABLED", "").lower() == "true"
     public_key = env_dict.get("LANGFUSE_PUBLIC_KEY", "").strip()
     secret_key = env_dict.get("LANGFUSE_SECRET_KEY", "").strip()
 
-    # If Langfuse not enabled, return silently
-    if not enabled:
+    # Runtime-only setup: no env toggle. If no keys are provided, keep the database setting as-is.
+    if not public_key and not secret_key:
         return
 
-    # Langfuse is enabled, so we MUST initialize successfully
-    if not secret_key:
-        raise RuntimeError("Langfuse is enabled (LANGFUSE_ENABLED=true) but LANGFUSE_SECRET_KEY is not set in .env")
+    if not public_key or not secret_key:
+        raise RuntimeError("Langfuse credentials are incomplete: set both LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY, or manage them in backend settings")
 
     try:
         init_url = "http://localhost:8000/api/v1/internal/observability/initialize"
         payload = {
-            "enabled": enabled,
+            "enabled": True,
             "public_key": public_key,
             "secret_key": secret_key,
             "base_url": env_dict.get("LANGFUSE_BASE_URL", "https://cloud.langfuse.com"),
@@ -439,12 +437,12 @@ def _bootstrap_gate_after_up() -> int:
             print("Recovery: Check backend logs and retry:\n  docker logs worldofshadows-backend-1\n  python docker-up.py up\n", file=sys.stderr)
             return 3  # Exit code 3: Admin user creation failed
 
-    # Step 3: Initialize Langfuse (if configured—MUST succeed if enabled)
+    # Step 3: Import Langfuse credentials from .env when explicitly provided.
     try:
         _initialize_langfuse_in_backend()
     except RuntimeError as e:
         print(f"ERROR: Langfuse initialization failed: {str(e)}", file=sys.stderr)
-        print("Recovery: Check LANGFUSE_* credentials in .env, or set LANGFUSE_ENABLED=false and restart:\n  python docker-up.py up\n", file=sys.stderr)
+        print("Recovery: Check LANGFUSE_* credentials in .env, remove them, or manage Langfuse in backend settings:\n  python docker-up.py up\n", file=sys.stderr)
         return 4  # Exit code 4: Langfuse failed
 
     # Step 4: Report final bootstrap status
