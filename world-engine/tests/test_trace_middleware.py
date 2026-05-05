@@ -102,8 +102,12 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     )
 
     assert response.status_code == 200
+    session_id = response.json()["session_id"]
     adapter.start_span_in_trace.assert_called_once()
     assert adapter.start_span_in_trace.call_args.kwargs["trace_id"] == langfuse_trace_id
+    assert adapter.start_span_in_trace.call_args.kwargs["input"]["session_id"] == session_id
+    adapter.session_scope.assert_called_once()
+    assert adapter.session_scope.call_args.kwargs["session_id"] == session_id
     adapter.set_active_span.assert_any_call(root_span)
     created_child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
     assert "story.graph.path_summary" in created_child_names
