@@ -34,6 +34,7 @@ dependencies = [
     "langchain-core>=1.2.0,<2",
     "langchain>=1.2.0,<2",
     "langgraph>=1.0.3,<2",
+    "langfuse>=4.0.0,<5",
     "markdown>=3.5.0,<4",
     "marshmallow>=3.20.0,<4",
     "numpy>=1.24.0,<3",
@@ -45,6 +46,7 @@ dependencies = [
     "pytest>=7.0,<9",
     "python-dotenv>=1.0.0,<2",
     "pyyaml>=6.0.1,<7",
+    "redis>=5.0.0,<6",
     "requests>=2.31.0,<3",
     "werkzeug>=3.1.5,<4",
 ]
