@@ -482,6 +482,7 @@ def _build_langfuse_path_summary(
         if isinstance(event.get("runtime_governance_surface"), dict)
         else {}
     )
+    retrieval = graph_state.get("retrieval") if isinstance(graph_state.get("retrieval"), dict) else {}
     structured = gen_meta.get("structured_output")
     if structured is None:
         structured = generation.get("structured_output")
@@ -497,6 +498,7 @@ def _build_langfuse_path_summary(
         "route_model_called": "route_model" in nodes or bool(routing),
         "invoke_model_called": "invoke_model" in nodes,
         "fallback_model_called": "fallback_model" in nodes or bool(generation.get("fallback_used")),
+        "retrieval_called": "retrieve_context" in nodes or bool(retrieval),
         "validation_called": "validate_seam" in nodes or bool(validation),
         "commit_called": "commit_seam" in nodes or bool(committed),
         "render_visible_called": "render_visible" in nodes or isinstance(event.get("visible_output_bundle"), dict),
@@ -518,6 +520,17 @@ def _build_langfuse_path_summary(
         "parser_error": _short_text(gen_meta.get("langchain_parser_error") or generation.get("parser_error")),
         "structured_output_present": isinstance(structured, dict),
         "structured_output_keys": sorted(structured.keys()) if isinstance(structured, dict) else [],
+        "retrieval_status": retrieval.get("status"),
+        "retrieval_route": retrieval.get("retrieval_route"),
+        "retrieval_hit_count": retrieval.get("hit_count"),
+        "retrieval_profile": retrieval.get("profile"),
+        "retrieval_domain": retrieval.get("domain"),
+        "retrieval_context_attached": bool(graph_state.get("context_text") or generation.get("retrieval_context_attached")),
+        "retrieval_top_hit_score": retrieval.get("top_hit_score"),
+        "retrieval_corpus_fingerprint": retrieval.get("corpus_fingerprint"),
+        "retrieval_index_version": retrieval.get("index_version"),
+        "retrieval_degradation_mode": retrieval.get("degradation_mode"),
+        "retrieval_governance_summary": retrieval.get("retrieval_governance_summary"),
         "validation_status": validation.get("status"),
         "validation_reason": validation.get("reason"),
         "actor_lane_validation_status": actor_lane_validation.get("status"),
@@ -574,6 +587,12 @@ def _langfuse_status_for_output(name: str, output: dict[str, Any]) -> str:
         return (
             f"called={output.get('called')} fallback_used={output.get('fallback_used')} "
             f"fallback_model={output.get('fallback_model') or 'unknown'} error={output.get('generation_error') or 'none'}"
+        )
+    if name == "story.phase.retrieval":
+        return (
+            f"called={output.get('called')} status={output.get('status') or 'unknown'} "
+            f"route={output.get('retrieval_route') or 'unknown'} hits={output.get('hit_count')} "
+            f"profile={output.get('profile') or 'unknown'} context_attached={output.get('context_attached')}"
         )
     if name == "story.phase.validation":
         return (
@@ -644,6 +663,9 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "validation_called": path_summary.get("validation_called"),
                 "commit_called": path_summary.get("commit_called"),
                 "render_visible_called": path_summary.get("render_visible_called"),
+                "retrieval_called": path_summary.get("retrieval_called"),
+                "retrieval_status": path_summary.get("retrieval_status"),
+                "retrieval_hit_count": path_summary.get("retrieval_hit_count"),
                 "quality_class": path_summary.get("quality_class"),
                 "degradation_signals": path_summary.get("degradation_signals"),
             },
@@ -685,6 +707,23 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "fallback_model": path_summary.get("fallback_model"),
                 "generation_error": path_summary.get("generation_error"),
                 "graph_errors": path_summary.get("graph_errors"),
+            },
+        ),
+        (
+            "story.phase.retrieval",
+            {
+                "called": path_summary.get("retrieval_called"),
+                "status": path_summary.get("retrieval_status"),
+                "retrieval_route": path_summary.get("retrieval_route"),
+                "hit_count": path_summary.get("retrieval_hit_count"),
+                "profile": path_summary.get("retrieval_profile"),
+                "domain": path_summary.get("retrieval_domain"),
+                "context_attached": path_summary.get("retrieval_context_attached"),
+                "top_hit_score": path_summary.get("retrieval_top_hit_score"),
+                "corpus_fingerprint": path_summary.get("retrieval_corpus_fingerprint"),
+                "index_version": path_summary.get("retrieval_index_version"),
+                "degradation_mode": path_summary.get("retrieval_degradation_mode"),
+                "governance_summary": path_summary.get("retrieval_governance_summary"),
             },
         ),
         (
@@ -2102,11 +2141,17 @@ class StoryRuntimeManager:
         }
 
         # Build retrieval details if available
-        retrieval_status = graph_state.get("retrieval_status") if isinstance(graph_state.get("retrieval_status"), dict) else {}
+        retrieval_status = graph_state.get("retrieval") if isinstance(graph_state.get("retrieval"), dict) else {}
         retrieval_details = {
             "status": retrieval_status.get("status"),
             "hit_count": retrieval_status.get("hit_count"),
             "documents_used": retrieval_status.get("documents_used"),
+            "retrieval_route": retrieval_status.get("retrieval_route"),
+            "profile": retrieval_status.get("profile"),
+            "domain": retrieval_status.get("domain"),
+            "top_hit_score": retrieval_status.get("top_hit_score"),
+            "corpus_fingerprint": retrieval_status.get("corpus_fingerprint"),
+            "index_version": retrieval_status.get("index_version"),
         } if retrieval_status else None
 
         log_story_turn_event(

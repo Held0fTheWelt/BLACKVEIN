@@ -44,6 +44,7 @@ def _mock_graph_state():
             "generation_execution_mode": "routed_llm_slm",
         },
         "nodes_executed": [
+            "retrieve_context",
             "route_model",
             "invoke_model",
             "validate_seam",
@@ -51,6 +52,19 @@ def _mock_graph_state():
             "render_visible",
         ],
         "graph_diagnostics": {"errors": []},
+        "retrieval": {
+            "domain": "runtime",
+            "profile": "runtime_turn_support",
+            "status": "ok",
+            "hit_count": 2,
+            "retrieval_route": "hybrid",
+            "top_hit_score": "0.91",
+            "corpus_fingerprint": "corpus-fixture",
+            "index_version": "index-fixture",
+            "degradation_mode": "",
+            "retrieval_governance_summary": {"canonical_content_attached": True},
+        },
+        "context_text": "Fixture retrieval context.",
         "visible_output_bundle": {"gm_narration": ["Mock."]},
         "committed_result": {"commit_applied": True},
         "quality_class": "canonical",
@@ -209,6 +223,11 @@ def test_execute_turn_emits_langfuse_path_spans():
     assert summary["route_model_called"] is True
     assert summary["invoke_model_called"] is True
     assert summary["fallback_model_called"] is False
+    assert summary["retrieval_called"] is True
+    assert summary["retrieval_status"] == "ok"
+    assert summary["retrieval_route"] == "hybrid"
+    assert summary["retrieval_hit_count"] == 2
+    assert summary["retrieval_context_attached"] is True
     assert summary["validation_called"] is True
     assert summary["commit_called"] is True
     assert summary["selected_model"] == "mock-model"
@@ -220,8 +239,26 @@ def test_execute_turn_emits_langfuse_path_spans():
     assert "story.phase.model_route" in created_child_names
     assert "story.phase.model_invoke" in created_child_names
     assert "story.phase.model_fallback" in created_child_names
+    assert "story.phase.retrieval" in created_child_names
     assert "story.phase.validation" in created_child_names
     assert "story.phase.commit" in created_child_names
+
+
+@pytest.mark.mvp4
+def test_execute_turn_audit_log_uses_graph_retrieval_details():
+    """Audit log retrieval details come from graph_state['retrieval']."""
+    mgr, session = _make_manager("annette")
+
+    with patch("app.story_runtime.manager.log_story_turn_event") as log_turn:
+        mgr.execute_turn(session_id=session.session_id, player_input="test")
+
+    assert log_turn.called
+    retrieval_details = log_turn.call_args.kwargs["retrieval_details"]
+    assert retrieval_details["status"] == "ok"
+    assert retrieval_details["hit_count"] == 2
+    assert retrieval_details["retrieval_route"] == "hybrid"
+    assert retrieval_details["profile"] == "runtime_turn_support"
+    assert retrieval_details["domain"] == "runtime"
 
 
 @pytest.mark.mvp4

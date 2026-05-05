@@ -32,7 +32,7 @@ def build_context_pack_handler(
     """
     def context_pack_handler(payload: dict[str, Any]) -> dict[str, Any]:
         from ai_stack.rag_constants import RETRIEVAL_POLICY_VERSION
-        from ai_stack.rag_retrieval_dtos import RetrievalRequest
+        from ai_stack.rag_retrieval_dtos import RetrievalRequest, filter_retrieval_result_by_min_score
         from ai_stack.rag_types import RetrievalDomain
 
         domain = RetrievalDomain(payload.get("domain", RetrievalDomain.RUNTIME.value))
@@ -46,6 +46,10 @@ def build_context_pack_handler(
             use_sparse_only=bool(payload.get("use_sparse_only", False)),
         )
         retrieval_result = retriever.retrieve(request)
+        retrieval_result, _removed_count = filter_retrieval_result_by_min_score(
+            retrieval_result,
+            payload.get("retrieval_min_score"),
+        )
         context_pack = assembler.assemble(retrieval_result)
         top_score = ""
         if context_pack.sources:

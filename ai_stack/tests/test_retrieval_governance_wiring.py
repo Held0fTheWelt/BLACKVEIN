@@ -374,7 +374,7 @@ class TestExecutorRetrievalConfigWiring:
         assert "retrieval_continuity_query=attached" in result["retrieval"]["ranking_notes"]
 
     def test_min_score_filters_sources(self, tmp_path: Path) -> None:
-        """Sources below min_score threshold are removed."""
+        """Sources below min_score threshold are removed before context assembly."""
         from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
         from ai_stack.rag_context_retriever import ContextRetriever
         from ai_stack.rag_corpus import InMemoryRetrievalCorpus
@@ -382,32 +382,45 @@ class TestExecutorRetrievalConfigWiring:
 
         rc = RuntimeRetrievalConfig(retrieval_min_score=0.5)
 
-        # Patch assembler.assemble to return a pack with mixed-score sources
         corpus = InMemoryRetrievalCorpus(chunks=[], built_at="2026-01-01T00:00:00Z", source_count=0)
         retriever = ContextRetriever(corpus)
         assembler = ContextPackAssembler()
 
-        from ai_stack.rag_retrieval_dtos import ContextPack, RetrievalResult, RetrievalRequest
+        from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalResult, RetrievalRequest
         from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
 
-        fake_pack = ContextPack(
-            summary="",
-            compact_context="ctx",
-            sources=[
-                {"chunk_id": "a", "score": 0.8, "source_path": "p1", "source_name": "n1",
-                 "content_class": "authored_module", "source_version": "1", "snippet": "",
-                 "selection_reason": "", "pack_role": "", "why_selected": ""},
-                {"chunk_id": "b", "score": 0.3, "source_path": "p2", "source_name": "n2",
-                 "content_class": "authored_module", "source_version": "1", "snippet": "",
-                 "selection_reason": "", "pack_role": "", "why_selected": ""},
+        retrieval_result = RetrievalResult(
+            request=RetrievalRequest(
+                domain=RetrievalDomain.RUNTIME,
+                profile="runtime_turn_support",
+                query="fixture",
+            ),
+            status=RetrievalStatus.OK,
+            hits=[
+                RetrievalHit(
+                    chunk_id="a",
+                    score=0.8,
+                    source_path="p1",
+                    source_name="n1",
+                    content_class="authored_module",
+                    source_version="1",
+                    snippet="VISIBLE_HIGH",
+                    selection_reason="fixture",
+                ),
+                RetrievalHit(
+                    chunk_id="b",
+                    score=0.3,
+                    source_path="p2",
+                    source_name="n2",
+                    content_class="authored_module",
+                    source_version="1",
+                    snippet="LEAK_LOW",
+                    selection_reason="fixture",
+                ),
             ],
-            hit_count=2,
-            profile="runtime_turn_support",
-            domain="runtime",
-            status="ok",
             ranking_notes=[],
         )
-        assembler.assemble = lambda _r: fake_pack
+        retriever.retrieve = lambda _request: retrieval_result
 
         routing = MagicMock()
         registry = MagicMock()
@@ -426,3 +439,92 @@ class TestExecutorRetrievalConfigWiring:
         sources = result["retrieval"]["sources"]
         assert len(sources) == 1
         assert float(sources[0]["score"]) >= 0.5
+        assert "VISIBLE_HIGH" in result["context_text"]
+        assert "LEAK_LOW" not in result["context_text"]
+        assert "LEAK_LOW" not in result["model_prompt"]
+        assert "retrieval_min_score=0.5;filtered_out=1" in result["retrieval"]["ranking_notes"]
+
+    def test_capability_context_pack_handler_filters_min_score_before_context_text(self) -> None:
+        """Capability retrieval path applies the same min-score contract as the direct path."""
+        from ai_stack.capabilities_registry_context_writers_handlers import build_context_pack_handler
+        from ai_stack.rag_context_pack_assembler import ContextPackAssembler
+        from ai_stack.rag_retrieval_dtos import RetrievalHit, RetrievalRequest, RetrievalResult
+        from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
+
+        class FakeRetriever:
+            def retrieve(self, request: RetrievalRequest) -> RetrievalResult:
+                return RetrievalResult(
+                    request=request,
+                    status=RetrievalStatus.OK,
+                    hits=[
+                        RetrievalHit(
+                            chunk_id="high",
+                            score=0.9,
+                            source_path="high.md",
+                            source_name="high",
+                            content_class="authored_module",
+                            source_version="1",
+                            snippet="CAPABILITY_HIGH",
+                            selection_reason="fixture",
+                        ),
+                        RetrievalHit(
+                            chunk_id="low",
+                            score=0.2,
+                            source_path="low.md",
+                            source_name="low",
+                            content_class="authored_module",
+                            source_version="1",
+                            snippet="CAPABILITY_LOW_LEAK",
+                            selection_reason="fixture",
+                        ),
+                    ],
+                    ranking_notes=[],
+                )
+
+        handler = build_context_pack_handler(FakeRetriever(), ContextPackAssembler())
+        result = handler(
+            {
+                "domain": RetrievalDomain.RUNTIME.value,
+                "profile": "runtime_turn_support",
+                "query": "fixture",
+                "retrieval_min_score": 0.5,
+            }
+        )
+
+        assert result["retrieval"]["hit_count"] == 1
+        assert result["retrieval"]["sources"][0]["chunk_id"] == "high"
+        assert "CAPABILITY_HIGH" in result["context_text"]
+        assert "CAPABILITY_LOW_LEAK" not in result["context_text"]
+        assert "retrieval_min_score=0.5;filtered_out=1" in result["retrieval"]["ranking_notes"]
+
+    def test_executor_forwards_min_score_to_capability_path(self) -> None:
+        """The live capability path receives the governed min-score threshold."""
+        rc = RuntimeRetrievalConfig(retrieval_min_score=0.67)
+        executor = self._make_minimal_executor(rc)
+        captured_payloads: list[dict[str, Any]] = []
+
+        class FakeCapabilityRegistry:
+            def invoke(self, *, name: str, mode: str, actor: str, payload: dict[str, Any]) -> dict[str, Any]:
+                captured_payloads.append(payload)
+                return {
+                    "retrieval": {
+                        "domain": "runtime",
+                        "profile": "runtime_turn_support",
+                        "status": "ok",
+                        "hit_count": 0,
+                        "sources": [],
+                        "ranking_notes": [],
+                    },
+                    "context_text": "",
+                }
+
+            def recent_audit(self, limit: int) -> list[dict[str, Any]]:
+                return [{"capability_name": "wos.context_pack.build", "outcome": "allowed"}]
+
+        executor.capability_registry = FakeCapabilityRegistry()  # type: ignore[assignment]
+
+        result = executor._retrieve_context(self._minimal_state())
+
+        assert captured_payloads
+        assert captured_payloads[0]["retrieval_min_score"] == pytest.approx(0.67)
+        assert result["capability_audit"][0]["capability_name"] == "wos.context_pack.build"

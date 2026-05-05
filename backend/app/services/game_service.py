@@ -307,6 +307,8 @@ def create_run(
     character_id: str | None = None,
     runtime_profile_id: str | None = None,
     selected_player_role: str | None = None,
+    trace_id: str | None = None,
+    langfuse_trace_id: str | None = None,
 ) -> dict:
     if not current_app.config.get("PLAY_SERVICE_ALLOW_NEW_SESSIONS", True):
         raise GameServiceError(
@@ -324,7 +326,14 @@ def create_run(
             json_payload["selected_player_role"] = selected_player_role
     else:
         json_payload["template_id"] = template_id
-    payload = _request("POST", "/api/runs", json_payload=json_payload, internal=True)
+    payload = _request(
+        "POST",
+        "/api/runs",
+        json_payload=json_payload,
+        internal=True,
+        trace_id=trace_id,
+        langfuse_trace_id=langfuse_trace_id,
+    )
     return _parse_create_run_v1(payload)
 
 

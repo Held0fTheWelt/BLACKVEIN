@@ -8,7 +8,7 @@ retrieval posture injected into ``RuntimeTurnGraphExecutor`` at build time.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from ai_stack.rag_types import RetrievalDomain, RetrievalStatus
@@ -135,6 +135,26 @@ class RetrievalResult:
     embedding_reason_codes: tuple[str, ...] = field(default_factory=tuple)
     embedding_index_version: str = ""
     embedding_cache_dir_identity: str | None = None
+
+
+def filter_retrieval_result_by_min_score(
+    result: RetrievalResult,
+    min_score: float | None,
+) -> tuple[RetrievalResult, int]:
+    """Return a result with below-threshold hits removed before pack assembly."""
+    if min_score is None:
+        return result, 0
+    try:
+        threshold = float(min_score)
+    except (TypeError, ValueError):
+        return result, 0
+    kept = [hit for hit in result.hits if float(hit.score) >= threshold]
+    removed_count = len(result.hits) - len(kept)
+    notes = list(result.ranking_notes)
+    notes.append(f"retrieval_min_score={threshold:g};filtered_out={removed_count}")
+    if removed_count == 0:
+        return replace(result, ranking_notes=notes), 0
+    return replace(result, hits=kept, ranking_notes=notes), removed_count
 
 
 @dataclass(slots=True)

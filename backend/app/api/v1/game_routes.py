@@ -504,6 +504,7 @@ def _ensure_player_session(
     template_id: str | None = None,
     run_payload: dict[str, Any] | None = None,
     trace_id: str | None = None,
+    langfuse_trace_id: str | None = None,
     selected_player_role: str | None = None,
 ) -> dict[str, Any]:
     clean_run_id = (run_id or "").strip()
@@ -563,6 +564,7 @@ def _ensure_player_session(
         module_id=module_id,
         runtime_projection=runtime_projection,
         trace_id=trace_id or g.get("trace_id"),
+        langfuse_trace_id=langfuse_trace_id or g.get("langfuse_trace_id") or get_langfuse_trace_id(),
         content_provenance=provenance,
     )
     runtime_session_id = str(created.get("session_id") or "").strip()
@@ -710,6 +712,8 @@ def game_create_run():
                 "hint": f"Set runtime_profile_id={template_id!r} and selected_player_role=annette|alain.",
             }), route_status_codes.bad_request
         identity = _resolve_identity_context(user, data)
+        trace_id = g.get("trace_id")
+        langfuse_trace_id = g.get("langfuse_trace_id") or get_langfuse_trace_id()
         result = create_play_run(
             template_id=template_id,
             account_id=str(user.id),
@@ -717,6 +721,8 @@ def game_create_run():
             display_name=identity["display_name"],
             runtime_profile_id=runtime_profile_id,
             selected_player_role=selected_player_role,
+            trace_id=trace_id,
+            langfuse_trace_id=langfuse_trace_id,
         )
         if identity["character_id"]:
             touch_character_last_used(user.id, int(identity["character_id"]))
@@ -737,6 +743,7 @@ def game_player_session_create():
         run_id = (data.get("run_id") or "").strip()
         template_id = (data.get("template_id") or "").strip()
         trace_id = (data.get("trace_id") or "").strip() or g.get("trace_id")
+        langfuse_trace_id = g.get("langfuse_trace_id") or get_langfuse_trace_id()
         run_payload: dict[str, Any] | None = None
         runtime_profile_id = (data.get("runtime_profile_id") or "").strip() or None
         selected_player_role = (data.get("selected_player_role") or "").strip() or None
@@ -751,6 +758,8 @@ def game_player_session_create():
                 display_name=identity["display_name"],
                 runtime_profile_id=runtime_profile_id,
                 selected_player_role=selected_player_role,
+                trace_id=trace_id,
+                langfuse_trace_id=langfuse_trace_id,
             )
             run_id = _run_id(run_payload)
             if identity["character_id"]:
@@ -761,6 +770,7 @@ def game_player_session_create():
             template_id=template_id or None,
             run_payload=run_payload,
             trace_id=trace_id,
+            langfuse_trace_id=langfuse_trace_id,
             selected_player_role=selected_player_role,
         )
         return jsonify(bundle), route_status_codes.ok

@@ -55,6 +55,8 @@ def register_context_writers_capabilities(
                     "module_id": {"type": "string"},
                     "scene_id": {"type": "string"},
                     "max_chunks": {"type": "integer"},
+                    "use_sparse_only": {"type": "boolean"},
+                    "retrieval_min_score": {"type": ["number", "null"]},
                 },
                 "required": ["profile", "query"],
             },

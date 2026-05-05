@@ -27,7 +27,11 @@ from ai_stack.story_runtime_playability import (
     degrade_validation_outcome,
 )
 from ai_stack.rag import ContextPackAssembler, ContextRetriever
-from ai_stack.rag_retrieval_dtos import RetrievalRequest, RuntimeRetrievalConfig
+from ai_stack.rag_retrieval_dtos import (
+    RetrievalRequest,
+    RuntimeRetrievalConfig,
+    filter_retrieval_result_by_min_score,
+)
 from ai_stack.rag_types import RetrievalDomain
 from ai_stack.retrieval_governance_summary import attach_retrieval_governance_summary
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
@@ -1227,6 +1231,7 @@ class RuntimeTurnGraphExecutor:
                 "scene_id": state["current_scene_id"],
                 "max_chunks": rc.max_chunks,
                 "use_sparse_only": rc.use_sparse_only,
+                "retrieval_min_score": rc.retrieval_min_score,
             }
             if self.capability_registry is not None:
                 result = self.capability_registry.invoke(
@@ -1251,14 +1256,11 @@ class RuntimeTurnGraphExecutor:
                     use_sparse_only=rc.use_sparse_only,
                 )
                 retrieval_result = self.retriever.retrieve(request)
+                retrieval_result, _removed_count = filter_retrieval_result_by_min_score(
+                    retrieval_result,
+                    rc.retrieval_min_score,
+                )
                 pack = self.assembler.assemble(retrieval_result)
-                # Apply min_score filter when operator has configured a threshold.
-                if rc.retrieval_min_score is not None and pack.sources:
-                    pack.sources = [
-                        s for s in pack.sources
-                        if float(s.get("score", 0)) >= rc.retrieval_min_score
-                    ]
-                    pack.hit_count = len(pack.sources)
                 top_score = ""
                 if pack.sources:
                     top_score = str(pack.sources[0].get("score", ""))

@@ -227,12 +227,27 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     class Compiled:
         runtime_projection = Projection()
 
-    monkeypatch.setattr(
-        "app.api.v1.game_routes.create_play_run",
-        lambda **kwargs: _goc_solo_run_payload(
+    captured_run_kwargs = {}
+    captured_story_kwargs = {}
+
+    def fake_create_play_run(**kwargs):
+        captured_run_kwargs.update(kwargs)
+        return _goc_solo_run_payload(
             "run-player-1",
             selected_player_role=kwargs["selected_player_role"],
-        ),
+        )
+
+    def fake_create_story_session(**kwargs):
+        captured_story_kwargs.update(kwargs)
+        return {
+            "session_id": "story-session-1",
+            "opening_turn": {"turn_kind": "opening", "turn_number": 0},
+            "runtime_config_status": {"source": "governed_runtime_config"},
+        }
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        fake_create_play_run,
     )
     monkeypatch.setattr(
         "app.api.v1.game_routes.resolve_canonical_module_id_for_template",
@@ -241,11 +256,7 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: Compiled())
     monkeypatch.setattr(
         "app.api.v1.game_routes.create_story_session",
-        lambda **kwargs: {
-            "session_id": "story-session-1",
-            "opening_turn": {"turn_kind": "opening", "turn_number": 0},
-            "runtime_config_status": {"source": "governed_runtime_config"},
-        },
+        fake_create_story_session,
     )
     monkeypatch.setattr(
         "app.api.v1.game_routes.get_story_state",
@@ -300,6 +311,9 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     assert data["shell_state_view"]["player_shell_context"]["selected_scene_function"] == "redirect_blame"
     assert data["shell_state_view"]["module_scope_truth"]["contract"] == "story_runtime_module_scope.v1"
     assert data["shell_state_view"]["module_scope_truth"]["requested_module_supported"] is True
+    assert captured_run_kwargs["langfuse_trace_id"]
+    assert captured_story_kwargs["langfuse_trace_id"] == captured_run_kwargs["langfuse_trace_id"]
+    assert len(captured_story_kwargs["langfuse_trace_id"]) == 32
 
     with app.app_context():
         slots = GameSaveSlot.query.filter_by(user_id=user.id, run_id="run-player-1").all()
