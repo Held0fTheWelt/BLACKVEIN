@@ -14,6 +14,7 @@ from flask import current_app
 from sqlalchemy import and_
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError
+from story_runtime_core.adapters import MockModelAdapter, OllamaAdapter, OpenAIChatAdapter
 
 from app.extensions import db
 from app.governance.errors import GovernanceError, governance_error
@@ -290,6 +291,22 @@ def _normalize_provider_url(base_url: str | None, contract: dict) -> str:
     return base.rstrip("/")
 
 
+def _normalize_model_role(raw_role: str | None) -> str:
+    role = (raw_role or "llm").strip().lower()
+    if role not in {"llm", "slm", "mock"}:
+        raise governance_error(
+            "model_role_invalid",
+            "model_role must be one of llm, slm, or mock.",
+            400,
+            {"model_role": raw_role},
+        )
+    return role
+
+
+def _derive_model_id(provider_id: str, model_name: str) -> str:
+    return _slug(f"{provider_id}_{model_name}")
+
+
 def _probe_target(base_url: str, contract: dict) -> str:
     path = str(contract.get("health_check_path") or "").strip()
     if not path:
@@ -310,6 +327,23 @@ def _provider_headers(contract: dict, secret: str | None) -> dict[str, str]:
     elif auth_mode == "x_api_key" and secret:
         headers["x-api-key"] = secret
     return headers
+
+
+def _attempt_runtime_rebind() -> dict[str, object]:
+    rebind: dict[str, object] = {"attempted": False, "skipped": True}
+    try:
+        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
+
+        if has_complete_play_service_config():
+            rebind["attempted"] = True
+            rebind["skipped"] = False
+            rebind.update(reload_play_story_runtime_governed_config())
+    except Exception as exc:  # noqa: BLE001 — operator-facing best-effort rebind must not fail the write
+        rebind["attempted"] = True
+        rebind["skipped"] = False
+        rebind["ok"] = False
+        rebind["error"] = str(exc)[:500]
+    return rebind
 
 
 def _audit(event_type: str, scope: str, target_ref: str, changed_by: str, summary: str, metadata: dict | None = None) -> None:
@@ -963,19 +997,19 @@ def create_model(payload: dict, actor: str) -> AIModelConfig:
     model_name = (payload.get("model_name") or "").strip()
     if not model_name:
         raise governance_error("setting_value_invalid", "model_name is required.", 400, {})
-    # model_id: operator-provided internal identifier. model_name: exact provider model name (e.g., gpt-4o-mini, not modified)
-    model_id = (payload.get("model_id") or "").strip()
-    if not model_id:
-        raise governance_error("setting_value_invalid", "model_id is required (internal identifier, e.g. openai_gpt4o).", 400, {})
+    # model_id: operator-facing internal identifier. If omitted, derive one deterministically
+    # from provider_id + model_name so UI, docs, and tests can stay compact.
+    model_id = (payload.get("model_id") or "").strip() or _derive_model_id(provider_id, model_name)
     model = db.session.get(AIModelConfig, model_id)
     if model:
         return model
+    model_role = _normalize_model_role(payload.get("model_role"))
     model = AIModelConfig(
         model_id=model_id,
         provider_id=provider_id,
         model_name=model_name,
         display_name=(payload.get("display_name") or model_name).strip(),
-        model_role=(payload.get("model_role") or "llm").strip(),
+        model_role=model_role,
         is_enabled=bool(payload.get("is_enabled", True)),
         structured_output_capable=bool(payload.get("supports_structured_output", payload.get("structured_output_capable", False))),
         timeout_seconds=int(payload.get("timeout_seconds", 30)),
@@ -992,18 +1026,13 @@ def create_model(payload: dict, actor: str) -> AIModelConfig:
 
 
 def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
-    print(f"DEBUG: update_model called: model_id={model_id} payload={payload}", flush=True)
-
     model = db.session.get(AIModelConfig, model_id)
     if model is None:
         raise governance_error("model_not_found", f"Model '{model_id}' not found.", 404, {"model_id": model_id})
 
-    print(f"DEBUG: Before update: model_name={model.model_name} display_name={model.display_name}", flush=True)
-
     for key in (
         "model_name",
         "display_name",
-        "model_role",
         "is_enabled",
         "structured_output_capable",
         "timeout_seconds",
@@ -1011,10 +1040,10 @@ def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
         "cost_method",
     ):
         if key in payload:
-            old_val = getattr(model, key)
-            new_val = payload[key]
-            setattr(model, key, new_val)
-            print(f"DEBUG: Changed {key}: {old_val} -> {new_val}", flush=True)
+            setattr(model, key, payload[key])
+
+    if "model_role" in payload:
+        model.model_role = _normalize_model_role(payload.get("model_role"))
 
     for key in ("input_price_per_1k", "output_price_per_1k", "flat_request_price"):
         if key in payload:
@@ -1023,19 +1052,8 @@ def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
 
     model.updated_at = datetime.now(timezone.utc)
     _audit("model_updated", "ai_runtime", model_id, actor, "Model updated.", {})
-
-    print(f"DEBUG: Before commit: model_name={model.model_name}", flush=True)
     db.session.commit()
-    print(f"DEBUG: After commit: model_name={model.model_name}", flush=True)
-
-    # After model update, trigger world-engine rebind to pick up the change
-    try:
-        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
-        if has_complete_play_service_config():
-            reload_play_story_runtime_governed_config()
-    except Exception as exc:  # noqa: BLE001 — best-effort rebind must not fail the model update
-        import logging
-        logging.getLogger(__name__).warning("Model update succeeded but world-engine rebind failed: %s", exc)
+    _attempt_runtime_rebind()
 
     return model
 
@@ -1353,18 +1371,32 @@ def evaluate_runtime_readiness() -> dict:
     }
 
 
-def _ensure_model_exists(model_id: str | None) -> None:
+def _ensure_model_exists(model_id: str | None, *, route_field: str | None = None) -> None:
     if model_id is None:
         return
     model = db.session.get(AIModelConfig, model_id)
     if model is None or not model.is_enabled:
         raise governance_error("route_invalid_model_reference", "Route references missing or disabled model.", 409, {"model_id": model_id})
+    if route_field in {"preferred_model_id", "fallback_model_id"} and model.model_role == "mock":
+        raise governance_error(
+            "route_invalid_model_role",
+            "Preferred and fallback route models must be AI-classified models, not mock.",
+            409,
+            {"model_id": model_id, "route_field": route_field, "model_role": model.model_role},
+        )
+    if route_field == "mock_model_id" and model.model_role != "mock":
+        raise governance_error(
+            "route_invalid_model_role",
+            "Mock fallback must reference a model whose model_role is mock.",
+            409,
+            {"model_id": model_id, "route_field": route_field, "model_role": model.model_role},
+        )
 
 
 def create_route(payload: dict, actor: str) -> AITaskRoute:
     route_id = _slug(payload.get("route_id") or f"{payload.get('task_kind','task')}_{payload.get('workflow_scope','global')}")
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
-        _ensure_model_exists(payload.get(field))
+        _ensure_model_exists(payload.get(field), route_field=field)
     route = db.session.get(AITaskRoute, route_id)
     if route:
         return route
@@ -1390,7 +1422,7 @@ def update_route(route_id: str, payload: dict, actor: str) -> AITaskRoute:
         raise governance_error("route_not_found", f"Route '{route_id}' not found.", 404, {"route_id": route_id})
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
         if field in payload:
-            _ensure_model_exists(payload.get(field))
+            _ensure_model_exists(payload.get(field), route_field=field)
             setattr(route, field, payload.get(field))
     for field in ("task_kind", "workflow_scope", "is_enabled", "use_mock_when_provider_unavailable"):
         if field in payload:
@@ -1399,14 +1431,7 @@ def update_route(route_id: str, payload: dict, actor: str) -> AITaskRoute:
     _audit("route_updated", "ai_runtime", route_id, actor, "Route updated.", {})
     db.session.commit()
 
-    # After route update, trigger world-engine rebind to pick up the change
-    try:
-        from app.services.game_service import has_complete_play_service_config, reload_play_story_runtime_governed_config
-        if has_complete_play_service_config():
-            reload_play_story_runtime_governed_config()
-    except Exception as exc:  # noqa: BLE001 — best-effort rebind must not fail the route update
-        import logging
-        logging.getLogger(__name__).warning("Route update succeeded but world-engine rebind failed: %s", exc)
+    _attempt_runtime_rebind()
 
     return route
 

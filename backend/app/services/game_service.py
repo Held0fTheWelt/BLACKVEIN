@@ -198,6 +198,77 @@ def _request(
     return payload
 
 
+def _runtime_cost_metadata(
+    *,
+    session_id: str,
+    turn_payload: dict[str, Any],
+    runtime_projection: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    diagnostics = (
+        turn_payload.get("diagnostics_envelope")
+        if isinstance(turn_payload.get("diagnostics_envelope"), dict)
+        else {}
+    )
+    projection = runtime_projection if isinstance(runtime_projection, dict) else {}
+    return {
+        "session_id": session_id,
+        "module_id": (
+            str(diagnostics.get("content_module_id") or "").strip()
+            or str(projection.get("module_id") or "").strip()
+            or str(projection.get("content_module_id") or "").strip()
+            or None
+        ),
+        "selected_player_role": (
+            str(diagnostics.get("selected_player_role") or "").strip()
+            or str(projection.get("selected_player_role") or "").strip()
+            or None
+        ),
+    }
+
+
+def _ingest_runtime_turn_cost(
+    *,
+    session_id: str,
+    turn_payload: dict[str, Any],
+    runtime_projection: dict[str, Any] | None = None,
+) -> None:
+    if not isinstance(turn_payload, dict):
+        return
+    diagnostics = turn_payload.get("diagnostics_envelope")
+    if not isinstance(diagnostics, dict):
+        return
+    cost_summary = diagnostics.get("cost_summary")
+    if not isinstance(cost_summary, dict):
+        return
+
+    turn_number = turn_payload.get("turn_number")
+    if not isinstance(turn_number, int):
+        return
+
+    try:
+        from app.services.observability_governance_service import (
+            get_runtime_governance_storage,
+            ingest_runtime_turn_cost,
+        )
+
+        ingest_runtime_turn_cost(
+            get_runtime_governance_storage(),
+            session_id=session_id,
+            turn_number=turn_number,
+            cost_summary=cost_summary,
+            metadata=_runtime_cost_metadata(
+                session_id=session_id,
+                turn_payload=turn_payload,
+                runtime_projection=runtime_projection,
+            ),
+        )
+    except Exception:
+        current_app.logger.exception(
+            "Failed to ingest truthful runtime turn cost",
+            extra={"session_id": session_id, "turn_number": turn_number},
+        )
+
+
 def get_play_service_ready(*, trace_id: str | None = None) -> dict:
     payload = _request("GET", "/api/health/ready", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict):
@@ -364,6 +435,11 @@ def create_story_session(
     )
     if not isinstance(payload, dict) or "session_id" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session payload.")
+    _ingest_runtime_turn_cost(
+        session_id=str(payload["session_id"]),
+        turn_payload=payload.get("opening_turn") if isinstance(payload.get("opening_turn"), dict) else {},
+        runtime_projection=runtime_projection,
+    )
     return payload
 
 
@@ -384,6 +460,10 @@ def execute_story_turn(
     )
     if not isinstance(payload, dict) or "turn" not in payload:
         raise GameServiceError("Play service returned an unexpected story-turn payload.")
+    _ingest_runtime_turn_cost(
+        session_id=session_id,
+        turn_payload=payload.get("turn") if isinstance(payload.get("turn"), dict) else {},
+    )
     return payload
 
 
@@ -398,6 +478,18 @@ def get_story_diagnostics(session_id: str, *, trace_id: str | None = None) -> di
     payload = _request("GET", f"/api/story/sessions/{session_id}/diagnostics", internal=True, trace_id=trace_id)
     if not isinstance(payload, dict):
         raise GameServiceError("Play service returned an unexpected story-diagnostics payload.")
+    return payload
+
+
+def get_story_diagnostics_envelope(session_id: str, *, trace_id: str | None = None) -> dict:
+    payload = _request(
+        "GET",
+        f"/api/story/sessions/{session_id}/diagnostics-envelope",
+        internal=True,
+        trace_id=trace_id,
+    )
+    if not isinstance(payload, dict):
+        raise GameServiceError("Play service returned an unexpected story diagnostics-envelope payload.")
     return payload
 
 

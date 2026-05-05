@@ -1,13 +1,15 @@
 /**
  * Governance Health Panels Controller
- * Real-time quality assessment, token budgeting, cost tracking, and evaluation metrics
+ * Loads truthful Phase-C runtime, cost, and evaluation data through the admin proxy.
  */
 
 class GovernanceHealthPanelsController {
     constructor() {
         this.currentSessionId = null;
-        this.autoRefreshInterval = null;
         this.costChart = null;
+        this.apiBase = (window.FrontendConfig && typeof window.FrontendConfig.getApiBaseUrl === "function")
+            ? window.FrontendConfig.getApiBaseUrl()
+            : "";
         this.init();
     }
 
@@ -17,122 +19,126 @@ class GovernanceHealthPanelsController {
     }
 
     attachEventListeners() {
-        const loadBtn = document.getElementById('load_session_btn');
-        const sessionInput = document.getElementById('session_id_input');
-        const panelRefreshBtns = document.querySelectorAll('.panel-refresh');
-        const applyOverrideBtn = document.getElementById('apply_budget_override_btn');
+        const loadBtn = document.getElementById("load_session_btn");
+        const sessionInput = document.getElementById("session_id_input");
+        const panelRefreshBtns = document.querySelectorAll(".panel-refresh");
+        const applyOverrideBtn = document.getElementById("apply_budget_override_btn");
 
-        if (loadBtn) loadBtn.addEventListener('click', () => this.loadSession());
-        if (sessionInput) sessionInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.loadSession();
-        });
-
-        panelRefreshBtns.forEach(btn => {
-            btn.addEventListener('click', () => this.refreshAllPanels());
-        });
-
+        if (loadBtn) loadBtn.addEventListener("click", () => this.loadSession());
+        if (sessionInput) {
+            sessionInput.addEventListener("keypress", (event) => {
+                if (event.key === "Enter") this.loadSession();
+            });
+        }
+        panelRefreshBtns.forEach((btn) => btn.addEventListener("click", () => this.refreshAllPanels()));
         if (applyOverrideBtn) {
-            applyOverrideBtn.addEventListener('click', () => this.applyBudgetOverride());
+            applyOverrideBtn.addEventListener("click", () => this.applyBudgetOverride());
         }
     }
 
-    loadSession() {
-        const sessionInput = document.getElementById('session_id_input');
-        const sessionId = sessionInput.value.trim();
+    apiFetch(path, opts) {
+        if (window.FrontendConfig && typeof window.FrontendConfig.apiFetch === "function") {
+            return window.FrontendConfig.apiFetch(path, opts);
+        }
+        const url = `${this.apiBase.replace(/\/$/, "")}${path}`;
+        return fetch(url, opts || {}).then((response) => response.json());
+    }
 
+    loadSession() {
+        const sessionInput = document.getElementById("session_id_input");
+        const sessionId = sessionInput ? sessionInput.value.trim() : "";
         if (!sessionId) {
-            this.setStatus('Please enter a session ID', 'error');
+            this.setStatus("Please enter a session ID", "error");
             return;
         }
-
         this.currentSessionId = sessionId;
-        this.setStatus('Loading session data...', 'info');
+        this.setStatus("Loading live runtime evidence...", "info");
         this.fetchSessionData(sessionId);
     }
 
     async fetchSessionData(sessionId) {
+        const today = new Date().toISOString().slice(0, 10);
         try {
-            // Fetch token budget
-            const budgetRes = await fetch(
-                `/api/v1/admin/mvp4/game/session/${sessionId}/token-budget`
-            );
-            const budgetData = await budgetRes.json();
+            const [summaryEnvelope, dailyEnvelope, weeklyEnvelope] = await Promise.all([
+                this.apiFetch(`/api/v1/admin/mvp4/game/session/${encodeURIComponent(sessionId)}/summary`),
+                this.apiFetch(`/api/v1/admin/mvp4/costs/daily?date=${today}`),
+                this.apiFetch(`/api/v1/admin/mvp4/costs/weekly?week_start=${today}`),
+            ]);
 
-            // Fetch evaluation weights
-            const weightsRes = await fetch(
-                `/api/v1/admin/mvp4/evaluation/weights/${sessionId}`
-            );
-            const weightsData = await weightsRes.json();
+            const summary = summaryEnvelope && summaryEnvelope.data ? summaryEnvelope.data : {};
+            const dailyReport = dailyEnvelope && dailyEnvelope.data ? dailyEnvelope.data : {};
+            const weeklyReport = weeklyEnvelope && weeklyEnvelope.data ? weeklyEnvelope.data : {};
 
-            // In a real implementation, would also fetch:
-            // - diagnostics envelope (quality_class, degradation_timeline, cost_summary)
-            // - evaluation metrics (turn scores)
-            // - cost dashboard data
-
-            this.updatePanels(budgetData?.data, weightsData?.data);
-            this.setStatus('Session loaded successfully', 'success');
-
+            this.updatePanels(summary, dailyReport, weeklyReport);
+            this.setStatus("Session loaded successfully", "success");
         } catch (error) {
-            console.error('Failed to load session data:', error);
-            this.setStatus(`Error loading session: ${error.message}`, 'error');
+            console.error("Failed to load governance panels:", error);
+            this.setStatus(`Error loading session: ${error}`, "error");
         }
     }
 
-    updatePanels(budgetData, weightsData) {
-        // Panel 1: Real-Time Health Status
-        const qualityClass = document.getElementById('quality_class');
-        const degradationLevel = document.getElementById('degradation_level');
-        if (qualityClass) qualityClass.textContent = budgetData?.degradation_level || '—';
-        if (degradationLevel) degradationLevel.textContent = budgetData?.degradation_level || 'none';
+    updatePanels(summary, dailyReport, weeklyReport) {
+        const diagnostics = summary && summary.diagnostics_envelope ? summary.diagnostics_envelope : {};
+        const budgetStatus = summary && summary.budget_status ? summary.budget_status : {};
+        const costSummary = summary && summary.cost_summary ? summary.cost_summary : {};
+        const evaluation = summary && summary.evaluation ? summary.evaluation : {};
 
-        // Panel 2: Token & Cost Metrics
-        const tokensUsed = document.getElementById('tokens_used');
-        const costUsed = document.getElementById('cost_used');
-        const budgetStatus = document.getElementById('budget_status');
-        const budgetProgress = document.getElementById('budget_progress');
-
-        if (budgetData && budgetData.data) {
-            const { used_tokens, total_budget, usage_percent } = budgetData.data;
-            if (tokensUsed) tokensUsed.textContent = used_tokens || '0';
-            if (costUsed) costUsed.textContent = '$0.0000'; // Phase A: no real costs yet
-            if (budgetStatus) budgetStatus.textContent = `${used_tokens} / ${total_budget} tokens`;
-            if (budgetProgress) budgetProgress.style.width = `${usage_percent || 0}%`;
-
-            // Update budget controls panel
-            document.getElementById('total_budget').textContent = `${total_budget} tokens`;
-            document.getElementById('budget_used').textContent = `${used_tokens} tokens`;
-            document.getElementById('budget_remaining').textContent = `${total_budget - used_tokens} tokens`;
-            document.getElementById('degradation_strategy').textContent = budgetData.data.degradation_strategy || 'ldss_shorter';
-        }
-
-        // Panel 5: Evaluation Metrics (from rubric weights in Phase A, will be real scores in Phase B)
-        if (weightsData && weightsData.data) {
-            const weights = weightsData.data.weights;
-            this.updateDimensionScore('coherence', 3.5, weights?.weight_coherence);
-            this.updateDimensionScore('authenticity', 3.5, weights?.weight_authenticity);
-            this.updateDimensionScore('player_agency', 3.5, weights?.weight_player_agency);
-            this.updateDimensionScore('immersion', 3.5, weights?.weight_immersion);
-        }
-
-        // Panel 6: Cost Dashboard
-        this.updateCostDashboard();
+        this.updateHealthStatus(diagnostics, budgetStatus);
+        this.updateTokenAndCost(budgetStatus, costSummary);
+        this.updateBudgetControls(budgetStatus);
+        this.updateDegradationTimeline(diagnostics.degradation_timeline || []);
+        this.updateEvaluationPanels(evaluation);
+        this.updateCostBreakdown(costSummary.cost_breakdown || {});
+        this.updateCostDashboard(costSummary, dailyReport, weeklyReport);
     }
 
-    updateDimensionScore(dimension, score, weight) {
+    updateHealthStatus(diagnostics, budgetStatus) {
+        this.setText("quality_class", diagnostics.quality_class || "unknown");
+        this.setText("degradation_level", budgetStatus.degradation_level || "none");
+    }
+
+    updateTokenAndCost(budgetStatus, costSummary) {
+        const usedTokens = Number(budgetStatus.used_tokens || 0);
+        const totalBudget = Number(budgetStatus.total_budget || 0);
+        const usagePercent = Number(budgetStatus.usage_percent || 0);
+
+        this.setText("tokens_used", usedTokens.toString());
+        this.setText("cost_used", this.formatUsd(costSummary.cost_usd || 0));
+        this.setText("budget_status", `${usedTokens} / ${totalBudget} tokens`);
+
+        const budgetProgress = document.getElementById("budget_progress");
+        if (budgetProgress) budgetProgress.style.width = `${Math.max(0, Math.min(100, usagePercent))}%`;
+    }
+
+    updateBudgetControls(budgetStatus) {
+        const usedTokens = Number(budgetStatus.used_tokens || 0);
+        const totalBudget = Number(budgetStatus.total_budget || 0);
+        this.setText("total_budget", `${totalBudget} tokens`);
+        this.setText("budget_used", `${usedTokens} tokens`);
+        this.setText("budget_remaining", `${Math.max(0, totalBudget - usedTokens)} tokens`);
+        this.setText("degradation_strategy", budgetStatus.degradation_strategy || "ldss_shorter");
+    }
+
+    updateEvaluationPanels(evaluation) {
+        const qualitySummary = evaluation && evaluation.quality_summary ? evaluation.quality_summary : {};
+        const dimensions = qualitySummary.dimensions || {};
+        this.updateDimensionScore("coherence", dimensions.coherence || {});
+        this.updateDimensionScore("authenticity", dimensions.authenticity || {});
+        this.updateDimensionScore("player_agency", dimensions.player_agency || {});
+        this.updateDimensionScore("immersion", dimensions.immersion || {});
+    }
+
+    updateDimensionScore(dimension, summary) {
+        const average = Number(summary.average_score || 0);
         const scoreBar = document.getElementById(`${dimension}_score_bar`);
         const scoreSpan = document.getElementById(`${dimension}_score`);
 
-        if (scoreBar) scoreBar.style.width = `${(score / 5) * 100}%`;
-        if (scoreSpan) scoreSpan.textContent = `${score.toFixed(1)}/5`;
-
-        // Weight indicator (Phase A: placeholder; Phase B: real)
-        if (weight && weight !== 1.0) {
-            console.debug(`${dimension} weight: ${weight}`);
-        }
+        if (scoreBar) scoreBar.style.width = `${Math.max(0, Math.min(100, (average / 5) * 100))}%`;
+        if (scoreSpan) scoreSpan.textContent = summary.sample_count ? `${average.toFixed(1)}/5` : "—";
     }
 
     updateDegradationTimeline(events) {
-        const timelineEl = document.getElementById('degradation_timeline');
+        const timelineEl = document.getElementById("degradation_timeline");
         if (!timelineEl) return;
 
         if (!events || events.length === 0) {
@@ -140,66 +146,73 @@ class GovernanceHealthPanelsController {
             return;
         }
 
-        timelineEl.innerHTML = events.map(event => `
+        timelineEl.innerHTML = events.map((event) => `
             <div class="timeline-item">
                 <div class="timeline-timestamp">${this.formatTime(event.timestamp)}</div>
                 <div class="timeline-event">
-                    <strong>${event.severity}</strong>: ${event.marker}
-                    ${event.recovery_successful ? '✓ Recovered' : '✗ Active'}
+                    <strong>${event.severity || "info"}</strong>: ${event.marker || "unknown"}
+                    ${event.recovery_successful ? "Recovered" : "Active"}
                 </div>
             </div>
-        `).join('');
+        `).join("");
     }
 
-    updateCostDashboard() {
-        // Phase A: Placeholder values
-        // Phase B: Will fetch real cost data from cost dashboard endpoints
-        document.getElementById('cost_today').textContent = '$0.00';
-        document.getElementById('cost_week').textContent = '$0.00';
-        document.getElementById('cost_per_turn').textContent = '$0.00';
-        document.getElementById('cost_projected').textContent = '$0.00';
+    updateCostBreakdown(costBreakdown) {
+        if (!this.costChart) return;
+        const labels = Object.keys(costBreakdown);
+        const values = labels.map((label) => Number(costBreakdown[label] || 0));
+        this.costChart.data.labels = labels.length ? labels : ["No billed phases"];
+        this.costChart.data.datasets[0].data = values.length ? values : [0];
+        this.costChart.update();
+    }
+
+    updateCostDashboard(costSummary, dailyReport, weeklyReport) {
+        this.setText("cost_today", this.formatUsd(dailyReport.total_cost || 0));
+        this.setText("cost_week", this.formatUsd(weeklyReport.total_cost || 0));
+        this.setText("cost_per_turn", this.formatUsd(costSummary.cost_per_turn_avg || 0));
+        const projected = Number(weeklyReport.average_session_cost || 0) || Number(costSummary.cost_usd || 0);
+        this.setText("cost_projected", this.formatUsd(projected));
     }
 
     async applyBudgetOverride() {
         if (!this.currentSessionId) {
-            this.setStatus('Please load a session first', 'error');
+            this.setStatus("Please load a session first", "error");
             return;
         }
 
-        const tokensToAdd = parseInt(document.getElementById('tokens_to_add').value, 10);
-        const reason = document.getElementById('override_reason').value.trim();
+        const tokensToAdd = parseInt((document.getElementById("tokens_to_add") || {}).value, 10);
+        const reasonField = document.getElementById("override_reason");
+        const reason = reasonField ? reasonField.value.trim() : "";
 
-        if (isNaN(tokensToAdd) || tokensToAdd <= 0) {
-            this.setStatus('Please enter a valid number of tokens', 'error');
+        if (Number.isNaN(tokensToAdd) || tokensToAdd <= 0) {
+            this.setStatus("Please enter a valid number of tokens", "error");
             return;
         }
-
         if (!reason) {
-            this.setStatus('Please provide a reason for the override', 'error');
+            this.setStatus("Please provide a reason for the override", "error");
             return;
         }
 
         try {
-            const response = await fetch(
-                `/api/v1/admin/mvp4/game/session/${this.currentSessionId}/token-budget/override`,
+            const result = await this.apiFetch(
+                `/api/v1/admin/mvp4/game/session/${encodeURIComponent(this.currentSessionId)}/token-budget/override`,
                 {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ tokens_to_add: tokensToAdd, reason: reason }),
-                }
+                },
             );
-
-            const result = await response.json();
-            if (response.ok) {
-                this.setStatus(`Budget override applied: ${tokensToAdd} tokens added`, 'success');
-                document.getElementById('tokens_to_add').value = '';
-                document.getElementById('override_reason').value = '';
+            if (result && result.ok) {
+                this.setStatus(`Budget override applied: ${tokensToAdd} tokens added`, "success");
+                if (document.getElementById("tokens_to_add")) document.getElementById("tokens_to_add").value = "";
+                if (reasonField) reasonField.value = "";
                 this.fetchSessionData(this.currentSessionId);
             } else {
-                this.setStatus(`Error: ${result.message || 'Unknown error'}`, 'error');
+                const error = result && result.error ? result.error : "Unknown error";
+                this.setStatus(`Error: ${error}`, "error");
             }
         } catch (error) {
-            this.setStatus(`Error applying override: ${error.message}`, 'error');
+            this.setStatus(`Error applying override: ${error}`, "error");
         }
     }
 
@@ -210,49 +223,50 @@ class GovernanceHealthPanelsController {
     }
 
     initializeCharts() {
-        const ctx = document.getElementById('cost_breakdown_chart');
-        if (!ctx) return;
-
+        const ctx = document.getElementById("cost_breakdown_chart");
+        if (!ctx || typeof Chart === "undefined") return;
         this.costChart = new Chart(ctx, {
-            type: 'doughnut',
+            type: "doughnut",
             data: {
-                labels: ['LDSS', 'Narrator', 'Fallback', 'Other'],
+                labels: ["No billed phases"],
                 datasets: [{
-                    data: [0, 0, 0, 0],
-                    backgroundColor: [
-                        '#4caf50',
-                        '#2196f3',
-                        '#ff9800',
-                        '#9c27b0',
-                    ],
+                    data: [0],
+                    backgroundColor: ["#5b7cfa", "#45b36b", "#f0a202", "#d1495b"],
                 }],
             },
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
+                    legend: { position: "bottom" },
                 },
             },
         });
     }
 
     setStatus(message, type) {
-        const statusEl = document.getElementById('session_status');
+        const statusEl = document.getElementById("session_status");
         if (statusEl) {
             statusEl.textContent = message;
             statusEl.className = `status-indicator status-${type}`;
         }
     }
 
+    setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    }
+
+    formatUsd(value) {
+        return `$${Number(value || 0).toFixed(4)}`;
+    }
+
     formatTime(timestamp) {
+        if (!timestamp) return "—";
         const date = new Date(timestamp);
-        return date.toLocaleTimeString();
+        return Number.isNaN(date.getTime()) ? "—" : date.toLocaleTimeString();
     }
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
     window.healthPanelsController = new GovernanceHealthPanelsController();
 });

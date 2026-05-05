@@ -11,6 +11,25 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 
+def _sorted_numeric(values: list[float]) -> list[float]:
+    return sorted(float(value) for value in values)
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    ordered = _sorted_numeric(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    rank = max(0.0, min(100.0, percentile)) / 100.0 * (len(ordered) - 1)
+    lower = int(rank)
+    upper = min(lower + 1, len(ordered) - 1)
+    if lower == upper:
+        return ordered[lower]
+    weight = rank - lower
+    return ordered[lower] + ((ordered[upper] - ordered[lower]) * weight)
+
+
 class QualityDimension(Enum):
     """Quality rubric dimensions."""
     COHERENCE = "coherence"
@@ -314,12 +333,95 @@ class EvaluationPipeline:
         dataset = self.storage.get(dataset_key) or []
         if not isinstance(dataset, list):
             dataset = []
-        dataset.append(turn_score.to_dict())
+        turn_payload = turn_score.to_dict()
+        replaced = False
+        for index, entry in enumerate(dataset):
+            if isinstance(entry, dict) and entry.get("turn_id") == turn_score.turn_id:
+                dataset[index] = turn_payload
+                replaced = True
+                break
+        if not replaced:
+            dataset.append(turn_payload)
         self.storage.set(dataset_key, dataset)
 
         logger.info(
             f"Recorded turn score: {turn_score.turn_id}, avg={turn_score.average_score:.2f}"
         )
+
+    def list_recent_turn_scores(self, session_id: str, limit: int = 10) -> list[TurnScore]:
+        """Return recent annotated turns for a session, newest last."""
+        dataset_key = f"eval_dataset:{session_id}"
+        dataset = self.storage.get(dataset_key) or []
+        if not isinstance(dataset, list):
+            return []
+        recent = dataset[-max(1, int(limit or 1)):]
+        return [TurnScore.from_dict(item) for item in recent if isinstance(item, dict)]
+
+    def add_baseline_turn(
+        self,
+        *,
+        baseline_id: str,
+        turn_score: TurnScore,
+        admin_user: str = "admin",
+    ) -> OfflineBaseline:
+        """Persist a canonical baseline turn and recalculate metrics."""
+        baseline = self.get_baseline(baseline_id)
+        canonical_turn = {
+            "turn_id": turn_score.turn_id,
+            "session_id": turn_score.session_id,
+            "scores": dict(turn_score.scores),
+            "average_score": turn_score.average_score,
+            "passed": turn_score.passed,
+            "annotated_by": turn_score.annotated_by or admin_user,
+            "feedback_tags": list(turn_score.feedback_tags),
+            "notes": turn_score.notes,
+            "timestamp": turn_score.timestamp,
+            "ingested_at": datetime.now(timezone.utc).isoformat(),
+            "ingested_by": admin_user,
+        }
+        replaced = False
+        for index, existing in enumerate(baseline.canonical_turns):
+            if isinstance(existing, dict) and existing.get("turn_id") == turn_score.turn_id:
+                baseline.canonical_turns[index] = canonical_turn
+                replaced = True
+                break
+        if not replaced:
+            baseline.canonical_turns.append(canonical_turn)
+        baseline.metrics_per_dimension = self._compute_baseline_metrics(baseline.canonical_turns)
+        self.storage.set(f"evaluation_baseline:{baseline_id}", baseline)
+        return baseline
+
+    def get_session_quality_summary(self, session_id: str, limit: int = 10) -> dict[str, Any]:
+        """Summarize recent human annotations for operator surfaces."""
+        turns = self.list_recent_turn_scores(session_id, limit=limit)
+        dimensions = [dimension.value for dimension in QualityDimension]
+        by_dimension: dict[str, list[float]] = {dimension: [] for dimension in dimensions}
+        for turn in turns:
+            for dimension, score in turn.scores.items():
+                by_dimension.setdefault(dimension, []).append(float(score))
+        dimension_summary = {}
+        for dimension, scores in by_dimension.items():
+            dimension_summary[dimension] = {
+                "sample_count": len(scores),
+                "average_score": round(sum(scores) / len(scores), 3) if scores else 0.0,
+                "min_score": min(scores) if scores else 0.0,
+                "max_score": max(scores) if scores else 0.0,
+            }
+        overall_average = round(
+            sum(turn.average_score for turn in turns) / len(turns),
+            3,
+        ) if turns else 0.0
+        pass_rate = round(
+            sum(1 for turn in turns if turn.passed) / len(turns),
+            3,
+        ) if turns else 0.0
+        return {
+            "session_id": session_id,
+            "recent_turn_count": len(turns),
+            "overall_average_score": overall_average,
+            "pass_rate": pass_rate,
+            "dimensions": dimension_summary,
+        }
 
     def auto_tune_weights(
         self,
@@ -399,6 +501,8 @@ class EvaluationPipeline:
 
     def check_baseline_regression(
         self,
+        session_id: str | None = None,
+        turn_count: int = 10,
         baseline_id: str = "goc_evaluation_baseline",
     ) -> dict[str, Any]:
         """Check if current production metrics show regression vs baseline."""
@@ -406,17 +510,72 @@ class EvaluationPipeline:
 
         if not baseline.metrics_per_dimension:
             logger.info("No baseline metrics available for regression check")
-            return {"regression_detected": False, "details": []}
+            return {"regression_detected": False, "details": [], "session_id": session_id}
 
-        # Phase A: Placeholder (Phase B will integrate real Langfuse data)
+        recent_scores = self.list_recent_turn_scores(session_id, limit=turn_count) if session_id else []
         regression_report = {
             "regression_detected": False,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "details": [],
             "dimensions_below_p5": [],
+            "session_id": session_id,
+            "turn_count_evaluated": len(recent_scores),
         }
+        if not recent_scores:
+            regression_report["status"] = "insufficient_live_annotations"
+            return regression_report
 
-        # In Phase B, would fetch production metrics and compare to baseline
-        # For now, return clean structure ready for Phase B
+        dimension_scores: dict[str, list[float]] = {}
+        for turn in recent_scores:
+            for dimension, score in turn.scores.items():
+                dimension_scores.setdefault(dimension, []).append(float(score))
+
+        for dimension, baseline_metric in baseline.metrics_per_dimension.items():
+            scores = dimension_scores.get(dimension, [])
+            if not scores:
+                continue
+            recent_average = round(sum(scores) / len(scores), 3)
+            below_p5_count = sum(1 for score in scores if score < baseline_metric.p5_score)
+            below_p5 = below_p5_count > 0 and (below_p5_count / len(scores)) >= 0.5
+            regressed = recent_average < baseline_metric.p5_score or below_p5
+            detail = {
+                "dimension": dimension,
+                "baseline_median_score": baseline_metric.median_score,
+                "baseline_p5_score": baseline_metric.p5_score,
+                "recent_average_score": recent_average,
+                "recent_sample_count": len(scores),
+                "below_p5_count": below_p5_count,
+                "regressed": regressed,
+            }
+            regression_report["details"].append(detail)
+            if regressed:
+                regression_report["regression_detected"] = True
+                regression_report["dimensions_below_p5"].append(dimension)
 
         return regression_report
+
+    def _compute_baseline_metrics(self, canonical_turns: list[dict[str, Any]]) -> dict[str, BaselineMetrics]:
+        dimensions: dict[str, list[float]] = {}
+        for turn in canonical_turns:
+            if not isinstance(turn, dict):
+                continue
+            for dimension, score in (turn.get("scores") or {}).items():
+                try:
+                    dimensions.setdefault(str(dimension), []).append(float(score))
+                except (TypeError, ValueError):
+                    continue
+
+        metrics: dict[str, BaselineMetrics] = {}
+        now = datetime.now(timezone.utc).isoformat()
+        for dimension, scores in dimensions.items():
+            if not scores:
+                continue
+            metrics[dimension] = BaselineMetrics(
+                dimension=dimension,
+                median_score=round(_percentile(scores, 50), 3),
+                p5_score=round(_percentile(scores, 5), 3),
+                p95_score=round(_percentile(scores, 95), 3),
+                sample_count=len(scores),
+                last_updated=now,
+            )
+        return metrics

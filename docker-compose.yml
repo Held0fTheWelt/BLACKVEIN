@@ -4,7 +4,7 @@
 # docker-up.py materializes missing or placeholder secrets on the host **before** Compose runs (including image build); they are not baked into Dockerfiles.
 # Then set OPENAI_API_KEY in .env if you plan to use AI features.
 #
-# Services: backend (API), frontend (player UI), administration-tool, play-service (world-engine).
+# Services: backend (API), frontend (player UI), administration-tool, play-service (world-engine), redis (runtime governance storage).
 #
 # Startup order (important): backend must be up before play-service can fetch governed runtime config.
 # Do NOT make backend depend on play-service healthy — that deadlocks the stack. play-service, frontend,
@@ -20,10 +20,25 @@
 # rebuild/restart the backend container so the schema upgrades on startup.
 
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     env_file: .env
@@ -33,6 +48,7 @@ services:
       - FLASK_APP=run:app
       - CORS_ORIGINS=http://localhost:5001,http://127.0.0.1:5001,http://localhost:5002,http://127.0.0.1:5002
       - FRONTEND_URL=http://localhost:5002
+      - REDIS_URL=redis://redis:6379/0
       # RAG / AI Engineer Suite: repo root inside the image (slim layout: /app/app/..., see backend/Dockerfile).
       - WOS_REPO_ROOT=/app
       - WOS_CONTENT_MODULES_ROOT=/app/content/modules
@@ -151,3 +167,6 @@ services:
       timeout: 3s
       retries: 12
       start_period: 20s
+
+volumes:
+  redis-data:

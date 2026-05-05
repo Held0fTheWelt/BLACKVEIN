@@ -27,6 +27,7 @@ from app.narrative.validator_strategies import OutputValidatorConfig
 from app.runtime.manager import RuntimeManager
 from app.story_runtime import StoryRuntimeManager
 from app.story_runtime.live_governance import LiveStoryGovernanceError
+from app.story_runtime.manager import StorySessionContractError
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -536,6 +537,10 @@ def create_story_session(
         if root_span:
             root_span.update(output={"error": str(exc)}, metadata={"error": "governance_error"})
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except StorySessionContractError as exc:
+        if root_span:
+            root_span.update(output={"error": str(exc)}, metadata={"error": "session_contract_error"})
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:
         if root_span:
             root_span.update(output={"error": str(exc)}, metadata={"error": "unknown_error"})

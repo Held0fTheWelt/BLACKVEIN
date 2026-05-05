@@ -24,6 +24,9 @@ def create_app(config_object=None, *, testing: bool | None = None):
     configure_app_secrets_jwt_and_logging(app)
 
     init_extensions(app)
+    from app.services.observability_governance_service import init_runtime_governance_storage
+
+    init_runtime_governance_storage(app)
 
     # Import all models to register them with SQLAlchemy metadata
     from app.models import (

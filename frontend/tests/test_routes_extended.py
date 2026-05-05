@@ -459,6 +459,7 @@ def test_play_execute_json_returns_story_entries(client, monkeypatch):
                     ],
                     "story_window": {"contract": "authoritative_story_window_v1"},
                     "shell_state_view": {"current_scene_id": "scene_1"},
+                    "narrator_streaming": {"status": "streaming", "session_id": "story-1"},
                     "turn": {
                         "turn_number": 1,
                         "raw_input": kwargs["json_data"]["player_input"],
@@ -486,6 +487,7 @@ def test_play_execute_json_returns_story_entries(client, monkeypatch):
         "wave",
         "The room responds.",
     ]
+    assert data["narrator_streaming"] == {"status": "streaming", "session_id": "story-1"}
     assert data["runtime_status_view"]["contract"] == "play_shell_runtime_status.v1"
 
 

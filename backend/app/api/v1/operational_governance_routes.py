@@ -91,6 +91,44 @@ def _handle(action: str, callback):
         return fail("configuration_error", "Unexpected governance failure.", 500, {"error": str(exc)})
 
 
+def _list_storage_dicts(storage, key: str) -> list[dict]:
+    stored = storage.get(key)
+    if isinstance(stored, list):
+        return [item for item in stored if isinstance(item, dict)]
+    return []
+
+
+def _upsert_storage_dict(storage, key: str, item: dict, *, identity_key: str = "override_id") -> None:
+    items = _list_storage_dicts(storage, key)
+    identity = item.get(identity_key)
+    replaced = False
+    for index, existing in enumerate(items):
+        if existing.get(identity_key) == identity:
+            items[index] = item
+            replaced = True
+            break
+    if not replaced:
+        items.append(item)
+    storage.set(key, items)
+
+
+def _active_session_overrides(storage, session_id: str) -> dict[str, list[dict]]:
+    object_overrides = [
+        item
+        for item in _list_storage_dicts(storage, "object_admission_overrides:all")
+        if item.get("session_id") == session_id and item.get("active") is True
+    ]
+    state_delta_overrides = [
+        item
+        for item in _list_storage_dicts(storage, "state_delta_overrides:all")
+        if item.get("session_id") == session_id and item.get("active") is True
+    ]
+    return {
+        "object_admission": object_overrides,
+        "state_delta_boundary": state_delta_overrides,
+    }
+
+
 @api_v1_bp.route("/admin/bootstrap/status", methods=["GET"])
 @limiter.limit("60 per minute")
 @jwt_required()
@@ -789,10 +827,9 @@ def admin_runtime_config_truth():
 def mvp4_get_token_budget(session_id: str):
     """Get current token budget and usage for session."""
     def _do():
-        from app.services.observability_governance_service import TokenBudgetService, DegradationLevel
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import TokenBudgetService, get_runtime_governance_storage
 
-        service = TokenBudgetService(redis_client)
+        service = TokenBudgetService(get_runtime_governance_storage())
         budget = service.get_budget(session_id)
         usage_percent = (budget.used_tokens / budget.total_budget * 100) if budget.total_budget > 0 else 0
 
@@ -820,14 +857,13 @@ def mvp4_get_token_budget(session_id: str):
 def mvp4_override_token_budget(session_id: str):
     """Admin override: add tokens to session budget."""
     def _do():
-        from app.services.observability_governance_service import TokenBudgetService
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import TokenBudgetService, get_runtime_governance_storage
 
         body = _body()
         tokens_to_add = int(body.get("tokens_to_add", 0))
         reason = body.get("reason", "")
 
-        service = TokenBudgetService(redis_client)
+        service = TokenBudgetService(get_runtime_governance_storage())
         service.override_budget(
             session_id=session_id,
             tokens_to_add=tokens_to_add,
@@ -846,6 +882,102 @@ def mvp4_override_token_budget(session_id: str):
     return _handle("token_budget_override", _do)
 
 
+@api_v1_bp.route("/admin/mvp4/game/session/<session_id>/summary", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_get_session_summary(session_id: str):
+    """Return live runtime, cost, budget, override, and evaluation truth for one session."""
+    def _do():
+        from ai_stack.evaluation_pipeline import EvaluationPipeline
+        from app.services.game_service import get_story_state
+        from app.services.observability_governance_service import (
+            CostDashboard,
+            TokenBudgetService,
+            get_runtime_governance_storage,
+        )
+
+        storage = get_runtime_governance_storage()
+        state = get_story_state(session_id)
+        latest_turn = state.get("last_committed_turn") if isinstance(state.get("last_committed_turn"), dict) else {}
+        diagnostics_envelope = (
+            latest_turn.get("diagnostics_envelope")
+            if isinstance(latest_turn.get("diagnostics_envelope"), dict)
+            else {}
+        )
+        overrides = _active_session_overrides(storage, session_id)
+
+        budget_service = TokenBudgetService(storage)
+        cost_dashboard = CostDashboard(storage)
+        evaluation = EvaluationPipeline(storage)
+
+        recent_turns = [turn.to_dict() for turn in evaluation.list_recent_turn_scores(session_id, limit=10)]
+        return {
+            "session_id": session_id,
+            "state": {
+                "module_id": state.get("module_id"),
+                "turn_counter": state.get("turn_counter"),
+                "current_scene_id": state.get("current_scene_id"),
+                "story_window": state.get("story_window") if isinstance(state.get("story_window"), dict) else {},
+                "runtime_projection": (
+                    state.get("runtime_projection") if isinstance(state.get("runtime_projection"), dict) else {}
+                ),
+                "updated_at": state.get("updated_at"),
+            },
+            "narrator_streaming": (
+                latest_turn.get("narrator_streaming") if isinstance(latest_turn.get("narrator_streaming"), dict) else None
+            ),
+            "diagnostics_envelope": diagnostics_envelope,
+            "budget_status": budget_service.get_budget_status(session_id),
+            "cost_summary": cost_dashboard.get_session_cost_summary(session_id).to_dict(),
+            "evaluation": {
+                "weights": evaluation.get_rubric_weights(session_id).to_dict(),
+                "recent_turns": recent_turns,
+                "quality_summary": evaluation.get_session_quality_summary(session_id, limit=10),
+                "regression": evaluation.check_baseline_regression(session_id=session_id, turn_count=10),
+            },
+            "overrides": {
+                "object_admission": overrides["object_admission"],
+                "state_delta_boundary": overrides["state_delta_boundary"],
+                "active_count": len(overrides["object_admission"]) + len(overrides["state_delta_boundary"]),
+            },
+        }
+
+    return _handle("mvp4_session_summary", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/costs/daily", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_get_daily_cost_report():
+    """Return aggregated truthful cost usage for one UTC day."""
+    def _do():
+        from app.services.observability_governance_service import CostDashboard, get_runtime_governance_storage
+
+        date_value = (request.args.get("date") or datetime.now(timezone.utc).date().isoformat()).strip()
+        dashboard = CostDashboard(get_runtime_governance_storage())
+        return dashboard.get_daily_cost_report(date_value)
+
+    return _handle("mvp4_daily_cost_report", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/costs/weekly", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_get_weekly_cost_report():
+    """Return aggregated truthful cost usage for the requested UTC week window."""
+    def _do():
+        from app.services.observability_governance_service import CostDashboard, get_runtime_governance_storage
+
+        week_start = (request.args.get("week_start") or datetime.now(timezone.utc).date().isoformat()).strip()
+        dashboard = CostDashboard(get_runtime_governance_storage())
+        return dashboard.get_weekly_cost_report(week_start)
+
+    return _handle("mvp4_weekly_cost_report", _do)
+
+
 # Override Audit Configuration
 
 
@@ -857,9 +989,9 @@ def mvp4_get_audit_config():
     """Get audit granularity configuration for all override types."""
     def _do():
         from app.auth.admin_security import OverrideAuditConfigManager
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
-        manager = OverrideAuditConfigManager(redis_client)
+        manager = OverrideAuditConfigManager(get_runtime_governance_storage())
         configs = manager.get_all_configs()
         return {
             "override_types": {
@@ -879,7 +1011,7 @@ def mvp4_update_audit_config(override_type: str):
     """Update audit granularity configuration for override type."""
     def _do():
         from app.auth.admin_security import OverrideAuditConfig, OverrideAuditConfigManager
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
         body = _body()
         config = OverrideAuditConfig(
@@ -893,7 +1025,7 @@ def mvp4_update_audit_config(override_type: str):
             log_accessed=body.get("log_accessed", True),
         )
 
-        manager = OverrideAuditConfigManager(redis_client)
+        manager = OverrideAuditConfigManager(get_runtime_governance_storage())
         manager.set_config(config)
 
         return {
@@ -916,9 +1048,9 @@ def mvp4_get_evaluation_rubric():
     """Get quality evaluation rubric."""
     def _do():
         from ai_stack.evaluation_pipeline import EvaluationPipeline
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
-        pipeline = EvaluationPipeline(redis_client)
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
         rubric = pipeline.get_rubric("goc_quality_v1")
         return rubric.to_dict()
 
@@ -933,9 +1065,9 @@ def mvp4_get_evaluation_baseline():
     """Get offline baseline test set."""
     def _do():
         from ai_stack.evaluation_pipeline import EvaluationPipeline
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
-        pipeline = EvaluationPipeline(redis_client)
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
         baseline = pipeline.get_baseline("goc_evaluation_baseline")
         return {
             "baseline_id": baseline.baseline_id,
@@ -958,9 +1090,9 @@ def mvp4_get_rubric_weights(session_id: str):
     """Get current rubric weights (auto-tuning state) for session."""
     def _do():
         from ai_stack.evaluation_pipeline import EvaluationPipeline
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
-        pipeline = EvaluationPipeline(redis_client)
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
         weights = pipeline.get_rubric_weights(session_id)
         return {
             "session_id": session_id,
@@ -978,12 +1110,12 @@ def mvp4_manual_tune_weights(session_id: str):
     """Manually trigger rubric weight tuning from recent turns."""
     def _do():
         from ai_stack.evaluation_pipeline import EvaluationPipeline
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
         body = _body()
         turn_count = int(body.get("turn_count", 10))
 
-        pipeline = EvaluationPipeline(redis_client)
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
         weights = pipeline.manual_tune_weights(
             session_id=session_id,
             turn_count=turn_count,
@@ -997,6 +1129,140 @@ def mvp4_manual_tune_weights(session_id: str):
         }
 
     return _handle("evaluation_manual_tune", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/evaluation/session/<session_id>/recent-turns", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_get_recent_turn_scores(session_id: str):
+    """List recent human-annotated evaluation turns for a live session."""
+    def _do():
+        from ai_stack.evaluation_pipeline import EvaluationPipeline
+        from app.services.observability_governance_service import get_runtime_governance_storage
+
+        limit = int(request.args.get("limit", 10))
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
+        turns = pipeline.list_recent_turn_scores(session_id, limit=limit)
+        return {
+            "session_id": session_id,
+            "recent_turns": [turn.to_dict() for turn in turns],
+            "quality_summary": pipeline.get_session_quality_summary(session_id, limit=limit),
+        }
+
+    return _handle("evaluation_recent_turns_get", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/evaluation/session/<session_id>/turn-score", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_record_turn_score(session_id: str):
+    """Record or update a human annotation for one turn."""
+    def _do():
+        from ai_stack.evaluation_pipeline import EvaluationPipeline, TurnScore
+        from app.services.observability_governance_service import get_runtime_governance_storage
+
+        body = _body()
+        scores = body.get("scores") if isinstance(body.get("scores"), dict) else {}
+        average_score = body.get("average_score")
+        if average_score is None and scores:
+            average_score = sum(float(value) for value in scores.values()) / len(scores)
+        turn_score = TurnScore(
+            turn_id=str(body.get("turn_id") or "").strip(),
+            session_id=session_id,
+            scores={str(key): float(value) for key, value in scores.items()},
+            average_score=float(average_score or 0.0),
+            passed=bool(body.get("passed", True)),
+            annotated_by=_actor_identifier(),
+            feedback_tags=[str(tag) for tag in body.get("feedback_tags", []) if str(tag).strip()],
+            notes=body.get("notes"),
+        )
+        if not turn_score.turn_id:
+            raise governance_error("invalid_turn_score", "turn_id is required", 400, {})
+
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
+        pipeline.record_turn_score(turn_score, session_id)
+        return {
+            "session_id": session_id,
+            "turn_score": turn_score.to_dict(),
+            "recorded": True,
+        }
+
+    return _handle("evaluation_turn_score_record", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/evaluation/baseline/turns", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_add_baseline_turn():
+    """Promote an annotated turn into the canonical baseline set."""
+    def _do():
+        from ai_stack.evaluation_pipeline import EvaluationPipeline, TurnScore
+        from app.services.observability_governance_service import get_runtime_governance_storage
+
+        body = _body()
+        baseline_id = str(body.get("baseline_id") or "goc_evaluation_baseline").strip()
+        session_id = str(body.get("session_id") or "").strip()
+        turn_id = str(body.get("turn_id") or "").strip()
+        if not session_id or not turn_id:
+            raise governance_error("invalid_baseline_turn", "session_id and turn_id are required", 400, {})
+
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
+        recent_turns = pipeline.list_recent_turn_scores(session_id, limit=200)
+        selected = next((turn for turn in recent_turns if turn.turn_id == turn_id), None)
+        if selected is None:
+            scores = body.get("scores") if isinstance(body.get("scores"), dict) else {}
+            average_score = body.get("average_score")
+            if average_score is None and scores:
+                average_score = sum(float(value) for value in scores.values()) / len(scores)
+            selected = TurnScore(
+                turn_id=turn_id,
+                session_id=session_id,
+                scores={str(key): float(value) for key, value in scores.items()},
+                average_score=float(average_score or 0.0),
+                passed=bool(body.get("passed", True)),
+                annotated_by=_actor_identifier(),
+                feedback_tags=[str(tag) for tag in body.get("feedback_tags", []) if str(tag).strip()],
+                notes=body.get("notes"),
+            )
+
+        baseline = pipeline.add_baseline_turn(
+            baseline_id=baseline_id,
+            turn_score=selected,
+            admin_user=_actor_identifier(),
+        )
+        return {
+            "baseline_id": baseline.baseline_id,
+            "canonical_turn_count": len(baseline.canonical_turns),
+            "metrics": {key: metric.to_dict() for key, metric in baseline.metrics_per_dimension.items()},
+            "updated": True,
+        }
+
+    return _handle("evaluation_baseline_turn_add", _do)
+
+
+@api_v1_bp.route("/admin/mvp4/evaluation/session/<session_id>/regression", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def mvp4_get_session_regression(session_id: str):
+    """Compare recent live annotations against the canonical baseline."""
+    def _do():
+        from ai_stack.evaluation_pipeline import EvaluationPipeline
+        from app.services.observability_governance_service import get_runtime_governance_storage
+
+        turn_count = int(request.args.get("turn_count", 10))
+        baseline_id = str(request.args.get("baseline_id") or "goc_evaluation_baseline").strip()
+        pipeline = EvaluationPipeline(get_runtime_governance_storage())
+        return pipeline.check_baseline_regression(
+            session_id=session_id,
+            turn_count=turn_count,
+            baseline_id=baseline_id,
+        )
+
+    return _handle("evaluation_session_regression_get", _do)
 
 
 # Langfuse Configuration
@@ -1047,15 +1313,16 @@ def mvp4_toggle_langfuse(session_id: str):
 def mvp4_get_object_admission_overrides():
     """Get active object admission overrides."""
     def _do():
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
         # Fetch all object admission overrides from session storage
         storage_key = "object_admission_overrides:all"
-        overrides = redis_client.get(storage_key) or []
+        storage = get_runtime_governance_storage()
+        overrides = [item for item in _list_storage_dicts(storage, storage_key) if item.get("active") is True]
 
         return {
-            "overrides": overrides if isinstance(overrides, list) else [],
-            "total_count": len(overrides) if isinstance(overrides, list) else 0,
+            "overrides": overrides,
+            "total_count": len(overrides),
         }
 
     return _handle("object_admission_overrides_get", _do)
@@ -1069,9 +1336,10 @@ def mvp4_create_object_admission_override():
     """Create object admission tier override."""
     def _do():
         from app.auth.admin_security import OverrideAuditEvent, OverrideEventType, OverrideAuditConfig, OverrideAuditConfigManager, _log_override_event
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
         import uuid
 
+        redis_client = get_runtime_governance_storage()
         body = _body()
         object_id = body.get("object_id", "")
         session_id = body.get("session_id", "")
@@ -1099,7 +1367,7 @@ def mvp4_create_object_admission_override():
 
         config_manager = OverrideAuditConfigManager(redis_client)
         config = config_manager.get_config("object_admission")
-        _log_override_event(event, config, _actor_identifier())
+        _log_override_event(event, config, get_current_user())
 
         # Store override
         storage_key = f"object_admission_override:{override_id}"
@@ -1107,6 +1375,7 @@ def mvp4_create_object_admission_override():
             "override_id": override_id,
             "type": "object_admission_override",
             "scope": "session",
+            "session_id": session_id,
             "target": object_id,
             "tier_change": tier_change,
             "created": {
@@ -1118,6 +1387,7 @@ def mvp4_create_object_admission_override():
             "active": True,
         }
         redis_client.set(storage_key, override_data)
+        _upsert_storage_dict(redis_client, "object_admission_overrides:all", override_data)
 
         return {
             "override_id": override_id,
@@ -1138,8 +1408,9 @@ def mvp4_revoke_object_admission_override(override_id: str):
     """Revoke object admission override."""
     def _do():
         from app.auth.admin_security import OverrideAuditEvent, OverrideEventType, OverrideAuditConfig, OverrideAuditConfigManager, _log_override_event
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
+        redis_client = get_runtime_governance_storage()
         body = _body() if request.get_json(silent=True) else {}
         reason = body.get("reason", "Override revoked")
 
@@ -1160,7 +1431,7 @@ def mvp4_revoke_object_admission_override(override_id: str):
 
         config_manager = OverrideAuditConfigManager(redis_client)
         config = config_manager.get_config("object_admission")
-        _log_override_event(event, config, _actor_identifier())
+        _log_override_event(event, config, get_current_user())
 
         # Update override as revoked
         if isinstance(override, dict):
@@ -1171,6 +1442,7 @@ def mvp4_revoke_object_admission_override(override_id: str):
                 "reason": reason,
             }
             redis_client.set(storage_key, override)
+            _upsert_storage_dict(redis_client, "object_admission_overrides:all", override)
 
         return {"override_id": override_id, "revoked": True}
 
@@ -1187,14 +1459,15 @@ def mvp4_revoke_object_admission_override(override_id: str):
 def mvp4_get_state_delta_overrides():
     """Get active state delta boundary overrides."""
     def _do():
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
         storage_key = "state_delta_overrides:all"
-        overrides = redis_client.get(storage_key) or []
+        storage = get_runtime_governance_storage()
+        overrides = [item for item in _list_storage_dicts(storage, storage_key) if item.get("active") is True]
 
         return {
-            "overrides": overrides if isinstance(overrides, list) else [],
-            "total_count": len(overrides) if isinstance(overrides, list) else 0,
+            "overrides": overrides,
+            "total_count": len(overrides),
         }
 
     return _handle("state_delta_overrides_get", _do)
@@ -1208,9 +1481,10 @@ def mvp4_create_state_delta_override():
     """Create state delta boundary protection override (breakglass)."""
     def _do():
         from app.auth.admin_security import OverrideAuditEvent, OverrideEventType, OverrideAuditConfig, OverrideAuditConfigManager, _log_override_event
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
         import uuid
 
+        redis_client = get_runtime_governance_storage()
         body = _body()
         session_id = body.get("session_id", "")
         protected_path = body.get("protected_path", "")
@@ -1236,7 +1510,7 @@ def mvp4_create_state_delta_override():
 
         config_manager = OverrideAuditConfigManager(redis_client)
         config = config_manager.get_config("state_delta_boundary")
-        _log_override_event(event, config, _actor_identifier())
+        _log_override_event(event, config, get_current_user())
 
         # Store override
         storage_key = f"state_delta_override:{override_id}"
@@ -1244,6 +1518,7 @@ def mvp4_create_state_delta_override():
             "override_id": override_id,
             "type": "state_delta_boundary_override",
             "scope": "session",
+            "session_id": session_id,
             "target": protected_path,
             "protected_path": protected_path,
             "created": {
@@ -1256,6 +1531,7 @@ def mvp4_create_state_delta_override():
             "breakglass_activated": True,
         }
         redis_client.set(storage_key, override_data)
+        _upsert_storage_dict(redis_client, "state_delta_overrides:all", override_data)
 
         return {
             "override_id": override_id,
@@ -1276,8 +1552,9 @@ def mvp4_revoke_state_delta_override(override_id: str):
     """Revoke state delta boundary override."""
     def _do():
         from app.auth.admin_security import OverrideAuditEvent, OverrideEventType, OverrideAuditConfig, OverrideAuditConfigManager, _log_override_event
-        from app.extensions import redis_client
+        from app.services.observability_governance_service import get_runtime_governance_storage
 
+        redis_client = get_runtime_governance_storage()
         body = _body() if request.get_json(silent=True) else {}
         reason = body.get("reason", "Override revoked")
 
@@ -1298,7 +1575,7 @@ def mvp4_revoke_state_delta_override(override_id: str):
 
         config_manager = OverrideAuditConfigManager(redis_client)
         config = config_manager.get_config("state_delta_boundary")
-        _log_override_event(event, config, _actor_identifier())
+        _log_override_event(event, config, get_current_user())
 
         # Update override as revoked
         if isinstance(override, dict):
@@ -1310,6 +1587,7 @@ def mvp4_revoke_state_delta_override(override_id: str):
                 "reason": reason,
             }
             redis_client.set(storage_key, override)
+            _upsert_storage_dict(redis_client, "state_delta_overrides:all", override)
 
         return {"override_id": override_id, "revoked": True}
 

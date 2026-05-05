@@ -56,6 +56,7 @@ OPTIONAL_WITH_DEFAULTS = {
     "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
     "ANTHROPIC_BASE_URL": "https://api.anthropic.com",
     "ANTHROPIC_VERSION": "2023-06-01",
+    "REDIS_URL": "redis://redis:6379/0",
 }
 
 OPTIONAL_SECRET_KEYS = (

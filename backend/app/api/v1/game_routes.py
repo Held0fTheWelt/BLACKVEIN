@@ -248,6 +248,7 @@ def _player_session_bundle(
 ) -> dict[str, Any]:
     story_window = _story_window_from_state(state)
     latest_turn = turn if isinstance(turn, dict) else None
+    opening_turn = created.get("opening_turn") if isinstance(created, dict) and isinstance(created.get("opening_turn"), dict) else None
     if latest_turn is None:
         latest_turn = state.get("last_committed_turn") if isinstance(state.get("last_committed_turn"), dict) else None
     latest_governance = (
@@ -255,6 +256,11 @@ def _player_session_bundle(
         if isinstance(latest_turn, dict) and isinstance(latest_turn.get("runtime_governance_surface"), dict)
         else None
     )
+    narrator_streaming = None
+    if isinstance(latest_turn, dict) and isinstance(latest_turn.get("narrator_streaming"), dict):
+        narrator_streaming = latest_turn.get("narrator_streaming")
+    elif isinstance(opening_turn, dict) and isinstance(opening_turn.get("narrator_streaming"), dict):
+        narrator_streaming = opening_turn.get("narrator_streaming")
     # Contract 3: can_execute must match story_window.entry_count
     # Opening turn exists when entry_count > 0
     can_execute = story_window.get("entry_count", 0) > 0
@@ -271,6 +277,7 @@ def _player_session_bundle(
         "can_execute": can_execute,
         "story_window": story_window,
         "story_entries": story_window["entries"],
+        "narrator_streaming": narrator_streaming,
         "shell_state_view": _player_shell_state_view(
             state=state,
             run_id=run_id,
@@ -280,7 +287,7 @@ def _player_session_bundle(
         ),
         "authoritative_state": state,
         "turn": latest_turn,
-        "opening_turn": created.get("opening_turn") if isinstance(created, dict) else None,
+        "opening_turn": opening_turn,
         "governance": {
             "runtime_governance_surface": latest_governance,
             "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,

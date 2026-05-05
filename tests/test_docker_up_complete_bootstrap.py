@@ -82,20 +82,28 @@ class TestDockerUpBootstrapFirstRun:
 
         Acceptance: .env exists, contains SECRET_KEY, JWT_SECRET_KEY, etc.
         """
+        original_env = ENV_FILE.read_text(encoding="utf-8") if ENV_FILE.exists() else None
         # Clean environment
         if ENV_FILE.exists():
             ENV_FILE.unlink()
 
-        # Run init-env
-        exit_code, stdout, stderr = run_docker_up(["init-env"])
+        try:
+            # Run init-env
+            exit_code, stdout, stderr = run_docker_up(["init-env"])
 
-        # Verify
-        assert exit_code == 0, f"init-env failed: {stderr}"
-        assert ENV_FILE.exists(), ".env was not created"
-        env_content = ENV_FILE.read_text()
-        assert "SECRET_KEY=" in env_content
-        assert "JWT_SECRET_KEY=" in env_content
-        assert "PLAY_SERVICE_SHARED_SECRET=" in env_content
+            # Verify
+            assert exit_code == 0, f"init-env failed: {stderr}"
+            assert ENV_FILE.exists(), ".env was not created"
+            env_content = ENV_FILE.read_text(encoding="utf-8")
+            assert "SECRET_KEY=" in env_content
+            assert "JWT_SECRET_KEY=" in env_content
+            assert "PLAY_SERVICE_SHARED_SECRET=" in env_content
+            assert "REDIS_URL=redis://redis:6379/0" in env_content
+        finally:
+            if original_env is None:
+                ENV_FILE.unlink(missing_ok=True)
+            else:
+                ENV_FILE.write_text(original_env, encoding="utf-8")
 
     @pytest.mark.skipif(
         not DOCKER_UP_SCRIPT.exists(),

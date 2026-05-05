@@ -292,3 +292,20 @@ def test_mvp4_opening_no_degradation_signals(runtime_manager):
     assert isinstance(degradation_signals, list)
     assert len(degradation_signals) == 0, \
         f"LDSS opening should have no degradation signals, got {degradation_signals}"
+
+
+@pytest.mark.mvp4
+def test_mvp4_direct_session_create_requires_actor_ownership_contract(runtime_manager):
+    """Contract 2.11: direct WE session creation must reject missing GoC actor ownership."""
+    projection = {
+        "module_id": "god_of_carnage",
+        "module_version": "1.0.0",
+        "start_scene_id": "scene_1_opening",
+        "selected_player_role": "veronique",
+    }
+
+    with pytest.raises(ValueError, match="human_actor_id"):
+        runtime_manager.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=projection,
+        )

@@ -175,3 +175,37 @@ def test_mvp4_story_entries_match_story_window():
         "story_entries should match story_window.entries"
     assert bundle.get("story_window", {}).get("entry_count") == len(entries), \
         "story_window.entry_count should match number of entries"
+
+
+@pytest.mark.mvp4
+def test_mvp4_narrator_streaming_promoted_to_player_bundle():
+    """Contract 3.5: narrator_streaming must be available top-level for the frontend contract."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "source": "world_engine_story_runtime",
+            "entries": [{"turn_number": 0, "kind": "opening", "role": "runtime", "text": "The room is tense."}],
+            "entry_count": 1,
+            "latest_entry": {"turn_number": 0, "kind": "opening", "role": "runtime", "text": "The room is tense."},
+        },
+        "last_committed_turn": {
+            "turn_number": 1,
+            "narrator_streaming": {"status": "streaming", "session_id": "test_session"},
+        },
+    }
+
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+
+    assert bundle.get("narrator_streaming") == {
+        "status": "streaming",
+        "session_id": "test_session",
+    }

@@ -934,6 +934,7 @@ def play_shell(session_id: str):
             "run_id": session_id,
             "runtime_session_id": payload.get("runtime_session_id") or backend_session_id,
             "backend_session_id": backend_session_id or None,
+            "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
@@ -1000,6 +1001,7 @@ def play_execute(session_id: str):
             {
                 "ok": True,
                 "interpreted_input_kind": interpreted,
+                "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
                 "story_entries": story_entries,
                 "story_window": payload.get("story_window") if isinstance(payload.get("story_window"), dict) else {},
                 "shell_state_view": shell_state_view,
@@ -1012,6 +1014,7 @@ def play_execute(session_id: str):
             "contract": payload.get("contract"),
             "run_id": session_id,
             "runtime_session_id": payload.get("runtime_session_id"),
+            "narrator_streaming": payload.get("narrator_streaming") if isinstance(payload.get("narrator_streaming"), dict) else None,
             "story_entries": story_entries,
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,

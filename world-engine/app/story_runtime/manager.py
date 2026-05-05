@@ -86,6 +86,64 @@ from app.story_runtime.narrative_threads import (
 SUPPORTED_LIVE_STORY_MODULE_IDS = (GOD_OF_CARNAGE_MODULE_ID,)
 
 
+class StorySessionContractError(ValueError):
+    """Raised when a direct story-session create violates the governed runtime contract."""
+
+
+def _require_non_empty_string(value: Any, field_name: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise StorySessionContractError(f"{field_name} is required for governed live story sessions.")
+    return text
+
+
+def _validate_runtime_projection_contract(module_id: str, runtime_projection: dict[str, Any]) -> None:
+    if module_id != GOD_OF_CARNAGE_MODULE_ID:
+        return
+
+    if not isinstance(runtime_projection, dict):
+        raise StorySessionContractError("runtime_projection must be a JSON object.")
+
+    projection_module_id = str(runtime_projection.get("module_id") or "").strip()
+    if projection_module_id and projection_module_id != module_id:
+        raise StorySessionContractError(
+            "runtime_projection.module_id must match the requested module_id for governed live sessions."
+        )
+
+    human_actor_id = _require_non_empty_string(runtime_projection.get("human_actor_id"), "human_actor_id")
+    selected_player_role = _require_non_empty_string(
+        runtime_projection.get("selected_player_role"),
+        "selected_player_role",
+    )
+    if selected_player_role != human_actor_id:
+        raise StorySessionContractError(
+            "selected_player_role must match human_actor_id for the canonical single-human live runtime path."
+        )
+
+    raw_npc_actor_ids = runtime_projection.get("npc_actor_ids")
+    if not isinstance(raw_npc_actor_ids, list) or not raw_npc_actor_ids:
+        raise StorySessionContractError("npc_actor_ids must contain the AI-controlled cast for governed live sessions.")
+    npc_actor_ids = [str(item).strip() for item in raw_npc_actor_ids if str(item).strip()]
+    if not npc_actor_ids:
+        raise StorySessionContractError("npc_actor_ids must contain non-empty actor ids.")
+    if human_actor_id in npc_actor_ids:
+        raise StorySessionContractError("human_actor_id cannot also appear in npc_actor_ids.")
+
+    actor_lanes = runtime_projection.get("actor_lanes")
+    if not isinstance(actor_lanes, dict) or not actor_lanes:
+        raise StorySessionContractError("actor_lanes is required for governed live sessions.")
+
+    human_lane = str(actor_lanes.get(human_actor_id) or "").strip().lower()
+    if human_lane != "human":
+        raise StorySessionContractError("actor_lanes must mark human_actor_id with lane='human'.")
+
+    missing_npcs = [actor_id for actor_id in npc_actor_ids if str(actor_lanes.get(actor_id) or "").strip().lower() != "npc"]
+    if missing_npcs:
+        raise StorySessionContractError(
+            f"actor_lanes must mark every npc_actor_id with lane='npc' (missing: {', '.join(missing_npcs)})."
+        )
+
+
 @dataclass
 class StorySession:
     session_id: str
@@ -2266,6 +2324,7 @@ class StoryRuntimeManager:
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
     ) -> StorySession:
+        _validate_runtime_projection_contract(module_id, runtime_projection)
         session_id = uuid4().hex
         # Generate trace_id if not provided for audit trail correlation
         if not trace_id:
