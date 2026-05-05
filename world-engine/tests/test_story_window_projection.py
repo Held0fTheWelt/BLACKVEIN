@@ -15,7 +15,16 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
             "turn_number": 0,
             "turn_kind": "opening",
             "raw_input": "internal opening prompt hidden from players",
-            "visible_output_bundle": {"gm_narration": ["The room is already tense."]},
+            "visible_output_bundle": {
+                "gm_narration": ["The room is already tense."],
+                "scene_blocks": [
+                    {
+                        "id": "turn-0-block-1",
+                        "block_type": "narrator",
+                        "text": "The room is already tense.",
+                    }
+                ],
+            },
             "narrative_commit": {"committed_consequences": ["opening_committed"]},
             "committed_turn_authority": {
                 "authority_record_version": "committed_turn_authority.v1",
@@ -73,6 +82,7 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert [entry["role"] for entry in entries] == ["runtime", "player", "runtime"]
     assert entries[0]["kind"] == "opening"
     assert entries[0]["text"] == "The room is already tense."
+    assert entries[0]["scene_blocks"][0]["id"] == "turn-0-block-1"
     assert "internal opening prompt" not in entries[0]["text"]
     assert entries[1]["text"] == "I say that is enough."
     assert entries[2]["text"] == "The answer lands hard."

@@ -33,10 +33,11 @@
       return false;
     }
 
-    blockRenderer = new window.BlockRenderer();
-    orchestrator = new window.BlocksOrchestrator(transcriptRoot);
-    typewriterEngine = new window.TypewriterEngine(transcriptRoot, orchestrator);
-    playControls = new window.PlayControls(transcriptRoot, orchestrator, typewriterEngine);
+    blockRenderer = new window.BlockRenderer(transcriptRoot);
+    typewriterEngine = new window.TypewriterEngine(window.TEST_MODE || false);
+    orchestrator = new window.BlocksOrchestrator(blockRenderer, typewriterEngine);
+    playControls = new window.PlayControls(orchestrator);
+    playControls.attachEventListeners();
 
     console.info("[MVP5] Initialized: BlockRenderer, BlocksOrchestrator, TypewriterEngine, PlayControls");
     return true;

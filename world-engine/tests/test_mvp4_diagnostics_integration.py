@@ -23,16 +23,33 @@ def _mock_graph_state():
             "actor_lane_validation": {"status": "approved", "reason": ""},
         },
         "generation": {
+            "attempted": True,
             "success": True,
             "content": "Mock narration.",
-            "metadata": {"adapter": "mock", "model": "mock-model"},
+            "metadata": {
+                "adapter": "mock",
+                "model": "mock-model",
+                "adapter_invocation_mode": "mock_test",
+            },
             "structured_output": {"mock": True},
         },
         "routing": {
+            "route_id": "test_route",
+            "route_family": "narrative_live_generation",
             "selected_provider": "mock",
             "selected_model": "mock-model",
+            "fallback_model": "mock-fallback",
+            "fallback_chain": ["mock-model", "mock-fallback"],
             "fallback_stage_reached": "primary_only",
+            "generation_execution_mode": "routed_llm_slm",
         },
+        "nodes_executed": [
+            "route_model",
+            "invoke_model",
+            "validate_seam",
+            "commit_seam",
+            "render_visible",
+        ],
         "graph_diagnostics": {"errors": []},
         "visible_output_bundle": {"gm_narration": ["Mock."]},
         "committed_result": {"commit_applied": True},
@@ -174,6 +191,37 @@ def test_diagnostics_envelope_uses_request_langfuse_trace_id():
     env = result["diagnostics_envelope"]
     assert env["langfuse_status"] == "traced"
     assert env["langfuse_trace_id"] == "0123456789abcdef0123456789abcdef"
+
+
+@pytest.mark.mvp4
+def test_execute_turn_emits_langfuse_path_spans():
+    """Langfuse trace shows model route/invoke/fallback/validation/commit path truth."""
+    mgr, session = _make_manager("annette")
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    adapter.create_child_span.return_value = MagicMock()
+
+    with patch("app.story_runtime.manager.LangfuseAdapter.get_instance", return_value=adapter):
+        result = mgr.execute_turn(session_id=session.session_id, player_input="test")
+
+    summary = result.get("observability_path_summary") or {}
+    assert summary["contract"] == "story_runtime_path_observability.v1"
+    assert summary["route_model_called"] is True
+    assert summary["invoke_model_called"] is True
+    assert summary["fallback_model_called"] is False
+    assert summary["validation_called"] is True
+    assert summary["commit_called"] is True
+    assert summary["selected_model"] == "mock-model"
+    assert summary["adapter"] == "mock"
+    assert summary["generation_success"] is True
+
+    created_child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.graph.path_summary" in created_child_names
+    assert "story.phase.model_route" in created_child_names
+    assert "story.phase.model_invoke" in created_child_names
+    assert "story.phase.model_fallback" in created_child_names
+    assert "story.phase.validation" in created_child_names
+    assert "story.phase.commit" in created_child_names
 
 
 @pytest.mark.mvp4

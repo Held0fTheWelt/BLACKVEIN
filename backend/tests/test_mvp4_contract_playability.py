@@ -209,3 +209,61 @@ def test_mvp4_narrator_streaming_promoted_to_player_bundle():
         "status": "streaming",
         "session_id": "test_session",
     }
+
+
+@pytest.mark.mvp4
+def test_mvp4_visible_scene_output_survives_resume_state():
+    """Resume bundles should promote persisted committed scene blocks for MVP5 rendering."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    scene_blocks = [
+        {
+            "id": "turn-0-block-1",
+            "block_type": "narrator",
+            "speaker_label": "World of Shadows",
+            "text": "The room is tense.",
+        }
+    ]
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "source": "world_engine_story_runtime",
+            "entries": [
+                {
+                    "turn_number": 0,
+                    "kind": "opening",
+                    "role": "runtime",
+                    "text": "The room is tense.",
+                    "scene_blocks": scene_blocks,
+                }
+            ],
+            "entry_count": 1,
+            "latest_entry": {
+                "turn_number": 0,
+                "kind": "opening",
+                "role": "runtime",
+                "text": "The room is tense.",
+                "scene_blocks": scene_blocks,
+            },
+        },
+        "last_committed_turn": {
+            "turn_number": 0,
+            "turn_kind": "opening",
+            "visible_output_bundle": {
+                "gm_narration": ["The room is tense."],
+                "scene_blocks": scene_blocks,
+            },
+        },
+    }
+
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+
+    assert bundle["opening_turn"] is None
+    assert bundle["visible_scene_output"] == {"blocks": scene_blocks}

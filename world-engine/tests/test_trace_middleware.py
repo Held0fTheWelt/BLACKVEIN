@@ -5,12 +5,31 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 
+def _goc_projection():
+    return {
+        "module_id": "god_of_carnage",
+        "start_scene_id": "phase_1",
+        "selected_player_role": "annette",
+        "human_actor_id": "annette",
+        "npc_actor_ids": ["alain", "veronique", "michel"],
+        "actor_lanes": {
+            "annette": "human",
+            "alain": "npc",
+            "veronique": "npc",
+            "michel": "npc",
+        },
+        "runtime_profile_id": "god_of_carnage_solo",
+        "runtime_module_id": "solo_story_runtime",
+        "content_module_id": "god_of_carnage",
+    }
+
+
 def test_story_turn_echoes_trace_header(client, internal_api_key):
     custom = str(uuid.uuid4())
     response = client.post(
         "/api/story/sessions",
         headers={"X-Play-Service-Key": internal_api_key, "X-WoS-Trace-Id": custom},
-        json={"module_id": "god_of_carnage", "runtime_projection": {"start_scene_id": "s1"}},
+        json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
     )
     assert response.status_code == 200
     assert response.headers.get("X-WoS-Trace-Id") == custom
@@ -64,7 +83,8 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     ldss_span = MagicMock()
     narrator_span = MagicMock()
     adapter.start_span_in_trace.return_value = root_span
-    adapter.create_child_span.side_effect = [ldss_span, narrator_span]
+    path_spans = [MagicMock() for _ in range(6)]
+    adapter.create_child_span.side_effect = [*path_spans, ldss_span, narrator_span]
 
     monkeypatch.setattr(
         "app.observability.langfuse_adapter.LangfuseAdapter.get_instance",
@@ -78,7 +98,7 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
             "X-Play-Service-Key": internal_api_key,
             "X-Langfuse-Trace-Id": langfuse_trace_id,
         },
-        json={"module_id": "god_of_carnage", "runtime_projection": {"start_scene_id": "s1"}},
+        json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
     )
 
     assert response.status_code == 200
@@ -86,6 +106,12 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     assert adapter.start_span_in_trace.call_args.kwargs["trace_id"] == langfuse_trace_id
     adapter.set_active_span.assert_any_call(root_span)
     created_child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.graph.path_summary" in created_child_names
+    assert "story.phase.model_route" in created_child_names
+    assert "story.phase.model_invoke" in created_child_names
+    assert "story.phase.model_fallback" in created_child_names
+    assert "story.phase.validation" in created_child_names
+    assert "story.phase.commit" in created_child_names
     assert "story.phase.ldss" in created_child_names
     assert "story.phase.narrator" in created_child_names
     root_span.end.assert_called_once()

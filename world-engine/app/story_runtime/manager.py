@@ -424,6 +424,324 @@ def _build_actor_turn_summary(
     }
 
 
+def _str_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def _short_text(value: Any, *, limit: int = 500) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
+
+
+def _build_langfuse_path_summary(
+    *,
+    session: "StorySession",
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    nodes = _str_list(graph_state.get("nodes_executed"))
+    routing = graph_state.get("routing") if isinstance(graph_state.get("routing"), dict) else {}
+    generation = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
+    gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    validation = (
+        graph_state.get("validation_outcome")
+        if isinstance(graph_state.get("validation_outcome"), dict)
+        else {}
+    )
+    actor_lane_validation = (
+        validation.get("actor_lane_validation")
+        if isinstance(validation.get("actor_lane_validation"), dict)
+        else {}
+    )
+    committed = (
+        graph_state.get("committed_result")
+        if isinstance(graph_state.get("committed_result"), dict)
+        else {}
+    )
+    telemetry = (
+        graph_state.get("actor_survival_telemetry")
+        if isinstance(graph_state.get("actor_survival_telemetry"), dict)
+        else {}
+    )
+    vitality = (
+        telemetry.get("vitality_telemetry_v1")
+        if isinstance(telemetry.get("vitality_telemetry_v1"), dict)
+        else {}
+    )
+    passivity = (
+        telemetry.get("passivity_diagnosis_v1")
+        if isinstance(telemetry.get("passivity_diagnosis_v1"), dict)
+        else {}
+    )
+    governance = (
+        event.get("runtime_governance_surface")
+        if isinstance(event.get("runtime_governance_surface"), dict)
+        else {}
+    )
+    structured = gen_meta.get("structured_output")
+    if structured is None:
+        structured = generation.get("structured_output")
+    graph_errors = _str_list(graph_state.get("graph_errors"))
+
+    return {
+        "contract": "story_runtime_path_observability.v1",
+        "session_id": session.session_id,
+        "module_id": session.module_id,
+        "turn_number": event.get("turn_number"),
+        "turn_kind": event.get("turn_kind"),
+        "nodes_executed": nodes,
+        "route_model_called": "route_model" in nodes or bool(routing),
+        "invoke_model_called": "invoke_model" in nodes,
+        "fallback_model_called": "fallback_model" in nodes or bool(generation.get("fallback_used")),
+        "validation_called": "validate_seam" in nodes or bool(validation),
+        "commit_called": "commit_seam" in nodes or bool(committed),
+        "render_visible_called": "render_visible" in nodes or isinstance(event.get("visible_output_bundle"), dict),
+        "route_id": routing.get("route_id"),
+        "route_family": routing.get("route_family"),
+        "selected_provider": routing.get("selected_provider"),
+        "selected_model": routing.get("selected_model"),
+        "fallback_model": routing.get("fallback_model"),
+        "fallback_chain": routing.get("fallback_chain"),
+        "registered_adapter_providers": routing.get("registered_adapter_providers"),
+        "generation_execution_mode": routing.get("generation_execution_mode"),
+        "adapter": gen_meta.get("adapter"),
+        "api_model": gen_meta.get("model"),
+        "adapter_invocation_mode": gen_meta.get("adapter_invocation_mode"),
+        "generation_attempted": bool(generation.get("attempted")),
+        "generation_success": generation.get("success"),
+        "generation_error": _short_text(generation.get("error") or gen_meta.get("error")),
+        "generation_fallback_used": bool(generation.get("fallback_used")),
+        "parser_error": _short_text(gen_meta.get("langchain_parser_error") or generation.get("parser_error")),
+        "structured_output_present": isinstance(structured, dict),
+        "structured_output_keys": sorted(structured.keys()) if isinstance(structured, dict) else [],
+        "validation_status": validation.get("status"),
+        "validation_reason": validation.get("reason"),
+        "actor_lane_validation_status": actor_lane_validation.get("status"),
+        "actor_lane_validation_reason": actor_lane_validation.get("reason"),
+        "commit_applied": bool(committed.get("commit_applied")),
+        "quality_class": governance.get("quality_class") or graph_state.get("quality_class"),
+        "degradation_signals": list(governance.get("degradation_signals") or graph_state.get("degradation_signals") or []),
+        "degradation_summary": governance.get("degradation_summary") or graph_state.get("degradation_summary"),
+        "graph_errors": graph_errors,
+        "failure_markers": _str_list(graph_state.get("failure_markers")),
+        "primary_responder_id": (
+            graph_state.get("primary_responder_id")
+            or graph_state.get("responder_id")
+            or (event.get("actor_turn_summary") or {}).get("primary_responder_id")
+        ),
+        "response_present": vitality.get("response_present"),
+        "initiative_present": vitality.get("initiative_present"),
+        "multi_actor_realized": vitality.get("multi_actor_realized"),
+        "realized_actor_ids": list(vitality.get("realized_actor_ids") or []),
+        "rendered_actor_ids": list(vitality.get("rendered_actor_ids") or []),
+        "why_turn_felt_passive": list(passivity.get("why_turn_felt_passive") or governance.get("why_turn_felt_passive") or []),
+        "primary_passivity_factors": list(passivity.get("primary_passivity_factors") or governance.get("primary_passivity_factors") or []),
+    }
+
+
+def _langfuse_level_for_output(output: dict[str, Any]) -> str:
+    error = str(output.get("error") or output.get("generation_error") or "").strip()
+    if error:
+        return "ERROR"
+    if output.get("fallback_used") or output.get("quality_class") == "degraded":
+        return "WARNING"
+    return "DEFAULT"
+
+
+def _langfuse_status_for_output(name: str, output: dict[str, Any]) -> str:
+    if name == "story.graph.path_summary":
+        return (
+            f"route={output.get('route_model_called')} invoke={output.get('invoke_model_called')} "
+            f"fallback={output.get('fallback_model_called')} validation={output.get('validation_called')} "
+            f"commit={output.get('commit_called')} quality={output.get('quality_class')}"
+        )
+    if name == "story.phase.model_route":
+        return (
+            f"route={output.get('route_id') or 'unknown'} provider={output.get('selected_provider') or 'unknown'} "
+            f"model={output.get('selected_model') or 'unknown'} mode={output.get('generation_execution_mode') or 'unknown'}"
+        )
+    if name == "story.phase.model_invoke":
+        return (
+            f"called={output.get('called')} attempted={output.get('attempted')} success={output.get('success')} "
+            f"adapter={output.get('adapter') or 'unknown'} api_model={output.get('api_model') or 'unknown'} "
+            f"error={output.get('error') or 'none'} parser_error={output.get('parser_error') or 'none'}"
+        )
+    if name == "story.phase.model_fallback":
+        return (
+            f"called={output.get('called')} fallback_used={output.get('fallback_used')} "
+            f"fallback_model={output.get('fallback_model') or 'unknown'} error={output.get('generation_error') or 'none'}"
+        )
+    if name == "story.phase.validation":
+        return (
+            f"called={output.get('called')} status={output.get('status') or 'unknown'} "
+            f"actor_lane={output.get('actor_lane_validation_status') or 'unknown'} "
+            f"passive_factors={len(output.get('primary_passivity_factors') or [])}"
+        )
+    if name == "story.phase.commit":
+        return (
+            f"called={output.get('called')} commit_applied={output.get('commit_applied')} "
+            f"quality={output.get('quality_class') or 'unknown'} degradation={output.get('degradation_summary') or 'none'}"
+        )
+    return name
+
+
+def _finish_langfuse_span(
+    span: Any,
+    *,
+    output: dict[str, Any],
+    metadata: dict[str, Any] | None = None,
+    level: str = "DEFAULT",
+    status_message: str | None = None,
+) -> None:
+    if span is None:
+        return
+    try:
+        span.update(
+            output=output,
+            metadata=metadata or {},
+            level=level,
+            status_message=status_message,
+        )
+    except Exception:
+        logger.debug("Langfuse span update failed", exc_info=True)
+    try:
+        span.end()
+    except Exception:
+        logger.debug("Langfuse span end failed", exc_info=True)
+
+
+def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
+    try:
+        adapter = LangfuseAdapter.get_instance()
+    except Exception:
+        logger.debug("Langfuse adapter unavailable for path spans", exc_info=True)
+        return
+    try:
+        if not adapter or not adapter.is_enabled():
+            return
+    except Exception:
+        return
+
+    base_input = {
+        "session_id": path_summary.get("session_id"),
+        "module_id": path_summary.get("module_id"),
+        "turn_number": path_summary.get("turn_number"),
+        "turn_kind": path_summary.get("turn_kind"),
+    }
+
+    span_specs = [
+        (
+            "story.graph.path_summary",
+            {
+                "nodes_executed": path_summary.get("nodes_executed"),
+                "route_model_called": path_summary.get("route_model_called"),
+                "invoke_model_called": path_summary.get("invoke_model_called"),
+                "fallback_model_called": path_summary.get("fallback_model_called"),
+                "validation_called": path_summary.get("validation_called"),
+                "commit_called": path_summary.get("commit_called"),
+                "render_visible_called": path_summary.get("render_visible_called"),
+                "quality_class": path_summary.get("quality_class"),
+                "degradation_signals": path_summary.get("degradation_signals"),
+            },
+        ),
+        (
+            "story.phase.model_route",
+            {
+                "called": path_summary.get("route_model_called"),
+                "route_id": path_summary.get("route_id"),
+                "route_family": path_summary.get("route_family"),
+                "selected_provider": path_summary.get("selected_provider"),
+                "selected_model": path_summary.get("selected_model"),
+                "fallback_model": path_summary.get("fallback_model"),
+                "fallback_chain": path_summary.get("fallback_chain"),
+                "registered_adapter_providers": path_summary.get("registered_adapter_providers"),
+                "generation_execution_mode": path_summary.get("generation_execution_mode"),
+            },
+        ),
+        (
+            "story.phase.model_invoke",
+            {
+                "called": path_summary.get("invoke_model_called"),
+                "attempted": path_summary.get("generation_attempted"),
+                "success": path_summary.get("generation_success"),
+                "error": path_summary.get("generation_error"),
+                "adapter": path_summary.get("adapter"),
+                "api_model": path_summary.get("api_model"),
+                "adapter_invocation_mode": path_summary.get("adapter_invocation_mode"),
+                "parser_error": path_summary.get("parser_error"),
+                "structured_output_present": path_summary.get("structured_output_present"),
+                "structured_output_keys": path_summary.get("structured_output_keys"),
+            },
+        ),
+        (
+            "story.phase.model_fallback",
+            {
+                "called": path_summary.get("fallback_model_called"),
+                "fallback_used": path_summary.get("generation_fallback_used"),
+                "fallback_model": path_summary.get("fallback_model"),
+                "generation_error": path_summary.get("generation_error"),
+                "graph_errors": path_summary.get("graph_errors"),
+            },
+        ),
+        (
+            "story.phase.validation",
+            {
+                "called": path_summary.get("validation_called"),
+                "status": path_summary.get("validation_status"),
+                "reason": path_summary.get("validation_reason"),
+                "actor_lane_validation_status": path_summary.get("actor_lane_validation_status"),
+                "actor_lane_validation_reason": path_summary.get("actor_lane_validation_reason"),
+                "response_present": path_summary.get("response_present"),
+                "why_turn_felt_passive": path_summary.get("why_turn_felt_passive"),
+                "primary_passivity_factors": path_summary.get("primary_passivity_factors"),
+            },
+        ),
+        (
+            "story.phase.commit",
+            {
+                "called": path_summary.get("commit_called"),
+                "commit_applied": path_summary.get("commit_applied"),
+                "quality_class": path_summary.get("quality_class"),
+                "degradation_summary": path_summary.get("degradation_summary"),
+                "failure_markers": path_summary.get("failure_markers"),
+            },
+        ),
+    ]
+
+    for name, output in span_specs:
+        level = _langfuse_level_for_output(output)
+        status_message = _langfuse_status_for_output(name, output)
+        try:
+            span = adapter.create_child_span(
+                name=name,
+                input=base_input,
+                output=output,
+                metadata={
+                    "phase": name.rsplit(".", 1)[-1],
+                    "turn_number": path_summary.get("turn_number"),
+                    "session_id": path_summary.get("session_id"),
+                    "called": bool(output.get("called", True)),
+                    "quality_class": path_summary.get("quality_class"),
+                    "degradation_summary": path_summary.get("degradation_summary"),
+                },
+                level=level,
+                status_message=status_message,
+            )
+        except Exception:
+            logger.debug("Langfuse child span creation failed for %s", name, exc_info=True)
+            continue
+        _finish_langfuse_span(
+            span,
+            output=output,
+            level=level,
+            status_message=status_message,
+        )
+
+
 def _visible_lines_from_turn_event(event: dict[str, Any]) -> list[str]:
     bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
     lines = _coerce_visible_text_lines(bundle.get("gm_narration"))
@@ -438,6 +756,28 @@ def _visible_lines_from_turn_event(event: dict[str, Any]) -> list[str]:
     commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
     status = str(commit.get("situation_status") or "").strip()
     return [status] if status else []
+
+
+def _scene_blocks_from_turn_event(event: dict[str, Any]) -> list[dict[str, Any]]:
+    bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
+    scene_blocks = bundle.get("scene_blocks")
+    if isinstance(scene_blocks, list):
+        return [dict(block) for block in scene_blocks if isinstance(block, dict)]
+
+    scene_turn_envelope = (
+        event.get("scene_turn_envelope")
+        if isinstance(event.get("scene_turn_envelope"), dict)
+        else {}
+    )
+    visible_scene_output = (
+        scene_turn_envelope.get("visible_scene_output")
+        if isinstance(scene_turn_envelope.get("visible_scene_output"), dict)
+        else {}
+    )
+    blocks = visible_scene_output.get("blocks")
+    if isinstance(blocks, list):
+        return [dict(block) for block in blocks if isinstance(block, dict)]
+    return []
 
 
 def _story_window_entries_for_session(session: StorySession) -> list[dict[str, Any]]:
@@ -522,6 +862,7 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                 )
 
         visible_lines = _visible_lines_from_turn_event(event)
+        scene_blocks = _scene_blocks_from_turn_event(event)
         quality_class, degradation_signals, degradation_summary = _canonical_quality_fields_from_surfaces(
             runtime_governance_surface=runtime_governance_surface,
             authority_summary=authority_summary,
@@ -585,6 +926,8 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
             "runtime_governance_surface": runtime_governance_surface,
             "authority_summary": authority_summary,
         }
+        if scene_blocks:
+            runtime_entry["scene_blocks"] = scene_blocks
         if render_support:
             runtime_entry["render_support"] = render_support
         if story_dramatic_context:
@@ -1979,6 +2322,13 @@ class StoryRuntimeManager:
             "actor_turn_summary": actor_turn_summary,
             "runtime_governance_surface": gov,
         }
+        path_summary = _build_langfuse_path_summary(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+        )
+        event["observability_path_summary"] = path_summary
+        _emit_langfuse_path_spans(path_summary)
         # MVP3: Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
         # LDSS runs after validation/commit, from committed state only.
         scene_turn_envelope: dict[str, Any] | None = None
@@ -2046,6 +2396,22 @@ class StoryRuntimeManager:
 
             if scene_turn_envelope:
                 event["scene_turn_envelope"] = scene_turn_envelope
+                visible_scene_output = (
+                    scene_turn_envelope.get("visible_scene_output")
+                    if isinstance(scene_turn_envelope.get("visible_scene_output"), dict)
+                    else {}
+                )
+                blocks = visible_scene_output.get("blocks")
+                if isinstance(blocks, list) and blocks:
+                    event_bundle = (
+                        event.get("visible_output_bundle")
+                        if isinstance(event.get("visible_output_bundle"), dict)
+                        else {}
+                    )
+                    event["visible_output_bundle"] = {
+                        **event_bundle,
+                        "scene_blocks": [dict(block) for block in blocks if isinstance(block, dict)],
+                    }
 
             # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan)
             runtime_state = {
@@ -2196,11 +2562,14 @@ class StoryRuntimeManager:
             "committed_turn_authority": committed_turn_authority,
             "dramatic_context_summary": dramatic_context_summary,
             "actor_turn_summary": actor_turn_summary,
+            "visible_output_bundle": event.get("visible_output_bundle"),
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
             },
         }
+        if isinstance(event.get("narrator_streaming"), dict):
+            committed_record["narrator_streaming"] = event["narrator_streaming"]
         session.history.append(committed_record)
         session.diagnostics.append(event)
         self._persist_session(session)

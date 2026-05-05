@@ -203,7 +203,11 @@ class LangfuseAdapter:
         self,
         name: str,
         input: Optional[dict[str, Any]] = None,
+        output: Optional[dict[str, Any]] = None,
         metadata: Optional[dict[str, Any]] = None,
+        level: Optional[str] = None,
+        status_message: Optional[str] = None,
+        as_type: str = "span",
     ) -> Optional[Any]:
         """Create a child span under the currently active parent span."""
         if not self.is_enabled():
@@ -218,10 +222,13 @@ class LangfuseAdapter:
         try:
             # Langfuse SDK v4: use start_observation to create child spans
             child_span = parent_span.start_observation(
-                as_type="span",
+                as_type=as_type,
                 name=name,
                 input=input or {},
+                output=output or {},
                 metadata=metadata or {},
+                level=level,  # type: ignore[arg-type]
+                status_message=status_message,
             )
             logger.info(f"[LANGFUSE] child span created: name={name}, span_id={getattr(child_span, 'span_id', 'unknown')}, parent_span_id={getattr(parent_span, 'span_id', 'unknown')}")
             return child_span

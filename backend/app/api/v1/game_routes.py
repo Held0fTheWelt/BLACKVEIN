@@ -205,6 +205,39 @@ def _story_window_from_state(state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _scene_blocks_from_turn(turn: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(turn, dict):
+        return []
+    bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
+    scene_blocks = bundle.get("scene_blocks")
+    if isinstance(scene_blocks, list):
+        return [dict(block) for block in scene_blocks if isinstance(block, dict)]
+    visible_scene_output = (
+        turn.get("visible_scene_output")
+        if isinstance(turn.get("visible_scene_output"), dict)
+        else {}
+    )
+    blocks = visible_scene_output.get("blocks")
+    if isinstance(blocks, list):
+        return [dict(block) for block in blocks if isinstance(block, dict)]
+    return []
+
+
+def _scene_blocks_from_story_window(story_window: dict[str, Any]) -> list[dict[str, Any]]:
+    latest_entry = story_window.get("latest_entry") if isinstance(story_window.get("latest_entry"), dict) else {}
+    scene_blocks = latest_entry.get("scene_blocks")
+    if isinstance(scene_blocks, list):
+        return [dict(block) for block in scene_blocks if isinstance(block, dict)]
+    entries = story_window.get("entries") if isinstance(story_window.get("entries"), list) else []
+    for entry in reversed(entries):
+        if not isinstance(entry, dict):
+            continue
+        scene_blocks = entry.get("scene_blocks")
+        if isinstance(scene_blocks, list) and scene_blocks:
+            return [dict(block) for block in scene_blocks if isinstance(block, dict)]
+    return []
+
+
 def _player_shell_state_view(
     *,
     state: dict[str, Any],
@@ -265,29 +298,12 @@ def _player_session_bundle(
     # Opening turn exists when entry_count > 0
     can_execute = story_window.get("entry_count", 0) > 0
 
-    # Extract visible_scene_output.blocks (MVP5) from latest turn or opening
-    visible_scene_output = None
-    import sys
-    print(f"[BACKEND] opening_turn type: {type(opening_turn)}", file=sys.stderr)
-    if isinstance(opening_turn, dict):
-        print(f"[BACKEND] opening_turn keys: {list(opening_turn.keys())}", file=sys.stderr)
-        vob = opening_turn.get("visible_output_bundle")
-        print(f"[BACKEND] visible_output_bundle: {vob}", file=sys.stderr)
-        if isinstance(vob, dict):
-            sb = vob.get("scene_blocks")
-            print(f"[BACKEND] scene_blocks: {sb}", file=sys.stderr)
-            print(f"[BACKEND] scene_blocks type: {type(sb)}, len: {len(sb) if isinstance(sb, list) else 'N/A'}", file=sys.stderr)
-    if isinstance(latest_turn, dict) and isinstance(latest_turn.get("visible_output_bundle"), dict):
-        scene_blocks = latest_turn.get("visible_output_bundle", {}).get("scene_blocks")
-        if isinstance(scene_blocks, list) and scene_blocks:
-            visible_scene_output = {"blocks": scene_blocks}
-    if not visible_scene_output and isinstance(opening_turn, dict) and isinstance(opening_turn.get("visible_output_bundle"), dict):
-        scene_blocks = opening_turn.get("visible_output_bundle", {}).get("scene_blocks")
-        if isinstance(scene_blocks, list) and scene_blocks:
-            visible_scene_output = {"blocks": scene_blocks}
-            print(f"[BACKEND] SET visible_scene_output with {len(scene_blocks)} blocks", file=sys.stderr)
-        else:
-            print(f"[BACKEND] scene_blocks check failed: is_list={isinstance(scene_blocks, list)}, is_truthy={bool(scene_blocks)}", file=sys.stderr)
+    scene_blocks = (
+        _scene_blocks_from_turn(latest_turn)
+        or _scene_blocks_from_turn(opening_turn)
+        or _scene_blocks_from_story_window(story_window)
+    )
+    visible_scene_output = {"blocks": scene_blocks} if scene_blocks else None
 
     return {
         "contract": "game_player_session_v1",

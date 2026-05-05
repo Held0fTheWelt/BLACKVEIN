@@ -65,6 +65,22 @@ def get_story_manager(request: Request) -> StoryRuntimeManager:
     return request.app.state.story_manager
 
 
+def _langfuse_root_status(path_summary: dict[str, Any] | None) -> tuple[str, str]:
+    if not path_summary:
+        return "DEFAULT", "path_summary=missing"
+    has_error = bool(path_summary.get("generation_error") or path_summary.get("parser_error"))
+    fallback_used = bool(path_summary.get("generation_fallback_used"))
+    degraded = path_summary.get("quality_class") == "degraded"
+    level = "ERROR" if has_error else "WARNING" if fallback_used or degraded else "DEFAULT"
+    status_message = (
+        f"route={path_summary.get('route_model_called')} invoke={path_summary.get('invoke_model_called')} "
+        f"fallback_used={fallback_used} model={path_summary.get('selected_model') or 'unknown'} "
+        f"adapter={path_summary.get('adapter') or 'unknown'} quality={path_summary.get('quality_class') or 'unknown'} "
+        f"degradation={path_summary.get('degradation_summary') or 'none'}"
+    )
+    return level, status_message
+
+
 def _get_narrative_loader(request: Request) -> NarrativePackageLoader:
     loader = getattr(request.app.state, "narrative_package_loader", None)
     if loader is None:
@@ -510,18 +526,32 @@ def create_story_session(
                 if isinstance(opening_turn, dict) and isinstance(opening_turn.get("diagnostics_envelope"), dict)
                 else None
             )
+            path_summary = (
+                opening_turn.get("observability_path_summary")
+                if isinstance(opening_turn, dict) and isinstance(opening_turn.get("observability_path_summary"), dict)
+                else None
+            )
+            level, status_message = _langfuse_root_status(path_summary)
             root_span.update(
                 output={
                     "session_id": session.session_id,
                     "turn_counter": session.turn_counter,
                     "success": True,
+                    "path_summary": path_summary,
                 },
                 metadata={
                     "session_id": session.session_id,
                     "turn_counter": session.turn_counter,
                     "environment": adapter.config.environment if adapter else "unknown",
                     "cost_summary": cost_summary,
+                    "path_quality": path_summary.get("quality_class") if path_summary else None,
+                    "path_degradation": path_summary.get("degradation_summary") if path_summary else None,
+                    "path_selected_model": path_summary.get("selected_model") if path_summary else None,
+                    "path_adapter": path_summary.get("adapter") if path_summary else None,
+                    "path_fallback_used": path_summary.get("generation_fallback_used") if path_summary else None,
                 },
+                level=level,
+                status_message=status_message,
             )
         return {
             "session_id": session.session_id,
@@ -630,18 +660,32 @@ def execute_story_turn(
                 if isinstance(turn.get("diagnostics_envelope"), dict)
                 else None
             )
+            path_summary = (
+                turn.get("observability_path_summary")
+                if isinstance(turn.get("observability_path_summary"), dict)
+                else None
+            )
+            level, status_message = _langfuse_root_status(path_summary)
             logger.info(f"[HTTP] Updating root span with turn_number={turn_number}")
             root_span.update(
                 output={
                     "turn_number": turn_number,
                     "session_id": session_id,
                     "success": True,
+                    "path_summary": path_summary,
                 },
                 metadata={
                     "turn_number": turn_number,
                     "environment": adapter.config.environment if adapter else "unknown",
                     "cost_summary": cost_summary,
-                }
+                    "path_quality": path_summary.get("quality_class") if path_summary else None,
+                    "path_degradation": path_summary.get("degradation_summary") if path_summary else None,
+                    "path_selected_model": path_summary.get("selected_model") if path_summary else None,
+                    "path_adapter": path_summary.get("adapter") if path_summary else None,
+                    "path_fallback_used": path_summary.get("generation_fallback_used") if path_summary else None,
+                },
+                level=level,
+                status_message=status_message,
             )
             logger.info(f"[HTTP] Root span updated")
 
