@@ -94,27 +94,62 @@ def runner(frontend_app):
 @pytest.fixture
 def player_backend_mock(mocker):
     """Mock player backend requests for testing."""
+    def _response(payload):
+        return mocker.MagicMock(
+            ok=True,
+            status_code=200,
+            content=None,
+            headers={"Content-Type": "application/json"},
+            json=lambda: payload,
+        )
+
+    def _request_backend(method, path, **kwargs):
+        if method == "POST" and path == "/api/v1/play/session":
+            body = kwargs.get("json_data") or {}
+            player = body.get("player_character_id") or "annette_reille"
+            return _response(
+                {
+                    "data": {
+                        "session_id": f"goc_{player}_session",
+                        "trace_id": f"trace_{player}",
+                    }
+                }
+            )
+        if method == "GET" and path.startswith("/api/v1/play/") and path.endswith("/turn/0"):
+            session_id = path.split("/")[4]
+            player = "alain_reille" if "alain" in session_id else "annette_reille"
+            other = "annette_reille" if player == "alain_reille" else "alain_reille"
+            blocks = [
+                {
+                    "id": "block_0",
+                    "type": "narration",
+                    "actor_id": "narrator",
+                    "text": "The room holds its breath before anyone speaks.",
+                    "scene_id": "scene_1",
+                },
+                {
+                    "id": "block_1",
+                    "type": "dialogue",
+                    "actor_id": other,
+                    "text": "We should talk before this gets worse.",
+                    "scene_id": "scene_1",
+                },
+            ]
+            return _response(
+                {
+                    "data": {
+                        "run_id": session_id,
+                        "blocks": blocks,
+                        "visible_response": "\n".join(block["text"] for block in blocks),
+                        "degradation_signals": [],
+                        "visible_actors": [other, "narrator"],
+                        "health_status": {"quality_class": "healthy"},
+                    }
+                }
+            )
+
     mocker.patch(
         "frontend.app.player_backend.request_backend",
-        return_value=mocker.MagicMock(
-            ok=True,
-            json=lambda: {
-                "run": {"id": "test_run_123"},
-                "session_id": "test_session_456",
-                "opening_turn": {"turn_kind": "opening", "turn_number": 0},
-                "turn": {
-                    "turn_number": 1,
-                    "turn_kind": "player",
-                    "interpreted_input": {"kind": "action"},
-                    "visible_output_bundle": {"gm_narration": ["Test narration."]},
-                    "validation_outcome": {"status": "approved"},
-                    "narrative_commit": {"committed_scene_id": "test_scene"},
-                },
-                "state": {
-                    "current_scene_id": "test_scene",
-                    "committed_state": {},
-                },
-                "diagnostics": {},
-            },
-        ),
+        side_effect=_request_backend,
     )
+    return None

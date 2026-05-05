@@ -225,16 +225,19 @@ class LangfuseAdapter:
                 metadata=metadata or {},
                 trace_name=trace_name,
             )
-            if otel_span is not None:
-                with otel_trace_api.use_span(otel_span, end_on_exit=False):
-                    with propagate:
-                        yield
-            else:
+        except Exception:
+            logger.debug("[LANGFUSE] Failed to prepare session propagation", exc_info=True)
+            with nullcontext():
+                yield
+            return
+
+        if otel_span is not None:
+            with otel_trace_api.use_span(otel_span, end_on_exit=False):
                 with propagate:
                     yield
-        except Exception:
-            logger.debug("[LANGFUSE] Failed to activate session propagation", exc_info=True)
-            yield
+        else:
+            with propagate:
+                yield
 
     @property
     def config(self) -> SimpleNamespace:

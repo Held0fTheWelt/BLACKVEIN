@@ -14,6 +14,25 @@ _CAPTURE_MOCK_JSON = (
 )
 
 
+def _goc_projection(**overrides):
+    projection = {
+        "module_id": "god_of_carnage",
+        "start_scene_id": "scene_1",
+        "scenes": [],
+        "selected_player_role": "annette",
+        "human_actor_id": "annette",
+        "npc_actor_ids": ["alain", "veronique", "michel"],
+        "actor_lanes": {
+            "annette": "human",
+            "alain": "npc",
+            "veronique": "npc",
+            "michel": "npc",
+        },
+    }
+    projection.update(overrides)
+    return projection
+
+
 class CaptureAdapter(BaseModelAdapter):
     adapter_name = "mock"
 
@@ -67,7 +86,7 @@ def test_story_runtime_retrieval_context_influences_authoritative_turn(tmp_path)
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={"start_scene_id": "scene_1", "scenes": []},
+        runtime_projection=_goc_projection(),
     )
     turn = manager.execute_turn(session_id=session.session_id, player_input="I open the door")
 
@@ -102,7 +121,7 @@ def test_story_runtime_graph_uses_fallback_branch_on_model_failure(tmp_path):
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={"start_scene_id": "scene_1", "scenes": []},
+        runtime_projection=_goc_projection(),
     )
 
     turn = manager.execute_turn(session_id=session.session_id, player_input="I escalate the argument")
@@ -130,11 +149,11 @@ def test_story_runtime_commits_legal_scene_progression(tmp_path):
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
-            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
-        },
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
+            transition_hints=[{"from": "scene_1", "to": "scene_2"}],
+        ),
     )
 
     turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
@@ -162,11 +181,11 @@ def test_story_runtime_rejects_illegal_scene_progression(tmp_path):
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
-            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
-        },
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
+            transition_hints=[{"from": "scene_1", "to": "scene_2"}],
+        ),
     )
 
     turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_3")
@@ -192,14 +211,14 @@ def test_story_runtime_builds_multi_turn_committed_progression(tmp_path):
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
-            "transition_hints": [
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}, {"id": "scene_3"}],
+            transition_hints=[
                 {"from": "scene_1", "to": "scene_2"},
                 {"from": "scene_2", "to": "scene_3"},
             ],
-        },
+        ),
     )
 
     first_turn = manager.execute_turn(session_id=session.session_id, player_input="/move scene_2")
@@ -237,11 +256,11 @@ def test_story_runtime_natural_language_with_scene_token_commits_progression(tmp
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
-            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
-        },
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
+            transition_hints=[{"from": "scene_1", "to": "scene_2"}],
+        ),
     )
 
     turn = manager.execute_turn(
@@ -275,11 +294,11 @@ def test_story_runtime_natural_language_without_scene_reference_leaves_current_s
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
-            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
-        },
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
+            transition_hints=[{"from": "scene_1", "to": "scene_2"}],
+        ),
     )
 
     turn = manager.execute_turn(
@@ -311,11 +330,11 @@ def test_story_runtime_natural_language_with_invalid_scene_token_is_rejected_saf
     )
     session = manager.create_session(
         module_id="god_of_carnage",
-        runtime_projection={
-            "start_scene_id": "scene_1",
-            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
-            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
-        },
+        runtime_projection=_goc_projection(
+            start_scene_id= "scene_1",
+            scenes=[{"id": "scene_1"}, {"id": "scene_2"}],
+            transition_hints=[{"from": "scene_1", "to": "scene_2"}],
+        ),
     )
 
     turn = manager.execute_turn(

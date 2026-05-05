@@ -5,6 +5,25 @@ def _headers(internal_api_key: str) -> dict[str, str]:
     return {"X-Play-Service-Key": internal_api_key}
 
 
+def _goc_projection(**overrides):
+    projection = {
+        "module_id": "god_of_carnage",
+        "start_scene_id": "scene_1",
+        "scenes": [],
+        "selected_player_role": "annette",
+        "human_actor_id": "annette",
+        "npc_actor_ids": ["alain", "veronique", "michel"],
+        "actor_lanes": {
+            "annette": "human",
+            "alain": "npc",
+            "veronique": "npc",
+            "michel": "npc",
+        },
+    }
+    projection.update(overrides)
+    return projection
+
+
 def test_story_sessions_list_empty_then_populated(client, internal_api_key):
     list_empty = client.get("/api/story/sessions", headers=_headers(internal_api_key))
     assert list_empty.status_code == 200
@@ -17,7 +36,7 @@ def test_story_sessions_list_empty_then_populated(client, internal_api_key):
         headers=_headers(internal_api_key),
         json={
             "module_id": "god_of_carnage",
-            "runtime_projection": {"start_scene_id": "scene_1", "scenes": []},
+            "runtime_projection": _goc_projection(),
         },
     )
     assert create_response.status_code == 200
@@ -43,7 +62,7 @@ def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key)
         headers=_headers(internal_api_key),
         json={
             "module_id": "god_of_carnage",
-            "runtime_projection": {"start_scene_id": "scene_1", "scenes": []},
+            "runtime_projection": _goc_projection(),
         },
     )
     assert create_response.status_code == 200
@@ -116,7 +135,7 @@ def test_story_turns_cover_primary_free_input_paths(client, internal_api_key):
         headers=_headers(internal_api_key),
         json={
             "module_id": "god_of_carnage",
-            "runtime_projection": {"start_scene_id": "scene_1", "scenes": []},
+            "runtime_projection": _goc_projection(),
         },
     )
     assert create_response.status_code == 200

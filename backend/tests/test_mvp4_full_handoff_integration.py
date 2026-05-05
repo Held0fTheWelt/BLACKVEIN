@@ -11,6 +11,55 @@ import os
 from unittest.mock import patch, MagicMock
 
 
+def _mock_response(payload: dict) -> MagicMock:
+    response = MagicMock(status_code=200)
+    response.content = b"{}"
+    response.json.return_value = payload
+    return response
+
+
+def _mock_play_service_client(mock_client_cls, payloads: list[dict] | dict) -> MagicMock:
+    payload_sequence = payloads if isinstance(payloads, list) else [payloads]
+    client = mock_client_cls.return_value.__enter__.return_value
+    client.request.side_effect = [_mock_response(payload) for payload in payload_sequence]
+    return client
+
+
+def _play_run_payload(*, run_id: str = "run-player-1", selected_player_role: str = "veronique") -> dict:
+    return {
+        "run": {"id": run_id, "template_id": "god_of_carnage_solo"},
+        "template": {
+            "id": "god_of_carnage_solo",
+            "title": "God of Carnage Solo",
+            "kind": "solo_story",
+            "join_policy": "single_player",
+            "min_humans_to_start": 1,
+        },
+        "store": {"backend": "world_engine"},
+        "hint": "created",
+        "content_module_id": "god_of_carnage",
+        "runtime_profile_id": "god_of_carnage_solo",
+        "runtime_module_id": "god_of_carnage",
+        "runtime_mode": "live",
+        "selected_player_role": selected_player_role,
+        "human_actor_id": selected_player_role,
+        "npc_actor_ids": ["annette", "alain"],
+        "actor_lanes": {selected_player_role: "human", "annette": "npc", "alain": "npc"},
+    }
+
+
+def _story_state_with_entries(entries: list[dict]) -> dict:
+    return {
+        "turn_counter": len(entries),
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "entries": entries,
+            "entry_count": len(entries),
+            "latest_entry": entries[-1] if entries else None,
+        },
+    }
+
+
 @pytest.mark.mvp4
 def test_game_player_session_create_includes_actor_ownership_handoff(client, auth_headers):
     """
@@ -19,31 +68,46 @@ def test_game_player_session_create_includes_actor_ownership_handoff(client, aut
     return opening_turn with non-empty visible output.
     """
     # Mock world-engine POST /api/story/sessions
-    with patch('app.services.game_service.httpx.post') as mock_post:
+    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
         # World-Engine returns session with opening
-        mock_post.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {
-                "session_id": "we_session_123",
-                "module_id": "god_of_carnage",
-                "turn_counter": 0,
-                "opening_turn": {
-                    "turn_number": 0,
-                    "turn_kind": "opening",
-                    "visible_output_bundle": {
-                        "gm_narration": ["The room is tense."],
-                        "scene_blocks": [{"block_type": "narrator", "text": "The room is tense."}],
+        opening_text = "The room is tense."
+        mock_client = _mock_play_service_client(
+            mock_client_cls,
+            [
+                _play_run_payload(selected_player_role="veronique"),
+                {
+                    "session_id": "we_session_123",
+                    "module_id": "god_of_carnage",
+                    "turn_counter": 0,
+                    "opening_turn": {
+                        "turn_number": 0,
+                        "turn_kind": "opening",
+                        "visible_output_bundle": {
+                            "gm_narration": [opening_text],
+                            "scene_blocks": [{"block_type": "narrator", "text": opening_text}],
+                        },
+                        "runtime_governance_surface": {
+                            "quality_class": "healthy",
+                            "degradation_signals": [],
+                        },
+                        "validation_outcome": {"status": "approved"},
+                        "committed_result": {"commit_applied": True},
                     },
-                    "runtime_governance_surface": {
-                        "quality_class": "healthy",
-                        "degradation_signals": [],
-                    },
-                    "validation_outcome": {"status": "approved"},
-                    "committed_result": {"commit_applied": True},
+                    "runtime_config_status": {"source": "default"},
+                    "warnings": ["session_includes_committed_turn_0_opening"],
                 },
-                "runtime_config_status": {"source": "default"},
-                "warnings": ["session_includes_committed_turn_0_opening"],
-            }
+                _story_state_with_entries(
+                    [
+                        {
+                            "entry_id": "opening",
+                            "role": "runtime",
+                            "turn_number": 0,
+                            "text": opening_text,
+                            "scene_blocks": [{"block_type": "narrator", "text": opening_text}],
+                        }
+                    ]
+                ),
+            ],
         )
 
         # Call backend endpoint to create session
@@ -79,9 +143,10 @@ def test_game_player_session_create_includes_actor_ownership_handoff(client, aut
         assert "degradation_signals" in governance, "degradation_signals missing"
 
         # Verify world-engine was called with actor ownership
-        assert mock_post.called, "World-Engine endpoint not called"
-        call_args = mock_post.call_args
-        request_json = call_args[1].get("json", {})
+        assert mock_client.request.called, "World-Engine endpoint not called"
+        call_args = mock_client.request.call_args_list[1]
+        assert call_args.args[:2] == ("POST", "/api/story/sessions")
+        request_json = call_args.kwargs.get("json", {})
 
         # Check that runtime_projection includes actor ownership
         runtime_projection = request_json.get("runtime_projection", {})
@@ -100,17 +165,21 @@ def test_game_player_session_can_execute_reflects_opening_state(client, auth_hea
     False when it doesn't.
     """
     # Test with NO opening
-    with patch('app.services.game_service.httpx.post') as mock_post:
-        mock_post.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {
-                "session_id": "we_session_no_opening",
-                "module_id": "god_of_carnage",
-                "turn_counter": 0,
-                "opening_turn": None,  # No opening
-                "runtime_config_status": {"source": "default"},
-                "warnings": [],
-            }
+    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
+        _mock_play_service_client(
+            mock_client_cls,
+            [
+                _play_run_payload(run_id="run-no-opening", selected_player_role="veronique"),
+                {
+                    "session_id": "we_session_no_opening",
+                    "module_id": "god_of_carnage",
+                    "turn_counter": 0,
+                    "opening_turn": None,  # No opening
+                    "runtime_config_status": {"source": "default"},
+                    "warnings": [],
+                },
+                _story_state_with_entries([]),
+            ],
         )
 
         response = client.post(
@@ -132,42 +201,48 @@ def test_opening_turn_has_committed_truth_not_proposals(client, auth_headers):
     Contract 2 & 4 Verification: opening_turn must contain committed truth
     (not AI proposals), marked appropriately.
     """
-    with patch('app.services.game_service.httpx.post') as mock_post:
-        mock_post.return_value = MagicMock(
-            status_code=200,
-            json=lambda: {
-                "session_id": "we_session_truth",
-                "module_id": "god_of_carnage",
-                "turn_counter": 0,
-                "opening_turn": {
-                    "turn_number": 0,
-                    "turn_kind": "opening",
-                    "visible_output_bundle": {
-                        "gm_narration": ["Opening narration."],
-                        "scene_blocks": [{"block_type": "narrator", "text": "Opening."}],
-                    },
-                    "committed_result": {"commit_applied": True},
-                    "validation_outcome": {
-                        "status": "approved",
-                        "reason": "healthy_opening_ldss",
-                    },
-                    "model_route": {
-                        "generation": {
-                            "metadata": {
-                                "adapter": "ldss_deterministic",
-                                "entrypoint": "opening_turn_healthy_generation",
+    with patch('app.services.game_service.httpx.Client') as mock_client_cls:
+        _mock_play_service_client(
+            mock_client_cls,
+            [
+                _play_run_payload(run_id="run-truth", selected_player_role="veronique"),
+                {
+                    "session_id": "we_session_truth",
+                    "module_id": "god_of_carnage",
+                    "turn_counter": 0,
+                    "opening_turn": {
+                        "turn_number": 0,
+                        "turn_kind": "opening",
+                        "visible_output_bundle": {
+                            "gm_narration": ["Opening narration."],
+                            "scene_blocks": [{"block_type": "narrator", "text": "Opening."}],
+                        },
+                        "committed_result": {"commit_applied": True},
+                        "validation_outcome": {
+                            "status": "approved",
+                            "reason": "healthy_opening_ldss",
+                        },
+                        "model_route": {
+                            "generation": {
+                                "metadata": {
+                                    "adapter": "ldss_deterministic",
+                                    "entrypoint": "opening_turn_healthy_generation",
+                                }
                             }
-                        }
+                        },
+                        "runtime_governance_surface": {
+                            "quality_class": "healthy",
+                            "degradation_signals": [],
+                            "commitment_status": "committed",
+                        },
                     },
-                    "runtime_governance_surface": {
-                        "quality_class": "healthy",
-                        "degradation_signals": [],
-                        "commitment_status": "committed",
-                    },
+                    "runtime_config_status": {"source": "default"},
+                    "warnings": ["session_includes_committed_turn_0_opening"],
                 },
-                "runtime_config_status": {"source": "default"},
-                "warnings": ["session_includes_committed_turn_0_opening"],
-            }
+                _story_state_with_entries(
+                    [{"entry_id": "opening", "role": "runtime", "turn_number": 0, "text": "Opening."}]
+                ),
+            ],
         )
 
         response = client.post(

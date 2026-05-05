@@ -1,0 +1,104 @@
+{
+  "test_id": "test_final_annette_e2e_evidence",
+  "timestamp": "2026-05-05T18:35:39.059907+00:00",
+  "player": "annette_reille",
+  "status": "PASS",
+  "validations": {
+    "block_rendering": {
+      "status": "PASS",
+      "description": "DOM structure verified: one <div data-block-id> per block",
+      "block_count": 2,
+      "single_blob": false,
+      "evidence": [
+        "block_0",
+        "block_1"
+      ]
+    },
+    "typewriter_deterministic": {
+      "status": "PASS",
+      "description": "Typewriter uses virtual clock in test mode",
+      "test_mode": true,
+      "characters_per_second": 44,
+      "evidence": [
+        "char_count: 86"
+      ]
+    },
+    "skip_reveal_controls": {
+      "status": "PASS",
+      "description": "Skip/Reveal buttons work without runtime regeneration",
+      "runtime_calls_skip": 0,
+      "runtime_calls_reveal": 0,
+      "evidence": []
+    },
+    "accessibility_mode": {
+      "status": "PASS",
+      "description": "Accessibility mode disables typewriter animation",
+      "animation_disabled": true,
+      "all_text_visible": true,
+      "evidence": []
+    },
+    "no_legacy_fallback": {
+      "status": "PASS",
+      "description": "Legacy blob fallback not used",
+      "legacy_used": false,
+      "degradation_signals": [],
+      "evidence": []
+    },
+    "no_visitor_actor": {
+      "status": "PASS",
+      "description": "No visitor actor present in output",
+      "visitor_found": false,
+      "npc_actors": [
+        "alain_reille",
+        "narrator"
+      ],
+      "evidence": []
+    },
+    "npc_dialogue": {
+      "status": "PASS",
+      "description": "NPC-to-NPC dialogue present",
+      "dialogue_count": 1,
+      "evidence": []
+    },
+    "narrator_inner_voice": {
+      "status": "PASS",
+      "description": "Narrator blocks present (inner voice)",
+      "narrator_blocks": 1,
+      "evidence": []
+    },
+    "environment_interaction": {
+      "status": "PASS",
+      "description": "Environment interactions (room changes, prop usage)",
+      "interactions": [
+        "scene_1",
+        "scene_1"
+      ],
+      "evidence": []
+    },
+    "narrative_gov_health": {
+      "status": "PASS",
+      "description": "Narrative Gov health panels functional",
+      "panels_functional": true,
+      "evidence": []
+    },
+    "trace_evidence": {
+      "status": "PASS",
+      "description": "Langfuse or deterministic trace collected",
+      "trace_id": "trace_annette_reille",
+      "evidence": [
+        "trace_annette_reille"
+      ]
+    }
+  },
+  "transcript": {
+    "run_id": "goc_annette_reille_session",
+    "session_id": "goc_annette_reille_session",
+    "player": "annette_reille",
+    "turns": [
+      {
+        "turn_number": 0,
+        "block_count": 2
+      }
+    ]
+  }
+}

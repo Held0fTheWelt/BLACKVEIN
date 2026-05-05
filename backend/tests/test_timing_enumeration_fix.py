@@ -38,13 +38,13 @@ def test_resend_verification_constant_time_existing_email(client, unverified_use
     regardless of whether email exists or not.
     """
     # Measure time for existing email
-    start = time.time()
+    start = time.perf_counter()
     response = client.post(
         "/api/v1/auth/resend-verification",
         json={"email": "unverified@example.com"},
         content_type="application/json",
     )
-    elapsed_existing = time.time() - start
+    elapsed_existing = time.perf_counter() - start
 
     assert response.status_code == 200
 
@@ -54,13 +54,13 @@ def test_resend_verification_constant_time_existing_email(client, unverified_use
 def test_resend_verification_constant_time_nonexistent_email(client):
     """Test that /auth/resend-verification takes constant time for non-existent email."""
     # Measure time for non-existent email
-    start = time.time()
+    start = time.perf_counter()
     response = client.post(
         "/api/v1/auth/resend-verification",
         json={"email": "nonexistent@example.com"},
         content_type="application/json",
     )
-    elapsed_nonexisting = time.time() - start
+    elapsed_nonexisting = time.perf_counter() - start
 
     assert response.status_code == 200
     assert "if the email exists" in response.get_json().get("message", "").lower()
@@ -79,26 +79,26 @@ def test_resend_verification_timing_variance(client, unverified_user):
 
     for _ in range(3):
         # Test existing email
-        start = time.time()
+        start = time.perf_counter()
         response = client.post(
             "/api/v1/auth/resend-verification",
             json={"email": "unverified@example.com"},
             content_type="application/json",
         )
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         times_existing.append(elapsed)
 
         time.sleep(13)  # Space out requests to avoid 5 per minute rate limit
 
         # Test non-existent email
-        start = time.time()
+        start = time.perf_counter()
         response = client.post(
             "/api/v1/auth/resend-verification",
             json={"email": f"nonexistent{_}@example.com"},
             content_type="application/json",
         )
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         times_nonexisting.append(elapsed)
 
@@ -125,13 +125,13 @@ def test_resend_verification_timing_variance(client, unverified_user):
 
 def test_forgot_password_constant_time_existing_email(client, unverified_user):
     """Test that /auth/forgot-password endpoint takes constant time for existing email."""
-    start = time.time()
+    start = time.perf_counter()
     response = client.post(
         "/api/v1/auth/forgot-password",
         json={"email": "unverified@example.com"},
         content_type="application/json",
     )
-    elapsed_existing = time.time() - start
+    elapsed_existing = time.perf_counter() - start
 
     assert response.status_code == 200
     assert "if the email exists" in response.get_json().get("message", "").lower()
@@ -141,13 +141,13 @@ def test_forgot_password_constant_time_existing_email(client, unverified_user):
 
 def test_forgot_password_constant_time_nonexistent_email(client):
     """Test that /auth/forgot-password takes constant time for non-existent email."""
-    start = time.time()
+    start = time.perf_counter()
     response = client.post(
         "/api/v1/auth/forgot-password",
         json={"email": "nonexistent@example.com"},
         content_type="application/json",
     )
-    elapsed_nonexisting = time.time() - start
+    elapsed_nonexisting = time.perf_counter() - start
 
     assert response.status_code == 200
     assert "if the email exists" in response.get_json().get("message", "").lower()
@@ -165,26 +165,26 @@ def test_forgot_password_timing_variance(client, unverified_user):
 
     for _ in range(3):
         # Test existing email
-        start = time.time()
+        start = time.perf_counter()
         response = client.post(
             "/api/v1/auth/forgot-password",
             json={"email": "unverified@example.com"},
             content_type="application/json",
         )
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         times_existing.append(elapsed)
 
         time.sleep(0.3)  # Space out requests to avoid 5 per hour rate limit per email
 
         # Test non-existent email (using different email each iteration to avoid rate limit)
-        start = time.time()
+        start = time.perf_counter()
         response = client.post(
             "/api/v1/auth/forgot-password",
             json={"email": f"nonexistent{_}@example.com"},
             content_type="application/json",
         )
-        elapsed = time.time() - start
+        elapsed = time.perf_counter() - start
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         times_nonexisting.append(elapsed)
 

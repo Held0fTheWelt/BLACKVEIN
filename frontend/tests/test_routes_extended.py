@@ -447,6 +447,34 @@ def test_play_execute_empty_and_runtime_dispatch(client, monkeypatch):
     assert kwargs["json_data"]["player_input"] == "I look around and wait."
 
 
+def test_play_execute_html_missing_readiness_flags_fails_closed(client, monkeypatch):
+    def fake_request(method, path, **kwargs):
+        if path == "/api/v1/game/player-sessions/sid/turns":
+            return FakeResponse(
+                payload={
+                    "runtime_session_id": "story-1",
+                    "story_entries": [],
+                    "visible_scene_output": {"blocks": []},
+                    "turn": {"interpreted_input": {"kind": "speech"}},
+                }
+            )
+        raise AssertionError(f"unexpected backend call: {method} {path}")
+
+    monkeypatch.setattr("app.player_backend.request_backend", fake_request)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+
+    response = client.post(
+        "/play/sid/execute",
+        data={"player_input": "I wait."},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 200
+    assert b"The story runtime is not ready yet" in response.data
+    assert b'id="execute-turn-btn" disabled' in response.data
+
+
 def test_play_execute_json_returns_story_entries(client, monkeypatch):
     def fake_request(method, path, **kwargs):
         if path == "/api/v1/game/player-sessions/sid/turns":

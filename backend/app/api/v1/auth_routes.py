@@ -23,7 +23,7 @@ from app.utils.error_handler import log_full_error, ERROR_MESSAGES
 
 def _apply_constant_time_delay(start_time: float, *, extra_seconds: float = 0.0) -> None:
     """Apply constant-time floor delay for anti-enumeration responses."""
-    elapsed = time.time() - start_time
+    elapsed = time.perf_counter() - start_time
     target = route_auth_config.constant_time_delay_seconds + max(0.0, extra_seconds)
     delay_needed = target - elapsed
     if delay_needed > 0:
@@ -94,7 +94,7 @@ def login():
 def resend_verification():
     """Resend email verification link to user by email address."""
     # Start timing to implement constant-time response (prevents email enumeration)
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     data = request.get_json(silent=True)
     if data is None:
@@ -214,7 +214,7 @@ def forgot_password():
     Uses email as rate limit key to prevent enumeration across accounts.
     """
     # Start timing to implement constant-time response (prevents email enumeration)
-    start_time = time.time()
+    start_time = time.perf_counter()
 
     data = request.get_json(silent=True)
     if data is None:
@@ -226,18 +226,12 @@ def forgot_password():
     is_valid, email = validate_email_format(email_raw)
     if not is_valid:
         # Apply constant-time delay for invalid emails too (defense in depth)
-        elapsed = time.time() - start_time
-        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
-        if delay_needed > 0:
-            time.sleep(delay_needed)
+        _apply_constant_time_delay(start_time)
         return jsonify({"error": "Invalid email format"}), route_status_codes.bad_request
     user = get_user_by_email(email)
     if not user:
         # Apply constant-time delay before responding (prevents timing-based email enumeration)
-        elapsed = time.time() - start_time
-        delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
-        if delay_needed > 0:
-            time.sleep(delay_needed)
+        _apply_constant_time_delay(start_time)
         # Return success anyway to prevent email enumeration
         return jsonify({"message": "If the email exists, a password reset link has been sent"}), route_status_codes.ok
     # Create reset token and send email
@@ -254,10 +248,7 @@ def forgot_password():
         tags=["api", "email"],
     )
     # Apply constant-time delay before responding
-    elapsed = time.time() - start_time
-    delay_needed = route_auth_config.constant_time_delay_seconds - elapsed
-    if delay_needed > 0:
-        time.sleep(delay_needed)
+    _apply_constant_time_delay(start_time)
     return jsonify({"message": "If the email exists, a password reset link has been sent"}), route_status_codes.ok
 
 

@@ -10,6 +10,7 @@ and produce expected schema changes. Each migration is tested:
 """
 
 import pytest
+from pathlib import Path
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.runtime.migration import MigrationContext
@@ -19,6 +20,11 @@ from sqlalchemy.exc import OperationalError
 from app import create_app
 from app.config import TestingConfig
 from app.extensions import db
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+ALEMBIC_INI = BACKEND_ROOT / "alembic.ini"
+ALEMBIC_DIR = BACKEND_ROOT / "alembic"
 
 
 class TestDatabaseUpgrades:
@@ -44,7 +50,7 @@ class TestDatabaseUpgrades:
 
     def _get_migration_files(self):
         """Get list of all migration files in order."""
-        alembic_cfg = Config("alembic.ini")
+        alembic_cfg = Config(str(ALEMBIC_INI))
         script = ScriptDirectory.from_config(alembic_cfg)
         # walk_revisions() iterates through all revisions in the history
         migrations = list(script.walk_revisions(head="heads"))
@@ -92,18 +98,17 @@ class TestDatabaseUpgrades:
 
     def test_migrations_directory_exists(self):
         """Verify migrations directory structure."""
-        import os
-        alembic_dir = "alembic"
-        assert os.path.exists(alembic_dir), "alembic directory must exist"
+        alembic_dir = ALEMBIC_DIR
+        assert alembic_dir.exists(), "alembic directory must exist"
         # alembic/versions directory may not exist if no migrations have been created yet
         # This is acceptable - migrations can be added later
         # Just verify that the alembic directory itself exists and is readable
-        assert os.path.isdir(alembic_dir), "alembic should be a directory"
+        assert alembic_dir.is_dir(), "alembic should be a directory"
 
     def test_alembic_config_valid(self):
         """Verify alembic.ini is valid."""
         try:
-            alembic_cfg = Config("alembic.ini")
+            alembic_cfg = Config(str(ALEMBIC_INI))
             script_location = alembic_cfg.get_main_option("script_location")
             # script_location may be absolute or relative, just check it contains 'alembic'
             assert "alembic" in script_location, f"script_location should point to alembic dir, got {script_location}"
@@ -113,7 +118,7 @@ class TestDatabaseUpgrades:
     def test_migrations_can_be_listed(self):
         """Verify all migration files can be discovered."""
         try:
-            alembic_cfg = Config("alembic.ini")
+            alembic_cfg = Config(str(ALEMBIC_INI))
             script = ScriptDirectory.from_config(alembic_cfg)
             # walk_revisions() iterates through revisions starting from a head
             # When no migrations exist yet, this will succeed with empty list

@@ -171,7 +171,7 @@ def update_session(session_id: str, updated_state: SessionState) -> RuntimeSessi
 
 
 def delete_session(session_id: str) -> bool:
-    """Delete a session from the registry.
+    """Delete a session from the registry and persistence backing store.
 
     Args:
         session_id: Unique session identifier
@@ -179,7 +179,9 @@ def delete_session(session_id: str) -> bool:
     Returns:
         True if session was deleted, False if not found
     """
-    return _runtime_registry.delete(session_id)
+    registry_deleted = _runtime_registry.delete(session_id)
+    database_deleted = _delete_session_from_database(session_id)
+    return registry_deleted or database_deleted
 
 
 def clear_registry() -> None:
@@ -272,6 +274,34 @@ def _ensure_runtime_sessions_table_exists() -> None:
             db.session.commit()
         except:
             pass
+
+
+def _delete_session_from_database(session_id: str) -> bool:
+    """Delete a runtime session row so ``get_session`` cannot resurrect it."""
+    try:
+        from flask import current_app
+        from app.extensions import db
+
+        if not current_app:
+            return False
+
+        _ensure_runtime_sessions_table_exists()
+        result = db.session.execute(
+            db.text("DELETE FROM runtime_sessions WHERE session_id = :session_id"),
+            {"session_id": session_id},
+        )
+        db.session.commit()
+        return bool(result.rowcount)
+    except Exception as e:
+        import sys
+        print(f"[SESSION_STORE] Failed to delete session {session_id} from database: {e}", file=sys.stderr)
+        try:
+            from app.extensions import db
+
+            db.session.rollback()
+        except Exception:
+            pass
+        return False
 
 
 def _retrieve_session_from_database(session_id: str) -> RuntimeSession | None:

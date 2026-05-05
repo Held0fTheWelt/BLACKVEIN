@@ -7,6 +7,8 @@ from flask import current_app, g, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from sqlalchemy import select
 
+from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
+
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin
 from app.content.compiler import compile_module
@@ -294,16 +296,17 @@ def _player_session_bundle(
         narrator_streaming = latest_turn.get("narrator_streaming")
     elif isinstance(opening_turn, dict) and isinstance(opening_turn.get("narrator_streaming"), dict):
         narrator_streaming = opening_turn.get("narrator_streaming")
-    # Contract 3: can_execute must match story_window.entry_count
-    # Opening turn exists when entry_count > 0
-    can_execute = story_window.get("entry_count", 0) > 0
-
     scene_blocks = (
         _scene_blocks_from_turn(latest_turn)
         or _scene_blocks_from_turn(opening_turn)
         or _scene_blocks_from_story_window(story_window)
     )
     visible_scene_output = {"blocks": scene_blocks} if scene_blocks else None
+    opening_readiness = evaluate_session_opening_readiness(
+        story_entries=story_window["entries"],
+        visible_scene_output=visible_scene_output,
+        created=created,
+    )
 
     return {
         "contract": "game_player_session_v1",
@@ -314,8 +317,10 @@ def _player_session_bundle(
         "backend_session_id": None,
         "runtime_session_id": runtime_session_id,
         "world_engine_story_session_id": runtime_session_id,
-        "runtime_session_ready": True,
-        "can_execute": can_execute,
+        "runtime_session_ready": opening_readiness["runtime_session_ready"],
+        "can_execute": opening_readiness["can_execute"],
+        "opening_generation_status": opening_readiness["opening_generation_status"],
+        "opening_present": opening_readiness["opening_present"],
         "story_window": story_window,
         "story_entries": story_window["entries"],
         "visible_scene_output": visible_scene_output,
