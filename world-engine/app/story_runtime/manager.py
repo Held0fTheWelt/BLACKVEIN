@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -154,6 +155,7 @@ class StorySession:
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     turn_counter: int = 0
     current_scene_id: str = ""
+    session_output_language: str = "de"
     history: list[dict[str, Any]] = field(default_factory=list)
     diagnostics: list[dict[str, Any]] = field(default_factory=list)
     narrative_threads: StoryNarrativeThreadSet = field(default_factory=StoryNarrativeThreadSet)
@@ -184,6 +186,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "updated_at": session.updated_at.isoformat(),
         "turn_counter": session.turn_counter,
         "current_scene_id": session.current_scene_id,
+        "session_output_language": session.session_output_language,
         "history": session.history,
         "diagnostics": session.diagnostics,
         "narrative_threads": session.narrative_threads.model_dump(mode="json"),
@@ -221,6 +224,7 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         updated_at=updated_at,
         turn_counter=int(data.get("turn_counter", 0)),
         current_scene_id=str(data.get("current_scene_id") or ""),
+        session_output_language=str(data.get("session_output_language") or "de"),
         history=list(data.get("history") or []),
         diagnostics=list(data.get("diagnostics") or []),
         narrative_threads=threads,
@@ -266,6 +270,52 @@ def _coerce_visible_text_lines(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(item).strip() for item in value if str(item).strip()]
     return []
+
+
+def _ensure_gm_narration_from_narrator_scene_blocks(bundle: dict[str, Any]) -> dict[str, Any]:
+    """When gm_narration is absent but scene_blocks include narrator lanes, mirror text for MVP4 contracts."""
+    out = dict(bundle)
+    if _coerce_visible_text_lines(out.get("gm_narration")):
+        return out
+    blocks = out.get("scene_blocks")
+    if not isinstance(blocks, list):
+        return out
+    lines: list[str] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        if str(block.get("block_type") or "").strip() != "narrator":
+            continue
+        t = str(block.get("text") or "").strip()
+        if t:
+            lines.append(t)
+    if lines:
+        out["gm_narration"] = lines
+    return out
+
+
+def _maybe_split_goc_opening_into_two_movements(
+    blocks: list[dict[str, Any]],
+    *,
+    commit_turn_number: int,
+) -> list[dict[str, Any]]:
+    """ADR-0035: Prefer two visible narrator blocks for opening (premise → salon) when prose uses paragraph breaks."""
+    if commit_turn_number != 0 or len(blocks) != 1:
+        return blocks
+    b0 = blocks[0]
+    if str(b0.get("block_type") or "").strip() != "narrator":
+        return blocks
+    text = str(b0.get("text") or "").strip()
+    parts = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    if len(parts) < 2:
+        return blocks
+    out: list[dict[str, Any]] = []
+    for i, p in enumerate(parts):
+        nb = dict(b0)
+        nb["text"] = p
+        nb["id"] = f"turn-{commit_turn_number}-live-block-{i + 1}"
+        out.append(nb)
+    return out
 
 
 def _actor_line_count(value: Any) -> int:
@@ -2472,12 +2522,39 @@ class StoryRuntimeManager:
         scene_desc = str(scene_row.get("description") or "")
         chars = projection.get("character_ids") if isinstance(projection.get("character_ids"), list) else []
         cast = ", ".join(str(c) for c in chars[:8]) if chars else "unknown"
-        return (
-            f"Opening turn for module {session.module_id}. "
+        lang_label = "German" if session.session_output_language == "de" else "English"
+        lang_instruction = (
+            f"IMPORTANT: Write ALL player-visible narrative in {lang_label}. "
+            "Do not switch to French unless quoting in-world French text explicitly marked as a quotation. "
+        )
+        base = (
+            lang_instruction
+            + f"Opening turn for module {session.module_id}. "
             f"Establish the starting situation in scene {scene_name} ({scene_id}). "
             f"Scene description: {scene_desc or 'n/a'}. Cast: {cast}. "
             "Write vivid but grounded opening narration within canonical module boundaries. "
             "Set initial dramatic pressure, social posture, and opening narrative threads."
+        )
+        if session.module_id != GOD_OF_CARNAGE_MODULE_ID:
+            return base
+        anchor = "Paris apartment, evening — hosts and guests meet after their children's incident"
+        handover = "phase_1"
+        try:
+            from ai_stack.goc_yaml_authority import load_goc_opening_sequence_yaml
+
+            osq = load_goc_opening_sequence_yaml()
+            if isinstance(osq, dict):
+                anchor = str(osq.get("setting_anchor") or anchor).strip() or anchor
+                handover = str(osq.get("handover_to_scene_phase") or handover).strip() or handover
+        except Exception:
+            pass
+        return (
+            f"{base}\n\n"
+            f"Session opening (canonical direction/opening_sequence.yaml; ADR-0035). Anchor: {anchor}. "
+            "Deliver TWO beats in order: (1) background/premise of the incident and why these adults meet; "
+            "(2) into the salon — room, ritual, social temperature. "
+            "Use two narrator paragraphs (blank line between) or two gm_narration strings before NPC speech. "
+            f"After handover, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines."
         )
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:
@@ -2901,6 +2978,10 @@ class StoryRuntimeManager:
                     else {},
                     turn_number=commit_turn_number,
                 )
+                live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
+                    live_scene_blocks,
+                    commit_turn_number=commit_turn_number,
+                )
             if live_scene_blocks:
                 event_bundle = (
                     event.get("visible_output_bundle")
@@ -2999,10 +3080,12 @@ class StoryRuntimeManager:
                         if isinstance(event.get("visible_output_bundle"), dict)
                         else {}
                     )
-                    event["visible_output_bundle"] = {
-                        **event_bundle,
-                        "scene_blocks": [dict(block) for block in blocks if isinstance(block, dict)],
-                    }
+                    event["visible_output_bundle"] = _ensure_gm_narration_from_narrator_scene_blocks(
+                        {
+                            **event_bundle,
+                            "scene_blocks": [dict(block) for block in blocks if isinstance(block, dict)],
+                        }
+                    )
 
             # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan)
             runtime_state = {
@@ -3263,6 +3346,7 @@ class StoryRuntimeManager:
         *,
         module_id: str,
         runtime_projection: dict[str, Any],
+        session_output_language: str = "de",
         content_provenance: dict[str, Any] | None = None,
         trace_id: str | None = None,
         session_id: str | None = None,
@@ -3286,6 +3370,7 @@ class StoryRuntimeManager:
             module_id=module_id,
             runtime_projection=runtime_projection,
             current_scene_id=current_scene_id,
+            session_output_language=session_output_language,
             content_provenance=prov,
         )
         self.sessions[session_id] = session

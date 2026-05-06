@@ -213,6 +213,111 @@ class TestBackendLivePath:
         assert captured.get("selected_player_role") == "alain"
 
 
+@pytest.mark.unit
+class TestSessionOutputLanguageValidation:
+    """ADR-0036: session_output_language validation and propagation."""
+
+    def _fake_run_payload(self, run_id: str = "lang_run") -> dict:
+        return {"run": {"id": run_id}, "run_id": run_id, "store": {}, "hint": "ok"}
+
+    def test_default_language_is_de(self, client, auth_headers):
+        captured = {}
+
+        def fake_create_run(**kwargs):
+            return self._fake_run_payload()
+
+        def fake_ensure(*args, **kwargs):
+            captured.update(kwargs)
+            raise Exception("stop_here")
+
+        with patch("app.api.v1.game_routes.create_play_run", side_effect=fake_create_run):
+            with patch("app.api.v1.game_routes._ensure_player_session", side_effect=fake_ensure):
+                client.post(
+                    "/api/v1/game/player-sessions",
+                    json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"},
+                    headers=auth_headers,
+                )
+        assert captured.get("session_output_language") == "de"
+
+    def test_explicit_de_accepted(self, client, auth_headers):
+        captured = {}
+
+        def fake_create_run(**kwargs):
+            return self._fake_run_payload()
+
+        def fake_ensure(*args, **kwargs):
+            captured.update(kwargs)
+            raise Exception("stop_here")
+
+        with patch("app.api.v1.game_routes.create_play_run", side_effect=fake_create_run):
+            with patch("app.api.v1.game_routes._ensure_player_session", side_effect=fake_ensure):
+                client.post(
+                    "/api/v1/game/player-sessions",
+                    json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "de"},
+                    headers=auth_headers,
+                )
+        assert captured.get("session_output_language") == "de"
+
+    def test_en_accepted(self, client, auth_headers):
+        captured = {}
+
+        def fake_create_run(**kwargs):
+            return self._fake_run_payload()
+
+        def fake_ensure(*args, **kwargs):
+            captured.update(kwargs)
+            raise Exception("stop_here")
+
+        with patch("app.api.v1.game_routes.create_play_run", side_effect=fake_create_run):
+            with patch("app.api.v1.game_routes._ensure_player_session", side_effect=fake_ensure):
+                client.post(
+                    "/api/v1/game/player-sessions",
+                    json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "en"},
+                    headers=auth_headers,
+                )
+        assert captured.get("session_output_language") == "en"
+
+    def test_unsupported_language_returns_400(self, client, auth_headers):
+        response = client.post(
+            "/api/v1/game/player-sessions",
+            json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "fr"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data.get("code") == "unsupported_language"
+        assert "allowed" in data
+
+    def test_invalid_type_returns_400(self, client, auth_headers):
+        response = client.post(
+            "/api/v1/game/player-sessions",
+            json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": 42},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data.get("code") == "invalid_output_language"
+
+    def test_language_forwarded_to_ensure_player_session(self, client, auth_headers):
+        captured = {}
+
+        def fake_create_run(**kwargs):
+            return self._fake_run_payload("fwd_run")
+
+        def fake_ensure(*args, **kwargs):
+            captured.update(kwargs)
+            raise Exception("stop_here")
+
+        with patch("app.api.v1.game_routes.create_play_run", side_effect=fake_create_run):
+            with patch("app.api.v1.game_routes._ensure_player_session", side_effect=fake_ensure):
+                client.post(
+                    "/api/v1/game/player-sessions",
+                    json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette", "session_output_language": "en"},
+                    headers=auth_headers,
+                )
+        assert captured.get("session_output_language") == "en"
+
+
 class TestDockerUpGate:
     """FIX-011: docker-up.py gate mode tests."""
 

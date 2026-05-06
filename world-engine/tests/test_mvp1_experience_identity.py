@@ -796,3 +796,128 @@ class TestContentResolutionFailureInLiveMode:
             assert len(actor_ids) > 0, "Must return actor IDs with fallback enabled"
         except Exception as exc:
             pytest.fail(f"Should not raise when allow_fallback=True: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# ADR-0036: session_output_language — World-Engine contracts
+# ---------------------------------------------------------------------------
+
+class TestSessionOutputLanguage:
+    """ADR-0036: session_output_language field accepted, stored, and propagated."""
+
+    def _projection(self):
+        return {
+            "module_id": "god_of_carnage",
+            "start_scene_id": "scene_1",
+            "scenes": [],
+            "selected_player_role": "annette",
+            "human_actor_id": "annette",
+            "npc_actor_ids": ["alain", "veronique", "michel"],
+            "actor_lanes": {
+                "annette": "human",
+                "alain": "npc",
+                "veronique": "npc",
+                "michel": "npc",
+            },
+        }
+
+    def test_create_story_session_accepts_session_output_language_de(self, client, internal_api_key):
+        """POST /api/story/sessions with session_output_language=de must succeed (ADR-0036)."""
+        response = client.post(
+            "/api/story/sessions",
+            headers={"X-Play-Service-Key": internal_api_key},
+            json={
+                "module_id": "god_of_carnage",
+                "runtime_projection": self._projection(),
+                "session_output_language": "de",
+            },
+        )
+        assert response.status_code == 200
+
+    def test_create_story_session_accepts_session_output_language_en(self, client, internal_api_key):
+        """POST /api/story/sessions with session_output_language=en must succeed (ADR-0036)."""
+        response = client.post(
+            "/api/story/sessions",
+            headers={"X-Play-Service-Key": internal_api_key},
+            json={
+                "module_id": "god_of_carnage",
+                "runtime_projection": self._projection(),
+                "session_output_language": "en",
+            },
+        )
+        assert response.status_code == 200
+
+    def test_create_story_session_defaults_to_de_when_omitted(self, client, internal_api_key):
+        """POST /api/story/sessions without session_output_language defaults to de (ADR-0036)."""
+        response = client.post(
+            "/api/story/sessions",
+            headers={"X-Play-Service-Key": internal_api_key},
+            json={
+                "module_id": "god_of_carnage",
+                "runtime_projection": self._projection(),
+            },
+        )
+        assert response.status_code == 200
+
+    def _full_projection(self):
+        proj = self._projection()
+        proj.update({
+            "human_actor_id": "annette",
+            "npc_actor_ids": ["alain", "veronique", "michel"],
+            "actor_lanes": {
+                "annette": "human",
+                "alain": "npc",
+                "veronique": "npc",
+                "michel": "npc",
+            },
+        })
+        return proj
+
+    def test_story_session_stores_output_language(self):
+        """StorySession must store session_output_language from create_session() (ADR-0036)."""
+        from app.story_runtime import StoryRuntimeManager
+        mgr = StoryRuntimeManager(session_store=None, adapters={})
+        session = mgr.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=self._full_projection(),
+            session_output_language="en",
+        )
+        assert session.session_output_language == "en"
+
+    def test_story_session_default_language_is_de(self):
+        """StorySession.session_output_language defaults to de when not specified (ADR-0036)."""
+        from app.story_runtime import StoryRuntimeManager
+        mgr = StoryRuntimeManager(session_store=None, adapters={})
+        session = mgr.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=self._full_projection(),
+        )
+        assert session.session_output_language == "de"
+
+    def test_opening_prompt_contains_german_directive_for_de(self):
+        """_build_opening_prompt must include German language directive when session_output_language=de (ADR-0036)."""
+        from app.story_runtime import StoryRuntimeManager
+        mgr = StoryRuntimeManager(session_store=None, adapters={})
+        session = mgr.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=self._full_projection(),
+            session_output_language="de",
+        )
+        prompt = mgr._build_opening_prompt(session)
+        assert "German" in prompt, (
+            f"Opening prompt must contain 'German' directive for session_output_language=de. Got: {prompt[:200]}"
+        )
+
+    def test_opening_prompt_contains_english_directive_for_en(self):
+        """_build_opening_prompt must include English language directive when session_output_language=en (ADR-0036)."""
+        from app.story_runtime import StoryRuntimeManager
+        mgr = StoryRuntimeManager(session_store=None, adapters={})
+        session = mgr.create_session(
+            module_id="god_of_carnage",
+            runtime_projection=self._full_projection(),
+            session_output_language="en",
+        )
+        prompt = mgr._build_opening_prompt(session)
+        assert "English" in prompt, (
+            f"Opening prompt must contain 'English' directive for session_output_language=en. Got: {prompt[:200]}"
+        )

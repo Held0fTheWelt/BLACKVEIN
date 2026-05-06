@@ -318,11 +318,14 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
     assert captured_story_kwargs["langfuse_trace_id"] == captured_run_kwargs["langfuse_trace_id"]
     assert len(captured_story_kwargs["langfuse_trace_id"]) == 32
 
+    assert captured_story_kwargs.get("session_output_language") == "de"
+
     with app.app_context():
         slots = GameSaveSlot.query.filter_by(user_id=user.id, run_id="run-player-1").all()
         assert len(slots) == 1
         assert slots[0].kind == "canonical_player_session"
         assert slots[0].metadata_json["runtime_session_id"] == "story-session-1"
+        assert slots[0].metadata_json["session_output_language"] == "de"
 
 
 def test_game_player_session_turn_continues_same_story_window(

@@ -353,6 +353,7 @@ class TerminateRunRequest(BaseModel):
 class CreateStorySessionRequest(BaseModel):
     module_id: str
     runtime_projection: dict[str, Any]
+    session_output_language: str = "de"
     content_provenance: dict[str, Any] | None = None
 
 
@@ -537,6 +538,7 @@ def create_story_session(
             session = manager.create_session(
                 module_id=payload.module_id,
                 runtime_projection=payload.runtime_projection,
+                session_output_language=payload.session_output_language,
                 content_provenance=payload.content_provenance,
                 trace_id=trace_id if isinstance(trace_id, str) else None,
                 session_id=story_session_id,

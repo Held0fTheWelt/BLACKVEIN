@@ -262,6 +262,43 @@ def _cumulative_scene_blocks_from_story_window(story_window: dict[str, Any]) -> 
     return out
 
 
+def _scene_blocks_count_prior_story_entries(story_window: dict[str, Any]) -> int:
+    """Count scene_blocks dicts in all story_window entries except the last (ADR-0034 §7)."""
+    entries = story_window.get("entries") if isinstance(story_window.get("entries"), list) else []
+    if len(entries) <= 1:
+        return 0
+    n = 0
+    for entry in entries[:-1]:
+        if not isinstance(entry, dict):
+            continue
+        blocks = entry.get("scene_blocks")
+        if isinstance(blocks, list):
+            n += sum(1 for b in blocks if isinstance(b, dict))
+    return n
+
+
+def _typewriter_slice_start_index_for_bundle(
+    *,
+    story_window: dict[str, Any],
+    scene_blocks: list[dict[str, Any]],
+    used_cumulative_story_blocks: bool,
+) -> int | None:
+    """First index in scene_blocks that belongs to the latest commit for typewriter sequencing.
+
+    When ``used_cumulative_story_blocks`` is True, transcript-stable blocks from earlier
+    entries render immediately; blocks from the latest entry(s) animate in order.
+
+    When the bundle uses non-cumulative fallback (single-turn slice), every block animates
+    from index 0.
+    """
+    if not scene_blocks:
+        return None
+    if not used_cumulative_story_blocks:
+        return 0
+    prior = _scene_blocks_count_prior_story_entries(story_window)
+    return min(prior, len(scene_blocks))
+
+
 def _player_shell_state_view(
     *,
     state: dict[str, Any],
@@ -319,6 +356,7 @@ def _player_session_bundle(
     elif isinstance(opening_turn, dict) and isinstance(opening_turn.get("narrator_streaming"), dict):
         narrator_streaming = opening_turn.get("narrator_streaming")
     cumulative_blocks = _cumulative_scene_blocks_from_story_window(story_window)
+    used_cumulative = bool(cumulative_blocks)
     if cumulative_blocks:
         scene_blocks = cumulative_blocks
     else:
@@ -327,7 +365,16 @@ def _player_session_bundle(
             or _scene_blocks_from_turn(opening_turn)
             or _scene_blocks_from_story_window(story_window)
         )
-    visible_scene_output = {"blocks": scene_blocks} if scene_blocks else None
+    visible_scene_output: dict[str, Any] | None = None
+    if scene_blocks:
+        tw_start = _typewriter_slice_start_index_for_bundle(
+            story_window=story_window,
+            scene_blocks=scene_blocks,
+            used_cumulative_story_blocks=used_cumulative,
+        )
+        visible_scene_output = {"blocks": scene_blocks}
+        if tw_start is not None:
+            visible_scene_output["typewriter_slice_start_index"] = tw_start
     opening_readiness = evaluate_session_opening_readiness(
         story_entries=story_window["entries"],
         visible_scene_output=visible_scene_output,
@@ -382,6 +429,10 @@ def _player_session_bundle(
     }
 
 
+_ALLOWED_OUTPUT_LANGUAGES = frozenset({"de", "en"})
+_DEFAULT_OUTPUT_LANGUAGE = "de"
+
+
 def _persist_player_session_binding(
     user: User,
     *,
@@ -390,6 +441,7 @@ def _persist_player_session_binding(
     template_title: str | None,
     module_id: str,
     runtime_session_id: str,
+    session_output_language: str = _DEFAULT_OUTPUT_LANGUAGE,
 ) -> GameSaveSlot:
     return upsert_save_slot_for_user(
         user.id,
@@ -406,6 +458,7 @@ def _persist_player_session_binding(
             "runtime_session_id": runtime_session_id,
             "world_engine_story_session_id": runtime_session_id,
             "continuity_owner": "backend_game_player_session_bridge",
+            "session_output_language": session_output_language,
         },
     )
 
@@ -532,6 +585,7 @@ def _ensure_player_session(
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
     selected_player_role: str | None = None,
+    session_output_language: str = _DEFAULT_OUTPUT_LANGUAGE,
 ) -> dict[str, Any]:
     clean_run_id = (run_id or "").strip()
     created: dict[str, Any] | None = None
@@ -589,6 +643,7 @@ def _ensure_player_session(
     created = create_story_session(
         module_id=module_id,
         runtime_projection=runtime_projection,
+        session_output_language=session_output_language,
         trace_id=trace_id or g.get("trace_id"),
         langfuse_trace_id=langfuse_trace_id or g.get("langfuse_trace_id") or get_langfuse_trace_id(),
         content_provenance=provenance,
@@ -603,7 +658,17 @@ def _ensure_player_session(
         template_title=template_title,
         module_id=module_id,
         runtime_session_id=runtime_session_id,
+        session_output_language=session_output_language,
     )
+    adapter = LangfuseAdapter.get_instance()
+    if adapter and adapter.is_ready and adapter.client is not None:
+        try:
+            adapter.client.update_user(
+                user_id=str(user.id),
+                metadata={"session_output_language": session_output_language},
+            )
+        except Exception:
+            pass
     state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
     return _player_session_bundle(
         run_id=clean_run_id,
@@ -773,6 +838,16 @@ def game_player_session_create():
         run_payload: dict[str, Any] | None = None
         runtime_profile_id = (data.get("runtime_profile_id") or "").strip() or None
         selected_player_role = (data.get("selected_player_role") or "").strip() or None
+        raw_language = data.get("session_output_language")
+        if raw_language is not None and not isinstance(raw_language, str):
+            return jsonify({"error": "session_output_language must be a string.", "code": "invalid_output_language"}), route_status_codes.bad_request
+        session_output_language = (raw_language or "").strip().lower() or _DEFAULT_OUTPUT_LANGUAGE
+        if session_output_language not in _ALLOWED_OUTPUT_LANGUAGES:
+            return jsonify({
+                "error": f"session_output_language {raw_language!r} is not supported.",
+                "code": "unsupported_language",
+                "allowed": sorted(_ALLOWED_OUTPUT_LANGUAGES),
+            }), route_status_codes.bad_request
         if not run_id:
             if not template_id and not runtime_profile_id:
                 return jsonify({"error": "template_id, runtime_profile_id, or run_id is required."}), route_status_codes.bad_request
@@ -798,6 +873,7 @@ def game_player_session_create():
             trace_id=trace_id,
             langfuse_trace_id=langfuse_trace_id,
             selected_player_role=selected_player_role,
+            session_output_language=session_output_language,
         )
         return jsonify(bundle), route_status_codes.ok
     except Exception as exc:  # pragma: no cover - centralized mapper

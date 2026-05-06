@@ -427,6 +427,7 @@ def create_story_session(
     *,
     module_id: str,
     runtime_projection: dict,
+    session_output_language: str = "de",
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
     content_provenance: dict | None = None,
@@ -442,6 +443,7 @@ def create_story_session(
         json_payload={
             "module_id": module_id,
             "runtime_projection": runtime_projection,
+            "session_output_language": session_output_language,
             "content_provenance": content_provenance or {},
         },
         internal=True,
