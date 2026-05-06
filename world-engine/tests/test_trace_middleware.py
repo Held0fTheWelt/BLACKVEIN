@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import uuid
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -251,3 +252,155 @@ def test_langfuse_evidence_observations_record_live_generation_retrieval_and_sco
     assert adapter.record_retrieval.call_args.kwargs["documents"][0]["id"] == "chunk-1"
     score_names = {call.kwargs["name"] for call in adapter.add_score.call_args_list}
     assert "live_runtime_contract_pass" in score_names
+    assert "live_runtime_visible_surface_pass" in score_names
+
+
+def test_langfuse_visible_output_counts_gm_narration_when_scene_blocks_absent(monkeypatch):
+    """Opening-style bundles may expose prose via gm_narration without scene_blocks yet."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        "session_id": "session-opening-surface",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "generation_fallback_used": False,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 10, "output": 5, "total": 15},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+    }
+    graph_state = {"model_prompt": "Opening prompt."}
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {"adapter": "openai", "model": "gpt-test"},
+            }
+        },
+        "visible_output_bundle": {
+            "gm_narration": ["Le salon est silencieux."],
+        },
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+    scores_by_name = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores_by_name.get("visible_output_present") == 1.0
+    assert scores_by_name.get("live_runtime_visible_surface_pass") == 1.0
+
+
+def test_langfuse_visible_output_counts_structured_narrative_without_bundle_lines(monkeypatch):
+    """Opening may expose prose only under generation.metadata.structured_output."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        "session_id": "session-structured-surface",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "generation_fallback_used": False,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 100, "output": 50, "total": 150},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+    }
+    graph_state = {"model_prompt": "x"}
+    event = {
+        "model_route": {
+            "generation": {
+                "content": "",
+                "metadata": {
+                    "adapter": "openai",
+                    "structured_output": {
+                        "narrative_response": "Le salon attend.",
+                    },
+                },
+            }
+        },
+        "visible_output_bundle": {},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+    scores_by_name = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores_by_name.get("visible_output_present") == 1.0
+
+
+def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
+    client, internal_api_key, monkeypatch
+):
+    """ADR-0033 §13.6: world-engine.turn.execute carries same non-PII digest as backend.turn.execute."""
+    adapter = MagicMock()
+    adapter.is_ready = True
+    adapter.is_enabled.return_value = True
+    adapter.config = SimpleNamespace(environment="test")
+    adapter.get_active_span.return_value = None
+
+    create_root = MagicMock()
+    turn_root = MagicMock()
+    adapter.start_span_in_trace.side_effect = [create_root, turn_root]
+    adapter.create_child_span.side_effect = lambda **kwargs: MagicMock()
+
+    monkeypatch.setattr(
+        "app.observability.langfuse_adapter.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    langfuse_trace_id = "fedcba9876543210fedcba9876543210"
+    player_line = "Ich lehne mich zum Fenster."
+
+    response = client.post(
+        "/api/story/sessions",
+        headers={
+            "X-Play-Service-Key": internal_api_key,
+            "X-Langfuse-Trace-Id": langfuse_trace_id,
+        },
+        json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
+    )
+    assert response.status_code == 200
+    session_id = response.json()["session_id"]
+
+    turn_resp = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers={
+            "X-Play-Service-Key": internal_api_key,
+            "X-Langfuse-Trace-Id": langfuse_trace_id,
+        },
+        json={"player_input": player_line},
+    )
+    assert turn_resp.status_code == 200
+
+    turn_calls = [
+        c
+        for c in adapter.start_span_in_trace.call_args_list
+        if c.kwargs.get("name") == "world-engine.turn.execute"
+    ]
+    assert len(turn_calls) == 1
+    kw = turn_calls[0].kwargs
+    assert kw["trace_id"] == langfuse_trace_id
+    expected = hashlib.sha256(player_line.encode("utf-8")).hexdigest()
+    assert kw["input"]["player_input_sha256"] == expected
+    assert kw["input"]["player_input_length"] == len(player_line)
+    assert kw["metadata"]["player_input_sha256"] == expected
+    assert kw["metadata"]["player_input_length"] == len(player_line)
+
+    out_kw = [c.kwargs for c in turn_root.update.call_args_list if "output" in c.kwargs]
+    assert out_kw, "turn span should receive update(output=...) after execute_turn"
+    assert any(
+        o["output"].get("player_input_sha256") == expected
+        and o["output"].get("player_input_length") == len(player_line)
+        for o in out_kw
+    )

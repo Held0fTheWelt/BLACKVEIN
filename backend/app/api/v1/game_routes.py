@@ -240,6 +240,28 @@ def _scene_blocks_from_story_window(story_window: dict[str, Any]) -> list[dict[s
     return []
 
 
+def _cumulative_scene_blocks_from_story_window(story_window: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect scene blocks from every story_window entry in chronological order.
+
+    MVP5 ``BlocksOrchestrator.loadTurn`` clears ``#turn-transcript`` and replays only
+    ``visible_scene_output.blocks``. Player-turn HTTP responses must therefore carry the
+    **full** committed block stream, not a single-turn slice (otherwise the shell appears
+    to reset to the opening or latest slice only).
+    """
+    entries = story_window.get("entries") if isinstance(story_window.get("entries"), list) else []
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        blocks = entry.get("scene_blocks")
+        if not isinstance(blocks, list):
+            continue
+        for block in blocks:
+            if isinstance(block, dict):
+                out.append(dict(block))
+    return out
+
+
 def _player_shell_state_view(
     *,
     state: dict[str, Any],
@@ -296,11 +318,15 @@ def _player_session_bundle(
         narrator_streaming = latest_turn.get("narrator_streaming")
     elif isinstance(opening_turn, dict) and isinstance(opening_turn.get("narrator_streaming"), dict):
         narrator_streaming = opening_turn.get("narrator_streaming")
-    scene_blocks = (
-        _scene_blocks_from_turn(latest_turn)
-        or _scene_blocks_from_turn(opening_turn)
-        or _scene_blocks_from_story_window(story_window)
-    )
+    cumulative_blocks = _cumulative_scene_blocks_from_story_window(story_window)
+    if cumulative_blocks:
+        scene_blocks = cumulative_blocks
+    else:
+        scene_blocks = (
+            _scene_blocks_from_turn(latest_turn)
+            or _scene_blocks_from_turn(opening_turn)
+            or _scene_blocks_from_story_window(story_window)
+        )
     visible_scene_output = {"blocks": scene_blocks} if scene_blocks else None
     opening_readiness = evaluate_session_opening_readiness(
         story_entries=story_window["entries"],
@@ -811,6 +837,7 @@ def game_player_session_turn(run_id: str):
         langfuse_trace_id = g.get("langfuse_trace_id") or get_langfuse_trace_id()
         adapter = LangfuseAdapter.get_instance()
         root_span = None
+        player_input_sha256 = hashlib.sha256(player_input.encode("utf-8")).hexdigest()
 
         try:
             # Create root span for this turn execution
@@ -822,6 +849,7 @@ def game_player_session_turn(run_id: str):
                     "wos_trace_id": trace_id,
                     "langfuse_trace_id": langfuse_trace_id,
                     "player_input_length": len(player_input),
+                    "player_input_sha256": player_input_sha256,
                     "stage": "turn_execution",
                     "route": "/game/player-sessions/<run_id>/turns",
                 },
@@ -839,9 +867,14 @@ def game_player_session_turn(run_id: str):
 
             # Update root span with results
             if root_span:
-                root_span.update(output={
-                    "status": "completed",
-                })
+                root_span.update(
+                    output={
+                        "status": "completed",
+                        "turn_number": turn.get("turn_number"),
+                        "player_input_length": len(player_input),
+                        "player_input_sha256": player_input_sha256,
+                    },
+                )
 
             refreshed = _player_session_bundle(
                 run_id=run_id,

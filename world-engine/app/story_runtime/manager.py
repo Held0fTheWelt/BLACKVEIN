@@ -556,13 +556,22 @@ def _build_langfuse_path_summary(
             or graph_state.get("responder_id")
             or (event.get("actor_turn_summary") or {}).get("primary_responder_id")
         ),
-        "response_present": vitality.get("response_present"),
+        "response_present": bool(vitality.get("response_present"))
+        or _final_visible_actor_response_in_event(event),
         "initiative_present": vitality.get("initiative_present"),
         "multi_actor_realized": vitality.get("multi_actor_realized"),
         "realized_actor_ids": list(vitality.get("realized_actor_ids") or []),
         "rendered_actor_ids": list(vitality.get("rendered_actor_ids") or []),
-        "why_turn_felt_passive": list(passivity.get("why_turn_felt_passive") or governance.get("why_turn_felt_passive") or []),
-        "primary_passivity_factors": list(passivity.get("primary_passivity_factors") or governance.get("primary_passivity_factors") or []),
+        "why_turn_felt_passive": (
+            list(governance.get("why_turn_felt_passive"))
+            if isinstance(governance.get("why_turn_felt_passive"), list)
+            else list(passivity.get("why_turn_felt_passive") or [])
+        ),
+        "primary_passivity_factors": (
+            list(governance.get("primary_passivity_factors"))
+            if isinstance(governance.get("primary_passivity_factors"), list)
+            else list(passivity.get("primary_passivity_factors") or [])
+        ),
     }
 
 
@@ -897,11 +906,14 @@ def _emit_langfuse_evidence_observations(
         except Exception:
             logger.debug("Langfuse retrieval observation failed", exc_info=True)
 
-    visible_bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
-    visible_blocks = visible_bundle.get("scene_blocks") if isinstance(visible_bundle.get("scene_blocks"), list) else []
+    # Align with player-visible truth: opening turns often have gm_narration / generation text
+    # before scene_blocks projection; counting only scene_blocks yields false 0 (see Langfuse traces).
+    has_visible_surface = bool(_scene_blocks_from_turn_event(event)) or bool(
+        _visible_lines_from_turn_event(event)
+    )
     deterministic_scores = {
         "non_mock_generation_pass": 1.0 if adapter_name not in {"", "mock", "ldss_fallback", "ldss_deterministic"} else 0.0,
-        "visible_output_present": 1.0 if visible_blocks else 0.0,
+        "visible_output_present": 1.0 if has_visible_surface else 0.0,
         "actor_lane_safety_pass": 1.0 if path_summary.get("actor_lane_validation_status") in {"approved", None} else 0.0,
         "fallback_absent": 0.0 if path_summary.get("generation_fallback_used") else 1.0,
         "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 else 0.0,
@@ -909,6 +921,15 @@ def _emit_langfuse_evidence_observations(
     }
     live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
     deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
+    # Player-visible path only (excludes mock/usage/RAG gates). Stays green in mock_only when UI output is present.
+    qc = path_summary.get("quality_class")
+    surface_ok = (
+        deterministic_scores["visible_output_present"] == 1.0
+        and deterministic_scores["actor_lane_safety_pass"] == 1.0
+        and deterministic_scores["fallback_absent"] == 1.0
+        and qc not in {"degraded", "failed"}
+    )
+    deterministic_scores["live_runtime_visible_surface_pass"] = 1.0 if surface_ok else 0.0
     for name, value in deterministic_scores.items():
         try:
             adapter.add_score(
@@ -933,6 +954,36 @@ def _visible_lines_from_turn_event(event: dict[str, Any]) -> list[str]:
         return lines
 
     generation = ((event.get("model_route") or {}).get("generation") or {}) if isinstance(event.get("model_route"), dict) else {}
+    meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else None
+    if structured is None and isinstance(generation.get("structured_output"), dict):
+        structured = generation["structured_output"]
+    if isinstance(structured, dict):
+        for key in (
+            "narrative_response",
+            "narration_summary",
+            "opening_narration",
+            "scene_description",
+            "narrative_summary",
+        ):
+            lines = _coerce_visible_text_lines(structured.get(key))
+            if lines:
+                return lines
+        for lane_key in ("spoken_lines", "action_lines"):
+            lane = structured.get(lane_key)
+            if not isinstance(lane, list):
+                continue
+            lane_lines: list[str] = []
+            for row in lane:
+                if isinstance(row, dict):
+                    text = str(row.get("text") or row.get("line") or "").strip()
+                    if text:
+                        lane_lines.append(text)
+                elif str(row).strip():
+                    lane_lines.append(str(row).strip())
+            if lane_lines:
+                return lane_lines
+
     lines = _coerce_visible_text_lines(generation.get("content") or generation.get("model_raw_text"))
     if lines:
         return lines
@@ -962,6 +1013,51 @@ def _scene_blocks_from_turn_event(event: dict[str, Any]) -> list[dict[str, Any]]
     if isinstance(blocks, list):
         return [dict(block) for block in blocks if isinstance(block, dict)]
     return []
+
+
+def _actor_response_visible_in_scene_blocks(blocks: list[dict[str, Any]]) -> bool:
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        bt = str(block.get("block_type") or block.get("type") or "").strip()
+        if bt in {"actor_line", "actor_action"}:
+            return True
+    return False
+
+
+def _final_visible_actor_response_in_event(event: dict[str, Any]) -> bool:
+    return _actor_response_visible_in_scene_blocks(_scene_blocks_from_turn_event(event))
+
+
+def _reconcile_governance_passivity_with_final_projection(event: dict[str, Any]) -> None:
+    """Drop ``no_visible_actor_response`` when final projected blocks show actor output."""
+    if not _final_visible_actor_response_in_event(event):
+        return
+
+    def _without_no_visible(seq: Any) -> list[str]:
+        if not isinstance(seq, list):
+            return []
+        return [str(x) for x in seq if str(x) != "no_visible_actor_response"]
+
+    gov = event.get("runtime_governance_surface")
+    if isinstance(gov, dict):
+        gov["why_turn_felt_passive"] = _without_no_visible(gov.get("why_turn_felt_passive"))
+        gov["primary_passivity_factors"] = _without_no_visible(gov.get("primary_passivity_factors"))
+        pd = gov.get("passivity_diagnosis_v1")
+        if isinstance(pd, dict):
+            pd["why_turn_felt_passive"] = _without_no_visible(pd.get("why_turn_felt_passive"))
+            pd["primary_passivity_factors"] = _without_no_visible(pd.get("primary_passivity_factors"))
+
+    # Play shell / routes_play read passivity from actor_survival_telemetry, not gov alone.
+    tel = event.get("actor_survival_telemetry")
+    if isinstance(tel, dict):
+        pd = tel.get("passivity_diagnosis_v1")
+        if isinstance(pd, dict):
+            pd["why_turn_felt_passive"] = _without_no_visible(pd.get("why_turn_felt_passive"))
+            pd["primary_passivity_factors"] = _without_no_visible(pd.get("primary_passivity_factors"))
+        vit = tel.get("vitality_telemetry_v1")
+        if isinstance(vit, dict):
+            vit["response_present"] = True
 
 
 def _live_scene_blocks_from_visible_bundle(
@@ -2792,18 +2888,6 @@ class StoryRuntimeManager:
             "actor_turn_summary": actor_turn_summary,
             "runtime_governance_surface": gov,
         }
-        path_summary = _build_langfuse_path_summary(
-            session=session,
-            graph_state=graph_state,
-            event=event,
-        )
-        event["observability_path_summary"] = path_summary
-        _emit_langfuse_path_spans(path_summary)
-        _emit_langfuse_evidence_observations(
-            path_summary=path_summary,
-            graph_state=graph_state,
-            event=event,
-        )
         # Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
         # Live graph/model output is primary. LDSS is reserved as the final
         # deterministic fallback when the live path cannot produce scene blocks.
@@ -3059,6 +3143,22 @@ class StoryRuntimeManager:
                     failure_class="diagnostics_construction_error",
                 )
                 raise
+
+        # Langfuse path summary and evidence scores must run after live projection
+        # populates ``scene_blocks`` (GoC); otherwise ``visible_output_present`` is 0.
+        _reconcile_governance_passivity_with_final_projection(event)
+        path_summary = _build_langfuse_path_summary(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+        )
+        event["observability_path_summary"] = path_summary
+        _emit_langfuse_path_spans(path_summary)
+        _emit_langfuse_evidence_observations(
+            path_summary=path_summary,
+            graph_state=graph_state,
+            event=event,
+        )
 
         committed_record = {
             "turn_number": commit_turn_number,

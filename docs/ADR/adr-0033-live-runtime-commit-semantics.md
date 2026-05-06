@@ -5,6 +5,7 @@
 - **Project:** World of Shadows
 - **Decision owner:** Runtime / AI / Observability maintainers
 - **Related areas:** World-Engine, Backend, AI Stack, LangGraph/LangChain, Langfuse, Frontend Player Shell, Narrative Governance
+- **Related ADR:** [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) — player shell / MVP5 presentation contract (orthogonal to commit semantics)
 - **Supersedes:** None
 - **Superseded by:** None
 
@@ -631,6 +632,32 @@ Langfuse score/usage implementation details are deferred to follow-up ADRs, but 
 **Non-goals:** This is intentional duplication for UX and export parity, not a second semantic definition of the gate. Metadata may tag trace duplicates (e.g. `score_attachment=trace_duplicate`) for filtering.
 
 **Regression guard:** A unit test **must** assert that `create_score` is invoked with the span’s `trace_id` whenever observation-level `score` is written (`world-engine/tests/test_trace_middleware.py`). Removing trace-level submission is a contract break for ADR-0033 observability.
+
+### 13.6 Player input observability (Langfuse + API contract)
+
+**Problem:** Operators cannot audit whether a specific Langfuse trace belongs to a specific player utterance if traces omit durable, non-PII correlation fields. That recreates “blind man’s bluff” debugging: traces exist, but the causal link from **typed player line → engine turn** is weak.
+
+**Required behavior (canonical play turn, Backend):** For `POST /api/v1/game/player-sessions/<run_id>/turns`, when `LangfuseAdapter.start_trace(name="backend.turn.execute", …)` runs, metadata **must** include:
+
+- `player_input_length` (integer, UTF-8 bytes length of the trimmed request body field)
+- `player_input_sha256` (64-char hex digest of the trimmed UTF-8 player line)
+
+The same digest **must** be repeated on span completion in `output` (so exports that prefer `output` over `metadata` still correlate).
+
+**Privacy:** Do **not** place raw `player_input` text into Langfuse metadata/output by default. Hash + length is sufficient for correlation with server-side logs that may store redacted or hashed forms.
+
+**Regression guard:** Backend tests **must** assert the adapter receives these fields (`backend/tests/test_game_routes.py`).
+
+**Required behavior (World-Engine, same trace):** For `POST /api/story/sessions/{session_id}/turns`, when `LangfuseAdapter.start_span_in_trace(name="world-engine.turn.execute", trace_id=<backend Langfuse id>, …)` runs (distributed trace under the Backend root), **`input` and `metadata` must** include the same two fields computed from the **trimmed** `player_input` string passed to `StoryRuntimeManager.execute_turn`:
+
+- `player_input_length`
+- `player_input_sha256` (SHA-256 over UTF-8 bytes, identical algorithm as Backend)
+
+The span completion `update(..., output=..., metadata=...)` **must** repeat both fields so trace exports remain correlatable from either service entrypoint.
+
+**Authoritative story truth:** World-Engine continues to commit `raw_input` in diagnostics/history; hashing is for **observability correlation only**, not a replacement for committed text.
+
+**Regression guard:** World-Engine tests **must** assert these fields on `world-engine.turn.execute` (`world-engine/tests/test_trace_middleware.py`).
 
 ---
 

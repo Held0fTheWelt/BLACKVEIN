@@ -16,6 +16,8 @@ Accepted
 
 - [ADR-0030](adr-0030-docker-up-complete-bootstrap.md) - Docker bootstrap
 - [ADR-0031](adr-0031-env-configuration-governance.md) - Environment governance
+- [ADR-0033](adr-0033-live-runtime-commit-semantics.md) - Commit semantics and observability evidence
+- [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) - Player shell / MVP5 narrative presentation contract
 
 ## Context
 

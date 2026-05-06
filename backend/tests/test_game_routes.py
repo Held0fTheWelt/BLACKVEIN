@@ -1,4 +1,7 @@
+import hashlib
+
 import pytest
+from unittest.mock import MagicMock
 
 from app.extensions import db
 from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
@@ -421,6 +424,122 @@ def test_game_player_session_turn_continues_same_story_window(
     ]
     assert data["turn"]["interpreted_input"]["kind"] == "speech"
 
+
+def test_game_player_session_turn_langfuse_correlates_player_input_hash(
+    client,
+    auth_headers,
+    monkeypatch,
+):
+    """ADR-0033: backend.turn.execute must carry non-PII correlation for the committed player line."""
+    class Projection:
+        def model_dump(self, mode="json"):
+            return {"module_id": "god_of_carnage", "module_version": "0.1.0", "start_scene_id": "scene_1"}
+
+    class Compiled:
+        runtime_projection = Projection()
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        lambda **kwargs: _goc_solo_run_payload(
+            "run-langfuse-correlation",
+            selected_player_role=kwargs["selected_player_role"],
+        ),
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.resolve_canonical_module_id_for_template",
+        lambda template_id: "god_of_carnage",
+    )
+    monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: Compiled())
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_story_session",
+        lambda **kwargs: {"session_id": "story-session-lf", "opening_turn": {"turn_kind": "opening"}},
+    )
+
+    states = [
+        {
+            "session_id": "story-session-lf",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {},
+            "story_window": {"entries": [{"role": "runtime", "text": "Opening.", "turn_number": 0}]},
+        },
+        {
+            "session_id": "story-session-lf",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {},
+            "story_window": {"entries": [{"role": "runtime", "text": "Opening.", "turn_number": 0}]},
+        },
+        {
+            "session_id": "story-session-lf",
+            "turn_counter": 1,
+            "current_scene_id": "scene_1",
+            "history_count": 2,
+            "committed_state": {},
+            "story_window": {
+                "entries": [
+                    {"role": "runtime", "text": "Opening.", "turn_number": 0},
+                    {"role": "player", "text": "Ich sehe zum Fenster.", "turn_number": 1},
+                    {"role": "runtime", "text": "Die Szene reagiert.", "turn_number": 1},
+                ]
+            },
+        },
+    ]
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.get_story_state",
+        lambda session_id, trace_id=None: states.pop(0),
+    )
+    player_line = "Ich sehe zum Fenster."
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.execute_story_turn_in_engine",
+        lambda **kwargs: {
+            "turn": {
+                "turn_number": 1,
+                "raw_input": kwargs["player_input"],
+                "interpreted_input": {"kind": "speech"},
+                "runtime_governance_surface": {"governed_runtime_active": True},
+            }
+        },
+    )
+
+    fake_span = MagicMock()
+    fake_adapter = MagicMock()
+    fake_adapter.is_enabled.return_value = True
+    fake_adapter.is_ready = True
+    fake_adapter.start_trace = MagicMock(return_value=fake_span)
+    fake_adapter.end_trace = MagicMock()
+    fake_adapter.flush = MagicMock()
+    monkeypatch.setattr("app.api.v1.game_routes.LangfuseAdapter.get_instance", lambda: fake_adapter)
+
+    created = client.post(
+        "/api/v1/game/player-sessions",
+        json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": "annette"},
+        headers=auth_headers,
+    )
+    assert created.status_code == 200
+
+    response = client.post(
+        "/api/v1/game/player-sessions/run-langfuse-correlation/turns",
+        json={"player_input": player_line},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+
+    assert fake_adapter.start_trace.called
+    st_kwargs = fake_adapter.start_trace.call_args.kwargs
+    assert st_kwargs["name"] == "backend.turn.execute"
+    meta = st_kwargs["metadata"]
+    assert meta["player_input_length"] == len(player_line)
+    assert meta["player_input_sha256"] == hashlib.sha256(player_line.encode("utf-8")).hexdigest()
+
+    fake_span.update.assert_called()
+    upd_kwargs = fake_span.update.call_args.kwargs
+    assert upd_kwargs["output"]["player_input_sha256"] == meta["player_input_sha256"]
+    assert upd_kwargs["output"]["player_input_length"] == len(player_line)
+    assert upd_kwargs["output"]["status"] == "completed"
 
 
 def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(client, auth_headers, app):

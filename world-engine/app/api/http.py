@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from contextlib import nullcontext
@@ -612,6 +613,9 @@ def execute_story_turn(
     manager: StoryRuntimeManager = Depends(get_story_manager),
 ) -> dict[str, Any]:
     print(f">>> execute_story_turn CALLED for session {session_id}", flush=True)
+    player_line = str(payload.player_input).strip()
+    player_input_sha256 = hashlib.sha256(player_line.encode("utf-8")).hexdigest()
+    player_input_length = len(player_line)
     # Extract trace_id from Backend (via X-WoS-Trace-Id header)
     trace_id = getattr(request.state, "trace_id", None)
     langfuse_trace_id = getattr(request.state, "langfuse_trace_id", None)
@@ -636,8 +640,17 @@ def execute_story_turn(
                 root_span = adapter.start_span_in_trace(
                     trace_id=langfuse_trace_id,
                     name="world-engine.turn.execute",
-                    input={"session_id": session_id, "player_input_length": len(payload.player_input) if payload.player_input else 0},
-                    metadata={"stage": "world_engine_turn_execution", "session_id": session_id},
+                    input={
+                        "session_id": session_id,
+                        "player_input_length": player_input_length,
+                        "player_input_sha256": player_input_sha256,
+                    },
+                    metadata={
+                        "stage": "world_engine_turn_execution",
+                        "session_id": session_id,
+                        "player_input_length": player_input_length,
+                        "player_input_sha256": player_input_sha256,
+                    },
                 )
                 logger.info(f"[HTTP] Created world-engine span in Langfuse trace {langfuse_trace_id}")
                 adapter.set_active_span(root_span)
@@ -652,11 +665,13 @@ def execute_story_turn(
                 session_id=session_id,
                 input={
                     "session_id": session_id,
-                    "player_input_length": len(payload.player_input) if payload.player_input else 0,
+                    "player_input_length": player_input_length,
+                    "player_input_sha256": player_input_sha256,
                 },
                 metadata={
                     "turn_number": 0,  # Will be updated after execution
-                    "player_input_length": len(payload.player_input) if payload.player_input else 0,
+                    "player_input_length": player_input_length,
+                    "player_input_sha256": player_input_sha256,
                     "session_id": session_id,
                     "environment": adapter.config.environment,
                 }
@@ -685,7 +700,7 @@ def execute_story_turn(
         with session_scope:
             turn = manager.execute_turn(
                 session_id=session_id,
-                player_input=payload.player_input,
+                player_input=player_line,
                 trace_id=trace_id if isinstance(trace_id, str) else None,
             )
 
@@ -710,6 +725,8 @@ def execute_story_turn(
                         "session_id": session_id,
                         "success": True,
                         "path_summary": path_summary,
+                        "player_input_length": player_input_length,
+                        "player_input_sha256": player_input_sha256,
                     },
                     metadata={
                         "turn_number": turn_number,
@@ -720,6 +737,8 @@ def execute_story_turn(
                         "path_selected_model": path_summary.get("selected_model") if path_summary else None,
                         "path_adapter": path_summary.get("adapter") if path_summary else None,
                         "path_fallback_used": path_summary.get("generation_fallback_used") if path_summary else None,
+                        "player_input_length": player_input_length,
+                        "player_input_sha256": player_input_sha256,
                     },
                     level=level,
                     status_message=status_message,
