@@ -22,8 +22,14 @@ from app.story_runtime.manager import StoryRuntimeManager
 # Mock graph state for testing without real AI
 # ---------------------------------------------------------------------------
 
-def _mock_graph_state() -> dict:
-    return {
+def _mock_graph_state(*, force_ldss_scene_fallback: bool = False) -> dict:
+    """Graph state returned by the mocked turn graph.
+
+    By default the visible bundle yields live scene blocks (live graph primary).
+    Set ``force_ldss_scene_fallback=True`` to skip live projection and exercise
+    the LDSS envelope builder (``evidenced_live_path`` diagnostics).
+    """
+    state = {
         "validation_outcome": {
             "status": "approved",
             "reason": "mock_approved",
@@ -51,6 +57,9 @@ def _mock_graph_state() -> dict:
         "actor_survival_telemetry": {},
         "interpreted_input": {"input_kind": "dialogue"},
     }
+    if force_ldss_scene_fallback:
+        state["force_ldss_scene_fallback"] = True
+    return state
 
 
 def _goc_solo_projection(human: str = "annette") -> dict:
@@ -74,7 +83,11 @@ def _goc_solo_projection(human: str = "annette") -> dict:
     }
 
 
-def _make_manager_with_session(human: str = "annette") -> tuple[StoryRuntimeManager, object]:
+def _make_manager_with_session(
+    human: str = "annette",
+    *,
+    force_ldss_scene_fallback: bool = False,
+) -> tuple[StoryRuntimeManager, object]:
     mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
     assert mgr._skip_graph_opening_on_create is True
 
@@ -83,7 +96,9 @@ def _make_manager_with_session(human: str = "annette") -> tuple[StoryRuntimeMana
         runtime_projection=_goc_solo_projection(human),
     )
     mock_turn_graph = MagicMock()
-    mock_turn_graph.run.return_value = _mock_graph_state()
+    mock_turn_graph.run.return_value = _mock_graph_state(
+        force_ldss_scene_fallback=force_ldss_scene_fallback,
+    )
     mgr.turn_graph = mock_turn_graph
     return mgr, session
 
@@ -149,9 +164,30 @@ def test_scene_envelope_blocks_exclude_human_actor():
 
 
 @pytest.mark.mvp3
-def test_scene_envelope_diagnostics_evidenced_live_path():
-    """Scene envelope diagnostics must show evidenced_live_path status."""
+def test_scene_envelope_diagnostics_live_graph_primary_skips_ldss():
+    """When live runtime projects scene blocks, LDSS is not invoked (primary graph path)."""
     mgr, session = _make_manager_with_session("annette")
+    result = mgr.execute_turn(
+        session_id=session.session_id,
+        player_input="I just want to understand.",
+    )
+
+    env = result["scene_turn_envelope"]
+    diag = env["diagnostics"]["live_dramatic_scene_simulator"]
+    assert diag["status"] == "not_invoked_live_graph_primary"
+    assert diag["invoked"] is False
+    assert diag["entrypoint"] == "story.turn.execute"
+    assert diag["legacy_blob_used"] is False
+    assert diag["scene_block_count"] >= 1
+    assert diag["scene_block_count"] == len(
+        env["visible_scene_output"].get("blocks") or []
+    )
+
+
+@pytest.mark.mvp3
+def test_scene_envelope_diagnostics_evidenced_live_path_via_ldss_fallback():
+    """When live projection is bypassed, LDSS builds the envelope (evidenced_live_path)."""
+    mgr, session = _make_manager_with_session("annette", force_ldss_scene_fallback=True)
     result = mgr.execute_turn(
         session_id=session.session_id,
         player_input="I just want to understand.",
