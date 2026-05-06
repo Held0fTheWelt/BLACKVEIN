@@ -4,7 +4,7 @@ Short title line only in the H1; expand in **Context** / **Decision**.
 
 ## Status
 
-`Proposed` | `Accepted` | `Superseded by ADR-XXXX` (use exact ADR id when replacing this record)
+`Proposed` | `Accepted` | `Superseded by ADR-XXXX` (use exact ADR id when replacing this record) | `Not finished`
 
 ## Date
 
