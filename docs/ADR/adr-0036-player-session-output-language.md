@@ -152,27 +152,50 @@ Both errors are returned in the standard game API error response format (see `ba
 
 ## Diagrams
 
+### Session create flow (end-to-end)
+
 ```mermaid
 flowchart LR
-  subgraph launch [Play launcher]
-    T[Template]
-    R[Play_As role]
-    L[session_output_language]
+  subgraph fe [Frontend]
+    TS[Template select]
+    RS[Play-as role select]
+    LS["Language select\n(de / en, default de)"]
+    FORM["session_start.html\nPOST /api/v1/game/player-sessions"]
   end
-  subgraph api [Backend]
-    V[Validate de_or_en]
-    S[Persist on player session]
+  subgraph backend [Backend]
+    VAL["Validate\n(invalid_output_language\nunsupported_language)"]
+    SLOT["GameSaveSlot.metadata\n[session_output_language]"]
+    LF["Langfuse User\nattribute"]
+    CSS["create_story_session()"]
   end
   subgraph we [World-Engine]
-    P[runtime_projection]
-    O[Opening and turn prompts]
+    REQ["CreateStorySessionRequest\n.session_output_language"]
+    SS["StorySession\n.session_output_language"]
+    OP["_build_opening_prompt()\nlang directive prepended"]
   end
-  subgraph ai [AI stack]
-    G[LangGraph context injection]
+  subgraph ai [AI stack — pending]
+    TURN["Turn prompts\n(not yet injected)"]
   end
-  L --> V --> S --> P --> O --> G
-  T --> S
-  R --> S
+
+  TS --> FORM
+  RS --> FORM
+  LS --> FORM
+  FORM --> VAL
+  VAL --> SLOT
+  VAL --> CSS
+  VAL --> LF
+  CSS --> REQ --> SS --> OP --> TURN
+```
+
+### Validation error surface
+
+```mermaid
+flowchart TD
+  IN["session_output_language\nin request body"] --> CHK{type check}
+  CHK -->|non-string| E1["400 invalid_output_language"]
+  CHK -->|string| CHK2{value in allowed set?}
+  CHK2 -->|no| E2["400 unsupported_language\n+ allowed: [de, en]"]
+  CHK2 -->|yes / omitted| OK["proceed, default=de"]
 ```
 
 ## Testing
