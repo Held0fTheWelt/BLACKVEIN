@@ -177,3 +177,78 @@ def test_play_create_rejects_visitor_role(client):
         )
     assert r.status_code in (302, 303)
     assert not called, "Backend must not be called when visitor is submitted as selected_player_role"
+
+
+# ---------------------------------------------------------------------------
+# ADR-0036: session_output_language forwarded in frontend POST payload
+# ---------------------------------------------------------------------------
+
+def test_play_create_forwards_session_output_language_de(client):
+    """POST /play/start must include session_output_language=de in backend payload (ADR-0036)."""
+    _logged_in(client)
+    submitted = {}
+
+    def capture_backend(method, path, *, json_data=None, **kwargs):
+        submitted["json_data"] = json_data
+        return FakeResponse(payload={"run": {"id": "r_lang_de"}, "run_id": "r_lang_de"})
+
+    with patch("app.player_backend.request_backend", side_effect=capture_backend):
+        client.post(
+            "/play/start",
+            data={
+                "template_id": "god_of_carnage_solo",
+                "selected_player_role": "annette",
+                "session_output_language": "de",
+            },
+            follow_redirects=False,
+        )
+
+    json_data = submitted.get("json_data") or {}
+    assert json_data.get("session_output_language") == "de"
+
+
+def test_play_create_forwards_session_output_language_en(client):
+    """POST /play/start must include session_output_language=en in backend payload (ADR-0036)."""
+    _logged_in(client)
+    submitted = {}
+
+    def capture_backend(method, path, *, json_data=None, **kwargs):
+        submitted["json_data"] = json_data
+        return FakeResponse(payload={"run": {"id": "r_lang_en"}, "run_id": "r_lang_en"})
+
+    with patch("app.player_backend.request_backend", side_effect=capture_backend):
+        client.post(
+            "/play/start",
+            data={
+                "template_id": "god_of_carnage_solo",
+                "selected_player_role": "annette",
+                "session_output_language": "en",
+            },
+            follow_redirects=False,
+        )
+
+    json_data = submitted.get("json_data") or {}
+    assert json_data.get("session_output_language") == "en"
+
+
+def test_play_create_defaults_session_output_language_to_de(client):
+    """POST /play/start without session_output_language must default to de (ADR-0036)."""
+    _logged_in(client)
+    submitted = {}
+
+    def capture_backend(method, path, *, json_data=None, **kwargs):
+        submitted["json_data"] = json_data
+        return FakeResponse(payload={"run": {"id": "r_lang_default"}, "run_id": "r_lang_default"})
+
+    with patch("app.player_backend.request_backend", side_effect=capture_backend):
+        client.post(
+            "/play/start",
+            data={
+                "template_id": "god_of_carnage_solo",
+                "selected_player_role": "annette",
+            },
+            follow_redirects=False,
+        )
+
+    json_data = submitted.get("json_data") or {}
+    assert json_data.get("session_output_language") == "de"

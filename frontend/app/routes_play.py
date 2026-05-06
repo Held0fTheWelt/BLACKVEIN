@@ -846,6 +846,9 @@ def play_create():
     else:
         json_data = {"template_id": template_id, "trace_id": trace_id}
 
+    session_output_language = (request.form.get("session_output_language") or "de").strip()
+    json_data["session_output_language"] = session_output_language
+
     response = player_backend.request_backend(
         "POST",
         "/api/v1/game/player-sessions",
