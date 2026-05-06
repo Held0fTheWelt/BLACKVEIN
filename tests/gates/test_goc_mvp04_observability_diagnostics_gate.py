@@ -1249,20 +1249,3 @@ def test_mvp04_phase_c_governance_health_panels_api_structure():
     # In production: test GET /api/v1/admin/mvp4/game/session/<session_id>/token-budget
     # Expected response: {"data": {"used_tokens": N, "total_budget": N, ...}}
     assert True  # Placeholder for integration test
-
-
-@pytest.mark.mvp4
-def test_mvp04_phase_c_no_phase_a_b_tests_broken():
-    """Phase C changes do not break Phase A or Phase B tests."""
-    # This ensures backward compatibility
-    # Existing MVP4 phase A/B tests should still pass
-
-    # Run existing tests via pytest marker
-    pytest.main([
-        "-m", "mvp4",
-        "-k", "not phase_c",
-        "--co",  # collect only, don't run
-    ])
-
-    # If this marker test exists, Phase A/B tests are still defined
-    assert True

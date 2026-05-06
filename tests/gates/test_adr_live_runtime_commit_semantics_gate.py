@@ -14,6 +14,11 @@ def _live_turn_claim(**overrides):
         "adapter_id": "openai",
         "adapter_kind": "real",
         "fallback_used": False,
+        "ldss_fallback": False,
+        "opening_leniency_approved": False,
+        "human_actor_selected_as_responder": False,
+        "actor_lane": "approved",
+        "actor_lane_validation_status": "approved",
         "model_invocation_attempted": True,
         "model_invocation_success": True,
         "model_usage_input": 128,
@@ -129,3 +134,58 @@ def test_real_non_mock_generation_with_visible_commit_passes_live_gate():
     assert result["visible_output_present"] is True
     assert result["real_generation_observation_present"] is True
     assert result["degradation_signals"] == []
+
+
+def test_openai_adapter_with_opening_leniency_approved_fails_live_success():
+    """RED: OpenAI adapter + opening_leniency_approved must not be live-successful.
+
+    Per ADR-0033 Amendment 13.2: opening_leniency_approved may permit degraded diagnostic
+    output, but it must not count as healthy live opening or production-ready play start.
+    Degraded output must not set runtime_session_ready, can_execute, or opening_generation_status
+    to healthy/live-ready.
+    """
+    result = evaluate_live_turn_success_gate(
+        _live_turn_claim(
+            provider_id="openai",
+            adapter_id="openai",
+            adapter_kind="real",
+            fallback_used=False,  # Not a fallback case; testing opening_leniency alone
+            opening_leniency_approved=True,
+            quality_class="degraded",
+        )
+    )
+
+    assert result["live_success"] is False, "opening_leniency_approved must block live-success"
+    assert result["quality_class"] == "degraded"
+    # Should have opening_leniency degradation signal, not fallback
+    assert "opening_leniency_approved" in result["degradation_signals"]
+
+
+def test_ldss_fallback_with_human_actor_selected_as_responder_fails_live_success():
+    """RED: ldss_fallback + human_actor_selected_as_responder + actor_lane=unknown must fail.
+
+    Per ADR-0033 Amendment 13.1: human_actor_selected_as_responder is a hard live-success
+    blocker. actor_lane=unknown must not approve a live/healthy commit.
+    """
+    result = evaluate_live_turn_success_gate(
+        _live_turn_claim(
+            ldss_fallback=True,
+            human_actor_selected_as_responder=True,
+            actor_lane="unknown",
+            quality_class="degraded",
+        )
+    )
+
+    assert result["live_success"] is False, "human_actor_selected_as_responder must block live-success"
+    assert result["quality_class"] == "degraded"
+    # Either ldss_fallback or actor_lane violation should be in degradation signals
+    signals_str = " ".join(result["degradation_signals"])
+    assert any(
+        marker in signals_str
+        for marker in [
+            "ldss_fallback",
+            "human_actor_selected_as_responder",
+            "actor_lane_unknown",
+            "human_actor_protected",
+        ]
+    ), f"Expected human_actor or ldss degradation signal in {result['degradation_signals']}"

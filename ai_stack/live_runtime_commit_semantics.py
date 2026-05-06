@@ -114,6 +114,23 @@ def _append_signal(signals: list[str], signal: str) -> None:
         signals.append(signal)
 
 
+def _ldss_fallback_flag(payload: dict[str, Any]) -> bool:
+    if bool(payload.get("ldss_fallback")):
+        return True
+    adapter = str(payload.get("adapter_used") or payload.get("adapter_id") or "").strip().lower()
+    if adapter == "ldss_fallback":
+        return True
+    existing = payload.get("degradation_signals")
+    if isinstance(existing, list):
+        return any("ldss_fallback" in str(s) for s in existing)
+    return False
+
+
+def _actor_lane_unknown_flag(payload: dict[str, Any]) -> bool:
+    actor_lane = str(payload.get("actor_lane") or payload.get("actor_lane_validation_status") or "").strip().lower()
+    return not actor_lane or actor_lane == "unknown"
+
+
 def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
     """Evaluate whether a turn satisfies ADR-0033 live-success proof."""
     adapter_kind = _adapter_kind(payload)
@@ -124,6 +141,12 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
     commit_applied = bool(payload.get("commit_applied"))
     invocation_ok = bool(payload.get("model_invocation_attempted")) and bool(payload.get("model_invocation_success"))
     runtime_profile_present = bool(str(payload.get("runtime_profile_id") or "").strip())
+
+    opening_leniency = bool(payload.get("opening_leniency_approved"))
+    ldss_fallback = _ldss_fallback_flag(payload)
+    human_actor_as_responder = bool(payload.get("human_actor_selected_as_responder"))
+    actor_lane_unknown = _actor_lane_unknown_flag(payload)
+
     signals: list[str] = []
 
     if not runtime_profile_present:
@@ -134,6 +157,14 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
         _append_signal(signals, "non_live_adapter")
     if bool(payload.get("fallback_used")) or adapter_kind == "fallback":
         _append_signal(signals, "fallback_used")
+    if ldss_fallback:
+        _append_signal(signals, "ldss_fallback")
+    if opening_leniency:
+        _append_signal(signals, "opening_leniency_approved")
+    if human_actor_as_responder:
+        _append_signal(signals, "human_actor_selected_as_responder")
+    if actor_lane_unknown:
+        _append_signal(signals, "actor_lane_unknown")
     if not invocation_ok:
         _append_signal(signals, "model_invocation_failed")
     if not generated_output_present:
@@ -156,6 +187,10 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
         "live_success": live_success,
         "adapter_kind": adapter_kind,
         "fallback_used": bool(payload.get("fallback_used")),
+        "ldss_fallback": ldss_fallback,
+        "opening_leniency_approved": opening_leniency,
+        "human_actor_selected_as_responder": human_actor_as_responder,
+        "actor_lane_unknown": actor_lane_unknown,
         "model_invocation_attempted": bool(payload.get("model_invocation_attempted")),
         "model_invocation_success": bool(payload.get("model_invocation_success")),
         "generated_output_present": generated_output_present,
@@ -166,6 +201,42 @@ def evaluate_live_turn_success_gate(payload: dict[str, Any]) -> dict[str, Any]:
         "visible_output_count": len(_visible_blocks(payload)) + len(_story_entries(payload)),
         "quality_class": quality_class,
         "degradation_signals": signals,
+    }
+
+
+def build_live_gate_payload_from_envelope(envelope: Any) -> dict[str, Any]:
+    """Translate a DiagnosticsEnvelope into a flat gate-payload dict.
+
+    The gate is a policy layer that reads booleans. This bridge owns the
+    translation from envelope structure to those booleans — keeping the gate
+    decoupled from the envelope schema.
+    """
+    deg: list[str] = list(envelope.degradation_signals or [])
+    actor_lane_status = str(getattr(envelope, "actor_lane_validation_status", "") or "").strip().lower()
+    actor_lane_reason = str(getattr(envelope, "actor_lane_validation_reason", "") or "").strip().lower()
+    adapter_used = str(getattr(envelope, "adapter_used", "") or "").strip().lower()
+
+    return {
+        "runtime_profile_id": getattr(envelope, "runtime_profile_id", ""),
+        "provider_id": getattr(envelope, "ai_provider", ""),
+        "model_id": getattr(envelope, "ai_model", ""),
+        "adapter_id": adapter_used,
+        "adapter_kind": "mock" if any(m in adapter_used for m in _MOCK_MARKERS) else ("real" if adapter_used else ""),
+        "adapter_used": adapter_used,
+        "fallback_used": getattr(envelope, "fallback_stage", "primary_only") != "primary_only",
+        "ldss_fallback": adapter_used == "ldss_fallback" or any("ldss_fallback" in s for s in deg),
+        "opening_leniency_approved": "opening_leniency_approved" in deg,
+        "human_actor_selected_as_responder": "human_actor_selected_as_responder" in actor_lane_reason,
+        "actor_lane": actor_lane_status or "unknown",
+        "actor_lane_validation_status": actor_lane_status,
+        "model_invocation_attempted": getattr(envelope, "structured_output_present", False),
+        "model_invocation_success": getattr(envelope, "structured_output_present", False),
+        "generated_output_present": getattr(envelope, "structured_output_present", False),
+        "validation_status": "approved" if getattr(envelope, "dramatic_validation_status", "") == "approved" else "",
+        "commit_applied": getattr(envelope, "commit_applied", False),
+        "visible_scene_output": {},
+        "story_entries": [],
+        "degradation_signals": deg,
     }
 
 

@@ -570,6 +570,56 @@ Create implementation tasks for:
 
 ---
 
+## 13. Amendment: Opening Leniency, Actor-Lane Violations, and Degraded Commits
+
+### 13.1 Actor-Lane and Human-Actor Protection
+
+Hard live-success blockers based on Langfuse traces:
+
+```text
+human_actor_selected_as_responder=True   → live_success = false
+actor_lane=unknown                       → live_success = false
+actor_lane=protected_human_actor         → live_success = false
+```
+
+If the human player's assigned actor is selected as the responder (speaker/actor for a turn), the turn cannot be live-successful because it violates the core `AI Proposal ≠ Engine Truth` contract. The human player may only observe the world; the engine must never ask the human-bound actor to generate or validate its own speech/actions.
+
+If the actor lane status cannot be determined or is explicitly marked unknown, live success must not be granted. The runtime must definitively know which actors are human-protected and which are AI-controllable.
+
+### 13.2 Fallback and Leniency Semantics
+
+- `ldss_fallback=True` is never real live AI generation. It is diagnostic fallback, not a live-path commitment.
+- `fallback_used=True` prevents healthy live-runtime success. It must be marked degraded or disabled at the live-success gate.
+- `opening_leniency_approved=True` may permit degraded diagnostic output to be committed for diagnostics/testing, but:
+  - It must not count as a healthy live opening.
+  - It must not set `runtime_session_ready`, `can_execute`, or `opening_generation_status` to healthy/live-ready.
+  - Frontend must be aware that the opening is degraded/diagnostic, not production-ready.
+  - Cannot allow meaningful player engagement (e.g., turn execution) until a real live opening is committed.
+
+### 13.3 Degraded Commit Semantics
+
+- `commit_applied=True` may persist degraded diagnostic output for observability and test harness use.
+- Degraded commits must not set production-ready state fields:
+  - `runtime_session_ready` must remain `false`
+  - `can_execute_turn` must remain `false`
+  - `opening_generation_status` must not be `healthy`
+- Degraded commits must carry explicit quality markers:
+  - `quality=degraded`
+  - `degradation_reason` (e.g., `fallback_used`, `ldss_fallback`, `opening_leniency_approved`)
+  - `live_success=false`
+
+### 13.4 Traceable Live-Success Decisions
+
+Live-success decisions must be:
+- Scoreable in Langfuse (exact decision rule, pass/fail, signal values)
+- Reproducible from trace metadata (not inferred from session state alone)
+- Distinguishable from diagnostic/degraded/mock paths
+- Documented at trace level with decision fields
+
+Langfuse score/usage implementation details are deferred to follow-up ADRs, but live-success computations must be exposed in trace metadata so that future scoring strategies can audit live-success decisions.
+
+---
+
 ## 14. Summary
 
 A traced runtime path is not automatically a live runtime path.
@@ -577,3 +627,5 @@ A traced runtime path is not automatically a live runtime path.
 A live story turn must be proven by real non-mock generation, engine validation, committed state, and visible player-facing story output.
 
 Mock, fallback, degraded, and empty traced paths are valid diagnostic states, but they must not satisfy healthy live-runtime success gates.
+
+Opening leniency and fallback-only commits may produce observable degraded outputs for diagnostics, but they must not enable production play or claim live-success status.
