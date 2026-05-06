@@ -69,6 +69,13 @@ def create_app(config_object=None, *, testing: bool | None = None):
             from app.observability.langfuse_adapter import LangfuseAdapter
             app.langfuse_adapter = LangfuseAdapter.get_instance()
 
+        try:
+            from app.services.hf_hub_governance_service import sync_hf_token_from_store_to_os_environ
+
+            sync_hf_token_from_store_to_os_environ()
+        except Exception as sync_hf_exc:
+            print(f"[WARN] Could not sync HF hub token from governance store: {sync_hf_exc}")
+
     csrf = CSRFProtect(app)
     from app.api.v1 import api_v1_bp
 

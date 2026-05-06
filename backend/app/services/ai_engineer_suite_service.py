@@ -926,6 +926,9 @@ def get_rag_operations_status() -> dict[str, Any]:
                 "fix_path": "/manage/rag-operations",
             }
         )
+    from app.services.hf_hub_governance_service import get_hf_hub_status
+
+    hf_hub_status = get_hf_hub_status()
     return {
         "generated_at": corpus.built_at,
         "operational_state": operational_state,
@@ -1002,6 +1005,7 @@ def get_rag_operations_status() -> dict[str, Any]:
             {"action_id": "rebuild_dense_index", "label": "Rebuild dense embedding index"},
             {"action_id": "reload_runtime_retriever", "label": "Reload in-process retriever"},
         ],
+        "hf_hub": hf_hub_status,
     }
 
 

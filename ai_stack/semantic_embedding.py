@@ -31,7 +31,10 @@ reporting without guessing from retrieval routes alone.
 
 from __future__ import annotations
 
+import contextlib
+import logging
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -44,6 +47,34 @@ EMBEDDING_INDEX_VERSION = "c1_next_embed_v1"
 
 _ENV_DISABLE = "WOS_RAG_DISABLE_EMBEDDINGS"
 _ENV_CACHE_DIR = "WOS_RAG_EMBEDDING_CACHE_DIR"
+
+
+@contextlib.contextmanager
+def _suppress_hf_hub_anonymous_download_hint() -> object:
+    """Drop huggingface_hub's noisy anonymous-download hint during model fetch.
+
+    Operators who omit ``HF_TOKEN`` still get working pulls; the library logs a
+    rate-limit reminder on stderr. Document ``HF_TOKEN`` in ``.env.example``; here
+    we only avoid cluttering Docker/gunicorn logs during ``TextEmbedding`` init.
+    """
+
+    class _DropAnonymousHFHint(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:  # noqa: D401
+            return "unauthenticated requests to the HF Hub" not in record.getMessage()
+
+    filt = _DropAnonymousHFHint()
+    hub = logging.getLogger("huggingface_hub")
+    hub.addFilter(filt)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r".*[Uu]nauthenticated requests to the HF Hub.*",
+            category=Warning,
+        )
+        try:
+            yield
+        finally:
+            hub.removeFilter(filt)
 
 # One TextEmbedding instance per process (keyed by model id + resolved cache dir).
 _model_singleton: object | None = None
@@ -249,7 +280,8 @@ def _get_text_embedding():
         return _model_singleton
     from fastembed import TextEmbedding
 
-    _model_singleton = TextEmbedding(model_name=EMBEDDING_MODEL_ID, cache_dir=cache_dir)
+    with _suppress_hf_hub_anonymous_download_hint():
+        _model_singleton = TextEmbedding(model_name=EMBEDDING_MODEL_ID, cache_dir=cache_dir)
     _model_singleton_key = key
     return _model_singleton
 

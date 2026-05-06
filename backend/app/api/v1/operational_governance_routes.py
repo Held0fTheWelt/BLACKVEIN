@@ -607,6 +607,21 @@ def internal_provider_credential_get(provider_id: str):
     return ok({"provider_id": provider_id, "api_key": api_key})
 
 
+@api_v1_bp.route("/internal/hf-hub/token", methods=["GET"])
+@limiter.limit("300 per minute")
+def internal_hf_hub_token_get():
+    """Internal: decrypted HF Hub read token for play-service / world-engine (same auth as runtime-config)."""
+    token_hdr = (request.headers.get("X-Internal-Config-Token") or "").strip()
+    expected = (current_app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN") or "").strip()
+    if not expected or token_hdr != expected:
+        return fail("credential_access_forbidden", "Internal credential token is invalid.", 403, {})
+
+    from app.services.hf_hub_governance_service import get_hf_hub_token_for_runtime
+
+    hub_token = get_hf_hub_token_for_runtime()
+    return ok({"token": hub_token})
+
+
 # ============================================================================
 # Release Readiness Gates — Canonical Schema (Phase 1)
 # ============================================================================

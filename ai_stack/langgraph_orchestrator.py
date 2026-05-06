@@ -10,8 +10,9 @@ Constitutional Laws:
 """
 
 from typing import Any, Dict, Optional
+
 try:
-    from langgraph.graph import StateGraph
+    from ai_stack.langgraph_imports import StateGraph
 except ImportError:
     # Fallback for testing
     StateGraph = None

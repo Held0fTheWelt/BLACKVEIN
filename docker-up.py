@@ -59,10 +59,14 @@ OPTIONAL_WITH_DEFAULTS = {
     "REDIS_URL": "redis://redis:6379/0",
 }
 
+# Slots materialized in .env as empty strings when missing (same lifecycle as provider API keys).
+# HF_TOKEN is a Hugging Face **account** read token from https://huggingface.co/settings/tokens — not a
+# random platform secret; docker-up only ensures the key exists so compose/env_file can inject it.
 OPTIONAL_SECRET_KEYS = (
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
     "ANTHROPIC_API_KEY",
+    "HF_TOKEN",
     "LANGFUSE_PUBLIC_KEY",
     "LANGFUSE_SECRET_KEY",
 )
@@ -173,7 +177,9 @@ def _ensure_env_secrets(force: bool = False) -> bool:
             env_to_write[key] = default_value
             updated = True
 
-    # Ensure known provider API key slots exist but stay blank by default
+    # Ensure known provider / optional credential slots exist (empty default).
+    # Only add missing *keys* — never replace existing values (operators may have set
+    # OPENAI_API_KEY, HF_TOKEN, LANGFUSE_*, etc.; re-running init-env/up must preserve them).
     for key in OPTIONAL_SECRET_KEYS:
         if key not in env_to_write:
             env_to_write[key] = ""
@@ -242,7 +248,7 @@ def _ensure_dotenv_before_compose(compose_args: list[str]) -> None:
         if created:
             print(
                 f"\n[OK] Created {ENV_FILE} with auto-generated stable secrets.\n"
-                f"  IMPORTANT: Set provider keys in {ENV_FILE} (OPENAI_API_KEY / OPENROUTER_API_KEY / ANTHROPIC_API_KEY) as needed.\n"
+                f"  IMPORTANT: Set provider keys in {ENV_FILE} (OPENAI_API_KEY / OPENROUTER_API_KEY / ANTHROPIC_API_KEY / optional HF_TOKEN) as needed.\n"
                 f"  Other secrets are already generated and should not be changed.\n",
                 file=sys.stderr,
             )
@@ -546,7 +552,7 @@ def cmd_init_env(args: argparse.Namespace, services: list[str]) -> int:
     if created or force:
         print(f"\n{'[OK] Created' if not ENV_FILE.is_file() else '[OK] Updated'} {ENV_FILE}")
         print(f"\nNext steps:")
-        print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic)")
+        print(f"  1. Edit {ENV_FILE} and set provider API keys as needed (OpenAI/OpenRouter/Anthropic; optional HF_TOKEN for Hub)")
         print(f"  2. Run: python docker-up.py up")
         print(f"\nOther secrets (SECRET_KEY, JWT_SECRET_KEY, etc.) are auto-generated and should not be changed.")
         return 0

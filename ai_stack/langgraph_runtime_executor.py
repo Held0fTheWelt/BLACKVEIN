@@ -12,11 +12,7 @@ from typing import Any
 
 _log = logging.getLogger(__name__)
 
-try:  # pragma: no cover - mirror facade LangGraph import; avoids import cycle with langgraph_runtime
-    from langgraph.graph import END, StateGraph
-except Exception:  # pragma: no cover
-    END = None
-    StateGraph = None
+from ai_stack.langgraph_imports import END, StateGraph
 
 from story_runtime_core.adapters import BaseModelAdapter
 from story_runtime_core.model_registry import ModelRegistry, RoutingPolicy

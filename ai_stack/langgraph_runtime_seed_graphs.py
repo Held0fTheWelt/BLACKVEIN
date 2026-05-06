@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing_extensions import TypedDict
 
 try:  # pragma: no cover - mirror facade; seed module must not import langgraph_runtime at load time
-    from langgraph.graph import END, StateGraph
+    from ai_stack.langgraph_imports import END, StateGraph
 except Exception:  # pragma: no cover
     END = None
     StateGraph = None

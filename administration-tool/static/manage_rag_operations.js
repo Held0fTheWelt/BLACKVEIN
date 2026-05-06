@@ -74,6 +74,17 @@
     }
   }
 
+  function renderHfHub(hf) {
+    hf = hf || {};
+    var el = document.getElementById("manage-rag-hf-status");
+    if (!el) return;
+    var gov = hf.credential_configured ? "stored (fingerprint " + (hf.credential_fingerprint || "?") + ")" : "not stored";
+    var env = hf.process_env_hf_token_set ? "set" : "unset";
+    var health = hf.health_status || "unconfigured";
+    var tested = hf.last_tested_at ? " | last tested: " + hf.last_tested_at : "";
+    el.textContent = "Governance: " + gov + " — process HF_TOKEN: " + env + " — health: " + health + tested;
+  }
+
   function renderStatus(payload) {
     state.status = payload || {};
     var corpus = state.status.corpus || {};
@@ -103,6 +114,7 @@
         + " -> " + (row.next_step || "no next step")
         + (row.fix_path ? " (" + row.fix_path + ")" : "");
     }), "No guidance rows.");
+    renderHfHub(state.status.hf_hub);
     setJson("manage-rag-json", { status: state.status, settings: state.settings });
   }
 
@@ -203,6 +215,62 @@
         }).then(function (res) {
           renderProbe(res && res.data ? res.data : {});
           show("ok", "Probe completed.");
+        }).catch(function (err) {
+          show("err", parseError(err));
+        });
+      });
+    }
+
+    var hfSave = document.getElementById("manage-rag-hf-save");
+    if (hfSave) {
+      hfSave.addEventListener("click", function () {
+        var tok = value("manage-rag-hf-token", "");
+        if (!tok) {
+          show("err", "Paste a Hugging Face read token before saving.");
+          return;
+        }
+        window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/hf-hub/credential", {
+          method: "POST",
+          body: JSON.stringify({ token: tok })
+        }).then(function () {
+          setValue("manage-rag-hf-token", "");
+          return refreshAll().then(function () {
+            show("ok", "Hugging Face token saved (encrypted). Fingerprint shown in status.");
+          });
+        }).catch(function (err) {
+          show("err", parseError(err));
+        });
+      });
+    }
+    var hfTest = document.getElementById("manage-rag-hf-test");
+    if (hfTest) {
+      hfTest.addEventListener("click", function () {
+        window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/hf-hub/test-connection", {
+          method: "POST",
+          body: "{}"
+        }).then(function (res) {
+          var data = res && res.data ? res.data : {};
+          if (data.ok) {
+            show("ok", data.message || "HF Hub accepted the token.");
+          } else {
+            show("err", data.message || "HF Hub test failed.");
+          }
+          return refreshAll();
+        }).catch(function (err) {
+          show("err", parseError(err));
+        });
+      });
+    }
+    var hfClear = document.getElementById("manage-rag-hf-clear");
+    if (hfClear) {
+      hfClear.addEventListener("click", function () {
+        if (!window.confirm("Remove the stored Hugging Face token from the database? (Restart workers if you rely on process env.)")) return;
+        window.ManageAuth.apiFetchWithAuth("/api/v1/admin/ai/hf-hub/credential", {
+          method: "DELETE"
+        }).then(function () {
+          return refreshAll().then(function () {
+            show("ok", "Stored Hugging Face token removed.");
+          });
         }).catch(function (err) {
           show("err", parseError(err));
         });

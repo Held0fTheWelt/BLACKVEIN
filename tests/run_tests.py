@@ -285,7 +285,8 @@ def _import_probe(
 def _probe_ai_stack_langgraph_lane() -> tuple[bool, str]:
     """Same LangChain / LangGraph / export surface as CI (``ai_stack-tests.yml``, engine job)."""
     graph_py = (
-        "import langchain_core, langgraph, ai_stack\n"
+        "import langchain_core, ai_stack\n"
+        "import langgraph\n"
         "assert ai_stack.LANGGRAPH_RUNTIME_EXPORT_AVAILABLE, "
         "'pip install -e ./story_runtime_core -e \"./ai_stack[test]\" from repo root'\n"
         "from ai_stack import RuntimeTurnGraphExecutor\n"

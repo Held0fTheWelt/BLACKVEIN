@@ -30,6 +30,12 @@ from app.services.ai_engineer_suite_service import (
     update_rag_settings,
 )
 from app.services.governance_runtime_service import record_operational_activity
+from app.services.hf_hub_governance_service import (
+    clear_hf_hub_token,
+    get_hf_hub_status,
+    test_hf_hub_connection,
+    write_hf_hub_token,
+)
 
 
 def _actor_identifier() -> str:
@@ -104,6 +110,42 @@ def admin_ai_rag_settings_get():
 @require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
 def admin_ai_rag_settings_patch():
     return _handle("ai_rag_settings_patch", lambda: update_rag_settings(_body(), _actor_identifier()))
+
+
+@api_v1_bp.route("/admin/ai/hf-hub/status", methods=["GET"])
+@limiter.limit("60 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_ai_hf_hub_status():
+    return _handle("ai_hf_hub_status", get_hf_hub_status)
+
+
+@api_v1_bp.route("/admin/ai/hf-hub/credential", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_ai_hf_hub_credential_write():
+    body = _body()
+    token = str(body.get("token") or "").strip()
+    if not token:
+        raise GovernanceError("credential_invalid", "token is required.", 400, {})
+    return _handle("ai_hf_hub_credential_write", lambda: write_hf_hub_token(token, _actor_identifier()))
+
+
+@api_v1_bp.route("/admin/ai/hf-hub/credential", methods=["DELETE"])
+@limiter.limit("10 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_ai_hf_hub_credential_delete():
+    return _handle("ai_hf_hub_credential_clear", lambda: clear_hf_hub_token(_actor_identifier()))
+
+
+@api_v1_bp.route("/admin/ai/hf-hub/test-connection", methods=["POST"])
+@limiter.limit("10 per minute")
+@jwt_required()
+@require_feature(FEATURE_MANAGE_AI_RUNTIME_GOVERNANCE)
+def admin_ai_hf_hub_test_connection():
+    return _handle("ai_hf_hub_test_connection", lambda: test_hf_hub_connection(_actor_identifier()))
 
 
 @api_v1_bp.route("/admin/ai/orchestration/status", methods=["GET"])

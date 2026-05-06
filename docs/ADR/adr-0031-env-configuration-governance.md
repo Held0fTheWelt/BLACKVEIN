@@ -115,8 +115,12 @@ All environment variables must fit one of these classes.
 | Platform secrets | cross-service trust and cryptography | `JWT_SECRET_KEY`, `SECRETS_KEK`, `INTERNAL_RUNTIME_CONFIG_TOKEN` | generated once, preserved, never committed live |
 | Runtime wiring | service discovery and URLs | `BACKEND_RUNTIME_CONFIG_URL`, `PLAY_SERVICE_PUBLIC_URL`, `REDIS_URL` | explicit in Docker/local deployment |
 | Provider endpoints | non-secret upstream URLs/versions | `OPENAI_BASE_URL`, `ANTHROPIC_VERSION` | safe defaults allowed |
-| Provider credentials | access to upstream providers | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | optional unless provider is used |
+| Provider credentials | access to upstream providers | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `HF_TOKEN` (Hugging Face Hub read token for fastembed / hub downloads) | optional unless that provider path is used |
 | Bootstrap import credentials | optional seeding into managed config | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | if present, must be complete pair |
+
+**`docker-up.py` and optional credential slots:** For keys in `OPTIONAL_SECRET_KEYS`, the bootstrap only inserts a **missing key** with an empty value. It does **not** overwrite keys that already exist in `.env`, so saved AI provider keys, `HF_TOKEN`, and Langfuse bootstrap pairs remain stable across `init-env` / `up` runs.
+
+**Admin UI coverage:** Langfuse operational credentials are managed under **Observability Settings** (`/manage/observability-settings`) once imported into backend storage. There is **no** administration-tool screen for `HF_TOKEN` or other Hugging Face Hub tokens today — operators set `HF_TOKEN` in the repository-root `.env` (see `.env.example`); compose `env_file` injects it into backend / play-service at runtime.
 
 ### 4. Environment validation must match actual ownership
 

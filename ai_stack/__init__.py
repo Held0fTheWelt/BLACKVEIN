@@ -4,6 +4,10 @@ invariants for maintainers.
 """
 from .version import AI_STACK_MILESTONE, AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 
+from .langchain_reviver_compat import ensure_langchain_reviver_explicit_core
+
+ensure_langchain_reviver_explicit_core()
+
 # True when the LangGraph runtime package surface imported successfully (see try/except below).
 # LangChain symbols are exported in a separate optional block; their absence does not clear this flag.
 # If False, use `pip install -e "./ai_stack[test]"` or `pip install -r ai_stack/requirements-test.txt`

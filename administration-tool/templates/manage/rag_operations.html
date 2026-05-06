@@ -7,6 +7,11 @@
             <p class="manage-eyebrow">AI Engineer Suite</p>
             <h1>RAG Operations</h1>
             <p class="manage-lead">Retrieval observability and operator-safe controls for corpus/index posture, embedding availability, and query probing.</p>
+            <p class="muted" style="margin-top:0.5rem;max-width:52rem;">
+                <strong>Hugging Face Hub (<code>HF_TOKEN</code>):</strong> store a <strong>read</strong> token below (encrypted in the backend DB, same crypto as other governance secrets).
+                On save, the backend and play-service pick it up via <code>HF_TOKEN</code> (process env after sync / internal fetch). You can still set <code>HF_TOKEN</code> in repo-root <code>.env</code> for bootstrap; the governance store overrides when a token is saved.
+                Langfuse keys remain separate: <a href="{{ url_for('manage_observability_settings') }}">Observability Settings</a>.
+            </p>
         </div>
         <div class="manage-actions-row">
             <button type="button" class="btn" id="manage-rag-refresh">Reload RAG status</button>
@@ -15,6 +20,20 @@
 
     <p id="manage-rag-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
     <p id="manage-rag-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+
+    <section class="panel" style="margin-bottom:1rem;">
+        <header class="panel-header"><h2>Hugging Face Hub token</h2></header>
+        <p class="muted">Write-only: paste a token from <a href="https://huggingface.co/settings/tokens" rel="noopener noreferrer">huggingface.co/settings/tokens</a> (read scope is enough for model pulls).</p>
+        <p id="manage-rag-hf-status" class="muted" style="min-height:1.25rem;"></p>
+        <label class="form-label">Hub read token
+            <input type="password" id="manage-rag-hf-token" class="form-input" autocomplete="new-password" placeholder="hf_…" />
+        </label>
+        <div class="manage-actions-row">
+            <button type="button" class="btn btn-primary" id="manage-rag-hf-save">Save token</button>
+            <button type="button" class="btn" id="manage-rag-hf-test">Test connection</button>
+            <button type="button" class="btn" id="manage-rag-hf-clear">Remove from store</button>
+        </div>
+    </section>
 
     <div class="manage-grid two-col">
         <section class="panel">

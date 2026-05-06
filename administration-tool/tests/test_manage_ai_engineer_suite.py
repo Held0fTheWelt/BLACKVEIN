@@ -64,6 +64,10 @@ def test_manage_runtime_dashboard_mount_points(client):
 def test_manage_rag_operations_mount_points(client):
     response = client.get("/manage/rag-operations")
     html = response.get_data(as_text=True)
+    assert "HF_TOKEN" in html
+    assert "manage-rag-hf-save" in html
+    assert "manage-rag-hf-test" in html
+    assert "/manage/observability-settings" in html
     assert "manage-rag-status-lines" in html
     assert "manage-rag-comparison-lines" in html
     assert "manage-rag-guidance-lines" in html

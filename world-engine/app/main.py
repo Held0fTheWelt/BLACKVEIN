@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
@@ -11,6 +12,13 @@ from app.repo_root import resolve_wos_repo_root
 REPO_ROOT = resolve_wos_repo_root(start=Path(__file__).resolve().parent)
 if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
+
+try:
+    from ai_stack.langchain_reviver_compat import ensure_langchain_reviver_explicit_core
+
+    ensure_langchain_reviver_explicit_core()
+except ImportError:
+    pass
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -34,7 +42,10 @@ from app.narrative.preview_isolation import PreviewIsolationRegistry
 from app.narrative.runtime_health import RuntimeHealthCounters
 from app.narrative.validator_strategies import OutputValidatorConfig, ValidationStrategy
 from app.runtime.manager import RuntimeManager
-from app.runtime.runtime_config_client import fetch_resolved_runtime_config
+from app.runtime.runtime_config_client import (
+    fetch_hf_hub_token_from_backend,
+    fetch_resolved_runtime_config,
+)
 from app.story_runtime import StoryRuntimeManager
 from app.story_runtime.story_session_store import JsonStorySessionStore
 
@@ -59,6 +70,18 @@ async def lifespan(app: FastAPI):
         token=INTERNAL_RUNTIME_CONFIG_TOKEN,
         timeout_seconds=RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
     )
+    try:
+        hf_tok = fetch_hf_hub_token_from_backend(
+            base_url=BACKEND_RUNTIME_CONFIG_URL,
+            token=INTERNAL_RUNTIME_CONFIG_TOKEN,
+            timeout_seconds=RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
+        )
+        if hf_tok:
+            os.environ["HF_TOKEN"] = hf_tok
+            print("[INFO] HF_TOKEN synced from backend Hugging Face Hub governance store")
+    except Exception as exc:
+        print(f"[WARN] Could not sync HF_TOKEN from backend: {exc}")
+
     app.state.resolved_runtime_config = resolved_runtime_config
     app.state.manager = RuntimeManager(store_root=RUN_STORE_DIR, governed_runtime_config=resolved_runtime_config)
     app.state.story_manager = StoryRuntimeManager(

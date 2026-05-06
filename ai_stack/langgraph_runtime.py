@@ -3,13 +3,7 @@
 """
 from __future__ import annotations
 
-LANGGRAPH_IMPORT_ERROR: Exception | None = None
-try:  # pragma: no cover - exercised by dedicated missing-dependency test via sentinel override
-    from langgraph.graph import END, StateGraph
-except Exception as exc:  # pragma: no cover
-    END = None
-    StateGraph = None
-    LANGGRAPH_IMPORT_ERROR = exc
+from ai_stack.langgraph_imports import END, LANGGRAPH_IMPORT_ERROR, StateGraph
 
 
 def ensure_langgraph_available() -> None:
