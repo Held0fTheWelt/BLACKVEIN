@@ -99,6 +99,8 @@ class TypewriterEngine {
       pause_after_ms: 650,
       skippable: true,
     };
+    // One listener for the lifetime of the engine — avoids duplicate onTick handlers per block.
+    this.clock.onTick((time) => this._onClockTick(time));
   }
 
   /**
@@ -150,26 +152,28 @@ class TypewriterEngine {
     if (!this.test_mode) {
       this.clock.start();
     }
+  }
 
-    this.clock.onTick((time) => {
-      if (!this.current_block) {
-        return;
-      }
+  /**
+   * Single clock tick handler (registered once in constructor).
+   */
+  _onClockTick(time) {
+    if (!this.current_block) {
+      return;
+    }
 
-      const elapsed = time - this.current_block.start_time;
-      const visible_chars = Math.min(
-        Math.floor((elapsed / this.current_block.duration) * this.current_block.text.length),
-        this.current_block.text.length
-      );
+    const elapsed = time - this.current_block.start_time;
+    const visible_chars = Math.min(
+      Math.floor((elapsed / this.current_block.duration) * this.current_block.text.length),
+      this.current_block.text.length
+    );
 
-      this.current_block.visible_chars = visible_chars;
-      this._renderBlock();
+    this.current_block.visible_chars = visible_chars;
+    this._renderBlock();
 
-      // Check if block is complete
-      if (visible_chars >= this.current_block.text.length) {
-        this._completeCurrentBlock();
-      }
-    });
+    if (visible_chars >= this.current_block.text.length) {
+      this._completeCurrentBlock();
+    }
   }
 
   /**
@@ -200,12 +204,17 @@ class TypewriterEngine {
    * Reveal all queued blocks immediately
    */
   revealAll() {
-    for (let block of this.queue) {
+    for (const block of this.queue) {
       block.visible_chars = block.text.length;
+      const el = document.querySelector(`[data-block-id="${block.block_id}"]`);
+      if (el) {
+        el.textContent = block.text;
+      }
     }
     this._renderBlock();
     this.queue = [];
     this.current_block = null;
+    this.clock.stop();
   }
 
   /**

@@ -11,6 +11,7 @@ an equivalent live runtime (see ``docs/technical/architecture/backend-runtime-cl
 
 from flask import request, jsonify, g
 from datetime import datetime, timezone
+import hashlib
 import json
 
 from app.api.v1 import api_v1_bp
@@ -498,6 +499,7 @@ def execute_session_turn(session_id):
     player_input = (data.get("player_input") or data.get("operator_input") or data.get("input") or "").strip()
     if not player_input:
         return jsonify({"error": "player_input is required"}), 400
+    player_input_sha256 = hashlib.sha256(player_input.encode("utf-8")).hexdigest()
     local_interpretation = interpret_player_input(player_input)
 
     state = runtime_session.current_runtime_state
@@ -521,7 +523,9 @@ def execute_session_turn(session_id):
                 "wos_trace_id": trace_id,
                 "langfuse_trace_id": langfuse_trace_id,
                 "player_input_length": len(player_input),
+                "player_input_sha256": player_input_sha256,
                 "stage": "turn_execution",
+                "route": "/api/v1/sessions/<session_id>/turns",
             },
             trace_id=langfuse_trace_id,
         )
@@ -556,10 +560,14 @@ def execute_session_turn(session_id):
 
         # Update root span with results
         if root_span:
-            root_span.update(output={
-                "turn_number": runtime_session.turn_counter if hasattr(runtime_session, 'turn_counter') else None,
-                "status": "completed",
-            })
+            root_span.update(
+                output={
+                    "turn_number": runtime_session.turn_counter if hasattr(runtime_session, 'turn_counter') else None,
+                    "status": "completed",
+                    "player_input_length": len(player_input),
+                    "player_input_sha256": player_input_sha256,
+                },
+            )
     except GameServiceError as exc:
         # Update root span with error
         if root_span:
@@ -567,6 +575,8 @@ def execute_session_turn(session_id):
                 "status": "error",
                 "failure_class": "world_engine_unreachable",
                 "status_code": exc.status_code,
+                "player_input_length": len(player_input),
+                "player_input_sha256": player_input_sha256,
             })
 
         log_world_engine_bridge(

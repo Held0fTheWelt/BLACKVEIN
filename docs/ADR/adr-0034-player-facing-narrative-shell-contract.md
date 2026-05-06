@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
@@ -22,9 +22,13 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 2. **Transcript vs. live delivery:** After each successful turn, the shell must not give the appearance that earlier committed story vanished. The HTTP contract already exposes `story_window.entries` and `visible_scene_output.blocks`; MVP5 orchestration must align with the **cumulative** block policy on the Backend bundle (see `backend/app/api/v1/game_routes.py` cumulative `scene_blocks` when entries carry `scene_blocks`).
 
-3. **Narrator role (product, not only UI):** Narration density, “show vs tell”, and lane separation (narrator vs NPC vs stage direction) are **content and graph policy** concerns first; the shell must **render** committed lanes faithfully once the engine emits typed blocks and text. Specific literary rules belong in narrative governance / prompt packs; this ADR only records that the **shell** must not collapse distinct lanes into an indistinguishable blob when the contract provides them.
+3. **Narrator role (product, not only UI):** The narrator is a **literary scene presenter**: atmosphere, perception, and **light guidance** (what is noticeable, what the room offers). The shell must **not** prescribe crude player emotions (“you feel afraid”) or substitute for player agency. Narration density, “show vs tell”, and lane separation (narrator vs NPC vs stage direction) remain **content and graph policy** concerns; the shell **renders** committed lanes faithfully when the engine emits typed blocks and text. Specific literary rules live in narrative governance / prompt packs.
 
-4. **Typewriter policy (to be finalized):** Default target behavior: **one** typewriter stream that types **only the latest incomplete block** while prior blocks remain fully revealed (chat-like). Current implementation queues all blocks on `loadTurn`; changing this is an MVP5 task tracked here, not in ADR-0033.
+4. **Dramaturgical block types:** The contract assumes distinct block kinds (e.g. narrator, actor line, stage direction) when the API provides `block_type` / structure. The shell must preserve typographic and semantic distinction **when the bundle supplies it** — no collapsing lanes into an undifferentiated blob.
+
+5. **Single-active typewriter:** Exactly **one** block uses the typewriter at a time. On HTTP `loadTurn`, **only the last** block in `visible_scene_output.blocks` is delivered via the typewriter; earlier blocks render as **full text immediately**. On streamed `appendNarratorBlock`, any in-progress queue is **finalized** (`revealAll`) before starting delivery for the new block. `TypewriterEngine` registers **one** `VirtualClock` tick handler for its lifetime (no duplicate `onTick` listeners per block).
+
+6. **No debug surface in player UI:** Diagnostic or technical payloads must not appear as ordinary narrative blocks in the player shell. Debug belongs in operator tools, Langfuse, or explicit diagnostics endpoints — not mixed into the theatrical transcript.
 
 ## Consequences
 
@@ -39,19 +43,26 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 ## Verification
 
-Gate this ADR with **real** tests (not mock-the-whole-world stubs):
+### Test tiers (see `docs/testing/TEST_SUITE_CONTRACT.md`)
+
+- **Contract tests:** mocks allowed for wiring (e.g. orchestrator + mock typewriter).
+- **Live Langfuse gate:** opt-in `RUN_LANGFUSE_LIVE=1` — `backend/tests/test_observability/test_langfuse_live_c640_gate.py` (c640-style regression; no soft skip when live is on).
+
+### Repository tests
 
 - Backend: `tests/test_mvp4_contract_playability.py` (cumulative `visible_scene_output` for MVP5).
-- Backend: `tests/test_game_routes.py` (Langfuse player-input hash on canonical turn route; ADR-0033 §13.6).
+- Backend: `tests/test_game_routes.py` (Langfuse player-input hash on canonical turn; ADR-0033 §13.6).
+- Backend: `tests/test_session_routes.py` (`test_execute_turn_langfuse_correlates_player_input_hash`; operator path §13.6).
 - World-Engine: `tests/test_trace_middleware.py` (`test_world_engine_turn_execute_langfuse_correlates_player_input_hash`; ADR-0033 §13.6).
-- Frontend: existing `frontend/tests/test_blocks_orchestrator.js` and shell integration tests must be extended when typewriter-only-last-block behavior is implemented.
+- Frontend: Jest — `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js` (single listener; last-block-only typewriter policy). Run via `npm test` in `frontend/`, orchestrated after pytest by `python tests/run_tests.py --suite frontend` or `--mvp5`.
 
-CI environments that run shell gates must install frontend test dependencies and execute the configured suite via `python tests/run_tests.py` (canonical runner).
+CI environments that run shell gates must install frontend npm devDependencies so Jest can execute.
 
 ## References
 
 - [ADR-0032](adr-0032-mvp4-live-runtime-setup-requirements.md)
 - [ADR-0033](adr-0033-live-runtime-commit-semantics.md)
+- [TEST_SUITE_CONTRACT](../testing/TEST_SUITE_CONTRACT.md)
 - `backend/app/api/v1/game_routes.py`
 - `frontend/static/play_shell.js`
 - `frontend/static/play_blocks_orchestrator.js`

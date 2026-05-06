@@ -1,0 +1,12 @@
+{
+  "name": "world-of-shadows-frontend",
+  "private": true,
+  "description": "Player frontend; Jest covers static play shell modules under frontend/tests/*.js",
+  "scripts": {
+    "test": "jest --config jest.config.cjs"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

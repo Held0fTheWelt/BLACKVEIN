@@ -145,6 +145,16 @@ describe('TypewriterEngine', () => {
     });
   });
 
+  describe('clock wiring (single active delivery)', () => {
+    test('registers exactly one VirtualClock listener for the engine lifetime', () => {
+      expect(engine.clock.listeners.length).toBe(1);
+      engine.startDelivery({ id: 'a', text: 'aa' });
+      engine.startDelivery({ id: 'b', text: 'bb' });
+      engine.startDelivery({ id: 'c', text: 'cc' });
+      expect(engine.clock.listeners.length).toBe(1);
+    });
+  });
+
   describe('startDelivery()', () => {
     test('should queue block for delivery', () => {
       const block = {
@@ -224,7 +234,9 @@ describe('TypewriterEngine', () => {
 
       engine.clock.advanceBy(500); // 100% of duration
       state = engine.getQueueState();
-      expect(state.current_visible_chars).toBe(11); // All characters
+      expect(state.queue_length).toBe(0);
+      expect(state.current_block_id).toBeNull();
+      expect(blockEl.textContent).toBe('Hello world');
     });
 
     test('should update DOM during rendering', () => {

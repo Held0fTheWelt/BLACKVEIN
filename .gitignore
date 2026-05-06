@@ -12,6 +12,8 @@ WorldOfShadows.code-workspace
 instance/
 instance/*.db
 .env
+frontend/node_modules/
+
 __pycache__/
 *.pyc
 *.pyo

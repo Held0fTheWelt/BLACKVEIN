@@ -3,6 +3,9 @@
 Endpoints are volatile and explicitly warned in JSON; live runs use the play service.
 """
 
+import hashlib
+from unittest.mock import MagicMock
+
 import pytest
 
 from app.runtime.session_start import SessionStartError
@@ -293,6 +296,81 @@ class TestExecuteTurnEndpoint:
         data = response.get_json()
         assert data["world_engine_story_session_id"] == "we_story_1"
         assert data["turn"]["turn_number"] == 1
+
+    def test_execute_turn_langfuse_correlates_player_input_hash(self, client, monkeypatch):
+        """ADR-0033 §13.6: operator/legacy POST /sessions/<id>/turns mirrors game path hash correlation."""
+        create_resp = client.post("/api/v1/sessions", json={"module_id": "god_of_carnage"})
+        session_id = create_resp.get_json()["session_id"]
+
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.create_story_session",
+            lambda **_: {"session_id": "we_story_lf"},
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.compile_module",
+            lambda *_args, **_kwargs: type(
+                "Compiled",
+                (),
+                {
+                    "runtime_projection": type(
+                        "Projection",
+                        (),
+                        {"model_dump": staticmethod(lambda **_: {"start_scene_id": "scene_1"})},
+                    )()
+                },
+            )(),
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.execute_story_turn_in_engine",
+            lambda **_: {
+                "turn": {
+                    "turn_number": 1,
+                    "turn_kind": "player_action",
+                    "interpreted_input": {"kind": "speech", "intent": "test"},
+                    "narrative_commit": {"visible_text": "hello response"},
+                    "validation_outcome": {"status": "approved"},
+                    "visible_output_bundle": {"narration": "hello response"},
+                    "raw_input": "hello",
+                }
+            },
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.get_story_state",
+            lambda *_, **__: {"turn_counter": 1, "current_scene_id": "scene_1"},
+        )
+        monkeypatch.setattr(
+            "app.api.v1.session_routes.get_story_diagnostics",
+            lambda *_, **__: {"diagnostics": [{"interpreted_input": {"kind": "speech"}}]},
+        )
+
+        fake_span = MagicMock()
+        fake_adapter = MagicMock()
+        fake_adapter.is_enabled.return_value = True
+        fake_adapter.is_ready = True
+        fake_adapter.start_trace = MagicMock(return_value=fake_span)
+        fake_adapter.end_trace = MagicMock()
+        fake_adapter.flush = MagicMock()
+        monkeypatch.setattr("app.api.v1.session_routes.LangfuseAdapter.get_instance", lambda: fake_adapter)
+
+        player_line = "Operator sagt hallo."
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/turns",
+            json={"player_input": player_line},
+        )
+        assert response.status_code == 200
+
+        assert fake_adapter.start_trace.called
+        st_kwargs = fake_adapter.start_trace.call_args.kwargs
+        assert st_kwargs["name"] == "backend.turn.execute"
+        meta = st_kwargs["metadata"]
+        assert meta["player_input_length"] == len(player_line)
+        assert meta["player_input_sha256"] == hashlib.sha256(player_line.encode("utf-8")).hexdigest()
+
+        fake_span.update.assert_called()
+        upd_kwargs = fake_span.update.call_args.kwargs
+        assert upd_kwargs["output"]["player_input_sha256"] == meta["player_input_sha256"]
+        assert upd_kwargs["output"]["player_input_length"] == len(player_line)
+        assert upd_kwargs["output"]["status"] == "completed"
 
 
 class TestGetLogsEndpoint:

@@ -83,7 +83,10 @@ describe('BlocksOrchestrator', () => {
 
       expect(orchestrator.blocks).toHaveLength(2);
       expect(mockRenderer.render).toHaveBeenCalledTimes(2);
-      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(2);
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'block-2', text: 'Second' }),
+      );
     });
 
     test('should clear previous blocks before loading', () => {
@@ -180,6 +183,7 @@ describe('BlocksOrchestrator', () => {
 
       orchestrator.appendNarratorBlock(block);
 
+      expect(mockTypewriter.revealAll).toHaveBeenCalled();
       expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(block);
     });
 
@@ -193,6 +197,7 @@ describe('BlocksOrchestrator', () => {
       expect(orchestrator.blocks).toHaveLength(2);
       expect(orchestrator.blocks[0].id).toBe('block-1');
       expect(orchestrator.blocks[1].id).toBe('block-2');
+      expect(mockTypewriter.revealAll).toHaveBeenCalled();
     });
 
     test('should ignore invalid blocks', () => {

@@ -103,3 +103,19 @@ python tests/run_tests.py --suite all --quick
 
 CI must run the same suites as `tests/run_tests.py --suite all`.
 CI must NOT use `continue-on-error` or `|| true` for primary suite gates.
+
+---
+
+## Contract vs live test tiers (Langfuse / runtime evidence)
+
+**Contract tests (primary suites):** Mocks/spies are **allowed** when they prove **local wiring and schema contracts** (for example: `LangfuseAdapter.start_trace` receives `player_input_sha256`; World-Engine span names and score hooks are invoked). These tests must not claim full-cloud or full-stack truth.
+
+**Live tests (opt-in gate):** A **running HTTP stack**, **real Langfuse ingestion**, and **no adapter mocks** for the asserted path. When `RUN_LANGFUSE_LIVE=1` and credentials/URLs are present, failures are **hard** (no `pytest.skip` because `get_trace` failed). The canonical strict gate is `backend/tests/test_observability/test_langfuse_live_c640_gate.py` (marker `langfuse_live`). Standard `python tests/run_tests.py --suite backend` remains green without live secrets because that test skips unless `RUN_LANGFUSE_LIVE=1`.
+
+**Trace-level score duplicates (Langfuse):** Observation-level scores alone are **not** sufficient for operator UX and JSON export parity. For every deterministic gate score emitted during story execution, the implementation must **also** submit a **trace-level** duplicate (see ADR-0033 §13.5). Contract tests assert the wiring; live tests assert end-to-end scores on the fetched trace.
+
+---
+
+## Frontend JS unit tests (MVP5)
+
+`frontend/tests/*.js` Jest specs are part of the **frontend** and **mvp5** suites. After the pytest slice for `frontend/tests` (Python), `tests/run_tests.py` runs `npm test` in `frontend/` so `.js` tests are not a false-green dead lane.

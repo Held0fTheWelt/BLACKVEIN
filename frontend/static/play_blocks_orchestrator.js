@@ -38,16 +38,23 @@ class BlocksOrchestrator {
     this.blocks = [];
     this.currentBlockIndex = 0;
 
-    // Render all blocks
-    for (let block of blocks) {
+    // Render all blocks; only the last block uses the typewriter (prior blocks stay full text).
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      const isLast = i === blocks.length - 1;
       this.blocks.push(block);
       this.renderer.render(block);
 
-      // Start typewriter delivery (unless accessibility mode)
       if (!this.accessibility_mode) {
-        this.typewriter.startDelivery(block);
+        if (isLast) {
+          this.typewriter.startDelivery(block);
+        } else {
+          const el = this.renderer.getBlockElement(block.id);
+          if (el) {
+            el.textContent = block.text || '';
+          }
+        }
       } else {
-        // Accessibility mode: show all text immediately
         const el = this.renderer.getBlockElement(block.id);
         if (el) {
           el.textContent = block.text || '';
@@ -71,6 +78,11 @@ class BlocksOrchestrator {
 
     // Render to DOM
     this.renderer.render(block);
+
+    // Finish any in-progress delivery so only the new block animates.
+    if (!this.accessibility_mode) {
+      this.typewriter.revealAll();
+    }
 
     // Start typewriter delivery (unless accessibility mode)
     if (!this.accessibility_mode) {

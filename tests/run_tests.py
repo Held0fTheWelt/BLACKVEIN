@@ -744,6 +744,43 @@ def build_pytest_argv(
     return argv
 
 
+def run_frontend_jest_lane(suite_name: str) -> bool:
+    """Run Jest for ``frontend/tests/*.js`` (play shell modules). Used after pytest for frontend/mvp5."""
+    import shutil
+
+    display = SUITE_DISPLAY_NAMES.get(suite_name, suite_name)
+    pkg = FRONTEND_DIR / "package.json"
+    jest_cfg = FRONTEND_DIR / "jest.config.cjs"
+    if not pkg.is_file() or not jest_cfg.is_file():
+        print_error("frontend Jest lane requires frontend/package.json and frontend/jest.config.cjs")
+        return False
+    npm = "npm.cmd" if os.name == "nt" else "npm"
+    node = "node.exe" if os.name == "nt" else "node"
+    if shutil.which(npm) is None:
+        print_error("npm is not in PATH; cannot run frontend Jest tests.")
+        return False
+    if shutil.which(node) is None:
+        print_error("node is not in PATH; cannot run frontend Jest tests.")
+        return False
+    node_modules = FRONTEND_DIR / "node_modules"
+    if not node_modules.is_dir():
+        print_info("frontend: installing npm devDependencies (first Jest run) …")
+        inst = subprocess.run(
+            [npm, "install", "--no-audit", "--no-fund"],
+            cwd=str(FRONTEND_DIR),
+        )
+        if inst.returncode != 0:
+            print_error("npm install failed in frontend/")
+            return False
+    print_header(f"Running: {display} — Jest (frontend/tests/*.js)")
+    test = subprocess.run([npm, "test", "--", "--ci"], cwd=str(FRONTEND_DIR))
+    if test.returncode != 0:
+        print_error("frontend Jest tests failed")
+        return False
+    print_success("frontend Jest tests passed")
+    return True
+
+
 def run_pytest(
     suite_name: str,
     suite_cwd: Path,
@@ -922,6 +959,9 @@ def run_tests_for_suites(
             scope=scope,
         )
         ok = run_pytest(suite_name, suite_cwd, test_path, argv, f"Running: {title}")
+        if ok and suite_name in ("frontend", "mvp5"):
+            jest_ok = run_frontend_jest_lane(suite_name)
+            ok = ok and jest_ok
         results[suite_name] = ok
         all_passed = all_passed and ok
         if not ok:

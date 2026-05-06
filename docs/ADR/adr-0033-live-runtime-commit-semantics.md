@@ -648,6 +648,10 @@ The same digest **must** be repeated on span completion in `output` (so exports 
 
 **Regression guard:** Backend tests **must** assert the adapter receives these fields (`backend/tests/test_game_routes.py`).
 
+**Required behavior (operator / legacy Backend proxy turn):** For `POST /api/v1/sessions/<session_id>/turns` ([`backend/app/api/v1/session_routes.py`](../../backend/app/api/v1/session_routes.py) `execute_session_turn`), the same `backend.turn.execute` trace **must** include `player_input_length` and `player_input_sha256` in `start_trace` metadata and repeat both in `root_span.update(..., output=...)` on success (and on `GameServiceError` / world-engine bridge failure when a trace was opened), using the **trimmed** player line from the request body. This path is not the canonical play shell contract, but operators and MCP integrations still need Langfuse correlation parity with the game route.
+
+**Regression guard:** `backend/tests/test_session_routes.py` (`test_execute_turn_langfuse_correlates_player_input_hash`).
+
 **Required behavior (World-Engine, same trace):** For `POST /api/story/sessions/{session_id}/turns`, when `LangfuseAdapter.start_span_in_trace(name="world-engine.turn.execute", trace_id=<backend Langfuse id>, …)` runs (distributed trace under the Backend root), **`input` and `metadata` must** include the same two fields computed from the **trimmed** `player_input` string passed to `StoryRuntimeManager.execute_turn`:
 
 - `player_input_length`
