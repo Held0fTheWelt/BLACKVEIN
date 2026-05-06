@@ -1,7 +1,17 @@
 # ADR-0007: Revision conflicts are explicit governance objects
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Not Finished
+
+## Implementation Status
+
+**Decision stated; conflict record implementation not found in codebase.**
+
+- The principle (overlapping revision candidates produce an explicit conflict record before draft apply) is referenced in MVP governance docs.
+- No `ConflictRecord` class, conflict detection logic, or conflict resolution workflow was found in `backend/` or `world-engine/`.
+- The writers-room review workflow exists but does not include conflict detection between concurrent revision candidates.
+- Prerequisite: ADR-0006 (revision state machine) must be implemented first, since conflict detection naturally integrates with revision lifecycle transitions.
+- Required before: concurrent multi-author revision workflows can operate safely without silent last-write-wins behavior.
 
 ## Date
 2026-04-17

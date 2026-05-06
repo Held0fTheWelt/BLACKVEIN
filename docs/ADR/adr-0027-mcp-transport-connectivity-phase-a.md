@@ -1,7 +1,17 @@
 # ADR-0027: MCP Transport & Connectivity — Phase A defaults
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented — stdio transport, HTTPS connectivity, and trace headers in place.**
+
+- MCP server uses stdio transport locally (confirmed by `tools/mcp_server/` structure and `docs/mcp/02_M0_transport_connectivity.md`).
+- Backend HTTP timeout 5s, single retry on network errors — documented in `docs/mcp/02_M0_transport_connectivity.md`.
+- Trace headers `X-WoS-Trace-Id`, `X-WoS-Client`, and optional `Authorization` included on MCP→backend calls.
+- `docs/mcp/02_M0_transport_connectivity.md` has "Migrated Decision: See ADR-0027" pointer.
+- Status promoted from "Proposed" because the transport and header conventions are implemented.
 
 ## Date
 2026-04-17

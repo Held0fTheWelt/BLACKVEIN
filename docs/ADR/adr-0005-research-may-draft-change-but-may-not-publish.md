@@ -1,7 +1,17 @@
 # ADR-0005: Research may draft change, but may not publish change
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Accepted
+
+## Implementation Status
+
+**Implemented at the process level; enforcement is structural (path separation), not code-gated.**
+
+- Writers-room (`writers-room/`) produces recommendation artifacts only; publishing authority stays in backend/admin processes.
+- `backend/app/content/compiler/` is the sole publish path; writers-room content does not reach runtime until approved through backend publish routes.
+- `docs/technical/content/writers-room-and-publishing-flow.md` documents the production/publish separation.
+- No automated CI test enforces this boundary; it is maintained by structural path separation and code review convention.
+- Status promoted from "Proposed" because the structural decision is in force and the pattern is stable.
 
 ## Date
 2026-04-17

@@ -1,7 +1,18 @@
 # ADR-0001: Runtime authority in world-engine
 
 ## Status
-Accepted - aligns with `docs/technical/runtime/runtime-authority-and-state-flow.md` and the archived `docs/archive/architecture-legacy/runtime_authority_decision.md` (Milestones 0-5).
+Accepted
+
+## Implementation Status
+
+**Implemented — matches ADR.**
+
+- `world-engine/app/story_runtime/manager.py` (`StoryRuntimeManager`) is the single authoritative runtime host for story sessions, turn execution, and session lifecycle.
+- `backend/app/api/v1/game_routes.py` proxies to world-engine; no competing session commit logic exists in the backend layer.
+- `story_runtime_core` provides shared interpretation and registry/adapters consumed by the play service.
+- AI output proposal-only contract enforced: validation + commit seams in `world-engine/app/api/http.py`.
+- Governance investigation confirms: `CTR-ADR-0001-RUNTIME-AUTHORITY` implemented by `world-engine/app/story_runtime/manager.py` and `world-engine/app/api/http.py`, validated by `world-engine/tests/test_story_runtime_api.py`.
+- Supersedes ADR-0021 (stub, moved to `docs/ADR/legacy/`).
 
 ## Date
 2026-04-10 (ADR authored with documentation program; decision content predates this file.)

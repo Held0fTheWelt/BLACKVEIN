@@ -1,7 +1,19 @@
 # ADR-0016: Frontend / Backend Restructure (separate Backend and administration-tool frontend)
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented — restructure is complete and stable.**
+
+- `frontend/` is the canonical player/public web frontend (Flask, `frontend/app/__init__.py` creates the app, `frontend/app/routes_play.py` handles play routes).
+- `administration-tool/` is the separate admin/management frontend that proxies to backend API (confirmed by `tools/_extract_admin_route_registration.py`, `README.md` service table, and `docs/development/LocalDevelopment.md`).
+- `backend/` owns data, API, auth, migrations, and game-menu — no player canonical HTML hosting.
+- `FRONTEND_URL` configuration coordinates redirects; `backend/` redirects `GET /` to `/backend` (operator/developer surface).
+- Docker Compose starts all three services separately: `backend`, `frontend`, `administration-tool`.
+- `News` (or `Post`) model and `/api/v1/news` exist in backend; administration-tool consumes via API.
+- Status promoted from "Proposed" because the restructure has been live for multiple MVPs.
 
 ## Date
 2026-04-17

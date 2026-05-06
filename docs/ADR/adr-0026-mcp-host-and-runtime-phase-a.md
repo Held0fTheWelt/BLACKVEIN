@@ -1,7 +1,17 @@
 # ADR-0026: MCP Phase A — Host & Runtime defaults
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented — MCP server exists as local stdio operator console.**
+
+- `tools/mcp_server/` is the MCP server implementation for operator workflows.
+- Runs locally (stdio transport) and communicates with backend via HTTPS — matches the ADR decision exactly.
+- Used as operator console (inspect/debug), not as in-game mechanic.
+- `docs/mcp/01_M0_host_and_runtime.md` has "Migrated Decision: See ADR-0026" pointer.
+- Status promoted from "Proposed" because the Phase A implementation is in place and stable.
 
 ## Date
 2026-04-17

@@ -1,7 +1,16 @@
 # ADR-0014: Player affect uses enum-based signals, not one-off frustration booleans
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Not Finished
+
+## Implementation Status
+
+**Decision stated; no player affect model implementation found in codebase.**
+
+- No `PlayerAffect` enum, affect model, or confidence-scored player-state interpretation seam was found in `backend/`, `world-engine/`, or `ai_stack/`.
+- The principle (general enum-based affect model instead of one-off frustration booleans) is correct and would enable future adaptive assistance.
+- Required before: player-state-driven adaptive behavior, operator inspection of affect signals, or policy-bounded player adaptation.
+- This ADR describes future-oriented design; it has not been prioritized ahead of MVP4 runtime concerns.
 
 ## Date
 2026-04-17

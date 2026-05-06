@@ -1,7 +1,16 @@
 # ADR-0023: Decision Framework — risk framing and kill criteria
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Decision in force as a governance framework; applied to MVP planning.**
+
+- The risk framework (explicit risks, mitigations, worst-case, recoverability, kill criteria) is used in MVP planning documents under `docs/MVPs/`.
+- Kill criteria (3 consecutive phase failures, broken unit economics, fundamental technical impossibility, market shift) are documented in roadmap materials.
+- No automated monitoring system enforces kill criteria; application is by engineering and product convention.
+- Status promoted from "Proposed" because the framework has been applied to all active MVPs and is a stable governance convention.
 
 ## Date
 2026-04-17

@@ -4,6 +4,24 @@
 
 Accepted
 
+## Implementation Status
+
+**Core shell contract implemented; some test tiers pending.**
+
+**Implemented:**
+- `frontend/static/play_blocks_orchestrator.js`: `BlocksOrchestrator` implements `loadTurn()` with `typewriter_slice_start_index` support (blocks before index rendered as full transcript, blocks at/after index sequenced through typewriter).
+- `frontend/static/play_typewriter_engine.js`: single `VirtualClock` tick handler per lifetime; `TypewriterEngine` registered once — no duplicate `onTick` listeners.
+- `frontend/static/play_block_renderer.js`: block rendering with `block_type` semantic distinction.
+- `frontend/static/play_shell.js`: orchestrates renderer + typewriter + controls.
+- Legacy fallback: if `typewriter_slice_start_index` absent, last block is animated (pre-2026-05 behavior preserved).
+- `appendNarratorBlock()` finalizes in-flight typewriter before starting delivery for streamed blocks.
+- No debug surface in player UI (operator diagnostics stay in Langfuse / explicit diagnostic endpoints).
+- Jest tests: `frontend/tests/test_blocks_orchestrator.js`, `frontend/tests/test_typewriter_engine.js`.
+
+**Not yet fully implemented:**
+- Live Langfuse gate (`test_langfuse_live_c640_gate.py`) requires opt-in `RUN_LANGFUSE_LIVE=1` — not run in standard CI.
+- Backend cumulative `scene_blocks` / `typewriter_slice_start_index` propagation from turn responses: partially implemented (verified in `tests/test_mvp4_contract_playability.py`).
+
 ## Date
 
 2026-05-06

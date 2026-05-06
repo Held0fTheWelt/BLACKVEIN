@@ -1,7 +1,18 @@
 # ADR-0017: Durable-truth migration verification and archive policy
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented — migration policy was executed and is in force.**
+
+- `docs/ADR/` is the canonical location for all architecture decisions; migration from archive completed 2026-04-17 (see `docs/ADR/migration_from_archive_2026-04-17.md`).
+- Archived files updated with "Migrated Decision: See ADR-XXXX" pointer lines (observed in `docs/dev/architecture/runtime-authority-and-session-lifecycle.md`, `docs/technical/runtime/runtime-authority-and-state-flow.md`, etc.).
+- `docs/archive/documentation-consolidation-2026/` holds migration ledgers as evidence.
+- ADRs 0001–0029 were created through this policy; the process is complete for the initial consolidation pass.
+- Ongoing: new decisions must be written as ADRs; this policy is self-referential and governs future ADR creation.
+- Status promoted from "Proposed" because the migration was executed and the governance rule is active.
 
 ## Date
 2026-04-17

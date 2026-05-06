@@ -1,7 +1,17 @@
 # ADR-0013: Preview sessions must be isolated from active runtime
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Not Finished
+
+## Implementation Status
+
+**Decision stated; dedicated preview session isolation not found in current codebase.**
+
+- The MVP spec (`docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/01_revised_mvp_spec.md`) describes preview isolation as a requirement with three allowed modes: dedicated process/container, in-memory preview loader + namespace, or preview-token-keyed resolver.
+- No `PreviewSessionNamespace`, `PreviewPackageLoader`, or preview-session-token isolation path was found in `world-engine/` or `backend/`.
+- The current session model (`StorySession`, `StoryRuntimeManager`) does not distinguish preview vs. active session namespaces.
+- Required before: preview package testing without risk of contaminating live player sessions.
+- Dependency: content package promotion pipeline (ADR-0009) would normally drive the need for preview isolation.
 
 ## Date
 2026-04-17

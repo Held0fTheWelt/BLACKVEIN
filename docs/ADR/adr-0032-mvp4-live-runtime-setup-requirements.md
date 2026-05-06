@@ -4,6 +4,18 @@
 
 Accepted
 
+## Implementation Status
+
+**Implemented — all six MVP4 runtime requirements are in place.**
+
+1. Governed session-create handoff: complete `runtime_projection` with actor ownership forwarded from `backend/app/api/v1/game_routes.py` → `world-engine/app/api/http.py`; incomplete requests rejected with HTTP 400 (`StorySessionContractError`).
+2. Truthful opening/turn execution: deterministic phases report `0` token/cost; `quality_class` distinguishes live vs. degraded.
+3. Diagnostics envelope: each committed turn carries validation outcome, quality class, route provenance, cost summary, narrator streaming state.
+4. `can_execute` derived from real story-window entry count; `narrator_streaming` propagated through backend and frontend payloads.
+5. Operator routes: `/api/v1/admin/mvp4/` exposes session summary, cost reports, token budget, evaluations.
+6. Shared governance storage: Redis-backed JSON storage initialized in `backend/app/factory_app.py`; `REDIS_URL` in bootstrap environment.
+- `world-engine/app/story_runtime/manager.py` and `world-engine/app/api/http.py` are the primary implementation files.
+
 ## Date
 
 2026-05-05

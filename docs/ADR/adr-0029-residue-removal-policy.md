@@ -1,7 +1,17 @@
 # ADR-0029: Residue Removal Policy — operational criteria and handling
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Policy executed — 2026-04-17 consolidation pass applied the 2-of-3 rule.**
+
+- The residue removal audit (Task 4) was run during the 2026-04-17 documentation consolidation.
+- P0 (keep) and P1 (demote/relocate) candidates were classified; demotion/archival was executed for identified residue.
+- `docs/archive/documentation-consolidation-2026/` holds migration ledgers and residue audit evidence.
+- The 2-of-3 rule (omission, displacement, transitional/history) is documented as a policy; ongoing application is by convention and code review.
+- Status promoted from "Proposed" because the initial residue removal was completed and the policy is active.
 
 ## Date
 2026-04-17

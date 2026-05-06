@@ -3,6 +3,16 @@
 ## Status
 Accepted
 
+## Implementation Status
+
+**Implemented — matches ADR.**
+
+- `ai_stack/goc_scene_identity.py` is the sole definition point for `guidance_phase_key_for_scene_id`.
+- `ai_stack/goc_yaml_authority.py` re-exports and consumes that module without introducing a second mapping dict.
+- `ai_stack/tests/test_goc_scene_identity.py` includes `test_sole_definition_of_guidance_phase_key_for_scene_id` which scans the entire repo for duplicate definitions and fails on any found.
+- `tools/verify_goc_scene_identity_single_source.py` enforces the no-local-remap rule in CI.
+- Governance investigation confirms `CTR-ADR-0003-SCENE-IDENTITY` implemented and validated.
+
 ## Date
 2026-04-17
 

@@ -4,6 +4,17 @@
 
 Accepted
 
+## Implementation Status
+
+**Implemented and tested.**
+
+- `docker-up.py` is the canonical operator entry point; it materializes `.env` before any Compose operation.
+- All required secrets (`SECRET_KEY`, `JWT_SECRET_KEY`, `SECRETS_KEK`, `PLAY_SERVICE_SHARED_SECRET`, `PLAY_SERVICE_INTERNAL_API_KEY`, `FRONTEND_SECRET_KEY`, `INTERNAL_RUNTIME_CONFIG_TOKEN`) and runtime URLs (`REDIS_URL`, etc.) are generated on first run.
+- `docker-compose.yml` includes `redis` service; Redis is not optional in the standard Docker path.
+- Langfuse bootstrap is optional import (credentials from `.env` only if both keys present); not governed by legacy `LANGFUSE_ENABLED` flag.
+- Exit-code contract (0–6) is in force.
+- Test coverage: `tests/test_docker_up_complete_bootstrap.py`.
+
 ## Date
 
 2026-05-05

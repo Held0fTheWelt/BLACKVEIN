@@ -1,7 +1,23 @@
 # ADR: Live Runtime Commit Semantics for Real AI, Mock, Fallback, and Visible Story Output
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-05-05
+
+## Implementation Status
+
+**Core semantic gate implemented; some diagnostics fields and frontend contracts still in progress.**
+
+**Implemented:**
+- `ai_stack/live_runtime_commit_semantics.py`: `evaluate_live_turn_success_gate()` computes `live_success`, `adapter_kind`, `visible_output_present`, `visible_output_count`, `quality_class`, `degradation_signals` per ADR definitions.
+- `adapter_kind` classification: `real`, `mock`, `fallback`, `placeholder`.
+- Mock and fallback paths set `live_success=false`; `opening_leniency_approved=True` marks degraded diagnostic commits.
+- §13.5 (Langfuse trace-level scores): `LangfuseAdapter.add_score` emits scores both at observation level and trace level via `create_score(trace_id=...)`. Regression guard in `world-engine/tests/test_trace_middleware.py`.
+- §13.6 (player input observability): `player_input_length` and `player_input_sha256` on `backend.turn.execute` (Backend) and `world-engine.turn.execute` spans. Regression guards in `backend/tests/test_game_routes.py`, `backend/tests/test_session_routes.py`, `world-engine/tests/test_trace_middleware.py`.
+
+**Not yet fully implemented:**
+- Not all required diagnostic fields from §6 are present on every trace (some are partial depending on adapter/provider path).
+- Frontend does not yet fully enforce all §7 readiness states (ready_with_opening vs. creating_opening vs. blocked_missing_opening) — see ADR-0034 for shell contract.
+- Hard gate tests (§10) are defined but not all paths covered.
 - **Project:** World of Shadows
 - **Decision owner:** Runtime / AI / Observability maintainers
 - **Related areas:** World-Engine, Backend, AI Stack, LangGraph/LangChain, Langfuse, Frontend Player Shell, Narrative Governance

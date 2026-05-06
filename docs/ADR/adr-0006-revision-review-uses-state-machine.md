@@ -1,7 +1,17 @@
 # ADR-0006: Revision review uses a state machine, not loose status strings
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Not Finished
+
+## Implementation Status
+
+**Decision stated; no state machine implementation found in codebase.**
+
+- The principle (revision lifecycle as a typed state machine with role-based transitions) is architecturally sound and referenced in MVP governance docs.
+- No formal `RevisionStateMachine` or equivalent class was found in `backend/` or `world-engine/`.
+- The writers-room review workflow (`/api/v1/writers-room/reviews`) has stages (accept/reject/revise) that approximate state transitions, but they are not implemented as a formal state machine with explicit RBAC gate enforcement per transition.
+- Implementation is blocked on: defining revision state model, role permission matrix per transition, and side-effect hooks (draft apply, evaluation launch).
+- Required before: full multi-operator revision workflows can be safely operated.
 
 ## Date
 2026-04-17

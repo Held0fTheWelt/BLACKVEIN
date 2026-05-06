@@ -1,7 +1,17 @@
 # ADR-0024: Decision Boundary Record — minimum schema for decision boundary recording
 
 ## Status
-Proposed
+Not Finished
+
+## Implementation Status
+
+**Schema defined; runtime emission not implemented.**
+
+- The `Decision Boundary Record` minimum schema (decision_name, decision_class, owner_layer, input_seam_ref, chosen_path, validation_result, failure_seam_used, notes_code) is documented.
+- No `DecisionBoundaryRecord` class or runtime emitter was found in `backend/`, `world-engine/`, or `ai_stack/`.
+- ADR-0033 and `ai_stack/live_runtime_commit_semantics.py` produce diagnostics fields that partially fulfill the intent (route_id, validation_status, commit_applied, etc.) but do not use the standardized Decision Boundary Record schema.
+- Required before: formal governance audit trails with cross-seam decision boundary records can be produced.
+- This ADR describes future instrumentation work; it has not been prioritized ahead of MVP4 runtime concerns.
 
 ## Date
 2026-04-17

@@ -4,6 +4,17 @@
 
 Proposed
 
+## Implementation Status
+
+**Design intent only — no implementation work has started; Open Questions not yet resolved.**
+
+- This ADR describes intended future behavior after deliberate implementation work. No subsystem is obligated until this ADR is accepted.
+- What exists in codebase: `content/modules/god_of_carnage/direction/opening_sequence.yaml` (canonical two-part opening + narrator bar + premise seeds), `scenes.yaml` (phase_1 polite opening), `direction/scene_guidance.yaml` (phase guidance).
+- What is NOT implemented: runtime opening-prompt constraints for economy/warmup, LDSS fallback tone restrictions for early phases, two-part opening composition enforcement.
+- `world-engine/app/story_runtime/manager.py` (`_build_opening_prompt`) and `ai_stack/live_dramatic_scene_simulator.py` (LDSS) are the primary files that would need changes.
+- Promotion to Accepted requires: resolving all five Open Questions (NPC silence threshold, provider vs. deterministic openings, module variability, localization) + at least one implementation epic reference.
+- Related: ADR-0033 governs opening readiness/commit truth; ADR-0034 governs block rendering. This ADR governs literary posture of the opening content itself.
+
 ## Date
 
 2026-05-06

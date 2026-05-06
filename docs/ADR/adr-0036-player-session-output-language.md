@@ -6,6 +6,24 @@ Normative contract for **which natural language the runtime must use for player-
 
 Accepted
 
+## Implementation Status
+
+**Core runtime implemented; frontend UI and AI stack turn-prompt injection still pending.**
+
+**Implemented (as of 2026-05-07):**
+- `world-engine/app/story_runtime/manager.py`: `create_session()` accepts `session_output_language: str = "de"` parameter; stored on `StorySession.session_output_language`.
+- `world-engine/app/api/http.py`: `CreateStorySessionRequest` accepts `session_output_language` parameter.
+- `world-engine/app/story_runtime/manager.py` (`_build_opening_prompt`): language directive prepended to opening prompt for `de` and `en`.
+- Tests: `world-engine/tests/test_mvp1_experience_identity.py` asserts `session_output_language` round-trips and opening prompt contains "German" directive.
+- Backend: `game_routes.py` validates `session_output_language` with `invalid_output_language` / `unsupported_language` error codes; persists in `GameSaveSlot.metadata["session_output_language"]`; passes to `create_story_session()`.
+
+**Not yet implemented:**
+- `frontend/templates/session_start.html`: radio button language selector not yet added.
+- `frontend/app/routes_play.py`: `play_create()` does not yet read/forward `session_output_language`.
+- `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (not only opening prompt).
+- Langfuse User-level attribute `session_output_language` not yet verified on dashboard.
+- See ADR-0036 Follow-ups section for full list.
+
 ## Date
 
 2026-05-07

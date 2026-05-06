@@ -1,7 +1,17 @@
 # ADR-0010: Governance workflows are event-driven
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Not Finished
+
+## Implementation Status
+
+**Decision stated; event bus/webhook implementation not found.**
+
+- No event bus, governance event emitter, or webhook dispatch system was found in `backend/` or `world-engine/`.
+- Admin banners, Slack/email notifications, and webhook triggers for governance events (failed evaluations, urgent findings) are not implemented.
+- The observability layer (Langfuse) records governance events as traces/scores, which operators can monitor — but this is pull-based monitoring, not event-driven push.
+- Required before: async multi-role governance workflows (operators notified of failures without manual polling) can be operational.
+- This ADR describes MVP2-era governance workflow scope. Implementation has not been prioritized ahead of MVP4 runtime work.
 
 ## Date
 2026-04-17

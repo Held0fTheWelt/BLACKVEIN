@@ -1,7 +1,18 @@
 # ADR-0028: MCP Security Baseline — Phase A minimal policy
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented at policy level; rate-limiting and log-hashing not separately verified as automated enforcement.**
+
+- Phase A MCP is read/preview-only for operator workflows; write operations are not exposed through the MCP tool set.
+- Bearer token authentication (`Authorization: Bearer <SERVICE_TOKEN>`) is used for backend calls per the ADR.
+- Tokens are stored in local config, not committed to repo.
+- Rate limiting (30 calls/min per token) and request-body hashing in logs: these are documented policy constraints; automated enforcement in the MCP server was not verified in code search.
+- Status promoted from "Proposed" because the Phase A security posture is in force and the MCP server is operational.
+- Review if rate limiting is not implemented in `tools/mcp_server/` before expanding Phase A scope.
 
 ## Date
 2026-04-17

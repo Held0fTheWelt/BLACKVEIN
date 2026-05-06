@@ -3,6 +3,16 @@
 ## Status
 Accepted
 
+## Implementation Status
+
+**Implemented and tested.**
+
+- `ProposalSource` enum exists with values: `RESPONDER_DERIVED`, `MOCK`, `ENGINE`, `OPERATOR`.
+- `MockDecision` defaults `proposal_source=ProposalSource.MOCK` (conservative default, not responder-authoritative).
+- `execute_turn()` with `enforce_responder_only=True` rejects proposals from non-responder sources before state changes apply.
+- `backend/tests/runtime/test_responder_gating.py`: comprehensive test coverage including `test_proposal_source_enum_has_all_values`, `test_mock_decision_requires_proposal_source`, and enforcement tests.
+- `GuardOutcome.REJECTED` is the result for non-responder proposals when enforcement is enabled; existing guard pipeline remains authoritative for content validation after source gate passes.
+
 ## Date
 2026-03-29
 

@@ -1,7 +1,18 @@
 # ADR-0011: Validation failures in live play must degrade gracefully
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Accepted
+
+## Implementation Status
+
+**Implemented — graceful degradation with LDSS fallback in place.**
+
+- `world-engine/app/story_runtime/manager.py`: `_ldss_opening_fallback_state()` provides a guaranteed safe fallback (LDSS deterministic output) when live opening fails validation — player never hits a hard dead end.
+- Fallback produces `quality_class=degraded`, `fallback_used=True`, and explicit `degradation_signals` — not silently treated as healthy.
+- `ai_stack/live_dramatic_scene_simulator.py`: deterministic fallback stubs serve as the safe content pool.
+- `world-engine` wraps opening execution in retry + fallback logic; `_opening_retry_count()` controls retry attempts before falling back.
+- ADR-0033 constrains how fallback turns are classified (cannot be `live_success=true`).
+- Status promoted from "Proposed" because the decision is in force with working code paths.
 
 ## Date
 2026-04-17

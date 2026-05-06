@@ -1,7 +1,18 @@
 # ADR-0018: Role-aware `AIDecisionLog` and `ParsedRoleAwareDecision`
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Implemented — `AIDecisionLog` with role-aware fields and `construct_ai_decision_log()` in place.**
+
+- `backend/app/runtime/ai_decision_logging.py`: `construct_ai_decision_log()` populates `AIDecisionLog` with `parsed_decision`, `interpreter_output`, `director_output`, `responder_output` from `ParsedRoleAwareDecision` when present; falls back to `None` for legacy paths.
+- `ParsedRoleAwareDecision` schema exists with `InterpreterSection`, `DirectorSection`, `ResponderSection` — normalizes role-aware fields into `parsed_decision`.
+- `AIDecisionLog` includes `interpreter_output` (→ `InterpreterDiagnosticSummary`), `director_output` (→ `DirectorDiagnosticSummary`), `responder_output`, `validation_outcome`, `guard_outcome`.
+- Backward compatibility maintained: when `role_aware_decision=None`, role fields are `None` and legacy `raw_output` path is used.
+- Comprehensive tests in `backend/tests/runtime/test_ai_decision_logging.py`.
+- Status promoted from "Proposed" because the decision and implementation are complete and tested.
 
 ## Date
 2026-04-17

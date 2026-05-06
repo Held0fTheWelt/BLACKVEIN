@@ -1,7 +1,16 @@
 # ADR-0012: Corrective retry must provide actionable validation feedback
 
 ## Status
-Proposed (migrated excerpt from MVP docs)
+Accepted
+
+## Implementation Status
+
+**Implemented — `ValidationFeedback` / `ValidationViolation` types and corrective retry loop in place.**
+
+- `world-engine/app/narrative/validation_feedback.py`: `ValidationViolation` (violation_type, specific_issue, rule_violated, suggested_fix) and `ValidationFeedback` (passed, violations, corrections_needed, legal_alternatives) as machine-usable contracts.
+- World-engine retry logic uses `enable_corrective_feedback` flag in `OutputValidatorConfig` and feeds violation detail back into the retry generation context.
+- `docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/12_live_play_correction_and_fallbacks.md` documents the full 5-step recovery flow (generate → validate → feedback → corrective retry → safe fallback).
+- Status promoted from "Proposed" because the decision and types are implemented and tested.
 
 ## Date
 2026-04-17

@@ -1,7 +1,16 @@
 # ADR-0022: MVP Expansion Decision Rule — when not to expand the platform
 
 ## Status
-Proposed
+Accepted
+
+## Implementation Status
+
+**Decision in force as a governance principle; no automated gate exists.**
+
+- The expansion decision rule (require evaluator evidence of runtime advantage before expanding the platform) is referenced in `docs/MVPs/` roadmap documents.
+- MVP progression itself follows this rule: MVP1→MVP2→MVP3→MVP4 required demonstrated value before expanding.
+- No automated "expansion gate" system exists; the rule is enforced by engineering convention and ADR governance.
+- Status promoted from "Proposed" because the decision is actively applied to MVP planning and has guided the current MVP sequence.
 
 ## Date
 2026-04-17
