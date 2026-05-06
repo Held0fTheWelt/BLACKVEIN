@@ -17,11 +17,14 @@ Accepted
 - Tests: `world-engine/tests/test_mvp1_experience_identity.py` asserts `session_output_language` round-trips and opening prompt contains "German" directive.
 - Backend: `game_routes.py` validates `session_output_language` with `invalid_output_language` / `unsupported_language` error codes; persists in `GameSaveSlot.metadata["session_output_language"]`; passes to `create_story_session()`.
 
+**Also implemented (as of 2026-05-07):**
+- `frontend/templates/session_start.html`: radio button fieldset (Deutsch / English, default de) added after Play-as selector.
+- `frontend/app/routes_play.py`: `play_create()` reads and forwards `session_output_language` for both runtime_profile and template paths.
+- `frontend/tests/test_mvp1_play_launcher.py`: 3 tests assert de/en forwarding and default=de.
+
 **Not yet implemented:**
-- `frontend/templates/session_start.html`: radio button language selector not yet added.
-- `frontend/app/routes_play.py`: `play_create()` does not yet read/forward `session_output_language`.
-- `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (not only opening prompt).
-- Langfuse User-level attribute `session_output_language` not yet verified on dashboard.
+- `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
+- Langfuse User-level attribute `session_output_language` — code written, not yet verified on dashboard.
 - See ADR-0036 Follow-ups section for full list.
 
 ## Date
