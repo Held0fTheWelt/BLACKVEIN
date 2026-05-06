@@ -59,6 +59,38 @@ This ADR contains no personal data. Implementers must follow repository privacy 
 - Browser locale MAY inform the UI default (suggested pre-selection), but does not override explicit backend default of `de`.
 - The launcher MUST persist the chosen/resolved language tag on the session so it is not lost on resume.
 
+#### D2a — Frontend implementation contract
+
+The language selector is part of the existing play launcher form (`frontend/templates/session_start.html`) and its server-side handler (`frontend/app/routes_play.py`).
+
+**UI widget:** A `<select name="session_output_language">` element with exactly two options:
+
+```html
+<label>Sprache / Language
+  <select name="session_output_language">
+    <option value="de" selected>Deutsch</option>
+    <option value="en">English</option>
+  </select>
+</label>
+```
+
+- Shown for **all** templates that reach the `POST /api/v1/game/player-sessions` endpoint (not only `god_of_carnage_solo`); it is a session-level, not template-level, choice.
+- Default `selected` attribute is `de` (German-first); browser locale detection is not required for v1.
+- Widget position: immediately after the **Play as** role selector and before the submit button.
+
+**Server-side handler** (`routes_play.py`, function `play_create`):
+
+- Read `session_output_language` from `request.form` (or query param if the launcher uses AJAX).
+- Fall back to `"de"` if absent or empty.
+- Include in the `json_data` dict for **both** the `runtime_profile_id` path and the `template_id` path:
+  ```python
+  session_output_language = (request.form.get("session_output_language") or "de").strip()
+  json_data["session_output_language"] = session_output_language
+  ```
+- Do **not** duplicate backend validation in the frontend — the backend is the authority. If the backend returns `unsupported_language` or `invalid_output_language`, surface the backend error message via `flash()` and redirect, same as other validation errors.
+
+**Idempotent resume:** Language is fixed at session creation and stored server-side; the resume path (`GET /api/v1/game/player-sessions/<id>`) does not re-submit `session_output_language`. Frontend tests need not assert language on resume.
+
 ### D3 — Propagation (runtime contract)
 
 The chosen language MUST flow through the canonical play path so all generation seams see it:
@@ -112,8 +144,11 @@ Both errors are returned in the standard game API error response format (see `ba
 
 ### Follow-ups
 
-- OpenAPI + `game_player_session` schema field.
-- Implementation tickets: launcher UI, backend persistence, `runtime_projection` extension, graph prompt injection, ADR-0035 opening prompt alignment.
+- OpenAPI schema: add `session_output_language` field to `game_player_session` request/response.
+- Launcher UI + routes_play.py: implement per D2a (frontend not yet implemented as of 2026-05-07).
+- ADR-0035 opening prompt alignment: opening beats must respect `session_output_language`; static German copy in YAML prompts must not contradict an English session.
+- Graph prompt injection: `ai_stack/langgraph_runtime_executor.py` — mirror language directive into all turn prompts, not only the opening prompt (currently only `_build_opening_prompt()` injects it).
+- Langfuse `update_user` verification: confirm `session_output_language` appears on User objects in Langfuse dashboard after live session create.
 
 ## Diagrams
 
@@ -150,8 +185,9 @@ flowchart LR
 ## References and Affected Services
 
 ### Frontend
-- `frontend/app/routes_play.py` — add language input to session create form
-- `frontend/templates/` — UI widget for language selection (de/en)
+- `frontend/templates/session_start.html` — add `<select name="session_output_language">` widget (de/en, default de) after the Play-as role selector, before the submit button; visible for all templates
+- `frontend/app/routes_play.py` — in `play_create()`: read `session_output_language` from `request.form`, fall back to `"de"`, inject into `json_data` for both the `runtime_profile_id` path and the `template_id` path; surface backend `unsupported_language` / `invalid_output_language` errors via `flash()` same as other form errors
+- `frontend/tests/test_mvp1_play_launcher.py` — assert `session_output_language` is forwarded to backend in POST payload; assert default `"de"` when field omitted
 
 ### Backend
 - `backend/app/api/v1/game_routes.py` — extend `POST /api/v1/game/player-sessions` to accept `session_output_language` parameter
