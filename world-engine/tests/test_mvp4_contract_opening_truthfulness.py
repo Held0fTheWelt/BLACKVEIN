@@ -144,6 +144,7 @@ def test_mvp4_opening_uses_live_runtime_graph_model_and_retrieval(runtime_manage
     scene_blocks = visible_bundle.get("scene_blocks", [])
     assert scene_blocks, "Opening did not project live output into scene blocks"
     assert all(block.get("source") == "live_runtime_graph" for block in scene_blocks)
+    assert not any(str(block.get("text") or "").lstrip().startswith("{") for block in scene_blocks)
     scene_envelope = opening_event.get("scene_turn_envelope", {})
     ldss_diag = (scene_envelope.get("diagnostics") or {}).get("live_dramatic_scene_simulator") or {}
     assert ldss_diag.get("invoked") is False, "LDSS must only run as fallback when live output fails"

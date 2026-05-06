@@ -1636,6 +1636,39 @@ class RuntimeTurnGraphExecutor:
             module_id=str(state.get("module_id") or ""),
         )
         mind_dicts = [m.to_runtime_dict() for m in mind_models]
+        actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+        forbidden_actor_ids: set[str] = set()
+        for raw_actor_id in actor_lane_ctx.get("ai_forbidden_actor_ids") or []:
+            forbidden_actor_ids.update(expand_goc_actor_id_aliases(str(raw_actor_id)))
+        forbidden_actor_ids.update(expand_goc_actor_id_aliases(str(actor_lane_ctx.get("human_actor_id") or "")))
+        if forbidden_actor_ids:
+            filtered_responders: list[dict[str, Any]] = []
+            for responder in responders:
+                if not isinstance(responder, dict):
+                    continue
+                actor_id = str(responder.get("actor_id") or responder.get("responder_id") or "").strip()
+                if actor_id and actor_id not in forbidden_actor_ids:
+                    filtered_responders.append(responder)
+            if len(filtered_responders) != len(responders):
+                if not filtered_responders:
+                    for mind in mind_dicts:
+                        if not isinstance(mind, dict):
+                            continue
+                        actor_id = str(mind.get("runtime_actor_id") or mind.get("character_key") or "").strip()
+                        if actor_id and actor_id not in forbidden_actor_ids:
+                            filtered_responders.append(
+                                {
+                                    "actor_id": actor_id,
+                                    "role": "primary_responder",
+                                    "reason": "actor_lane_human_responder_pruned",
+                                }
+                            )
+                            break
+                responders = filtered_responders
+                resolution = dict(resolution) if isinstance(resolution, dict) else {}
+                resolution["human_actor_responder_pruned"] = True
+                update["scene_assessment"] = {**base_sa, "multi_pressure_resolution": resolution}
+                update["selected_responder_set"] = responders
         update["character_mind_records"] = mind_dicts
         sem_fp = ""
         soc_fp = ""

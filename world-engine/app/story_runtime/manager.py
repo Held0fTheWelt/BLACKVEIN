@@ -858,7 +858,58 @@ def _live_scene_blocks_from_visible_bundle(
             }
         )
 
+    def actor_label(actor_id: str) -> str:
+        aid = str(actor_id or "").strip()
+        labels = {
+            "veronique_vallon": "Veronique",
+            "michel_longstreet": "Michel",
+            "annette_reille": "Annette",
+            "alain_reille": "Alain",
+        }
+        if aid in labels:
+            return labels[aid]
+        return aid.replace("_", " ").strip().title() or "Actor"
+
+    def append_json_blocks(raw: str) -> bool:
+        text = str(raw or "").strip()
+        if not text.startswith("{"):
+            return False
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            return False
+        if not isinstance(parsed, dict):
+            return False
+        emitted = False
+        summary = str(parsed.get("narration_summary") or parsed.get("narrative_response") or "").strip()
+        if summary:
+            append_block("narrator", summary, speaker_label="Narrator")
+            emitted = True
+        spoken = parsed.get("spoken_lines")
+        if isinstance(spoken, list):
+            for row in spoken:
+                if not isinstance(row, dict):
+                    continue
+                speaker_id = str(row.get("speaker_id") or "").strip()
+                line = str(row.get("text") or row.get("line") or "").strip()
+                if line:
+                    append_block("actor_line", line, speaker_label=actor_label(speaker_id), actor_id=speaker_id or None)
+                    emitted = True
+        actions = parsed.get("action_lines")
+        if isinstance(actions, list):
+            for row in actions:
+                if not isinstance(row, dict):
+                    continue
+                actor_id = str(row.get("actor_id") or "").strip()
+                line = str(row.get("text") or row.get("line") or "").strip()
+                if line:
+                    append_block("actor_action", line, speaker_label=actor_label(actor_id), actor_id=actor_id or None)
+                    emitted = True
+        return emitted
+
     for line in _coerce_visible_text_lines(bundle.get("gm_narration")):
+        if append_json_blocks(line):
+            continue
         append_block("narrator", line, speaker_label="Narrator")
 
     for line in _coerce_visible_text_lines(bundle.get("spoken_lines")):
@@ -2226,6 +2277,54 @@ class StoryRuntimeManager:
             return True
         return False
 
+    def _ldss_opening_fallback_state(
+        self,
+        graph_state: dict[str, Any],
+        *,
+        reason: str,
+    ) -> dict[str, Any]:
+        fallback = dict(graph_state)
+        generation = dict(fallback.get("generation") if isinstance(fallback.get("generation"), dict) else {})
+        metadata = dict(generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {})
+        fallback["force_ldss_scene_fallback"] = True
+        fallback["generation"] = {
+            **generation,
+            "success": True,
+            "error": None,
+            "fallback_used": True,
+            "metadata": {
+                **metadata,
+                "adapter": "ldss_fallback",
+                "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+                "structured_output": None,
+                "live_opening_failure_reason": reason,
+            },
+        }
+        fallback["validation_outcome"] = {
+            "status": "approved",
+            "reason": "ldss_fallback_after_live_opening_failure",
+            "validator_lane": "opening_fallback_policy_v1",
+            "live_opening_failure_reason": reason,
+        }
+        fallback["committed_result"] = {
+            "commit_applied": True,
+            "committed_effects": [
+                {
+                    "effect_type": "opening_fallback",
+                    "description": "LDSS fallback opening used after live opening failed validation.",
+                }
+            ],
+            "reason": "ldss_fallback_after_live_opening_failure",
+        }
+        fallback["visible_output_bundle"] = {}
+        fallback["quality_class"] = QUALITY_CLASS_DEGRADED
+        signals = list(fallback.get("degradation_signals") or [])
+        if "ldss_fallback_after_live_opening_failure" not in signals:
+            signals.append("ldss_fallback_after_live_opening_failure")
+        fallback["degradation_signals"] = signals
+        fallback["degradation_summary"] = reason
+        return fallback
+
     def _finalize_committed_turn(
         self,
         *,
@@ -2562,7 +2661,7 @@ class StoryRuntimeManager:
         scene_turn_envelope: dict[str, Any] | None = None
         if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
             live_scene_blocks = []
-            if gen.get("success") is True:
+            if gen.get("success") is True and not graph_state.get("force_ldss_scene_fallback"):
                 live_scene_blocks = _live_scene_blocks_from_visible_bundle(
                     event.get("visible_output_bundle")
                     if isinstance(event.get("visible_output_bundle"), dict)
@@ -2875,14 +2974,24 @@ class StoryRuntimeManager:
                 failure_class="graph_execution_exception",
             )
             raise
+        opening_fallback_reason = ""
         if not self._opening_commit_acceptable(graph_state):
-            if is_hard_boundary_failure(graph_state.get("validation_outcome")):
-                raise RuntimeError("Opening blocked by hard narrative boundary")
-            raise RuntimeError("Opening validation did not approve committed narration")
-        if not self._visible_narration_present(graph_state):
+            validation = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
+            opening_fallback_reason = str(validation.get("reason") or "opening_validation_not_approved")
+            self.metrics.incr("opening_ldss_fallback", reason=opening_fallback_reason)
+            graph_state = self._ldss_opening_fallback_state(
+                graph_state,
+                reason=opening_fallback_reason,
+            )
+        elif not self._visible_narration_present(graph_state):
             gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
             gen_error = gen.get("error") or (gen.get("metadata") or {}).get("error") or "no error details available"
-            raise RuntimeError(f"Opening produced no visible narration (generation_error={gen_error!r})")
+            opening_fallback_reason = f"no_visible_narration:{gen_error}"
+            self.metrics.incr("opening_ldss_fallback", reason="no_visible_narration")
+            graph_state = self._ldss_opening_fallback_state(
+                graph_state,
+                reason=opening_fallback_reason,
+            )
 
         session.updated_at = datetime.now(timezone.utc)
         return self._finalize_committed_turn(
