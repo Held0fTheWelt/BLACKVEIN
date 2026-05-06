@@ -100,9 +100,28 @@ Deterministic / mock / fallback openings must **not** contradict phase-1 civilit
 - Stricter opening composition may require validation rule updates and golden-fixture refreshes.
 - Tension with pipelines tuned for “always show NPC speaking early” — requires deliberate redesign where necessary.
 
+## Diagrams
+
+Intended two-part opening handover (literary economy vs. shell pacing in ADR-0034).
+
+```mermaid
+flowchart LR
+  subgraph p1 [Part 1 — premise / background]
+    N1[Narrator-forward grounding]
+    A1[Ambient / non-accusatory NPC]
+  end
+  subgraph p2 [Part 2 — into the scene]
+    N2[Spatial + social temperature]
+    A2[Ritual dialogue / invitation to play]
+  end
+  PH[Content-module early phase] --> p1
+  p1 --> p2
+  p2 --> SH[Shell: typed blocks + typewriter slice]
+```
+
 ## Open Questions (Elaborate Before Implementation)
 
-1. **Single vs. multi-step warmup:** Is warmup always one committed narrator-heavy envelope, or do we ever commit an explicit two-phase UI (“scene established” → “your move”)?
+1. **Single vs. multi-step warmup:** **Resolved for UX:** One HTTP player-bundle refresh can carry **multiple committed blocks** (cumulative transcript). The shell animates **only the slice** corresponding to the latest commit using `visible_scene_output.typewriter_slice_start_index` (ADR-0034 §7). Warmup may still be authored as **one or more** runtime commits depending on engine policy; the UI does not require a separate “phase UI” if blocks are ordered correctly.
 2. **NPC silence threshold:** Under phase 1, what is the minimum acceptable NPC surface — ambient action only vs. one polite line — without violating LDSS passivity policies?
 3. **Provider-backed vs. deterministic openings:** Under MVP gates, when must openings remain deterministic LDSS vs. provider-generated — does literary economy change MVP acceptance criteria?
 4. **Module variability:** Should economy rules be **per-module** overrides (e.g. thriller vs. drawing-room drama) in `module.yaml` or direction packs?

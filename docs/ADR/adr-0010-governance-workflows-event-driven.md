@@ -27,6 +27,17 @@ Critical governance events must be emitted and may trigger admin banners, email,
 - failed evaluations and urgent findings become visible
 - async multi-role workflows become operational
 
+## Diagrams
+
+Governance **events** fan out to operator channels instead of relying on manual polling.
+
+```mermaid
+flowchart LR
+  EVT[Critical governance event] --> BUS[Event bus / hooks]
+  BUS --> BAN[Admin banners]
+  BUS --> WEB[Webhooks / Slack / email]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

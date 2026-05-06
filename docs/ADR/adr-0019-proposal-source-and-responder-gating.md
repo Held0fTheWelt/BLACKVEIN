@@ -29,6 +29,18 @@ Certain AI-produced proposals should be classified by origin (e.g., `MOCK`, `RES
 - Minor schema changes; tests updated to set `proposal_source` when required.
 - Execution code must check `proposal_source` when `enforce_responder_only` is enabled.
 
+## Diagrams
+
+**`ProposalSource`** tags origin; **`enforce_responder_only`** drops non-responder proposals before state changes apply.
+
+```mermaid
+flowchart TD
+  P[Tagged proposal] --> G{enforce_responder_only?}
+  G -->|yes| SRC{Source allowed?}
+  SRC -->|no| DROP[Reject — no state change]
+  SRC -->|yes| APPLY[Apply validated proposal]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

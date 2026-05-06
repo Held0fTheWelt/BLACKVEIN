@@ -41,6 +41,18 @@ Additionally, the responder nomination seam (`build_responder_and_function()` in
 - `run_commit_seam()` receives a rejected `validation_outcome` when human actor enforcement fires, ensuring `commit_applied=False`
 - `run_visible_render()` emits `render_downgrade` when enforcement fires
 
+## Diagrams
+
+**`ActorLaneContext`** forbids AI output on the **human** slot and blocks **human as responder** — enforced in **`run_validation_seam`** before dramatic gates and commit.
+
+```mermaid
+flowchart LR
+  BOOT[bootstrap ActorLaneContext] --> GEN[AI candidate generation]
+  GEN --> VAL[validate_actor_lane_output + responder plan]
+  VAL -->|human slot violation| REJ[commit_applied false]
+  VAL -->|ok| PKG[Package + later commit]
+```
+
 ## Alternatives Considered
 
 - Post-render filtering: rejected — validation that only removes human-actor output after commit has already accepted it is not enforcement, it is masking

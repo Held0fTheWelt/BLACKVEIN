@@ -28,6 +28,17 @@ Retry is not blind regeneration. When validation fails, the runtime must produce
 - semantic and rule-based validators must expose machine-usable violation details
 - prompt assembly must support corrective context
 
+## Diagrams
+
+Retries carry **structured violation detail** (rule, seam, alternatives) into the next generation attempt — not blind re-roll.
+
+```mermaid
+flowchart LR
+  FAIL[Validation failure] --> FB[Machine-usable feedback]
+  FB --> RET[Guided retry / regeneration]
+  RET --> VAL[Re-validate]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

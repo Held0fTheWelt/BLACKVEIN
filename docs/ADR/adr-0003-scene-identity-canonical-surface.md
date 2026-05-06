@@ -35,6 +35,19 @@ Authored narrative modules are consumed by more than one component (content comp
 - Positive: Fewer silent failures at seams; CI enforcement against mapping drift.
 - Negative: GoC YAML or guidance renames need a coordinated code update.
 
+## Diagrams
+
+A **single mapping module** feeds compiler projection, commit resolver, and AI scene packets — CI blocks duplicate `scene_id` → guidance maps.
+
+```mermaid
+flowchart TD
+  M[goc_scene_identity.py — sole mapping]
+  M --> COMP[Compiler projection]
+  M --> COMM[World-engine commit resolver]
+  M --> AI[Scene packet / director input]
+  CI[verify_goc_scene_identity + tests] -.->|fail on drift| M
+```
+
 ## Testing
 
 - **CI:** `python tools/verify_goc_scene_identity_single_source.py` and `ai_stack/tests/test_goc_scene_identity.py` (including `test_sole_definition_of_guidance_phase_key_for_scene_id`).

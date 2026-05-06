@@ -32,6 +32,22 @@ An audit pass (Task 4 — Residue Removal Report) applied operational criteria t
 - Instrumentation and gating for relocation must be explicit (do not delete without provenance capture).
 - Some files require extraction of decision-like content into canonical ADRs before demotion.
 
+## Diagrams
+
+**2-of-3** residue signals (omission, displacement, transitional) drive **P1** candidates; execution stays **provenance-preserving** (relocate/demote, not silent delete).
+
+```mermaid
+flowchart TD
+  O[Omission test]
+  D[Durable-role displacement]
+  T[Transitional / history]
+  O --> V{2 of 3 true?}
+  D --> V
+  T --> V
+  V -->|yes| P1[P1 demote or relocate]
+  P1 --> OWN[Tracked destination + ADR if decision-like]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

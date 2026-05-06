@@ -38,6 +38,20 @@ The live runtime makes multiple decisions per turn (responder plan, actor-lane v
 - Test environments can prove the trace contract without Langfuse credentials
 - Secrets are never in diagnostics or trace exports
 
+## Diagrams
+
+Each seam emits **`TraceableDecision`** rows; **Langfuse optional** (explicit disabled), **`LocalTraceExport`** proves traces in CI, **`redact_secrets`** on exports.
+
+```mermaid
+flowchart LR
+  D1[npc_responder_plan] --> TD[TraceableDecision records]
+  D2[actor_lane_validation] --> TD
+  D3[dramatic_validation] --> TD
+  D4[engine_commit] --> TD
+  TD --> LF[Langfuse spans OR disabled flag]
+  TD --> LTE[LocalTraceExport — tests]
+```
+
 ## Validation Evidence
 
 - `test_mvp04_langfuse_trace_created_when_enabled` — PASS

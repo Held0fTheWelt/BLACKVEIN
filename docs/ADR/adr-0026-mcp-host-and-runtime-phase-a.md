@@ -28,6 +28,16 @@ MCP (Model Context Protocol) usage during Phase A requires a safe, low-friction 
 - Operator tooling should be documented for local setup and required backend access.
 - Future phases may evolve the host and runtime assumptions; changes require ADRs.
 
+## Diagrams
+
+Phase A MCP: **local stdio** server, **HTTPS** to backend — **operator console** only, not an in-game mechanic.
+
+```mermaid
+flowchart LR
+  IDE[Operator IDE] -->|stdio| MCP[MCP server]
+  MCP -->|HTTPS| BE[Backend APIs]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

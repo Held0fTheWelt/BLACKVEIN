@@ -31,6 +31,16 @@ An architectural decision was made to split the repository into a `Backend/` pro
 - Backend storage and instance paths must be updated and accounted for in deployment/dockers.
 - Public pages may require CORS or reverse-proxy configuration to access Backend APIs.
 
+## Diagrams
+
+**Backend** owns data, auth, dashboards; the **administration-tool** frontend is thin and consumes APIs (plus `FRONTEND_URL` for redirects).
+
+```mermaid
+flowchart LR
+  FE[administration-tool — public + static] -->|HTTPS API| BE[Backend — sessions data auth]
+  BE --> DB[(Persistence)]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

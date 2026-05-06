@@ -369,6 +369,29 @@ trace exists + no real generation observation
 
 ---
 
+## Diagrams
+
+Live runtime commit path and truth surfaces (see **§5 Required Runtime Semantics** and **§8 Consequences**).
+
+```mermaid
+flowchart TB
+  subgraph input [Player / operator]
+    PI[Player input]
+  end
+  subgraph we [World-Engine]
+    VAL[Validation]
+    COM[Commit]
+    VIS[Visible scene output]
+  end
+  subgraph obs [Observability]
+    LF[Langfuse spans]
+    DG[Diagnostics / degraded flags]
+  end
+  PI --> VAL --> COM --> VIS
+  COM --> LF
+  COM --> DG
+```
+
 ## 9. Rejected Alternatives
 
 ### 9.1 Treat Langfuse trace presence as live proof

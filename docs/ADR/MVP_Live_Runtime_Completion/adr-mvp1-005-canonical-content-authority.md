@@ -36,6 +36,19 @@ FIX-006 of the MVP1 audit cycle identified that the role IDs (`annette`, `alain`
 - The runtime profile produces a `content_hash` (SHA-256 of `characters.yaml`) in `build_actor_ownership()`, enabling drift detection
 - MVP 2 can trust that `human_actor_id` and `npc_actor_ids` in the handoff trace back to canonical content
 
+## Diagrams
+
+**YAML in `content/modules/god_of_carnage/`** is sole story authority; the **solo ExperienceTemplate** is scaffolding only; resolver pulls IDs from **`characters.yaml`**.
+
+```mermaid
+flowchart TB
+  Y[characters.yaml + module YAML]
+  TPL[god_of_carnage_solo template]
+  Y -->|subset IDs enforced by tests| TPL
+  Y --> PROF[Runtime profile resolver]
+  PROF --> HASH[content_hash drift detection]
+```
+
 ## Alternatives Considered
 
 - Keep role descriptions in the template: rejected — creates dual authority and drift risk

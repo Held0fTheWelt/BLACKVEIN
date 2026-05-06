@@ -216,6 +216,18 @@ if (a11yBtn) {
 
 ---
 
+## Diagrams
+
+**Accessibility mode** (player or **`prefers-reduced-motion`**) disables typewriter, **`revealAll`s** in-flight text, and shows **full blocks immediately**.
+
+```mermaid
+flowchart TD
+  ORC[BlocksOrchestrator] --> ACC{accessibility_mode?}
+  ACC -->|yes| FULL[Render full text — no animation]
+  ACC -->|no| TW[Typewriter startDelivery per block]
+  SYS[System prefers-reduced-motion] --> ORC
+```
+
 ## Test Evidence
 
 ### Unit Tests

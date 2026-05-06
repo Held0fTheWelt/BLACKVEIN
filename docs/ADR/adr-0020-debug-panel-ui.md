@@ -30,6 +30,16 @@ Workstream W3 introduced a bounded debug panel for playable sessions that render
 - Debug data exposure must be access-controlled in production (operator-only surfaces or gated by configuration).
 - Acceptance tests added to ensure behavior and non-regression.
 
+## Diagrams
+
+Session UI embeds a **collapsible** panel driven only by **`DebugPanelOutput`** (`<details>` / `<summary>`).
+
+```mermaid
+flowchart LR
+  PRES[present_debug_panel] --> DPO[DebugPanelOutput schema]
+  DPO --> UI[HTML details/summary — collapsed by default]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

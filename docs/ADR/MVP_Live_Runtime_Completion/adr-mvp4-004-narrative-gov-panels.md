@@ -336,6 +336,18 @@ def build_narrative_gov_summary(
 
 ---
 
+## Diagrams
+
+**`NarrativeGovSummary`** aggregates **`HealthPanel`** rows (actor lanes, LDSS, cost, overrides, …) built from **`build_narrative_gov_summary()`** after turns.
+
+```mermaid
+flowchart TD
+  MGR[StoryRuntimeManager] --> BNG[build_narrative_gov_summary]
+  BNG --> HP[HealthPanel per concern]
+  HP --> SUM[NarrativeGovSummary + recommended_actions]
+  SUM --> API[Admin / operator HTTP surface]
+```
+
 ## Validation Evidence
 
 ### Unit Tests (Phase C Governance)

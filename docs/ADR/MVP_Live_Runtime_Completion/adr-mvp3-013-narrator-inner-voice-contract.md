@@ -37,6 +37,19 @@ All three of these uses violate the player experience contract: the narrator mus
 - NPC hidden motivations remain hidden (dramatic tension preserved)
 - The deterministic mock produces narrator blocks that always pass validation
 
+## Diagrams
+
+**`validate_narrator_voice`** accepts **inner perception** and rejects **dialogue recap**, **forced player state**, and **hidden NPC intent** modes.
+
+```mermaid
+flowchart TD
+  N[Narrator block] --> V[validate_narrator_voice]
+  V --> OK[Inner perception / orientation]
+  V --> X1[Reject dialogue_summary]
+  V --> X2[Reject forced_player_state]
+  V --> X3[Reject hidden_npc_intent]
+```
+
 ## Alternatives Considered
 
 - No narrator validator: rejected — without validation, narrator degrades to a summarizer within a few turns

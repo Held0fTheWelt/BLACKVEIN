@@ -165,6 +165,17 @@ engine.clock.advanceBy(250);
 
 ---
 
+## Diagrams
+
+**`VirtualClock`** switches: tests call **`advanceBy(ms)`**; production uses **`performance.now` + `requestAnimationFrame`** — same **TypewriterEngine** surface.
+
+```mermaid
+flowchart TD
+  TW[TypewriterEngine] --> VC[VirtualClock]
+  VC -->|testMode| ADV[advanceBy drives ticks]
+  VC -->|prod| RAF[requestAnimationFrame loop]
+```
+
 ## Test Evidence
 
 ### Unit Test Coverage

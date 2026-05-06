@@ -37,6 +37,13 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0027](adr-0027-mcp-transport-connectivity-phase-a.md) | MCP transport and connectivity — Phase A | Proposed |
 | [ADR-0028](adr-0028-mcp-security-baseline-phase-a.md) | MCP security baseline — Phase A | Proposed |
 | [ADR-0029](adr-0029-residue-removal-policy.md) | Residue removal policy | Proposed |
+| [ADR-0030](adr-0030-docker-up-complete-bootstrap.md) | `docker-up.py` as complete local bootstrap | Accepted |
+| [ADR-0031](adr-0031-env-configuration-governance.md) | Environment configuration governance | Accepted |
+| [ADR-0032](adr-0032-mvp4-live-runtime-setup-requirements.md) | MVP4 live runtime setup requirements | Accepted |
+| [ADR-0033](adr-0033-live-runtime-commit-semantics.md) | Live runtime commit semantics (real AI, mock, fallback, visible story) | Proposed |
+| [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) | Player-facing narrative shell contract (MVP5) | Accepted |
+| [ADR-0035](adr-0035-story-opening-economy-and-warmup.md) | Story opening economy, warmup, and phase alignment | Proposed |
+| [ADR-0036](adr-0036-player-session-output-language.md) | Player session output language (launch-time selection) | Proposed |
 
 _Status values mirror each file’s `## Status` line; update the table when an ADR’s status changes._
 

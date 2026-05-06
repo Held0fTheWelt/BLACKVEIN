@@ -29,6 +29,17 @@ Workstream W2/W3 introduced role-structured decision artifacts (interpreter, dir
 - Tests and evidence builders should assert canonicalization invariants (parsed_decision identity).
 - Backward compatibility: when role-aware fields are absent, systems fall back to legacy raw outputs.
 
+## Diagrams
+
+Parsing produces **`parsed_decision` / role summaries** stored on **`AIDecisionLog`**; consumers read the canonical object, not raw LLM text.
+
+```mermaid
+flowchart LR
+  RAW[Raw LLM output] --> PARSE[construct_ai_decision_log]
+  PARSE --> PD[ParsedRoleAwareDecision / parsed_decision]
+  PD --> LOG[AIDecisionLog persisted]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

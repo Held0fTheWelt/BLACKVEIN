@@ -48,6 +48,25 @@ World of Shadows split **platform API / governance** from **live narrative execu
 - Track removal of transitional in-process runtime shims as documented in `runtime_authority_decision.md`.
 - Keep ADR synchronized if authority shifts (supersede rather than silently edit).
 
+## Diagrams
+
+Authoritative play runs in **world-engine**; **backend** owns governance and curation; **story_runtime_core** shares models. AI output is **proposal** until validated and committed.
+
+```mermaid
+flowchart LR
+  subgraph gov [Governance]
+    BE[Backend]
+  end
+  subgraph play [Authoritative runtime]
+    WE[world-engine]
+    SRC[story_runtime_core]
+  end
+  AI[AI / LLM]
+  SRC --> WE
+  BE -.->|packages policy| WE
+  AI -->|proposal| WE
+```
+
 ## Testing
 
 - **Documentation / review:** cross-check against [`runtime-authority-and-state-flow.md`](../technical/runtime/runtime-authority-and-state-flow.md) and [`runtime-authority-and-session-lifecycle.md`](../dev/architecture/runtime-authority-and-session-lifecycle.md).

@@ -27,6 +27,17 @@ Any player-state interpretation seam should use a general affect model with enum
 - operators and evaluators can inspect broader player-state signals
 - player adaptation can stay bounded by policy instead of ad hoc heuristics
 
+## Diagrams
+
+Player-state seams use a **typed affect model** (enums + confidence); “frustration” is one signal among many.
+
+```mermaid
+flowchart TD
+  SIG[Signals from play] --> AFF[Affect enum + confidence]
+  AFF --> POL[Policy-bounded adaptation]
+  AFF --> OPS[Operator / evaluator views]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

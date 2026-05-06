@@ -266,7 +266,10 @@ def test_mvp4_visible_scene_output_survives_resume_state():
     )
 
     assert bundle["opening_turn"] is None
-    assert bundle["visible_scene_output"] == {"blocks": scene_blocks}
+    assert bundle["visible_scene_output"] == {
+        "blocks": scene_blocks,
+        "typewriter_slice_start_index": 0,
+    }
 
 
 @pytest.mark.mvp4
@@ -314,4 +317,39 @@ def test_mvp4_visible_scene_output_is_cumulative_for_mvp5_transcript():
         state=state,
         created=None,
     )
-    assert bundle["visible_scene_output"] == {"blocks": opening_blocks + turn1_blocks}
+    assert bundle["visible_scene_output"] == {
+        "blocks": opening_blocks + turn1_blocks,
+        "typewriter_slice_start_index": 1,
+    }
+
+
+@pytest.mark.mvp4
+def test_mvp4_typewriter_slice_start_index_non_cumulative_is_zero():
+    """Fallback bundle (no entry-level scene_blocks) animates the whole slice from index 0."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    turn_blocks = [{"id": "t1", "block_type": "narrator", "text": "Only latest turn."}]
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "entries": [],
+            "entry_count": 0,
+            "latest_entry": None,
+        },
+        "last_committed_turn": {
+            "turn_number": 1,
+            "visible_output_bundle": {"scene_blocks": turn_blocks},
+        },
+    }
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+    assert bundle["visible_scene_output"] == {
+        "blocks": turn_blocks,
+        "typewriter_slice_start_index": 0,
+    }

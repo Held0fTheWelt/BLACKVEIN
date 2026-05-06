@@ -27,6 +27,17 @@ The model may suggest narrative text, triggers, and effects. No suggestion is au
 - blocked turns are first-class
 - commit logic remains engine authority
 
+## Diagrams
+
+Model output stays **non-authoritative** until validation and engine checks succeed; blocked turns remain explicit.
+
+```mermaid
+flowchart LR
+  M[Model proposal] --> V[Validation + legality]
+  V -->|approved| C[Engine commit — truth]
+  V -->|rejected| B[Blocked turn — first-class]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

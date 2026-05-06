@@ -39,6 +39,18 @@ Error codes emitted by the resolver:
 - The resolver is currently hard-coded for `god_of_carnage_solo`; future profiles require adding cases
 - `RuntimeProfileError` is a structured ValueError subclass with `.code` and `.details`
 
+## Diagrams
+
+**`RuntimeProfileResolver`** maps `runtime_profile_id` → profile metadata, validates role choice, and asserts **no embedded story truth**.
+
+```mermaid
+flowchart LR
+  ID[runtime_profile_id] --> RES[resolve_runtime_profile]
+  RES --> VAL[validate_selected_player_role]
+  VAL --> OWN[build_actor_ownership + content hash]
+  RES --> AST[assert_profile_contains_no_story_truth]
+```
+
 ## Alternatives Considered
 
 - Database-driven profile registry: deferred (overkill for MVP1 with one profile)

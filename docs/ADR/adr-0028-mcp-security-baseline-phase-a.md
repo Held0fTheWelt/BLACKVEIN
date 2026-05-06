@@ -29,6 +29,22 @@ Phase A for MCP requires conservative security defaults to prevent accidental st
 - Tooling and endpoints must respect permission levels and logging constraints.
 - Future phases may relax or change these rules with an ADR.
 
+## Diagrams
+
+Phase A MCP is **read/preview-only**, **Bearer**-authenticated, **rate-limited**, and logs **redact** secrets/PII.
+
+```mermaid
+flowchart TD
+  MCP[MCP tool calls] --> RO[Read-only operations]
+  AUTH[Bearer service token]
+  RL[<= 30 calls/min per token]
+  LOG[Hash bodies / no secrets in logs]
+  RO --> BE[Backend]
+  AUTH --> BE
+  RL --> BE
+  LOG --> BE
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

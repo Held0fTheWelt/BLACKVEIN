@@ -27,6 +27,16 @@ Revision lifecycle must be enforced through a formal workflow state machine with
 - approval paths become auditable
 - system side effects like draft apply and evaluation launch can be attached to transitions
 
+## Diagrams
+
+Revision lifecycle is a **typed state machine**: transitions carry **roles** and may attach **side effects** (draft apply, evaluation).
+
+```mermaid
+flowchart LR
+  S1[Workflow state] -->|transition + RBAC| S2[Next state]
+  S2 --> FX[Side effects: apply draft / launch eval]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

@@ -30,6 +30,17 @@ During a documentation consolidation effort, many source documents were merged i
 - Some archive files will be edited to include pointer lines; CI tests that reference archived paths must be updated to expect pointers or canonical ADR paths.
 - Contractify discovery should be configured to prefer `docs/ADR/` while allowing archive evidence to remain discoverable for audit purposes.
 
+## Diagrams
+
+**docs/ADR/** is canonical decision truth; archive ledgers keep evidence; migrated files get **pointer lines** back to the ADR.
+
+```mermaid
+flowchart TD
+  ARC[docs/archive evidence] -->|extract decision text| ADR[docs/ADR canonical]
+  ARC --> PTR[Migrated Decision pointer in archive]
+  PTR --> ADR
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

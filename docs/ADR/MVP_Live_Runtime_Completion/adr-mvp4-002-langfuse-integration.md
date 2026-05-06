@@ -212,6 +212,19 @@ turn_{trace_id}
 
 ---
 
+## Diagrams
+
+**LangfuseAdapter** creates **trace + spans** per turn (LDSS, narrator, blocks), fills **real token/cost** data, and keeps **`trace_id`** aligned with diagnostics/logs.
+
+```mermaid
+flowchart TB
+  TURN[Turn execute] --> TRACE[Langfuse trace]
+  TRACE --> S1[LDSS spans]
+  TRACE --> S2[Narrator / block spans]
+  S2 --> COST[cost_summary populated]
+  TRACE --> CORR[Same trace_id in diagnostics]
+```
+
 ## Validation Evidence
 
 ### Unit Tests (Phase B)

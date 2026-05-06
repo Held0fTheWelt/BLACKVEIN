@@ -109,6 +109,17 @@ class DegradationEvent:
 
 ---
 
+## Diagrams
+
+**`DiagnosticsEnvelope`** gains **degradation timeline**, **cost summary (Phase A placeholder)**, and **`to_response(context)`** for operator vs Langfuse vs super-admin redaction.
+
+```mermaid
+flowchart TD
+  ENV[DiagnosticsEnvelope] --> TL[degradation_timeline]
+  ENV --> CS[cost_summary]
+  ENV --> TR[to_response operator / langfuse / super_admin]
+```
+
 ## Validation Evidence
 
 ### Unit Tests (Phase A)

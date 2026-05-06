@@ -28,6 +28,16 @@ During MVP validation we need clear exit and expansion criteria to avoid prematu
 - Roadmap gating: teams must provide evaluator evidence before larger platform investments.
 - Short-term work focuses on corrective passes rather than expansion epics.
 
+## Diagrams
+
+Expansion follows **evaluator evidence** of runtime advantage; **weak** evidence forces corrective work instead of platform growth.
+
+```mermaid
+flowchart TD
+  M[Runtime vs control metric] -->|weak| FIX[Close experiential gaps first]
+  M -->|clear advantage| EXP[Allow expansion / roadmap shift]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

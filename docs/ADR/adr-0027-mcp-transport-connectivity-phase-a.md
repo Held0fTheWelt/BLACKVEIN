@@ -28,6 +28,17 @@ MCP transport and connectivity need stable defaults for Phase A operator/QA usag
 ## Consequences
 - Implementers should ensure tooling honours timeouts and header conventions.
 
+## Diagrams
+
+**stdio** MCP transport locally; **HTTPS** to backend with timeouts, single retry, and **WoS trace headers**.
+
+```mermaid
+flowchart LR
+  MCP[MCP client] -->|stdio| SRV[Local MCP server]
+  SRV -->|HTTPS 5s timeout, 1 retry| BE[Backend]
+  SRV -->|X-WoS-Trace-Id, X-WoS-Client| BE
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

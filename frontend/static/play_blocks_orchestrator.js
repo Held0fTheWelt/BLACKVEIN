@@ -30,7 +30,19 @@ class BlocksOrchestrator {
       return;
     }
 
-    const blocks = response.visible_scene_output.blocks || [];
+    const vso = response.visible_scene_output;
+    const blocks = vso.blocks || [];
+
+    /** @type {number} Index into blocks where sequential typewriter begins (ADR-0034 §7). */
+    let twStart;
+    const rawStart = vso.typewriter_slice_start_index;
+    if (typeof rawStart === 'number' && !Number.isNaN(rawStart)) {
+      twStart = Math.max(0, Math.min(Math.floor(rawStart), blocks.length));
+    } else if (blocks.length > 0) {
+      twStart = blocks.length - 1;
+    } else {
+      twStart = 0;
+    }
 
     // Clear previous blocks
     this.renderer.clear();
@@ -38,21 +50,21 @@ class BlocksOrchestrator {
     this.blocks = [];
     this.currentBlockIndex = 0;
 
-    // Render all blocks; only the last block uses the typewriter (prior blocks stay full text).
+    // Indices < twStart: transcript-stable (full text). Indices >= twStart: typewriter queue.
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
-      const isLast = i === blocks.length - 1;
+      const transcriptStable = i < twStart;
       this.blocks.push(block);
       this.renderer.render(block);
 
       if (!this.accessibility_mode) {
-        if (isLast) {
-          this.typewriter.startDelivery(block);
-        } else {
+        if (transcriptStable) {
           const el = this.renderer.getBlockElement(block.id);
           if (el) {
             el.textContent = block.text || '';
           }
+        } else {
+          this.typewriter.startDelivery(block);
         }
       } else {
         const el = this.renderer.getBlockElement(block.id);
@@ -65,6 +77,8 @@ class BlocksOrchestrator {
 
   /**
    * Append narrator block from WebSocket streaming
+   *
+   * Each chunk is one block; it becomes the active typewriter slice (ADR-0034 §5–§7).
    *
    * @param {Object} block - Scene block from narrator stream
    */

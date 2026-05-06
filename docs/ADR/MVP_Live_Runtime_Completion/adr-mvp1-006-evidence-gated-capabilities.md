@@ -32,6 +32,17 @@ Error code for violation: `capability_evidence_missing_source_anchor`
 - Implemented capabilities (profile resolution, role selection, visitor removal) have concrete source anchors
 - MVP4 must provide real source anchors when it marks diagnostics capabilities as `implemented`
 
+## Diagrams
+
+Capability claims require **`source_anchors`**, named **tests**, and honest **`missing`** — never static “implemented” without proof.
+
+```mermaid
+flowchart TD
+  CAP[Capability row] --> A{source_anchors + tests?}
+  A -->|no| MIS[status: missing]
+  A -->|yes| IMP[status: implemented]
+```
+
 ## Alternatives Considered
 
 - Static capability declaration (always "implemented"): rejected — source of previous trust failures

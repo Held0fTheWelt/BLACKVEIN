@@ -28,6 +28,17 @@ Content authoring in the repository uses scene/trigger/ending content modules un
 - Consumers (World-Engine, review tools, RAG ingestion) must read the canonical compiled projections rather than ad-hoc source variants.
 - Changes to the canonical model require an ADR and coordination across the runtime and backend teams.
 
+## Diagrams
+
+Authoring lives under **`content/modules/`**; ingestion and **compiled projections** are what downstream consumers read.
+
+```mermaid
+flowchart LR
+  YAML[content/modules YAML] --> LOAD[ContentModule loader]
+  LOAD --> PROJ[runtime_projection + corpus/review seeds]
+  PROJ --> WE[World-Engine / tools / RAG]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

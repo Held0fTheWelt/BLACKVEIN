@@ -41,6 +41,18 @@ MVP4 introduces the DiagnosticsEnvelope contract to make quality and degradation
 - Operators can tell exactly what happened: validation status, commit result, quality class, degradation signals
 - Static fields claiming success without evidence are rejected by the validator
 
+## Diagrams
+
+**`DiagnosticsEnvelope.v1`** exposes **quality_class** (ok / degraded / failed / mock_static_invalid), mandatory **degradation reasons**, **`TraceableDecision`** records, and **evidence consistency** checks.
+
+```mermaid
+flowchart TD
+  ENV[DiagnosticsEnvelope] --> Q[quality_class + degradation_signals]
+  ENV --> TD[TraceableDecision list]
+  ENV --> EVD[validate_evidence_consistency]
+  Q --> RSP[Packaged only from committed state]
+```
+
 ## Alternatives Considered
 
 - Extending the existing `runtime_governance_surface` dict: rejected — untyped, not consumer-ready for MVP5

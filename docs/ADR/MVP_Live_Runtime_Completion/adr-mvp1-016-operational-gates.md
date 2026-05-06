@@ -41,6 +41,17 @@ The following operational gate requirements apply to MVP1 and all subsequent MVP
 - No MVP patches code before completing the source locator artifact
 - Pre-existing test failures that are unrelated to the MVP must be documented and explained in the operational evidence artifact
 
+## Diagrams
+
+MVP closure requires **`docker-up`**, **`tests/run_tests.py`**, **CI workflows**, **TOML coverage**, plus **source-locator** and **operational-evidence** artifacts.
+
+```mermaid
+flowchart LR
+  DU[docker-up.py] --> RT[tests/run_tests.py]
+  RT --> GH[GitHub workflows]
+  GH --> ART[MVPn_SOURCE_LOCATOR + OPERATIONAL_EVIDENCE]
+```
+
 ## Error Codes
 
 - `source_locator_artifact_missing`

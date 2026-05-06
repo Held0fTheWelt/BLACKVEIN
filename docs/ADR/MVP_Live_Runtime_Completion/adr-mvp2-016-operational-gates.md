@@ -45,6 +45,17 @@ MVP1 established `docker-up.py`, `tests/run_tests.py`, GitHub workflows, and TOM
 - `tests/run_tests.py --mvp2` delegates to `tests/run_tests.py --suite engine`, which runs all world-engine tests including MVP2 files
 - The operational evidence artifact must list concrete test files and markers, not just suite names
 
+## Diagrams
+
+**`--mvp2`** runs engine suites covering MVP2 files; **`mvp2-tests.yml`**, **reports**, and **required ADRs** must stay in sync.
+
+```mermaid
+flowchart LR
+  FLG[--mvp2 → suite engine] --> T[test_mvp2_* files]
+  T --> WF[mvp2-tests.yml]
+  WF --> REP[MVP2_SOURCE_LOCATOR + OPERATIONAL_EVIDENCE + HANDOFF]
+```
+
 ## Alternatives Considered
 
 - Running MVP2 tests only from CI without canonical runner integration: rejected — the operational gate requires `tests/run_tests.py` to be the canonical entry point

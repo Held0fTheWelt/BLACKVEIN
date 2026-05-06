@@ -27,6 +27,25 @@ Preview packages are executable only inside explicitly isolated preview sessions
 - reload semantics for active and preview paths must stay distinct
 - admin actions must show whether a package is active or preview-only
 
+## Diagrams
+
+**Preview** execution uses an isolated session/loader path so **active** live sessions never resolve preview packages by accident.
+
+```mermaid
+flowchart TB
+  subgraph prev [Preview path]
+    PS[Preview session namespace]
+    PP[Preview package]
+  end
+  subgraph live [Active path]
+    LS[Live session]
+    AP[Active / promoted package]
+  end
+  PP --> PS
+  AP --> LS
+  PS -.->|no cross-resolve| LS
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

@@ -39,6 +39,18 @@ A passive NPC that only responds when directly addressed violates the live drama
 - Multi-NPC turns are valid and expected when 2+ NPCs are in the session
 - Responder selection is traceable in `diagnostics.npc_agency`
 
+## Diagrams
+
+**`NPCAgencyPlan`** picks **primary/secondary** responders, allows **NPC→NPC** blocks, and never nominates the **human** (or `visitor`) as responder.
+
+```mermaid
+flowchart TB
+  PLAN[NPCAgencyPlan] --> PRIM[primary_responder_id]
+  PLAN --> SEC[secondary_responder_ids]
+  PRIM --> BLK[Scene blocks — may target other NPCs]
+  SEC --> BLK
+```
+
 ## Alternatives Considered
 
 - Single-NPC-per-turn restriction: rejected — limits dramatic richness and prevents NPC-to-NPC exchanges

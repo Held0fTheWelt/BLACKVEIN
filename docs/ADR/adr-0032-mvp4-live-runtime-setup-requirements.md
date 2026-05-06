@@ -148,6 +148,19 @@ MVP4 still stops at runtime and operator closure. It does not itself claim to co
 - Any future docs that describe MVP4 purely as "provider-backed opening" will be misleading.
 - If Redis is removed from Docker without replacement, operator truth becomes worker-local and unreliable.
 
+## Diagrams
+
+MVP4 live-runtime setup expectations across processes (see **Verification**).
+
+```mermaid
+flowchart LR
+  DC[docker-compose / local stack] --> BE[Backend]
+  DC --> WE[World-Engine]
+  DC --> FS[Frontend / play shell]
+  BE <--> WE
+  BE --> FS
+```
+
 ## Verification
 
 MVP4 should be considered satisfied only when the following remain true:

@@ -168,9 +168,6 @@
       }
       if (mvp5Ready && orchestrator) {
         orchestrator.loadTurn(payload);
-        if (typewriterEngine) {
-          typewriterEngine.startDelivery();
-        }
         renderRuntimeStatus(runtimeStatus || undefined);
         return true;
       }
@@ -209,9 +206,6 @@
       }
       if (mvp5Ready && orchestrator) {
         orchestrator.loadTurn(bootstrapPayload);
-        if (typewriterEngine) {
-          typewriterEngine.startDelivery();
-        }
       }
     }
     renderRuntimeStatus(initialStatus || undefined);

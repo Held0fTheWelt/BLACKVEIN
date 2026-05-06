@@ -42,6 +42,10 @@ What we will do — **testable** bullets or a single normative paragraph.
 
 **Follow-ups:** …
 
+## Diagrams
+
+Diagrams explaining the ADRs Context and Consequences
+
 ## Testing
 
 How we **verify** this decision: CI gates, contract tests, manual checks, or explicit **“not yet automated”**. Note **failure modes** that should trigger an ADR review (e.g. drift in dual surfaces, missing enforcement).
@@ -49,3 +53,4 @@ How we **verify** this decision: CI gates, contract tests, manual checks, or exp
 ## References
 
 - …
+

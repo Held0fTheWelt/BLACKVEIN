@@ -35,6 +35,20 @@ The God of Carnage solo experience had no formal separation between its content 
 - Unselected guest roles converted to NPC participants in solo story runtime (FIX-003)
 - Template story truth (beats, props, actions) must be empty — all derived from canonical content (FIX-002)
 
+## Diagrams
+
+**Canonical content module** (`god_of_carnage`) owns story truth; **`god_of_carnage_solo`** is only a **runtime profile**; the player picks **`annette` or `alain`** (no `visitor`).
+
+```mermaid
+flowchart TB
+  CM[content/modules/god_of_carnage]
+  RP[Runtime profile god_of_carnage_solo]
+  PL[Player selected role]
+  CM --> RP
+  PL --> RP
+  RP --> SESS[Session with provable content binding]
+```
+
 ## Alternatives Considered
 
 - Keep `visitor` and use it as a role alias: rejected — visitor is not a canonical GoC character and creates false identity

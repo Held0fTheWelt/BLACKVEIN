@@ -27,6 +27,18 @@ Competing revision candidates targeting overlapping content units must create co
 - operators can resolve conflicts deliberately
 - revision batches remain inspectable
 
+## Diagrams
+
+Overlapping revision candidates produce a **conflict record** before draft apply — no silent last-write-wins.
+
+```mermaid
+flowchart TD
+  A[Candidate A] --> O{Same content units?}
+  B[Candidate B] --> O
+  O -->|overlap| CR[Conflict governance object]
+  CR --> RES[Explicit resolution]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

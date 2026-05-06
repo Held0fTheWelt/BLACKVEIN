@@ -141,6 +141,20 @@ The current exit-code contract stays in force for `up`:
 - Redis is now a standard local dependency for Docker-based governance truth.
 - Older docs or habits that assume env-only observability control are incorrect and must not be followed.
 
+## Diagrams
+
+Bootstrap entrypoint brings the dev stack to a known-good state (see **Decision**).
+
+```mermaid
+flowchart TD
+  DU[docker-up / bootstrap] --> IMG[Images & containers]
+  DU --> NET[Network & ports]
+  DU --> CHK[Health / smoke checks]
+  IMG --> READY[Ready for tests & play]
+  NET --> READY
+  CHK --> READY
+```
+
 ## Operational Notes
 
 ### What `docker-up.py` guarantees

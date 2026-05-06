@@ -51,6 +51,18 @@ Additionally, the runtime had no mechanism preventing state deltas from mutating
 - A rejected commit from a protected delta returns `commit_applied=False` with `state_delta_rejection` in the result
 - Unknown paths are rejected by default (`reject_unknown_paths=True`) — only explicitly listed allowed paths can be mutated
 
+## Diagrams
+
+**NPC coercion** blocks outcome-control of the human actor; **`StateDeltaBoundary`** rejects mutations on **protected canonical paths** at **`run_commit_seam`**.
+
+```mermaid
+flowchart TD
+  NPC[NPC action text/fields] --> COE[validate_npc_action_coercion]
+  DEL[Candidate state deltas] --> BOUND[validate_state_delta]
+  BOUND --> SEAM[run_commit_seam — reject before write]
+  COE --> SEAM
+```
+
 ## Validation Evidence
 
 - `test_npc_action_cannot_force_human_response` — PASS

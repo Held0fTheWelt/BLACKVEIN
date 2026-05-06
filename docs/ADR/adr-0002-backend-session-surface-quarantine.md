@@ -31,6 +31,20 @@ The platform historically exposed backend-local session and runtime-shaped APIs.
 - Positive: Reduced drift; clearer onboarding for engineers.
 - Negative: Migration work for any remaining callers of retired surfaces; coordination with product for compat timelines.
 
+## Diagrams
+
+Transitional backend runtime APIs are **inventoried and classified** so nothing competes with **world-engine** as truth for committed play.
+
+```mermaid
+flowchart TD
+  WE[world-engine — authoritative]
+  INV[Inventory backend session/runtime surfaces]
+  CLS[Retire / Quarantine / Compat]
+  INV --> CLS
+  CLS --> DOC[Labeled non-authoritative]
+  DOC -.->|must not claim player truth| WE
+```
+
 ## Testing
 
 - **Inventory / classification:** verify Appendix A style lists stay current when new session routes land.

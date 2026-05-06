@@ -28,6 +28,17 @@ A rejected model output must not produce a player-visible dead end. Runtime must
 - operator tooling must surface fallback spikes
 - degraded quality is acceptable for continuity; broken turns are not
 
+## Diagrams
+
+Rejected model output triggers **corrective recovery** and, if needed, a **safe fallback** — the player never hits a hard dead end.
+
+```mermaid
+flowchart TD
+  V[Validation rejects output] --> R[Corrective recovery]
+  R -->|still blocked| F[Safe fallback response]
+  R -->|recovered| OK[Continue turn flow]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

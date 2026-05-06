@@ -37,6 +37,18 @@ An `ObjectAdmissionRecord` is produced for every admitted or rejected object, ca
 - No object can create new canonical story truth at runtime
 - The `god_of_carnage_solo` runtime module continues to own no props (props=[] in the template)
 
+## Diagrams
+
+Every object is **`source_kind`**-classified (`canonical_content`, `typical_minor_implied`, `similar_allowed`) with an **`ObjectAdmissionRecord`** and explicit **commit vs staging** rules.
+
+```mermaid
+flowchart TD
+  OBJ[Referenced object] --> AD[admit_object / validate]
+  AD --> CC[canonical_content — may commit]
+  AD --> TM[typical_minor_implied — staging only]
+  AD --> SA[similar_allowed — needs similarity_reason]
+```
+
 ## Alternatives Considered
 
 - Open object list: rejected — any object without source classification can silently create new story truth

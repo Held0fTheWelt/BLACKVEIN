@@ -39,6 +39,18 @@ The old minimum agency baseline (passive reactivity) is insufficient. NPCs must 
 - The deterministic mock guarantees at least one visible NPC response even without AI
 - The gate for passivity runs before commit and before response packaging
 
+## Diagrams
+
+Legacy “one NPC line” floor is replaced by **LDSS**: **passivity**, **dramatic mass**, and **`NPCAgencyPlan`** gates before commit.
+
+```mermaid
+flowchart LR
+  OLD[Minimum agency baseline] -.->|superseded| LDSS[LDSS validators]
+  LDSS --> P[PassivityValidation]
+  LDSS --> M[DramaticMassValidation]
+  LDSS --> A[NPCAgencyPlan initiative]
+```
+
 ## Alternatives Considered
 
 - Keeping minimum agency baseline and adding LDSS on top: rejected — creates two competing contracts for the same enforcement point

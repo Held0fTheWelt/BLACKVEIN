@@ -174,6 +174,17 @@ Therefore:
 - Some older comments or examples may still mention `LANGFUSE_ENABLED`; they should be treated as transitional or historical, not normative.
 - New features must be careful not to push backend-governed state back into `.env` out of convenience.
 
+## Diagrams
+
+Configuration governance flows from policy through runtime surfaces (see **Decision** and **Consequences**).
+
+```mermaid
+flowchart TD
+  POL[Policy / docs / examples] --> ENV[.env & deployment config]
+  ENV --> VAL[Validation at startup or gate]
+  VAL --> SVC[Backend / engine / AI services]
+```
+
 ## Rules for New Configuration
 
 When adding a new variable:

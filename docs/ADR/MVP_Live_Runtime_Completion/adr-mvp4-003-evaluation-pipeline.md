@@ -306,6 +306,18 @@ if pipeline.check_baseline_regression(recent_score):
 
 ---
 
+## Diagrams
+
+**`EvaluationPipeline`** scores turns against a **versioned `QualityRubric`**, persists **`TurnScore`**, and supports **safe auto-tuning** tied to session/turn IDs.
+
+```mermaid
+flowchart LR
+  OUT[LDSS / committed output] --> PIPE[EvaluationPipeline]
+  RUB[Versioned QualityRubric] --> PIPE
+  PIPE --> SC[TurnScore + pass_status]
+  SC --> TUNE[Auto-tune weights — bounded]
+```
+
 ## Validation Evidence
 
 ### Unit Tests (Phase C Evaluation)

@@ -86,6 +86,18 @@ Each module has a single responsibility and exports a clean interface. Modules c
 
 ---
 
+## Diagrams
+
+Four modules: **BlockRenderer** (DOM), **TypewriterEngine** (clock-driven chars), **BlocksOrchestrator** (hub state), **PlayControls** (skip/reveal) — no monolithic HTML blob.
+
+```mermaid
+flowchart LR
+  CTRL[PlayControls] --> ORC[BlocksOrchestrator]
+  ORC --> REN[BlockRenderer]
+  ORC --> TW[TypewriterEngine]
+  TW --> CLK[VirtualClock test vs rAF prod]
+```
+
 ## Test Evidence
 
 ### Unit Tests

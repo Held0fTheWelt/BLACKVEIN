@@ -33,6 +33,18 @@ The previous GoC solo template had a single HUMAN role (`visitor`) that was auto
 - The two human-selectable lobby seats (annette, alain) both exist in the template; the unselected one remains an empty lobby seat
 - MVP2 receives `human_actor_id` and `npc_actor_ids` from the `CreateRunResponse`
 
+## Diagrams
+
+Mandatory **`annette` / `alain`** selection drives **`human_actor_id`**; all other canonical characters become **NPC** lanes for MVP2.
+
+```mermaid
+flowchart LR
+  CH[Player chooses annette or alain] --> H[human_actor_id]
+  CH --> NPC[npc_actor_ids — other canonical roles]
+  H --> LAN[actor_lanes handoff]
+  NPC --> LAN
+```
+
 ## Alternatives Considered
 
 - Single-role template variants (one for each player choice): rejected — violates profile-only separation

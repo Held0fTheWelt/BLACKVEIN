@@ -27,6 +27,17 @@ A preview package is not promotable only because it exists. Promotion requires p
 - package changes can be compared to active baseline
 - regression risk is materially reduced
 
+## Diagrams
+
+A **preview package** alone is not enough; **evaluation evidence** and **approval** sit on the path to promotion.
+
+```mermaid
+flowchart LR
+  PRE[Preview package exists] --> EVAL[Evaluation gates]
+  EVAL --> APP[Manual approval]
+  APP --> PROM[Promote to active]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

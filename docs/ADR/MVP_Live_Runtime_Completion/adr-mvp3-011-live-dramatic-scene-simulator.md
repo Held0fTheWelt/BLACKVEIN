@@ -42,6 +42,17 @@ MVP3 introduces LDSS as a non-optional live-path component that wraps the turn's
 - The response is packaged from committed state, not raw AI output
 - Diagnostics provide turn-level observability for MVP4 (Narrative Gov, Langfuse)
 
+## Diagrams
+
+After validation/commit, **`_build_ldss_scene_envelope`** emits **`SceneTurnEnvelope.v2`** with typed **`SceneBlock`**s and **evidenced** diagnostics — no legacy blob as final truth.
+
+```mermaid
+flowchart LR
+  COMM[Committed turn state] --> LDSS[run_ldss / envelope build]
+  LDSS --> ENV[SceneTurnEnvelope v2 + SceneBlocks]
+  LDSS --> DIAG[diagnostics.live_dramatic_scene_simulator]
+```
+
 ## Alternatives Considered
 
 - Adding LDSS as a new LangGraph node: rejected for MVP3 — the existing graph already validates and commits; LDSS packaging runs post-commit without modifying the graph

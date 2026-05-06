@@ -28,6 +28,17 @@ The NextVision Suite's risk and mitigation documentation defines a decision fram
 - Teams must include explicit risk assessments and recovery plans in decision artifacts.
 - Project dashboards must track monitoring indicators tied to the framework.
 
+## Diagrams
+
+Initiatives document **risks, mitigations, worst case**; **kill criteria** and monitoring cadence bound continued investment.
+
+```mermaid
+flowchart TD
+  R[Risks + mitigations + recoverability] --> GO[Accept / defer decision]
+  K[Kill criteria + indicators] --> MON[Monitoring cadence]
+  MON --> GO
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

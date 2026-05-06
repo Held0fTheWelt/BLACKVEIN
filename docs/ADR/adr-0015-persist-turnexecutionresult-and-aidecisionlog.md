@@ -36,6 +36,17 @@ Make persisted diagnostics visible in debug tooling (debug panel) including:
 - Storage: session-layer storage needs sizing and retention policy defined by operations (see Appendix A in archive evidence).
 - UI: debug surfaces expose sensitive data; ensure operator-only access and auditing on access.
 
+## Diagrams
+
+Turn execution and **AIDecisionLog** persist in **session layers** for audit/debug; the **debug panel** reads the same canonical contracts.
+
+```mermaid
+flowchart LR
+  TURN[TurnExecutionResult] --> LAY[SessionContextLayers]
+  LOG[AIDecisionLog] --> LAY
+  LAY --> DBG[Debug panel — operator-gated]
+```
+
 ## Testing
 - Debug panel shows full diagnostics.
 - Diagnostics persisted and retrievable via session inspection endpoints.

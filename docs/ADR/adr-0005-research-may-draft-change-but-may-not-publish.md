@@ -27,6 +27,18 @@ Research outputs may create findings, revision candidates, and draft patch bundl
 - review and evaluation remain mandatory
 - writers-room and admin stay meaningful in the content chain
 
+## Diagrams
+
+Research may produce **drafts and findings**; only governed promotion paths may touch **canonical runtime packages**.
+
+```mermaid
+flowchart LR
+  R[Research outputs] --> REV[Review + evaluation]
+  REV --> PUB[Publish / promote]
+  R -.->|never direct write| PKG[Canonical runtime packages]
+  PUB --> PKG
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.

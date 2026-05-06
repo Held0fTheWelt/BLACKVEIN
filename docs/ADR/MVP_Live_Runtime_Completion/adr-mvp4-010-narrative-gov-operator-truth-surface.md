@@ -45,6 +45,18 @@ The administration-tool's Narrative Gov `runtime.html` page was a placeholder wi
 - Stale/static operator evidence is rejected
 - The UI degrades gracefully when play-service is unavailable
 
+## Diagrams
+
+**`get_narrative_gov_summary()`** scans live GoC sessions and serves **six health panels** to **`runtime.html`** via authenticated **world-engine** API.
+
+```mermaid
+flowchart LR
+  WE[world-engine sessions + diagnostics] --> NG[get_narrative_gov_summary]
+  NG --> API[GET narrative-gov-summary]
+  API --> PROXY[Admin tool proxy]
+  PROXY --> UI[runtime.html six panels]
+```
+
 ## Alternatives Considered
 
 - Static admin panel with hardcoded values: rejected — violates `Do not make Narrative Gov a static page`

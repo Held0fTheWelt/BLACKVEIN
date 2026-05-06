@@ -89,6 +89,51 @@ describe('BlocksOrchestrator', () => {
       );
     });
 
+    test('with typewriter_slice_start_index 0, sequences every block through typewriter', () => {
+      const response = {
+        visible_scene_output: {
+          typewriter_slice_start_index: 0,
+          blocks: [
+            { id: 'block-1', block_type: 'narrator', text: 'First' },
+            { id: 'block-2', block_type: 'actor_line', text: 'Second' },
+          ],
+        },
+      };
+
+      orchestrator.loadTurn(response);
+
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(2);
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: 'block-1' }),
+      );
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: 'block-2' }),
+      );
+    });
+
+    test('with typewriter_slice_start_index 1, prior block full text then types the rest', () => {
+      const response = {
+        visible_scene_output: {
+          typewriter_slice_start_index: 1,
+          blocks: [
+            { id: 'block-1', block_type: 'narrator', text: 'Prior' },
+            { id: 'block-2', block_type: 'actor_line', text: 'New' },
+          ],
+        },
+      };
+
+      orchestrator.loadTurn(response);
+
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'block-2', text: 'New' }),
+      );
+      const el = container.querySelector('[data-block-id="block-1"]');
+      expect(el.textContent).toBe('Prior');
+    });
+
     test('should clear previous blocks before loading', () => {
       const block1 = {
         visible_scene_output: {

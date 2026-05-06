@@ -32,6 +32,15 @@ _(Void — see ADR-0001.)_
 
 _(Void — see ADR-0001.)_
 
+## Diagrams
+
+This record is a **superseded stub**; authority topology lives in **ADR-0001**.
+
+```mermaid
+flowchart LR
+  A21[ADR-0021 stub] -.->|superseded| A01[ADR-0001 canonical authority]
+```
+
 ## Testing
 
 _(N/A — superseded.)_

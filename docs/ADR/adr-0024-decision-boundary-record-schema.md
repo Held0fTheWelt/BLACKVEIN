@@ -36,6 +36,16 @@ The `ROADMAP_MVP_GoC.md` documents a set of minimum fields for runtime records i
 - Instrumentation work required in runtime components to populate the record.
 - Downstream storage, retrieval, and reporting should include these fields for governance views.
 
+## Diagrams
+
+Each **decision boundary crossing** emits a minimum **Decision Boundary Record** for audit and governance views.
+
+```mermaid
+flowchart LR
+  SEAM[Runtime / governance seam] --> DBR[Decision Boundary Record fields]
+  DBR --> STORE[Storage + reporting]
+```
+
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
