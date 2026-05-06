@@ -128,6 +128,44 @@ GATE_FAMILIES: FrozenSet[str] = frozenset(
 # Canonical module id for the vertical slice (VERTICAL_SLICE_CONTRACT_GOC.md §2.1).
 GOC_MODULE_ID = "god_of_carnage"
 
+GOC_CANONICAL_ACTOR_IDS: FrozenSet[str] = frozenset(
+    {
+        "veronique_vallon",
+        "michel_longstreet",
+        "annette_reille",
+        "alain_reille",
+    }
+)
+
+GOC_ACTOR_ID_ALIASES: dict[str, str] = {
+    "veronique": "veronique_vallon",
+    "véronique": "veronique_vallon",
+    "veronique_vallon": "veronique_vallon",
+    "michel": "michel_longstreet",
+    "michel_longstreet": "michel_longstreet",
+    "annette": "annette_reille",
+    "annette_reille": "annette_reille",
+    "alain": "alain_reille",
+    "alain_reille": "alain_reille",
+}
+
+
+def canonicalize_goc_actor_id(actor_id: str) -> str:
+    aid = str(actor_id or "").strip()
+    if not aid:
+        return ""
+    return GOC_ACTOR_ID_ALIASES.get(aid.lower(), aid)
+
+
+def expand_goc_actor_id_aliases(actor_id: str) -> FrozenSet[str]:
+    aid = str(actor_id or "").strip()
+    if not aid:
+        return frozenset()
+    canonical = canonicalize_goc_actor_id(aid)
+    aliases = {aid, canonical}
+    aliases.update(alias for alias, target in GOC_ACTOR_ID_ALIASES.items() if target == canonical)
+    return frozenset(alias for alias in aliases if alias)
+
 # Director fields that the proposal model must not overwrite (CANONICAL_TURN_CONTRACT_GOC.md §3.6).
 DIRECTOR_IMMUTABLE_FIELDS: FrozenSet[str] = frozenset(
     {

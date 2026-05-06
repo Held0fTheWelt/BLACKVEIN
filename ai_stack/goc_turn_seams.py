@@ -15,8 +15,21 @@ from ai_stack.goc_field_initialization_envelope import (
     SETTER_SURFACE_RUNTIME_HOST_SESSION,
     goc_uninitialized_field_envelope,
 )
-from ai_stack.goc_frozen_vocab import DIRECTOR_IMMUTABLE_FIELDS, GOC_MODULE_ID, assert_transition_pattern
+from ai_stack.goc_frozen_vocab import (
+    DIRECTOR_IMMUTABLE_FIELDS,
+    GOC_MODULE_ID,
+    assert_transition_pattern,
+    canonicalize_goc_actor_id,
+    expand_goc_actor_id_aliases,
+)
 from ai_stack.goc_yaml_authority import thin_edge_staging_line_from_guidance
+
+_GOC_ACTOR_DISPLAY_NAMES = {
+    "veronique_vallon": "Veronique",
+    "annette_reille": "Annette",
+    "michel_longstreet": "Michel",
+    "alain_reille": "Alain",
+}
 
 
 def _gm_display_text_from_generation_content(raw: str) -> str:
@@ -33,17 +46,24 @@ def _gm_display_text_from_generation_content(raw: str) -> str:
             Returns a value of type ``str``; see the function body for structure, error paths, and sentinels.
     """
     s = raw.strip()
-    if s.startswith("{") and ('"narrative_response"' in s or '"narration_summary"' in s):
+    if s.startswith("{"):
         try:
             parsed = json.loads(s)
-            if isinstance(parsed, dict):
-                narr = parsed.get("narration_summary")
-                if not isinstance(narr, str) or not narr.strip():
-                    narr = parsed.get("narrative_response")
-                if isinstance(narr, str) and narr.strip():
-                    return narr.strip()
         except json.JSONDecodeError:
-            pass
+            parsed = None
+        if isinstance(parsed, dict):
+            actor_lines = []
+            actor_lines.extend(_coerce_actor_lines(parsed.get("spoken_lines"), actor_key="speaker_id"))
+            actor_lines.extend(_coerce_actor_lines(parsed.get("action_lines"), actor_key="actor_id"))
+            if str(parsed.get("schema_version") or "").strip() == "runtime_actor_turn_v1" and actor_lines:
+                return "\n".join(actor_lines[:4])
+            narr = parsed.get("narration_summary")
+            if not isinstance(narr, str) or not narr.strip():
+                narr = parsed.get("narrative_response")
+            if isinstance(narr, str) and narr.strip():
+                return narr.strip()
+            if actor_lines:
+                return "\n".join(actor_lines[:4])
     return raw
 
 
@@ -60,6 +80,7 @@ def _coerce_actor_lines(value: Any, *, actor_key: str) -> list[str]:
             if not text:
                 continue
             actor = str(item.get(actor_key) or "").strip()
+            actor = _GOC_ACTOR_DISPLAY_NAMES.get(actor, actor)
             tone = str(item.get("tone") or "").strip()
             prefix = f"{actor}: " if actor else ""
             suffix = f" ({tone})" if tone else ""
@@ -178,10 +199,16 @@ def _check_human_actor_violations(
     if not ai_forbidden_actor_ids:
         return None
 
+    expanded_forbidden: set[str] = set()
+    for forbidden_id in ai_forbidden_actor_ids:
+        expanded_forbidden.update(expand_goc_actor_id_aliases(forbidden_id))
+    expanded_forbidden.update(expand_goc_actor_id_aliases(human_actor_id))
+
     def _forbidden(actor_id: str) -> bool:
         if not actor_id:
             return False
-        return actor_id in ai_forbidden_actor_ids
+        aid = str(actor_id or "").strip()
+        return aid in expanded_forbidden or canonicalize_goc_actor_id(aid) in expanded_forbidden
 
     def _error_code(actor_id: str, block_kind: str) -> str:
         if block_kind == "responder_nomination":
@@ -267,8 +294,11 @@ def run_validation_seam(
     """
     # MVP2: Actor-lane enforcement runs before dramatic-effect gate and before commit.
     if actor_lane_context and isinstance(actor_lane_context, dict):
-        ai_forbidden: set[str] = set(actor_lane_context.get("ai_forbidden_actor_ids") or [])
+        ai_forbidden: set[str] = set()
+        for raw_actor_id in (actor_lane_context.get("ai_forbidden_actor_ids") or []):
+            ai_forbidden.update(expand_goc_actor_id_aliases(str(raw_actor_id)))
         human_actor_id: str = str(actor_lane_context.get("human_actor_id") or "")
+        ai_forbidden.update(expand_goc_actor_id_aliases(human_actor_id))
         if ai_forbidden or human_actor_id:
             gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
             structured_check = gen_meta.get("structured_output") if isinstance(gen_meta.get("structured_output"), dict) else {}
@@ -503,12 +533,6 @@ def run_visible_render(
     guidance_snips = rc.get("scene_guidance_snippets") if isinstance(rc.get("scene_guidance_snippets"), dict) else {}
     responder_actor_id = str(rc.get("responder_actor_id") or "").strip()
 
-    responder_name_map = {
-        "veronique_vallon": "Veronique",
-        "annette_reille": "Annette",
-        "michel_longstreet": "Michel",
-        "alain_reille": "Alain",
-    }
     director_surface_hints: list[dict[str, str | bool]] = []
 
     def add_director_hint(hint_type: str, text: str, source: str) -> None:
@@ -546,7 +570,7 @@ def run_visible_render(
         gm_lines: list[str] = []
         if content:
             gm_lines.append(content)
-        responder_name = responder_name_map.get(responder_actor_id)
+        responder_name = _GOC_ACTOR_DISPLAY_NAMES.get(responder_actor_id)
         if responder_name and content:
             gm_lines.insert(0, f"{responder_name} reacts immediately.")
         narr_len = len(prop_excerpt) if prop_excerpt else len(content)

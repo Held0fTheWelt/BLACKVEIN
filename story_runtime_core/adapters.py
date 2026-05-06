@@ -78,6 +78,21 @@ class OpenAIChatAdapter(BaseModelAdapter):
         self.base_url = (base_url or os.getenv("OPENAI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
         self._configured_api_key = (api_key or "").strip() or None
 
+    @staticmethod
+    def _supports_custom_temperature(model_name: str) -> bool:
+        model = model_name.strip().lower()
+        return not (
+            model.startswith("gpt-5")
+            or model.startswith("o1")
+            or model.startswith("o3")
+            or model.startswith("o4")
+        )
+
+    @staticmethod
+    def _uses_reasoning_controls(model_name: str) -> bool:
+        model = model_name.strip().lower()
+        return model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3") or model.startswith("o4")
+
     def generate(
         self,
         prompt: str,
@@ -88,6 +103,14 @@ class OpenAIChatAdapter(BaseModelAdapter):
     ) -> ModelCallResult:
         api_key = (self._configured_api_key or os.getenv("OPENAI_API_KEY") or "").strip()
         chosen_model = (model_name or self.model_name).strip() or self.model_name
+        uses_reasoning_controls = self._uses_reasoning_controls(chosen_model)
+        request_timeout = timeout_seconds
+        if uses_reasoning_controls:
+            cap_raw = os.getenv("OPENAI_REASONING_CHAT_TIMEOUT_SECONDS", "12").strip()
+            try:
+                request_timeout = min(float(timeout_seconds), max(1.0, float(cap_raw)))
+            except ValueError:
+                request_timeout = min(float(timeout_seconds), 12.0)
         if not api_key:
             return ModelCallResult(
                 content="",
@@ -95,21 +118,26 @@ class OpenAIChatAdapter(BaseModelAdapter):
                 metadata={"error": "missing_openai_api_key", "model": chosen_model},
             )
         try:
-            with httpx.Client(timeout=timeout_seconds) as client:
+            with httpx.Client(timeout=request_timeout) as client:
+                payload: dict[str, Any] = {
+                    "model": chosen_model,
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": retrieval_context or "No retrieval context attached.",
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                }
+                if self._supports_custom_temperature(chosen_model):
+                    payload["temperature"] = 0.3
+                if uses_reasoning_controls:
+                    payload["reasoning_effort"] = "minimal"
+                    payload["max_completion_tokens"] = 1200
                 response = client.post(
                     f"{self.base_url}/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    json={
-                        "model": chosen_model,
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": retrieval_context or "No retrieval context attached.",
-                            },
-                            {"role": "user", "content": prompt},
-                        ],
-                        "temperature": 0.3,
-                    },
+                    json=payload,
                 )
                 response.raise_for_status()
                 payload = response.json()
@@ -121,6 +149,7 @@ class OpenAIChatAdapter(BaseModelAdapter):
                         "adapter": self.adapter_name,
                         "model": chosen_model,
                         "base_url": self.base_url,
+                        "timeout_seconds": request_timeout,
                     },
                 )
         except Exception as exc:
@@ -129,7 +158,13 @@ class OpenAIChatAdapter(BaseModelAdapter):
             return ModelCallResult(
                 content="",
                 success=False,
-                metadata={"adapter": self.adapter_name, "model": chosen_model, "base_url": self.base_url, "error": error_str},
+                metadata={
+                    "adapter": self.adapter_name,
+                    "model": chosen_model,
+                    "base_url": self.base_url,
+                    "timeout_seconds": request_timeout,
+                    "error": error_str,
+                },
             )
 
 

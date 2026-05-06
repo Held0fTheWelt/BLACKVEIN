@@ -1,12 +1,13 @@
 """Full-route tests proving actor-lane absence governance through complete pipeline."""
 
 from ai_stack.langgraph_runtime_executor import (
+    RuntimeTurnGraphExecutor,
     _actor_lane_validation,
     _compute_reaction_order_divergence_for_render,
 )
 from ai_stack.runtime_quality_semantics import canonical_degradation_signals
 from ai_stack.runtime_turn_contracts import DEGRADATION_SIGNAL_NO_ACTOR_LANE_OUTPUT
-from ai_stack.goc_turn_seams import run_visible_render
+from ai_stack.goc_turn_seams import run_validation_seam, run_visible_render
 
 
 def test_actor_lane_valid_output_is_healthy():
@@ -30,6 +31,32 @@ def test_actor_lane_valid_output_is_healthy():
     result = _actor_lane_validation(state=state, generation=generation)
     assert result["status"] == "approved"
     assert result["reason"] == "actor_lane_legal"
+
+
+def test_human_actor_boundary_expands_goc_actor_aliases():
+    """Short player ids like annette must forbid canonical ids like annette_reille."""
+    generation = {
+        "success": True,
+        "metadata": {
+            "structured_output": {
+                "primary_responder_id": "annette_reille",
+                "spoken_lines": [{"speaker_id": "annette_reille", "text": "I take the floor."}],
+            }
+        },
+    }
+
+    result = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=[{"description": "Annette speaks."}],
+        generation=generation,
+        actor_lane_context={
+            "human_actor_id": "annette",
+            "ai_forbidden_actor_ids": ["annette"],
+        },
+    )
+
+    assert result["status"] == "rejected"
+    assert result["reason"] in {"ai_controlled_human_actor", "human_actor_selected_as_responder"}
 
 
 def test_actor_lane_absent_with_selected_responders_is_weak_but_legal():
@@ -73,6 +100,63 @@ def test_actor_lane_absent_no_responders_no_degradation():
         fallback_taken=False,
     )
     assert DEGRADATION_SIGNAL_NO_ACTOR_LANE_OUTPUT not in signals
+
+
+def test_proposal_normalize_accepts_actor_turn_json_without_narration_summary():
+    """Actor-lane JSON is structured output even when narration fields are absent."""
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    result = graph._proposal_normalize(
+        {
+            "generation": {
+                "success": True,
+                "content": (
+                    '{"schema_version":"runtime_actor_turn_v1",'
+                    '"primary_responder_id":"veronique_vallon",'
+                    '"spoken_lines":[{"speaker_id":"veronique_vallon","text":"We should keep this civil."}],'
+                    '"action_lines":[{"actor_id":"michel_longstreet","text":"folds his hands"}]}'
+                ),
+                "metadata": {},
+            },
+            "fallback_markers": [],
+        }
+    )
+
+    structured = result["generation"]["metadata"]["structured_output"]
+    assert structured["schema_version"] == "runtime_actor_turn_v1"
+    assert result["spoken_lines"][0]["speaker_id"] == "veronique_vallon"
+    assert result["action_lines"][0]["actor_id"] == "michel_longstreet"
+
+
+def test_visible_render_displays_actor_turn_json_as_scene_text():
+    bundle, markers = run_visible_render(
+        module_id="god_of_carnage",
+        committed_result={"commit_applied": True, "committed_effects": [{"type": "beat"}]},
+        validation_outcome={"status": "approved", "actor_lane_validation": {"status": "approved"}},
+        generation={
+            "content": (
+                '{"schema_version":"runtime_actor_turn_v1",'
+                '"spoken_lines":[{"speaker_id":"veronique_vallon","text":"We should keep this civil.","tone":"measured"}],'
+                '"action_lines":[{"actor_id":"michel_longstreet","text":"folds his hands"}]}'
+            ),
+            "metadata": {
+                "structured_output": {
+                    "schema_version": "runtime_actor_turn_v1",
+                    "spoken_lines": [
+                        {"speaker_id": "veronique_vallon", "text": "We should keep this civil.", "tone": "measured"}
+                    ],
+                    "action_lines": [{"actor_id": "michel_longstreet", "text": "folds his hands"}],
+                }
+            },
+        },
+        transition_pattern="hard",
+        live_player_truth_surface=True,
+        render_context={"responder_actor_id": "veronique_vallon"},
+    )
+
+    assert "truth_aligned" in markers
+    assert bundle["gm_narration"]
+    assert not bundle["gm_narration"][0].lstrip().startswith("{")
+    assert "We should keep this civil." in "\n".join(bundle["gm_narration"])
 
 
 def test_render_support_merge_preserves_earlier_writes():

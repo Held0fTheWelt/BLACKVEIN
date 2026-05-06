@@ -47,6 +47,7 @@ from ai_stack.runtime_turn_contracts import (
 )
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
 from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS
 from ai_stack.goc_yaml_authority import (
     detect_builtin_yaml_title_conflict,
@@ -249,7 +250,10 @@ def _actor_lane_validation(
                     director_actor_ids.append(aid.strip())
 
     allowed_actor_ids = sorted({aid for aid in director_actor_ids if aid})
-    allowed_scope = set(allowed_actor_ids)
+    allowed_scope: set[str] = set()
+    for aid in allowed_actor_ids:
+        allowed_scope.update(expand_goc_actor_id_aliases(aid))
+    allowed_scope.update(allowed_actor_ids)
 
     meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else {}
@@ -1994,23 +1998,105 @@ class RuntimeTurnGraphExecutor:
                 Returns a value of type ``RuntimeTurnState``; see the function body for structure, error paths, and sentinels.
         """
         fallback_generation = dict(state.get("generation", {}))
+        primary_error = (state.get("generation") or {}).get("error") or "unknown"
+        configured_fallback_error: str | None = None
+        routing = state.get("routing") if isinstance(state.get("routing"), dict) else {}
+        selected_mid = str(routing.get("selected_model") or "").strip()
+        fallback_mid = str(routing.get("fallback_model") or "").strip()
+        if fallback_mid and fallback_mid != selected_mid:
+            spec = self.registry.get(fallback_mid)
+            provider = str(getattr(spec, "provider", "") or "").strip() if spec is not None else ""
+            if spec is None:
+                configured_fallback_error = f"fallback_model_not_registered:{fallback_mid}"
+            elif provider == "mock":
+                configured_fallback_error = "fallback_model_provider_is_mock"
+            else:
+                adapter = self.adapters.get(provider)
+                if adapter is None:
+                    configured_fallback_error = f"fallback_adapter_missing:{provider}"
+                else:
+                    provider_model = str(getattr(spec, "provider_model_name", "") or "").strip()
+                    api_model = provider_model or str(getattr(spec, "model_name", "") or "").strip() or None
+                    _log.warning(
+                        "Falling back to configured runtime model: fallback_model=%s primary_error=%s",
+                        fallback_mid,
+                        primary_error,
+                    )
+                    invoke_kw: dict[str, Any] = {
+                        "adapter": adapter,
+                        "player_input": state["player_input"],
+                        "interpreted_input": state.get("interpreted_input", {})
+                        if isinstance(state.get("interpreted_input"), dict)
+                        else {},
+                        "retrieval_context": state.get("context_text"),
+                        "timeout_seconds": float(getattr(spec, "timeout_seconds", 10.0) or 10.0),
+                        "model_prompt": state.get("model_prompt", ""),
+                        "dramatic_generation_packet": state.get("dramatic_generation_packet")
+                        if isinstance(state.get("dramatic_generation_packet"), dict)
+                        else None,
+                    }
+                    if api_model:
+                        invoke_kw["model_name"] = api_model
+                    runtime_result = _invoke_runtime_adapter_with_langchain(**invoke_kw)
+                    call = runtime_result.call
+                    fallback_generation["attempted"] = True
+                    fallback_generation["success"] = call.success
+                    fallback_generation["error"] = call.metadata.get("error") if not call.success else None
+                    fallback_generation["model_raw_text"] = call.content
+                    fallback_generation["content"] = call.content
+                    fallback_generation["retrieval_context_attached"] = bool(state.get("context_text"))
+                    fallback_generation["prompt_length"] = len(state.get("model_prompt", ""))
+                    fallback_generation["fallback_used"] = True
+                    fallback_generation["metadata"] = {
+                        **call.metadata,
+                        "langchain_prompt_used": True,
+                        "langchain_parser_error": runtime_result.parser_error,
+                        "structured_output": runtime_result.parsed_output.model_dump(mode="json")
+                        if runtime_result.parsed_output
+                        else None,
+                        "adapter_invocation_mode": ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
+                        "fallback_model_id": fallback_mid,
+                        "fallback_provider": provider,
+                        "fallback_reason": "primary_model_invocation_failed",
+                        "primary_error": primary_error,
+                        "dramatic_generation_packet_included": isinstance(
+                            state.get("dramatic_generation_packet"), dict
+                        ),
+                    }
+                    if call.success:
+                        update = _track(state, node_name="fallback_model")
+                        update["generation"] = fallback_generation
+                        update["fallback_needed"] = False
+                        return update
+                    configured_fallback_error = (
+                        call.metadata.get("error")
+                        if isinstance(call.metadata, dict) and call.metadata.get("error")
+                        else f"fallback_model_failed:{fallback_mid}"
+                    )
+
+        _log.warning(
+            "Falling back to mock adapter: primary_error=%s configured_fallback_error=%s",
+            primary_error,
+            configured_fallback_error or "not_attempted",
+        )
+
         if (self.generation_execution_mode or "").strip().lower() == "ai_only":
             errors = list(state.get("graph_errors", []))
             errors.append("ai_only_mode_blocks_graph_managed_mock_fallback")
-            fb_gen = dict(state.get("generation", {}))
+            if configured_fallback_error:
+                errors.append(str(configured_fallback_error))
+            fb_gen = dict(fallback_generation)
             meta = fb_gen.get("metadata") if isinstance(fb_gen.get("metadata"), dict) else {}
             fb_gen["metadata"] = {
                 **meta,
                 "note": "generation_execution_mode=ai_only — graph-managed mock fallback is disabled.",
+                "configured_fallback_error": configured_fallback_error,
             }
             update = _track(state, node_name="fallback_model", outcome="error")
             update["graph_errors"] = errors
             update["generation"] = fb_gen
             update["fallback_needed"] = True
             return update
-
-        primary_error = (state.get("generation") or {}).get("error") or "unknown"
-        _log.warning("Falling back to mock adapter: primary_error=%s", primary_error)
 
         fallback_adapter = self.adapters.get("mock")
         if fallback_adapter:
@@ -2030,19 +2116,24 @@ class RuntimeTurnGraphExecutor:
                 "structured_output": None,
                 "adapter_invocation_mode": ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
                 "bypass_note": RAW_FALLBACK_BYPASS_NOTE,
+                "configured_fallback_error": configured_fallback_error,
             }
             fallback_generation["fallback_used"] = True
             update = _track(state, node_name="fallback_model")
             update["generation"] = fallback_generation
+            update["fallback_needed"] = False
             return update
         errors = list(state.get("graph_errors", []))
         errors.append("fallback_adapter_missing:mock")
+        if configured_fallback_error:
+            errors.append(str(configured_fallback_error))
         prior_meta = fallback_generation.get("metadata") if isinstance(fallback_generation.get("metadata"), dict) else {}
         fallback_generation["metadata"] = {
             **prior_meta,
             "adapter_invocation_mode": ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
             "langchain_prompt_used": False,
             "note": "fallback_adapter_missing:mock — graph could not run graph-managed raw fallback.",
+            "configured_fallback_error": configured_fallback_error,
         }
         update = _track(state, node_name="fallback_model", outcome="error")
         update["graph_errors"] = errors
@@ -2181,6 +2272,7 @@ class RuntimeTurnGraphExecutor:
                 try:
                     parsed = json.loads(raw)
                     parsed_narrative = ""
+                    parsed_runtime_structure = False
                     if isinstance(parsed, dict):
                         narr_summary = parsed.get("narration_summary")
                         legacy_narrative = parsed.get("narrative_response")
@@ -2188,9 +2280,13 @@ class RuntimeTurnGraphExecutor:
                             parsed_narrative = narr_summary.strip()
                         elif isinstance(legacy_narrative, str) and legacy_narrative.strip():
                             parsed_narrative = legacy_narrative.strip()
+                        parsed_runtime_structure = any(
+                            isinstance(parsed.get(key), list)
+                            for key in ("spoken_lines", "action_lines", "initiative_events")
+                        ) or str(parsed.get("schema_version") or "").strip() == "runtime_actor_turn_v1"
                     if (
                         isinstance(parsed, dict)
-                        and parsed_narrative
+                        and (parsed_narrative or parsed_runtime_structure)
                     ):
                         meta = dict(meta)
                         meta["structured_output"] = parsed

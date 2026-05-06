@@ -21,7 +21,6 @@ from ai_stack.rag import ContextPackAssembler, ContextRetriever, RagIngestionPip
 from ai_stack.version import RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
-    ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK,
     EXECUTION_HEALTH_GRAPH_ERROR,
     EXECUTION_HEALTH_HEALTHY,
     EXECUTION_HEALTH_MODEL_FALLBACK,
@@ -83,6 +82,38 @@ class FailingPrimaryAdapter(BaseModelAdapter):
         return ModelCallResult(content="", success=False, metadata={"error": "forced_primary_failure"})
 
 
+class StructuredFallbackAdapter(BaseModelAdapter):
+    adapter_name = "ollama"
+
+    def generate(
+        self,
+        prompt: str,
+        *,
+        timeout_seconds: float = 10.0,
+        retrieval_context: str | None = None,
+        model_name: str | None = None,
+    ) -> ModelCallResult:
+        payload = {
+            "schema_version": "runtime_actor_turn_v1",
+            "narration_summary": "Fallback model keeps the scene moving without using mock output.",
+            "narrative_response": "Fallback model keeps the scene moving without using mock output.",
+            "primary_responder_id": "annette_reille",
+            "spoken_lines": [
+                {
+                    "speaker_id": "annette_reille",
+                    "text": "No. We are not going to pretend this is settled.",
+                }
+            ],
+            "action_lines": [],
+            "state_effects": [],
+        }
+        return ModelCallResult(
+            content=json.dumps(payload),
+            success=True,
+            metadata={"adapter": self.adapter_name, "model_name": model_name},
+        )
+
+
 class DramaAwareRoutingCapture:
     """Routing test-double that records dramatic requirements passed by the graph."""
 
@@ -128,7 +159,7 @@ def _build_graph_failing_primary(tmp_path: Path) -> RuntimeTurnGraphExecutor:
         interpreter=interpret_player_input,
         routing=routing,
         registry=registry,
-        adapters={"openai": FailingPrimaryAdapter(), "mock": SuccessAdapter(), "ollama": SuccessAdapter()},
+        adapters={"openai": FailingPrimaryAdapter(), "mock": SuccessAdapter(), "ollama": StructuredFallbackAdapter()},
         retriever=ContextRetriever(corpus),
         assembler=ContextPackAssembler(),
     )
@@ -145,7 +176,7 @@ def _build_graph_no_mock_fallback(tmp_path: Path) -> RuntimeTurnGraphExecutor:
         interpreter=interpret_player_input,
         routing=routing,
         registry=registry,
-        adapters={"openai": FailingPrimaryAdapter(), "ollama": SuccessAdapter()},
+        adapters={"openai": FailingPrimaryAdapter()},
         retriever=ContextRetriever(corpus),
         assembler=ContextPackAssembler(),
     )
@@ -293,7 +324,7 @@ def test_runtime_turn_graph_passes_drama_aware_routing_requirements(tmp_path: Pa
     assert req.get("actor_count") >= 1
 
 
-def test_runtime_turn_graph_fallback_uses_raw_adapter_and_marks_invocation_mode(tmp_path: Path) -> None:
+def test_runtime_turn_graph_fallback_uses_configured_model_before_mock(tmp_path: Path) -> None:
     graph = _build_graph_failing_primary(tmp_path)
     result = graph.run(
         session_id="session_1",
@@ -308,17 +339,12 @@ def test_runtime_turn_graph_fallback_uses_raw_adapter_and_marks_invocation_mode(
     assert outcomes.get("fallback_model") == "ok"
     assert result["generation"].get("fallback_used") is True
     meta = result["generation"].get("metadata") or {}
-    mode = meta.get("adapter_invocation_mode")
-    # Raw graph fallback runs in ``fallback_model``; ``validate_seam`` may later apply LangChain
-    # self-correction and overwrite ``generation.metadata`` while keeping ``fallback_used`` true.
-    if mode == ADAPTER_INVOCATION_RAW_GRAPH_FALLBACK:
-        assert meta.get("langchain_prompt_used") is False
-        assert meta.get("bypass_note")
-    else:
-        assert mode == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
-        assert meta.get("self_correction_attempt_index") is not None
+    assert meta.get("adapter") == "ollama"
+    assert meta.get("adapter_invocation_mode") == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY
+    assert meta.get("fallback_model_id") == "ollama:llama3.2"
+    assert meta.get("langchain_prompt_used") is True
     repro = result["graph_diagnostics"].get("repro_metadata") or {}
-    assert repro.get("graph_path_summary") == "used_fallback_model_node_raw_adapter"
+    assert repro.get("graph_path_summary") == "used_fallback_model_node_langchain_adapter"
     hints = result["graph_diagnostics"].get("operational_cost_hints") or {}
     assert hints.get("fallback_path_taken") is True
     assert hints.get("model_fallback_used") is True
@@ -334,6 +360,7 @@ def test_runtime_turn_graph_missing_mock_fallback_is_explicit_degraded(tmp_path:
         player_input="I open the door",
     )
     assert "fallback_adapter_missing:mock" in result["graph_diagnostics"]["errors"]
+    assert "fallback_adapter_missing:ollama" in result["graph_diagnostics"]["errors"]
     assert result["graph_diagnostics"]["execution_health"] == EXECUTION_HEALTH_GRAPH_ERROR
     outcomes = result["graph_diagnostics"].get("node_outcomes") or {}
     assert outcomes.get("fallback_model") == "error"

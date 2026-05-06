@@ -92,7 +92,9 @@ def build_repro_metadata_and_health(
 
     gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     adapter_mode = gen_meta.get("adapter_invocation_mode")
-    if fallback_taken:
+    if fallback_taken and adapter_mode == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY:
+        graph_path_summary = "used_fallback_model_node_langchain_adapter"
+    elif fallback_taken:
         graph_path_summary = "used_fallback_model_node_raw_adapter"
     elif adapter_mode == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY:
         graph_path_summary = "primary_invoke_langchain_only"

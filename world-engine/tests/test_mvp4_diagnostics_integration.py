@@ -146,7 +146,7 @@ def test_diagnostics_envelope_actor_ownership():
 
 @pytest.mark.mvp4
 def test_diagnostics_envelope_includes_phase_b_cost_truth():
-    """GoC diagnostics include detailed deterministic phase cost records."""
+    """GoC diagnostics include detailed visible-projection phase cost records."""
     mgr, session = _make_manager("annette")
     result = mgr.execute_turn(session_id=session.session_id, player_input="test")
     cost_summary = result["diagnostics_envelope"]["cost_summary"]
@@ -155,13 +155,13 @@ def test_diagnostics_envelope_includes_phase_b_cost_truth():
     assert cost_summary["output_tokens"] == 0
     assert cost_summary["cost_usd"] == 0.0
     assert "phase_costs" in cost_summary
-    assert "ldss" in cost_summary["phase_costs"]
     assert "narrator" in cost_summary["phase_costs"]
-    ldss_cost = cost_summary["phase_costs"]["ldss"]
-    assert ldss_cost["billing_mode"] == "deterministic"
-    assert ldss_cost["token_source"] == "deterministic_no_model_call"
-    assert ldss_cost["billable"] is False
-    assert ldss_cost["model"] == "ldss_deterministic"
+    assert "live_scene_projection" in cost_summary["phase_costs"]
+    projection_cost = cost_summary["phase_costs"]["live_scene_projection"]
+    assert projection_cost["billing_mode"] == "deterministic"
+    assert projection_cost["token_source"] == "deterministic_no_model_call"
+    assert projection_cost["billable"] is False
+    assert projection_cost["model"] == "live_runtime_graph_projection"
 
 
 @pytest.mark.mvp4
@@ -293,7 +293,7 @@ def test_narrative_gov_summary_after_turn():
     assert summary["contract"] == "narrative_gov_summary.v1"
     assert summary["last_story_session_id"] == session.session_id
     assert summary["last_turn_number"] == 1
-    assert summary["ldss_health"]["status"] == "evidenced_live_path"
+    assert summary["ldss_health"]["status"] == "not_invoked_live_graph_primary"
     assert summary["actor_lane_health"]["visitor_present"] is False
 
 

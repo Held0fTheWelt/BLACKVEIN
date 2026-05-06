@@ -80,11 +80,10 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     adapter.get_active_span.return_value = None
 
     root_span = MagicMock()
-    ldss_span = MagicMock()
     narrator_span = MagicMock()
     adapter.start_span_in_trace.return_value = root_span
-    path_spans = [MagicMock() for _ in range(6)]
-    adapter.create_child_span.side_effect = [*path_spans, ldss_span, narrator_span]
+    path_spans = [MagicMock() for _ in range(7)]
+    adapter.create_child_span.side_effect = [*path_spans, narrator_span]
 
     monkeypatch.setattr(
         "app.observability.langfuse_adapter.LangfuseAdapter.get_instance",
@@ -114,9 +113,10 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     assert "story.phase.model_route" in created_child_names
     assert "story.phase.model_invoke" in created_child_names
     assert "story.phase.model_fallback" in created_child_names
+    assert "story.phase.retrieval" in created_child_names
     assert "story.phase.validation" in created_child_names
     assert "story.phase.commit" in created_child_names
-    assert "story.phase.ldss" in created_child_names
+    assert "story.phase.ldss_fallback" not in created_child_names
     assert "story.phase.narrator" in created_child_names
     root_span.end.assert_called_once()
     adapter.flush.assert_called_once()

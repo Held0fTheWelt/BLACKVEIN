@@ -164,6 +164,7 @@ def _request(
     internal: bool = False,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
+    timeout_seconds: float | int | None = None,
 ) -> dict | list:
     if current_app.config.get("PLAY_SERVICE_CONTROL_DISABLED"):
         raise GameServiceError(
@@ -171,7 +172,11 @@ def _request(
             status_code=502,
         )
     base_url = _require_configured_url("internal" if internal else "public")
-    timeout = current_app.config.get("PLAY_SERVICE_REQUEST_TIMEOUT", 30)  # Use config timeout (default 30s)
+    timeout = (
+        timeout_seconds
+        if timeout_seconds is not None
+        else current_app.config.get("PLAY_SERVICE_REQUEST_TIMEOUT", 30)
+    )
     headers: dict[str, str] | None = None
     if internal:
         headers = dict(_internal_headers())
@@ -333,6 +338,7 @@ def create_run(
         internal=True,
         trace_id=trace_id,
         langfuse_trace_id=langfuse_trace_id,
+        timeout_seconds=current_app.config.get("PLAY_SERVICE_STORY_SESSION_TIMEOUT", 75),
     )
     return _parse_create_run_v1(payload)
 
@@ -441,6 +447,7 @@ def create_story_session(
         internal=True,
         trace_id=trace_id,
         langfuse_trace_id=langfuse_trace_id,
+        timeout_seconds=current_app.config.get("PLAY_SERVICE_STORY_SESSION_TIMEOUT", 75),
     )
     if not isinstance(payload, dict) or "session_id" not in payload:
         raise GameServiceError("Play service returned an unexpected story-session payload.")

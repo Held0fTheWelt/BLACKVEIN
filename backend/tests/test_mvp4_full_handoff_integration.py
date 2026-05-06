@@ -220,13 +220,16 @@ def test_opening_turn_has_committed_truth_not_proposals(client, auth_headers):
                         "committed_result": {"commit_applied": True},
                         "validation_outcome": {
                             "status": "approved",
-                            "reason": "healthy_opening_ldss",
+                            "reason": "goc_default_validator_pass",
                         },
                         "model_route": {
+                            "selected_provider": "mock_default",
+                            "selected_model": "mock_deterministic",
                             "generation": {
+                                "success": True,
                                 "metadata": {
-                                    "adapter": "ldss_deterministic",
-                                    "entrypoint": "opening_turn_healthy_generation",
+                                    "adapter": "mock",
+                                    "adapter_invocation_mode": "langchain_structured_primary",
                                 }
                             }
                         },
@@ -259,12 +262,14 @@ def test_opening_turn_has_committed_truth_not_proposals(client, auth_headers):
             assert opening_turn.get("committed_result", {}).get("commit_applied") is True, \
                 "opening_turn must have commit_applied=True"
 
-            # Must be marked as deterministic LDSS
             model_route = opening_turn.get("model_route", {})
             generation = model_route.get("generation", {})
             metadata = generation.get("metadata", {})
-            assert metadata.get("adapter") == "ldss_deterministic", \
-                "opening must be marked ldss_deterministic"
+            assert generation.get("success") is True, "opening model generation must succeed"
+            assert model_route.get("selected_model"), "opening must record selected model"
+            assert model_route.get("selected_provider"), "opening must record selected provider"
+            assert metadata.get("adapter") != "ldss_deterministic", \
+                "opening must not bypass live model generation via deterministic LDSS"
 
             # Must have quality_class
             gov = opening_turn.get("runtime_governance_surface", {})

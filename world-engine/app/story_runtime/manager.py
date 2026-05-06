@@ -49,6 +49,7 @@ from ai_stack.diagnostics_envelope import (
 )
 from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
+from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
 
 from app.config import APP_VERSION
 from app.repo_root import resolve_wos_repo_root
@@ -817,6 +818,185 @@ def _scene_blocks_from_turn_event(event: dict[str, Any]) -> list[dict[str, Any]]
     if isinstance(blocks, list):
         return [dict(block) for block in blocks if isinstance(block, dict)]
     return []
+
+
+def _live_scene_blocks_from_visible_bundle(
+    visible_output_bundle: dict[str, Any] | None,
+    *,
+    turn_number: int,
+) -> list[dict[str, Any]]:
+    bundle = visible_output_bundle if isinstance(visible_output_bundle, dict) else {}
+    existing = bundle.get("scene_blocks")
+    if isinstance(existing, list) and existing:
+        return [dict(block) for block in existing if isinstance(block, dict)]
+
+    def delivery() -> dict[str, Any]:
+        return {
+            "mode": "typewriter",
+            "characters_per_second": 44,
+            "pause_before_ms": 150,
+            "pause_after_ms": 650,
+            "skippable": True,
+        }
+
+    blocks: list[dict[str, Any]] = []
+
+    def append_block(block_type: str, text: str, *, speaker_label: str, actor_id: str | None = None) -> None:
+        clean = str(text or "").strip()
+        if not clean:
+            return
+        blocks.append(
+            {
+                "id": f"turn-{turn_number}-live-block-{len(blocks) + 1}",
+                "block_type": block_type,
+                "speaker_label": speaker_label,
+                "actor_id": actor_id,
+                "target_actor_id": None,
+                "text": clean,
+                "delivery": delivery(),
+                "source": "live_runtime_graph",
+            }
+        )
+
+    for line in _coerce_visible_text_lines(bundle.get("gm_narration")):
+        append_block("narrator", line, speaker_label="Narrator")
+
+    for line in _coerce_visible_text_lines(bundle.get("spoken_lines")):
+        label = "Actor"
+        text = line
+        if ":" in line:
+            maybe_label, maybe_text = line.split(":", 1)
+            if maybe_label.strip() and maybe_text.strip():
+                label = maybe_label.strip()
+                text = maybe_text.strip()
+        append_block("actor_line", text, speaker_label=label)
+
+    for line in _coerce_visible_text_lines(bundle.get("action_lines")):
+        append_block("actor_action", line, speaker_label="Action")
+
+    return blocks
+
+
+def _build_live_scene_turn_envelope(
+    *,
+    session: StorySession,
+    graph_state: dict[str, Any],
+    scene_blocks: list[dict[str, Any]],
+    turn_number: int,
+) -> dict[str, Any]:
+    proj = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+    selected_player_role = str(proj.get("selected_player_role") or "").strip()
+    human_actor_id = str(proj.get("human_actor_id") or "").strip()
+    npc_actor_ids = [
+        str(actor_id)
+        for actor_id in (proj.get("npc_actor_ids") or [])
+        if str(actor_id).strip()
+    ]
+    ai_allowed_actor_ids: set[str] = set()
+    for actor_id in npc_actor_ids:
+        ai_allowed_actor_ids.update(expand_goc_actor_id_aliases(actor_id))
+    ai_forbidden_actor_ids = sorted(expand_goc_actor_id_aliases(human_actor_id))
+    responders = graph_state.get("selected_responder_set")
+    responder_ids = [
+        str(row.get("actor_id") or row.get("responder_id") or "").strip()
+        for row in (responders if isinstance(responders, list) else [])
+        if isinstance(row, dict) and str(row.get("actor_id") or row.get("responder_id") or "").strip()
+    ]
+    primary_responder_id = responder_ids[0] if responder_ids else ""
+    secondary_responder_ids = responder_ids[1:]
+    visible_actor_response_present = any(
+        str(block.get("block_type") or "") in {"actor_line", "actor_action"}
+        for block in scene_blocks
+        if isinstance(block, dict)
+    ) or bool(primary_responder_id)
+
+    initiatives = []
+    if primary_responder_id:
+        initiatives.append(
+            {
+                "actor_id": primary_responder_id,
+                "intent": "live_runtime_generated_response",
+                "allowed_block_types": ["actor_line", "actor_action"],
+                "target_actor_id": human_actor_id or None,
+                "passivity_risk": "low",
+            }
+        )
+    for actor_id in secondary_responder_ids:
+        initiatives.append(
+            {
+                "actor_id": actor_id,
+                "intent": "live_runtime_secondary_response",
+                "allowed_block_types": ["actor_line", "actor_action"],
+                "target_actor_id": human_actor_id or None,
+                "passivity_risk": "low",
+            }
+        )
+
+    return {
+        "contract": "scene_turn_envelope.v2",
+        "content_module_id": session.module_id,
+        "runtime_profile_id": str(proj.get("runtime_profile_id") or "god_of_carnage_solo"),
+        "runtime_module_id": str(proj.get("runtime_module_id") or "solo_story_runtime"),
+        "selected_player_role": selected_player_role,
+        "human_actor_id": human_actor_id,
+        "npc_actor_ids": sorted(npc_actor_ids),
+        "npc_agency_plan": {
+            "contract": "npc_agency_plan.v1",
+            "turn_number": turn_number,
+            "primary_responder_id": primary_responder_id,
+            "secondary_responder_ids": secondary_responder_ids,
+            "npc_initiatives": initiatives,
+        },
+        "visible_scene_output": {
+            "contract": "visible_scene_output.blocks.v1",
+            "blocks": [dict(block) for block in scene_blocks],
+        },
+        "diagnostics": {
+            "live_dramatic_scene_simulator": {
+                "status": "not_invoked_live_graph_primary",
+                "invoked": False,
+                "entrypoint": "story.turn.execute",
+                "decision_count": 0,
+                "output_contract": "visible_scene_output.blocks.v1",
+                "scene_block_count": len(scene_blocks),
+                "visible_actor_response_present": visible_actor_response_present,
+                "legacy_blob_used": False,
+                "story_session_id": session.session_id,
+                "turn_number": turn_number,
+                "input_hash": "",
+                "output_hash": "",
+            },
+            "npc_agency": {
+                "primary_responder_id": primary_responder_id,
+                "secondary_responder_ids": secondary_responder_ids,
+                "visible_actor_response_present": visible_actor_response_present,
+                "npc_agency_plan_count": len(initiatives),
+            },
+            "actor_lane_enforcement": {
+                "human_actor_id": human_actor_id,
+                "ai_allowed_actor_ids": sorted(ai_allowed_actor_ids),
+                "ai_forbidden_actor_ids": ai_forbidden_actor_ids,
+                "validation_ran_before_commit": True,
+            },
+            "phase_cost": {
+                "phase": "live_runtime_graph_projection",
+                "billing_mode": "included_in_model_invoke",
+                "token_source": "model_generation",
+                "billable": False,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cost_usd": 0.0,
+                "provider": "world_engine",
+                "model": "live_runtime_graph_projection",
+                "currency": "USD",
+                "pricing_source": "included_in_model_invoke",
+                "latency_ms": None,
+                "decision_count": 0,
+                "scene_block_count": len(scene_blocks),
+                "visible_actor_response_present": visible_actor_response_present,
+            },
+        },
+    }
 
 
 def _story_window_entries_for_session(session: StorySession) -> list[dict[str, Any]]:
@@ -1971,10 +2151,12 @@ class StoryRuntimeManager:
         if not human_actor_id:
             return None
         npc_actor_ids = proj.get("npc_actor_ids")
-        ai_forbidden = [human_actor_id]
-        ai_allowed = sorted(
-            str(a) for a in (npc_actor_ids or []) if isinstance(a, str) and a.strip()
-        )
+        ai_forbidden = sorted(expand_goc_actor_id_aliases(human_actor_id))
+        ai_allowed_set: set[str] = set()
+        for actor_id in (npc_actor_ids or []):
+            if isinstance(actor_id, str) and actor_id.strip():
+                ai_allowed_set.update(expand_goc_actor_id_aliases(actor_id))
+        ai_allowed = sorted(ai_allowed_set)
         return {
             "human_actor_id": human_actor_id,
             "ai_forbidden_actor_ids": ai_forbidden,
@@ -2374,70 +2556,102 @@ class StoryRuntimeManager:
         )
         event["observability_path_summary"] = path_summary
         _emit_langfuse_path_spans(path_summary)
-        # MVP3: Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
-        # LDSS runs after validation/commit, from committed state only.
+        # Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
+        # Live graph/model output is primary. LDSS is reserved as the final
+        # deterministic fallback when the live path cannot produce scene blocks.
         scene_turn_envelope: dict[str, Any] | None = None
         if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
-            # MVP4: Create child span for LDSS phase
-            ldss_span = None
-            try:
-                from app.observability.langfuse_adapter import LangfuseAdapter
-                adapter = LangfuseAdapter.get_instance()
-                if adapter and adapter.is_enabled():
-                    logger.info(f"[MANAGER] Creating LDSS phase span for session {session.session_id}, turn {commit_turn_number}")
-                    ldss_span = adapter.create_child_span(
-                        name="story.phase.ldss",
-                        input={
-                            "session_id": session.session_id,
-                            "turn_number": commit_turn_number,
-                            "player_input_length": len(player_input) if player_input else 0,
-                        },
-                        metadata={
-                            "phase": "ldss",
-                            "turn_number": commit_turn_number,
-                            "session_id": session.session_id,
-                        }
-                    )
-                    if ldss_span:
-                        logger.info(f"[MANAGER] LDSS phase span created successfully")
-                    else:
-                        logger.warning(f"[MANAGER] LDSS phase span creation returned None")
-            except Exception as e:
-                logger.error(f"[MANAGER] Exception creating LDSS phase span: {e}", exc_info=True)
-
-            try:
-                scene_turn_envelope = _build_ldss_scene_envelope(
-                    session=session,
-                    graph_state=graph_state,
-                    player_input=player_input,
+            live_scene_blocks = []
+            if gen.get("success") is True:
+                live_scene_blocks = _live_scene_blocks_from_visible_bundle(
+                    event.get("visible_output_bundle")
+                    if isinstance(event.get("visible_output_bundle"), dict)
+                    else {},
                     turn_number=commit_turn_number,
                 )
-                if scene_turn_envelope and ldss_span:
-                    ldss_phase_cost = {}
-                    if isinstance(scene_turn_envelope, dict):
-                        diagnostics = scene_turn_envelope.get("diagnostics")
-                        if isinstance(diagnostics, dict) and isinstance(diagnostics.get("phase_cost"), dict):
-                            ldss_phase_cost = diagnostics["phase_cost"]
-                    if not ldss_phase_cost:
-                        raw_costs = graph_state.get("phase_costs")
-                        if isinstance(raw_costs, dict) and isinstance(raw_costs.get("ldss"), dict):
-                            ldss_phase_cost = raw_costs["ldss"]
-                    ldss_span.update(
-                        output={
-                            "block_count": len(scene_turn_envelope.get("visible_scene_output", {}).get("blocks", [])) if isinstance(scene_turn_envelope.get("visible_scene_output"), dict) else 0,
-                            "decision_count": scene_turn_envelope.get("decision_count", 0) if isinstance(scene_turn_envelope, dict) else 0,
-                            "status": "approved"
-                        },
-                        metadata={
-                            **ldss_phase_cost,
-                            "phase_cost": dict(ldss_phase_cost),
-                        }
+            if live_scene_blocks:
+                event_bundle = (
+                    event.get("visible_output_bundle")
+                    if isinstance(event.get("visible_output_bundle"), dict)
+                    else {}
+                )
+                event["visible_output_bundle"] = {
+                    **event_bundle,
+                    "scene_blocks": [dict(block) for block in live_scene_blocks],
+                }
+                scene_turn_envelope = _build_live_scene_turn_envelope(
+                    session=session,
+                    graph_state=graph_state,
+                    scene_blocks=live_scene_blocks,
+                    turn_number=commit_turn_number,
+                )
+                graph_state.setdefault("phase_costs", {})["live_scene_projection"] = build_deterministic_phase_cost(
+                    phase="live_scene_projection",
+                    provider="world_engine",
+                    model="live_runtime_graph_projection",
+                    scene_block_count=len(live_scene_blocks),
+                    visible_actor_response_present=bool(
+                        scene_turn_envelope.get("diagnostics", {})
+                        .get("npc_agency", {})
+                        .get("visible_actor_response_present")
+                    ),
+                )
+            else:
+                ldss_span = None
+                try:
+                    from app.observability.langfuse_adapter import LangfuseAdapter
+                    adapter = LangfuseAdapter.get_instance()
+                    if adapter and adapter.is_enabled():
+                        logger.info(f"[MANAGER] Creating LDSS fallback span for session {session.session_id}, turn {commit_turn_number}")
+                        ldss_span = adapter.create_child_span(
+                            name="story.phase.ldss_fallback",
+                            input={
+                                "session_id": session.session_id,
+                                "turn_number": commit_turn_number,
+                                "player_input_length": len(player_input) if player_input else 0,
+                                "fallback_reason": "live_scene_blocks_missing",
+                            },
+                            metadata={
+                                "phase": "ldss_fallback",
+                                "turn_number": commit_turn_number,
+                                "session_id": session.session_id,
+                            }
+                        )
+                except Exception as e:
+                    logger.error(f"[MANAGER] Exception creating LDSS fallback span: {e}", exc_info=True)
+
+                try:
+                    scene_turn_envelope = _build_ldss_scene_envelope(
+                        session=session,
+                        graph_state=graph_state,
+                        player_input=player_input,
+                        turn_number=commit_turn_number,
                     )
-            finally:
-                if ldss_span:
-                    logger.info(f"[MANAGER] Ending LDSS phase span")
-                    ldss_span.end()
-                    logger.info(f"[MANAGER] LDSS phase span ended")
+                    if scene_turn_envelope and ldss_span:
+                        ldss_phase_cost = {}
+                        if isinstance(scene_turn_envelope, dict):
+                            diagnostics = scene_turn_envelope.get("diagnostics")
+                            if isinstance(diagnostics, dict) and isinstance(diagnostics.get("phase_cost"), dict):
+                                ldss_phase_cost = diagnostics["phase_cost"]
+                        if not ldss_phase_cost:
+                            raw_costs = graph_state.get("phase_costs")
+                            if isinstance(raw_costs, dict) and isinstance(raw_costs.get("ldss"), dict):
+                                ldss_phase_cost = raw_costs["ldss"]
+                        ldss_span.update(
+                            output={
+                                "block_count": len(scene_turn_envelope.get("visible_scene_output", {}).get("blocks", [])) if isinstance(scene_turn_envelope.get("visible_scene_output"), dict) else 0,
+                                "decision_count": scene_turn_envelope.get("decision_count", 0) if isinstance(scene_turn_envelope, dict) else 0,
+                                "status": "approved"
+                            },
+                            metadata={
+                                **ldss_phase_cost,
+                                "phase_cost": dict(ldss_phase_cost),
+                            }
+                        )
+                finally:
+                    if ldss_span:
+                        logger.info(f"[MANAGER] Ending LDSS fallback span")
+                        ldss_span.end()
 
             if scene_turn_envelope:
                 event["scene_turn_envelope"] = scene_turn_envelope
@@ -2634,85 +2848,41 @@ class StoryRuntimeManager:
         prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
         actor_lane_ctx = self._extract_actor_lane_context(session)
 
-        # MVP4: For God of Carnage opening, use guaranteed-healthy LDSS output instead of LangGraph.
-        # This ensures Turn 0 always reaches "healthy" quality, never "weak_but_legal".
-        if session.module_id == "god_of_carnage":
-            from ai_stack.live_dramatic_scene_simulator import LDSSInput, build_ldss_input_from_session, build_deterministic_ldss_output
-
-            # Build LDSS input from session state
-            ldss_input = build_ldss_input_from_session(
+        try:
+            graph_state = self.turn_graph.run(
                 session_id=session.session_id,
                 module_id=session.module_id,
-                turn_number=0,
-                selected_player_role=str(session.runtime_projection.get("selected_player_role") or ""),
-                human_actor_id=str(session.runtime_projection.get("human_actor_id") or ""),
-                npc_actor_ids=[str(a) for a in (session.runtime_projection.get("npc_actor_ids") or []) if str(a).strip()],
+                current_scene_id=session.current_scene_id,
                 player_input=prompt,
+                trace_id=trace_id,
+                host_versions={"world_engine_app_version": APP_VERSION},
+                active_narrative_threads=graph_threads or None,
+                thread_pressure_summary=graph_summary,
+                host_experience_template=host_experience_template,
+                prior_continuity_impacts=prior_ci if prior_ci else None,
+                turn_number=0,
+                turn_initiator_type="engine",
+                turn_input_class="opening",
+                live_player_truth_surface=True,
+                actor_lane_context=actor_lane_ctx,
             )
-
-            # Generate healthy opening via LDSS (deterministic, guaranteed NPC response)
-            ldss_output = build_deterministic_ldss_output(ldss_input)
-
-            # Build graph_state with committed scene turn envelope
-            graph_state = {
-                "session_id": session.session_id,
-                "turn_number": 0,
-                "validation_outcome": {"status": "approved", "reason": "healthy_opening_ldss"},
-                "visible_output_bundle": {
-                    "gm_narration": [b.text for b in ldss_output.visible_scene_output.blocks if b.block_type == "narrator"],
-                    "scene_blocks": [b.to_dict() for b in ldss_output.visible_scene_output.blocks],
-                },
-                "generation": {
-                    "success": True,
-                    "content": "\n".join(b.text for b in ldss_output.visible_scene_output.blocks),
-                    "metadata": {
-                        "adapter": "ldss_deterministic",
-                        "entrypoint": "opening_turn_healthy_generation",
-                    },
-                },
-                "committed_result": {"commit_applied": True},
-                "quality_class": "healthy",
-                "degradation_signals": [],
-                "ldss_output": ldss_output.to_dict(),
-                "phase_costs": {"ldss": dict(ldss_output.phase_cost)},
-            }
-        else:
-            # Non-GoC modules use LangGraph (fallback path)
-            try:
-                graph_state = self.turn_graph.run(
-                    session_id=session.session_id,
-                    module_id=session.module_id,
-                    current_scene_id=session.current_scene_id,
-                    player_input=prompt,
-                    trace_id=trace_id,
-                    host_versions={"world_engine_app_version": APP_VERSION},
-                    active_narrative_threads=graph_threads or None,
-                    thread_pressure_summary=graph_summary,
-                    host_experience_template=host_experience_template,
-                    prior_continuity_impacts=prior_ci if prior_ci else None,
-                    turn_number=0,
-                    turn_initiator_type="engine",
-                    turn_input_class="opening",
-                    live_player_truth_surface=True,
-                    actor_lane_context=actor_lane_ctx,
-                )
-            except Exception as exc:
-                log_story_runtime_failure(
-                    trace_id=trace_id,
-                    story_session_id=session_id,
-                    operation="execute_opening",
-                    message=str(exc),
-                    failure_class="graph_execution_exception",
-                )
-                raise
-            if not self._opening_commit_acceptable(graph_state):
-                if is_hard_boundary_failure(graph_state.get("validation_outcome")):
-                    raise RuntimeError("Opening blocked by hard narrative boundary")
-                raise RuntimeError("Opening validation did not approve committed narration")
-            if not self._visible_narration_present(graph_state):
-                gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
-                gen_error = gen.get("error") or (gen.get("metadata") or {}).get("error") or "no error details available"
-                raise RuntimeError(f"Opening produced no visible narration (generation_error={gen_error!r})")
+        except Exception as exc:
+            log_story_runtime_failure(
+                trace_id=trace_id,
+                story_session_id=session_id,
+                operation="execute_opening",
+                message=str(exc),
+                failure_class="graph_execution_exception",
+            )
+            raise
+        if not self._opening_commit_acceptable(graph_state):
+            if is_hard_boundary_failure(graph_state.get("validation_outcome")):
+                raise RuntimeError("Opening blocked by hard narrative boundary")
+            raise RuntimeError("Opening validation did not approve committed narration")
+        if not self._visible_narration_present(graph_state):
+            gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
+            gen_error = gen.get("error") or (gen.get("metadata") or {}).get("error") or "no error details available"
+            raise RuntimeError(f"Opening produced no visible narration (generation_error={gen_error!r})")
 
         session.updated_at = datetime.now(timezone.utc)
         return self._finalize_committed_turn(

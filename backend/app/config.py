@@ -133,6 +133,12 @@ class Config:
 
     # Timeout for internal service calls (in seconds).
     PLAY_SERVICE_REQUEST_TIMEOUT = int(os.environ.get("PLAY_SERVICE_REQUEST_TIMEOUT", "30"))
+    PLAY_SERVICE_STORY_SESSION_TIMEOUT = int(
+        os.environ.get(
+            "PLAY_SERVICE_STORY_SESSION_TIMEOUT",
+            os.environ.get("PLAY_SERVICE_REQUEST_TIMEOUT", "75"),
+        )
+    )
 
     # Prefer PLAY_SERVICE_SHARED_SECRET; PLAY_SERVICE_SECRET is deprecated but supported for migration.
     PLAY_SERVICE_SHARED_SECRET = (

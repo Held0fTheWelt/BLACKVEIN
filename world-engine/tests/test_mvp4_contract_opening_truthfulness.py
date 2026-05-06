@@ -3,7 +3,7 @@ MVP4 Contract 2: Opening Truthfulness
 
 Verifies that opening turns (Turn 0) are:
 1. Non-empty with visible output
-2. Use live provider (Claude) OR explicitly marked deterministic+LDSS
+2. Use the live runtime graph/model route rather than deterministic LDSS
 3. Have NPC agency (at least one NPC responds)
 4. Pass actor-lane validation
 """
@@ -45,7 +45,6 @@ def runtime_manager():
     manager = StoryRuntimeManager(
         governed_runtime_config=_test_governed_story_runtime_config()
     )
-    # Ensure we use LDSS for openings when available
     manager._skip_graph_opening_on_create = False
     return manager
 
@@ -103,8 +102,8 @@ def test_mvp4_opening_exists_and_non_empty(runtime_manager):
 
 
 @pytest.mark.mvp4
-def test_mvp4_opening_marked_as_deterministic_ldss(runtime_manager):
-    """Contract 2.2: Opening must be marked as deterministic+LDSS for God of Carnage."""
+def test_mvp4_opening_uses_live_runtime_graph_model_and_retrieval(runtime_manager):
+    """Contract 2.2: Opening must be generated through the live graph/model/RAG path."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -114,7 +113,6 @@ def test_mvp4_opening_marked_as_deterministic_ldss(runtime_manager):
 
     opening_event = session.diagnostics[0]
 
-    # Model route should indicate LDSS adapter
     model_route = opening_event.get("model_route", {})
     assert model_route is not None, "No model_route in opening"
 
@@ -124,13 +122,32 @@ def test_mvp4_opening_marked_as_deterministic_ldss(runtime_manager):
     metadata = generation.get("metadata", {})
     assert metadata is not None, "No generation metadata"
 
-    # Should be marked as ldss_deterministic
     adapter = metadata.get("adapter", "")
-    assert adapter == "ldss_deterministic", f"Opening not marked LDSS (got adapter={adapter})"
+    assert adapter, "Opening generation did not record an adapter"
+    assert adapter != "ldss_deterministic", "Opening bypassed live model generation via deterministic LDSS"
 
-    # Should be marked as opening entrypoint
-    entrypoint = metadata.get("entrypoint", "")
-    assert "opening" in entrypoint.lower(), f"Not marked as opening entrypoint (got {entrypoint})"
+    assert generation.get("success") is True, "Opening model generation did not succeed"
+    assert model_route.get("selected_model"), "Opening did not record selected model"
+    assert model_route.get("selected_provider"), "Opening did not record selected provider"
+
+    retrieval = opening_event.get("retrieval", {})
+    assert isinstance(retrieval, dict), "Opening did not expose retrieval diagnostics"
+    assert retrieval.get("domain") == "runtime"
+    assert retrieval.get("profile") == "runtime_turn_support"
+    assert retrieval.get("status") in {"ok", "degraded", "skipped"}
+
+    summary = opening_event.get("observability_path_summary", {})
+    assert summary.get("retrieval_called") is True
+    assert summary.get("retrieval_context_attached") is True
+
+    visible_bundle = opening_event.get("visible_output_bundle", {})
+    scene_blocks = visible_bundle.get("scene_blocks", [])
+    assert scene_blocks, "Opening did not project live output into scene blocks"
+    assert all(block.get("source") == "live_runtime_graph" for block in scene_blocks)
+    scene_envelope = opening_event.get("scene_turn_envelope", {})
+    ldss_diag = (scene_envelope.get("diagnostics") or {}).get("live_dramatic_scene_simulator") or {}
+    assert ldss_diag.get("invoked") is False, "LDSS must only run as fallback when live output fails"
+    assert ldss_diag.get("status") == "not_invoked_live_graph_primary"
 
 
 @pytest.mark.mvp4
@@ -258,7 +275,7 @@ def test_mvp4_opening_turn_contains_committed_truth(runtime_manager):
 
 @pytest.mark.mvp4
 def test_mvp4_opening_quality_class_is_healthy(runtime_manager):
-    """Contract 2.9: Opening via LDSS should achieve 'healthy' quality class."""
+    """Contract 2.9: Opening via live runtime graph should achieve healthy quality."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -270,14 +287,13 @@ def test_mvp4_opening_quality_class_is_healthy(runtime_manager):
 
     gov = opening_event.get("runtime_governance_surface", {})
     quality_class = gov.get("quality_class")
-    # LDSS opening should achieve healthy quality
     assert quality_class in ["healthy", "approved"], \
         f"Opening quality class should be healthy, got {quality_class}"
 
 
 @pytest.mark.mvp4
 def test_mvp4_opening_no_degradation_signals(runtime_manager):
-    """Contract 2.10: Opening via LDSS should have no degradation signals."""
+    """Contract 2.10: Opening via live runtime graph should have no degradation signals."""
     projection = _god_of_carnage_projection()
 
     session = runtime_manager.create_session(
@@ -291,7 +307,7 @@ def test_mvp4_opening_no_degradation_signals(runtime_manager):
     degradation_signals = gov.get("degradation_signals", [])
     assert isinstance(degradation_signals, list)
     assert len(degradation_signals) == 0, \
-        f"LDSS opening should have no degradation signals, got {degradation_signals}"
+        f"Live opening should have no degradation signals, got {degradation_signals}"
 
 
 @pytest.mark.mvp4

@@ -189,6 +189,7 @@ class TestGameServiceClient:
         with app.app_context():
             app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://play-internal.example.com"
             app.config["PLAY_SERVICE_INTERNAL_API_KEY"] = "k"
+            app.config["PLAY_SERVICE_STORY_SESSION_TIMEOUT"] = 75
             from app.services import game_service as gs
 
             gs.create_story_session(
@@ -200,6 +201,7 @@ class TestGameServiceClient:
         assert capture["headers"].get("X-WoS-Trace-Id") == "trace-from-backend"
         assert capture["headers"].get("X-Langfuse-Trace-Id") == "0123456789abcdef0123456789abcdef"
         assert capture["headers"].get("X-Play-Service-Key") == "k"
+        assert capture["init_kwargs"]["timeout"] == 75.0
 
     def test_request_wraps_transport_failures(self, app, monkeypatch):
         transport_error = httpx.RequestError("down", request=httpx.Request("GET", "https://play.example.com"))
