@@ -822,6 +822,13 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if actor_id and actor_id not in responder_ids:
             responder_ids.append(actor_id)
     preferred_reaction_order_ids = _preferred_reaction_order_ids_from_responders(responders)
+    actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+    forbidden_actor_ids: set[str] = set()
+    for raw_actor_id in actor_lane_ctx.get("ai_forbidden_actor_ids") or []:
+        forbidden_actor_ids.update(expand_goc_actor_id_aliases(str(raw_actor_id)))
+    human_actor_id = str(actor_lane_ctx.get("human_actor_id") or "").strip()
+    forbidden_actor_ids.update(expand_goc_actor_id_aliases(human_actor_id))
+    allowed_actor_ids = sorted({actor_id for actor_id in responder_ids if actor_id and actor_id not in forbidden_actor_ids})
 
     minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
     compact_minds: list[dict[str, Any]] = []
@@ -881,6 +888,18 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         "selected_responder_set": responders,
         "primary_responder_id": responder_ids[0] if responder_ids else None,
         "secondary_responder_ids": responder_ids[1:] if len(responder_ids) > 1 else [],
+        "actor_lane_boundary": {
+            "human_actor_id": human_actor_id or None,
+            "ai_forbidden_actor_ids": sorted(forbidden_actor_ids),
+            "ai_allowed_actor_ids": allowed_actor_ids,
+            "hard_rule": (
+                "Only ai_allowed_actor_ids may appear in primary_responder_id, secondary_responder_ids, "
+                "responder_actor_ids, spoken_lines, action_lines, or initiative_events. The human actor may be "
+                "addressed or observed only through NPC behavior; never speak, act, emote, counter, or seize initiative for them."
+            ),
+        }
+        if forbidden_actor_ids or allowed_actor_ids
+        else None,
         "preferred_reaction_order_ids": preferred_reaction_order_ids,
         "preferred_reaction_order_instruction": preferred_instruction,
         "secondary_responder_directive": (
@@ -1778,6 +1797,20 @@ class RuntimeTurnGraphExecutor:
                 reason = str(responder.get("reason") or responder.get("responder_type") or "")
                 lines.append(f"- {actor}: {reason[:180]}")
 
+        actor_lane_boundary = dramatic_packet.get("actor_lane_boundary") if isinstance(dramatic_packet, dict) else None
+        if isinstance(actor_lane_boundary, dict):
+            allowed = actor_lane_boundary.get("ai_allowed_actor_ids")
+            forbidden = actor_lane_boundary.get("ai_forbidden_actor_ids")
+            lines.append("Actor Lane Boundary (hard validation):")
+            lines.append(f"- human_actor_id: {actor_lane_boundary.get('human_actor_id') or 'none'}")
+            lines.append(f"- ai_allowed_actor_ids: {allowed if isinstance(allowed, list) else []}")
+            lines.append(f"- ai_forbidden_actor_ids: {forbidden if isinstance(forbidden, list) else []}")
+            lines.append(
+                "- hard_rule: use ONLY ai_allowed_actor_ids in primary_responder_id, secondary_responder_ids, "
+                "responder_actor_ids, spoken_lines, action_lines, and initiative_events. Do not write dialogue, "
+                "action, emotional state, counter, interruption, initiative, or narration-as-action for the human actor."
+            )
+
         minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
         if minds:
             lines.append("Character Mind Records:")
@@ -1834,7 +1867,7 @@ class RuntimeTurnGraphExecutor:
         lines.append(json.dumps(dramatic_packet, sort_keys=True))
         lines.append(
             "Generation directive: produce actor-level exchange (spoken_lines/action_lines/initiative_events) "
-            "aligned with selected_scene_function, responder scope, pacing, and continuity constraints."
+            "aligned with selected_scene_function, responder scope, actor lane boundary, pacing, and continuity constraints."
         )
 
         update = _track(state, node_name="assemble_model_context")
@@ -2187,9 +2220,10 @@ class RuntimeTurnGraphExecutor:
         fallback_mid = str(routing.get("fallback_model") or "").strip()
         candidate_mid = selected_mid
         current_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+        current_failed = generation.get("success") is False or bool(generation.get("error"))
         if current_meta.get("adapter") == "mock" and fallback_mid:
             candidate_mid = fallback_mid
-        elif attempt_index > 1 and fallback_mid:
+        elif current_failed and fallback_mid:
             candidate_mid = fallback_mid
         spec = self.registry.get(candidate_mid) if candidate_mid else None
         provider = getattr(spec, "provider", "") or ""
@@ -2201,6 +2235,13 @@ class RuntimeTurnGraphExecutor:
                 {"attempt_index": attempt_index, "status": "adapter_missing", "candidate_model": candidate_mid},
             )
         provider_model = getattr(spec, "provider_model_name", None) if spec is not None else None
+        allowed_actor_ids: list[str] = []
+        selected = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
+        for row in selected:
+            if isinstance(row, dict):
+                actor_id = str(row.get("actor_id") or row.get("responder_id") or "").strip()
+                if actor_id and actor_id not in allowed_actor_ids:
+                    allowed_actor_ids.append(actor_id)
         runtime_result = _invoke_runtime_adapter_with_langchain(
             adapter=adapter,
             player_input=state["player_input"],
@@ -2209,7 +2250,11 @@ class RuntimeTurnGraphExecutor:
             timeout_seconds=float(getattr(spec, "timeout_seconds", state.get("selected_timeout", 10.0)) or 10.0),
             prior_output=str(generation.get("content") or generation.get("model_raw_text") or ""),
             feedback_codes=list(feedback_codes),
-            rewrite_instruction=build_rewrite_instruction(list(feedback_codes), preserve_actor_lanes=preserve_actor_lanes),
+            rewrite_instruction=build_rewrite_instruction(
+                list(feedback_codes),
+                allowed_actor_ids=allowed_actor_ids,
+                preserve_actor_lanes=preserve_actor_lanes,
+            ),
             model_name=str(provider_model).strip() if provider_model else None,
             dramatic_generation_packet=state.get("dramatic_generation_packet")
             if isinstance(state.get("dramatic_generation_packet"), dict)
@@ -2253,12 +2298,30 @@ class RuntimeTurnGraphExecutor:
         rewritten["error"] = call.metadata.get("error") if not call.success else None
         rewritten["model_raw_text"] = call.content
         rewritten["content"] = call.content
-        rewritten["fallback_used"] = bool(generation.get("fallback_used")) or attempt_index > 1
+        parsed_structured = runtime_result.parsed_output.model_dump(mode="json") if runtime_result.parsed_output else None
+        if parsed_structured is None:
+            raw_content = str(call.content or "").strip()
+            if raw_content.startswith("{"):
+                try:
+                    raw_parsed = json.loads(raw_content)
+                except Exception:
+                    raw_parsed = None
+                if isinstance(raw_parsed, dict) and (
+                    str(raw_parsed.get("schema_version") or "").strip() == "runtime_actor_turn_v1"
+                    or any(
+                        isinstance(raw_parsed.get(key), list)
+                        for key in ("spoken_lines", "action_lines", "initiative_events", "state_effects")
+                    )
+                ):
+                    parsed_structured = raw_parsed
+        rewritten["fallback_used"] = bool(generation.get("fallback_used")) or (
+            bool(selected_mid) and bool(candidate_mid) and candidate_mid != selected_mid
+        )
         rewritten["metadata"] = {
             **call.metadata,
             "langchain_prompt_used": True,
             "langchain_parser_error": runtime_result.parser_error,
-            "structured_output": runtime_result.parsed_output.model_dump(mode="json") if runtime_result.parsed_output else None,
+            "structured_output": parsed_structured,
             "adapter_invocation_mode": ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
             "self_correction_attempt_index": attempt_index,
             "self_correction_feedback_codes": list(feedback_codes),
@@ -2267,9 +2330,7 @@ class RuntimeTurnGraphExecutor:
                 state.get("dramatic_generation_packet"), dict
             ),
         }
-        proposed = structured_output_to_proposed_effects(
-            runtime_result.parsed_output.model_dump(mode="json") if runtime_result.parsed_output else None
-        )
+        proposed = structured_output_to_proposed_effects(parsed_structured)
         attempt = {
             "attempt_index": attempt_index,
             "candidate_model": candidate_mid,

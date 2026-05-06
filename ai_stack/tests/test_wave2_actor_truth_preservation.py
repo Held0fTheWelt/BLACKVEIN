@@ -220,6 +220,17 @@ class TestRewriteInstructionPreservation:
 		assert "spoken_lines" in instruction.lower()
 		assert "alice" in instruction.lower() or "bob" in instruction.lower()
 
+	def test_rewrite_instruction_with_human_actor_code_includes_actor_feedback(self):
+		"""Human actor boundary failures should get explicit actor-lane rewrite guidance."""
+		instruction = build_rewrite_instruction(
+			["human_actor_selected_as_responder"],
+			allowed_actor_ids=["veronique_vallon"],
+			preserve_actor_lanes=False,
+		)
+		assert "veronique_vallon" in instruction
+		assert "human/player actor" in instruction.lower()
+		assert "secondary_responder_ids" in instruction
+
 
 class TestActorLaneFluencyOverrideBeforeLegacy:
 	"""Verify actor-lane fluency override applies BEFORE legacy alignment check."""
@@ -300,6 +311,25 @@ class TestProposedEffectActorLaneCount:
 		assert len(effects) == 1
 		effect = effects[0]
 		assert "actor_lane_count" not in effect or effect.get("actor_lane_count") == 0
+
+	def test_state_effect_value_becomes_validation_description(self):
+		"""state_effects.value should be narrative evidence for dramatic validation."""
+		from ai_stack.goc_turn_seams import structured_output_to_proposed_effects
+
+		structured = {
+			"state_effects": [
+				{
+					"effect_type": "pressure_shift",
+					"target": "scene",
+					"value": "polite civility becomes explicit moral negotiation",
+				}
+			],
+			"spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Let us be precise."}],
+		}
+		effects = structured_output_to_proposed_effects(structured)
+		assert effects[0]["description"] == (
+			"pressure_shift: scene: polite civility becomes explicit moral negotiation"
+		)
 
 
 class TestSocialPressureShiftExtraction:

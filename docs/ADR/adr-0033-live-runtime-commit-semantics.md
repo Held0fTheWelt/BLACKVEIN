@@ -516,6 +516,7 @@ Fail if frontend enters ready state based only on `session_id` without confirmin
 - Add generation observations for real model calls where supported.
 - Ensure mock/fallback spans are clearly labeled.
 - Include `live_success`, `quality_class`, and `degradation_signals` at trace level.
+- Emit deterministic gate scores **both** on the active observation (`span.score`) **and** at **trace** scope via `create_score(trace_id=...)` so exports and the trace Scores tab stay aligned (see §13.5).
 
 ### 11.4 Backend
 
@@ -617,6 +618,19 @@ Live-success decisions must be:
 - Documented at trace level with decision fields
 
 Langfuse score/usage implementation details are deferred to follow-up ADRs, but live-success computations must be exposed in trace metadata so that future scoring strategies can audit live-success decisions.
+
+### 13.5 Langfuse deterministic gates: trace-level vs observation-level scores
+
+**Problem (regression risk):** The Langfuse Python SDK attaches scores to whatever observation is currently active when `span.score(...)` is called. Those scores appear in exports/API with an **`observationId`**. Langfuse trace JSON exports populate **`trace.scores`** only for **trace-level** scores. Operators who open the trace overview therefore see **empty trace scores** even when gate scores were written successfully—unless they drill into the correct observation (e.g. `world-engine.session.create` or `world-engine.turn.execute`).
+
+**Required behavior (World-Engine):** For every ADR-0033 deterministic gate score emitted from `LangfuseAdapter.add_score`, the implementation **must**:
+
+1. Keep calling `parent_span.score(...)` on the active story span (observation-level, preserves drill-down on the executing span).
+2. **Also** call `Langfuse.create_score(..., trace_id=<active_span.trace_id>, ...)` **without** tying the score to a specific observation, so the same gate appears under the trace’s **`scores`** list and in the Langfuse UI trace detail **Scores** tab at trace scope.
+
+**Non-goals:** This is intentional duplication for UX and export parity, not a second semantic definition of the gate. Metadata may tag trace duplicates (e.g. `score_attachment=trace_duplicate`) for filtering.
+
+**Regression guard:** A unit test **must** assert that `create_score` is invoked with the span’s `trace_id` whenever observation-level `score` is written (`world-engine/tests/test_trace_middleware.py`). Removing trace-level submission is a contract break for ADR-0033 observability.
 
 ---
 

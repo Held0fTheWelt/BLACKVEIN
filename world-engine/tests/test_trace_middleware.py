@@ -4,6 +4,40 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from app.story_runtime.manager import _emit_langfuse_evidence_observations
+
+
+def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
+    """ADR-0033: observation span.score() alone does not populate Langfuse trace.scores / UI trace tab."""
+    from app.observability import langfuse_adapter as lf_mod
+
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+    adapter.is_ready = True
+    client = MagicMock()
+    adapter.client = client
+    span = MagicMock()
+    span.trace_id = "trace-id-adr0033"
+    span.span_id = "obs-id-span"
+    span.name = "world-engine.session.create"
+    token = lf_mod._active_span_context.set(span)
+    try:
+        lf_mod.LangfuseAdapter.add_score(
+            adapter,
+            name="live_runtime_contract_pass",
+            value=0.0,
+            comment="deterministic gate",
+            metadata={"session_id": "s1"},
+        )
+    finally:
+        lf_mod._active_span_context.reset(token)
+
+    span.score.assert_called_once()
+    client.create_score.assert_called_once()
+    cc_kw = client.create_score.call_args.kwargs
+    assert cc_kw["name"] == "live_runtime_contract_pass"
+    assert cc_kw["trace_id"] == "trace-id-adr0033"
+    assert cc_kw["value"] == 0.0
+
 
 def _goc_projection():
     return {
@@ -118,5 +152,102 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     assert "story.phase.commit" in created_child_names
     assert "story.phase.ldss_fallback" not in created_child_names
     assert "story.phase.narrator" in created_child_names
+    adapter.record_generation.assert_not_called()
+    adapter.record_retrieval.assert_called_once()
+    assert adapter.record_retrieval.call_args.kwargs["name"] == "story.rag.retrieval"
+    score_names = {call.kwargs["name"] for call in adapter.add_score.call_args_list}
+    assert {
+        "non_mock_generation_pass",
+        "visible_output_present",
+        "actor_lane_safety_pass",
+        "fallback_absent",
+        "usage_present",
+        "rag_context_attached",
+        "live_runtime_contract_pass",
+    }.issubset(score_names)
     root_span.end.assert_called_once()
     adapter.flush.assert_called_once()
+
+
+def test_langfuse_evidence_observations_record_live_generation_retrieval_and_scores(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    path_summary = {
+        "session_id": "session-live-evidence",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "api_model": "gpt-5-nano",
+        "selected_provider": "openai_primary",
+        "selected_model": "gpt-5-nano",
+        "adapter_invocation_mode": "langchain_structured_primary",
+        "route_id": "goc_opening",
+        "route_family": "story_runtime",
+        "generation_fallback_used": False,
+        "structured_output_present": True,
+        "parser_error": None,
+        "retrieval_context_attached": True,
+        "usage_available": True,
+        "usage_source": "provider_response",
+        "usage_details": {"input": 12, "output": 8, "total": 20},
+        "retrieval_status": "ok",
+        "retrieval_route": "hybrid",
+        "retrieval_hit_count": 1,
+        "retrieval_profile": "runtime_turn_support",
+        "retrieval_domain": "runtime",
+        "retrieval_top_hit_score": 0.91,
+        "retrieval_corpus_fingerprint": "fingerprint",
+        "retrieval_index_version": "idx-v1",
+        "retrieval_degradation_mode": None,
+        "retrieval_governance_summary": {"published": 1},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+    }
+    graph_state = {"model_prompt": "Prompt with retrieved context."}
+    event = {
+        "raw_input": "Start the scene.",
+        "model_route": {
+            "generation": {
+                "content": "Generated opening.",
+                "metadata": {
+                    "adapter": "openai",
+                    "model": "gpt-5-nano",
+                },
+            }
+        },
+        "retrieval": {
+            "query": "GoC opening",
+            "sources": [
+                {
+                    "chunk_id": "chunk-1",
+                    "snippet": "Canonical room context.",
+                    "score": 0.91,
+                    "source_path": "canon/goc.md",
+                    "content_class": "published_canon",
+                }
+            ],
+        },
+        "visible_output_bundle": {
+            "scene_blocks": [{"type": "narrator", "text": "Generated opening."}],
+        },
+    }
+
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+
+    adapter.record_generation.assert_called_once()
+    assert adapter.record_generation.call_args.kwargs["name"] == "story.model.generation"
+    assert adapter.record_generation.call_args.kwargs["usage_details"] == {"input": 12, "output": 8, "total": 20}
+    adapter.record_retrieval.assert_called_once()
+    assert adapter.record_retrieval.call_args.kwargs["documents"][0]["id"] == "chunk-1"
+    score_names = {call.kwargs["name"] for call in adapter.add_score.call_args_list}
+    assert "live_runtime_contract_pass" in score_names

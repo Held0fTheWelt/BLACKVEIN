@@ -146,7 +146,30 @@ def structured_output_to_proposed_effects(structured: dict[str, Any] | None) -> 
     if not isinstance(raw, list) or not raw:
         raw = structured.get("state_effects")
     if isinstance(raw, list) and raw:
-        effects = [x for x in raw if isinstance(x, dict)]
+        effects = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            effect = dict(item)
+            desc = str(effect.get("description") or "").strip()
+            if not desc:
+                value = str(effect.get("value") or effect.get("text") or effect.get("summary") or "").strip()
+                effect_type = str(effect.get("effect_type") or "").strip()
+                target = str(effect.get("target") or "").strip()
+                parts = [part for part in (effect_type, target, value) if part]
+                if parts:
+                    effect["description"] = ": ".join(parts)
+            effects.append(effect)
+        narr = structured.get("narration_summary")
+        if not isinstance(narr, str) or not narr.strip():
+            narr = structured.get("narrative_response")
+        if isinstance(narr, str) and narr.strip():
+            effects.append(
+                {
+                    "effect_type": "narrative_projection",
+                    "description": narr.strip()[:4096],
+                }
+            )
     elif structured.get("effect_type") or structured.get("description"):
         effects = [
             {

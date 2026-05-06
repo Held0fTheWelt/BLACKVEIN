@@ -294,6 +294,127 @@ class LangfuseAdapter:
             logger.error(f"[LANGFUSE] Failed to create child span '{name}': {str(e)}", exc_info=True)
             return None
 
+    def record_generation(
+        self,
+        *,
+        name: str,
+        model: str,
+        provider: str,
+        prompt: Optional[str] = None,
+        completion: Optional[str] = None,
+        usage_details: Optional[dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> Optional[Any]:
+        """Record a Langfuse generation observation under the active story span."""
+        if not self.is_enabled():
+            return None
+        parent_span = _active_span_context.get()
+        if not parent_span:
+            logger.warning(f"[LANGFUSE] No active parent span to record generation '{name}'")
+            return None
+        try:
+            generation = parent_span.start_observation(
+                as_type="generation",
+                name=name,
+                model=model,
+                input={"prompt": prompt} if prompt else {},
+                metadata={
+                    **(metadata or {}),
+                    "model": model,
+                    "provider": provider,
+                },
+            )
+            update_kwargs: dict[str, Any] = {
+                "output": {"completion": completion} if completion else {},
+            }
+            if isinstance(usage_details, dict):
+                update_kwargs["usage_details"] = usage_details
+            generation.update(**update_kwargs)
+            generation.end()
+            logger.info(f"[LANGFUSE] generation observation recorded: name={name}, model={model}")
+            return generation
+        except Exception as e:
+            logger.error(f"[LANGFUSE] Failed to record generation '{name}': {str(e)}", exc_info=True)
+            return None
+
+    def record_retrieval(
+        self,
+        *,
+        name: str = "story.rag.retrieval",
+        query: Optional[str] = None,
+        documents: Optional[list[dict[str, Any]]] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> Optional[Any]:
+        """Record a Langfuse retriever observation under the active story span."""
+        if not self.is_enabled():
+            return None
+        parent_span = _active_span_context.get()
+        if not parent_span:
+            logger.warning(f"[LANGFUSE] No active parent span to record retrieval '{name}'")
+            return None
+        try:
+            retrieval = parent_span.start_observation(
+                as_type="retriever",
+                name=name,
+                input={"query": query} if query else {},
+                metadata={
+                    **(metadata or {}),
+                    "document_count": len(documents or []),
+                },
+            )
+            retrieval.update(output={"documents": documents or []})
+            retrieval.end()
+            logger.info(f"[LANGFUSE] retriever observation recorded: name={name}, documents={len(documents or [])}")
+            return retrieval
+        except Exception as e:
+            logger.error(f"[LANGFUSE] Failed to record retrieval '{name}': {str(e)}", exc_info=True)
+            return None
+
+    def add_score(
+        self,
+        *,
+        name: str,
+        value: float,
+        comment: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Attach a deterministic score to the active story trace/span."""
+        if not self.is_enabled():
+            return
+        parent_span = _active_span_context.get()
+        if not parent_span:
+            logger.warning(f"[LANGFUSE] No active parent span to add score '{name}'")
+            return
+        trace_id = getattr(parent_span, "trace_id", None)
+        try:
+            parent_span.score(
+                name=name,
+                value=value,
+                comment=comment,
+                metadata=metadata or {},
+            )
+        except Exception as e:
+            logger.error(f"[LANGFUSE] Failed to add score '{name}': {str(e)}", exc_info=True)
+            return
+        # Trace-level duplicate: Langfuse UI / trace JSON export `trace.scores` list trace-level
+        # scores; `span.score()` attaches to the observation only (see ADR-0033 §13.5).
+        try:
+            if trace_id and self.client:
+                meta = dict(metadata or {})
+                meta.setdefault("score_attachment", "trace_duplicate")
+                self.client.create_score(
+                    name=name,
+                    value=value,
+                    trace_id=str(trace_id),
+                    comment=comment,
+                    metadata=meta,
+                )
+        except Exception as e:
+            logger.warning(
+                f"[LANGFUSE] Trace-level create_score failed for '{name}': {str(e)}",
+                exc_info=True,
+            )
+
     def flush(self) -> None:
         """Flush pending traces to Langfuse."""
         if self.client:

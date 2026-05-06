@@ -20,23 +20,30 @@ def test_openai_adapter_handles_missing_key():
 def test_openai_adapter_omits_temperature_for_gpt5_models():
     response = Mock()
     response.raise_for_status.return_value = None
-    response.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+    response.json.return_value = {
+        "choices": [{"message": {"content": "ok"}}],
+        "usage": {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+    }
     client = Mock()
     client.__enter__ = Mock(return_value=client)
     client.__exit__ = Mock(return_value=None)
     client.post.return_value = response
 
     with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
-        result = OpenAIChatAdapter(api_key="sk-test").generate("hello", model_name="gpt-5-mini")
+        result = OpenAIChatAdapter(api_key="sk-test").generate("Return valid JSON.", model_name="gpt-5-mini")
 
     assert result.success is True
+    assert result.metadata["usage_available"] is True
+    assert result.metadata["usage_source"] == "provider_response"
+    assert result.metadata["usage_details"] == {"input": 11, "output": 7, "total": 18}
     assert client.post.call_args is not None
-    assert result.metadata["timeout_seconds"] == 12.0
+    assert result.metadata["timeout_seconds"] == 60.0
     payload = client.post.call_args.kwargs["json"]
     assert payload["model"] == "gpt-5-mini"
     assert "temperature" not in payload
     assert payload["reasoning_effort"] == "minimal"
     assert payload["max_completion_tokens"] == 1200
+    assert payload["response_format"] == {"type": "json_object"}
 
 
 def test_openai_adapter_caps_reasoning_model_timeout(monkeypatch):

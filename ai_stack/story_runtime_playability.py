@@ -241,14 +241,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
         f"{issues}."
     )
 
-    actor_lane_issues = [code for code in feedback_codes if code.startswith("actor_lane_")]
+    actor_lane_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("actor_lane_")
+        or code in {"human_actor_selected_as_responder", "ai_controlled_human_actor"}
+    ]
     if actor_lane_issues:
         allowed_str = ", ".join(sorted(allowed_actor_ids or [])) or "the approved responder set"
         actor_feedback = (
             " When populating actor lanes: "
             f"use only these approved actor IDs: {allowed_str}. "
             "Populate spoken_lines with speaker_id, action_lines with actor_id, and initiative_events with valid types. "
-            "Do not invent new actor IDs."
+            "Do not invent new actor IDs. Do not include the human/player actor in primary_responder_id, "
+            "secondary_responder_ids, responder_actor_ids, spoken_lines, action_lines, initiative_events, or narration-as-action."
         )
         return preserve_prefix + base_instruction + actor_feedback
 

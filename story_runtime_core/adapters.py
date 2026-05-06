@@ -106,11 +106,14 @@ class OpenAIChatAdapter(BaseModelAdapter):
         uses_reasoning_controls = self._uses_reasoning_controls(chosen_model)
         request_timeout = timeout_seconds
         if uses_reasoning_controls:
-            cap_raw = os.getenv("OPENAI_REASONING_CHAT_TIMEOUT_SECONDS", "12").strip()
-            try:
-                request_timeout = min(float(timeout_seconds), max(1.0, float(cap_raw)))
-            except ValueError:
-                request_timeout = min(float(timeout_seconds), 12.0)
+            override_raw = os.getenv("OPENAI_REASONING_CHAT_TIMEOUT_SECONDS")
+            if override_raw is not None and override_raw.strip():
+                try:
+                    request_timeout = max(1.0, float(override_raw.strip()))
+                except ValueError:
+                    request_timeout = 60.0
+            else:
+                request_timeout = max(float(timeout_seconds), 60.0)
         if not api_key:
             return ModelCallResult(
                 content="",
@@ -134,6 +137,8 @@ class OpenAIChatAdapter(BaseModelAdapter):
                 if uses_reasoning_controls:
                     payload["reasoning_effort"] = "minimal"
                     payload["max_completion_tokens"] = 1200
+                if "return valid json" in prompt.lower() or "format instructions" in prompt.lower():
+                    payload["response_format"] = {"type": "json_object"}
                 response = client.post(
                     f"{self.base_url}/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
@@ -142,6 +147,10 @@ class OpenAIChatAdapter(BaseModelAdapter):
                 response.raise_for_status()
                 payload = response.json()
                 message = payload["choices"][0]["message"]["content"]
+                usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
+                prompt_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+                completion_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+                total_tokens = int(usage.get("total_tokens") or (prompt_tokens + completion_tokens))
                 return ModelCallResult(
                     content=message,
                     success=True,
@@ -150,6 +159,16 @@ class OpenAIChatAdapter(BaseModelAdapter):
                         "model": chosen_model,
                         "base_url": self.base_url,
                         "timeout_seconds": request_timeout,
+                        "usage_available": bool(usage),
+                        "usage_source": "provider_response" if usage else "provider_response_missing_usage",
+                        "usage_details": {
+                            "input": prompt_tokens,
+                            "output": completion_tokens,
+                            "total": total_tokens,
+                        },
+                        "tokens_prompt": prompt_tokens,
+                        "tokens_completion": completion_tokens,
+                        "tokens_total": total_tokens,
                     },
                 )
         except Exception as exc:
@@ -196,10 +215,26 @@ class OllamaAdapter(BaseModelAdapter):
                 )
                 response.raise_for_status()
                 payload = response.json()
+                prompt_tokens = int(payload.get("prompt_eval_count") or 0)
+                completion_tokens = int(payload.get("eval_count") or 0)
+                total_tokens = prompt_tokens + completion_tokens
                 return ModelCallResult(
                     content=payload.get("response", ""),
                     success=True,
-                    metadata={"adapter": self.adapter_name, "model": chosen_model},
+                    metadata={
+                        "adapter": self.adapter_name,
+                        "model": chosen_model,
+                        "usage_available": bool(total_tokens),
+                        "usage_source": "provider_response" if total_tokens else "provider_unavailable",
+                        "usage_details": {
+                            "input": prompt_tokens,
+                            "output": completion_tokens,
+                            "total": total_tokens,
+                        },
+                        "tokens_prompt": prompt_tokens,
+                        "tokens_completion": completion_tokens,
+                        "tokens_total": total_tokens,
+                    },
                 )
         except Exception as exc:
             return ModelCallResult(

@@ -488,6 +488,8 @@ def _build_langfuse_path_summary(
     if structured is None:
         structured = generation.get("structured_output")
     graph_errors = _str_list(graph_state.get("graph_errors"))
+    usage_details = gen_meta.get("usage_details") if isinstance(gen_meta.get("usage_details"), dict) else {}
+    usage_total = int(usage_details.get("total") or gen_meta.get("tokens_total") or 0)
 
     return {
         "contract": "story_runtime_path_observability.v1",
@@ -521,6 +523,13 @@ def _build_langfuse_path_summary(
         "parser_error": _short_text(gen_meta.get("langchain_parser_error") or generation.get("parser_error")),
         "structured_output_present": isinstance(structured, dict),
         "structured_output_keys": sorted(structured.keys()) if isinstance(structured, dict) else [],
+        "usage_available": bool(gen_meta.get("usage_available")) or usage_total > 0,
+        "usage_source": gen_meta.get("usage_source"),
+        "usage_details": {
+            "input": int(usage_details.get("input") or gen_meta.get("tokens_prompt") or 0),
+            "output": int(usage_details.get("output") or gen_meta.get("tokens_completion") or 0),
+            "total": usage_total,
+        },
         "retrieval_status": retrieval.get("status"),
         "retrieval_route": retrieval.get("retrieval_route"),
         "retrieval_hit_count": retrieval.get("hit_count"),
@@ -780,6 +789,141 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
             level=level,
             status_message=status_message,
         )
+
+
+def _emit_langfuse_evidence_observations(
+    *,
+    path_summary: dict[str, Any],
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+) -> None:
+    try:
+        adapter = LangfuseAdapter.get_instance()
+    except Exception:
+        logger.debug("Langfuse adapter unavailable for evidence observations", exc_info=True)
+        return
+    try:
+        if not adapter or not adapter.is_enabled():
+            return
+    except Exception:
+        return
+
+    generation = (
+        (event.get("model_route") or {}).get("generation")
+        if isinstance(event.get("model_route"), dict)
+        else {}
+    )
+    if not isinstance(generation, dict):
+        generation = {}
+    gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    adapter_name = str(gen_meta.get("adapter") or "").strip()
+    usage_details = path_summary.get("usage_details") if isinstance(path_summary.get("usage_details"), dict) else {}
+    model_name = str(path_summary.get("api_model") or path_summary.get("selected_model") or gen_meta.get("model") or "unknown").strip()
+    provider = str(path_summary.get("selected_provider") or adapter_name or "unknown").strip()
+    if adapter_name and adapter_name not in {"mock", "ldss_fallback", "ldss_deterministic"}:
+        try:
+            adapter.record_generation(
+                name="story.model.generation",
+                model=model_name,
+                provider=provider,
+                prompt=str(graph_state.get("model_prompt") or "")[:20000],
+                completion=str(generation.get("model_raw_text") or generation.get("content") or "")[:20000],
+                usage_details=usage_details if usage_details.get("total") else None,
+                metadata={
+                    "session_id": path_summary.get("session_id"),
+                    "module_id": path_summary.get("module_id"),
+                    "turn_number": path_summary.get("turn_number"),
+                    "turn_kind": path_summary.get("turn_kind"),
+                    "adapter": adapter_name,
+                    "adapter_invocation_mode": path_summary.get("adapter_invocation_mode"),
+                    "route_id": path_summary.get("route_id"),
+                    "route_family": path_summary.get("route_family"),
+                    "selected_model": path_summary.get("selected_model"),
+                    "fallback_model": path_summary.get("fallback_model"),
+                    "fallback_used": path_summary.get("generation_fallback_used"),
+                    "structured_output_present": path_summary.get("structured_output_present"),
+                    "parser_error": path_summary.get("parser_error"),
+                    "retrieval_context_attached": path_summary.get("retrieval_context_attached"),
+                    "usage_available": path_summary.get("usage_available"),
+                    "usage_source": path_summary.get("usage_source"),
+                },
+            )
+        except Exception:
+            logger.debug("Langfuse generation observation failed", exc_info=True)
+
+    retrieval = event.get("retrieval") if isinstance(event.get("retrieval"), dict) else {}
+    sources = retrieval.get("sources") if isinstance(retrieval.get("sources"), list) else []
+    documents: list[dict[str, Any]] = []
+    for source in sources[:8]:
+        if not isinstance(source, dict):
+            continue
+        documents.append(
+            {
+                "id": source.get("chunk_id") or source.get("source_path"),
+                "content": source.get("snippet"),
+                "score": source.get("score"),
+                "metadata": {
+                    "source_path": source.get("source_path"),
+                    "content_class": source.get("content_class"),
+                    "pack_role": source.get("pack_role"),
+                    "source_evidence_lane": source.get("source_evidence_lane"),
+                    "policy_note": source.get("policy_note"),
+                },
+            }
+        )
+    if retrieval:
+        try:
+            adapter.record_retrieval(
+                name="story.rag.retrieval",
+                query=str(retrieval.get("query") or event.get("raw_input") or "")[:4000],
+                documents=documents,
+                metadata={
+                    "session_id": path_summary.get("session_id"),
+                    "module_id": path_summary.get("module_id"),
+                    "turn_number": path_summary.get("turn_number"),
+                    "status": path_summary.get("retrieval_status"),
+                    "retrieval_route": path_summary.get("retrieval_route"),
+                    "hit_count": path_summary.get("retrieval_hit_count"),
+                    "profile": path_summary.get("retrieval_profile"),
+                    "domain": path_summary.get("retrieval_domain"),
+                    "context_attached": path_summary.get("retrieval_context_attached"),
+                    "top_hit_score": path_summary.get("retrieval_top_hit_score"),
+                    "corpus_fingerprint": path_summary.get("retrieval_corpus_fingerprint"),
+                    "index_version": path_summary.get("retrieval_index_version"),
+                    "degradation_mode": path_summary.get("retrieval_degradation_mode"),
+                    "governance_summary": path_summary.get("retrieval_governance_summary"),
+                },
+            )
+        except Exception:
+            logger.debug("Langfuse retrieval observation failed", exc_info=True)
+
+    visible_bundle = event.get("visible_output_bundle") if isinstance(event.get("visible_output_bundle"), dict) else {}
+    visible_blocks = visible_bundle.get("scene_blocks") if isinstance(visible_bundle.get("scene_blocks"), list) else []
+    deterministic_scores = {
+        "non_mock_generation_pass": 1.0 if adapter_name not in {"", "mock", "ldss_fallback", "ldss_deterministic"} else 0.0,
+        "visible_output_present": 1.0 if visible_blocks else 0.0,
+        "actor_lane_safety_pass": 1.0 if path_summary.get("actor_lane_validation_status") in {"approved", None} else 0.0,
+        "fallback_absent": 0.0 if path_summary.get("generation_fallback_used") else 1.0,
+        "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 else 0.0,
+        "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
+    }
+    live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
+    deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
+    for name, value in deterministic_scores.items():
+        try:
+            adapter.add_score(
+                name=name,
+                value=value,
+                comment="deterministic live story runtime evidence gate",
+                metadata={
+                    "session_id": path_summary.get("session_id"),
+                    "turn_number": path_summary.get("turn_number"),
+                    "quality_class": path_summary.get("quality_class"),
+                    "degradation_signals": path_summary.get("degradation_signals"),
+                },
+            )
+        except Exception:
+            logger.debug("Langfuse score write failed for %s", name, exc_info=True)
 
 
 def _visible_lines_from_turn_event(event: dict[str, Any]) -> list[str]:
@@ -2655,6 +2799,11 @@ class StoryRuntimeManager:
         )
         event["observability_path_summary"] = path_summary
         _emit_langfuse_path_spans(path_summary)
+        _emit_langfuse_evidence_observations(
+            path_summary=path_summary,
+            graph_state=graph_state,
+            event=event,
+        )
         # Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
         # Live graph/model output is primary. LDSS is reserved as the final
         # deterministic fallback when the live path cannot produce scene blocks.
