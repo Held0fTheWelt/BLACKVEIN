@@ -16,11 +16,17 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 # ---------------------------------------------------------------------------
-# game_service create_run contract tests
+# game_service create_run contract tests (UNIT TESTS — payloads only, not integration)
+# Real integration with Play Service is tested in test_backend_playservice_integration.py
 # ---------------------------------------------------------------------------
 
+@pytest.mark.unit
 class TestGameServiceCreateRun:
-    """Verify game_service.create_run passes runtime_profile_id and selected_player_role."""
+    """Verify game_service.create_run passes runtime_profile_id and selected_player_role.
+
+    Unit tests for payload construction only. Real Play Service integration is tested
+    in test_backend_playservice_integration.py with live endpoints.
+    """
 
     def test_create_run_passes_runtime_profile_id_to_play_service(self, app):
         with app.app_context():
