@@ -27,7 +27,7 @@ class TestGameServiceCreateRun:
             from app.services.game_service import create_run as svc_create_run
             captured = {}
 
-            def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None):
+            def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None, langfuse_trace_id=None, timeout_seconds=None):
                 captured["payload"] = json_payload
                 return {
                     "run": {"id": "run_test_001"},
@@ -55,7 +55,7 @@ class TestGameServiceCreateRun:
             from app.services.game_service import create_run as svc_create_run
             captured = {}
 
-            def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None):
+            def fake_request(method, path, *, json_payload=None, internal=False, trace_id=None, langfuse_trace_id=None, timeout_seconds=None):
                 captured["payload"] = json_payload
                 return {
                     "run": {"id": "run_test_002"},
