@@ -33,6 +33,7 @@ class TestGocModuleStructureSmoke:
     REQUIRED_DIRECTION_FILES = [
         "direction/system_prompt.md",
         "direction/scene_guidance.yaml",
+        "direction/opening_sequence.yaml",
         "direction/character_voice.yaml",
     ]
 
@@ -60,7 +61,7 @@ class TestGocModuleStructureSmoke:
         for filename in self.REQUIRED_CORE_FILES:
             filepath = self.MODULE_ROOT / filename
             try:
-                with open(filepath) as f:
+                with open(filepath, encoding="utf-8") as f:
                     yaml.safe_load(f)
             except yaml.YAMLError as e:
                 pytest.fail(f"YAML parse error in {filename}: {e}")
@@ -71,7 +72,7 @@ class TestGocModuleStructureSmoke:
                 continue
             filepath = self.MODULE_ROOT / filename
             try:
-                with open(filepath) as f:
+                with open(filepath, encoding="utf-8") as f:
                     # Use safe_load_all to handle multi-document YAML (separated by ---)
                     list(yaml.safe_load_all(f))
             except yaml.YAMLError as e:
@@ -79,7 +80,7 @@ class TestGocModuleStructureSmoke:
 
     def test_module_yaml_structure(self):
         """module.yaml has required canonical fields."""
-        with open(self.MODULE_ROOT / "module.yaml") as f:
+        with open(self.MODULE_ROOT / "module.yaml", encoding="utf-8") as f:
             module = yaml.safe_load(f)
 
         required_fields = ["module_id", "title", "version", "contract_version", "content", "files"]
@@ -92,7 +93,7 @@ class TestGocModuleStructureSmoke:
 
     def test_characters_yaml_structure(self):
         """characters.yaml defines all 4 required characters."""
-        with open(self.MODULE_ROOT / "characters.yaml") as f:
+        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "characters" in doc, "characters.yaml missing 'characters' key"
@@ -110,7 +111,7 @@ class TestGocModuleStructureSmoke:
 
     def test_visitor_is_absent_from_canonical_module(self):
         """visitor must NOT exist as a character in the canonical module."""
-        with open(self.MODULE_ROOT / "characters.yaml") as f:
+        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
         characters = doc.get("characters", {})
         assert "visitor" not in characters, (
@@ -119,7 +120,7 @@ class TestGocModuleStructureSmoke:
 
     def test_annette_and_alain_are_playable_human_roles(self):
         """annette and alain must be defined and present as human-playable characters."""
-        with open(self.MODULE_ROOT / "characters.yaml") as f:
+        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
         characters = doc.get("characters", {})
         assert "annette" in characters, "annette must be a canonical character (human-playable)"
@@ -127,7 +128,7 @@ class TestGocModuleStructureSmoke:
 
     def test_module_id_is_not_god_of_carnage_solo(self):
         """Canonical module_id must be 'god_of_carnage', not 'god_of_carnage_solo'."""
-        with open(self.MODULE_ROOT / "module.yaml") as f:
+        with open(self.MODULE_ROOT / "module.yaml", encoding="utf-8") as f:
             module = yaml.safe_load(f)
         assert module.get("module_id") == "god_of_carnage", (
             f"module_id must be 'god_of_carnage', got '{module.get('module_id')}'. "
@@ -136,7 +137,7 @@ class TestGocModuleStructureSmoke:
 
     def test_relationships_yaml_structure(self):
         """relationships.yaml defines required axes and relationships."""
-        with open(self.MODULE_ROOT / "relationships.yaml") as f:
+        with open(self.MODULE_ROOT / "relationships.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "relationship_axes" in doc, "Missing relationship_axes section"
@@ -162,7 +163,7 @@ class TestGocModuleStructureSmoke:
 
     def test_scenes_yaml_structure(self):
         """scenes.yaml defines 5-phase scene progression."""
-        with open(self.MODULE_ROOT / "scenes.yaml") as f:
+        with open(self.MODULE_ROOT / "scenes.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "scene_phases" in doc, "Missing scene_phases section"
@@ -179,7 +180,7 @@ class TestGocModuleStructureSmoke:
 
     def test_transitions_yaml_structure(self):
         """transitions.yaml defines phase transitions."""
-        with open(self.MODULE_ROOT / "transitions.yaml") as f:
+        with open(self.MODULE_ROOT / "transitions.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "phase_transitions" in doc, "Missing phase_transitions section"
@@ -196,7 +197,7 @@ class TestGocModuleStructureSmoke:
 
     def test_triggers_yaml_structure(self):
         """triggers.yaml defines trigger types with recognition markers."""
-        with open(self.MODULE_ROOT / "triggers.yaml") as f:
+        with open(self.MODULE_ROOT / "triggers.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "trigger_types" in doc, "Missing trigger_types section"
@@ -221,7 +222,7 @@ class TestGocModuleStructureSmoke:
 
     def test_escalation_axes_yaml_structure(self):
         """escalation_axes.yaml defines four escalation dimensions."""
-        with open(self.MODULE_ROOT / "escalation_axes.yaml") as f:
+        with open(self.MODULE_ROOT / "escalation_axes.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "escalation_axes" in doc, "Missing escalation_axes section"
@@ -238,7 +239,7 @@ class TestGocModuleStructureSmoke:
 
     def test_endings_yaml_structure(self):
         """endings.yaml defines ending types."""
-        with open(self.MODULE_ROOT / "endings.yaml") as f:
+        with open(self.MODULE_ROOT / "endings.yaml", encoding="utf-8") as f:
             doc = yaml.safe_load(f)
 
         assert "ending_types" in doc, "Missing ending_types section"
@@ -256,7 +257,7 @@ class TestGocModuleStructureSmoke:
 
     def test_module_file_registry_matches_reality(self):
         """module.yaml file registry matches actual files on disk."""
-        with open(self.MODULE_ROOT / "module.yaml") as f:
+        with open(self.MODULE_ROOT / "module.yaml", encoding="utf-8") as f:
             module = yaml.safe_load(f)
 
         listed_files = module.get("files", [])
@@ -278,13 +279,13 @@ class TestGocModuleConsistencySmoke:
     @pytest.fixture
     def module_data(self):
         """Load all module YAML files."""
-        with open(self.MODULE_ROOT / "module.yaml") as f:
+        with open(self.MODULE_ROOT / "module.yaml", encoding="utf-8") as f:
             module = yaml.safe_load(f)
-        with open(self.MODULE_ROOT / "characters.yaml") as f:
+        with open(self.MODULE_ROOT / "characters.yaml", encoding="utf-8") as f:
             characters = yaml.safe_load(f)
-        with open(self.MODULE_ROOT / "relationships.yaml") as f:
+        with open(self.MODULE_ROOT / "relationships.yaml", encoding="utf-8") as f:
             relationships = yaml.safe_load(f)
-        with open(self.MODULE_ROOT / "scenes.yaml") as f:
+        with open(self.MODULE_ROOT / "scenes.yaml", encoding="utf-8") as f:
             scenes = yaml.safe_load(f)
 
         return {
@@ -329,7 +330,7 @@ class TestGocModuleNoWaveReferencesSmoke:
     def test_no_w0_references_in_yaml(self):
         """No W0 references in core module YAML files."""
         for yaml_file in self.MODULE_ROOT.glob("*.yaml"):
-            with open(yaml_file) as f:
+            with open(yaml_file, encoding="utf-8") as f:
                 content = f.read()
             assert "W0" not in content, f"Found W0 reference in {yaml_file.name}"
             assert "W1" not in content, f"Found W1 reference in {yaml_file.name}"
@@ -337,7 +338,7 @@ class TestGocModuleNoWaveReferencesSmoke:
     def test_no_wave_references_in_direction(self):
         """No W0/W1 references in direction guidance files."""
         for guidance_file in self.MODULE_ROOT.glob("direction/*"):
-            with open(guidance_file) as f:
+            with open(guidance_file, encoding="utf-8") as f:
                 content = f.read()
             assert "W0" not in content, f"Found W0 reference in {guidance_file.name}"
             assert "W1" not in content, f"Found W1 reference in {guidance_file.name}"

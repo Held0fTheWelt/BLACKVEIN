@@ -45,6 +45,7 @@ files:
   - endings.yaml                 # End state conditions and closure rules
   - direction/system_prompt.md           # LLM system prompt guidance
   - direction/scene_guidance.yaml        # Per-scene constraints and context
+  - direction/opening_sequence.yaml      # Session opening: two-part handover + narrator bar (ADR-0035)
   - direction/character_voice.yaml       # Character voice and tone guidance
 
 # Quality principles

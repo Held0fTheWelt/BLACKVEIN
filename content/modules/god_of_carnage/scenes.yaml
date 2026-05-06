@@ -1,5 +1,13 @@
 # Scene Structure for God of Carnage
 # Five-phase structure: polite opening → moral negotiation → faction shifts → emotional derailment → loss of control
+#
+# Session start: canonical two-part opening handover (premise → room) lives in
+# direction/opening_sequence.yaml (ADR-0035). phase_1 begins after that handover.
+
+session_opening:
+  direction_file: direction/opening_sequence.yaml
+  adr_reference: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
+  first_scene_phase: phase_1
 
 scene_phases:
   phase_1:

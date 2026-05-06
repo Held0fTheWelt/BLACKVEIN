@@ -1,0 +1,70 @@
+# Session opening handover — God of Carnage (canonical content)
+# Normative story material for how the FIRST session narrative should be composed.
+# Product contract: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
+# Dramaturgic reference (licensed where applicable): resources/carnage-2011.pdf
+
+opening_sequence_version: "1.0.0"
+module_id: god_of_carnage
+setting_anchor: "Paris apartment, evening — hosts and guests meet over the incident between their children"
+
+# Two movements before phase_1 “polite table” dialogue accelerates.
+# Each part may map to one or more typed scene blocks (narrator / actor_line / actor_action)
+# so the player shell can hand over attention block-by-block (ADR-0034 typewriter policy).
+
+parts:
+  part_1_background_and_premise:
+    id: opening_part_1
+    title: "Background / shared premise"
+    dramaturgic_job: |
+      Show the schoolyard humiliation that forces this meeting: two boys, a stick, the
+      injury, the parents’ decision to “be civilised” about it. Let the audience feel the
+      gap between playground bluntness and the adult appointment — without yet turning the
+      salon into a courtroom in direct speech.
+    paris_module_notes: |
+      Film script opens on the playground, then the apartment; stage versions often begin in
+      the salon. Either path is fine if runtime projection matches: keep the Reza spine —
+      bourgeois parents laundering violence through procedure — not a generic "conflict
+      resolution meeting."
+    suggested_block_emphasis:
+      - "narrator — sensory and factual restraint; no omniscient moral verdict"
+      - "optional environment_interaction — objects that carry the weight (coat, phone, papers)"
+    narrator_bar:
+      must: |
+        Complete imagination (space, weather of mood, social temperature) at hinge moments.
+      must_not: |
+        Repeat verbatim what a dialogue block just said; restate no obvious stage business.
+    npc_speech:
+      must_not: |
+        Accusatory or prosecutorial lines; no “X reacts immediately” attack dialogue.
+      may: |
+        Minimal ritual (greeting, apology formula deferred, procedural agreement) if it
+        stays non-inflammatory.
+
+  part_2_into_the_scene:
+    id: opening_part_2
+    title: "Into the room — ritual civility"
+    dramaturgic_job: |
+      Land the Paris salon: who hosts, who sits, the art books and tulips that advertise
+      culture, the espresso machine, the dessert that will later become a weapon of manners.
+      The four are trapped in politeness; let the last beat be a trapdoor into play (a
+      glance, a poured cup, a sentence left unfinished) — not an opening salvo from Véronique
+      or a prosecutorial line from Annette.
+    suggested_block_emphasis:
+      - "narrator — spatial completion, rhythm, subtext the staging implies"
+      - "actor_action — seating, pouring, avoiding eye contact"
+      - "actor_line — polite formula, small talk, oblique reference to the children only"
+    narrator_bar:
+      must: |
+        Support the player’s mental staging; favour concrete sensual detail over abstract
+        character essays.
+      must_not: |
+        Name every relationship axis or summarise the whole evening’s arc before play.
+
+# Canonical fact seeds (non-dialogue); generation may adapt wording; do not contradict runtime.
+premise_fact_seeds:
+  - "Two couples meet as parents after a physical incident between their children."
+  - "The hosts feel a written or agreed account of the facts may be necessary; guests may want to leave quickly."
+  - "Everyone is performing civility while already judging the other side."
+
+# Link to formal phase once opening handover completes
+handover_to_scene_phase: phase_1

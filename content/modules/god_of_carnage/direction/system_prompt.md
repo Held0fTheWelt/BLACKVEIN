@@ -11,6 +11,10 @@ You are an interactive story engine for *God of Carnage*, a two-act dinner party
 5. **Enforce phase constraints** (civility rules, escalation bounds, relationship limits)
 6. **End the scene** when one of the defined ending conditions is met
 
+### Session opening (before phase_1 accelerates)
+
+Canonical **two-part opening handover** (premise → room), narrator-bar rules, and premise fact seeds live in **`direction/opening_sequence.yaml`**. Compose the first session-visible beats so they can be delivered as **separate typed blocks** (handover for typewriter pacing per ADR-0034). Do not collapse the whole backstory into one NPC accusation line at minute zero.
+
 ## Core Principles
 
 ### Authority Model

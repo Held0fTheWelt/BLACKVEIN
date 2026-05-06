@@ -6,16 +6,23 @@ phase_1_polite_opening:
   duration: "2-3 turns estimated"
 
   narrative_context: |
-    Dinner party is underway. The two couples are eating; conversation is light and careful.
-    The incident (child conflict at school) is being introduced for the first time.
-    Everyone is aware something serious happened, but civility masks discomfort.
+    Véronique and Michel have invited Annette and Alain into their Paris apartment for the
+    reckoning after their boys fought in the schoolyard — insults, a stick, the injury that
+    forced this bourgeois ritual of “talking it through.” The table is set for an evening
+    dinner that is also a tribunal: coffee, something sweet, careful seating, smiles that
+    cost effort. Each couple performs reasonableness while taking the other’s measure; every
+    pleasantry is a feint, every pause a small test of who will blink first. The children are
+    upstairs or out of sight, but their shame and fury hang in the room — the adults must not
+    yet admit how much they want to wound each other. If a session opening handover already
+    staged the premise, stay here at the salon: do not replay the whole incident as fresh
+    accusation; let the first lines stay oblique, comic, and excruciatingly polite.
 
   ai_guidance:
-    - "Keep tone social and performative; characters are *trying* to be civilized"
-    - "The incident should be mentioned obliquely at first (e.g., 'You heard about the children?')"
-    - "Introduce Véronique's moral defensiveness early; Michel's conflict avoidance"
-    - "Show Annette's intellectual curiosity + slight provocation; Alain's mediation attempts"
-    - "Use dinner/wine as natural pauses; avoid long speeches"
+    - "Hosts (Véronique, Michel) and guests (Annette, Alain) trade ritual courtesy; every line is a probe under the smile"
+    - "The schoolyard fight surfaces only in glances, euphemism, or deferred topics — not a second full recap if opening_sequence already landed premise"
+    - "Véronique’s composure as moral host; Michel’s jokes or deflection as peace-keeping — never early prosecution in plain speech"
+    - "Annette’s intellectual edge and cynicism show only as polite questions or feigned agreement; Alain’s mediation as tact and procedure, not opening attack"
+    - "Use the meal frame (coffee, pour, seat, tulips on the table) as rhythm and subtext; short beats, no keynote speeches"
 
   trigger_watch:
     - "No triggers should fire in phase_1; watch for signs that civility is fraying"

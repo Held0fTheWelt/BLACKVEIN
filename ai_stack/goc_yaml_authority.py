@@ -157,6 +157,12 @@ def load_goc_scene_guidance_yaml() -> dict[str, Any]:
     return _safe_load_yaml_mapping(path)
 
 
+def load_goc_opening_sequence_yaml() -> dict[str, Any]:
+    """Load direction/opening_sequence.yaml (session opening handover, ADR-0035)."""
+    path = goc_module_yaml_dir() / "direction" / "opening_sequence.yaml"
+    return _safe_load_yaml_mapping(path)
+
+
 def load_goc_scene_phases_yaml() -> dict[str, Any]:
     """Load scenes.yaml phase definitions as canonical runtime law."""
     path = goc_module_yaml_dir() / "scenes.yaml"
@@ -256,6 +262,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "characters": load_goc_characters_yaml(),
         "character_voice": load_goc_character_voice_yaml(),
         "scene_guidance": load_goc_scene_guidance_yaml(),
+        "opening_sequence": load_goc_opening_sequence_yaml(),
         "scene_phases": load_goc_scene_phases_yaml(),
         "relationship_axes": relationships["relationship_axes"],
         "relationships": relationships["relationships"],

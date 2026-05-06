@@ -66,3 +66,14 @@ packages = [
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "--capture=sys"
+markers = [
+    "foundation_gate: MVP01/02 foundation gate tests",
+    "mvp1: MVP01 experience identity gate tests",
+    "mvp2: MVP02 runtime state and actor lanes gate tests",
+    "mvp3: MVP03 live dramatic scene simulator gate tests",
+    "mvp4: MVP04 observability diagnostics and narrative gov gate tests",
+    "mvp5: MVP05 frontend and experience-shell gate tests",
+    "e2e: end-to-end tests",
+    "integration: integration tests",
+    "runtime: runtime layer tests",
+]

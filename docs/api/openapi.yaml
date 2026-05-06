@@ -454,6 +454,81 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/admin/ai/hf-hub/credential:
+    delete:
+      tags:
+      - OperationalGovernance
+      summary: DELETE /admin/ai/hf-hub/credential
+      operationId: delete_api_v1_admin_ai_hf_hub_credential
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/hf-hub/credential
+      operationId: post_api_v1_admin_ai_hf_hub_credential
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/hf-hub/status:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /admin/ai/hf-hub/status
+      operationId: get_api_v1_admin_ai_hf_hub_status
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/admin/ai/hf-hub/test-connection:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /admin/ai/hf-hub/test-connection
+      operationId: post_api_v1_admin_ai_hf_hub_test_connection
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/admin/ai/models:
     get:
       tags:
@@ -889,90 +964,6 @@ paths:
           description: Forbidden — policy or role.
         '404':
           description: Not found.
-        '429':
-          description: Rate limited.
-        '500':
-          description: Server error.
-  /api/v1/admin/ai/hf-hub/status:
-    get:
-      tags:
-      - OperationalGovernance
-      summary: GET /admin/ai/hf-hub/status
-      operationId: get_api_v1_admin_ai_hf_hub_status
-      responses:
-        '200':
-          description: Success (see docs/api/REFERENCE.md for response shapes).
-        '401':
-          description: Unauthorized — missing or invalid JWT where required.
-        '403':
-          description: Forbidden — policy or role.
-        '429':
-          description: Rate limited.
-        '500':
-          description: Server error.
-  /api/v1/admin/ai/hf-hub/credential:
-    post:
-      tags:
-      - OperationalGovernance
-      summary: POST /admin/ai/hf-hub/credential
-      operationId: post_api_v1_admin_ai_hf_hub_credential
-      responses:
-        '200':
-          description: Success (write-only; returns fingerprint only).
-        '400':
-          description: Bad request.
-        '401':
-          description: Unauthorized — missing or invalid JWT where required.
-        '403':
-          description: Forbidden — policy or role.
-        '429':
-          description: Rate limited.
-        '500':
-          description: Server error.
-    delete:
-      tags:
-      - OperationalGovernance
-      summary: DELETE /admin/ai/hf-hub/credential
-      operationId: delete_api_v1_admin_ai_hf_hub_credential
-      responses:
-        '200':
-          description: Success.
-        '401':
-          description: Unauthorized — missing or invalid JWT where required.
-        '403':
-          description: Forbidden — policy or role.
-        '429':
-          description: Rate limited.
-        '500':
-          description: Server error.
-  /api/v1/admin/ai/hf-hub/test-connection:
-    post:
-      tags:
-      - OperationalGovernance
-      summary: POST /admin/ai/hf-hub/test-connection
-      operationId: post_api_v1_admin_ai_hf_hub_test_connection
-      responses:
-        '200':
-          description: Success (body includes ok/message for HF Hub probe).
-        '401':
-          description: Unauthorized — missing or invalid JWT where required.
-        '403':
-          description: Forbidden — policy or role.
-        '429':
-          description: Rate limited.
-        '500':
-          description: Server error.
-  /api/v1/internal/hf-hub/token:
-    get:
-      tags:
-      - OperationalGovernance
-      summary: GET /internal/hf-hub/token
-      operationId: get_api_v1_internal_hf_hub_token
-      responses:
-        '200':
-          description: Success envelope with token or null (internal auth required).
-        '403':
-          description: Forbidden — invalid internal token.
         '429':
           description: Rate limited.
         '500':
@@ -6743,6 +6734,25 @@ paths:
       - OperationalGovernance
       summary: POST /internal/bootstrap/admin-user
       operationId: post_api_v1_internal_bootstrap_admin_user
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
+  /api/v1/internal/hf-hub/token:
+    get:
+      tags:
+      - OperationalGovernance
+      summary: GET /internal/hf-hub/token
+      operationId: get_api_v1_internal_hf_hub_token
       responses:
         '200':
           description: Success (see docs/api/REFERENCE.md for response shapes).
