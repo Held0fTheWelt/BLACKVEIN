@@ -566,6 +566,30 @@ def _build_langfuse_path_summary(
         "adapter": gen_meta.get("adapter"),
         "api_model": gen_meta.get("model"),
         "adapter_invocation_mode": gen_meta.get("adapter_invocation_mode"),
+        # ADR-0033 §13.10 primary-vs-final clarity. ``adapter``/``api_model`` describe
+        # the FINAL committed invocation (e.g. ldss_fallback after live opening failure).
+        # The primary-attempt block surfaces what live route was tried first so
+        # operators do not misread degraded fallback traces as healthy openai turns.
+        "primary_attempt_adapter": gen_meta.get("primary_attempt_adapter"),
+        "primary_attempt_model": gen_meta.get("primary_attempt_model"),
+        "primary_attempt_provider": (
+            gen_meta.get("primary_attempt_provider")
+            or routing.get("selected_provider")
+        ),
+        "primary_attempt_selected_model": (
+            gen_meta.get("primary_attempt_selected_model")
+            or routing.get("selected_model")
+        ),
+        "primary_attempt_invocation_mode": gen_meta.get("primary_attempt_invocation_mode"),
+        "final_adapter": gen_meta.get("final_adapter") or gen_meta.get("adapter"),
+        "final_adapter_invocation_mode": (
+            gen_meta.get("final_adapter_invocation_mode")
+            or gen_meta.get("adapter_invocation_mode")
+        ),
+        "fallback_reason": gen_meta.get("fallback_reason") or routing.get("fallback_reason"),
+        "ldss_fallback_after_live_opening_failure": bool(
+            gen_meta.get("ldss_fallback_after_live_opening_failure")
+        ),
         "generation_attempted": bool(generation.get("attempted")),
         "generation_success": generation.get("success"),
         "generation_error": _short_text(generation.get("error") or gen_meta.get("error")),
@@ -599,6 +623,7 @@ def _build_langfuse_path_summary(
         "quality_class": governance.get("quality_class") or graph_state.get("quality_class"),
         "degradation_signals": list(governance.get("degradation_signals") or graph_state.get("degradation_signals") or []),
         "degradation_summary": governance.get("degradation_summary") or graph_state.get("degradation_summary"),
+        "live_opening_failure_reason": gen_meta.get("live_opening_failure_reason") or generation.get("live_opening_failure_reason"),
         "graph_errors": graph_errors,
         "failure_markers": _str_list(graph_state.get("failure_markers")),
         "primary_responder_id": (
@@ -763,6 +788,15 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "adapter": path_summary.get("adapter"),
                 "api_model": path_summary.get("api_model"),
                 "adapter_invocation_mode": path_summary.get("adapter_invocation_mode"),
+                "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
+                "primary_attempt_model": path_summary.get("primary_attempt_model"),
+                "primary_attempt_invocation_mode": path_summary.get(
+                    "primary_attempt_invocation_mode"
+                ),
+                "final_adapter": path_summary.get("final_adapter"),
+                "final_adapter_invocation_mode": path_summary.get(
+                    "final_adapter_invocation_mode"
+                ),
                 "parser_error": path_summary.get("parser_error"),
                 "structured_output_present": path_summary.get("structured_output_present"),
                 "structured_output_keys": path_summary.get("structured_output_keys"),
@@ -774,6 +808,17 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "called": path_summary.get("fallback_model_called"),
                 "fallback_used": path_summary.get("generation_fallback_used"),
                 "fallback_model": path_summary.get("fallback_model"),
+                "fallback_reason": path_summary.get("fallback_reason"),
+                "final_adapter": path_summary.get("final_adapter"),
+                "final_adapter_invocation_mode": path_summary.get(
+                    "final_adapter_invocation_mode"
+                ),
+                "ldss_fallback_after_live_opening_failure": path_summary.get(
+                    "ldss_fallback_after_live_opening_failure"
+                ),
+                "live_opening_failure_reason": path_summary.get("live_opening_failure_reason"),
+                "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
+                "primary_attempt_model": path_summary.get("primary_attempt_model"),
                 "generation_error": path_summary.get("generation_error"),
                 "graph_errors": path_summary.get("graph_errors"),
             },
@@ -848,6 +893,96 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
             level=level,
             status_message=status_message,
         )
+
+
+def _build_canonical_degradation_signals(path_summary: dict[str, Any]) -> list[str]:
+    """Filter ``path_summary['degradation_signals']`` to canonical values only.
+
+    The canonical contract (``DEGRADATION_SIGNAL_VALUES``) is consumed by
+    diagnostics / operator-history aggregation. Score metadata uses this filtered
+    view so that the canonical surface stays stable regardless of what
+    ``_ldss_opening_fallback_state`` or visibility-marker pipelines append.
+    """
+    raw = path_summary.get("degradation_signals") or []
+    if not isinstance(raw, list):
+        return []
+    canonical: list[str] = []
+    for entry in raw:
+        token = str(entry).strip()
+        if token and token in DEGRADATION_SIGNAL_VALUES and token not in canonical:
+            canonical.append(token)
+    return canonical
+
+
+def _build_degradation_chain(path_summary: dict[str, Any]) -> list[str]:
+    """Build the operator-facing causation chain for score metadata.
+
+    Order convention (cause -> action -> consequence):
+    1. ``live_opening_failure_reason`` (root cause, e.g. ``dramatic_effect_reject_empty_fluency``)
+    2. Whatever ``path_summary['degradation_signals']`` exposes, in original order
+       (this typically holds the runtime decision marker
+       ``ldss_fallback_after_live_opening_failure`` followed by the visibility
+       consequence ``non_factual_staging``).
+
+    Duplicates are collapsed; empty / non-string entries are dropped.
+    """
+    chain: list[str] = []
+    live_reason = path_summary.get("live_opening_failure_reason")
+    if isinstance(live_reason, str):
+        token = live_reason.strip()
+        if token:
+            chain.append(token)
+    raw_signals = path_summary.get("degradation_signals") or []
+    if isinstance(raw_signals, list):
+        for entry in raw_signals:
+            token = str(entry).strip()
+            if token and token not in chain:
+                chain.append(token)
+    return chain
+
+
+def _build_degradation_prose_summary(path_summary: dict[str, Any]) -> str:
+    """Compose a human-readable summary describing the operational degradation.
+
+    The prose is operator-facing (alert / dashboard surface). It does not feed
+    the live-gate booleans or any canonical contract; ``path_summary['degradation_summary']``
+    keeps its existing raw-token semantics for the root span statusMessage.
+    """
+    live_reason = ""
+    raw_reason = path_summary.get("live_opening_failure_reason")
+    if isinstance(raw_reason, str):
+        live_reason = raw_reason.strip()
+    raw_signals = path_summary.get("degradation_signals") or []
+    raw_signals = [str(s).strip() for s in raw_signals if str(s).strip()] if isinstance(raw_signals, list) else []
+    if not live_reason and not raw_signals:
+        return "none"
+
+    has_ldss_fallback = "ldss_fallback_after_live_opening_failure" in raw_signals
+    has_non_factual = "non_factual_staging" in raw_signals
+    has_fallback_used = "fallback_used" in raw_signals
+
+    parts: list[str] = []
+    if "dramatic_effect_reject" in live_reason:
+        parts.append("Live opening failed dramatic-effect validation")
+    elif "actor_lane" in live_reason:
+        parts.append(f"Live opening failed actor-lane validation ({live_reason})")
+    elif live_reason:
+        parts.append(f"Live opening failed validation ({live_reason})")
+
+    if has_ldss_fallback:
+        parts.append("and fell back to LDSS" if parts else "Live opening fell back to LDSS")
+    elif has_fallback_used and not parts:
+        parts.append("Operational degradation (fallback used)")
+
+    if not parts:
+        parts.append("Operational degradation observed")
+
+    base = " ".join(parts)
+    if has_ldss_fallback or has_non_factual:
+        return f"{base}; visible output exists but is degraded/fallback."
+    if raw_signals:
+        return f"{base}; canonical signals: {', '.join(raw_signals)}."
+    return f"{base}."
 
 
 def _emit_langfuse_evidence_observations(
@@ -980,18 +1115,37 @@ def _emit_langfuse_evidence_observations(
         and qc not in {"degraded", "failed"}
     )
     deterministic_scores["live_runtime_visible_surface_pass"] = 1.0 if surface_ok else 0.0
+    canonical_signals = _build_canonical_degradation_signals(path_summary)
+    degradation_chain = _build_degradation_chain(path_summary)
+    degradation_prose_summary = _build_degradation_prose_summary(path_summary)
+    live_opening_failure_reason = path_summary.get("live_opening_failure_reason")
+    score_metadata_base = {
+        "session_id": path_summary.get("session_id"),
+        "turn_number": path_summary.get("turn_number"),
+        "quality_class": path_summary.get("quality_class"),
+        "degradation_signals": canonical_signals,
+        "degradation_chain": degradation_chain,
+        "degradation_summary": degradation_prose_summary,
+        "live_opening_failure_reason": live_opening_failure_reason,
+        # ADR-0033 §13.10 primary-vs-final clarity (metadata only; no gate semantics).
+        "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
+        "primary_attempt_model": path_summary.get("primary_attempt_model"),
+        "primary_attempt_provider": path_summary.get("primary_attempt_provider"),
+        "primary_attempt_invocation_mode": path_summary.get("primary_attempt_invocation_mode"),
+        "final_adapter": path_summary.get("final_adapter"),
+        "final_adapter_invocation_mode": path_summary.get("final_adapter_invocation_mode"),
+        "fallback_reason": path_summary.get("fallback_reason"),
+        "ldss_fallback_after_live_opening_failure": path_summary.get(
+            "ldss_fallback_after_live_opening_failure"
+        ),
+    }
     for name, value in deterministic_scores.items():
         try:
             adapter.add_score(
                 name=name,
                 value=value,
                 comment="deterministic live story runtime evidence gate",
-                metadata={
-                    "session_id": path_summary.get("session_id"),
-                    "turn_number": path_summary.get("turn_number"),
-                    "quality_class": path_summary.get("quality_class"),
-                    "degradation_signals": path_summary.get("degradation_signals"),
-                },
+                metadata=dict(score_metadata_base),
             )
         except Exception:
             logger.debug("Langfuse score write failed for %s", name, exc_info=True)
@@ -2603,6 +2757,31 @@ class StoryRuntimeManager:
         fallback = dict(graph_state)
         generation = dict(fallback.get("generation") if isinstance(fallback.get("generation"), dict) else {})
         metadata = dict(generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {})
+        # Capture primary attempt before LDSS overwrites adapter metadata so operators can
+        # tell from trace metadata: primary live route was attempted (e.g. openai
+        # gpt-5-mini), it failed (dramatic-effect rejection / no visible narration),
+        # the FINAL committed adapter is ldss_fallback. ADR-0033 §13.10.
+        prior_adapter = str(metadata.get("adapter") or "").strip()
+        primary_metadata: dict[str, Any] = {}
+        if prior_adapter and prior_adapter not in {"ldss_fallback", "ldss_deterministic", ""}:
+            primary_metadata["primary_attempt_adapter"] = prior_adapter
+            prior_model = metadata.get("model")
+            if prior_model:
+                primary_metadata["primary_attempt_model"] = prior_model
+            prior_mode = metadata.get("adapter_invocation_mode")
+            if prior_mode:
+                primary_metadata["primary_attempt_invocation_mode"] = prior_mode
+        routing_state = (
+            graph_state.get("routing")
+            if isinstance(graph_state.get("routing"), dict)
+            else {}
+        )
+        prior_provider = routing_state.get("selected_provider")
+        if prior_provider and "primary_attempt_provider" not in primary_metadata:
+            primary_metadata["primary_attempt_provider"] = prior_provider
+        prior_selected_model = routing_state.get("selected_model")
+        if prior_selected_model and "primary_attempt_selected_model" not in primary_metadata:
+            primary_metadata["primary_attempt_selected_model"] = prior_selected_model
         fallback["force_ldss_scene_fallback"] = True
         fallback["generation"] = {
             **generation,
@@ -2611,18 +2790,42 @@ class StoryRuntimeManager:
             "fallback_used": True,
             "metadata": {
                 **metadata,
+                **primary_metadata,
                 "adapter": "ldss_fallback",
                 "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+                "final_adapter": "ldss_fallback",
+                "final_adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+                "fallback_reason": reason,
+                "ldss_fallback_after_live_opening_failure": True,
                 "structured_output": None,
                 "live_opening_failure_reason": reason,
             },
         }
-        fallback["validation_outcome"] = {
+        prior_val = (
+            graph_state.get("validation_outcome")
+            if isinstance(graph_state.get("validation_outcome"), dict)
+            else {}
+        )
+        prior_lane: dict[str, Any] = {}
+        nested_lane = prior_val.get("actor_lane_validation")
+        if isinstance(nested_lane, dict) and nested_lane:
+            prior_lane = dict(nested_lane)
+        elif isinstance(graph_state.get("actor_lane_validation"), dict) and graph_state.get(
+            "actor_lane_validation"
+        ):
+            # Graph may publish actor lane on state root as well as under validation_outcome.
+            top_lane = graph_state.get("actor_lane_validation")
+            if isinstance(top_lane, dict) and top_lane:
+                prior_lane = dict(top_lane)
+        opening_fallback_validation: dict[str, Any] = {
             "status": "approved",
             "reason": "ldss_fallback_after_live_opening_failure",
             "validator_lane": "opening_fallback_policy_v1",
             "live_opening_failure_reason": reason,
         }
+        if prior_lane:
+            opening_fallback_validation["actor_lane_validation"] = prior_lane
+        fallback["validation_outcome"] = opening_fallback_validation
         fallback["committed_result"] = {
             "commit_applied": True,
             "committed_effects": [

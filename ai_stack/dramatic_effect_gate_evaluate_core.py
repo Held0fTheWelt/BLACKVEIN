@@ -90,6 +90,25 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
     if (o := try_boilerplate_without_tags(low=low, sf=sf, tags_ok=tags_ok)) is not None:
         return o
     if not tags_ok:
+        # Actor-realization weak-signal bypass (Case A): when all hard violations
+        # have already been cleared above and the only remaining failure is narrow
+        # scene-function tag mismatch, approved actor lanes with real output lines
+        # and non-trivially-short prose are accepted as weak signal rather than
+        # rejected. The len >= 24 guard keeps empty/ultra-short prose rejected
+        # (preserves the establish_pressure empty-narrative contract).
+        if (
+            _actor.get("actor_lane_status") in ("approved", "not_applicable")
+            and (_actor.get("spoken_line_count", 0) + _actor.get("action_line_count", 0)) > 0
+            and len(text) >= 24
+        ):
+            soc = ctx.validated_social_state()
+            mind = ctx.validated_character_mind()
+            return outcome_weak_signal_accepted(
+                pressure_cont=pressure_continuation_signal(low),
+                char_post=CharacterPlausibilityPosture.plausible if mind else CharacterPlausibilityPosture.uncertain,
+                cont_posture=continuity_posture_for_social(soc, tags_ok=False),
+                thin_prose_override=True,
+            )
         return outcome_tags_unsatisfied(low=low, sf=sf)
 
     soc = ctx.validated_social_state()

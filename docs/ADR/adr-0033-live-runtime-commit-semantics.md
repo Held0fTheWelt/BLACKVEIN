@@ -760,6 +760,8 @@ These fields are also recommended on the metadata blocks for `live_runtime_visib
 
 The producer-side accept-set in the `actor_lane_safety_pass` computation **must** drop `None` from the silent-pass set. A missing `actor_lane_validation_status` is treated as `"unknown"` and fails the gate, surfacing the producer omission instead of masking it.
 
+**Opening LDSS fallback (`_ldss_opening_fallback_state`):** When live opening is replaced by the LDSS fallback policy, the replacement `validation_outcome` **must** copy the pre-fallback `actor_lane_validation` from `validation_outcome` when present, else from top-level `graph_state["actor_lane_validation"]` when the graph published lane state only there. Otherwise observability regresses to missing/`unknown` beside scores that still treat missing as pass until Stage B tightens the whitelist.
+
 **Required behavior — Live gate (Backend):** Once the producer emits the metadata above, `_assert_positive_live_trace_contract` in `backend/tests/test_observability/test_langfuse_live_c640_gate.py` **must** read `actor_lane_validation_status` from the `actor_lane_safety_pass` score metadata and assert it against the whitelist:
 
 ```text
@@ -779,6 +781,51 @@ Anything else — including missing, empty string, `None`, `"unknown"`, `"reject
 
 - World-Engine: `world-engine/tests/test_trace_middleware.py` **must** assert that the `actor_lane_safety_pass` score `metadata` carries `actor_lane_validation_status` and `actor_lane_validation_reason` for healthy paths.
 - Backend live gate: `backend/tests/test_observability/test_langfuse_live_c640_gate.py` **must** assert `actor_lane_validation_status ∈ {"approved", "not_applicable"}` on the `actor_lane_safety_pass` score after Stage A is in effect.
+
+### 13.9 Langfuse score metadata: canonical degradation vs operator causation chain
+
+**Problem:** Operators need **why** a turn degraded beyond a single canonical token (for example only `non_factual_staging` on `score.metadata.degradation_signals`). Diagnostics envelopes and operator history aggregate **canonical** degradation signals (`ai_stack/runtime_turn_contracts.py::DEGRADATION_SIGNAL_VALUES`). Langfuse score metadata must preserve that contract **and** expose a richer operator surface without changing live-gate numeric semantics.
+
+**Required behavior (World-Engine, `LangfuseAdapter.add_score` metadata from `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager.py`):**
+
+1. **`degradation_signals`** — Must remain the **canonical filtered list** (subset of `DEGRADATION_SIGNAL_VALUES`). Non-whitelisted markers (for example `ldss_fallback_after_live_opening_failure`) must **not** appear here; they belong in `degradation_chain`.
+
+2. **`degradation_chain`** — Ordered operator-facing causation list: typically `live_opening_failure_reason` (when present) followed by raw runtime markers from path summary / governance before canonical filtering (for example dramatic-effect rejection token, LDSS fallback marker, canonical staging signals).
+
+3. **`degradation_summary`** — Human-readable prose for dashboards/alerts (not the same field as root-span `path_summary["degradation_summary"]`, which may remain a raw token for `statusMessage` parsing).
+
+4. **`live_opening_failure_reason`** — Raw precise trigger string when the opening LDSS fallback policy ran (for example `dramatic_effect_reject_empty_fluency`), surfaced from `generation.metadata.live_opening_failure_reason` via `observability_path_summary`.
+
+**Live gate impact (unchanged):** Degraded or fallback traces may still show `visible_output_present = 1.0` and `usage_present = 1.0` where player-visible output and token usage exist; **`live_runtime_contract_pass`**, **`live_runtime_visible_surface_pass`**, **`non_mock_generation_pass`**, and **`fallback_absent`** remain governed by §13.1 / §13.7 and must stay at `0.0` when the degraded/fallback contract applies (see negative fixtures in `backend/tests/test_observability/test_langfuse_live_c640_gate.py`).
+
+**Regression guards:**
+
+- World-Engine: `world-engine/tests/test_trace_middleware.py` asserts canonical metadata + chain for LDSS-after-live-opening scenarios and healthy baseline metadata.
+
+### 13.10 Primary attempt vs final committed adapter on degraded fallback traces
+
+**Problem:** On the LDSS-fallback-after-live-opening-failure path, prior trace shape made the live attempt invisible: `story.phase.model_route` showed primary `provider=openai` / `selected_model=openai_gpt_5_4_mini`, but `story.phase.model_invoke` reported `adapter=ldss_fallback` with `api_model=gpt-5-mini` and `success=True`, so operators could not tell from a trace alone that the OpenAI primary live opening was attempted, failed dramatic-effect validation, and was replaced by the LDSS fallback policy.
+
+**Required behavior (World-Engine, `_ldss_opening_fallback_state` + `_build_langfuse_path_summary` + `_emit_langfuse_evidence_observations` in `world-engine/app/story_runtime/manager.py`):**
+
+1. **Capture primary attempt before overwrite.** When `_ldss_opening_fallback_state` rebuilds `generation.metadata`, the prior adapter (when not already a fallback shell) is preserved as `primary_attempt_adapter`, `primary_attempt_model`, and `primary_attempt_invocation_mode`. The routing layer contributes `primary_attempt_provider` and `primary_attempt_selected_model`.
+
+2. **Mark final committed adapter explicitly.** The replacement metadata sets `final_adapter = "ldss_fallback"`, `final_adapter_invocation_mode = "ldss_fallback_after_live_opening_failure"`, `fallback_reason` (mirrors `live_opening_failure_reason`), and `ldss_fallback_after_live_opening_failure = True`. The legacy `adapter` / `adapter_invocation_mode` fields keep their prior values so existing readers continue to function.
+
+3. **Surface fields on `path_summary`.** `_build_langfuse_path_summary` exposes the same fields at the top level so they propagate uniformly into spans and score metadata.
+
+4. **Surface fields on spans.** `story.phase.model_invoke` carries `primary_attempt_adapter`, `primary_attempt_model`, `primary_attempt_invocation_mode`, `final_adapter`, `final_adapter_invocation_mode`. `story.phase.model_fallback` carries `fallback_reason`, `final_adapter`, `final_adapter_invocation_mode`, `ldss_fallback_after_live_opening_failure`, `live_opening_failure_reason`, and the primary-attempt cross-reference.
+
+5. **Surface fields on every score.** The `score_metadata_base` shared by `_emit_langfuse_evidence_observations` adds the same fields so any single score row tells the whole primary-vs-final story without joining traces.
+
+6. **Do not emit `story.model.generation` for LDSS fallback.** `record_generation` continues to skip when `adapter ∈ {"mock", "ldss_fallback", "ldss_deterministic"}` so degraded fallback traces never carry a generation observation that looks like healthy live generation.
+
+**Live gate impact (unchanged):** This change is purely metadata. `live_runtime_contract_pass`, `live_runtime_visible_surface_pass`, `non_mock_generation_pass`, and `fallback_absent` continue to be `0.0` on degraded/fallback paths per §13.1 / §13.7, and the positive c640 contract per §13.8 Stage B remains the sole authority for the healthy gate.
+
+**Regression guards:**
+
+- World-Engine unit: `test_ldss_opening_fallback_state_captures_primary_attempt_and_final_adapter` and `test_ldss_opening_fallback_state_does_not_invent_primary_when_already_fallback` in `world-engine/tests/test_trace_middleware.py`.
+- World-Engine evidence: `test_langfuse_score_metadata_surfaces_primary_vs_final_for_ldss_opening_fallback` and `test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_final` cover score metadata, invoke/fallback span outputs, and that `record_generation` is **not** called on the fallback path.
 
 ---
 

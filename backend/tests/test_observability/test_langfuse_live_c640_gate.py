@@ -122,6 +122,34 @@ def _status_field(obs: dict[str, Any], key: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+# ADR-0033 §13.8 Stage B: positive live trace must surface a real actor-lane
+# verdict. Anything outside this whitelist (missing, "unknown", "rejected",
+# empty string) fails the positive gate even if actor_lane_safety_pass==1.
+ACTOR_LANE_LIVE_OK: frozenset[str] = frozenset({"approved", "not_applicable"})
+
+
+def _actor_lane_status_from_validation_span(trace: Any) -> str:
+    """Read ``actor_lane=...`` token from ``story.phase.validation`` evidence.
+
+    Falls back to span ``output``/``metadata`` dicts when the token is absent
+    from ``statusMessage``. Returns ``""`` if no validation span exists at all
+    (which itself fails the positive gate).
+    """
+    spans = _find_observations_by_name(trace, "story.phase.validation")
+    if not spans:
+        return ""
+    span = spans[0]
+    token = _status_field(span, "actor_lane").strip().lower()
+    if token:
+        return token
+    for block_key in ("output", "metadata"):
+        block = _coerce_dict(span.get(block_key))
+        raw = block.get("actor_lane_validation_status")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip().lower()
+    return ""
+
+
 def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> None:
     by_name = {o.get("name"): o for o in _observation_dicts(fetched)}
     all_names = sorted(by_name.keys())
@@ -182,6 +210,15 @@ def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> 
     we_sha = _player_input_sha256_from_obs(we[0])
     assert be_sha == expected_sha, f"backend.turn.execute sha mismatch: {be_sha!r} vs {expected_sha!r}"
     assert we_sha == expected_sha, f"world-engine.turn.execute sha mismatch: {we_sha!r} vs {expected_sha!r}"
+
+    # ADR-0033 §13.8 Stage B: actor-lane whitelist on positive live trace.
+    # actor_lane_safety_pass=1 alone is not sufficient; the validation evidence
+    # must positively name the lane verdict so silent ``unknown`` cannot pass.
+    actor_lane = _actor_lane_status_from_validation_span(fetched)
+    assert actor_lane in ACTOR_LANE_LIVE_OK, (
+        f"Positive live gate requires actor_lane in {sorted(ACTOR_LANE_LIVE_OK)}; "
+        f"got actor_lane={actor_lane!r} from story.phase.validation evidence"
+    )
 
 
 @pytest.mark.langfuse_live
@@ -252,6 +289,117 @@ def test_langfuse_live_c640_trace_evidence_gate():
     )
 
     _assert_positive_live_trace_contract(fetched, expected_sha=expected_sha)
+
+
+def _build_positive_live_trace_fixture(
+    *,
+    actor_lane_status: str | None,
+    expected_sha: str,
+) -> dict[str, Any]:
+    """Build a positive live trace fixture exercising every existing condition.
+
+    ``actor_lane_status`` controls only the ``actor_lane=...`` token on the
+    ``story.phase.validation`` span; pass ``None`` to omit the validation span
+    entirely (simulates a regression where validation evidence is missing).
+    All other requirements (generation, retrieval, hash parity, scores) are
+    already satisfied so the test isolates the actor-lane whitelist enforcement.
+    """
+    observations: list[dict[str, Any]] = [
+        {
+            "name": "story.model.generation",
+            "model": "openai_gpt_5_4_mini",
+            "metadata": {"adapter": "openai"},
+            "usage_details": {"input": 100, "output": 50, "total": 150},
+        },
+        {
+            "name": "story.rag.retrieval",
+            "metadata": {"retrieval_route": "hybrid"},
+        },
+        {
+            "name": "backend.turn.execute",
+            "metadata": {"player_input_sha256": expected_sha},
+        },
+        {
+            "name": "world-engine.turn.execute",
+            "metadata": {"player_input_sha256": expected_sha},
+        },
+    ]
+    if actor_lane_status is not None:
+        observations.append(
+            {
+                "name": "story.phase.validation",
+                "statusMessage": (
+                    f"called=True status=approved actor_lane={actor_lane_status} "
+                    "passive_factors=0"
+                ),
+                "metadata": {},
+            }
+        )
+    scores = [
+        {"name": n, "value": 1}
+        for n in (
+            "rag_context_attached",
+            "visible_output_present",
+            "live_runtime_visible_surface_pass",
+            "live_runtime_contract_pass",
+            "fallback_absent",
+            "non_mock_generation_pass",
+            "usage_present",
+        )
+    ]
+    return {"observations": observations, "scores": scores}
+
+
+def test_positive_live_trace_contract_passes_with_approved_actor_lane():
+    """ADR-0033 §13.8 Stage B: ``approved`` is a healthy positive verdict."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="approved", expected_sha=expected_sha
+    )
+    _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_live_trace_contract_passes_with_not_applicable_actor_lane():
+    """ADR-0033 §13.8 Stage B: ``not_applicable`` is the explicit no-actor-lane verdict."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="not_applicable", expected_sha=expected_sha
+    )
+    _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_live_trace_contract_rejects_unknown_actor_lane():
+    """ADR-0033 §13.8 Stage B: ``unknown`` must fail the positive live gate.
+
+    Even when ``actor_lane_safety_pass`` would still treat ``None`` as silent
+    pass on the producer side, the trace contract surfaces the omission.
+    """
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="unknown", expected_sha=expected_sha
+    )
+    with pytest.raises(AssertionError, match="actor_lane"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_live_trace_contract_rejects_missing_validation_span():
+    """ADR-0033 §13.8 Stage B: no validation span at all also fails the gate."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status=None, expected_sha=expected_sha
+    )
+    with pytest.raises(AssertionError, match="actor_lane"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_live_trace_contract_rejects_rejected_actor_lane():
+    """ADR-0033 §13.8 Stage B: ``rejected`` must fail (live path = no rejections)."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="rejected", expected_sha=expected_sha
+    )
+    with pytest.raises(AssertionError, match="actor_lane"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
 
 
 def test_langfuse_negative_degraded_trace_contract_a599_9d61_6871_fixture():
