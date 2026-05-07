@@ -207,8 +207,9 @@ class LangfuseAdapter:
         session_id: str | None,
         metadata: Optional[dict[str, str]] = None,
         trace_name: str | None = None,
+        user_id: str | None = None,
     ) -> Iterator[None]:
-        """Propagate Langfuse session_id to the root observation and child observations."""
+        """Propagate Langfuse session_id and user_id to the root observation and child observations."""
         safe_session_id = self._safe_session_id(session_id)
         if not self.is_enabled() or not safe_session_id:
             with nullcontext():
@@ -220,11 +221,14 @@ class LangfuseAdapter:
             from opentelemetry import trace as otel_trace_api
 
             otel_span = getattr(root_span, "_otel_span", None)
-            propagate = propagate_attributes(
-                session_id=safe_session_id,
-                metadata=metadata or {},
-                trace_name=trace_name,
-            )
+            prop_kwargs: dict = {
+                "session_id": safe_session_id,
+                "metadata": metadata or {},
+                "trace_name": trace_name,
+            }
+            if user_id:
+                prop_kwargs["user_id"] = user_id
+            propagate = propagate_attributes(**prop_kwargs)
         except Exception:
             logger.debug("[LANGFUSE] Failed to prepare session propagation", exc_info=True)
             with nullcontext():

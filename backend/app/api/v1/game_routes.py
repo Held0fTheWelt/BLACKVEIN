@@ -644,6 +644,7 @@ def _ensure_player_session(
         module_id=module_id,
         runtime_projection=runtime_projection,
         session_output_language=session_output_language,
+        user_id=str(user.id),
         trace_id=trace_id or g.get("trace_id"),
         langfuse_trace_id=langfuse_trace_id or g.get("langfuse_trace_id") or get_langfuse_trace_id(),
         content_provenance=provenance,
@@ -660,15 +661,6 @@ def _ensure_player_session(
         runtime_session_id=runtime_session_id,
         session_output_language=session_output_language,
     )
-    adapter = LangfuseAdapter.get_instance()
-    if adapter and adapter.is_ready and adapter.client is not None:
-        try:
-            adapter.client.update_user(
-                user_id=str(user.id),
-                metadata={"session_output_language": session_output_language},
-            )
-        except Exception:
-            pass
     state = get_story_state(runtime_session_id, trace_id=g.get("trace_id"))
     return _player_session_bundle(
         run_id=clean_run_id,
@@ -930,6 +922,7 @@ def game_player_session_turn(run_id: str):
                     "route": "/game/player-sessions/<run_id>/turns",
                 },
                 trace_id=langfuse_trace_id,
+                user_id=str(user.id),
             )
 
             turn_payload = execute_story_turn_in_engine(

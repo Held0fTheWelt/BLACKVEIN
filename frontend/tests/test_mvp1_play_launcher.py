@@ -51,6 +51,8 @@ def test_play_start_renders_role_selector_in_html(client, monkeypatch):
     assert "selected_player_role" in body, "Role selector input must appear in session_start.html"
     assert "Annette" in body
     assert "Alain" in body
+    assert 'name="session_output_language"' in body
+    assert "<select" in body
 
 
 def test_play_launcher_requires_annette_or_alain(client):

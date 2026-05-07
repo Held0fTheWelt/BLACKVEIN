@@ -206,6 +206,7 @@ class LangfuseAdapter:
         module_id: Optional[str] = None,
         metadata: Optional[dict[str, Any]] = None,
         trace_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Optional[Any]:
         """Start a new trace.
 
@@ -236,12 +237,21 @@ class LangfuseAdapter:
 
             # v4 API: start_observation returns a span object (not context manager here)
             trace_context = {"trace_id": trace_id} if trace_id else None
-            self._active_trace = self._client.start_observation(
-                as_type="span",
-                name=name,
-                trace_context=trace_context,
-                metadata=trace_metadata,
-            )
+
+            def _create():
+                return self._client.start_observation(
+                    as_type="span",
+                    name=name,
+                    trace_context=trace_context,
+                    metadata=trace_metadata,
+                )
+
+            if user_id:
+                from langfuse import propagate_attributes
+                with propagate_attributes(user_id=user_id):
+                    self._active_trace = _create()
+            else:
+                self._active_trace = _create()
             return self._active_trace
         except Exception as e:
             logger.warning(f"Failed to start trace: {e}")

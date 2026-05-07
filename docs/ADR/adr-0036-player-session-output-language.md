@@ -18,13 +18,13 @@ Accepted
 - Backend: `game_routes.py` validates `session_output_language` with `invalid_output_language` / `unsupported_language` error codes; persists in `GameSaveSlot.metadata["session_output_language"]`; passes to `create_story_session()`.
 
 **Also implemented (as of 2026-05-07):**
-- `frontend/templates/session_start.html`: radio button fieldset (Deutsch / English, default de) added after Play-as selector.
+- `frontend/templates/session_start.html`: select box (`session_output_language`, Deutsch / English, default de) added after Play-as selector.
 - `frontend/app/routes_play.py`: `play_create()` reads and forwards `session_output_language` for both runtime_profile and template paths.
 - `frontend/tests/test_mvp1_play_launcher.py`: 3 tests assert de/en forwarding and default=de.
+- Langfuse `user_id` propagation: `backend/app/observability/langfuse_adapter.py` `start_trace()` accepts `user_id` and uses `propagate_attributes(user_id=...)` (SDK v4.x). `game_routes.py` passes `str(user.id)` on turn traces. `world-engine/app/observability/langfuse_adapter.py` `session_scope()` accepts and propagates `user_id`. `world-engine/app/api/http.py` `CreateStorySessionRequest` accepts `user_id`, forwarded to `session_scope()`. Wrong `adapter.client.update_user()` call removed.
 
 **Not yet implemented:**
 - `ai_stack/langgraph_runtime_executor.py`: language directive injection into turn prompts (only opening prompt currently).
-- Langfuse User-level attribute `session_output_language` — code written, not yet verified on dashboard.
 - See ADR-0036 Follow-ups section for full list.
 
 ## Date
@@ -84,17 +84,17 @@ This ADR contains no personal data. Implementers must follow repository privacy 
 
 The language selector is part of the existing play launcher form (`frontend/templates/session_start.html`) and its server-side handler (`frontend/app/routes_play.py`).
 
-**UI widget:** Two radio buttons — the player picks one, no free-text entry:
+**UI widget:** One select box with two options (`de`, `en`) — closed choice, no free-text entry:
 
 ```html
-<fieldset>
-  <legend>Sprache / Language</legend>
-  <label><input type="radio" name="session_output_language" value="de" checked> Deutsch</label>
-  <label><input type="radio" name="session_output_language" value="en"> English</label>
-</fieldset>
+<label for="session_output_language">Sprache / Language</label>
+<select id="session_output_language" name="session_output_language">
+  <option value="de" selected>Deutsch</option>
+  <option value="en">English</option>
+</select>
 ```
 
-- Radio buttons enforce a closed choice; the user cannot submit an arbitrary string.
+- The select box enforces a closed choice; the user cannot submit an arbitrary string.
 - `de` is pre-selected (German-first product default).
 - Shown for **all** templates that reach the `POST /api/v1/game/player-sessions` endpoint (not only `god_of_carnage_solo`); it is a session-level, not template-level, choice.
 - Widget position: immediately after the **Play as** role selector and before the submit button.
@@ -122,7 +122,7 @@ The chosen language MUST flow through the canonical play path so all generation 
 
 3. **World-Engine** — receive `session_output_language` parameter; store on **`StorySession.session_output_language`** (session-level attribute, not runtime_projection). World-Engine passes language to all downstream consumers (`_build_opening_prompt`, turn prompts, LDSS, graph packaging) from this single source.
 
-4. **Observability (Langfuse)** — attach `session_output_language` as **User-level attribute** in Langfuse User object, so traces can be filtered by language (e.g., “show all sessions where output_language=de”).
+4. **Observability (Langfuse)** — attach `user_id` (backend user ID as string) to all Langfuse traces via `propagate_attributes(user_id=...)` (Langfuse SDK v4.x API). Langfuse automatically groups traces in the Users view. `session_output_language` appears in trace metadata; the language is visible per-trace without a separate “User object” API call.
 
 5. **AI stack / LangGraph** — inject a **hard instruction block** (system or structured context) of the form: “Write all player-visible narrative in **{language}**,” plus negative guidance (“Do not switch to French unless quoting in-world French text marked as such”).
 
@@ -133,8 +133,8 @@ The chosen language MUST flow through the canonical play path so all generation 
 
 ### D5 — Observability and QA
 
-- **Langfuse / trace attributes:** User-level attribute **`session_output_language`** MUST be set in Langfuse User object so operators can filter traces by language (e.g., “show all turns where user.session_output_language=de”).
-- **Tests:** Contract tests SHALL assert that both `de` and `en` values reach World-Engine `StorySession`, appear in prompt assembly (golden or snapshot tests acceptable), and are tagged in Langfuse User attributes; optional LLM-as-judge **not** required for CI.
+- **Langfuse / trace attributes:** `user_id` is set on all Langfuse traces via `propagate_attributes(user_id=str(user.id))` (Langfuse SDK v4.x; **not** `update_user()`). This causes Langfuse to show the user in the Users view and enables filtering by player. `session_output_language` is attached as trace metadata in addition.
+- **Tests:** Contract tests SHALL assert that both `de` and `en` values reach World-Engine `StorySession` and appear in prompt assembly (golden or snapshot tests acceptable); optional LLM-as-judge **not** required for CI.
 
 ### D5a — Error Codes
 
@@ -166,7 +166,7 @@ Both errors are returned in the standard game API error response format (see `ba
 ### Follow-ups
 
 - OpenAPI schema: add `session_output_language` field to `game_player_session` request/response.
-- Launcher UI + routes_play.py: implement per D2a (frontend not yet implemented as of 2026-05-07).
+- Launcher UI + routes_play.py: implement per D2a with select widget semantics (frontend not yet implemented as of 2026-05-07).
 - ADR-0035 opening prompt alignment: opening beats must respect `session_output_language`; static German copy in YAML prompts must not contradict an English session.
 - Graph prompt injection: `ai_stack/langgraph_runtime_executor.py` — mirror language directive into all turn prompts, not only the opening prompt (currently only `_build_opening_prompt()` injects it).
 - Langfuse `update_user` verification: confirm `session_output_language` appears on User objects in Langfuse dashboard after live session create.
@@ -180,7 +180,7 @@ flowchart LR
   subgraph fe [Frontend — session_start.html]
     TS["Template\n(select)"]
     RS["Play as\n(select)"]
-    LS["Sprache / Language\n● Deutsch  ○ English\n(radio, default: de)"]
+    LS["Sprache / Language\n(select: Deutsch | English,\ndefault: de)"]
     FORM["POST /api/v1/game/player-sessions\nsession_output_language = de | en"]
   end
   subgraph backend [Backend]
@@ -210,11 +210,11 @@ flowchart LR
 
 ### Backend validation (API contract)
 
-The radio buttons in the UI enforce a closed choice — only `de` or `en` can be submitted by the play launcher. Validation guards exist for direct API callers (Postman, integrations, future mobile clients).
+The select box in the UI enforces a closed choice — only `de` or `en` can be submitted by the play launcher. Validation guards exist for direct API callers (Postman, integrations, future mobile clients).
 
 ```mermaid
 flowchart TD
-  SRC{caller} -->|Play launcher\nradio button| OK2["always valid\nde or en"]
+  SRC{caller} -->|Play launcher\nselect box| OK2["always valid\nde or en"]
   SRC -->|direct API call| IN["session_output_language\nin request body"]
   IN --> CHK{type check}
   CHK -->|non-string / null| E1["400 invalid_output_language"]

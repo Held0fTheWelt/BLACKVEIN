@@ -428,6 +428,7 @@ def create_story_session(
     module_id: str,
     runtime_projection: dict,
     session_output_language: str = "de",
+    user_id: str | None = None,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
     content_provenance: dict | None = None,
@@ -437,15 +438,18 @@ def create_story_session(
             "New story sessions are disabled by operator control (Play-Service allow_new_sessions=false).",
             status_code=502,
         )
+    json_payload: dict[str, Any] = {
+        "module_id": module_id,
+        "runtime_projection": runtime_projection,
+        "session_output_language": session_output_language,
+        "content_provenance": content_provenance or {},
+    }
+    if user_id:
+        json_payload["user_id"] = user_id
     payload = _request(
         "POST",
         "/api/story/sessions",
-        json_payload={
-            "module_id": module_id,
-            "runtime_projection": runtime_projection,
-            "session_output_language": session_output_language,
-            "content_provenance": content_provenance or {},
-        },
+        json_payload=json_payload,
         internal=True,
         trace_id=trace_id,
         langfuse_trace_id=langfuse_trace_id,

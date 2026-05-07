@@ -354,6 +354,7 @@ class CreateStorySessionRequest(BaseModel):
     module_id: str
     runtime_projection: dict[str, Any]
     session_output_language: str = "de"
+    user_id: str | None = None
     content_provenance: dict[str, Any] | None = None
 
 
@@ -530,6 +531,7 @@ def create_story_session(
                 session_id=story_session_id,
                 metadata={"module_id": payload.module_id, "turn_kind": "opening"},
                 trace_name="world-engine.session.create",
+                user_id=payload.user_id,
             )
             if root_span and adapter and hasattr(adapter, "session_scope")
             else nullcontext()

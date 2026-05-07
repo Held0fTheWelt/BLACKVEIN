@@ -22,11 +22,12 @@
       </label>
     </div>
 
-    <fieldset>
-      <legend>Sprache / Language</legend>
-      <label><input type="radio" name="session_output_language" value="de" checked> Deutsch</label>
-      <label><input type="radio" name="session_output_language" value="en"> English</label>
-    </fieldset>
+    <label for="session-output-language">Sprache / Language
+      <select name="session_output_language" id="session-output-language">
+        <option value="de" selected>Deutsch</option>
+        <option value="en">English</option>
+      </select>
+    </label>
 
     <button type="submit">Create run</button>
   </form>
