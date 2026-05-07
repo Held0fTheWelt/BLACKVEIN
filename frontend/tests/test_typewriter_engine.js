@@ -156,7 +156,7 @@ describe('TypewriterEngine', () => {
   });
 
   describe('startDelivery()', () => {
-    test('should queue block for delivery', () => {
+    test('should activate a block for delivery', () => {
       const block = {
         id: 'block-1',
         text: 'Hello world',
@@ -167,6 +167,7 @@ describe('TypewriterEngine', () => {
 
       const state = engine.getQueueState();
       expect(state.queue_length).toBe(1);
+      expect(state.current_block_id).toBe('block-1');
     });
 
     test('should ignore invalid blocks', () => {
@@ -192,7 +193,7 @@ describe('TypewriterEngine', () => {
       expect(state.current_block_id).toBe('block-1');
     });
 
-    test('should queue multiple blocks in order', () => {
+    test('should replace active block when a newer block arrives', () => {
       const block1 = { id: 'block-1', text: 'First' };
       const block2 = { id: 'block-2', text: 'Second' };
       const block3 = { id: 'block-3', text: 'Third' };
@@ -202,8 +203,8 @@ describe('TypewriterEngine', () => {
       engine.startDelivery(block3);
 
       const state = engine.getQueueState();
-      expect(state.queue_length).toBe(3);
-      expect(state.current_block_id).toBe('block-1');
+      expect(state.queue_length).toBe(1);
+      expect(state.current_block_id).toBe('block-3');
     });
   });
 
@@ -305,7 +306,7 @@ describe('TypewriterEngine', () => {
       expect(state.queue_length).toBe(0);
     });
 
-    test('should move to next block after skip', () => {
+    test('should clear active block after skip', () => {
       const block1 = {
         id: 'block-1',
         text: 'First',
@@ -319,12 +320,11 @@ describe('TypewriterEngine', () => {
 
       engine.startDelivery(block1);
       engine.startDelivery(block2);
-
-      engine.skipBlock('block-1');
+      engine.skipBlock('block-2');
 
       const state = engine.getQueueState();
-      expect(state.current_block_id).toBe('block-2');
-      expect(state.queue_length).toBe(1);
+      expect(state.current_block_id).toBeNull();
+      expect(state.queue_length).toBe(0);
     });
 
     test('should not affect unrelated blocks', () => {
@@ -337,19 +337,15 @@ describe('TypewriterEngine', () => {
       engine.skipBlock('block-999'); // Non-existent block
 
       const state = engine.getQueueState();
-      expect(state.current_block_id).toBe('block-1'); // Still on first block
+      expect(state.current_block_id).toBe('block-2'); // Latest block remains active
     });
   });
 
   describe('revealAll()', () => {
-    test('should show all queued blocks immediately', () => {
-      const block1El = document.createElement('div');
-      block1El.setAttribute('data-block-id', 'block-1');
-      container.appendChild(block1El);
-
-      const block2El = document.createElement('div');
-      block2El.setAttribute('data-block-id', 'block-2');
-      container.appendChild(block2El);
+    test('should reveal active block immediately', () => {
+      const blockEl = document.createElement('div');
+      blockEl.setAttribute('data-block-id', 'block-2');
+      container.appendChild(blockEl);
 
       const block1 = { id: 'block-1', text: 'First block' };
       const block2 = { id: 'block-2', text: 'Second block' };
@@ -357,13 +353,10 @@ describe('TypewriterEngine', () => {
       engine.setConfig({ characters_per_second: 1 });
       engine.startDelivery(block1);
       engine.startDelivery(block2);
-
-      engine.clock.advanceBy(5); // Only first few characters visible
-
+      engine.clock.advanceBy(5);
       engine.revealAll();
 
-      expect(block1El.textContent).toBe('First block');
-      expect(block2El.textContent).toBe('Second block');
+      expect(blockEl.textContent).toBe('Second block');
     });
 
     test('should clear queue after reveal all', () => {
@@ -408,7 +401,7 @@ describe('TypewriterEngine', () => {
       expect(state.queue).toEqual([]);
     });
 
-    test('should return detailed state with queued blocks', () => {
+    test('should return detailed state with the single active block', () => {
       const block1 = { id: 'block-1', text: 'Hello' };
       const block2 = { id: 'block-2', text: 'World' };
 
@@ -417,11 +410,10 @@ describe('TypewriterEngine', () => {
 
       const state = engine.getQueueState();
 
-      expect(state.current_block_id).toBe('block-1');
-      expect(state.queue_length).toBe(2);
-      expect(state.queue).toHaveLength(2);
-      expect(state.queue[0].block_id).toBe('block-1');
-      expect(state.queue[1].block_id).toBe('block-2');
+      expect(state.current_block_id).toBe('block-2');
+      expect(state.queue_length).toBe(1);
+      expect(state.queue).toHaveLength(1);
+      expect(state.queue[0].block_id).toBe('block-2');
     });
   });
 });

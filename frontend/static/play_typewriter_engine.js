@@ -90,7 +90,7 @@ class VirtualClock {
 class TypewriterEngine {
   constructor(testMode = false) {
     this.clock = new VirtualClock(testMode);
-    this.queue = []; // [{block_id, text, start_time, duration, visible_chars}]
+    this.queue = []; // Single-active contract: either [] or [current_item]
     this.current_block = null;
     this.test_mode = testMode;
     this.config = {
@@ -135,20 +135,8 @@ class TypewriterEngine {
       visible_chars: 0,
     };
 
-    this.queue.push(queueItem);
-    this._processQueue();
-  }
-
-  /**
-   * Process the delivery queue
-   */
-  _processQueue() {
-    if (this.queue.length === 0 || this.current_block) {
-      return;
-    }
-
-    this.current_block = this.queue[0];
-
+    this.queue = [queueItem];
+    this.current_block = queueItem;
     if (!this.test_mode) {
       this.clock.start();
     }
@@ -177,15 +165,15 @@ class TypewriterEngine {
   }
 
   /**
-   * Complete current block and move to next
+   * Complete current block and clear active delivery
    */
   _completeCurrentBlock() {
     if (this.current_block) {
       this.current_block.visible_chars = this.current_block.text.length;
       this._renderBlock();
-      this.queue.shift();
+      this.queue = [];
       this.current_block = null;
-      this._processQueue();
+      this.clock.stop();
     }
   }
 
@@ -204,14 +192,13 @@ class TypewriterEngine {
    * Reveal all queued blocks immediately
    */
   revealAll() {
-    for (const block of this.queue) {
-      block.visible_chars = block.text.length;
-      const el = document.querySelector(`[data-block-id="${block.block_id}"]`);
+    if (this.current_block) {
+      this.current_block.visible_chars = this.current_block.text.length;
+      const el = document.querySelector(`[data-block-id="${this.current_block.block_id}"]`);
       if (el) {
-        el.textContent = block.text;
+        el.textContent = this.current_block.text;
       }
     }
-    this._renderBlock();
     this.queue = [];
     this.current_block = null;
     this.clock.stop();

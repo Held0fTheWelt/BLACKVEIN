@@ -49,6 +49,7 @@ describe('BlockRenderer', () => {
       expect(el.getAttribute('data-block-type')).toBe('actor_line');
       expect(el.className).toContain('scene-block');
       expect(el.className).toContain('scene-block--actor_line');
+      expect(el.getAttribute('data-player-visible')).toBe('true');
     });
 
     test('should set actor_id and target_actor_id attributes when present', () => {
@@ -157,6 +158,37 @@ describe('BlockRenderer', () => {
 
       expect(el.getAttribute('data-block-type')).toBe('unknown');
       expect(el.className).toContain('scene-block--unknown');
+    });
+
+    test('should mark dramatic block families as player-visible', () => {
+      const dramaticTypes = [
+        'narrator_scene',
+        'narrator_perception',
+        'actor_line',
+        'actor_action',
+        'stage_shift',
+      ];
+      for (const kind of dramaticTypes) {
+        const el = renderer.render({
+          id: `block-${kind}`,
+          block_type: kind,
+          text: `text-${kind}`,
+        });
+        expect(el.className).toContain(`scene-block--${kind}`);
+        expect(el.getAttribute('data-player-visible')).toBe('true');
+        expect(el.textContent).toBe(`text-${kind}`);
+      }
+    });
+
+    test('should not render diagnostics blocks as player-visible text', () => {
+      const el = renderer.render({
+        id: 'diag-1',
+        block_type: 'diagnostic_trace',
+        text: 'internal payload',
+      });
+      expect(el.getAttribute('data-player-visible')).toBe('false');
+      expect(el.className).toContain('scene-block--diagnostic');
+      expect(el.textContent).toBe('');
     });
   });
 

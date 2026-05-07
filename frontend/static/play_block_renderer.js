@@ -10,6 +10,11 @@ class BlockRenderer {
     this.dom_root = domRoot;
   }
 
+  _isDiagnosticsBlock(blockType) {
+    const kind = String(blockType || '').toLowerCase();
+    return kind.startsWith('diagnostic') || kind.startsWith('debug') || kind === 'system_meta';
+  }
+
   /**
    * Render a single block to DOM
    *
@@ -35,8 +40,16 @@ class BlockRenderer {
       div.setAttribute('data-speaker-label', block.speaker_label);
     }
 
-    div.className = `scene-block scene-block--${block.block_type || 'unknown'}`;
-    div.textContent = block.text || '';
+    const blockType = block.block_type || 'unknown';
+    div.className = `scene-block scene-block--${blockType}`;
+    const diagnosticsBlock = this._isDiagnosticsBlock(blockType);
+    div.setAttribute('data-player-visible', diagnosticsBlock ? 'false' : 'true');
+    if (diagnosticsBlock) {
+      div.classList.add('scene-block--diagnostic');
+      div.textContent = '';
+    } else {
+      div.textContent = block.text || '';
+    }
 
     this.dom_root.appendChild(div);
     return div;

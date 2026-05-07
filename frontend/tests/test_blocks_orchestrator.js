@@ -89,7 +89,7 @@ describe('BlocksOrchestrator', () => {
       );
     });
 
-    test('with typewriter_slice_start_index 0, sequences every block through typewriter', () => {
+    test('with typewriter_slice_start_index 0, keeps only the last block active', () => {
       const response = {
         visible_scene_output: {
           typewriter_slice_start_index: 0,
@@ -102,15 +102,12 @@ describe('BlocksOrchestrator', () => {
 
       orchestrator.loadTurn(response);
 
-      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(2);
-      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({ id: 'block-1' }),
-      );
-      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
-        2,
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'block-2' }),
       );
+      const el = container.querySelector('[data-block-id="block-1"]');
+      expect(el.textContent).toBe('First');
     });
 
     test('with typewriter_slice_start_index 1, prior block full text then types the rest', () => {
@@ -267,16 +264,13 @@ describe('BlocksOrchestrator', () => {
 
   describe('skipCurrentBlock()', () => {
     test('should skip current block and increment index', () => {
-      orchestrator.blocks = [
-        { id: 'block-1', block_type: 'narrator', text: 'First' },
-        { id: 'block-2', block_type: 'actor_line', text: 'Second' },
-      ];
-      orchestrator.currentBlockIndex = 0;
+      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-2' });
+      orchestrator.blocks = [{ id: 'block-1', text: 'First' }, { id: 'block-2', text: 'Second' }];
 
       orchestrator.skipCurrentBlock();
 
-      expect(mockTypewriter.skipBlock).toHaveBeenCalledWith('block-1');
-      expect(orchestrator.currentBlockIndex).toBe(1);
+      expect(mockTypewriter.skipBlock).toHaveBeenCalledWith('block-2');
+      expect(orchestrator.currentBlockIndex).toBe(2);
     });
 
     test('should handle multiple skips in sequence', () => {
@@ -286,12 +280,15 @@ describe('BlocksOrchestrator', () => {
         { id: 'block-3', text: 'Third' },
       ];
 
+      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-1' });
       orchestrator.skipCurrentBlock();
-      expect(orchestrator.currentBlockIndex).toBe(1);
+      expect(orchestrator.currentBlockIndex).toBe(3);
 
+      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-2' });
       orchestrator.skipCurrentBlock();
-      expect(orchestrator.currentBlockIndex).toBe(2);
+      expect(orchestrator.currentBlockIndex).toBe(3);
 
+      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-3' });
       orchestrator.skipCurrentBlock();
       expect(orchestrator.currentBlockIndex).toBe(3);
     });
@@ -299,6 +296,7 @@ describe('BlocksOrchestrator', () => {
     test('should handle skip beyond blocks array', () => {
       orchestrator.blocks = [{ id: 'block-1', text: 'Only' }];
       orchestrator.currentBlockIndex = 1;
+      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: null });
 
       expect(() => orchestrator.skipCurrentBlock()).not.toThrow();
       expect(mockTypewriter.skipBlock).not.toHaveBeenCalled();
@@ -400,6 +398,24 @@ describe('BlocksOrchestrator', () => {
       expect(realContainer.children[1].getAttribute('data-block-id')).toBe('b2');
 
       document.body.removeChild(realContainer);
+    });
+  });
+
+  describe('diagnostics block filtering', () => {
+    test('should not enqueue diagnostics blocks for typewriter', () => {
+      orchestrator.loadTurn({
+        visible_scene_output: {
+          blocks: [
+            { id: 'b1', block_type: 'narrator_scene', text: 'Scene' },
+            { id: 'b2', block_type: 'diagnostic_trace', text: 'debug payload' },
+          ],
+        },
+      });
+
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'b1' }),
+      );
     });
   });
 });

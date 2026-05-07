@@ -64,6 +64,21 @@ def evaluate_dramatic_effect_gate(ctx: DramaticEffectEvaluationContext) -> Drama
     trace: list[DramaticEffectTraceItem] = []
     sf = ctx.selected_scene_function or "establish_pressure"
 
+    # Opening turns often start with atmosphere-setting prose before heavier
+    # pressure tags emerge. Treat these as weak-but-legal instead of hard
+    # empty-fluency rejects to reduce fallback churn on live openings.
+    if sf == "establish_pressure" and text and len(text) >= 24:
+        soc = ctx.validated_social_state()
+        mind = ctx.validated_character_mind()
+        cont_posture = continuity_posture_for_social(soc, tags_ok=False)
+        char_post = CharacterPlausibilityPosture.plausible if mind else CharacterPlausibilityPosture.uncertain
+        return outcome_weak_signal_accepted(
+            pressure_cont=pressure_continuation_signal(low),
+            char_post=char_post,
+            cont_posture=cont_posture,
+            thin_prose_override=thin_prose_override,
+        )
+
     if (o := try_off_scope_containment_mismatch(ctx, sf=sf)) is not None:
         return o
     if (o := try_prior_blame_continuity_pressure(ctx, low=low, sf=sf)) is not None:

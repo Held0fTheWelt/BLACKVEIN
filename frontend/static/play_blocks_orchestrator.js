@@ -20,6 +20,11 @@ class BlocksOrchestrator {
     this.accessibility_mode = false;
   }
 
+  _isDiagnosticsBlock(block) {
+    const kind = String((block && block.block_type) || '').toLowerCase();
+    return kind.startsWith('diagnostic') || kind.startsWith('debug') || kind === 'system_meta';
+  }
+
   /**
    * Load initial turn from HTTP response
    *
@@ -50,12 +55,26 @@ class BlocksOrchestrator {
     this.blocks = [];
     this.currentBlockIndex = 0;
 
-    // Indices < twStart: transcript-stable (full text). Indices >= twStart: typewriter queue.
+    // Single-active contract: at most one active typewriter block (latest unresolved block).
+    let activeIndex = -1;
+    if (blocks.length > 0 && twStart < blocks.length) {
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        if (!this._isDiagnosticsBlock(blocks[i])) {
+          activeIndex = i;
+          break;
+        }
+      }
+    }
+
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
-      const transcriptStable = i < twStart;
+      const transcriptStable = i !== activeIndex;
       this.blocks.push(block);
       this.renderer.render(block);
+
+      if (this._isDiagnosticsBlock(block)) {
+        continue;
+      }
 
       if (!this.accessibility_mode) {
         if (transcriptStable) {
@@ -73,6 +92,7 @@ class BlocksOrchestrator {
         }
       }
     }
+    this.currentBlockIndex = activeIndex >= 0 ? activeIndex : this.blocks.length;
   }
 
   /**
@@ -93,6 +113,11 @@ class BlocksOrchestrator {
     // Render to DOM
     this.renderer.render(block);
 
+    if (this._isDiagnosticsBlock(block)) {
+      this.currentBlockIndex = this.blocks.length;
+      return;
+    }
+
     // Finish any in-progress delivery so only the new block animates.
     if (!this.accessibility_mode) {
       this.typewriter.revealAll();
@@ -101,11 +126,13 @@ class BlocksOrchestrator {
     // Start typewriter delivery (unless accessibility mode)
     if (!this.accessibility_mode) {
       this.typewriter.startDelivery(block);
+      this.currentBlockIndex = this.blocks.length - 1;
     } else {
       const el = this.renderer.getBlockElement(block.id);
       if (el) {
         el.textContent = block.text;
       }
+      this.currentBlockIndex = this.blocks.length;
     }
   }
 
@@ -113,13 +140,13 @@ class BlocksOrchestrator {
    * Skip current block (user clicked "Skip")
    */
   skipCurrentBlock() {
-    if (this.currentBlockIndex >= this.blocks.length) {
+    const tw = this.typewriter.getQueueState ? this.typewriter.getQueueState() : null;
+    const activeId = tw && tw.current_block_id ? tw.current_block_id : null;
+    if (!activeId) {
       return;
     }
-
-    const current = this.blocks[this.currentBlockIndex];
-    this.typewriter.skipBlock(current.id);
-    this.currentBlockIndex++;
+    this.typewriter.skipBlock(activeId);
+    this.currentBlockIndex = this.blocks.length;
   }
 
   /**

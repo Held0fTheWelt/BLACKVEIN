@@ -104,6 +104,18 @@ def test_repair_weak_signal_approved_not_hard_rejected() -> None:
     assert out.empty_fluency_risk == EmptyFluencyRisk.moderate
 
 
+def test_establish_pressure_opening_text_is_weak_signal_not_empty_fluency_reject() -> None:
+    out = evaluate_dramatic_effect_gate(
+        _ctx(
+            narr="The room holds its breath while two parents size each other up in silence.",
+            scene_fn="establish_pressure",
+            sem=None,
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.accepted_with_weak_signal
+    assert out.empty_fluency_risk == EmptyFluencyRisk.moderate
+
+
 def test_legacy_fallback_meta_commentary() -> None:
     out = evaluate_dramatic_effect_gate(
         _ctx(

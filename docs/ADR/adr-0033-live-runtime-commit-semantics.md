@@ -702,6 +702,84 @@ The span completion `update(..., output=..., metadata=...)` **must** repeat both
 
 **Regression guard:** World-Engine tests **must** assert these fields on `world-engine.turn.execute` (`world-engine/tests/test_trace_middleware.py`).
 
+### 13.7 Required deterministic gate scores in c640-style live trace evidence
+
+**Problem:** A "live runtime contract pass" verdict that is only computed at the gate level (see §13.1) is not auditable from a Langfuse trace alone. Operators and the live evidence gate (`backend/tests/test_observability/test_langfuse_live_c640_gate.py`) must be able to read the verdict back from the trace itself. Earlier iterations asserted only six named scores on positive c640 traces while checking `usage_details.total > 0` operationally on `story.model.generation`. That left the door open for silent breakage of the `usage_present` score emission to remain undetected because the test would still pass on usage rawvalue alone.
+
+**Required behavior (positive live trace contract):** A c640-style positive live trace **must** carry **all seven** deterministic gate scores listed below, each at value `1.0`, and the `story.model.generation` observation **must** independently carry `usage_details.total > 0`:
+
+```text
+required_scores = (
+    "rag_context_attached",
+    "visible_output_present",
+    "live_runtime_visible_surface_pass",
+    "live_runtime_contract_pass",
+    "fallback_absent",
+    "non_mock_generation_pass",
+    "usage_present",
+)
+```
+
+Both checks are non-redundant by design:
+
+1. The named score `usage_present` proves that **the runtime computed and persisted** a usage verdict as a deterministic gate.
+2. The raw `usage_details.total > 0` on `story.model.generation` proves that **the underlying generation actually consumed tokens**.
+
+A failure of either check is a contract break; passing one but not the other indicates partial regression in either the score emission path (`world-engine/app/story_runtime/manager.py`, deterministic_scores block) or the generation-record path (`record_generation` in `world-engine/app/observability/langfuse_adapter.py`).
+
+**Regression guards:**
+
+- World-Engine: `world-engine/tests/test_trace_middleware.py` already asserts the seven score names are emitted with `add_score` for healthy paths.
+- Backend live gate: `backend/tests/test_observability/test_langfuse_live_c640_gate.py::_assert_positive_live_trace_contract` **must** include `usage_present` in `required_scores` **in addition to** the operational `_usage_total(gen) > 0` assertion. Removing either is a contract break for ADR-0033.
+
+**Operational gate impact:** Negative/degraded traces (a599-style and the 9d61 reference fixture) remain unaffected and continue to be classified red because `non_mock_generation_pass`, `fallback_absent`, `live_runtime_visible_surface_pass`, and `live_runtime_contract_pass` stay at `0.0` for `adapter=ldss_fallback` / `quality=degraded` paths (see §13.1 and §13.2).
+
+### 13.8 Actor-lane evidence in trace score metadata
+
+**Problem:** §13.1 mandates `actor_lane=unknown → live_success=false`. That rule is enforced today at the **gate-payload bridge** (`ai_stack/live_runtime_commit_semantics.py:_actor_lane_unknown_flag` and the envelope→payload bridge that materializes `"actor_lane": actor_lane_status or "unknown"`). It is **not** enforceable from a fetched Langfuse trace today, because:
+
+1. The `actor_lane_safety_pass` score (`world-engine/app/story_runtime/manager.py`, deterministic_scores block) is binary `1.0`/`0.0`. Its metadata only carries `session_id`, `turn_number`, `quality_class`, `degradation_signals` — **not** `actor_lane_validation_status`.
+2. The current accept-set on the producer side is `{"approved", None}`, which silently treats a missing path-summary value as approved.
+3. No span statusMessage emits an `actor_lane=` token that the live-gate regex (`_status_field` in the live-gate test) could parse.
+4. The `traceable_decisions` builder (`ai_stack/diagnostics_envelope.py:build_traceable_decisions`) defensively coerces unknown statuses to `"approved"`, masking the underlying state in any downstream consumer of that field.
+
+The literal value `"unknown"` exists exactly **once** in the codebase as a materialized string — at the gate-payload bridge — and is therefore never written into a Langfuse trace.
+
+**Required behavior — Producer side (World-Engine):** When `add_score(name="actor_lane_safety_pass", ...)` is called from `world-engine/app/story_runtime/manager.py`, the `metadata` block **must** additionally carry:
+
+- `actor_lane_validation_status` (the literal `path_summary["actor_lane_validation_status"]` value, including `None`/missing as `null`)
+- `actor_lane_validation_reason` (literal reason string from validation, may be `null`)
+
+These fields are also recommended on the metadata blocks for `live_runtime_visible_surface_pass` and `live_runtime_contract_pass`, because both gates depend on actor-lane safety as an input.
+
+**Required behavior — Producer side (path summary):** The `path_summary["actor_lane_validation_status"]` field **must** carry one of the following canonical values when emitted to the score metadata:
+
+- `"approved"` — actor-lane validation explicitly approved the candidate output.
+- `"rejected"` — actor-lane validation explicitly rejected the candidate output.
+- `"not_applicable"` — the turn has no actor-lane (e.g. pure-narrator beats, opening atmosphere). Producers **must** set this explicitly; missing/`None` is no longer a sufficient signal of absence.
+
+The producer-side accept-set in the `actor_lane_safety_pass` computation **must** drop `None` from the silent-pass set. A missing `actor_lane_validation_status` is treated as `"unknown"` and fails the gate, surfacing the producer omission instead of masking it.
+
+**Required behavior — Live gate (Backend):** Once the producer emits the metadata above, `_assert_positive_live_trace_contract` in `backend/tests/test_observability/test_langfuse_live_c640_gate.py` **must** read `actor_lane_validation_status` from the `actor_lane_safety_pass` score metadata and assert it against the whitelist:
+
+```text
+ACTOR_LANE_LIVE_OK = {"approved", "not_applicable"}
+```
+
+Anything else — including missing, empty string, `None`, `"unknown"`, `"rejected"`, or any other value — fails the positive live gate.
+
+**Stage sequencing:** This change is split deliberately:
+
+- **Stage A (producer-side enrichment)** lands first in World-Engine + producer-side regression guard in `world-engine/tests/test_trace_middleware.py`. Until Stage A is in production traces, the backend live gate cannot honestly assert the whitelist.
+- **Stage B (live-gate whitelist enforcement)** lands second in `backend/tests/test_observability/test_langfuse_live_c640_gate.py`. Stage B without Stage A would either always trivially pass (because the field is never present) or always trivially fail (depending on the chosen default), neither of which provides real evidence.
+
+**Operational gate impact:** Negative/degraded traces with `adapter=ldss_fallback` and `quality=degraded` already fail the live gate via §13.7; this section is purely about closing the silent-pass loophole on the **healthy** path. Once Stage A+B are both live, an actor-lane producer regression that drops the status to missing/`None` will correctly fail the live gate instead of silently scoring `actor_lane_safety_pass = 1.0`.
+
+**Regression guards (combined):**
+
+- World-Engine: `world-engine/tests/test_trace_middleware.py` **must** assert that the `actor_lane_safety_pass` score `metadata` carries `actor_lane_validation_status` and `actor_lane_validation_reason` for healthy paths.
+- Backend live gate: `backend/tests/test_observability/test_langfuse_live_c640_gate.py` **must** assert `actor_lane_validation_status ∈ {"approved", "not_applicable"}` on the `actor_lane_safety_pass` score after Stage A is in effect.
+
 ---
 
 ## 14. Summary
