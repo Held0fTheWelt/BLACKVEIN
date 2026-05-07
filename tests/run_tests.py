@@ -703,6 +703,10 @@ def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
         we = str(WORLD_ENGINE_DIR)
         if we not in parts:
             parts.insert(0, we)
+    if suite_name == "gates":
+        be = str(BACKEND_DIR)
+        if be not in parts:
+            parts.insert(0, be)
     env["PYTHONPATH"] = sep.join(parts)
     return env
 
