@@ -1,6 +1,6 @@
 # Test Suite Contract
 
-**Status:** Active — 2026-04-26
+**Status:** Active — 2026-05-07 (suite model extended: backend sub-suites, domain axis — see [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md))
 
 ---
 
@@ -38,6 +38,22 @@ root-level `run_tests.py` are legacy artifacts and must be absent from the repos
 Optional lanes (not primary gates):
 - `playwright_e2e` — requires `--with-playwright`
 - `compose_smoke` — requires `--with-compose-smoke`
+
+### Backend directory sub-suites (fast lanes)
+
+These are **additional** `--suite` keys implemented in [`tests/run_tests.py`](../../tests/run_tests.py). They run subsets of `backend/tests/` with **`cwd=backend/`**. They are **not** primary merge gates by themselves; CI and operators should keep **`python tests/run_tests.py --suite backend`** as the full-backend gate unless a narrower policy is explicitly documented.
+
+| Suite key | Purpose |
+|-----------|---------|
+| `backend_runtime` | `tests/runtime` |
+| `backend_observability` | Observability folder + top-level observability/M11 modules |
+| `backend_services` | `tests/services` |
+| `backend_content` | `tests/content` |
+| `backend_routes_core` | `tests/routes`, `tests/web`, `tests/api` |
+| `backend_mcp` | `tests/mcp` |
+| `backend_rest` | Remainder of `backend/tests` (paths covered above ignored) |
+
+**Domain markers** (`auth`, `observability`, `runtime`, …) live in `backend/pytest.ini` and are selectable via **`python tests/run_tests.py --suite backend --domain <name>`** (combines with `--scope`). **`--parallel`** enables opt-in pytest-xdist with a serial second pass for `@pytest.mark.serial`. Normative detail: [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md); operator detail: [`tests/TESTING.md`](../../tests/TESTING.md).
 
 ---
 

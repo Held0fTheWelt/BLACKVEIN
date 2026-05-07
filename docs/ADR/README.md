@@ -54,6 +54,7 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) | Player-facing narrative shell contract (MVP5) | Accepted |
 | [ADR-0035](adr-0035-story-opening-economy-and-warmup.md) | Story opening economy, warmup, and phase alignment | Proposed |
 | [ADR-0036](adr-0036-player-session-output-language.md) | Player session output language (launch-time selection) | Accepted |
+| [ADR-0037](adr-0037-backend-test-suite-split-runner.md) | Backend test suite split in canonical orchestrator | Accepted |
 
 _Status values mirror each file’s `## Status` line; update the table when an ADR’s status changes._
 

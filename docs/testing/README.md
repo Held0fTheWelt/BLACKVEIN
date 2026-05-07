@@ -8,7 +8,7 @@ Audience split notice:
 - Admin release-governance guidance is being aligned under `docs/admin/README.md`.
 - Until relocation is complete, this directory contains mixed audience content.
 
-**Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, `--scope`, Makefile).
+**Multi-component test runner:** see **[tests/TESTING.md](../../tests/TESTING.md)** for `tests/run_tests.py` (`--suite`, `--scope`, `--domain`, `--parallel`, Makefile). Architecture: [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md).
 
 ---
 
@@ -131,6 +131,8 @@ All markers are configured in:
 - `administration-tool/pytest.ini`
 - `world-engine/pytest.ini`
 - `backend/pytest.ini`
+
+- `backend/pytest.ini` — includes **domain** markers (`auth`, `observability`, `runtime`, `routes_core`, `content`, `services`, `writers_room`, `improvement`, `mvp_handoff`) and **`serial`** (ordering / wall-clock sensitive tests for `--parallel`).
 
 ### Standard Markers (All Projects)
 - `@pytest.mark.unit` - Fast, isolated tests (no external deps)
@@ -310,14 +312,15 @@ world-engine/tests/
 
 ## Related Documents
 
-- [Backend Testing](../backend/tests/) - Backend test suite
+- [ADR-0037 — Backend test suite split](../ADR/adr-0037-backend-test-suite-split-runner.md)
+- [Backend test tree](../../backend/tests/) - Backend pytest package
 - [API Documentation](../api/README.md) - API reference and endpoints
 - [Security Guide](../security/README.md) - Security policies and audit
 - [Development Guide](../development/README.md) - Development setup and practices
 
 ---
 
-**Version**: 0.1.10
-**Last Updated**: 2026-03-25
+**Version**: 0.1.11
+**Last Updated**: 2026-05-07
 **WAVE 0 Status**: Complete ✅
 **Next Phase**: WAVE 1 Implementation

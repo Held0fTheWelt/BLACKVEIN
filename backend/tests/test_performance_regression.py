@@ -18,6 +18,8 @@ from app.services.forum_service import (
     suggest_related_threads_by_tags,
     list_all_tags,
 )
+
+pytestmark = pytest.mark.serial
 from app.services.user_service import (
     get_user_recent_threads,
     get_user_recent_posts,

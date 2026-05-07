@@ -20,9 +20,9 @@ cp .env.example .env
 # Run migrations
 cd backend && flask db upgrade && cd ..
 
-# Run tests (from tests/)
-cd tests && python run_tests.py --suite all
-cd ..
+# Run tests (repo root — canonical)
+python tests/run_tests.py --suite all
+
 # Start development servers (see runbooks per service)
 ```
 
@@ -63,29 +63,24 @@ WorldOfShadows/
 
 ### Running Tests
 
-**All tests:**
+From the **repository root** (canonical):
+
+```bash
+python tests/run_tests.py --suite backend --quick
+python tests/run_tests.py --suite backend_observability --quick
+python tests/run_tests.py --suite all
+```
+
+Or from `tests/`:
+
 ```bash
 cd tests
 python run_tests.py --suite all
 ```
 
-**Specific suite:**
-```bash
-cd tests
-python run_tests.py --suite backend
-python run_tests.py --suite administration
-python run_tests.py --suite engine
-python run_tests.py --suite database
-```
+**See:** [tests/TESTING.md](../../tests/TESTING.md) (runner contracts), [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md) (backend split / parallel policy). Prefer **`python tests/run_tests.py`** from the repository root; `cd tests && python run_tests.py` is equivalent.
 
-**Specific test file:**
-```bash
-cd backend && pytest tests/test_auth.py -v
-cd administration-tool && pytest tests/test_routes.py -v
-cd world-engine && pytest tests/test_api.py -v
-```
-
-**See:** [tests/TESTING.md](../../tests/TESTING.md) (runner), [Testing docs index](../testing/README.md)
+---
 
 ### Database Migrations
 

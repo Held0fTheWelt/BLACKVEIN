@@ -15,6 +15,8 @@
   - File organization guide
   - Current vs target test counts
   - Implementation timeline
+- **[tests/TESTING.md](../../tests/TESTING.md)** - Canonical orchestrator (`--suite`, `--scope`, `--domain`, `--parallel`)
+- **[ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md)** - Backend sub-suites, domain markers, parallel/two-pass policy
 
 ### Level 2: Implementation Guides
 - **[ADMIN_TOOL_TARGET_TEST_MATRIX.md](ADMIN_TOOL_TARGET_TEST_MATRIX.md)** - Flask frontend testing

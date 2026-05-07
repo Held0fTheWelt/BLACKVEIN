@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import pytest
+
 from app.runtime.agent_registry import (
     AgentBudgetProfile,
     AgentConfig,
@@ -790,6 +792,7 @@ def test_cross_agent_preview_feedback_is_exposed_in_request_metadata(
     assert any(item.get("requesting_agent_id") == "delta_planner" for item in captured_feedback)
 
 
+@pytest.mark.serial
 def test_orchestrator_contains_slow_adapter_calls_with_timeout(
     god_of_carnage_module_with_state,
     god_of_carnage_module,

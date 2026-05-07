@@ -6,12 +6,16 @@ This document explains **what** repository coverage numbers mean, **which files 
 
 | Location | Role |
 |----------|------|
-| [`tests/run_tests.py`](../../tests/run_tests.py) | `BACKEND_APP_ROOT`, …, `_cov_fail_under_for_suite()`, `_cov_sources_for_suite()`, `_append_cov_flags()` — orchestrated runs (**administration**: `--cov=.` + `.coveragerc`). |
+| [`tests/run_tests.py`](../../tests/run_tests.py) | `BACKEND_APP_ROOT`, …, `_cov_fail_under_for_suite()`, `_cov_sources_for_suite()`, `_append_cov_flags()`. Backend **sub-suites** (`backend_runtime`, `backend_observability`, …) set `supports_coverage=False` so partial runs do not apply the full-backend fail-under. See [ADR-0037](../ADR/adr-0037-backend-test-suite-split-runner.md). |
 | [`administration-tool/pytest.ini`](../../administration-tool/pytest.ini) + [`.coveragerc`](../../administration-tool/.coveragerc) | **`--cov=.`** + **`--cov-fail-under=80`** — same as runner **administration** suite (avoids multiple `--cov=module` Coverage.py 7.x warnings). |
 | [`world-engine/pytest.ini`](../../world-engine/pytest.ini) | **`--cov=app`** + **`--cov-fail-under=80`** + term-missing report (matches runner **engine** suite). |
 | [`database/pytest.ini`](../../database/pytest.ini) | **`--cov=app`** (backend ORM tree) + term-missing **without** **`--cov-fail-under`** — same roots as runner **database** suite; no percentage gate (see below). |
 
 [`administration-tool/pyproject.toml`](../../administration-tool/pyproject.toml) and [`world-engine/pyproject.toml`](../../world-engine/pyproject.toml) carry a short pointer comment; executable defaults remain in **`pytest.ini`**.
+
+### Backend directory sub-suites (orchestrator)
+
+The suite keys `backend_runtime`, `backend_observability`, `backend_services`, `backend_content`, `backend_routes_core`, `backend_mcp`, and `backend_rest` do **not** carry a separate row in the table above: the orchestrator **does not** enforce `--cov-fail-under` for them. Use **`--suite backend`** for the **85** gate on `backend/app`.
 
 ## What is measured
 
@@ -23,7 +27,7 @@ This document explains **what** repository coverage numbers mean, **which files 
 | Suite / tree | `--cov=` roots | `--cov-fail-under` (orchestrator) | Component `pytest.ini` |
 |--------------|----------------|-------------------------------------|-------------------------|
 | **backend** | `backend/app` | 85 | see `backend/pytest.ini` (own policy) |
-| **frontend** | `frontend/app` | 92 | see `frontend/pytest.ini` |
+| **frontend** | `frontend/app` | 90 | see `frontend/pytest.ini` |
 | **writers_room** / **improvement** | `backend/app` | 50 | *(slice runs under `backend/`)* |
 | **administration** | Project root **`.`** (tree under `administration-tool/`, tests omitted via `.coveragerc`) | 80 | **`--cov=. --cov-config=.coveragerc`**, **80** |
 | **engine** | `world-engine/app` (filesystem path in runner; `app` package when `cwd` is `world-engine/`) | 80 | **`--cov=app`**, **80** |

@@ -53,6 +53,9 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 | `writers_room` | `backend/` | `tests/writers_room` | **Slice** run: Writers-Room tests only (also collected under full `backend`). |
 | `improvement` | `backend/` | `tests/improvement` | **Slice** run: improvement-loop tests only. |
 | `ai_stack` | **repo root** | `ai_stack/tests` | Requires `PYTHONPATH` including repo root (runner sets this). |
+| `story_runtime_core` | **repo root** | `story_runtime_core/tests` | Builtin templates, adapters, delivery. |
+| `gates` | **repo root** | `tests/gates` | MVP foundation / architecture enforcement gates. |
+| `mvp5` | `frontend/` | `tests` | MVP5 block renderer, typewriter, orchestration (pytest + Jest lane). |
 | `root_core` | **repo root** | `tests/test_agency_capability_matrix_truth.py` | Root canonical truth contract test. |
 | `root_integration` | **repo root** | `tests/integration` | Root integration checks. |
 | `root_branching` | **repo root** | `tests/branching` | Branching behavior checks. |
@@ -61,6 +64,24 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 | `root_requirements_hygiene` | **repo root** | `tests/requirements_hygiene` | Requirements and dependency hygiene checks. |
 | `root_e2e_python` | **repo root** | `tests/e2e` | Python end-to-end verification files. |
 | `root_experience_scoring` | **repo root** | `tests/experience_scoring_cli` | Experience scoring command tests. |
+
+---
+
+## Backend directory sub-suites (fast lanes)
+
+These select **strict subsets** of `backend/tests/` for iteration speed. They use `cwd=backend/` and share [`backend/pytest.ini`](../backend/pytest.ini). **They do not replace** the canonical full gate `python tests/run_tests.py --suite backend` (coverage fail-under is disabled on partial runs — see [`docs/testing/COVERAGE_SEMANTICS.md`](../docs/testing/COVERAGE_SEMANTICS.md)).
+
+| CLI name | Pytest targets (under `backend/`) |
+|----------|-------------------------------------|
+| `backend_runtime` | `tests/runtime` |
+| `backend_observability` | `tests/test_observability`, plus top-level `tests/test_observability.py`, `tests/test_m11_ai_stack_observability.py` |
+| `backend_services` | `tests/services` |
+| `backend_content` | `tests/content` |
+| `backend_routes_core` | `tests/routes`, `tests/web`, `tests/api` |
+| `backend_mcp` | `tests/mcp` |
+| `backend_rest` | `tests` with `--ignore=` for every path covered by the rows above (and `writers_room` / `improvement` trees), so flat files and uncategorized folders remain |
+
+`writers_room` and `improvement` remain dedicated component suites; their tests are also collected under full `backend`.
 
 ---
 
@@ -74,14 +95,16 @@ Cross-platform; use `python3` on Linux/macOS if needed.
 4. `engine`  
 5. `database`  
 6. `ai_stack`  
-7. `root_core`  
-8. `root_integration`  
-9. `root_branching`  
-10. `root_smoke`  
-11. `root_tools`  
-12. `root_requirements_hygiene`  
-13. `root_e2e_python`  
-14. `root_experience_scoring`  
+7. `story_runtime_core`  
+8. `gates`  
+9. `root_core`  
+10. `root_integration`  
+11. `root_branching`  
+12. `root_smoke`  
+13. `root_tools`  
+14. `root_requirements_hygiene`  
+15. `root_e2e_python`  
+16. `root_experience_scoring`  
 
 `writers_room` and `improvement` remain available as dedicated slices for focused execution, but are already covered under full backend collection.
 
@@ -90,6 +113,13 @@ To run **only** Writers-Room or improvement tests (e.g. focused coverage):
 ```bash
 python tests/run_tests.py --suite writers_room
 python tests/run_tests.py --suite improvement
+```
+
+Example fast lanes:
+
+```bash
+python tests/run_tests.py --suite backend_observability --quick
+python tests/run_tests.py --suite backend_runtime --quick
 ```
 
 ---
@@ -101,6 +131,7 @@ python tests/run_tests.py --suite improvement
 | Suite | `contracts` | `integration` | `e2e` | `security` |
 |-------|-------------|-----------------|-------|-------------|
 | `backend` | `-m contract` | `-m integration` | `-m e2e` | `-m security` |
+| `backend_*` sub-suites | same | same | same | same |
 | `writers_room` | same | same | same | same |
 | `improvement` | same | same | same | same |
 | `administration` | `-m contract` | `-m integration` | **full suite** (no `e2e` marker) | `-m security` |
@@ -111,6 +142,28 @@ python tests/run_tests.py --suite improvement
 | `root_*` suites | **ignored** — always full suite | | | |
 
 When scope is set but not applied, the runner prints an `[INFO]` line (see `run_tests.py`).
+
+---
+
+## `--domain` (backend cross-folder marker filter)
+
+`--domain` applies **only** to suites that use `backend/pytest.ini`: `backend`, every `backend_*` sub-suite, `writers_room`, and `improvement`. It maps to pytest `-m <domain>` using markers registered in [`backend/pytest.ini`](../backend/pytest.ini): `auth`, `observability`, `runtime`, `routes_core`, `content`, `services`, `writers_room`, `improvement`, `mvp_handoff`.
+
+**Combination with `--scope`:** the runner passes a single expression, e.g. `--scope contracts --domain auth` → `-m "contract and auth"`.
+
+Other suites ignore `--domain` (no filter).
+
+---
+
+## `--parallel` (opt-in pytest-xdist)
+
+**Default:** off (sequential pytest).
+
+When set (`--parallel` with no value uses **auto** worker count; `--parallel 4` fixes worker count), the runner runs **pytest-xdist** with `-n …` and **`--dist loadfile`** (tests in one file stay on one worker). Dependency: `pytest-xdist` in [`backend/requirements-test.txt`](../backend/requirements-test.txt).
+
+**Two-pass execution:** tests marked **`@pytest.mark.serial`** run in a **second, sequential** pass (`-m "… and (serial)"`). The first parallel pass uses `-m "… and (not serial)"`. If the serial pass collects zero tests, pytest exit code **5** is treated as success for that pass.
+
+Use **`serial`** for ordering-sensitive work (e.g. migrations touching shared schema, login counter races, strict wall-clock performance assertions).
 
 ---
 
@@ -133,7 +186,7 @@ Behavior is implemented in [`run_tests.py`](run_tests.py) (`_cov_sources_for_sui
 | Suite | `--cov=` roots (each passed as its own flag) | `--cov-fail-under` |
 |-------|-----------------------------------------------|---------------------|
 | `backend` | `backend/app` | 85 |
-| `frontend` | `frontend/app` | 92 |
+| `frontend` | `frontend/app` | 90 |
 | `writers_room` | `backend/app` | 50 |
 | `improvement` | `backend/app` | 50 |
 | `administration` | `--cov=.` + `administration-tool/.coveragerc` (flat tree; tests omitted) | 80 |
@@ -154,8 +207,10 @@ Behavior is implemented in [`run_tests.py`](run_tests.py) (`_cov_sources_for_sui
 
 | Option | Meaning |
 |--------|---------|
-| `--suite …` | One or more suite names, or `all` (see above). |
+| `--suite …` | One or more suite names, or `all` (see above). Includes `backend_*` sub-suites. |
 | `--scope …` | Marker filter where supported (see matrix). |
+| `--domain …` | Backend domain marker filter; combines with `--scope` via `and`. |
+| `--parallel [WORKERS]` | Opt-in xdist parallel run + serial second pass (see above). |
 | `--with-playwright` | Add Playwright lane (`tests/e2e`, external toolchain). |
 | `--with-compose-smoke` | Add compose-smoke lane (`tests/smoke/compose_smoke`). |
 | `--quick` | Fast fail; see table above. |
@@ -224,7 +279,7 @@ Install dependencies per component before `python tests/run_tests.py --suite all
 
 Before running pytest, `run_tests.py` calls `check_environment()` and runs **import probes per selected suite** so automated runs fail fast with install hints instead of mid-suite `ModuleNotFoundError`:
 
-- **backend**, **writers_room**, **improvement**, **database** — Flask stack under `backend/` (same imports as `backend/tests/conftest.py`). If `ai_stack.langgraph_runtime` is not importable, an **informational** line suggests `pip install -e "./ai_stack[test]"` for tests that touch the graph.
+- **backend**, **`backend_*` sub-suites**, **writers_room**, **improvement**, **database** — Flask stack under `backend/` (same imports as `backend/tests/conftest.py`). If `ai_stack.langgraph_runtime` is not importable, an **informational** line suggests `pip install -e "./ai_stack[test]"` for tests that touch the graph.
 - **frontend** — `flask`, `requests` with `cwd=frontend/` (`frontend/requirements-dev.txt`).
 - **administration** — `flask`, `werkzeug` with `cwd=administration-tool/`.
 - **engine** — FastAPI / SQLAlchemy / HTTPX for the engine app, then **LangChain / LangGraph** plus `from ai_stack import RuntimeTurnGraphExecutor` with repo root on `PYTHONPATH` (same bar as `.github/workflows/engine-tests.yml`).
@@ -236,5 +291,6 @@ For **full** orchestrator parity (including `engine` + `ai_stack` graph lane), u
 
 ## References
 
+- [ADR-0037 — Backend test suite split](../docs/ADR/adr-0037-backend-test-suite-split-runner.md)
 - [pytest](https://docs.pytest.org/)
 - [Coverage.py](https://coverage.readthedocs.io/)

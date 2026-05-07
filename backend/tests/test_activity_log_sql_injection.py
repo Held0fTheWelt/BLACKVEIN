@@ -7,6 +7,8 @@ import pytest
 from app.models import ActivityLog
 from app.services.activity_log_service import list_activity_logs, log_activity
 
+pytestmark = pytest.mark.serial
+
 
 class TestActivityLogSQLInjectionProtection:
     """Audit activity log filtering for SQL injection vulnerabilities."""

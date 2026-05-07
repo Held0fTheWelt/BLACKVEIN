@@ -14,7 +14,12 @@ plus root ``tests/*`` groups. ``writers_room`` and ``improvement`` remain select
 isolated slices (their tests are also collected under ``backend/tests``).
 
 Optional ``--scope`` maps to ``pytest -m`` for backend, writers_room, improvement,
-administration, and engine (see ``--help``).
+administration, and engine (see ``--help``). Optional ``--domain`` selects backend
+pytest markers registered in ``backend/pytest.ini`` (combines with ``--scope``).
+Additional ``--suite`` choices ``backend_runtime``, ``backend_observability``, … run
+strict subsets of ``backend/tests`` for fast iteration; ``--suite backend`` remains the
+full-tree gate. Optional ``--parallel`` enables pytest-xdist (two-pass: parallel then
+``@pytest.mark.serial``).
 
 Optional non-Python lanes are opt-in: ``--with-playwright`` and
 ``--with-compose-smoke``.
