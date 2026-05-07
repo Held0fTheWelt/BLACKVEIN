@@ -8,6 +8,8 @@ from werkzeug.security import check_password_hash
 from app.extensions import db
 from app.models import User
 
+pytestmark = pytest.mark.auth
+
 
 class TestPasswordReuseAPI:
     """Test password reuse prevention through the API endpoint."""

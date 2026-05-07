@@ -8,6 +8,8 @@ from app.extensions import db
 from app.models import ForumCategory, User
 from app.models.forum import ModeratorAssignment
 
+pytestmark = pytest.mark.routes_core
+
 
 @pytest.fixture
 def mod_cat_and_moderator(app, moderator_user):

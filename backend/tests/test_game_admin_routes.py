@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
+
 from app.extensions import db
 from app.models import GameExperienceTemplate
+
+pytestmark = pytest.mark.routes_core
 
 
 def _payload(template_id: str, kind: str = 'solo_story') -> dict:

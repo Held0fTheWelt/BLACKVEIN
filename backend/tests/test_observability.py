@@ -25,6 +25,8 @@ from app.observability.audit_log import (
     log_mcp_tool_call,
 )
 
+pytestmark = pytest.mark.observability
+
 
 @pytest.fixture(autouse=True)
 def _reset_trace_id():

@@ -2,6 +2,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.routes_core
+
 
 _INFO_PATHS = (
     "/backend",

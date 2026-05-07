@@ -10,6 +10,8 @@ import pytest
 
 from app.runtime.session_start import SessionStartError
 
+pytestmark = pytest.mark.routes_core
+
 
 class TestCreateSessionEndpoint:
     """Tests for POST /api/v1/sessions."""

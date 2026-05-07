@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 import app.api.v1.ai_engineer_suite_routes as suite_routes
+
+pytestmark = pytest.mark.routes_core
 
 
 def test_admin_ai_rag_status_endpoint(client, admin_headers, monkeypatch):

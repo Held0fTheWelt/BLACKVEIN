@@ -4,6 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
+pytestmark = pytest.mark.mvp_handoff
+
 
 def _handoff(**overrides):
     data = {

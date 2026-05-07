@@ -6,6 +6,8 @@ from app.extensions import db
 from app.models import User, Role, ActivityLog
 from werkzeug.security import generate_password_hash
 
+pytestmark = pytest.mark.auth
+
 
 # ============= HELPER TESTS: _parse_int FUNCTION =============
 

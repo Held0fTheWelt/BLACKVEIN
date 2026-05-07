@@ -5,6 +5,8 @@ from app.models import User, Role
 from werkzeug.security import generate_password_hash
 from app.extensions import db
 
+pytestmark = pytest.mark.auth
+
 
 def test_users_list_without_token_returns_401(client):
     """GET /api/v1/users without JWT returns 401."""

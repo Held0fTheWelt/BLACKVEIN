@@ -29,5 +29,8 @@ pytest>=7.0,<9
 pytest-asyncio>=1.3,<2
 pytest-cov>=4.0,<6
 pytest-timeout>=2.1
+# Optional opt-in parallel execution (Stage 3 backend-test-suite-split). Activated only
+# when ``tests/run_tests.py --parallel [auto|N]`` is passed; default behavior is sequential.
+pytest-xdist>=3.5,<4
 anyio>=4.0,<5
 exceptiongroup>=1.2.0; python_version < "3.11"

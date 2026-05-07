@@ -2,7 +2,11 @@
 
 import json
 
+import pytest
+
 from app.services.session_service import create_session
+
+pytestmark = pytest.mark.mvp_handoff
 
 
 def test_get_session_requires_token_and_returns_snapshot(client, test_user, monkeypatch):

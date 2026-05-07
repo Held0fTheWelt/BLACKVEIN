@@ -28,6 +28,8 @@ from app.api.v1.forum_routes import (
     _validate_title_length,
 )
 
+pytestmark = pytest.mark.routes_core
+
 
 def _assign_moderators_to_category(app, category_id):
     """Helper: assign all moderators to a category for testing moderation."""

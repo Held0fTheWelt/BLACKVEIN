@@ -2,6 +2,8 @@
 
 import pytest
 
+pytestmark = pytest.mark.observability
+
 
 @pytest.fixture
 def mock_session():

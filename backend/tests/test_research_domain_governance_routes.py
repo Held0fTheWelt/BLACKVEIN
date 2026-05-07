@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import pytest
+
+pytestmark = pytest.mark.routes_core
+
 
 def test_research_overview_requires_auth(client):
     r = client.get("/api/v1/admin/research-domain/overview")

@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = pytest.mark.observability
+
 
 @pytest.fixture
 def _patch_game_service_ok(monkeypatch):

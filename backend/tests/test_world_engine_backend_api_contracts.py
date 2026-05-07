@@ -7,6 +7,8 @@ import pytest
 from datetime import datetime, timezone
 import json
 
+pytestmark = pytest.mark.mvp_handoff
+
 
 @pytest.mark.contract
 @pytest.mark.integration

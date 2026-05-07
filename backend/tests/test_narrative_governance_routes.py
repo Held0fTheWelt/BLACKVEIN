@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import pytest
+
 from app.extensions import db
 from app.models import NarrativeEvaluationRun, NarrativeRevisionCandidate
+
+pytestmark = pytest.mark.routes_core
 
 
 def test_runtime_config_get_returns_envelope(client, moderator_headers):

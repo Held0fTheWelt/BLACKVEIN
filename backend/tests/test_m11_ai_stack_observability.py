@@ -11,6 +11,8 @@ from app.runtime.session_store import clear_registry as clear_runtime_session_re
 from app.services.ai_stack_closure_cockpit_parsing import G9B_ATTEMPT_RECORD_PATH, read_audit_json as closure_read_audit_json
 from app.services.game_service import GameServiceError
 
+pytestmark = pytest.mark.observability
+
 
 @pytest.fixture(autouse=True)
 def _isolate_runtime_session_store():

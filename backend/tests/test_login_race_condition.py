@@ -18,6 +18,8 @@ from app.config import TestingConfig
 from app.extensions import db
 from app.models import User, Role
 
+pytestmark = pytest.mark.serial
+
 
 @pytest.fixture
 def app():

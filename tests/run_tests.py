@@ -100,6 +100,17 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "playwright_e2e": "Playwright browser end-to-end tests",
     "compose_smoke": "Compose smoke lane",
     "mvp5": "MVP5 frontend (block renderer + typewriter + orchestration)",
+    # Backend sub-suites (Stage 1 of backend-test-suite-split). Each is a strict subset
+    # of ``backend`` and is meant for fast iteration; ``backend`` remains the canonical
+    # full-suite gate. Coverage gates are disabled on these subsets because the backend
+    # ``--cov-fail-under`` would always fail on a partial run.
+    "backend_runtime": "Backend runtime (story_runtime, AI-turn cluster)",
+    "backend_observability": "Backend observability (Langfuse, m11, diagnostics)",
+    "backend_services": "Backend services layer",
+    "backend_content": "Backend content (GoC / WoS canon / templates)",
+    "backend_routes_core": "Backend HTTP routes (routes/, web/, api/)",
+    "backend_mcp": "Backend MCP server tests",
+    "backend_rest": "Backend remainder (top-level + uncategorized tests/)",
 }
 
 # CLI --scope value -> pytest ``-m`` marker name (must exist in that component's pytest.ini)
@@ -108,6 +119,22 @@ SCOPE_TO_PYTEST_MARKER: dict[str, str] = {
     "integration": "integration",
     "e2e": "e2e",
     "security": "security",
+}
+
+# CLI --domain value -> pytest ``-m`` marker name. Domain markers are registered in
+# ``backend/pytest.ini`` (Stage 2 of backend-test-suite-split) and select cross-folder
+# slices of the backend test tree. They combine with --scope via ``and`` so callers can
+# write ``--scope contracts --domain auth`` to mean ``-m "contract and auth"``.
+DOMAIN_TO_PYTEST_MARKER: dict[str, str] = {
+    "auth": "auth",
+    "observability": "observability",
+    "runtime": "runtime",
+    "routes_core": "routes_core",
+    "content": "content",
+    "services": "services",
+    "writers_room": "writers_room",
+    "improvement": "improvement",
+    "mvp_handoff": "mvp_handoff",
 }
 
 
@@ -128,11 +155,74 @@ def marker_filter_for_suite(suite_name: str, scope: str) -> str | None:
         return None
     if suite_name in ("backend", "writers_room", "improvement"):
         return marker
+    # Backend sub-suites (Stage 1 split) share backend/pytest.ini and therefore
+    # honor the same marker set as ``backend``.
+    if suite_name in (
+        "backend_runtime",
+        "backend_observability",
+        "backend_services",
+        "backend_content",
+        "backend_routes_core",
+        "backend_mcp",
+        "backend_rest",
+    ):
+        return marker
     if suite_name in ("administration", "engine"):
         if scope == "e2e":
             return None
         return marker
     return None
+
+
+def domain_marker_for_suite(suite_name: str, domain: str) -> str | None:
+    """Return the ``--domain`` marker name if the suite uses backend/pytest.ini.
+
+    Domain markers are registered only in ``backend/pytest.ini``. ``backend`` and
+    its Stage 1 sub-suites all share that ini; ``writers_room`` and ``improvement``
+    use the same backend cwd. Other components ignore ``--domain``.
+    """
+    if domain == "all":
+        return None
+    marker = DOMAIN_TO_PYTEST_MARKER.get(domain)
+    if marker is None:
+        return None
+    cfg = SUITE_CONFIGS.get(suite_name)
+    if not cfg or cfg.kind != "pytest":
+        return None
+    if suite_name == "backend" or suite_name.startswith("backend_"):
+        return marker
+    if suite_name in ("writers_room", "improvement"):
+        return marker
+    return None
+
+
+def combined_marker_expression(
+    suite_name: str,
+    scope: str,
+    domain: str,
+    extra_marker_clauses: tuple[str, ...] = (),
+) -> str | None:
+    """Combine ``--scope``, ``--domain``, and ``extra_marker_clauses`` via ``and``.
+
+    Each side may be ``None``/``"all"``; missing clauses are dropped. ``extra_marker_clauses``
+    are caller-supplied raw pytest marker expressions (e.g. ``"not serial"``) that are
+    parenthesized and joined with the rest. Returns ``None`` if no clause survives.
+    """
+    scope_marker = marker_filter_for_suite(suite_name, scope)
+    domain_marker = domain_marker_for_suite(suite_name, domain)
+    parts: list[str] = []
+    for m in (scope_marker, domain_marker):
+        if m:
+            parts.append(m)
+    for clause in extra_marker_clauses:
+        clause = (clause or "").strip()
+        if clause:
+            parts.append(f"({clause})")
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0]
+    return " and ".join(parts)
 
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
@@ -152,13 +242,24 @@ STORY_RUNTIME_CORE_COV_FAIL_UNDER = "50"  # Realistic: core adapters/utilities t
 
 @dataclass(frozen=True)
 class SuiteConfig:
-    """Configuration for one runnable suite."""
+    """Configuration for one runnable suite.
+
+    ``extra_targets`` and ``ignore_paths`` are additive fields used by the backend
+    sub-suite split (Stage 1 of docs/plan backend-test-suite-split). ``extra_targets``
+    are appended after ``target`` as additional positional pytest arguments so a single
+    suite can run multiple subpaths in one pytest invocation. ``ignore_paths`` are
+    emitted as ``--ignore=<path>`` pytest flags so a "rest of backend/tests" suite can
+    subtract the directories already covered by other sub-suites. Both fields default
+    to empty tuples; bare ``target`` semantics are preserved for every existing suite.
+    """
 
     kind: str  # "pytest" or "external"
     cwd: Path
     target: str
     supports_scope: bool = False
     supports_coverage: bool = True
+    extra_targets: tuple[str, ...] = ()
+    ignore_paths: tuple[str, ...] = ()
 
 
 STORY_RUNTIME_CORE_DIR = PROJECT_ROOT / "story_runtime_core"
@@ -195,6 +296,56 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
     ),
     # MVP5: Frontend block rendering, typewriter, orchestration
     "mvp5": SuiteConfig(kind="pytest", cwd=FRONTEND_DIR, target="tests", supports_coverage=False),
+    # --- Backend sub-suites (Stage 1 of backend-test-suite-split) ---
+    # All share cwd=BACKEND_DIR with ``backend``. Coverage gates are off so partial
+    # runs do not trip the backend-wide ``--cov-fail-under`` threshold.
+    "backend_runtime": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/runtime",
+        supports_scope=True, supports_coverage=False,
+    ),
+    "backend_observability": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/test_observability",
+        supports_scope=True, supports_coverage=False,
+        extra_targets=("tests/test_observability.py", "tests/test_m11_ai_stack_observability.py"),
+    ),
+    "backend_services": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/services",
+        supports_scope=True, supports_coverage=False,
+    ),
+    "backend_content": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/content",
+        supports_scope=True, supports_coverage=False,
+    ),
+    "backend_routes_core": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/routes",
+        supports_scope=True, supports_coverage=False,
+        extra_targets=("tests/web", "tests/api"),
+    ),
+    "backend_mcp": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests/mcp",
+        supports_scope=True, supports_coverage=False,
+    ),
+    # ``backend_rest`` runs ``backend/tests`` but subtracts every directory and explicit
+    # file already covered by the other sub-suites above (and writers_room/improvement
+    # which have their own component suites). Coverage off; ordering preserved.
+    "backend_rest": SuiteConfig(
+        kind="pytest", cwd=BACKEND_DIR, target="tests",
+        supports_scope=True, supports_coverage=False,
+        ignore_paths=(
+            "tests/runtime",
+            "tests/services",
+            "tests/content",
+            "tests/test_observability",
+            "tests/routes",
+            "tests/web",
+            "tests/api",
+            "tests/mcp",
+            "tests/writers_room",
+            "tests/improvement",
+            "tests/test_observability.py",
+            "tests/test_m11_ai_stack_observability.py",
+        ),
+    ),
     # Optional external lanes
     "playwright_e2e": SuiteConfig(kind="external", cwd=PROJECT_ROOT / "tests" / "e2e", target="npx playwright test"),
     "compose_smoke": SuiteConfig(
@@ -333,6 +484,13 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
         labels
         & {
             "backend",
+            "backend_runtime",
+            "backend_observability",
+            "backend_services",
+            "backend_content",
+            "backend_routes_core",
+            "backend_mcp",
+            "backend_rest",
             "frontend",
             "administration",
             "writers_room",
@@ -544,7 +702,7 @@ def _subprocess_env_for_suite(suite_name: str) -> dict[str, str] | None:
     return env
 
 
-def show_test_stats(suites: dict[str, SuiteConfig], *, scope: str = "all") -> bool:
+def show_test_stats(suites: dict[str, SuiteConfig], *, scope: str = "all", domain: str = "all") -> bool:
     """Run collect-only per suite. Returns False if any collection subprocess fails."""
     print_header("Test collection (collect-only)")
     all_ok = True
@@ -552,15 +710,19 @@ def show_test_stats(suites: dict[str, SuiteConfig], *, scope: str = "all") -> bo
         if cfg.kind != "pytest":
             continue
         suite_cwd, test_path = cfg.cwd, cfg.target
-        test_root = suite_cwd / test_path
-        if not (test_root.is_dir() or test_root.is_file()):
-            print_info(f"{suite_name}: no tests directory or file ({test_root})")
+        targets_to_check = (test_path, *cfg.extra_targets)
+        missing = [tp for tp in targets_to_check if not ((suite_cwd / tp).is_dir() or (suite_cwd / tp).is_file())]
+        if missing:
+            print_info(f"{suite_name}: no tests directory or file ({', '.join(str(suite_cwd / tp) for tp in missing)})")
             continue
         collect_argv = ["--collect-only", "-q", "--no-cov"]
-        m = marker_filter_for_suite(suite_name, scope)
+        m = combined_marker_expression(suite_name, scope, domain)
         if m:
             collect_argv.extend(["-m", m])
+        for ignore in cfg.ignore_paths:
+            collect_argv.append(f"--ignore={ignore}")
         collect_argv.append(test_path)
+        collect_argv.extend(cfg.extra_targets)
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "pytest", *collect_argv],
@@ -692,20 +854,45 @@ def build_pytest_argv(
     coverage_mode: bool,
     verbose: bool,
     scope: str,
+    domain: str = "all",
+    extra_targets: tuple[str, ...] = (),
+    ignore_paths: tuple[str, ...] = (),
+    parallel: str | None = None,
+    extra_marker_clauses: tuple[str, ...] = (),
 ) -> list[str]:
-    """Build pytest arguments for one component run (cwd = suite working directory)."""
+    """Build pytest arguments for one component run (cwd = suite working directory).
+
+    ``extra_targets`` are appended after ``target`` as additional positional pytest
+    arguments. ``ignore_paths`` are emitted as ``--ignore=<path>`` pytest flags
+    (placed before the positional targets, where pytest expects them). ``scope`` and
+    ``domain`` markers combine via ``and`` (see :func:`combined_marker_expression`).
+    ``parallel`` (``"auto"`` or a numeric string) enables pytest-xdist with
+    ``--dist loadfile`` so tests inside one file stay on one worker (Stage 3 of
+    backend-test-suite-split); ``None`` keeps the default sequential behavior.
+    """
     cov_under = _cov_fail_under_for_suite(suite_name)
 
     def _append_cov_fail_under(argv_inner: list[str]) -> None:
         if cov_under is not None:
             argv_inner.append(f"--cov-fail-under={cov_under}")
 
+    def _append_parallel(argv_inner: list[str]) -> None:
+        if parallel:
+            argv_inner.extend(["-n", str(parallel), "--dist", "loadfile"])
+
+    def _append_targets(argv_inner: list[str]) -> None:
+        for ignore in ignore_paths:
+            argv_inner.append(f"--ignore={ignore}")
+        argv_inner.append(test_path)
+        argv_inner.extend(extra_targets)
+
     if quick:
         argv = ["-v", "--tb=short", "--no-cov", "-x"]
-        m = marker_filter_for_suite(suite_name, scope)
+        m = combined_marker_expression(suite_name, scope, domain, extra_marker_clauses)
         if m:
             argv.extend(["-m", m])
-        argv.append(test_path)
+        _append_parallel(argv)
+        _append_targets(argv)
         return argv
 
     if coverage_mode:
@@ -737,11 +924,12 @@ def build_pytest_argv(
         )
         _append_cov_fail_under(argv)
 
-    m = marker_filter_for_suite(suite_name, scope)
+    m = combined_marker_expression(suite_name, scope, domain, extra_marker_clauses)
     if m:
         argv.extend(["-m", m])
 
-    argv.append(test_path)
+    _append_parallel(argv)
+    _append_targets(argv)
     return argv
 
 
@@ -788,12 +976,23 @@ def run_pytest(
     test_path: str,
     pytest_argv: list[str],
     run_title: str,
+    extra_targets: tuple[str, ...] = (),
+    acceptable_exit_codes: tuple[int, ...] = (0,),
 ) -> bool:
+    """Run pytest in a subprocess and return True iff its exit code is acceptable.
+
+    By default, only ``0`` counts as success. Callers that want to tolerate
+    ``5`` (pytest's "no tests collected") — for example, the serial-only second
+    pass under ``--parallel`` when no test in the selection carries the ``serial``
+    marker — pass ``acceptable_exit_codes=(0, 5)``.
+    """
     print_header(run_title)
-    tests_dir = suite_cwd / test_path
-    if not (tests_dir.is_dir() or tests_dir.is_file()):
-        print_error(f"Tests directory or file not found: {tests_dir}")
-        return False
+    targets_to_check = (test_path, *extra_targets)
+    for tp in targets_to_check:
+        tests_dir = suite_cwd / tp
+        if not (tests_dir.is_dir() or tests_dir.is_file()):
+            print_error(f"Tests directory or file not found: {tests_dir}")
+            return False
 
     junit_report = REPORTS_DIR / f"pytest_{suite_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml"
     cmd = [sys.executable, "-m", "pytest", *pytest_argv, f"--junit-xml={junit_report}"]
@@ -803,7 +1002,13 @@ def run_pytest(
             cwd=str(suite_cwd),
             env=_subprocess_env_for_suite(suite_name) or os.environ,
         )
-        return result.returncode == 0
+        if result.returncode in acceptable_exit_codes:
+            if result.returncode != 0:
+                print_info(
+                    f"pytest exit code {result.returncode} accepted (no tests collected for this filter)."
+                )
+            return True
+        return False
     except OSError as exc:
         print_error(f"Failed to run pytest: {exc}")
         return False
@@ -898,6 +1103,8 @@ def run_tests_for_suites(
     verbose: bool,
     scope: str,
     continue_on_failure: bool,
+    domain: str = "all",
+    parallel: str | None = None,
 ) -> tuple[bool, dict[str, bool]]:
     all_passed = True
     results: dict[str, bool] = {}
@@ -924,8 +1131,9 @@ def run_tests_for_suites(
             continue
 
         suite_cwd, test_path = cfg.cwd, cfg.target
-        m = marker_filter_for_suite(suite_name, scope)
-        if scope != "all" and m is None:
+        m = combined_marker_expression(suite_name, scope, domain)
+        scope_only_marker = marker_filter_for_suite(suite_name, scope)
+        if scope != "all" and scope_only_marker is None:
             if suite_name in ("administration", "engine") and scope == "e2e":
                 print_info(
                     f"Suite '{suite_name}' has no ``e2e`` marker in pytest.ini; running full tests."
@@ -951,15 +1159,56 @@ def run_tests_for_suites(
         else:
             title = f"{display} (full)"
 
-        argv = build_pytest_argv(
-            suite_name=suite_name,
-            test_path=test_path,
-            quick=quick,
-            coverage_mode=coverage_mode,
-            verbose=verbose,
-            scope=scope,
-        )
-        ok = run_pytest(suite_name, suite_cwd, test_path, argv, f"Running: {title}")
+        def _do_one_pass(
+            extra_clauses: tuple[str, ...],
+            parallel_for_pass: str | None,
+            title_suffix: str,
+            accept_no_tests: bool = False,
+        ) -> bool:
+            argv = build_pytest_argv(
+                suite_name=suite_name,
+                test_path=test_path,
+                quick=quick,
+                coverage_mode=coverage_mode,
+                verbose=verbose,
+                scope=scope,
+                domain=domain,
+                extra_targets=cfg.extra_targets,
+                ignore_paths=cfg.ignore_paths,
+                parallel=parallel_for_pass,
+                extra_marker_clauses=extra_clauses,
+            )
+            acceptable = (0, 5) if accept_no_tests else (0,)
+            return run_pytest(
+                suite_name,
+                suite_cwd,
+                test_path,
+                argv,
+                f"Running: {title}{title_suffix}",
+                extra_targets=cfg.extra_targets,
+                acceptable_exit_codes=acceptable,
+            )
+
+        if parallel:
+            # Two-pass execution under --parallel: parallel run for everything that is
+            # safe to spread across workers, then a sequential serial-only pass for
+            # tests tagged @pytest.mark.serial (DB upgrades, login race, rate limiting).
+            ok = _do_one_pass(
+                ("not serial",),
+                parallel,
+                " - parallel pass (excludes @pytest.mark.serial)",
+                accept_no_tests=True,
+            )
+            if ok or continue_on_failure:
+                serial_ok = _do_one_pass(
+                    ("serial",),
+                    None,
+                    " - serial pass (sequential, @pytest.mark.serial only)",
+                    accept_no_tests=True,
+                )
+                ok = ok and serial_ok
+        else:
+            ok = _do_one_pass((), None, "")
         if ok and suite_name in ("frontend", "mvp5"):
             jest_ok = run_frontend_jest_lane(suite_name)
             ok = ok and jest_ok
@@ -1022,6 +1271,13 @@ Optional non-Python lanes are opt-in:
         default=["all"],
         choices=[
             "backend",
+            "backend_runtime",
+            "backend_observability",
+            "backend_services",
+            "backend_content",
+            "backend_routes_core",
+            "backend_mcp",
+            "backend_rest",
             "frontend",
             "administration",
             "engine",
@@ -1059,6 +1315,28 @@ Optional non-Python lanes are opt-in:
         ),
     )
     parser.add_argument(
+        "--domain",
+        default="all",
+        choices=[
+            "all",
+            "auth",
+            "observability",
+            "runtime",
+            "routes_core",
+            "content",
+            "services",
+            "writers_room",
+            "improvement",
+            "mvp_handoff",
+        ],
+        help=(
+            "Cross-folder backend domain filter (Stage 2 backend-test-suite-split). "
+            "Combines with --scope via 'and' (e.g. --scope contracts --domain auth -> "
+            "-m 'contract and auth'). Only applies to backend* sub-suites, writers_room, "
+            "and improvement; ignored elsewhere."
+        ),
+    )
+    parser.add_argument(
         "--quick",
         action="store_true",
         help=(
@@ -1088,6 +1366,20 @@ Optional non-Python lanes are opt-in:
         "--with-compose-smoke",
         action="store_true",
         help="Also run compose smoke lane (tests/smoke/compose_smoke).",
+    )
+    parser.add_argument(
+        "--parallel",
+        nargs="?",
+        const="auto",
+        default=None,
+        metavar="WORKERS",
+        help=(
+            "Run pytest in parallel via pytest-xdist. ``--parallel`` (no value) uses "
+            "``-n auto``; ``--parallel 4`` uses 4 workers. Default: off (sequential). "
+            "Always pairs with ``--dist loadfile`` so tests inside one file stay on one "
+            "worker. Use --parallel only when test isolation between files is sound; "
+            "tag ordering-sensitive tests with ``@pytest.mark.serial``."
+        ),
     )
     parser.add_argument(
         "--mvp1",
@@ -1145,7 +1437,7 @@ Optional non-Python lanes are opt-in:
     if args.quick and not args.stats:
         print_info("Skipping pre-run collect-only stats (--quick). Use --stats to force collection.")
     else:
-        if not show_test_stats(suites, scope=args.scope):
+        if not show_test_stats(suites, scope=args.scope, domain=args.domain):
             print_error("Test collection (collect-only) failed; fix errors above before running tests.")
             return 1
 
@@ -1156,6 +1448,8 @@ Optional non-Python lanes are opt-in:
         verbose=args.verbose,
         scope=args.scope,
         continue_on_failure=args.continue_on_failure,
+        domain=args.domain,
+        parallel=args.parallel,
     )
 
     print_header("Summary")

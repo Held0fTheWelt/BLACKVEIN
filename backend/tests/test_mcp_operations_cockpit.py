@@ -13,6 +13,8 @@ from app.models.mcp_diagnostic_case import McpDiagnosticCase
 from app.models.mcp_ops_telemetry import McpOpsTelemetry
 from app.services.mcp_operations_service import ingest_telemetry_batch
 
+pytestmark = pytest.mark.observability
+
 
 def _auth_service(client, monkeypatch):
     monkeypatch.setenv("MCP_SERVICE_TOKEN", "svc-test-token")

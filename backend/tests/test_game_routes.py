@@ -7,6 +7,8 @@ from app.extensions import db
 from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
 from app.services.game_service import PlayJoinContext
 
+pytestmark = pytest.mark.routes_core
+
 
 def _goc_solo_run_payload(run_id: str, *, selected_player_role: str = "annette") -> dict:
     if selected_player_role == "annette":

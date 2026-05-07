@@ -5,6 +5,8 @@ import pytest
 from flask import Flask
 from backend.app.api.v1.auth import require_mcp_service_token
 
+pytestmark = pytest.mark.auth
+
 
 def test_require_mcp_service_token_missing_env_returns_503():
     """When MCP_SERVICE_TOKEN not set, decorator should return 503."""

@@ -36,6 +36,8 @@ from app.services.game_content_service import (
 )
 from app.services.role_service import create_role, delete_role, list_roles, update_role, validate_role_name
 
+pytestmark = [pytest.mark.services, pytest.mark.content]
+
 
 @pytest.fixture
 def authored_payload() -> dict:
