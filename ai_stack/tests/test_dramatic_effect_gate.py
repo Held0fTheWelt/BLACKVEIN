@@ -281,3 +281,225 @@ def test_actor_lanes_do_not_bypass_scene_tags_for_empty_narrative() -> None:
     )
     assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
     assert "scene_function_tags_unsatisfied" in out.effect_rationale_codes
+
+
+# ---------------------------------------------------------------------------
+# Case A: actor-realization weak-signal bypass — positive tests
+# ---------------------------------------------------------------------------
+
+
+def test_actor_lane_approved_natural_escalate_no_tag_tokens_weak_signal() -> None:
+    """Natural opening prose for escalate_conflict with approved actor lanes
+    but no pressure/blame tokens → accepted_with_weak_signal, not rejected."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "Annette moves toward the window and does not look back. "
+                "Michel remains at the table, still as stone. "
+                "The candles burn low. Nothing is said."
+            ),
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.accepted_with_weak_signal
+    assert "actor_lanes_thin_prose_override" in out.effect_rationale_codes
+    assert out.empty_fluency_risk == EmptyFluencyRisk.moderate
+
+
+def test_actor_lane_approved_redirect_blame_natural_prose_no_blame_tokens_weak_signal() -> None:
+    """redirect_blame with actor-realized prose but no blame tokens → accepted_with_weak_signal."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "Annette sets down her glass. Véronique shifts in her chair, "
+                "meeting no one's gaze. The dinner continues in silence."
+            ),
+            selected_scene_function="redirect_blame",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 0,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.accepted_with_weak_signal
+    assert "actor_lanes_thin_prose_override" in out.effect_rationale_codes
+
+
+def test_actor_lane_approved_reveal_surface_natural_prose_no_exposure_tokens_weak_signal() -> None:
+    """reveal_surface with actor-realized prose but no exposure tokens → accepted_with_weak_signal."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "Michel stands by the window. Annette watches him carefully, "
+                "neither moving nor speaking. The room is still. The moment holds."
+            ),
+            selected_scene_function="reveal_surface",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.accepted_with_weak_signal
+    assert "actor_lanes_thin_prose_override" in out.effect_rationale_codes
+
+
+# ---------------------------------------------------------------------------
+# Case A: actor-realization weak-signal bypass — negative tests (must reject)
+# ---------------------------------------------------------------------------
+
+
+def test_actor_lane_approved_boilerplate_no_tags_still_rejected() -> None:
+    """Boilerplate phrases + approved actor lanes → still rejected_empty_fluency.
+    Boilerplate detection fires before the actor-lane tag bypass."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "The atmosphere thickens with unspoken tension as everyone senses "
+                "something shifting beneath the polite surface; the mood deepens "
+                "and a sense of uneasy anticipation fills the space."
+            ),
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
+    assert "generic_boilerplate_without_scene_tags" in out.effect_rationale_codes
+    assert "actor_lanes_thin_prose_override" not in out.effect_rationale_codes
+
+
+def test_no_actor_realization_natural_prose_no_tags_still_rejected() -> None:
+    """Zero spoken + action lines → bypass guard fails, rejected_empty_fluency."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "Annette moves toward the window and does not look back. "
+                "Michel remains at the table, still as stone. "
+                "The candles burn low. Nothing is said."
+            ),
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 0,
+                "action_line_count": 0,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
+    assert "actor_lanes_thin_prose_override" not in out.effect_rationale_codes
+
+
+def test_actor_lane_rejected_status_does_not_activate_weak_signal_bypass() -> None:
+    """actor_lane_status=rejected → bypass guard fails, rejected_empty_fluency."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "Annette moves toward the window and does not look back. "
+                "Michel remains at the table, still as stone. "
+                "The candles burn low. Nothing is said."
+            ),
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 2,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "rejected",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
+    assert "actor_lanes_thin_prose_override" not in out.effect_rationale_codes
+
+
+def test_meta_commentary_with_approved_actor_lanes_still_legacy_rejected() -> None:
+    """Meta-commentary + approved actor lanes → legacy fires at line 60, bypass never reached."""
+    out = evaluate_dramatic_effect_gate(
+        DramaticEffectEvaluationContext(
+            module_id=GOC_MODULE_ID,
+            proposed_narrative=(
+                "In dramatic terms the scene symbolizes the underlying tension "
+                "between Annette and Michel at the dinner table."
+            ),
+            selected_scene_function="escalate_conflict",
+            pacing_mode="standard",
+            silence_brevity_decision={},
+            semantic_move_record=None,
+            social_state_record=None,
+            primary_character_mind=None,
+            scene_plan_record=None,
+            prior_continuity_impacts=[],
+            actor_lane_summary={
+                "spoken_line_count": 1,
+                "action_line_count": 1,
+                "initiative_event_count": 0,
+                "actor_lane_status": "approved",
+            },
+        )
+    )
+    assert out.gate_result == DramaticEffectGateResult.rejected_empty_fluency
+    assert out.legacy_fallback_used is True
+    assert any("dramatic_alignment" in r for r in out.rejection_reasons)
