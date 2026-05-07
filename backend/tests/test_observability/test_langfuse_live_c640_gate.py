@@ -254,8 +254,8 @@ def test_langfuse_live_c640_trace_evidence_gate():
     _assert_positive_live_trace_contract(fetched, expected_sha=expected_sha)
 
 
-def test_langfuse_negative_degraded_trace_contract_a599_fixture():
-    """a599-style degraded fallback traces must stay red even with visible output present."""
+def test_langfuse_negative_degraded_trace_contract_a599_9d61_6871_fixture():
+    """Degraded fallback traces stay red despite visible output, usage, and RAG evidence."""
     fixture = {
         "observations": [
             {
@@ -274,6 +274,8 @@ def test_langfuse_negative_degraded_trace_contract_a599_fixture():
         ],
         "scores": [
             {"name": "visible_output_present", "value": 1, "observationId": None},
+            {"name": "usage_present", "value": 1, "observationId": None},
+            {"name": "rag_context_attached", "value": 1, "observationId": None},
             {"name": "fallback_absent", "value": 0, "observationId": None},
             {"name": "non_mock_generation_pass", "value": 0, "observationId": None},
             {"name": "live_runtime_visible_surface_pass", "value": 0, "observationId": None},
@@ -282,6 +284,8 @@ def test_langfuse_negative_degraded_trace_contract_a599_fixture():
     }
     scores = _score_map(fixture)
     assert scores["visible_output_present"] == 1.0
+    assert scores["usage_present"] == 1.0
+    assert scores["rag_context_attached"] == 1.0
     assert scores["fallback_absent"] == 0.0
     assert scores["non_mock_generation_pass"] == 0.0
     assert scores["live_runtime_visible_surface_pass"] == 0.0
@@ -291,3 +295,4 @@ def test_langfuse_negative_degraded_trace_contract_a599_fixture():
     assert _status_field(root, "fallback_used").lower() == "true"
     assert _status_field(root, "adapter").lower() == "ldss_fallback"
     assert _status_field(root, "quality").lower() == "degraded"
+    assert _status_field(root, "degradation").lower() == "dramatic_effect_reject_empty_fluency"
