@@ -176,6 +176,8 @@ jobs:
             world-engine/requirements.txt
             world-engine/requirements-dev.txt
             ai_stack/pyproject.toml
+            backend/requirements.txt
+            backend/requirements-test.txt
 
       - name: Install dependencies
         run: |
@@ -184,10 +186,12 @@ jobs:
           python -m pip install -e "./ai_stack[test]"
           pip install -r world-engine/requirements-dev.txt
           python -m pip install pyyaml
+          pip install -r backend/requirements-test.txt
 
       - name: Run MVP foundation gates (visitor absence, content/profile separation)
         env:
-          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/world-engine
+          # backend/ first so ``import app`` resolves to backend Flask app; world-engine stays on path for LDSS/engine seams.
+          PYTHONPATH: ${{ github.workspace }}/backend:${{ github.workspace }}:${{ github.workspace }}/world-engine
         run: |
           python -m pytest tests/gates/ -v --tb=short --no-cov
         # No continue-on-error — gate failures are real architecture violations.
