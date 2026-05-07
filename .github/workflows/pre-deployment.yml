@@ -73,7 +73,7 @@ jobs:
 
       - name: Run architecture enforcement gates
         env:
-          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/world-engine
+          PYTHONPATH: ${{ github.workspace }}/backend:${{ github.workspace }}:${{ github.workspace }}/world-engine
         run: |
           python -m pytest tests/gates/ -v --tb=short --no-cov
         # Gates enforce visitor absence, GoC content/profile separation. No continue-on-error.
