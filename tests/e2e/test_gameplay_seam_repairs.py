@@ -194,85 +194,47 @@ class TestFrontendTurnProjection:
     """PHASE 2 REPAIR: Frontend turn response projection validates critical fields"""
 
     def test_frontend_extracts_canonical_fields(self):
-        """Verify frontend correctly extracts all canonical contract fields."""
-        from frontend.app.routes_play import _build_play_shell_runtime_view
+        """Verify frontend canonical shell projection via normalized story entries."""
+        from frontend.app.routes_play import _normalize_story_entries_for_shell
 
-        # Complete world-engine response
-        payload = {
-            "trace_id": "trace_123",
-            "turn": {
+        story_entries = [
+            {
+                "role": "runtime",
                 "turn_number": 1,
-                "turn_kind": "player",
-                "raw_input": "I look around.",
-                "interpreted_input": {"kind": "action"},
-                "visible_output_bundle": {
-                    "gm_narration": ["You see a room.", "It is quiet."],
-                    "spoken_lines": ["Hello there."],
-                },
-                "validation_outcome": {"status": "approved"},
-                "narrative_commit": {
-                    "committed_scene_id": "scene_1",
-                    "commit_reason_code": "natural_progression",
-                    "situation_status": "stable",
-                    "committed_consequences": ["You feel calm."],
-                },
-                "graph": {"errors": []},
-            },
-            "state": {
-                "committed_state": {
-                    "current_scene_id": "scene_1",
-                    "last_narrative_commit": {},
-                    "last_committed_consequences": ["You feel calm."],
-                },
-                "current_scene_id": "scene_1",
-                "turn_counter": 1,
-            },
-        }
+                "text": "You see a room.\n\nIt is quiet.",
+                "spoken_lines": ["Hello there."],
+                "interpreted_input_kind": "action",
+                "validation_status": "approved",
+                "committed_consequences": ["You feel calm."],
+            }
+        ]
 
-        view = _build_play_shell_runtime_view(payload)
+        normalized = _normalize_story_entries_for_shell(
+            story_entries,
+            shell_state_view={"player_shell_context": {"responder_id": "alain"}},
+            diagnostics_deep=False,
+        )
 
-        # Verify all expected fields are in the view
+        assert len(normalized) == 1
+        view = normalized[0]
         assert view["turn_number"] == 1
-        assert view["player_line"] == "I look around."
-        assert view["interpreted_input_kind"] == "action"
-        assert view["narration_text"] == "You see a room.\n\nIt is quiet."
+        assert view["text"] == "You see a room.\n\nIt is quiet."
         assert view["spoken_lines"] == ["Hello there."]
         assert view["validation_status"] == "approved"
         assert view["committed_consequences"] == ["You feel calm."]
-        assert view["committed_scene_id"] == "scene_1"
-        assert view["current_scene_id"] == "scene_1"
-        assert view["turn_counter"] == 1
 
     def test_frontend_handles_missing_optional_fields_gracefully(self):
-        """Verify frontend gracefully handles missing optional fields."""
-        from frontend.app.routes_play import _build_play_shell_runtime_view
+        """Verify frontend gracefully handles sparse story-entry payloads."""
+        from frontend.app.routes_play import _normalize_story_entries_for_shell
 
-        # Minimal response (missing some optional fields)
-        minimal_payload = {
-            "trace_id": None,
-            "turn": {
-                "turn_number": 1,
-                "turn_kind": "opening",
-                "raw_input": "",
-                "interpreted_input": {"kind": "opening"},
-                "visible_output_bundle": {
-                    "gm_narration": ["Welcome."],
-                },
-                "validation_outcome": {"status": "approved"},
-                "narrative_commit": {
-                    "committed_scene_id": "start",
-                },
-            },
-            "state": {
-                "committed_state": {},
-                "current_scene_id": "start",
-            },
-        }
-
-        # Should not raise, should gracefully handle missing fields
-        view = _build_play_shell_runtime_view(minimal_payload)
-        assert view["narration_text"] == "Welcome."
-        assert view["interpreted_input_kind"] == "opening"
+        normalized = _normalize_story_entries_for_shell(
+            [{"role": "runtime", "turn_number": 1, "text": "Welcome."}],
+            shell_state_view={},
+            diagnostics_deep=False,
+        )
+        assert len(normalized) == 1
+        assert normalized[0]["text"] == "Welcome."
+        assert normalized[0]["spoken_lines"] == []
 
 
 class TestEndToEndGameplayFlow:
