@@ -32,6 +32,7 @@ from app.runtime.manager import RuntimeManager
 from app.story_runtime import StoryRuntimeManager
 from app.story_runtime.live_governance import LiveStoryGovernanceError
 from app.story_runtime.manager import StorySessionContractError
+from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -548,6 +549,15 @@ def create_story_session(
             logger.error(f"[HTTP] ERROR: Failed to load Langfuse adapter for session create: {type(exc).__name__}: {exc}", exc_info=True)
             adapter = None
 
+        default_lf = os.getenv("LANGFUSE_ENVIRONMENT", "development")
+        if adapter and adapter.is_ready:
+            default_lf = str(adapter.config.environment or default_lf)
+        lf_tracing_env = resolve_langfuse_environment(
+            trace_classification.get("trace_origin"),
+            trace_classification.get("execution_tier"),
+            default=default_lf,
+        )
+
         if adapter and adapter.is_ready and adapter.is_enabled():
             if langfuse_trace_id:
                 root_span = adapter.start_span_in_trace(
@@ -558,6 +568,7 @@ def create_story_session(
                         "stage": "world_engine_session_create",
                         "turn_kind": "opening",
                         "session_id": story_session_id,
+                        "environment": lf_tracing_env,
                         **trace_classification,
                     },
                 )
@@ -570,7 +581,7 @@ def create_story_session(
                         "module_id": payload.module_id,
                         "turn_kind": "opening",
                         "session_id": story_session_id,
-                        "environment": adapter.config.environment,
+                        "environment": lf_tracing_env,
                         **trace_classification,
                     },
                 )
@@ -623,7 +634,7 @@ def create_story_session(
                     metadata={
                         "session_id": session.session_id,
                         "turn_counter": session.turn_counter,
-                        "environment": adapter.config.environment if adapter else "unknown",
+                        "environment": lf_tracing_env,
                         **trace_classification,
                         "cost_summary": cost_summary,
                         "path_quality": path_summary.get("quality_class") if path_summary else None,
@@ -694,6 +705,15 @@ def execute_story_turn(
         logger.error(f"[HTTP] ERROR: Failed to load Langfuse adapter: {type(e).__name__}: {e}", exc_info=True)
         adapter = None
 
+    default_lf = os.getenv("LANGFUSE_ENVIRONMENT", "development")
+    if adapter and adapter.is_ready:
+        default_lf = str(adapter.config.environment or default_lf)
+    lf_tracing_env = resolve_langfuse_environment(
+        trace_classification.get("trace_origin"),
+        trace_classification.get("execution_tier"),
+        default=default_lf,
+    )
+
     if adapter and adapter.is_ready and adapter.is_enabled():
         if langfuse_trace_id:
             logger.info(f"[HTTP] Received Langfuse trace_id from Backend: {langfuse_trace_id}")
@@ -711,6 +731,7 @@ def execute_story_turn(
                         "session_id": session_id,
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
+                        "environment": lf_tracing_env,
                         **trace_classification,
                     },
                 )
@@ -735,7 +756,7 @@ def execute_story_turn(
                     "player_input_length": player_input_length,
                     "player_input_sha256": player_input_sha256,
                     "session_id": session_id,
-                    "environment": adapter.config.environment,
+                    "environment": lf_tracing_env,
                     **trace_classification,
                 }
             )
@@ -793,7 +814,7 @@ def execute_story_turn(
                     },
                     metadata={
                         "turn_number": turn_number,
-                        "environment": adapter.config.environment if adapter else "unknown",
+                        "environment": lf_tracing_env,
                         **trace_classification,
                         "cost_summary": cost_summary,
                         "path_quality": path_summary.get("quality_class") if path_summary else None,

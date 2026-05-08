@@ -9,22 +9,27 @@ from contextvars import ContextVar
 from types import SimpleNamespace
 from typing import Any, Iterator, Optional
 
-print(">>> LOADING LANGFUSE ADAPTER MODULE", flush=True)
+from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+
 logger = logging.getLogger(__name__)
-logger.info(">>> LANGFUSE ADAPTER MODULE LOADED")
 
 _active_span_context: ContextVar[Optional[Any]] = ContextVar("active_span", default=None)
+_active_langfuse_client: ContextVar[Optional[Any]] = ContextVar("langfuse_client", default=None)
 
 
 class LangfuseAdapter:
     """Singleton Langfuse adapter for world-engine story execution tracing."""
 
     _instance: Optional[LangfuseAdapter] = None
-    _langfuse_client: Any = None
 
     def __init__(self):
         self.is_ready = False
-        self.client = None
+        self._clients: dict[str, Any] = {}
+        self._public_key = ""
+        self._secret_key = ""
+        self._base_url = "https://cloud.langfuse.com"
+        self._release = "unknown"
+        self._sample_rate = 1.0
         self._config = SimpleNamespace(
             environment=os.getenv("LANGFUSE_ENVIRONMENT", "development"),
             release=os.getenv("LANGFUSE_RELEASE", "unknown"),
@@ -33,14 +38,12 @@ class LangfuseAdapter:
 
         # Fetch runtime observability settings from the backend database.
         try:
-            logger.info("Fetching Langfuse credentials from backend...")
             credentials = self._fetch_credentials_from_backend()
-            logger.info(f"Credentials result: {credentials}")
             if not credentials:
-                logger.info("Langfuse credentials not configured in backend")
+                logger.info("[LANGFUSE] Credentials not configured in backend")
                 return
             if not credentials.get("enabled"):
-                logger.info("Langfuse disabled in backend settings")
+                logger.info("[LANGFUSE] Disabled in backend settings")
                 return
 
             public_key = credentials.get("public_key", "").strip()
@@ -53,28 +56,51 @@ class LangfuseAdapter:
             self._config.release = release
             self._config.sample_rate = sample_rate
 
-            logger.info(f"Langfuse config: base_url={base_url}, has_public_key={bool(public_key)}, has_secret_key={bool(secret_key)}")
             if not public_key or not secret_key:
-                logger.info("Langfuse credentials incomplete")
+                logger.info("[LANGFUSE] Credentials incomplete (missing key)")
                 return
 
-            logger.info("Importing Langfuse SDK...")
-            from langfuse import Langfuse
-            logger.info(f"Initializing Langfuse client with base_url={base_url}")
-            self.client = Langfuse(
-                public_key=public_key,
-                secret_key=secret_key,
-                base_url=base_url,
-                environment=environment,
-                release=release,
-                sample_rate=sample_rate,
-            )
+            self._public_key = public_key
+            self._secret_key = secret_key
+            self._base_url = base_url
+            self._release = release
+            self._sample_rate = sample_rate
             self.is_ready = True
-            logger.info(f"[LANGFUSE] ✓ Adapter initialized successfully: is_ready=True, client={type(self.client).__name__}")
+            logger.info("[LANGFUSE] ✓ Credentials loaded; Langfuse clients are created per trace environment")
         except ImportError as e:
             logger.warning(f"[LANGFUSE] SDK not available: {e}")
         except Exception as e:
             logger.error(f"[LANGFUSE] Failed to initialize: {str(e)}", exc_info=True)
+
+    @property
+    def client(self) -> Any | None:
+        """Default-environment client (backward compatibility)."""
+        if not self.is_ready:
+            return None
+        return self._get_client(self._config.environment)
+
+    def _get_client(self, environment: str | None) -> Any | None:
+        """Return a Langfuse SDK client for ``environment`` (cached)."""
+        if not self.is_ready or not self._public_key or not self._secret_key:
+            return None
+        env_key = (environment or self._config.environment or "development").strip() or "development"
+        if env_key not in self._clients:
+            try:
+                from langfuse import Langfuse
+
+                self._clients[env_key] = Langfuse(
+                    public_key=self._public_key,
+                    secret_key=self._secret_key,
+                    base_url=self._base_url,
+                    environment=env_key,
+                    release=self._release,
+                    sample_rate=self._sample_rate,
+                )
+                logger.info(f"[LANGFUSE] Created Langfuse client for environment={env_key!r}")
+            except Exception as e:
+                logger.error(f"[LANGFUSE] Failed to create client for {env_key!r}: {e}", exc_info=True)
+                return None
+        return self._clients.get(env_key)
 
     def _fetch_credentials_from_backend(self) -> Optional[dict[str, str]]:
         """Fetch Langfuse credentials from backend database."""
@@ -82,26 +108,15 @@ class LangfuseAdapter:
             import httpx
             backend_url = os.getenv("BACKEND_RUNTIME_CONFIG_URL") or os.getenv("BACKEND_INTERNAL_URL", "http://localhost:8000")
             internal_token = os.getenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
-
-            logger.info(f"Backend URL: {backend_url}")
-            logger.info(f"Token present: {bool(internal_token)}")
-
             if not internal_token:
-                logger.warning("INTERNAL_RUNTIME_CONFIG_TOKEN not set")
+                logger.debug("[LANGFUSE] INTERNAL_RUNTIME_CONFIG_TOKEN not set; skipping credential fetch")
                 return None
-
             endpoint = f"{backend_url}/api/v1/internal/observability/langfuse-credentials"
-            logger.info(f"Calling: {endpoint}")
-
             with httpx.Client(timeout=5.0) as client:
-                response = client.get(
-                    endpoint,
-                    headers={"X-Internal-Config-Token": internal_token},
-                )
-                logger.info(f"Response status: {response.status_code}")
+                response = client.get(endpoint, headers={"X-Internal-Config-Token": internal_token})
                 if response.status_code == 200:
                     data = response.json().get("data", {})
-                    logger.info(f"Got credentials from backend: enabled={data.get('enabled')}, has_keys={bool(data.get('secret_key'))}")
+                    logger.info("[LANGFUSE] Credentials fetched from backend: enabled=%s", data.get("enabled"))
                     return {
                         "enabled": bool(data.get("enabled")),
                         "public_key": data.get("public_key", ""),
@@ -111,10 +126,9 @@ class LangfuseAdapter:
                         "release": data.get("release", "unknown"),
                         "sample_rate": data.get("sample_rate", 1.0),
                     }
-                else:
-                    logger.warning(f"Unexpected response status: {response.status_code}, body: {response.text}")
+                logger.warning("[LANGFUSE] Backend credential endpoint returned %s", response.status_code)
         except Exception as e:
-            logger.error(f"Failed to fetch credentials from backend: {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to fetch credentials from backend: %s", e, exc_info=True)
         return None
 
     @classmethod
@@ -141,17 +155,28 @@ class LangfuseAdapter:
             return None
 
         try:
-            trace_metadata = metadata or {}
+            trace_metadata = dict(metadata or {})
             trace_metadata.setdefault("session_id", session_id)
+            env = resolve_langfuse_environment(
+                trace_metadata.get("trace_origin"),
+                trace_metadata.get("execution_tier"),
+                default=str(self._config.environment or "development"),
+            )
+            trace_metadata.setdefault("wos_langfuse_environment", env)
+            client = self._get_client(env)
+            if not client:
+                logger.warning("[LANGFUSE] start_trace skipped: no client for environment %r", env)
+                return None
 
             # Use Langfuse SDK v4.x API: start_observation with as_type="span"
-            span = self.client.start_observation(
+            span = client.start_observation(
                 as_type="span",
                 name=name,
                 trace_context={"trace_id": trace_id} if trace_id else None,
                 input=input or {"session_id": session_id},
                 metadata=trace_metadata,
             )
+            _active_langfuse_client.set(client)
             logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
         except Exception as e:
@@ -171,13 +196,25 @@ class LangfuseAdapter:
             logger.info("[LANGFUSE] start_span_in_trace skipped: adapter not enabled")
             return None
         try:
-            span = self.client.start_observation(
+            md = dict(metadata or {})
+            env = resolve_langfuse_environment(
+                md.get("trace_origin"),
+                md.get("execution_tier"),
+                default=str(self._config.environment or "development"),
+            )
+            md.setdefault("wos_langfuse_environment", env)
+            client = self._get_client(env)
+            if not client:
+                logger.warning("[LANGFUSE] start_span_in_trace skipped: no client for environment %r", env)
+                return None
+            span = client.start_observation(
                 as_type="span",
                 name=name,
                 trace_context={"trace_id": trace_id},
                 input=input or {},
-                metadata=metadata or {},
+                metadata=md,
             )
+            _active_langfuse_client.set(client)
             logger.info(f"[LANGFUSE] span created in trace: name={name}, trace_id={trace_id}")
             return span
         except Exception as e:
@@ -256,6 +293,8 @@ class LangfuseAdapter:
 
     def set_active_span(self, span: Optional[Any]) -> None:
         """Set the currently active span for child operations (thread-safe via ContextVar)."""
+        if span is None:
+            _active_langfuse_client.set(None)
         span_name = getattr(span, 'name', 'unknown') if span else None
         span_id = getattr(span, 'span_id', 'unknown') if span else None
         logger.info(f"[LANGFUSE] set_active_span: name={span_name}, span_id={span_id}")
@@ -403,10 +442,11 @@ class LangfuseAdapter:
         # Trace-level duplicate: Langfuse UI / trace JSON export `trace.scores` list trace-level
         # scores; `span.score()` attaches to the observation only (see ADR-0033 §13.5).
         try:
-            if trace_id and self.client:
+            lf_client = _active_langfuse_client.get() or self.client
+            if trace_id and lf_client:
                 meta = dict(metadata or {})
                 meta.setdefault("score_attachment", "trace_duplicate")
-                self.client.create_score(
+                lf_client.create_score(
                     name=name,
                     value=value,
                     trace_id=str(trace_id),
@@ -419,14 +459,32 @@ class LangfuseAdapter:
                 exc_info=True,
             )
 
+    @classmethod
+    def reset_instance(cls) -> None:
+        """Reset singleton — flush existing clients then discard instance (for testing)."""
+        if cls._instance is not None:
+            for _env, c in list(cls._instance._clients.items()):
+                try:
+                    c.flush()
+                except Exception:
+                    pass
+            cls._instance._clients.clear()
+        cls._instance = None
+
+    def shutdown(self) -> None:
+        """Gracefully shutdown — flush all environment clients."""
+        self.flush()
+        self._clients.clear()
+
     def flush(self) -> None:
         """Flush pending traces to Langfuse."""
-        if self.client:
-            logger.info(f"[LANGFUSE] Flushing pending traces to Langfuse...")
+        if not self._clients:
+            logger.warning("[LANGFUSE] Flush called but no Langfuse clients exist")
+            return
+        logger.info("[LANGFUSE] Flushing pending traces to Langfuse (%s environments)...", len(self._clients))
+        for env_key, client in list(self._clients.items()):
             try:
-                self.client.flush()
-                logger.info(f"[LANGFUSE] Flush completed successfully")
+                client.flush()
+                logger.info("[LANGFUSE] Flush completed for environment=%r", env_key)
             except Exception as e:
-                logger.error(f"[LANGFUSE] Failed to flush Langfuse traces: {str(e)}", exc_info=True)
-        else:
-            logger.warning(f"[LANGFUSE] Flush called but client is None")
+                logger.error("[LANGFUSE] Failed to flush Langfuse traces (%r): %s", env_key, e, exc_info=True)

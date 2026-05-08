@@ -18,6 +18,8 @@ import logging
 from datetime import datetime
 from contextvars import ContextVar
 
+from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
+
 logger = logging.getLogger(__name__)
 
 # Context variable for tracking active span
@@ -111,26 +113,18 @@ class LangfuseAdapter:
 
     def __init__(self, config: Optional[LangfuseConfig] = None):
         self.config = config or LangfuseConfig()
-        self._client: Optional[Langfuse] = None
+        self._clients: dict[str, Any] = {}
         self._active_trace: Optional[Any] = None
-        self.is_ready: bool = False
+        self.is_ready: bool = bool(self.config.is_ready)
 
-        if self.config.is_ready:
-            try:
-                self._client = Langfuse(
-                    public_key=self.config.public_key,
-                    secret_key=self.config.secret_key,
-                    base_url=self.config.base_url,
-                    environment=self.config.environment,
-                    release=self.config.release,
-                    sample_rate=self.config.sample_rate,
-                )
-                self.is_ready = True
-                logger.info(f"Langfuse initialized: {self.config.environment}@{self.config.base_url}")
-            except Exception as e:
-                logger.exception(f"Failed to initialize Langfuse: {e}. Tracing disabled.")
-                self._client = None
-                self.is_ready = False
+        if self.is_ready:
+            logger.info(
+                "Langfuse adapter ready (lazy clients per trace environment); default=%s @ %s",
+                self.config.environment,
+                self.config.base_url,
+            )
+        else:
+            logger.info("Langfuse adapter not ready (disabled, invalid config, or SDK missing)")
 
     @classmethod
     def get_instance(cls, config: Optional[LangfuseConfig] = None) -> "LangfuseAdapter":
@@ -142,21 +136,44 @@ class LangfuseAdapter:
     @classmethod
     def reset_instance(cls) -> None:
         """Reset singleton (useful for testing)."""
-        if cls._instance is not None and cls._instance._client:
-            try:
-                cls._instance._client.flush()
-            except Exception:
-                pass
+        if cls._instance is not None:
+            for _env, client in list(cls._instance._clients.items()):
+                try:
+                    client.flush()
+                except Exception:
+                    pass
+            cls._instance._clients.clear()
         cls._instance = None
 
     def is_enabled(self) -> bool:
         """Check if tracing is enabled and client is ready."""
-        return self.is_ready and self._client is not None
+        return self.is_ready
+
+    def _get_client(self, environment: str | None) -> Optional[Any]:
+        """Return a Langfuse SDK client for ``environment`` (cached)."""
+        if not self.is_ready or not LANGFUSE_AVAILABLE or Langfuse is None:
+            return None
+        env_key = (environment or self.config.environment or "development").strip() or "development"
+        if env_key not in self._clients:
+            try:
+                self._clients[env_key] = Langfuse(
+                    public_key=self.config.public_key,
+                    secret_key=self.config.secret_key,
+                    base_url=self.config.base_url,
+                    environment=env_key,
+                    release=self.config.release,
+                    sample_rate=self.config.sample_rate,
+                )
+                logger.info("Langfuse client created for environment=%r", env_key)
+            except Exception as e:
+                logger.exception("Failed to create Langfuse client for %r: %s", env_key, e)
+                return None
+        return self._clients.get(env_key)
 
     @property
-    def client(self) -> Optional[Langfuse]:
-        """Public accessor for the Langfuse client instance."""
-        return self._client
+    def client(self) -> Optional[Any]:
+        """Default-environment client (backward compatibility)."""
+        return self._get_client(self.config.environment)
 
     def _redact_value(self, value: Any, key: str = "") -> Any:
         """Redact sensitive values based on key patterns."""
@@ -226,20 +243,29 @@ class LangfuseAdapter:
             return None
 
         try:
-            trace_metadata = metadata or {}
+            trace_metadata = dict(metadata or {})
             trace_metadata.update({
                 "session_id": session_id,
                 "run_id": run_id,
                 "turn_id": turn_id,
                 "module_id": module_id,
             })
+            env = resolve_langfuse_environment(
+                trace_metadata.get("trace_origin"),
+                trace_metadata.get("execution_tier"),
+                default=str(self.config.environment or "development"),
+            )
+            trace_metadata.setdefault("wos_langfuse_environment", env)
             trace_metadata = self._sanitize_metadata({k: v for k, v in trace_metadata.items() if v is not None})
+            client = self._get_client(env)
+            if not client:
+                return None
 
             # v4 API: start_observation returns a span object (not context manager here)
             trace_context = {"trace_id": trace_id} if trace_id else None
 
             def _create():
-                return self._client.start_observation(
+                return client.start_observation(
                     as_type="span",
                     name=name,
                     trace_context=trace_context,
@@ -259,8 +285,9 @@ class LangfuseAdapter:
 
     def create_trace_id(self, seed: Optional[str] = None) -> str:
         """Create a Langfuse-compatible 32-char hex trace ID."""
-        if self._client:
-            return self._client.create_trace_id(seed=seed)
+        c = self.client
+        if c:
+            return c.create_trace_id(seed=seed)
         if LANGFUSE_AVAILABLE and Langfuse:
             return Langfuse.create_trace_id(seed=seed)
         if seed:
@@ -612,20 +639,16 @@ class LangfuseAdapter:
 
     def flush(self) -> None:
         """Flush pending traces."""
-        if self._client:
+        for env_key, client in list(self._clients.items()):
             try:
-                self._client.flush()
+                client.flush()
             except Exception as e:
-                logger.warning(f"Failed to flush Langfuse: {e}")
+                logger.warning("Failed to flush Langfuse (%r): %s", env_key, e)
 
     def shutdown(self) -> None:
         """Gracefully shutdown Langfuse client."""
-        if self._client:
-            try:
-                self._client.flush()
-                self._client = None
-            except Exception as e:
-                logger.warning(f"Failed to shutdown Langfuse: {e}")
+        self.flush()
+        self._clients.clear()
 
 
 def get_langfuse_adapter() -> LangfuseAdapter:

@@ -20,8 +20,11 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
 
     adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
     adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
     client = MagicMock()
-    adapter.client = client
+    adapter._clients = {"development": client}
     span = MagicMock()
     span.trace_id = "trace-id-adr0033"
     span.span_id = "obs-id-span"
@@ -1394,3 +1397,136 @@ def test_opening_score_split_true_successful_live_opening_sets_both_live_scores(
     assert score_values["opening_shape_contract_pass"] == 1.0
     assert score_values["live_runtime_contract_pass"] == 1.0
     assert score_values["live_opening_contract_pass"] == 1.0
+
+
+def _live_openai_path_summary_turn_0(**overrides) -> dict:
+    """Canonical live OpenAI opening path_summary — all subgates satisfied."""
+    base = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "openai",
+        "final_adapter": "openai",
+        "selected_player_role": "annette",
+        "human_actor_id": "annette",
+    }
+    base.update(overrides)
+    return base
+
+
+def _live_openai_blocks() -> list[dict]:
+    return [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+
+
+def test_live_opening_subgates_all_pass_live_openai(monkeypatch):
+    """RUNTIME-CONTRACT-01 A: live OpenAI turn-0, all subgates true → live_opening_contract_pass=1, no failure reasons."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    _emit_langfuse_evidence_observations(
+        path_summary=_live_openai_path_summary_turn_0(),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(_live_openai_blocks()),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["live_opening_contract_pass"] == 1.0
+
+    meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
+    assert meta["live_opening_failure_reasons"] == []
+    subgates = meta["live_opening_subgates"]
+    assert all(subgates.values()), f"Expected all subgates true, got: {subgates}"
+
+
+def test_live_opening_subgates_missing_trace_origin(monkeypatch):
+    """RUNTIME-CONTRACT-01 B: trace_origin missing → live_opening=0, failure_reasons contains trace_origin_live_ui."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = _live_openai_path_summary_turn_0(trace_origin=None)
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(_live_openai_blocks()),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+    meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
+    assert "trace_origin_live_ui" in meta["live_opening_failure_reasons"]
+    assert meta["live_opening_subgates"]["trace_origin_live_ui"] is False
+
+
+def test_live_opening_subgates_canonical_player_flow_false(monkeypatch):
+    """RUNTIME-CONTRACT-01 C: canonical_player_flow=False → live_opening=0, failure_reasons contains canonical_player_flow."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = _live_openai_path_summary_turn_0(canonical_player_flow=False)
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(_live_openai_blocks()),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+    meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
+    assert "canonical_player_flow" in meta["live_opening_failure_reasons"]
+    assert meta["live_opening_subgates"]["canonical_player_flow"] is False
+
+
+def test_live_opening_subgates_final_adapter_ldss(monkeypatch):
+    """RUNTIME-CONTRACT-01 D: final_adapter=ldss_fallback → live_opening=0, not_ldss_fallback in failure_reasons."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    # event adapter stays "openai" so non_mock_generation_pass=1 and live_runtime_contract_pass can be 1;
+    # only path_summary.final_adapter is ldss_fallback to isolate the not_ldss_fallback subgate.
+    path_summary = _live_openai_path_summary_turn_0(final_adapter="ldss_fallback")
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(_live_openai_blocks()),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+    meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
+    assert "not_ldss_fallback" in meta["live_opening_failure_reasons"]
+    assert meta["live_opening_subgates"]["not_ldss_fallback"] is False
+
+
+def test_live_opening_subgates_role_mismatch_is_informational_not_gated(monkeypatch):
+    """RUNTIME-CONTRACT-01 E: selected_player_role != human_actor_id does not gate live_opening_contract_pass.
+
+    Role mismatch is tracked in metadata for debugging but is not a hard subgate condition.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = _live_openai_path_summary_turn_0(
+        selected_player_role="annette",
+        human_actor_id="alain",  # mismatch
+    )
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(_live_openai_blocks()),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    # Role mismatch alone must NOT block live_opening_contract_pass.
+    assert score_values["live_opening_contract_pass"] == 1.0
+
+    meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
+    assert meta["live_opening_failure_reasons"] == []

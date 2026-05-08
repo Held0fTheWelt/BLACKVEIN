@@ -1099,6 +1099,7 @@ def _emit_langfuse_evidence_observations(
                     "session_id": path_summary.get("session_id"),
                     "module_id": path_summary.get("module_id"),
                     "turn_number": path_summary.get("turn_number"),
+                    "opening_turn": int(path_summary.get("turn_number") or 0) == 0,
                     "turn_kind": path_summary.get("turn_kind"),
                     "adapter": adapter_name,
                     "adapter_invocation_mode": path_summary.get("adapter_invocation_mode"),
@@ -1214,23 +1215,31 @@ def _emit_langfuse_evidence_observations(
         and qc not in {"degraded", "failed"}
     )
     deterministic_scores["live_runtime_visible_surface_pass"] = 1.0 if surface_ok else 0.0
-    final_adapter = str(path_summary.get("final_adapter") or path_summary.get("adapter") or "").strip().lower()
-    trace_origin = str(path_summary.get("trace_origin") or "").strip().lower()
-    execution_tier = str(path_summary.get("execution_tier") or "").strip().lower()
-    canonical_player_flow = bool(path_summary.get("canonical_player_flow"))
-    live_opening_ok = (
-        _turn_number == 0
-        and trace_origin == "live_ui"
-        and execution_tier == "live"
-        and canonical_player_flow
-        and deterministic_scores["opening_shape_contract_pass"] == 1.0
-        and deterministic_scores["live_runtime_contract_pass"] == 1.0
-        and final_adapter not in {"ldss_fallback"}
-        and deterministic_scores["fallback_absent"] == 1.0
-        and deterministic_scores["non_mock_generation_pass"] == 1.0
-        and qc not in {"degraded", "failed"}
-    )
-    deterministic_scores["live_opening_contract_pass"] = 1.0 if live_opening_ok else 0.0
+    # live_opening_contract_pass is only meaningful on the opening turn (turn 0).
+    # Writing it on subsequent turns would produce false negatives that pollute
+    # the trace score history and make passing openings appear to have failed.
+    _live_subgates: dict[str, bool] = {}
+    _live_failure_reasons: list[str] = []
+    if _turn_number == 0:
+        final_adapter = str(path_summary.get("final_adapter") or path_summary.get("adapter") or "").strip().lower()
+        trace_origin = str(path_summary.get("trace_origin") or "").strip().lower()
+        execution_tier = str(path_summary.get("execution_tier") or "").strip().lower()
+        canonical_player_flow = bool(path_summary.get("canonical_player_flow"))
+        _live_subgates = {
+            "turn_0": True,
+            "trace_origin_live_ui": trace_origin == "live_ui",
+            "execution_tier_live": execution_tier == "live",
+            "canonical_player_flow": canonical_player_flow,
+            "opening_shape_pass": deterministic_scores["opening_shape_contract_pass"] == 1.0,
+            "live_runtime_pass": deterministic_scores["live_runtime_contract_pass"] == 1.0,
+            "not_ldss_fallback": final_adapter not in {"ldss_fallback"},
+            "fallback_absent": deterministic_scores["fallback_absent"] == 1.0,
+            "non_mock_generation": deterministic_scores["non_mock_generation_pass"] == 1.0,
+            "quality_class_ok": qc not in {"degraded", "failed"},
+        }
+        _live_failure_reasons = [k for k, v in _live_subgates.items() if not v]
+        live_opening_ok = all(_live_subgates.values())
+        deterministic_scores["live_opening_contract_pass"] = 1.0 if live_opening_ok else 0.0
     canonical_signals = _build_canonical_degradation_signals(path_summary)
     degradation_chain = _build_degradation_chain(path_summary)
     degradation_prose_summary = _build_degradation_prose_summary(path_summary)
@@ -1245,6 +1254,8 @@ def _emit_langfuse_evidence_observations(
         "degradation_chain": degradation_chain,
         "degradation_summary": degradation_prose_summary,
         "live_opening_failure_reason": live_opening_failure_reason,
+        "live_opening_subgates": _live_subgates,
+        "live_opening_failure_reasons": _live_failure_reasons,
         # ADR-0033 §13.10 primary-vs-final clarity (metadata only; no gate semantics).
         "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
         "primary_attempt_model": path_summary.get("primary_attempt_model"),

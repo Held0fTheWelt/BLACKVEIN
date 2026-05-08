@@ -171,6 +171,54 @@ def _first_score_metadata(raw_trace: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _is_opening_trace(raw_trace: dict[str, Any]) -> bool:
+    """Return True when this trace is a turn-0 (opening) trace.
+
+    Detection order (first match wins):
+    1. trace.name == "world-engine.session.create"
+    2. Any score row has metadata.turn_number == 0
+    3. trace.metadata.turn_number == 0
+    """
+    trace_name = str(raw_trace.get("name") or "").strip()
+    if trace_name == "world-engine.session.create":
+        return True
+    for row in (raw_trace.get("scores") or []):
+        if not isinstance(row, dict):
+            continue
+        row_meta = _coerce_dict_or_json(row.get("metadata"))
+        try:
+            if int(row_meta.get("turn_number", -1)) == 0:
+                return True
+        except (TypeError, ValueError):
+            pass
+    top_meta = _extract_metadata(raw_trace)
+    try:
+        if int(top_meta.get("turn_number", -1)) == 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
+def _live_opening_value(
+    det_scores: dict[str, Any],
+    raw_trace: dict[str, Any],
+) -> float | str:
+    """Return live_opening_contract_pass as float, or "not_applicable" for turn-1+ traces.
+
+    Rules:
+    - Score present (0.0 or 1.0) → return as float regardless of turn.
+    - Score absent on opening trace (turn 0) → 0.0 (missing = gate fail).
+    - Score absent on non-opening trace (turn 1+) → "not_applicable".
+    """
+    val = det_scores.get("live_opening_contract_pass")
+    if val is not None:
+        return float(val)
+    if _is_opening_trace(raw_trace):
+        return 0.0
+    return "not_applicable"
+
+
 def _sif(ev: dict[str, Any], field: str, value: Any) -> None:
     """Set ev[field] = value only if the field is currently None."""
     if value is not None and ev.get(field) is None:
@@ -730,16 +778,21 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             if not isinstance(row, dict):
                 continue
             ev, _src = _extract_normalized_wos_evidence(row)
+            det_scores, _ = _extract_scores_split(row)
+            is_opening = _is_opening_trace(row)
+            lo_val = _live_opening_value(det_scores, row)
             matrix.append(
                 {
                     "trace_id": row.get("id"),
+                    "trace_name": row.get("name"),
+                    "is_opening_trace": is_opening,
                     "selected_player_role": ev.get("selected_player_role"),
                     "trace_origin": ev.get("trace_origin"),
                     "execution_tier": ev.get("execution_tier"),
                     "canonical_player_flow": ev.get("canonical_player_flow"),
                     "opening_shape_contract_pass": ev.get("opening_shape_contract_pass"),
                     "live_runtime_contract_pass": ev.get("live_runtime_contract_pass"),
-                    "live_opening_contract_pass": ev.get("live_opening_contract_pass"),
+                    "live_opening_contract_pass": lo_val,
                     "final_adapter": ev.get("final_adapter"),
                     "quality_class": ev.get("quality_class"),
                     "narration_summary_synthesized": _extract_metadata(row).get("narration_summary_synthesized"),
@@ -786,15 +839,21 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "hint": "Pass allow_non_live: true to inspect non-live traces",
                 }
         det_scores, judge_scores = _extract_scores_split(raw)
+        is_opening = _is_opening_trace(raw)
+        lo_val = _live_opening_value(det_scores, raw)
+        enriched_det = dict(det_scores)
+        enriched_det["live_opening_contract_pass"] = lo_val
         return {
             "ok": True,
             "trace_id": trace_id,
+            "is_opening_trace": is_opening,
+            "trace_name": raw.get("name"),
             "trace_origin": meta.get("trace_origin"),
             "execution_tier": meta.get("execution_tier"),
             "canonical_player_flow": meta.get("canonical_player_flow"),
             "selected_player_role": meta.get("selected_player_role"),
             "human_actor_id": meta.get("human_actor_id"),
-            "deterministic_scores": det_scores,
+            "deterministic_scores": enriched_det,
             "judge_scores": judge_scores,
         }
 
@@ -834,6 +893,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 continue
             role_counts[r_key] = role_counts.get(r_key, 0) + 1
             det_scores, judge_scores = _extract_scores_split(row)
+            lo_val = _live_opening_value(det_scores, row)
+            is_opening = _is_opening_trace(row)
 
             def _jcat(jname: str, _j: dict = judge_scores) -> str | None:
                 j = _j.get(jname)
@@ -841,14 +902,16 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     return None
                 return j.get("category") or (str(j.get("value") or "") or None)
 
-            live_opening_val = det_scores.get("live_opening_contract_pass")
-            live_opening_str = (
-                "pass" if live_opening_val == 1.0
-                else "fail" if live_opening_val == 0.0
-                else str(live_opening_val or "—")
-            )
+            if lo_val == "not_applicable":
+                live_opening_str = "not_applicable"
+            elif lo_val == 1.0:
+                live_opening_str = "pass"
+            elif lo_val == 0.0:
+                live_opening_str = "fail"
+            else:
+                live_opening_str = str(lo_val or "—")
             main_issue: str | None = None
-            if live_opening_val == 0.0:
+            if lo_val == 0.0 and is_opening:
                 main_issue = "live_opening_fail"
             elif det_scores.get("live_runtime_contract_pass") == 0.0:
                 main_issue = "runtime_contract_fail"
@@ -867,6 +930,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             matrix.append({
                 "role": role,
                 "trace_id": row.get("id"),
+                "trace_name": row.get("name"),
+                "is_opening_trace": is_opening,
                 "live_opening": live_opening_str,
                 "opening_judge_category": _jcat("opening_experience_judge"),
                 "role_anchor_category": _jcat("role_anchor_quality_judge"),
@@ -914,8 +979,9 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 },
             }
         det_scores, judge_scores = _extract_scores_split(raw)
+        is_opening = _is_opening_trace(raw)
         role = str(meta.get("selected_player_role") or "").strip().title() or "Unknown"
-        live_opening = float(det_scores.get("live_opening_contract_pass") or 0.0)
+        lo_val = _live_opening_value(det_scores, raw)
         live_runtime = float(det_scores.get("live_runtime_contract_pass") or 0.0)
 
         def _jcat(name: str) -> str | None:
@@ -927,8 +993,12 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "Do not weaken live_opening_contract_pass",
             "Do not let LLM judge override deterministic actor-lane gates",
         ]
-        summary_parts: list[str] = [f"This {role} live opening"]
-        if live_opening < 1.0:
+        summary_parts: list[str] = [f"This {role} live opening"] if is_opening else [f"This {role} live continuation trace"]
+        if lo_val == "not_applicable":
+            summary_parts.append(
+                "is a continuation turn (turn 1+); live_opening_contract_pass is not evaluated here."
+            )
+        elif lo_val < 1.0:
             recommended_next_card = "RUNTIME-CONTRACT-01"
             summary_parts.append(
                 "failed deterministic runtime gates — contract repair required before quality work."
@@ -986,13 +1056,17 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             if include_raw_reasoning and detail.get("reasoning"):
                 entry["reasoning"] = detail["reasoning"]
             evidence_judges[jname] = entry
+        enriched_det = dict(det_scores)
+        enriched_det["live_opening_contract_pass"] = lo_val
         return {
             "ok": True,
             "trace_id": trace_id,
+            "is_opening_trace": is_opening,
+            "trace_name": raw.get("name"),
             "ai_context_summary": " ".join(summary_parts),
             "recommended_next_card": recommended_next_card,
             "must_not_change": must_not_change,
-            "evidence": {"deterministic": det_scores, "judges": evidence_judges},
+            "evidence": {"deterministic": enriched_det, "judges": evidence_judges},
         }
 
     return {
