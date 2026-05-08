@@ -591,3 +591,40 @@ def test_opening_narration_synth_alain_fixture_has_three_narrator_paragraphs():
     summary = result["generation"]["metadata"]["structured_output"]["narration_summary"]
     assert summary.count("\n\n") >= 2
     assert "Alain" in summary
+
+
+def test_opening_narration_synth_fires_for_configured_model_fallback():
+    """Synthesis must fire even when fallback_used=True (configured model fallback, e.g. gpt-5-nano).
+
+    Root cause: fallback_active was True for any fallback_used=True generation, blocking synthesis.
+    The fix scopes fallback_active to LDSS adapters only; configured model fallbacks (which
+    produce the same structured format) must reach synthesis so the gate does not reject on
+    empty narration.
+    """
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    generation = _lane_only_generation()
+    generation["fallback_used"] = True
+    generation["metadata"]["fallback_model_id"] = "openai_gpt_5_4_nano"
+    generation["metadata"]["fallback_reason"] = "primary_model_invocation_failed"
+    state["generation"] = generation
+
+    result = graph._proposal_normalize(state)
+
+    structured = result["generation"]["metadata"]["structured_output"]
+    summary = structured.get("narration_summary")
+    assert isinstance(summary, str) and summary.strip(), (
+        "Synthesis must fire for configured model fallback output with actor lanes"
+    )
+    assert result["generation"]["metadata"].get("narration_summary_synthesized") is True
+
+    outcome = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=result["proposed_state_effects"],
+        generation=result["generation"],
+        actor_lane_summary=_actor_lane_summary_from_structured(structured),
+        actor_lane_context=state["actor_lane_context"],
+    )
+    assert outcome["reason"] != "dramatic_effect_reject_empty_fluency", (
+        "Gate must not reject with empty_fluency after synthesis on fallback output"
+    )

@@ -273,6 +273,7 @@ def test_summarize_opening_judge_scores_builds_matrix():
     rows = [
         {
             "id": "lf-a-1",
+            "name": "world-engine.session.create",
             "metadata": {
                 "trace_origin": "live_ui",
                 "execution_tier": "live",
@@ -286,6 +287,7 @@ def test_summarize_opening_judge_scores_builds_matrix():
         },
         {
             "id": "lf-b-1",
+            "name": "world-engine.session.create",
             "metadata": {
                 "trace_origin": "live_ui",
                 "execution_tier": "live",

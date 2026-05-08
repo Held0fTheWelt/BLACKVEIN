@@ -1,0 +1,336 @@
+{
+  "assessment": {
+    "issues": [
+      "c828854ea0d5c29d7ea41f8a25d15772: live_runtime_contract_pass=0 (expected 1)",
+      "c828854ea0d5c29d7ea41f8a25d15772: live_opening_contract_pass=0.0 (expected 1)",
+      "81155c9a84e53a099c25a92f3236bc78: live_runtime_contract_pass=0 (expected 1)",
+      "81155c9a84e53a099c25a92f3236bc78: live_opening_contract_pass=0.0 (expected 1)"
+    ],
+    "ok": false,
+    "rows": [
+      {
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": 0,
+        "opening_shape_contract_pass": 1,
+        "trace_id": "c828854ea0d5c29d7ea41f8a25d15772",
+        "trace_name": "world-engine.session.create"
+      },
+      {
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": 0,
+        "opening_shape_contract_pass": 1,
+        "trace_id": "81155c9a84e53a099c25a92f3236bc78",
+        "trace_name": "world-engine.session.create"
+      }
+    ]
+  },
+  "langfuse_trace_scores": {
+    "81155c9a84e53a099c25a92f3236bc78": {
+      "canonical_player_flow": true,
+      "deterministic_scores": {
+        "actor_lane_safety_pass": 1,
+        "fallback_absent": 0,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": 0,
+        "live_runtime_visible_surface_pass": 0,
+        "non_mock_generation_pass": 0,
+        "opening_contract_pass": 1,
+        "opening_shape_contract_pass": 1,
+        "rag_context_attached": 1,
+        "usage_present": 1,
+        "visible_output_present": 1
+      },
+      "execution_tier": "live",
+      "human_actor_id": null,
+      "is_opening_trace": true,
+      "judge_scores": {},
+      "ok": true,
+      "selected_player_role": null,
+      "trace_id": "81155c9a84e53a099c25a92f3236bc78",
+      "trace_name": "world-engine.session.create",
+      "trace_origin": "live_ui"
+    },
+    "c828854ea0d5c29d7ea41f8a25d15772": {
+      "canonical_player_flow": true,
+      "deterministic_scores": {
+        "actor_lane_safety_pass": 1,
+        "fallback_absent": 0,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": 0,
+        "live_runtime_visible_surface_pass": 0,
+        "non_mock_generation_pass": 0,
+        "opening_contract_pass": 1,
+        "opening_shape_contract_pass": 1,
+        "rag_context_attached": 1,
+        "usage_present": 1,
+        "visible_output_present": 1
+      },
+      "execution_tier": "live",
+      "human_actor_id": null,
+      "is_opening_trace": true,
+      "judge_scores": {},
+      "ok": true,
+      "selected_player_role": null,
+      "trace_id": "c828854ea0d5c29d7ea41f8a25d15772",
+      "trace_name": "world-engine.session.create",
+      "trace_origin": "live_ui"
+    }
+  },
+  "opening_quality_contexts": {
+    "81155c9a84e53a099c25a92f3236bc78": {
+      "ai_context_summary": "This Annette live opening failed deterministic runtime gates \u2014 contract repair required before quality work.",
+      "evidence": {
+        "deterministic": {
+          "actor_lane_safety_pass": 1,
+          "fallback_absent": 0,
+          "live_opening_contract_pass": 0.0,
+          "live_runtime_contract_pass": 0,
+          "live_runtime_visible_surface_pass": 0,
+          "non_mock_generation_pass": 0,
+          "opening_contract_pass": 1,
+          "opening_shape_contract_pass": 1,
+          "rag_context_attached": 1,
+          "usage_present": 1,
+          "visible_output_present": 1
+        },
+        "judges": {}
+      },
+      "is_opening_trace": true,
+      "must_not_change": [
+        "Do not weaken live_opening_contract_pass",
+        "Do not let LLM judge override deterministic actor-lane gates",
+        "Do not attempt style/content repairs until runtime gates pass"
+      ],
+      "ok": true,
+      "recommended_next_card": "RUNTIME-CONTRACT-01",
+      "trace_id": "81155c9a84e53a099c25a92f3236bc78",
+      "trace_name": "world-engine.session.create"
+    },
+    "c828854ea0d5c29d7ea41f8a25d15772": {
+      "ai_context_summary": "This Annette live opening failed deterministic runtime gates \u2014 contract repair required before quality work.",
+      "evidence": {
+        "deterministic": {
+          "actor_lane_safety_pass": 1,
+          "fallback_absent": 0,
+          "live_opening_contract_pass": 0.0,
+          "live_runtime_contract_pass": 0,
+          "live_runtime_visible_surface_pass": 0,
+          "non_mock_generation_pass": 0,
+          "opening_contract_pass": 1,
+          "opening_shape_contract_pass": 1,
+          "rag_context_attached": 1,
+          "usage_present": 1,
+          "visible_output_present": 1
+        },
+        "judges": {}
+      },
+      "is_opening_trace": true,
+      "must_not_change": [
+        "Do not weaken live_opening_contract_pass",
+        "Do not let LLM judge override deterministic actor-lane gates",
+        "Do not attempt style/content repairs until runtime gates pass"
+      ],
+      "ok": true,
+      "recommended_next_card": "RUNTIME-CONTRACT-01",
+      "trace_id": "c828854ea0d5c29d7ea41f8a25d15772",
+      "trace_name": "world-engine.session.create"
+    }
+  },
+  "selected_trace_ids": [
+    "c828854ea0d5c29d7ea41f8a25d15772",
+    "81155c9a84e53a099c25a92f3236bc78"
+  ],
+  "summarize_live_opening_matrix": {
+    "count": 7,
+    "generated_at": "2026-05-08T21:38:25.331961+00:00",
+    "ok": true,
+    "rows": [
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "annette",
+        "trace_id": "c828854ea0d5c29d7ea41f8a25d15772",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "annette",
+        "trace_id": "81155c9a84e53a099c25a92f3236bc78",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "alain",
+        "trace_id": "03641e4d2693bdc697706b54aaae0606",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "alain",
+        "trace_id": "22ebda470cc1d32afa7689892154f4e0",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "alain",
+        "trace_id": "55064507f7a4bfa3b46db7807b5ad03a",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "annette",
+        "trace_id": "9aa3d25befdd93f68f686403a0d45587",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      },
+      {
+        "canonical_player_flow": true,
+        "execution_tier": "live",
+        "final_adapter": "ldss_fallback",
+        "is_opening_trace": true,
+        "live_opening_contract_pass": 0.0,
+        "live_runtime_contract_pass": null,
+        "narration_summary_synthesized": null,
+        "opening_shape_contract_pass": null,
+        "quality_class": "degraded",
+        "selected_player_role": "annette",
+        "trace_id": "45afdcebd700b80c9d423c683e482a89",
+        "trace_name": "world-engine.session.create",
+        "trace_origin": "live_ui"
+      }
+    ]
+  },
+  "summarize_opening_judge_scores": {
+    "count": 5,
+    "filter": {
+      "canonical_player_flow": true,
+      "execution_tier": "live",
+      "limit_per_role": 5,
+      "roles": null,
+      "trace_origin": "live_ui"
+    },
+    "generated_at": "2026-05-08T21:38:26.225356+00:00",
+    "matrix": [
+      {
+        "actor_lane_judge_category": null,
+        "is_opening_trace": true,
+        "live_opening": "fail",
+        "main_issue": "live_opening_fail",
+        "opening_judge_category": null,
+        "rag_use_category": null,
+        "role": null,
+        "role_anchor_category": null,
+        "style_category": null,
+        "trace_id": "c828854ea0d5c29d7ea41f8a25d15772",
+        "trace_name": "world-engine.session.create"
+      },
+      {
+        "actor_lane_judge_category": null,
+        "is_opening_trace": true,
+        "live_opening": "fail",
+        "main_issue": "live_opening_fail",
+        "opening_judge_category": null,
+        "rag_use_category": null,
+        "role": null,
+        "role_anchor_category": null,
+        "style_category": null,
+        "trace_id": "81155c9a84e53a099c25a92f3236bc78",
+        "trace_name": "world-engine.session.create"
+      },
+      {
+        "actor_lane_judge_category": null,
+        "is_opening_trace": true,
+        "live_opening": "fail",
+        "main_issue": "live_opening_fail",
+        "opening_judge_category": null,
+        "rag_use_category": null,
+        "role": null,
+        "role_anchor_category": null,
+        "style_category": null,
+        "trace_id": "03641e4d2693bdc697706b54aaae0606",
+        "trace_name": "world-engine.session.create"
+      },
+      {
+        "actor_lane_judge_category": null,
+        "is_opening_trace": true,
+        "live_opening": "fail",
+        "main_issue": "live_opening_fail",
+        "opening_judge_category": null,
+        "rag_use_category": null,
+        "role": null,
+        "role_anchor_category": null,
+        "style_category": null,
+        "trace_id": "22ebda470cc1d32afa7689892154f4e0",
+        "trace_name": "world-engine.session.create"
+      },
+      {
+        "actor_lane_judge_category": null,
+        "is_opening_trace": true,
+        "live_opening": "fail",
+        "main_issue": "live_opening_fail",
+        "opening_judge_category": null,
+        "rag_use_category": null,
+        "role": null,
+        "role_anchor_category": null,
+        "style_category": null,
+        "trace_id": "55064507f7a4bfa3b46db7807b5ad03a",
+        "trace_name": "world-engine.session.create"
+      }
+    ],
+    "ok": true
+  }
+}

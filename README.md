@@ -132,7 +132,7 @@ Model routing (registry, adapters, timeouts) is configured in the world-engine s
 ## MCP and auxiliary tooling
 
 - **`tools/mcp_server/`** — MCP server implementation (operator/session tooling as implemented in-repo).
-- **`.mcp.json`** (repo root) — Cursor/MCP client configuration where used.
+- **`.cursor/mcp.json`** (preferred for Cursor) or **`.mcp.json`** (repo root) — MCP client configuration (`wos-mcp`).
 - **Improvement loop** HTTP APIs are part of the backend (`/api/v1/improvement/...`); see [docs/technical/ai/improvement_loop_in_world_of_shadows.md](docs/technical/ai/improvement_loop_in_world_of_shadows.md).
 
 ## Writers Room

@@ -600,6 +600,7 @@ def _build_langfuse_path_summary(
         "route_model_called": "route_model" in nodes or bool(routing),
         "invoke_model_called": "invoke_model" in nodes,
         "fallback_model_called": "fallback_model" in nodes or bool(generation.get("fallback_used")),
+        "graph_fallback_node_called": "fallback_model" in nodes,
         "retrieval_called": "retrieve_context" in nodes or bool(retrieval),
         "validation_called": "validate_seam" in nodes or bool(validation),
         "commit_called": "commit_seam" in nodes or bool(committed),
@@ -646,6 +647,16 @@ def _build_langfuse_path_summary(
         "parser_error": _short_text(gen_meta.get("langchain_parser_error") or generation.get("parser_error")),
         "structured_output_present": isinstance(structured, dict),
         "structured_output_keys": sorted(structured.keys()) if isinstance(structured, dict) else [],
+        # PRIMARY-PARSER-EVIDENCE-01: primary attempt diagnosis fields.
+        "primary_attempt_api_success": gen_meta.get("primary_attempt_api_success"),
+        "primary_attempt_parser_error_present": gen_meta.get("primary_attempt_parser_error_present"),
+        "primary_attempt_parser_error": gen_meta.get("primary_attempt_parser_error"),
+        "primary_attempt_structured_output_present": gen_meta.get("primary_attempt_structured_output_present"),
+        "primary_attempt_raw_output_sha256": gen_meta.get("primary_attempt_raw_output_sha256"),
+        "primary_attempt_raw_output_excerpt": gen_meta.get("primary_attempt_raw_output_excerpt"),
+        "self_correction_attempted": gen_meta.get("self_correction_attempted"),
+        "self_correction_success": gen_meta.get("self_correction_success"),
+        "self_correction_model": gen_meta.get("self_correction_model"),
         "usage_available": bool(gen_meta.get("usage_available")) or usage_total > 0,
         "usage_source": gen_meta.get("usage_source"),
         "usage_details": {
@@ -815,6 +826,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "route_model_called": path_summary.get("route_model_called"),
                 "invoke_model_called": path_summary.get("invoke_model_called"),
                 "fallback_model_called": path_summary.get("fallback_model_called"),
+                "graph_fallback_node_called": path_summary.get("graph_fallback_node_called"),
                 "validation_called": path_summary.get("validation_called"),
                 "commit_called": path_summary.get("commit_called"),
                 "render_visible_called": path_summary.get("render_visible_called"),
@@ -866,6 +878,16 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "parser_error": path_summary.get("parser_error"),
                 "structured_output_present": path_summary.get("structured_output_present"),
                 "structured_output_keys": path_summary.get("structured_output_keys"),
+                # PRIMARY-PARSER-EVIDENCE-01
+                "primary_attempt_api_success": path_summary.get("primary_attempt_api_success"),
+                "primary_attempt_parser_error_present": path_summary.get("primary_attempt_parser_error_present"),
+                "primary_attempt_parser_error": path_summary.get("primary_attempt_parser_error"),
+                "primary_attempt_structured_output_present": path_summary.get("primary_attempt_structured_output_present"),
+                "primary_attempt_raw_output_sha256": path_summary.get("primary_attempt_raw_output_sha256"),
+                "primary_attempt_raw_output_excerpt": path_summary.get("primary_attempt_raw_output_excerpt"),
+                "self_correction_attempted": path_summary.get("self_correction_attempted"),
+                "self_correction_success": path_summary.get("self_correction_success"),
+                "self_correction_model": path_summary.get("self_correction_model"),
             },
         ),
         (
@@ -1273,6 +1295,11 @@ def _emit_langfuse_evidence_observations(
         "test_case_id": path_summary.get("test_case_id"),
         "runtime_mode": path_summary.get("runtime_mode"),
         "generation_mode": path_summary.get("generation_mode"),
+        # PRIMARY-PARSER-EVIDENCE-01: primary attempt diagnosis (score context only; no gate semantics).
+        "primary_attempt_api_success": path_summary.get("primary_attempt_api_success"),
+        "primary_attempt_parser_error_present": path_summary.get("primary_attempt_parser_error_present"),
+        "self_correction_attempted": path_summary.get("self_correction_attempted"),
+        "self_correction_success": path_summary.get("self_correction_success"),
     }
     for name, value in deterministic_scores.items():
         try:
@@ -2943,6 +2970,33 @@ class StoryRuntimeManager:
         prior_selected_model = routing_state.get("selected_model")
         if prior_selected_model and "primary_attempt_selected_model" not in primary_metadata:
             primary_metadata["primary_attempt_selected_model"] = prior_selected_model
+        # PRIMARY-PARSER-EVIDENCE-01: pull parser/raw-output evidence from the state key
+        # captured in _invoke_model. This survives self-correction overwriting generation.
+        pae = graph_state.get("primary_attempt_evidence")
+        if isinstance(pae, dict):
+            for _k in (
+                "primary_attempt_api_success",
+                "primary_attempt_parser_error_present",
+                "primary_attempt_parser_error",
+                "primary_attempt_structured_output_present",
+                "primary_attempt_raw_output_sha256",
+                "primary_attempt_raw_output_excerpt",
+            ):
+                if _k in pae:
+                    primary_metadata[_k] = pae[_k]
+        # Self-correction evidence: attempt_count / final model tried.
+        sc = graph_state.get("self_correction")
+        if isinstance(sc, dict):
+            sc_attempts = sc.get("attempts") or []
+            primary_metadata["self_correction_attempted"] = bool(sc_attempts)
+            if sc_attempts:
+                last_sc = sc_attempts[-1] if isinstance(sc_attempts[-1], dict) else {}
+                primary_metadata["self_correction_model"] = last_sc.get("candidate_model")
+                primary_metadata["self_correction_success"] = (
+                    bool(last_sc.get("success")) and not last_sc.get("parser_error")
+                )
+            else:
+                primary_metadata["self_correction_success"] = False
         fallback["force_ldss_scene_fallback"] = True
         fallback["generation"] = {
             **generation,

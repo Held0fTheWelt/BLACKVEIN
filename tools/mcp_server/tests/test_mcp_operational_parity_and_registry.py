@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from ai_stack.capabilities import capability_catalog
 from ai_stack.mcp_canonical_surface import (
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     McpOperatingProfile,
@@ -43,8 +44,9 @@ def test_g_mcp_01_authority_parity_registry_matches_descriptors():
     assert names_reg == names_desc
     align = verify_catalog_names_alignment()
     assert align["aligned"] is True
+    expected_ai = {x["name"] for x in capability_catalog()}
     cap_names = {r["name"] for r in capability_records_for_mcp()}
-    assert cap_names == set(align["expected"])
+    assert cap_names == expected_ai
 
 
 def test_g_mcp_02_governance_visible_on_registry_and_catalog():

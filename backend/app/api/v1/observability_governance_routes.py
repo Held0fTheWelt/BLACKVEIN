@@ -20,6 +20,29 @@ from app.services.observability_governance_service import (
     write_observability_credential,
 )
 
+# Same handler set as ``tools.mcp_server`` Langfuse verify tools (explicit allow-list).
+_LANGFUSE_VERIFY_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "run_projection_tests",
+        "fetch_langfuse_trace",
+        "query_langfuse_traces",
+        "assert_langfuse_opening_contract",
+        "summarize_live_opening_matrix",
+        "fetch_langfuse_trace_scores",
+        "summarize_opening_judge_scores",
+        "build_opening_quality_context",
+    }
+)
+
+
+def _langfuse_verify_handlers():
+    """Load MCP-parity Langfuse verify handlers (repo root must be on sys.path)."""
+    from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+        build_langfuse_verify_mcp_handlers,
+    )
+
+    return build_langfuse_verify_mcp_handlers()
+
 
 def _actor_identifier() -> str:
     user = get_current_user()
@@ -246,4 +269,70 @@ def internal_langfuse_credentials():
             f"Failed to retrieve Langfuse credentials: {str(e)}",
             500,
             {},
+        )
+
+
+@api_v1_bp.route("/internal/observability/langfuse-verify-tool", methods=["POST"])
+@limiter.limit("30 per minute")
+@jwt_required(optional=True)
+def internal_langfuse_verify_tool():
+    """
+    Invoke Langfuse verification helpers using the same Python handlers as MCP ``tools/call``.
+
+    Auth (same as ``langfuse-credentials``):
+    1. ``X-Internal-Config-Token`` — automation / MCP host
+    2. ``Authorization: Bearer`` admin JWT
+
+    Body JSON::
+        { "tool": "fetch_langfuse_trace_scores", "arguments": { "trace_id": "..." } }
+
+    Response envelope:: ``data``: ``{ "tool": "<name>", "result": <handler dict> }``
+    """
+    token = (request.headers.get("X-Internal-Config-Token") or "").strip()
+    expected = (current_app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN") or "").strip()
+    via_internal_token = bool(token and expected and token == expected)
+
+    via_jwt = False
+    if not via_internal_token:
+        user = get_current_user()
+        via_jwt = user is not None and user.is_admin
+
+    if not (via_internal_token or via_jwt):
+        return fail("verify_tool_forbidden", "Valid internal token or admin JWT required.", 403, {})
+
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return fail("verify_tool_body_invalid", "JSON object body required.", 400, {})
+
+    tool_name = str(body.get("tool") or "").strip()
+    arguments = body.get("arguments")
+    if not isinstance(arguments, dict):
+        arguments = {}
+
+    if tool_name not in _LANGFUSE_VERIFY_TOOL_NAMES:
+        return fail(
+            "verify_tool_unknown",
+            "Unknown or disallowed tool name.",
+            400,
+            {"allowed": sorted(_LANGFUSE_VERIFY_TOOL_NAMES)},
+        )
+
+    try:
+        handlers = _langfuse_verify_handlers()
+        handler = handlers.get(tool_name)
+        if handler is None:
+            return fail(
+                "verify_tool_not_registered",
+                "Handler missing from Langfuse verify registry.",
+                500,
+                {"tool": tool_name},
+            )
+        result = handler(arguments)
+        return ok({"tool": tool_name, "result": result})
+    except Exception as exc:
+        return fail(
+            "verify_tool_execution_error",
+            f"Langfuse verify tool failed: {exc!s}",
+            500,
+            {"tool": tool_name},
         )

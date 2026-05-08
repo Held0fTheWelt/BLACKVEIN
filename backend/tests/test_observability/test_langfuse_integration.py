@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from app.extensions import db
 from app.models.governance_core import ObservabilityConfig, ObservabilityCredential
@@ -379,3 +381,47 @@ class TestLangfuseAdapterIntegration:
 
         # Success: trace was created and sent to Langfuse Cloud
         assert True, "Langfuse Cloud connection verified"
+
+
+class TestLangfuseVerifyToolEndpoint:
+    """HTTP parity with MCP Langfuse verify tools (same Python handlers)."""
+
+    def test_verify_tool_requires_auth(self, client):
+        resp = client.post("/api/v1/internal/observability/langfuse-verify-tool", json={})
+        assert resp.status_code == 403
+        assert resp.get_json()["ok"] is False
+
+    def test_verify_tool_rejects_unknown_tool(self, client, app):
+        token = app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
+        resp = client.post(
+            "/api/v1/internal/observability/langfuse-verify-tool",
+            json={"tool": "not_a_real_tool", "arguments": {}},
+            headers={"X-Internal-Config-Token": token},
+        )
+        assert resp.status_code == 400
+        body = resp.get_json()
+        assert body["ok"] is False
+        assert "allowed" in body["error"]["details"]
+
+    def test_verify_tool_dispatches_handler(self, client, app):
+        token = app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "")
+        fake_handlers = {
+            "fetch_langfuse_trace_scores": lambda a: {"ok": True, "echo_arguments": a},
+        }
+        with patch(
+            "app.api.v1.observability_governance_routes._langfuse_verify_handlers",
+            return_value=fake_handlers,
+        ):
+            resp = client.post(
+                "/api/v1/internal/observability/langfuse-verify-tool",
+                json={
+                    "tool": "fetch_langfuse_trace_scores",
+                    "arguments": {"trace_id": "trace-abc"},
+                },
+                headers={"X-Internal-Config-Token": token},
+            )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        assert body["data"]["tool"] == "fetch_langfuse_trace_scores"
+        assert body["data"]["result"]["echo_arguments"]["trace_id"] == "trace-abc"

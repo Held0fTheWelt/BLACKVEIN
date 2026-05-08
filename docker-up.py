@@ -28,8 +28,9 @@ import secrets
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -281,54 +282,72 @@ def _run(args: argparse.Namespace, compose_args: list[str]) -> int:
 def _initialize_admin_user_in_backend() -> None:
     """Create default admin user 'admin' with password 'Admin123' if it doesn't exist.
 
-    Silently returns if backend is not yet ready (URLError). This is normal on first startup
-    when migrations are still running. Raises only on actual database/constraint errors.
+    Retries while the backend is still starting (migrations / health). Previously a single
+    connection failure caused a silent skip — no admin row — with exit code 0.
 
     Raises:
-        RuntimeError: If HTTP 500 or database error occurs (not URLError).
+        RuntimeError: If the endpoint returns an error or the backend stays unreachable.
     """
-    try:
-        init_url = "http://localhost:8000/api/v1/internal/bootstrap/admin-user"
-        payload = {
-            "username": "admin",
-            "password": "Admin123",
-            "create_if_missing": True,
-        }
+    init_url = "http://localhost:8000/api/v1/internal/bootstrap/admin-user"
+    payload = {
+        "username": "admin",
+        "password": "Admin123",
+        "create_if_missing": True,
+    }
+    data = json.dumps(payload).encode("utf-8")
 
-        import json
-        data = json.dumps(payload).encode("utf-8")
+    max_attempts = 45
+    delay_sec = 2.0
+    last_url_exc: BaseException | None = None
+
+    for attempt in range(max_attempts):
         req = Request(
             init_url,
             data=data,
             headers={"Content-Type": "application/json"},
-            method="POST"
+            method="POST",
         )
+        try:
+            with urlopen(req, timeout=15) as response:
+                raw = response.read().decode("utf-8")
+                response_data = json.loads(raw)
 
-        with urlopen(req, timeout=5) as response:
-            response_data = json.loads(response.read().decode("utf-8"))
+            if response.status != 200:
+                raise RuntimeError(
+                    f"Admin user initialization returned unexpected status {response.status}: {raw[:400]}"
+                )
 
-            if response.status == 200:
-                if response_data.get("data", {}).get("created"):
-                    print("[OK] Admin user created (admin / Admin123).", file=sys.stderr)
-                else:
-                    # User already exists (idempotent)
-                    print("[OK] Admin user already exists.", file=sys.stderr)
+            if response_data.get("data", {}).get("created"):
+                print("[OK] Admin user created (admin / Admin123).", file=sys.stderr)
             else:
-                # Unexpected status code
-                raise RuntimeError(f"Admin user initialization returned unexpected status {response.status}")
+                print("[OK] Admin user already exists.", file=sys.stderr)
+            return
 
-    except URLError as e:
-        # Backend not ready yet (still initializing/running migrations). This is normal.
-        # Silently return; admin user will be created on next startup attempt.
-        return
+        except HTTPError as e:
+            detail = ""
+            try:
+                detail = e.read().decode("utf-8", errors="replace")[:800]
+            except Exception:
+                pass
+            raise RuntimeError(
+                f"Admin user endpoint HTTP {e.code}: {detail or e.reason}"
+            ) from e
 
-    except json.JSONDecodeError as e:
-        # Backend responded but with invalid JSON — this is a real error
-        raise RuntimeError(f"Backend returned invalid JSON during admin user creation: {str(e)}")
+        except URLError as e:
+            last_url_exc = e
+            if attempt < max_attempts - 1:
+                time.sleep(delay_sec)
+                continue
+            raise RuntimeError(
+                "Admin user creation: backend unreachable after "
+                f"{max_attempts} attempts (~{int(max_attempts * delay_sec)}s). "
+                f"Last error: {last_url_exc}"
+            ) from last_url_exc
 
-    except Exception as e:
-        # Database error, constraint violation, or other backend error
-        raise RuntimeError(f"Admin user creation failed: {str(e)}")
+        except json.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Backend returned invalid JSON during admin user creation: {str(e)}"
+            ) from e
 
 
 def _initialize_langfuse_in_backend() -> None:

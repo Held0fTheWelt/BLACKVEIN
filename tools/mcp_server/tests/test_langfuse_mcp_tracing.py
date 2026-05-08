@@ -129,7 +129,11 @@ def test_get_client_fetches_from_backend_only_once(monkeypatch):
 
 def test_fetch_credentials_skipped_without_token(monkeypatch):
     monkeypatch.delenv("INTERNAL_RUNTIME_CONFIG_TOKEN", raising=False)
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     tracer = McpLangfuseTracer()
+    tracer._public_key = ""
+    tracer._secret_key = ""
     tracer._fetch_credentials_from_backend()  # must not raise
     assert tracer._public_key == ""
 
@@ -162,8 +166,12 @@ def test_fetch_credentials_populates_keys_on_200(monkeypatch):
 
 
 def test_fetch_credentials_ignores_disabled_config(monkeypatch):
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     monkeypatch.setenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "tok-abc")
     tracer = McpLangfuseTracer()
+    tracer._public_key = ""
+    tracer._secret_key = ""
 
     mock_resp = MagicMock()
     mock_resp.status_code = 200

@@ -97,6 +97,8 @@ def test_search_content_tool_handler():
 
 
 def test_capability_catalog_tool_handler_enriched():
+    from ai_stack.mcp_canonical_surface import AUTH_AI_STACK_CAPABILITY_CATALOG
+
     with patch("tools.mcp_server.tools_registry.BackendClient"):
         with patch("tools.mcp_server.tools_registry.FileSystemTools"):
             registry = create_default_registry()
@@ -107,7 +109,7 @@ def test_capability_catalog_tool_handler_enriched():
             row = next(c for c in caps if c["name"] == "wos.context_pack.build")
             assert row["tool_class"] == "read_only"
             assert "governance_posture" in row
-            assert row["authority_source"] == "ai_stack_capability_registry_mirror"
+            assert row["authority_source"] == AUTH_AI_STACK_CAPABILITY_CATALOG
 
 
 def test_operator_truth_tool_handler():

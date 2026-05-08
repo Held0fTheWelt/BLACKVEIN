@@ -210,22 +210,55 @@ class McpServer:
             flush_telemetry_to_backend(batch)
 
     def run(self) -> None:
-        """Main REPL: read JSON-RPC from stdin, write response to stdout."""
-        for line in sys.stdin:
+        """Main REPL: read JSON-RPC from stdin, write response to stdout.
+
+        Stdout is explicitly flushed after every response — on Windows pipes
+        Python defaults to block-buffered stdout, which would let responses
+        sit in-process until the buffer fills (~8 KB) or the child exits.
+        Cursor's MCP host expects newline-delimited responses immediately
+        after each request and would hit its 60-second request timeout.
+
+        JSON-RPC 2.0 notifications (messages without an ``id`` field) MUST NOT
+        receive a response. We log them and silently no-op instead.
+        """
+        while True:
+            try:
+                line = sys.stdin.readline()
+            except (EOFError, KeyboardInterrupt):
+                break
+            if not line:
+                break
             line = line.strip()
             if not line:
                 continue
 
             try:
                 request = json.loads(line)
-                trace_id = request.get("trace_id") or generate_trace_id()
-                response = self.dispatch(request, trace_id)
-                print(json.dumps(response))
-            except json.JSONDecodeError as e:
-                error = JsonRpcError(-32700, f"Parse error: {str(e)}")
-                print(json.dumps({"jsonrpc": "2.0", "id": None, "error": error.to_dict()}))
+            except json.JSONDecodeError as exc:
+                error = JsonRpcError(-32700, f"Parse error: {str(exc)}")
+                sys.stdout.write(
+                    json.dumps({"jsonrpc": "2.0", "id": None, "error": error.to_dict()}) + "\n"
+                )
+                sys.stdout.flush()
+                continue
+
+            request_id = request.get("id") if isinstance(request, dict) else None
+            method = request.get("method") if isinstance(request, dict) else None
+            if request_id is None:
+                if isinstance(method, str) and method:
+                    trace_id = request.get("trace_id") or generate_trace_id()
+                    log_request(trace_id, method, request.get("params") or {})
+                continue
+
+            trace_id = request.get("trace_id") or generate_trace_id()
+            response = self.dispatch(request, trace_id)
+            sys.stdout.write(json.dumps(response) + "\n")
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":
+    from tools.mcp_server.repo_dotenv import bootstrap_repo_environment
+
+    bootstrap_repo_environment()
     server = McpServer()
     server.run()

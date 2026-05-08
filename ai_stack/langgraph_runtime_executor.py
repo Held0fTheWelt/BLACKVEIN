@@ -4,6 +4,7 @@ entrypoints, and invariants for maintainers.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass
@@ -2088,6 +2089,25 @@ class RuntimeTurnGraphExecutor:
             }
             if not call.success:
                 outcome = "error"
+            # PRIMARY-PARSER-EVIDENCE-01: capture primary attempt evidence into a
+            # separate state key so it survives self-correction and LDSS overwrites.
+            raw_out = str(call.content or "").strip()
+            raw_sha = (
+                hashlib.sha256(raw_out.encode("utf-8", errors="replace")).hexdigest()
+                if raw_out
+                else ""
+            )
+            update_pa: dict[str, Any] = {
+                "primary_attempt_provider": provider or "",
+                "primary_attempt_model": selected_mid or "",
+                "primary_attempt_api_model": api_model or "",
+                "primary_attempt_api_success": bool(call.success),
+                "primary_attempt_parser_error_present": bool(runtime_result.parser_error),
+                "primary_attempt_parser_error": str(runtime_result.parser_error or "")[:400],
+                "primary_attempt_structured_output_present": runtime_result.parsed_output is not None,
+                "primary_attempt_raw_output_sha256": raw_sha,
+                "primary_attempt_raw_output_excerpt": raw_out[:300],
+            }
         else:
             generation["error"] = f"adapter_not_registered:{provider}"
             generation["metadata"] = {
@@ -2098,11 +2118,14 @@ class RuntimeTurnGraphExecutor:
                 "note": "No adapter registered for routed provider; invoke_model did not call LangChain.",
             }
             outcome = "error"
+            update_pa = {}
         update = _track(state, node_name="invoke_model", outcome=outcome)
         update["generation"] = generation
         update["fallback_needed"] = bool(generation["error"] or generation["success"] is False)
         if update["fallback_needed"]:
             _log.warning("Primary model invocation failed: provider=%s error=%s", provider or "unknown", generation.get("error") or "unknown")
+        if update_pa:
+            update["primary_attempt_evidence"] = update_pa
         return update
 
     def _next_step_after_invoke(self, state: RuntimeTurnState) -> str:
@@ -2479,10 +2502,12 @@ class RuntimeTurnGraphExecutor:
             )
             transition_pattern = str(state.get("transition_pattern") or "").strip().lower()
             adapter_name = str(meta.get("adapter") or "").strip().lower()
-            fallback_active = bool(generation.get("fallback_used")) or adapter_name in {
-                "ldss_fallback",
-                "ldss_deterministic",
-            }
+            # LDSS adapters produce their own narration — synthesis must not override them.
+            # Configured model fallbacks (gpt-5-nano) produce the same structured format as
+            # the primary, so synthesis is valid there. Mock fallback is safe because its
+            # structured_output=None → has_actor_lane_substance=False blocks synthesis anyway.
+            ldss_active = adapter_name in {"ldss_fallback", "ldss_deterministic"}
+            fallback_active = ldss_active
             actor_lane_validation = _actor_lane_validation(state, generation)
             actor_lane_status = str(actor_lane_validation.get("status") or "").strip().lower()
             can_synthesize = (
@@ -2579,11 +2604,12 @@ class RuntimeTurnGraphExecutor:
             narr = extract_proposed_narrative_text(current_proposed)
             meta = current_generation.get("metadata") if isinstance(current_generation.get("metadata"), dict) else {}
             structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else {}
+            _lane_val = _actor_lane_validation(state, current_generation)
             actor_lane_sum = {
                 "spoken_line_count": len(structured.get("spoken_lines") or []),
                 "action_line_count": len(structured.get("action_lines") or []),
                 "initiative_event_count": len(structured.get("initiative_events") or []),
-                "actor_lane_status": "not_evaluated",
+                "actor_lane_status": str(_lane_val.get("status") or "not_evaluated").strip().lower(),
             }
             eval_ctx = build_evaluation_context_from_runtime_state(
                 module_id=str(state.get("module_id") or ""),

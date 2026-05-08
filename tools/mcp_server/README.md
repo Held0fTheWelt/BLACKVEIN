@@ -14,8 +14,11 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 
 ## Environment Configuration
 
+**Bootstrap:** Starting the server via `python -m tools.mcp_server.server` (including Cursor’s stdio MCP config) loads **repository-root `.env`** first (`override=False`). Use the same **`INTERNAL_RUNTIME_CONFIG_TOKEN`** as Docker / world-engine / play-service — generated once by `docker-up.py` and stored in `.env` (ADR-0030). No separate MCP-specific token is required for Langfuse credential fetch or internal observability routes.
+
 | Variable | Default | Purpose |
 |----------|---------|---------|
+| `INTERNAL_RUNTIME_CONFIG_TOKEN` | from `.env` (see above) | Same internal runtime trust token as backend internal APIs (`X-Internal-Config-Token`); optional if unset |
 | `BACKEND_BASE_URL` | `http://localhost:8000` | Backend API endpoint (override for your deploy) |
 | `BACKEND_BEARER_TOKEN` | (empty) | Bearer for MCP-protected session routes (`/api/v1/sessions/...`) |
 | `REPO_ROOT` | (auto-detected) | Repository root directory containing `content/` |

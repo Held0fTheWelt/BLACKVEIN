@@ -1530,3 +1530,287 @@ def test_live_opening_subgates_role_mismatch_is_informational_not_gated(monkeypa
 
     meta = _last_score_metadata_for(adapter, "live_opening_contract_pass")
     assert meta["live_opening_failure_reasons"] == []
+
+
+# ---------------------------------------------------------------------------
+# PRIMARY-PARSER-EVIDENCE-01 tests (A–E)
+# Verify that primary parser failure evidence survives the LDSS overwrite and
+# surfaces in path_summary → score_metadata without touching gate semantics.
+# ---------------------------------------------------------------------------
+
+
+def test_parser_evidence_A_primary_parser_error_preserved_in_score_metadata(monkeypatch):
+    """PPE-A: primary API success + parser_error → score_metadata carries primary_attempt_parser_error_present=True.
+
+    When gpt-4.1-mini succeeds the API call but PydanticOutputParser fails, and LDSS
+    then fires and overwrites generation.metadata, the evidence must still reach
+    the ``live_runtime_contract_pass`` score_metadata so operators can diagnose
+    "API ok, parser failed" from dashboards without reading raw spans.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        "session_id": "session-ppe-a",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "adapter": "ldss_fallback",
+        "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "final_adapter": "ldss_fallback",
+        "final_adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "generation_fallback_used": True,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 100, "output": 50, "total": 150},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["ldss_fallback_after_live_opening_failure", "non_factual_staging"],
+        "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+        # PRIMARY-PARSER-EVIDENCE-01 fields written by _ldss_opening_fallback_state
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_parser_error": "Expected a mapping for field 'spoken_lines' but got str",
+        "primary_attempt_structured_output_present": False,
+        "primary_attempt_raw_output_sha256": "abc123deadbeef",
+        "primary_attempt_raw_output_excerpt": '{"spoken_lines": "Michel: Lets stay calm."}',
+        "self_correction_attempted": True,
+        "self_correction_success": False,
+        "self_correction_model": "gpt-4.1-mini",
+    }
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {
+                    "adapter": "ldss_fallback",
+                    "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+                    "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+                }
+            }
+        },
+        "visible_output_bundle": {
+            "scene_blocks": [{"type": "narrator", "text": "Le salon attend."}]
+        },
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+
+    meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
+    assert meta["primary_attempt_api_success"] is True
+    assert meta["primary_attempt_parser_error_present"] is True
+    assert meta["self_correction_attempted"] is True
+    assert meta["self_correction_success"] is False
+
+    # Gate must stay red — evidence fields must not soften gate semantics.
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["fallback_absent"] == 0.0
+    assert score_values["live_runtime_contract_pass"] == 0.0
+
+
+def test_parser_evidence_B_api_failure_shows_no_parser_error(monkeypatch):
+    """PPE-B: primary API failure → primary_attempt_api_success=False, parser_error_present=False.
+
+    A transport/timeout error at the OpenAI API layer means the parser never ran.
+    The evidence fields must correctly distinguish "API failed before parse" from
+    "API succeeded but parse failed" so operators can split alerts by failure tier.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        "session_id": "session-ppe-b",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "adapter": "ldss_fallback",
+        "final_adapter": "ldss_fallback",
+        "generation_fallback_used": True,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 0, "output": 0, "total": 0},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["ldss_fallback_after_live_opening_failure", "non_factual_staging"],
+        "live_opening_failure_reason": "api_error",
+        # API call itself failed — no parse was attempted
+        "primary_attempt_api_success": False,
+        "primary_attempt_parser_error_present": False,
+        "primary_attempt_parser_error": "",
+        "primary_attempt_structured_output_present": False,
+        "self_correction_attempted": False,
+        "self_correction_success": False,
+    }
+    event = {
+        "model_route": {"generation": {"metadata": {"adapter": "ldss_fallback"}}},
+        "visible_output_bundle": {"scene_blocks": [{"type": "narrator", "text": "Fallback."}]},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+
+    meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
+    assert meta["primary_attempt_api_success"] is False
+    assert meta["primary_attempt_parser_error_present"] is False
+    assert meta["self_correction_attempted"] is False
+
+
+def test_parser_evidence_C_successful_primary_parse_sets_structured_output_present(monkeypatch):
+    """PPE-C: healthy live path (parse succeeds) → primary_attempt_structured_output_present=True in span.
+
+    When gpt-4.1-mini succeeds both API call and PydanticOutputParser.parse(), the
+    primary_attempt_evidence must show structured_output_present=True and
+    parser_error_present=False. Also verifies these fields appear in
+    ``story.phase.model_invoke`` span output.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        **_live_openai_path_summary_turn_0(),
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": False,
+        "primary_attempt_parser_error": None,
+        "primary_attempt_structured_output_present": True,
+        "primary_attempt_raw_output_sha256": "deadbeef01234567",
+        "self_correction_attempted": False,
+        "self_correction_success": False,
+        # span routing fields
+        "invoke_model_called": True,
+        "structured_output_present": True,
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    invoke_output = _last_span_output_for(adapter, "story.phase.model_invoke")
+    assert invoke_output.get("primary_attempt_api_success") is True
+    assert invoke_output.get("primary_attempt_parser_error_present") is False
+    assert invoke_output.get("primary_attempt_structured_output_present") is True
+    assert invoke_output.get("primary_attempt_raw_output_sha256") == "deadbeef01234567"
+    assert invoke_output.get("self_correction_attempted") is False
+
+
+def test_parser_evidence_D_self_correction_attempt_surfaces_in_score_metadata(monkeypatch):
+    """PPE-D: self_correction_attempted=True and model must appear in score metadata.
+
+    When the runtime's self-correction path fires (rewrites the candidate with a
+    second model call), score_metadata must expose ``self_correction_attempted`` so
+    cost-attribution and alert rules can distinguish "parser error + SC fired" from
+    "parser error, no SC, straight LDSS".
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        "session_id": "session-ppe-d",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "adapter": "ldss_fallback",
+        "final_adapter": "ldss_fallback",
+        "generation_fallback_used": True,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 200, "output": 100, "total": 300},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["ldss_fallback_after_live_opening_failure", "non_factual_staging"],
+        "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_parser_error": "output is not valid JSON",
+        "primary_attempt_structured_output_present": False,
+        "self_correction_attempted": True,
+        "self_correction_success": False,
+        "self_correction_model": "gpt-4.1-nano",
+    }
+    event = {
+        "model_route": {"generation": {"metadata": {"adapter": "ldss_fallback"}}},
+        "visible_output_bundle": {"scene_blocks": [{"type": "narrator", "text": "Fallback."}]},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+
+    meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
+    assert meta["self_correction_attempted"] is True
+    assert meta["self_correction_success"] is False
+
+
+def test_parser_evidence_E_ldss_gate_scores_stay_red_with_evidence_fields_present(monkeypatch):
+    """PPE-E: adding primary_attempt_evidence fields must not soften gate scores.
+
+    This is a regression guard: the evidence fields are metadata-only. A trace
+    with final_adapter=ldss_fallback must still score fallback_absent=0.0 and
+    live_runtime_contract_pass=0.0 regardless of what primary_attempt_* values say.
+    live_opening_contract_pass must also be 0.0 (LDSS disqualifies it).
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        "session_id": "session-ppe-e",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "ldss_fallback",
+        "adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "final_adapter": "ldss_fallback",
+        "final_adapter_invocation_mode": "ldss_fallback_after_live_opening_failure",
+        "generation_fallback_used": True,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 100, "output": 50, "total": 150},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["ldss_fallback_after_live_opening_failure", "non_factual_staging"],
+        "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+        # Evidence fields present — must NOT change gate outcome
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_structured_output_present": False,
+        "self_correction_attempted": True,
+        "self_correction_success": False,
+        "self_correction_model": "gpt-4.1-nano",
+    }
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {
+                    "adapter": "ldss_fallback",
+                    "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+                }
+            }
+        },
+        "visible_output_bundle": {"scene_blocks": blocks},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["fallback_absent"] == 0.0, "LDSS must keep fallback_absent=0"
+    assert score_values["live_runtime_contract_pass"] == 0.0, "LDSS must keep live_runtime=0"
+    assert score_values["live_opening_contract_pass"] == 0.0, "LDSS disqualifies live_opening"
+
+    meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
+    assert meta["primary_attempt_api_success"] is True, "evidence fields must still surface in metadata"
+    assert meta["primary_attempt_parser_error_present"] is True
+    assert meta["self_correction_attempted"] is True

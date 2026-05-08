@@ -276,16 +276,33 @@ def descriptor_to_public_metadata(desc: McpCanonicalToolDescriptor) -> dict[str,
 
 
 def capability_records_for_mcp() -> list[dict[str, Any]]:
+    """Mirror ``capability_catalog()`` with MCP governance metadata (see docs/mcp/12_M1_canonical_parity.md)."""
+    from ai_stack.capabilities import capability_catalog
+
     rows: list[dict[str, Any]] = []
-    for d in CANONICAL_MCP_TOOL_DESCRIPTORS:
+    for entry in capability_catalog():
+        name = str(entry.get("name") or "")
+        kind = str(entry.get("kind") or "retrieval")
+        tc = _tool_class_for_capability_row(name, kind)
+        modes = list(entry.get("allowed_modes") or [])
+        gov = McpToolGovernanceView(
+            published_vs_draft="published",
+            canonical_vs_supporting=_derive_canonical_vs_supporting(name, tc),
+            runtime_safe_vs_internal_only=_derive_runtime_safe_vs_internal(name, tc),
+            writers_room_visible_vs_runtime_hidden=_writers_room_visibility_token(modes),
+            reviewable_vs_publishable_posture=_derive_reviewable_posture(tc, name),
+        )
         rows.append(
             {
-                "name": d.name,
-                "tool_class": d.tool_class.value,
-                "authority_source": d.authority_source,
-                "implementation_status": d.implementation_status.value,
-                "governance_posture": governance_dict(d.governance),
-                "mcp_suite": d.mcp_suite.value,
+                "name": name,
+                "kind": kind,
+                "allowed_modes": modes,
+                "tool_class": tc.value,
+                "authority_source": AUTH_AI_STACK_CAPABILITY_CATALOG,
+                "implementation_status": McpImplementationStatus.implemented.value,
+                "governance_posture": governance_dict(gov),
+                "narrative_mutation_risk": _derive_governance_risk_token(name, kind),
+                "mcp_suite": McpSuite.wos_ai.value,
             }
         )
     return rows

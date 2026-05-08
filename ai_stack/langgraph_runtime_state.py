@@ -105,6 +105,9 @@ class RuntimeTurnState(TypedDict, total=False):
     quality_class: str
     degradation_signals: list[str]
     degradation_summary: str
+    # PRIMARY-PARSER-EVIDENCE-01: captured by invoke_model node before any self-correction
+    # or LDSS overwrite can erase the primary attempt's parser error and raw output.
+    primary_attempt_evidence: dict[str, Any]
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"
