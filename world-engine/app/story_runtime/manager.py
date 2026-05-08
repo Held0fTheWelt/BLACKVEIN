@@ -723,6 +723,8 @@ def _langfuse_level_for_output(output: dict[str, Any]) -> str:
         return "ERROR"
     if output.get("fallback_used") or output.get("quality_class") == "degraded":
         return "WARNING"
+    if output.get("parser_error_present"):
+        return "WARNING"
     return "DEFAULT"
 
 
@@ -743,6 +745,15 @@ def _langfuse_status_for_output(name: str, output: dict[str, Any]) -> str:
             f"called={output.get('called')} attempted={output.get('attempted')} success={output.get('success')} "
             f"adapter={output.get('adapter') or 'unknown'} api_model={output.get('api_model') or 'unknown'} "
             f"error={output.get('error') or 'none'} parser_error={output.get('parser_error') or 'none'}"
+        )
+    if name == "story.phase.primary_parse":
+        err = output.get("parser_error") or "none"
+        short_err = (err[:80] + "...") if err != "none" and len(err) > 80 else err
+        return (
+            f"api_success={output.get('api_success')} "
+            f"parser_error_present={output.get('parser_error_present')} "
+            f"structured_output={output.get('structured_output_present')} "
+            f"parser_error={short_err}"
         )
     if name == "story.phase.model_fallback":
         return (
@@ -888,6 +899,21 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "self_correction_attempted": path_summary.get("self_correction_attempted"),
                 "self_correction_success": path_summary.get("self_correction_success"),
                 "self_correction_model": path_summary.get("self_correction_model"),
+            },
+        ),
+        (
+            "story.phase.primary_parse",
+            {
+                "called": path_summary.get("invoke_model_called"),
+                "api_success": path_summary.get("primary_attempt_api_success"),
+                "parser_error_present": path_summary.get("primary_attempt_parser_error_present"),
+                "parser_error": path_summary.get("primary_attempt_parser_error"),
+                "structured_output_present": path_summary.get("primary_attempt_structured_output_present"),
+                "raw_output_sha256": path_summary.get("primary_attempt_raw_output_sha256"),
+                "raw_output_excerpt": path_summary.get("primary_attempt_raw_output_excerpt"),
+                "adapter": path_summary.get("primary_attempt_adapter"),
+                "model": path_summary.get("primary_attempt_model"),
+                "invocation_mode": path_summary.get("primary_attempt_invocation_mode"),
             },
         ),
         (
