@@ -12,7 +12,7 @@ try:
 except ImportError:
     HAS_YAML = False
 
-from flask import flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
+from flask import current_app, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
 
 from . import player_backend
 from .player_backend import BackendApiError
@@ -943,6 +943,7 @@ def play_shell(session_id: str):
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
             "show_play_diagnostics": diagnostics_deep,
+            "play_service_url": (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").rstrip("/"),
         }
     )
     response_obj = make_response(
@@ -1025,6 +1026,7 @@ def play_execute(session_id: str):
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
             "show_play_diagnostics": diagnostics_deep,
+            "play_service_url": (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").rstrip("/"),
         }
     )
     return render_template(

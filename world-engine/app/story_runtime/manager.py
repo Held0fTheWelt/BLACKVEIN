@@ -547,6 +547,9 @@ def _build_langfuse_path_summary(
         "module_id": session.module_id,
         "turn_number": event.get("turn_number"),
         "turn_kind": event.get("turn_kind"),
+        "selected_player_role": (session.runtime_projection or {}).get("selected_player_role") if isinstance(session.runtime_projection, dict) else None,
+        "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
+        "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
         "route_model_called": "route_model" in nodes or bool(routing),
         "invoke_model_called": "invoke_model" in nodes,
@@ -1122,6 +1125,8 @@ def _emit_langfuse_evidence_observations(
     score_metadata_base = {
         "session_id": path_summary.get("session_id"),
         "turn_number": path_summary.get("turn_number"),
+        "selected_player_role": path_summary.get("selected_player_role"),
+        "human_actor_id": path_summary.get("human_actor_id"),
         "quality_class": path_summary.get("quality_class"),
         "degradation_signals": canonical_signals,
         "degradation_chain": degradation_chain,

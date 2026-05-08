@@ -18,6 +18,18 @@
     typewriter_speed_ms: 25,  // ms per character
   };
 
+  // The /api/story/ path is not proxied through the frontend service — EventSource must
+  // target the world-engine directly. Read the play service origin from the bootstrap JSON
+  // embedded by the server; fall back to same-origin if absent (e.g. in unit tests).
+  let _playServiceOrigin = "";
+  try {
+    const _bootstrapEl = document.getElementById("play-shell-bootstrap");
+    if (_bootstrapEl) {
+      const _bootstrap = JSON.parse(_bootstrapEl.textContent || "{}");
+      _playServiceOrigin = (_bootstrap.play_service_url || "").replace(/\/$/, "");
+    }
+  } catch (_) {}
+
   // State
   let streamState = {
     streaming: false,
@@ -224,7 +236,7 @@
 
     disablePlayerInput(true);
 
-    const endpointUrl = NARRATIVE_STREAM_CONFIG.endpoint_path.replace("{session_id}", sessionId);
+    const endpointUrl = _playServiceOrigin + NARRATIVE_STREAM_CONFIG.endpoint_path.replace("{session_id}", sessionId);
 
     streamState.eventSource = new EventSource(endpointUrl);
     streamState.eventSource.onmessage = handleNarratorEvent;
