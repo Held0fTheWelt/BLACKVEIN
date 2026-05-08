@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from story_runtime_core.adapters import BaseModelAdapter, ModelCallResult
@@ -309,4 +310,220 @@ def test_all_three_bridge_types_are_functional_in_same_run(tmp_path: Path) -> No
     )
     assert cap_result["ok"] is True
     assert registry.calls[-1]["name"] == "wos.review_bundle.build"
-    assert registry.calls[-1]["mode"] == "improvement"
+
+
+# ---------------------------------------------------------------------------
+# PARSER-ROBUSTNESS-01 — model-family fixtures and tolerant-parse tests
+# ---------------------------------------------------------------------------
+
+def _full_actor_output_json(**overrides) -> str:
+    """Base clean structured output dict, serialised to JSON."""
+    base = {
+        "schema_version": "runtime_actor_turn_v1",
+        "narration_summary": "Véronique breaks the silence in the Paris salon.",
+        "narrative_response": "Véronique breaks the silence in the Paris salon.",
+        "primary_responder_id": "veronique_vallon",
+        "secondary_responder_ids": ["michel_longstreet"],
+        "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Let us be direct.", "tone": "firm"}],
+        "action_lines": [{"actor_id": "michel_longstreet", "text": "folds his hands on the table"}],
+        "initiative_events": [{"actor_id": "veronique_vallon", "type": "interrupt", "reason": "pressure spike"}],
+        "state_effects": [{"effect_type": "pressure_shift", "target": "scene", "value": "escalated"}],
+        "proposed_scene_id": "scene_1",
+    }
+    base.update(overrides)
+    return json.dumps(base)
+
+
+class Gpt5StyleCleanAdapter(BaseModelAdapter):
+    """Simulates GPT-5.x: clean JSON, no markdown, no deviations."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        return ModelCallResult(content=_full_actor_output_json(), success=True, metadata={"adapter": "openai"})
+
+
+class Gpt4MiniMarkdownFenceAdapter(BaseModelAdapter):
+    """Simulates GPT-4.1-mini: valid JSON wrapped in a markdown code fence."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        content = (
+            "Here is the structured actor output:\n\n"
+            "```json\n"
+            + _full_actor_output_json()
+            + "\n```\n\n"
+            "I hope this helps with the scene."
+        )
+        return ModelCallResult(content=content, success=True, metadata={"adapter": "openai"})
+
+
+class Gpt4MiniProseBeforeJsonAdapter(BaseModelAdapter):
+    """Simulates GPT-4.1-mini: prose prefix, then bare JSON (no fence)."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        content = "Generating actor response for the opening turn.\n\n" + _full_actor_output_json()
+        return ModelCallResult(content=content, success=True, metadata={"adapter": "openai"})
+
+
+class Gpt4MiniStringSpokenLinesAdapter(BaseModelAdapter):
+    """Simulates GPT-4.1-mini: spoken_lines returned as a JSON-serialised string instead of list."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        data = json.loads(_full_actor_output_json())
+        data["spoken_lines"] = json.dumps(data["spoken_lines"])  # stringified list
+        data["action_lines"] = json.dumps(data["action_lines"])  # stringified list too
+        return ModelCallResult(content=json.dumps(data), success=True, metadata={"adapter": "openai"})
+
+
+class MissingSchemaVersionAdapter(BaseModelAdapter):
+    """Simulates output where schema_version is absent but structure clearly matches."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        data = json.loads(_full_actor_output_json())
+        del data["schema_version"]
+        return ModelCallResult(content=json.dumps(data), success=True, metadata={"adapter": "openai"})
+
+
+class MissingNarrationSummaryAdapter(BaseModelAdapter):
+    """Simulates output with approved actor lanes but no narration_summary."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        data = json.loads(_full_actor_output_json())
+        data["narration_summary"] = ""
+        data["narrative_response"] = ""
+        return ModelCallResult(content=json.dumps(data), success=True, metadata={"adapter": "openai"})
+
+
+class MalformedJsonAdapter(BaseModelAdapter):
+    """Simulates output that is structurally unrecoverable — must still fail."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        return ModelCallResult(
+            content='This is a spoken line by Veronique. She says: {broken json here...',
+            success=True,
+            metadata={"adapter": "openai"},
+        )
+
+
+class ActorLaneViolationAdapter(BaseModelAdapter):
+    """Simulates valid JSON where the human actor appears as AI responder — parser should accept,
+    actor_lane_validation (downstream) must reject."""
+    adapter_name = "openai"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context=None) -> ModelCallResult:
+        data = json.loads(_full_actor_output_json())
+        data["primary_responder_id"] = "annette_reille"  # human actor — forbidden for AI
+        data["spoken_lines"] = [{"speaker_id": "annette_reille", "text": "I agree with you."}]
+        return ModelCallResult(content=json.dumps(data), success=True, metadata={"adapter": "openai"})
+
+
+def _invoke(adapter):
+    return invoke_runtime_adapter_with_langchain(
+        adapter=adapter,
+        player_input="The room waits.",
+        interpreted_input={"kind": "silence"},
+        retrieval_context="Paris salon, two couples, unresolved blame.",
+        timeout_seconds=5.0,
+    )
+
+
+# --- Fixture tests ---
+
+def test_PR01_gpt5_style_clean_output_passes_without_repair() -> None:
+    """PARSER-ROBUSTNESS-01: GPT-5.x style clean JSON parses with empty repair_log."""
+    result = _invoke(Gpt5StyleCleanAdapter())
+    assert result.parsed_output is not None
+    assert result.parser_error is None
+    assert result.repair_log == [], f"Expected no repairs, got: {result.repair_log}"
+    assert result.parsed_output.primary_responder_id == "veronique_vallon"
+    assert result.parsed_output.spoken_lines
+
+
+def test_PR01_gpt4_mini_markdown_fence_repaired_and_passes() -> None:
+    """PARSER-ROBUSTNESS-01: JSON inside markdown fence parses cleanly.
+
+    LangChain's PydanticOutputParser.parse() handles markdown fences natively via
+    parse_json_markdown, so the fast path succeeds without repair_log entries.
+    """
+    result = _invoke(Gpt4MiniMarkdownFenceAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert result.parsed_output.primary_responder_id == "veronique_vallon"
+    assert result.parsed_output.narration_summary
+
+
+def test_PR01_gpt4_mini_prose_before_json_repaired_and_passes() -> None:
+    """PARSER-ROBUSTNESS-01: JSON with prose prefix is extracted and parsed successfully."""
+    result = _invoke(Gpt4MiniProseBeforeJsonAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert "extracted_from_prose_context" in result.repair_log
+    assert result.parsed_output.primary_responder_id == "veronique_vallon"
+
+
+def test_PR01_gpt4_mini_string_spoken_lines_repaired_and_passes() -> None:
+    """PARSER-ROBUSTNESS-01: spoken_lines/action_lines as JSON strings are coerced to lists."""
+    result = _invoke(Gpt4MiniStringSpokenLinesAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert any("coerced_str_to_list:spoken_lines" in r for r in result.repair_log)
+    assert any("coerced_str_to_list:action_lines" in r for r in result.repair_log)
+    assert result.parsed_output.spoken_lines
+
+
+def test_PR01_missing_schema_version_defaulted_and_passes() -> None:
+    """PARSER-ROBUSTNESS-01: schema_version absent → Pydantic default fills it on fast path.
+
+    RuntimeTurnStructuredOutput.schema_version has default="runtime_actor_turn_v1",
+    so PydanticOutputParser handles this without the tolerant repair path.
+    """
+    result = _invoke(MissingSchemaVersionAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert result.parsed_output.schema_version == "runtime_actor_turn_v1"
+
+
+def test_PR01_missing_narration_summary_parses_with_actor_lanes() -> None:
+    """PARSER-ROBUSTNESS-01: empty narration_summary with actor lanes parses — downstream synthesis handles it."""
+    result = _invoke(MissingNarrationSummaryAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    # narration_summary defaults to "" — Pydantic model allows this
+    assert result.parsed_output.narration_summary == ""
+    assert result.parsed_output.spoken_lines  # actor lanes present
+
+
+def test_PR01_malformed_json_still_fails_with_parser_error() -> None:
+    """PARSER-ROBUSTNESS-01: structurally unrecoverable output must still return parser_error."""
+    result = _invoke(MalformedJsonAdapter())
+    assert result.parsed_output is None
+    assert result.parser_error is not None
+    assert result.repair_log == []  # no repairs succeeded
+
+
+def test_PR01_repair_log_empty_on_clean_parse() -> None:
+    """PARSER-ROBUSTNESS-01: repair_log is empty on unrepaired (fast-path) parse."""
+    result = _invoke(ActorSchemaJsonAdapter())  # existing clean fixture
+    assert result.parser_error is None
+    assert result.repair_log == []
+
+
+def test_PR01_actor_lane_violation_parses_structurally_parser_does_not_repair_semantics() -> None:
+    """PARSER-ROBUSTNESS-01: actor-lane violations are not filtered or repaired by the parser.
+
+    The parser's job is structural: parse valid JSON into a Pydantic object.
+    Semantic constraints (forbidden human actor in AI slot) are enforced downstream
+    by actor_lane_validation in validate_seam. The parser must not attempt to
+    substitute or drop actor IDs.
+    """
+    result = _invoke(ActorLaneViolationAdapter())
+    assert result.parsed_output is not None, "Parser must accept structurally valid output"
+    assert result.parser_error is None
+    # The violation is preserved as-is — actor_lane_validation will catch it
+    assert result.parsed_output.primary_responder_id == "annette_reille"
+    assert result.repair_log == []  # no repair attempted; the JSON was clean

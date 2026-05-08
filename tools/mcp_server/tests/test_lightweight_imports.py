@@ -55,7 +55,10 @@ def test_mcp_server_tools_list_without_numpy():
         tools = server.registry.list_tools()
 
         assert len(tools) > 0
-        assert any(t["name"] == "wos.system.health" for t in tools)
+        # tools/list emits the cursor-safe wire form; canonical_name carries
+        # the dotted M1 identity (see tools/mcp_server/tools_registry.py).
+        assert any(t["name"] == "wos_system_health" for t in tools)
+        assert any(t["canonical_name"] == "wos.system.health" for t in tools)
 
     finally:
         sys.meta_path.remove(blocker)

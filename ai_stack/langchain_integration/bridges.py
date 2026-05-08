@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import inspect
 import json
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from langchain_core.documents import Document
@@ -42,6 +43,152 @@ def _adapter_generate_kwargs(adapter: BaseModelAdapter, kwargs: dict[str, Any]) 
         in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
     }
     return {k: v for k, v in kwargs.items() if k in allowed}
+
+
+# ---------------------------------------------------------------------------
+# Tolerant JSON extraction and normalization (PARSER-ROBUSTNESS-01)
+# ---------------------------------------------------------------------------
+
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*([\s\S]*?)\s*```")
+_JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+
+# Lane list fields that GPT-4.x sometimes returns as JSON strings instead of lists.
+_LANE_LIST_FIELDS: tuple[str, ...] = (
+    "spoken_lines",
+    "action_lines",
+    "initiative_events",
+    "state_effects",
+    "secondary_responder_ids",
+    "responder_actor_ids",
+)
+
+# Fields whose presence signals the output is runtime_actor_turn_v1 schema.
+_SCHEMA_SIGNAL_FIELDS: frozenset[str] = frozenset({
+    "spoken_lines",
+    "action_lines",
+    "primary_responder_id",
+    "narration_summary",
+    "narrative_response",
+})
+
+
+def _extract_json_object(raw: str) -> tuple[dict | None, list[str]]:
+    """Extract a JSON dict from raw model output using progressively tolerant strategies.
+
+    Returns (extracted_dict | None, repair_log).
+    repair_log is empty when no extraction repair was needed.
+    """
+    repairs: list[str] = []
+    text = raw.strip()
+
+    # Strategy 0: direct JSON parse — clean output, no repair needed.
+    try:
+        obj = json.loads(text)
+        if isinstance(obj, dict):
+            return obj, repairs
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Strategy 1: content inside a markdown code fence (GPT-4.x common deviation).
+    fence_match = _JSON_FENCE_RE.search(text)
+    if fence_match:
+        try:
+            obj = json.loads(fence_match.group(1).strip())
+            if isinstance(obj, dict):
+                repairs.append("extracted_from_markdown_fence")
+                return obj, repairs
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Strategy 2: first JSON object anywhere in the text (handles prose prefix/suffix).
+    obj_match = _JSON_OBJECT_RE.search(text)
+    if obj_match:
+        try:
+            obj = json.loads(obj_match.group(0))
+            if isinstance(obj, dict):
+                repairs.append("extracted_from_prose_context")
+                return obj, repairs
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    return None, repairs
+
+
+def _normalize_raw_dict(data: dict) -> tuple[dict, list[str]]:
+    """Apply safe normalization to a raw extracted dict before Pydantic validation.
+
+    Handles known GPT-4.x output deviations that are unambiguously safe to repair:
+    - Lane list fields returned as a JSON string → parse to list.
+    - Missing schema_version when structure clearly matches runtime_actor_turn_v1 → default it.
+
+    Does NOT invent actors, synthesize content, or weaken actor-lane constraints.
+    """
+    repairs: list[str] = []
+    data = dict(data)
+
+    for fname in _LANE_LIST_FIELDS:
+        val = data.get(fname)
+        if isinstance(val, str):
+            stripped = val.strip()
+            if stripped.startswith("["):
+                try:
+                    parsed_val = json.loads(stripped)
+                    if isinstance(parsed_val, list):
+                        data[fname] = parsed_val
+                        repairs.append(f"coerced_str_to_list:{fname}")
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+    if not data.get("schema_version") and bool(_SCHEMA_SIGNAL_FIELDS & data.keys()):
+        data["schema_version"] = "runtime_actor_turn_v1"
+        repairs.append("defaulted_schema_version")
+
+    return data, repairs
+
+
+def _tolerant_parse(
+    raw: str,
+    parser: "PydanticOutputParser",
+) -> "tuple[RuntimeTurnStructuredOutput | None, str | None, list[str]]":
+    """Parse raw model output into RuntimeTurnStructuredOutput with progressive fallback.
+
+    Strategy 1 (fast path): standard PydanticOutputParser — handles GPT-5.x clean output.
+    Strategy 2 (tolerant path): JSON extraction + normalization + Pydantic model_validate.
+
+    Returns:
+        (parsed_output, parser_error, repair_log)
+        repair_log is empty on clean parse; populated when repairs were applied.
+        parser_error is set only when ALL strategies fail.
+    """
+    # Fast path: standard parser (LangChain handles fence extraction + Pydantic validation).
+    try:
+        parsed = parser.parse(raw)
+        return parsed, None, []
+    except Exception as first_exc:
+        first_error = str(first_exc)
+
+    # Tolerant path: explicit extraction + normalization + direct Pydantic validation.
+    extracted, extract_repairs = _extract_json_object(raw)
+    if extracted is not None:
+        normalized, norm_repairs = _normalize_raw_dict(extracted)
+        all_repairs = extract_repairs + norm_repairs
+        try:
+            parsed = RuntimeTurnStructuredOutput.model_validate(normalized)
+            return parsed, None, all_repairs
+        except Exception:
+            pass
+        # Last resort: filter to known fields (defensive against strict-mode extras).
+        known = set(RuntimeTurnStructuredOutput.model_fields)
+        filtered = {k: v for k, v in normalized.items() if k in known}
+        if filtered != normalized:
+            try:
+                parsed = RuntimeTurnStructuredOutput.model_validate(filtered)
+                all_repairs.append("filtered_unknown_fields")
+                return parsed, None, all_repairs
+            except Exception:
+                pass
+
+    return None, first_error, []
 
 
 class RuntimeTurnStructuredOutput(BaseModel):
@@ -236,6 +383,7 @@ class RuntimeInvocationResult:
     prompt_text: str
     parsed_output: RuntimeTurnStructuredOutput | None
     parser_error: str | None
+    repair_log: list[str] = field(default_factory=list)
 
 
 def invoke_runtime_adapter_with_langchain(
@@ -315,12 +463,16 @@ def invoke_runtime_adapter_with_langchain(
     call = adapter.generate(prompt_text, **_adapter_generate_kwargs(adapter, gen_kw))
     if not call.success:
         return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=None)
-    try:
-        parsed = parser.parse(call.content)
+    parsed, parser_error, repair_log = _tolerant_parse(call.content, parser)
+    if parsed is not None:
         parsed = _normalize_runtime_structured_output(parsed)
-        return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=parsed, parser_error=None)
-    except Exception as exc:  # pragma: no cover - parser error path exercised in tests via behavior assertions
-        return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=str(exc))
+    return RuntimeInvocationResult(
+        call=call,
+        prompt_text=prompt_text,
+        parsed_output=parsed,
+        parser_error=parser_error,
+        repair_log=repair_log,
+    )
 
 
 @dataclass

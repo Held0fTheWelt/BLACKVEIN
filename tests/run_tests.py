@@ -99,6 +99,7 @@ SUITE_DISPLAY_NAMES: dict[str, str] = {
     "root_branching": "Repository branching tests",
     "root_smoke": "Repository smoke tests",
     "root_tools": "Repository tools tests",
+    "tools_mcp_server": "wos-mcp stdio server (tools/mcp_server, registry, diagnostics)",
     "root_requirements_hygiene": "Repository requirements hygiene tests",
     "root_e2e_python": "Repository Python end-to-end tests",
     "root_experience_scoring": "Repository experience scoring tests",
@@ -292,6 +293,10 @@ SUITE_CONFIGS: dict[str, SuiteConfig] = {
     "root_branching": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/branching", supports_coverage=False),
     "root_smoke": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/smoke", supports_coverage=False),
     "root_tools": SuiteConfig(kind="pytest", cwd=PROJECT_ROOT, target="tests/tools", supports_coverage=False),
+    "tools_mcp_server": SuiteConfig(
+        kind="pytest", cwd=PROJECT_ROOT, target="tools/mcp_server/tests",
+        supports_coverage=False,
+    ),
     "root_requirements_hygiene": SuiteConfig(
         kind="pytest", cwd=PROJECT_ROOT, target="tests/requirements_hygiene", supports_coverage=False
     ),
@@ -374,6 +379,7 @@ ALL_SUITE_SEQUENCE: tuple[str, ...] = (
     "root_branching",
     "root_smoke",
     "root_tools",
+    "tools_mcp_server",
     "root_requirements_hygiene",
     "root_e2e_python",
     "root_experience_scoring",
@@ -1156,6 +1162,7 @@ def run_tests_for_suites(
                 "root_branching",
                 "root_smoke",
                 "root_tools",
+                "tools_mcp_server",
                 "root_requirements_hygiene",
                 "root_e2e_python",
                 "root_experience_scoring",
@@ -1301,6 +1308,7 @@ Optional non-Python lanes are opt-in:
             "root_branching",
             "root_smoke",
             "root_tools",
+            "tools_mcp_server",
             "root_requirements_hygiene",
             "root_e2e_python",
             "root_experience_scoring",

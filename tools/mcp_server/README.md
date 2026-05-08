@@ -46,6 +46,30 @@ Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/
 
 Session observability and research tools are implemented; see `tools_registry.py` and `docs/mcp/MVP_SUITE_MAP.md`.
 
+### Wire format vs canonical name
+
+Some MCP hosts (notably Cursor) constrain tool names to `^[A-Za-z0-9_]+$`. The
+canonical descriptor identity stays dotted (`wos.system.health`) for governance
+parity with [`docs/mcp/MVP_SUITE_MAP.md`](../../docs/mcp/MVP_SUITE_MAP.md),
+[`docs/mcp/04_M0_contract_v0.md`](../../docs/mcp/04_M0_contract_v0.md), and
+the M1 ADRs. The `tools/list` wire format emitted by this server uses the
+underscored form so every host accepts every tool:
+
+```json
+{
+  "name": "wos_system_health",
+  "canonical_name": "wos.system.health",
+  ...
+}
+```
+
+`tools/call` accepts BOTH forms — dotted callers continue to work, underscored
+callers (Cursor) work for the first time. The mapping is a pure `.`→`_`
+substitution implemented in `cursor_safe_name()` in
+[`tools_registry.py`](tools_registry.py); bijection over the canonical
+descriptor set is asserted by
+[`tests/test_tools_registry_aliases.py`](tests/test_tools_registry_aliases.py).
+
 ## Suite connection recipes (same binary, different env)
 
 ```bash

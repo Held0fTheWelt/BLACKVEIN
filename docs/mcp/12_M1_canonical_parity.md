@@ -20,6 +20,15 @@
 
 There is **no** MCP exposure of `CapabilityRegistry.invoke` or direct narrative mutation.
 
+### Wire transport: dotted canonical vs underscored wire form
+
+The dotted `wos.<group>.<name>` identity above is the **canonical** name and remains the source of truth across descriptors, ADRs, suite map, and contract v0. Some MCP hosts (notably Cursor) constrain tool names to `^[A-Za-z0-9_]+$` and would silently filter dotted tools out. To stay portable, the registry rewrites `.` to `_` for the wire form only:
+
+- `tools/list` emits `name: "wos_system_health"` and `canonical_name: "wos.system.health"`.
+- `tools/call` accepts BOTH forms; `ToolRegistry.get()` resolves the underscored alias back to the canonical entry.
+
+The mapping is a pure substitution implemented by `cursor_safe_name()` in `tools/mcp_server/tools_registry.py`. Bijection over `CANONICAL_MCP_TOOL_DESCRIPTORS` is asserted by `tools/mcp_server/tests/test_tools_registry_aliases.py` so the wire form can never silently collapse two canonical tools onto the same name.
+
 ## Tool classes
 
 - `read_only` — no mutating side effects on controlled stores via this tool.

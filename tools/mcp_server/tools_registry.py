@@ -1,5 +1,20 @@
-"""Tool registry and metadata — derived from ai_stack canonical MCP descriptors."""
+"""Tool registry and metadata — derived from ai_stack canonical MCP descriptors.
 
+Naming model (see ``docs/mcp/12_M1_canonical_parity.md`` and the registry-alias
+unit tests):
+
+* Canonical identity is the dotted ``wos.<group>.<name>`` form carried on the
+  ``McpCanonicalToolDescriptor`` and referenced from every governance artifact
+  (suite map, ADRs, contract v0). It stays the source of truth.
+* Wire identity emitted by ``tools/list`` is the underscored ``cursor_safe``
+  form (``wos_<group>_<name>``). MCP hosts that constrain tool names to
+  ``^[A-Za-z0-9_]+$`` (Cursor) accept it; hosts that already handle dots see
+  the unchanged underscored form too.
+* ``tools/call`` accepts either form. ``ToolRegistry.get(name)`` resolves the
+  wire form via an alias map back to the canonical entry.
+"""
+
+import re
 from typing import Any, Callable, Optional
 
 from ai_stack.mcp_canonical_surface import (
@@ -16,6 +31,20 @@ from tools.mcp_server.tools_registry_metadata import (
     MCP_DEFAULT_TOOL_DESCRIPTIONS,
     MCP_DEFAULT_TOOL_INPUT_SCHEMAS,
 )
+
+CURSOR_SAFE_TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def cursor_safe_name(name: str) -> str:
+    """Return the wire-format name for an MCP tool.
+
+    Maps the canonical dotted form (``wos.system.health``) to the underscored
+    form accepted by hosts whose tool-name regex is ``^[A-Za-z0-9_]+$``.
+    Names that already satisfy the regex pass through unchanged. The mapping
+    is a pure ``.``-to-``_`` substitution; bijection across the canonical
+    descriptor set is asserted by ``test_tools_registry_aliases``.
+    """
+    return name.replace(".", "_")
 
 
 class ToolDefinition:
@@ -41,7 +70,8 @@ class ToolDefinition:
     def to_dict(self) -> dict[str, Any]:
         meta = descriptor_to_public_metadata(self.descriptor)
         return {
-            "name": self.name,
+            "name": cursor_safe_name(self.name),
+            "canonical_name": self.name,
             "description": self.description,
             "inputSchema": self.input_schema,
             "permission": self.permission,
@@ -59,12 +89,28 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         self.tools: dict[str, ToolDefinition] = {}
+        self.aliases: dict[str, str] = {}
 
     def register(self, tool: ToolDefinition) -> None:
         self.tools[tool.name] = tool
+        wire_name = cursor_safe_name(tool.name)
+        if wire_name != tool.name:
+            existing = self.aliases.get(wire_name)
+            if existing is not None and existing != tool.name:
+                raise ValueError(
+                    f"Cursor-safe alias collision: {wire_name!r} already maps to "
+                    f"{existing!r}, cannot also map to {tool.name!r}"
+                )
+            self.aliases[wire_name] = tool.name
 
     def get(self, name: str) -> Optional[ToolDefinition]:
-        return self.tools.get(name)
+        direct = self.tools.get(name)
+        if direct is not None:
+            return direct
+        canonical = self.aliases.get(name)
+        if canonical is not None:
+            return self.tools.get(canonical)
+        return None
 
     def list_tool_names(self) -> list[str]:
         return sorted(self.tools.keys())

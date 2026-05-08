@@ -23,7 +23,7 @@ from ai_stack.mcp_canonical_surface import (
     verify_catalog_names_alignment,
 )
 from tools.mcp_server.server import McpServer
-from tools.mcp_server.tools_registry import create_default_registry
+from tools.mcp_server.tools_registry import create_default_registry, cursor_safe_name
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -229,11 +229,16 @@ class TestG_MCP_10_07_ValidationCommandReality:
         resp = server.dispatch(req, "trace-list")
 
         tools = resp["result"]["tools"]
-        tool_names = {t["name"] for t in tools}
+        wire_names = {t["name"] for t in tools}
+        canonical_names = {t["canonical_name"] for t in tools}
 
-        # All canonical descriptors should be present
+        # tools/list emits the cursor-safe wire form (^[A-Za-z0-9_]+$); the
+        # dotted canonical identity is preserved in the canonical_name field.
+        # See tools/mcp_server/tools_registry.py::cursor_safe_name and
+        # docs/mcp/12_M1_canonical_parity.md.
         for desc in CANONICAL_MCP_TOOL_DESCRIPTORS:
-            assert desc.name in tool_names
+            assert cursor_safe_name(desc.name) in wire_names
+            assert desc.name in canonical_names
 
     def test_tool_governance_is_consistent_across_layers(self):
         """Verify governance is consistent between descriptors and registry."""

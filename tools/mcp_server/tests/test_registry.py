@@ -1,5 +1,5 @@
 from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS, verify_catalog_names_alignment
-from tools.mcp_server.tools_registry import create_default_registry
+from tools.mcp_server.tools_registry import create_default_registry, cursor_safe_name
 
 
 def test_tools_list_returns_expected_tools():
@@ -7,11 +7,18 @@ def test_tools_list_returns_expected_tools():
     tools = registry.list_tools()
     assert len(tools) == len(CANONICAL_MCP_TOOL_DESCRIPTORS)
 
-    tool_names = {tool["name"] for tool in tools}
-    expected_names = {d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS}
-    assert tool_names == expected_names
+    # tools/list emits the cursor-safe wire form; canonical_name preserves
+    # the dotted M1 identity. See tools/mcp_server/tools_registry.py and
+    # docs/mcp/12_M1_canonical_parity.md.
+    wire_names = {tool["name"] for tool in tools}
+    canonical_names = {tool["canonical_name"] for tool in tools}
+    expected_canonical = {d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS}
+    expected_wire = {cursor_safe_name(n) for n in expected_canonical}
+    assert wire_names == expected_wire
+    assert canonical_names == expected_canonical
 
-    health_tool = next(t for t in tools if t["name"] == "wos.system.health")
+    health_tool = next(t for t in tools if t["canonical_name"] == "wos.system.health")
+    assert health_tool["name"] == "wos_system_health"
     assert health_tool["permission"] == "read"
     assert health_tool["tool_class"] == "read_only"
     assert health_tool["authority_source"] == "backend_http_authority"
@@ -30,6 +37,7 @@ def test_tool_has_required_fields():
     tools = registry.list_tools()
     for tool in tools:
         assert "name" in tool
+        assert "canonical_name" in tool
         assert "description" in tool
         assert "inputSchema" in tool
         assert "permission" in tool
