@@ -885,7 +885,10 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             meta = _extract_metadata(row)
             if execution_tier and str(meta.get("execution_tier") or "").lower() != execution_tier.lower():
                 continue
-            role = str(meta.get("selected_player_role") or "").strip().lower() or None
+            score_meta_row = _first_score_metadata(row)
+            role = str(
+                meta.get("selected_player_role") or score_meta_row.get("selected_player_role") or ""
+            ).strip().lower() or None
             if roles is not None and role not in roles:
                 continue
             r_key = role or "unknown"
@@ -980,7 +983,10 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             }
         det_scores, judge_scores = _extract_scores_split(raw)
         is_opening = _is_opening_trace(raw)
-        role = str(meta.get("selected_player_role") or "").strip().title() or "Unknown"
+        score_meta = _first_score_metadata(raw)
+        role = str(
+            meta.get("selected_player_role") or score_meta.get("selected_player_role") or ""
+        ).strip().title() or "Unknown"
         lo_val = _live_opening_value(det_scores, raw)
         live_runtime = float(det_scores.get("live_runtime_contract_pass") or 0.0)
 
