@@ -504,6 +504,26 @@ _GOC_NPC_ACTIONS: dict[str, str] = {
     "annette": "",  # human actor — never used as action
 }
 
+# Opening narrator contract (OPEN-00-01): narrator_intro → role_anchor → scene_setup → actor_line
+_OPENING_NARRATOR_INTRO = (
+    "Two couples meet in a Paris apartment on behalf of their children. "
+    "The incident happened in the schoolyard; what happens here will be settled in a salon."
+)
+_OPENING_ROLE_ANCHORS: dict[str, str] = {
+    "annette": (
+        "You are Annette Reille. The apartment is yours, and with it the expectation "
+        "that this will be handled with civility — the meeting was your idea."
+    ),
+    "alain": (
+        "You are Alain Reille. You would rather be elsewhere. "
+        "You came because your wife insisted, and you are already calculating the fastest polite exit."
+    ),
+}
+_OPENING_SCENE_SETUP = (
+    "The salon: four chairs arranged around a low table. Art books and tulips signal considered taste. "
+    "A tray holds espresso cups no one has touched yet. Nobody has sat down."
+)
+
 
 def _select_primary_responder(npc_ids: list[str], human_actor_id: str) -> str:
     """Pick the first available NPC as primary responder."""
@@ -519,67 +539,101 @@ def _select_primary_responder(npc_ids: list[str], human_actor_id: str) -> str:
 def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     """Produce a valid, deterministic LDSS output without calling any AI provider.
 
-    Always produces:
-    - one narrator block (inner perception, non-dialogue-recap)
-    - at least one NPC actor_line
-    - at least one NPC actor_action (from secondary NPC when available)
-    - No human actor control
+    Turn 0 (opening): narrator_intro → role_anchor → scene_setup → actor_line → [actor_action]
+    Turn > 0: narrator → actor_line → [actor_action]
+    No human actor control in any block.
     """
     npc_ids = ldss_input.ai_allowed_actor_ids
     human_id = ldss_input.human_actor_id
     turn = ldss_input.turn_number
 
     primary = _select_primary_responder(npc_ids, human_id)
-    # Fallback to first available NPC if primary is empty (edge case defensive handling)
     effective_primary = primary if primary else (npc_ids[0] if npc_ids else "")
     secondary_ids = [n for n in npc_ids if n != effective_primary and n != human_id]
     secondary = secondary_ids[0] if secondary_ids else ""
 
     blocks: list[SceneBlock] = []
+    block_idx = 1
 
-    # Narrator inner perception block (non-recap, non-forced state)
-    narrator_text = (
-        f"You notice the silence before anyone speaks; "
-        f"it feels less like hesitation than calculation."
-    )
-    blocks.append(SceneBlock(
-        id=f"turn-{turn}-block-1",
-        block_type="narrator",
-        speaker_label="You notice",
-        actor_id=None,
-        target_actor_id=None,
-        text=narrator_text,
-    ))
+    if turn == 0:
+        # narrator_intro: shared premise / why we are here
+        blocks.append(SceneBlock(
+            id=f"turn-{turn}-block-{block_idx}",
+            block_type="narrator",
+            speaker_label=None,
+            actor_id=None,
+            target_actor_id=None,
+            text=_OPENING_NARRATOR_INTRO,
+        ))
+        block_idx += 1
+
+        # role_anchor: player's character placement (role-specific)
+        role_anchor_text = _OPENING_ROLE_ANCHORS.get(human_id, "You take your place in the room.")
+        blocks.append(SceneBlock(
+            id=f"turn-{turn}-block-{block_idx}",
+            block_type="narrator",
+            speaker_label=None,
+            actor_id=None,
+            target_actor_id=None,
+            text=role_anchor_text,
+        ))
+        block_idx += 1
+
+        # scene_setup: room / spatial grounding
+        blocks.append(SceneBlock(
+            id=f"turn-{turn}-block-{block_idx}",
+            block_type="narrator",
+            speaker_label=None,
+            actor_id=None,
+            target_actor_id=None,
+            text=_OPENING_SCENE_SETUP,
+        ))
+        block_idx += 1
+    else:
+        # Regular turn: single inner-perception narrator block
+        blocks.append(SceneBlock(
+            id=f"turn-{turn}-block-{block_idx}",
+            block_type="narrator",
+            speaker_label="You notice",
+            actor_id=None,
+            target_actor_id=None,
+            text=(
+                "You notice the silence before anyone speaks; "
+                "it feels less like hesitation than calculation."
+            ),
+        ))
+        block_idx += 1
 
     # Primary NPC actor_line
     if effective_primary:
         label = _GOC_DISPLAY_NAMES.get(effective_primary, effective_primary.capitalize())
         lines = _GOC_NPC_LINES.get(effective_primary, [f"{label} considers the situation."])
         line_text = lines[turn % len(lines)]
-        # Target: first other NPC or human context (not AI control of human)
         target = human_id if human_id else (secondary or None)
         blocks.append(SceneBlock(
-            id=f"turn-{turn}-block-2",
+            id=f"turn-{turn}-block-{block_idx}",
             block_type="actor_line",
             speaker_label=label,
             actor_id=effective_primary,
             target_actor_id=target,
             text=line_text,
         ))
+        block_idx += 1
 
-    # Secondary NPC actor_action (NPC-to-NPC interaction)
+    # Secondary NPC actor_action
     if secondary:
         label2 = _GOC_DISPLAY_NAMES.get(secondary, secondary.capitalize())
         action_text = _GOC_NPC_ACTIONS.get(secondary, f"{label2} shifts uncomfortably.")
         if action_text:
             blocks.append(SceneBlock(
-                id=f"turn-{turn}-block-3",
+                id=f"turn-{turn}-block-{block_idx}",
                 block_type="actor_action",
                 speaker_label=label2,
                 actor_id=secondary,
                 target_actor_id=None,
                 text=f"{label2} {action_text}",
             ))
+            block_idx += 1
 
     # NPC agency plan
     initiatives: list[NPCInitiative] = []
@@ -608,11 +662,6 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     )
 
     visible_output = VisibleSceneOutput(blocks=blocks)
-    # DEBUG: Log block count
-    import sys
-    print(f"[LDSS] build_deterministic_ldss_output created {len(blocks)} blocks", file=sys.stderr)
-    for i, b in enumerate(blocks):
-        print(f"[LDSS] Block {i}: type={b.block_type}, text={b.text[:50]}...", file=sys.stderr)
     visible_actor_present = any(
         b.block_type in VISIBLE_NPC_BLOCK_TYPES and b.actor_id
         for b in blocks

@@ -697,121 +697,52 @@ def test_routes_play_weak_but_legal_is_not_marked_degraded():
     assert normalized[0]["degraded_reasons"] == ["weak_signal_accepted"]
 
 
-def test_routes_play_runtime_view_and_opening_projection(capsys):
-    payload = {
-        "trace_id": "trace-1",
-        "turn": {
-            "turn_number": 2,
-            "raw_input": "I look at the table.",
-            "interpreted_input": {"kind": "action"},
-            "visible_output_bundle": {
-                "gm_narration": [" The room tightens. ", ""],
-                "spoken_lines": ["Annette: Enough.", ""],
-            },
-            "validation_outcome": {"status": "approved"},
-            "narrative_commit": {"committed_scene_id": "scene_1"},
-            "graph": {"errors": []},
-        },
-        "state": {
-            "committed_state": {
-                "last_narrative_commit_summary": {"committed_scene_id": "scene_1"},
-                "last_narrative_commit": {"committed_scene_id": "scene_1"},
-                "last_committed_consequences": ["tension_escalates"],
-            }
-        },
-    }
-    view = routes_play._build_play_shell_runtime_view(payload)
-    assert view == {
-        "turn_number": 2,
-        "player_line": "I look at the table.",
-        "narration_text": "The room tightens.",
-        "spoken_lines": ["Annette: Enough."],
-        "committed_consequences": ["tension_escalates"],
-        "interpreted_input_kind": "action",
-    }
-
-    opening = routes_play._build_play_shell_opening_view(
-        {
-            "turn_number": 0,
-            "turn_kind": "opening",
-            "raw_input": "hidden prompt",
-            "trace_id": "opening-trace",
-            "narrative_commit": {"committed_consequences": ["opened"]},
-            "visible_output_bundle": {"gm_narration": ["Opening narration."]},
-            "validation_outcome": {"status": "approved"},
-        },
-        opening_meta={"current_scene_id": "scene_1", "turn_counter": 0},
-    )
-    assert opening["turn_number"] == 0
-    assert opening["player_line"] == ""
-    assert opening["narration_text"] == "Opening narration."
-    assert opening["committed_consequences"] == ["opened"]
-
-    missing_view = routes_play._build_play_shell_runtime_view({"turn": {"turn_number": 3}, "state": {}})
-    assert missing_view["turn_number"] == 3
-    assert "missing critical fields" in capsys.readouterr().err
-
-
-def test_routes_play_operator_payload_truncation(monkeypatch):
-    rows = [{"i": i} for i in range(routes_play.DIAGNOSTICS_MAX_ROWS + 3)]
-    payload = {
-        "session_id": "backend-1",
-        "trace_id": "trace-1",
-        "world_engine_story_session_id": "story-1",
-        "turn": {"turn_number": 1},
-        "state": {"current_scene_id": "scene_1"},
-        "diagnostics": {"diagnostics": rows},
-        "backend_interpretation_preview": {"kind": "speech"},
-        "warnings": ["w"],
-    }
-    truncated = routes_play._truncate_operator_payload(payload)
-    assert len(truncated["diagnostics"]["diagnostics"]) == routes_play.DIAGNOSTICS_MAX_ROWS
-    assert truncated["diagnostics"]["_truncated_row_count"] == routes_play.DIAGNOSTICS_MAX_ROWS + 3
-
-    monkeypatch.setattr(routes_play, "OPERATOR_SESSION_JSON_MAX", 20)
-    tiny = routes_play._truncate_operator_payload(payload)
-    assert tiny["diagnostics"]["_truncated"] is True
-    assert tiny["state"]["_truncated"] is True
-
-
-def test_routes_play_legacy_turn_log_helpers(client):
+def test_evict_legacy_large_session_keys_clears_stale_cookie_data(client):
     with client.application.test_request_context("/"):
-        routes_play.session[routes_play.PLAY_SHELL_TURN_LOG_KEY] = "bad"
-        routes_play._append_turn_log("run-1", {"turn_number": 1})
-        existing = routes_play._ensure_turn_log_from_legacy("run-1", None)
-        assert existing == [{"turn_number": 1}]
-        assert routes_play._ensure_turn_log_from_legacy("run-2", {"turn_number": 2}) == [{"turn_number": 2}]
-        assert routes_play._ensure_turn_log_from_legacy("run-3", None) == []
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            routes_play.session[k] = {"run-1": "x" * 10_000}
+        routes_play._evict_legacy_large_session_keys()
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            assert k not in routes_play.session
+        # idempotent on clean session
+        routes_play._evict_legacy_large_session_keys()
 
 
-def test_routes_play_persist_turn_success_stores_legacy_projection(client):
-    payload = {
-        "trace_id": "trace-1",
-        "opening_turn": {
-            "turn_number": 0,
-            "turn_kind": "opening",
-            "narrative_commit": {"committed_consequences": ["opening_done"]},
-            "visible_output_bundle": {"gm_narration": ["Opening text."]},
-            "validation_outcome": {"status": "approved"},
-        },
-        "world_engine_opening_meta": {"current_scene_id": "scene_1", "turn_counter": 0},
-        "turn": {
-            "turn_number": 1,
-            "raw_input": "Hello.",
-            "interpreted_input": {"kind": "speech"},
-            "visible_output_bundle": {"gm_narration": ["Reply text."]},
-            "validation_outcome": {"status": "approved"},
-            "narrative_commit": {},
-        },
-        "state": {"committed_state": {"last_committed_consequences": ["reply_done"]}},
-        "diagnostics": {"diagnostics": []},
-    }
-    with client.application.test_request_context("/"):
-        result = routes_play._persist_turn_success("run-1", payload)
-        assert result["runtime_view"]["narration_text"] == "Reply text."
-        assert result["operator_bundle"]["trace_id"] == "trace-1"
-        logs = routes_play.session.get(routes_play.PLAY_SHELL_TURN_LOG_KEY)["run-1"]
-        assert [entry["narration_text"] for entry in logs] == ["Opening text.", "Reply text."]
+def test_display_helpers_uncovered_branches():
+    # _textish: bool branch
+    assert routes_play._textish(True) == "true"
+    assert routes_play._textish(False) == "false"
+
+    # _build_display_dramatic_context_compact: truncation path
+    long_items = [{"label": "X", "value": "v" * 60} for _ in range(4)]
+    result = routes_play._build_display_dramatic_context_compact(long_items, max_len=50)
+    assert len(result) <= 51  # truncated with ellipsis
+
+    # _build_display_passivity_line: empty
+    assert routes_play._build_display_passivity_line([]) == ""
+    assert routes_play._build_display_passivity_line(["", "  "]) == ""
+
+    # _build_display_vitality_line: branched bits
+    vit = {"initiative_present": True, "multi_actor_realized": True, "sparse_input_recovery_applied": True}
+    line = routes_play._build_display_vitality_line(vit)
+    assert "initiative" in line and "multi-actor" in line and "sparse-recovery" in line
+
+    # _build_display_actor_turn_line: with outcome and initiative
+    entry = {"actor_turn_summary": {"last_actor_outcome_summary": "ok", "initiative_summary": {"event_count": 2}}}
+    line = routes_play._build_display_actor_turn_line(entry)
+    assert "ok" in line and "initiative_events=2" in line
+
+    # _format_reaction_order_divergence: various paths
+    assert routes_play._format_reaction_order_divergence(None) == ""
+    assert routes_play._format_reaction_order_divergence("raw") == "raw"
+    assert "Divergence" in routes_play._format_reaction_order_divergence({"justification": "timing"})
+    assert "Order divergence" in routes_play._format_reaction_order_divergence({"reason": "delay_reason"})
+    assert routes_play._format_reaction_order_divergence({}) == "Order divergence detected"
+
+    # _build_display_render_support_warning: floor + div paths
+    e = {"render_support": {"vitality_floor_warning": "floor!", "reaction_order_divergence": {"reason": "r"}}}
+    w = routes_play._build_display_render_support_warning(e, {})
+    assert "floor!" in w
 
 
 def test_play_input_json_non_object_returns_empty(client):
@@ -1104,3 +1035,119 @@ def test_stream_narrator_proxy_502_when_play_service_unreachable(client, monkeyp
         sess["access_token"] = "t"
     r = client.get("/api/story/sessions/test-sess/stream-narrator")
     assert r.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# FRONTEND-SESSION-COOKIE-SIZE-ROUTE-COVERAGE
+# Verify eviction and no-large-session invariant at route level.
+# ---------------------------------------------------------------------------
+
+def _play_session_backend_stub(session_id="s1"):
+    """Minimal play-session API response used by cookie-size tests."""
+    return FakeResponse(payload={
+        "contract": "game_player_session_v1",
+        "runtime_session_id": "story-1",
+        "runtime_session_ready": True,
+        "can_execute": True,
+        "story_entries": [],
+        "shell_state_view": {"module_id": "goc", "current_scene_id": "s1_scene", "turn_counter": 0},
+    })
+
+
+def test_play_shell_evicts_legacy_large_keys_on_request(client, monkeypatch):
+    """GET /play/<id> must remove all three legacy large-payload keys from the session."""
+    monkeypatch.setattr("app.player_backend.request_backend",
+                        lambda *a, **k: _play_session_backend_stub())
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            sess[k] = {"run-1": "x" * 2000}
+
+    r = client.get("/play/s1")
+    assert r.status_code == 200
+
+    with client.session_transaction() as sess:
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            assert k not in sess, f"Legacy key {k!r} was not evicted from session"
+
+
+def test_play_shell_cookie_value_below_browser_limit_after_eviction(client, monkeypatch):
+    """Set-Cookie emitted after eviction must have a session value under 4093 bytes."""
+    import re
+
+    monkeypatch.setattr("app.player_backend.request_backend",
+                        lambda *a, **k: _play_session_backend_stub())
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            sess[k] = {"run-1": "x" * 2000}
+
+    r = client.get("/play/s1")
+    # Flask may emit multiple Set-Cookie headers (session + per-run cookies); find the session one
+    all_set_cookie = r.headers.getlist("Set-Cookie")
+    session_cookie_header = next((h for h in all_set_cookie if h.startswith("session=")), None)
+    assert session_cookie_header, (
+        f"Expected a session= Set-Cookie after eviction. Got: {all_set_cookie}"
+    )
+    m = re.search(r"session=([^;]+)", session_cookie_header)
+    assert m, "Could not parse session value from Set-Cookie"
+    cookie_value = m.group(1)
+    assert len(cookie_value) < 4093, (
+        f"Session cookie value too large: {len(cookie_value)} bytes (browser limit is 4093)"
+    )
+    # Ideally well under 1500 bytes (only small identifiers remain)
+    assert len(cookie_value) < 1500, (
+        f"Session cookie value exceeds ideal limit: {len(cookie_value)} bytes (target < 1500)"
+    )
+
+
+def test_play_shell_fresh_session_holds_only_small_identifiers(client, monkeypatch):
+    """A fresh session on GET /play/<id> must not grow large: no legacy keys, access_token present."""
+    monkeypatch.setattr("app.player_backend.request_backend",
+                        lambda *a, **k: _play_session_backend_stub())
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+
+    r = client.get("/play/s1")
+    assert r.status_code == 200
+
+    with client.session_transaction() as sess:
+        assert "access_token" in sess
+        for k in routes_play._LEGACY_LARGE_SESSION_KEYS:
+            assert k not in sess, f"Fresh session must not contain {k!r}"
+        # Only small-identifier keys permitted; backend_session_id now lives in per-run cookie only
+        allowed = {"access_token", "current_user", "play_shell_diagnostics_deep", "_flashes"}
+        unexpected = set(sess.keys()) - allowed
+        assert not unexpected, f"Unexpected session keys after /play/<id>: {unexpected}"
+
+
+def test_stream_narrator_proxy_does_not_mutate_session(client, monkeypatch):
+    """SSE proxy must not add keys to or enlarge the Flask session."""
+    import re
+
+    class _FakeUpstream:
+        status_code = 200
+        def iter_content(self, chunk_size=None):
+            yield b"data: {}\n\n"
+        def close(self):
+            pass
+
+    monkeypatch.setattr("app.routes_play._requests.get", lambda *a, **k: _FakeUpstream())
+
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+        initial_keys = set(sess.keys())
+
+    r = client.get("/api/story/sessions/s1/stream-narrator")
+    assert r.status_code == 200
+
+    with client.session_transaction() as sess:
+        added = set(sess.keys()) - initial_keys
+        assert not added, f"SSE proxy must not add session keys: {added}"
+
+    all_set_cookie = r.headers.getlist("Set-Cookie")
+    session_cookie_header = next((h for h in all_set_cookie if h.startswith("session=")), None)
+    if session_cookie_header:
+        m = re.search(r"session=([^;]+)", session_cookie_header)
+        if m:
+            assert len(m.group(1)) < 1500, "SSE route must not set a large session cookie"

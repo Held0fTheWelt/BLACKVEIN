@@ -194,6 +194,9 @@ def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> 
         # usage_present is also asserted operationally via _usage_total(gen) > 0
         # below; including it by name guards against silent score-emission breakage.
         "usage_present",
+        # OPEN-GATE-01: trivially 1.0 on regular turns; blocks live_runtime_contract_pass
+        # when turn 0 blocks violate the narrator_intro + role_anchor + scene_setup ordering.
+        "opening_contract_pass",
     )
     missing = [n for n in required_scores if n not in scores]
     assert not missing, f"Missing scores on trace: {missing}; have: {sorted(scores.keys())}"
@@ -345,6 +348,7 @@ def _build_positive_live_trace_fixture(
             "fallback_absent",
             "non_mock_generation_pass",
             "usage_present",
+            "opening_contract_pass",
         )
     ]
     return {"observations": observations, "scores": scores}
@@ -444,3 +448,28 @@ def test_langfuse_negative_degraded_trace_contract_a599_9d61_6871_fixture():
     assert _status_field(root, "adapter").lower() == "ldss_fallback"
     assert _status_field(root, "quality").lower() == "degraded"
     assert _status_field(root, "degradation").lower() == "dramatic_effect_reject_empty_fluency"
+
+
+def test_positive_gate_requires_opening_contract_pass_score():
+    """OPEN-GATE-01: positive trace must carry opening_contract_pass; missing score fails gate."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="approved", expected_sha=expected_sha
+    )
+    fixture["scores"] = [s for s in fixture["scores"] if s["name"] != "opening_contract_pass"]
+    with pytest.raises(AssertionError, match="opening_contract_pass"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_gate_fails_when_opening_contract_pass_is_zero():
+    """OPEN-GATE-01: opening_contract_pass=0.0 blocks the positive live gate."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="approved", expected_sha=expected_sha
+    )
+    fixture["scores"] = [
+        {"name": s["name"], "value": 0 if s["name"] == "opening_contract_pass" else s["value"]}
+        for s in fixture["scores"]
+    ]
+    with pytest.raises(AssertionError, match="opening_contract_pass"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)

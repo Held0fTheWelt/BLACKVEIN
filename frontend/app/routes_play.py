@@ -21,13 +21,16 @@ from .player_backend import BackendApiError
 from .auth import require_login
 from .frontend_blueprint import frontend_bp
 
-PLAY_SHELL_RUNTIME_VIEWS_KEY = "play_shell_runtime_views"
-PLAY_SHELL_TURN_LOG_KEY = "play_shell_turn_logs"
-PLAY_SHELL_OPERATOR_KEY = "play_shell_operator_payloads"
-
-TURN_LOG_MAX = 50
-DIAGNOSTICS_MAX_ROWS = 40
-OPERATOR_SESSION_JSON_MAX = 120_000
+# Session keys that must be removed from the Flask session cookie.
+# Includes the three orphaned audit-logger keys (removed) and play_shell_backend_sessions,
+# which accumulated one unbounded entry per play session created and blows the 4KB limit.
+# The per-run response cookie (wos_backend_session_{run_id}) is the canonical store instead.
+_LEGACY_LARGE_SESSION_KEYS = (
+    "play_shell_runtime_views",
+    "play_shell_turn_logs",
+    "play_shell_operator_payloads",
+    "play_shell_backend_sessions",
+)
 
 _QUALITY_CLASS_VALUES = {"healthy", "weak_but_legal", "degraded", "failed"}
 _DEGRADED_QUALITY_CLASSES = {"degraded", "failed"}
@@ -570,208 +573,15 @@ def play_template_to_content_module_id(template_id: str) -> str:
     return _PLAY_TEMPLATE_TO_CONTENT_MODULE_ID.get(tid, tid)
 
 
-def _build_play_shell_opening_view(
-    opening_turn: dict[str, Any],
-    *,
-    opening_meta: dict[str, Any] | None = None,
-    trace_id: str | None = None,
-) -> dict[str, Any]:
-    """Project Turn 0 opening envelope (world-engine session create) into play-shell rows."""
-    meta = opening_meta if isinstance(opening_meta, dict) else {}
-    nc = opening_turn.get("narrative_commit") if isinstance(opening_turn.get("narrative_commit"), dict) else {}
-    consequences = nc.get("committed_consequences")
-    cons_list: list[str] = []
-    if isinstance(consequences, list):
-        cons_list = [str(x) for x in consequences[:12]]
-    synthetic: dict[str, Any] = {
-        "current_scene_id": meta.get("current_scene_id"),
-        "turn_counter": meta.get("turn_counter"),
-        "committed_state": {
-            "last_narrative_commit": nc,
-            "last_narrative_commit_summary": nc,
-            "last_committed_consequences": cons_list,
-        },
-    }
-    return _build_play_shell_runtime_view(
-        {
-            "trace_id": trace_id or opening_turn.get("trace_id"),
-            "turn": opening_turn,
-            "state": synthetic,
-        }
-    )
-
-
-def _build_play_shell_runtime_view(api_payload: dict[str, Any]) -> dict[str, Any]:
-    """Project world-engine bridge JSON into a compact, player-facing last-turn view.
-
-    WARNING: Session audit log function only. Not the canonical player render path.
-    Called only by _build_play_shell_opening_view (opening turn) and _persist_turn_success
-    (orphaned audit logger). Do not use for live route responses.
-
-    PHASE 2: Validates that world-engine turn response contains canonical contract fields
-    before projecting to player view.
-    """
-    turn = api_payload.get("turn") if isinstance(api_payload.get("turn"), dict) else {}
-    st = api_payload.get("state") if isinstance(api_payload.get("state"), dict) else {}
-
-    # PHASE 2 VALIDATION: Check for critical fields from canonical contract
-    critical_fields = ["visible_output_bundle", "validation_outcome", "narrative_commit"]
-    missing = [f for f in critical_fields if f not in turn]
-    if missing:
-        import sys
-        print(
-            f"[WARN] World-engine turn missing critical fields for player view: {', '.join(missing)}",
-            file=sys.stderr,
-        )
-
-    bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
-    gm = bundle.get("gm_narration")
-    lines: list[str] = []
-    if isinstance(gm, list):
-        lines = [str(x).strip() for x in gm if str(x).strip()]
-    narration_text = "\n\n".join(lines)
-    spoken = bundle.get("spoken_lines")
-    spoken_lines: list[str] = []
-    if isinstance(spoken, list):
-        spoken_lines = [str(x).strip() for x in spoken if str(x).strip()]
-
-    committed = st.get("committed_state") if isinstance(st.get("committed_state"), dict) else {}
-    summary = (
-        committed.get("last_narrative_commit_summary")
-        if isinstance(committed.get("last_narrative_commit_summary"), dict)
-        else {}
-    )
-    consequences = committed.get("last_committed_consequences")
-    cons_list: list[str] = []
-    if isinstance(consequences, list):
-        cons_list = [str(x) for x in consequences[:12]]
-
-    val = turn.get("validation_outcome") if isinstance(turn.get("validation_outcome"), dict) else {}
-    val_status = str(val.get("status") or "").strip() or None
-
-    graph = turn.get("graph") if isinstance(turn.get("graph"), dict) else {}
-    errs = graph.get("errors")
-    err_count = len(errs) if isinstance(errs, list) else 0
-
-    interp = turn.get("interpreted_input") if isinstance(turn.get("interpreted_input"), dict) else {}
-    input_kind = str(interp.get("kind") or "").strip() or "unknown"
-    if str(turn.get("turn_kind") or "").strip() == "opening":
-        input_kind = "opening"
-
-    nc = committed.get("last_narrative_commit") if isinstance(committed.get("last_narrative_commit"), dict) else {}
-    if not nc:
-        nc = turn.get("narrative_commit") if isinstance(turn.get("narrative_commit"), dict) else {}
-
-    player_line = str(turn.get("raw_input") or "").strip()
-    if str(turn.get("turn_kind") or "").strip() == "opening":
-        player_line = ""
-
-    include_runtime_audit_fields = "turn_counter" in st
-
-    view = {
-        "turn_number": turn.get("turn_number"),
-        "player_line": player_line,
-        "interpreted_input_kind": input_kind,
-        "narration_text": narration_text,
-        "spoken_lines": spoken_lines,
-        "committed_consequences": cons_list,
-    }
-    if include_runtime_audit_fields:
-        view.update(
-            {
-                "validation_status": val_status,
-                "graph_error_count": err_count,
-                "committed_scene_id": nc.get("committed_scene_id"),
-                "current_scene_id": st.get("current_scene_id"),
-                "turn_counter": st.get("turn_counter"),
-            }
-        )
-    return view
-
-
-def _truncate_operator_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    turn = payload.get("turn") if isinstance(payload.get("turn"), dict) else {}
-    st = payload.get("state") if isinstance(payload.get("state"), dict) else {}
-    diag = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
-    out: dict[str, Any] = {
-        "session_id": payload.get("session_id"),
-        "trace_id": payload.get("trace_id"),
-        "world_engine_story_session_id": payload.get("world_engine_story_session_id"),
-        "turn": turn,
-        "state": st,
-        "diagnostics": dict(diag),
-        "backend_interpretation_preview": payload.get("backend_interpretation_preview"),
-        "warnings": payload.get("warnings"),
-    }
-    d_inner = out["diagnostics"]
-    rows = d_inner.get("diagnostics")
-    if isinstance(rows, list) and len(rows) > DIAGNOSTICS_MAX_ROWS:
-        d_inner = {
-            **d_inner,
-            "diagnostics": rows[-DIAGNOSTICS_MAX_ROWS:],
-            "_truncated_row_count": len(rows),
-        }
-        out["diagnostics"] = d_inner
-    raw = json.dumps(out, default=str)
-    if len(raw) > OPERATOR_SESSION_JSON_MAX:
-        out["diagnostics"] = {"_truncated": True, "note": "Full payload too large for play session storage"}
-        out["state"] = {"_truncated": True}
-    return out
-
-
-def _append_turn_log(run_id: str, view: dict[str, Any]) -> None:
-    logs = session.get(PLAY_SHELL_TURN_LOG_KEY)
-    if not isinstance(logs, dict):
-        logs = {}
-    lst = list(logs.get(run_id) or [])
-    lst.append(view)
-    if len(lst) > TURN_LOG_MAX:
-        lst = lst[-TURN_LOG_MAX:]
-    logs[run_id] = lst
-    session[PLAY_SHELL_TURN_LOG_KEY] = logs
-
-
-def _persist_turn_success(run_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    opening_turn = payload.get("opening_turn")
-    opening_meta = payload.get("world_engine_opening_meta")
-    trace_id = str(payload.get("trace_id") or "").strip() or None
-    if isinstance(opening_turn, dict):
-        opening_view = _build_play_shell_opening_view(
-            opening_turn,
-            opening_meta=opening_meta if isinstance(opening_meta, dict) else None,
-            trace_id=trace_id,
-        )
-        _append_turn_log(run_id, opening_view)
-    view = _build_play_shell_runtime_view(payload)
-    views = session.get(PLAY_SHELL_RUNTIME_VIEWS_KEY)
-    if not isinstance(views, dict):
-        views = {}
-    views[run_id] = view
-    session[PLAY_SHELL_RUNTIME_VIEWS_KEY] = views
-    _append_turn_log(run_id, view)
-    op = session.get(PLAY_SHELL_OPERATOR_KEY)
-    if not isinstance(op, dict):
-        op = {}
-    truncated = _truncate_operator_payload(payload)
-    op[run_id] = truncated
-    session[PLAY_SHELL_OPERATOR_KEY] = op
-    session.modified = True
-    return {"runtime_view": view, "operator_bundle": truncated}
-
-
-def _ensure_turn_log_from_legacy(run_id: str, runtime_view: dict[str, Any] | None) -> list[dict[str, Any]]:
-    logs = session.get(PLAY_SHELL_TURN_LOG_KEY)
-    if not isinstance(logs, dict):
-        logs = {}
-    lst = logs.get(run_id)
-    if isinstance(lst, list) and lst:
-        return lst
-    if runtime_view:
-        logs[run_id] = [runtime_view]
-        session[PLAY_SHELL_TURN_LOG_KEY] = logs
+def _evict_legacy_large_session_keys() -> None:
+    """Pop oversized audit keys left by the old session-storage layer from existing cookies."""
+    changed = False
+    for k in _LEGACY_LARGE_SESSION_KEYS:
+        if k in session:
+            session.pop(k)
+            changed = True
+    if changed:
         session.modified = True
-        return [runtime_view]
-    return []
 
 
 def _wants_json_response() -> bool:
@@ -893,10 +703,8 @@ def play_create():
 @frontend_bp.route("/play/<session_id>")
 @require_login
 def play_shell(session_id: str):
+    _evict_legacy_large_session_keys()
     cookie_key = f"wos_backend_session_{session_id}"
-    backend_sessions = session.get("play_shell_backend_sessions")
-    if not isinstance(backend_sessions, dict):
-        backend_sessions = {}
 
     response = player_backend.request_backend("GET", f"/api/v1/game/player-sessions/{session_id}")
     payload: dict[str, Any] = {}
@@ -912,15 +720,12 @@ def play_shell(session_id: str):
     payload_backend_session_id = str(
         payload.get("runtime_session_id") or payload.get("session_id") or ""
     ).strip()
+    # Resolve backend_session_id from per-run response cookie (primary) or backend payload.
+    # play_shell_backend_sessions is evicted above; the per-run cookie is the canonical store.
     backend_session_id = (
         (request.cookies.get(cookie_key) or "").strip()
-        or str(backend_sessions.get(session_id) or "").strip()
         or payload_backend_session_id
     )
-    if backend_session_id:
-        backend_sessions[session_id] = backend_session_id
-        session["play_shell_backend_sessions"] = backend_sessions
-        session.modified = True
 
     raw_story_entries = payload.get("story_entries") if isinstance(payload.get("story_entries"), list) else []
     shell_state_view = payload.get("shell_state_view") if isinstance(payload.get("shell_state_view"), dict) else {}
@@ -987,6 +792,7 @@ def play_execute(session_id: str):
         flash(err, "error")
         return redirect(url_for("frontend.play_shell", session_id=session_id))
     assert payload is not None
+    _evict_legacy_large_session_keys()
     _sync_play_shell_diagnostics_from_request()
     diagnostics_deep = _play_shell_diagnostics_deep_from_session()
 

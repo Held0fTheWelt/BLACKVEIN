@@ -330,6 +330,91 @@ def test_game_player_session_create_binds_run_to_story_runtime_server_side(
         assert slots[0].metadata_json["session_output_language"] == "de"
 
 
+@pytest.mark.parametrize(
+    "selected_role,expected_npcs",
+    [
+        ("annette", {"alain", "veronique", "michel"}),
+        ("alain", {"annette", "veronique", "michel"}),
+    ],
+)
+def test_actor_ownership_forwarded_to_create_story_session(
+    client, auth_headers, monkeypatch, selected_role, expected_npcs
+):
+    """ACT-01: runtime_projection sent to create_story_session must carry actor ownership for both roles."""
+
+    class _Proj:
+        def model_dump(self, mode="json"):
+            return {"module_id": "god_of_carnage", "module_version": "0.1.0", "start_scene_id": "scene_1"}
+
+    class _Compiled:
+        runtime_projection = _Proj()
+
+    captured: dict = {}
+
+    def _fake_story_session(**kwargs):
+        captured.update(kwargs)
+        return {
+            "session_id": "story-act01",
+            "opening_turn": {"turn_kind": "opening", "turn_number": 0},
+            "runtime_config_status": {"source": "governed_runtime_config"},
+        }
+
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.create_play_run",
+        lambda **kwargs: _goc_solo_run_payload("run-act01", selected_player_role=selected_role),
+    )
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.resolve_canonical_module_id_for_template",
+        lambda template_id: "god_of_carnage",
+    )
+    monkeypatch.setattr("app.api.v1.game_routes.compile_module", lambda module_id: _Compiled())
+    monkeypatch.setattr("app.api.v1.game_routes.create_story_session", _fake_story_session)
+    monkeypatch.setattr(
+        "app.api.v1.game_routes.get_story_state",
+        lambda session_id, trace_id=None: {
+            "session_id": session_id,
+            "module_id": "god_of_carnage",
+            "turn_counter": 0,
+            "current_scene_id": "scene_1",
+            "history_count": 1,
+            "committed_state": {
+                "player_shell_context": {
+                    "contract": "player_shell_dramatic_context.v1",
+                    "selected_scene_function": "redirect_blame",
+                    "pressure_state": "thread_pressure_high",
+                },
+                "module_scope_truth": {
+                    "contract": "story_runtime_module_scope.v1",
+                    "runtime_scope": "module_specific",
+                    "requested_module_supported": True,
+                },
+            },
+            "story_window": {
+                "contract": "authoritative_story_window_v1",
+                "entries": [{"kind": "opening", "role": "runtime", "speaker": "World of Shadows", "turn_number": 0, "text": "Opening."}],
+            },
+        },
+    )
+
+    response = client.post(
+        "/api/v1/game/player-sessions",
+        json={"runtime_profile_id": "god_of_carnage_solo", "selected_player_role": selected_role},
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+
+    proj = captured.get("runtime_projection", {})
+    assert proj.get("human_actor_id") == selected_role
+    assert set(proj.get("npc_actor_ids", [])) == expected_npcs
+    assert proj.get("selected_player_role") == selected_role
+    lanes = proj.get("actor_lanes", {})
+    assert lanes.get(selected_role) == "human"
+    for npc in expected_npcs:
+        assert lanes.get(npc) == "npc"
+    assert "visitor" not in lanes
+    assert "visitor" not in proj.get("npc_actor_ids", [])
+
+
 def test_game_player_session_turn_continues_same_story_window(
     client,
     auth_headers,

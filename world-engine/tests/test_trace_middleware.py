@@ -1001,7 +1001,12 @@ def test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_fi
             }
         },
         "visible_output_bundle": {
-            "scene_blocks": [{"type": "narrator", "text": "Le salon est silencieux."}],
+            "scene_blocks": [
+                {"block_type": "narrator", "text": "Two couples meet in a Paris apartment."},
+                {"block_type": "narrator", "text": "You are Annette Reille."},
+                {"block_type": "narrator", "text": "The salon waits in strained silence."},
+                {"block_type": "actor_line", "actor_id": "alain", "text": "We should speak calmly."},
+            ],
         },
     }
     _emit_langfuse_evidence_observations(
@@ -1020,4 +1025,95 @@ def test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_fi
     score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
     assert score_values["non_mock_generation_pass"] == 1.0
     assert score_values["fallback_absent"] == 1.0
+    assert score_values["opening_contract_pass"] == 1.0
     assert score_values["live_runtime_contract_pass"] == 1.0
+
+
+def _healthy_path_summary_turn(turn_number: int) -> dict:
+    return {
+        "session_id": "session-open-gate",
+        "module_id": "god_of_carnage",
+        "turn_number": turn_number,
+        "generation_fallback_used": False,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 10, "output": 5, "total": 15},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+    }
+
+
+def _openai_event(scene_blocks: list) -> dict:
+    return {
+        "model_route": {
+            "generation": {"metadata": {"adapter": "openai", "model": "gpt-5-mini"}}
+        },
+        "visible_output_bundle": {"scene_blocks": scene_blocks},
+    }
+
+
+def test_opening_contract_pass_score_turn0_valid_blocks(monkeypatch):
+    """OPEN-GATE-01: turn 0 with 3 narrators then actor_line → opening_contract_pass=1.0."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_contract_pass"] == 1.0
+    assert score_values["live_runtime_contract_pass"] == 1.0
+
+
+def test_opening_contract_pass_score_turn0_actor_before_narrators(monkeypatch):
+    """OPEN-GATE-01: turn 0 with actor_line at index 0 → opening_contract_pass=0.0 blocks live gate."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    blocks = [
+        {"block_type": "actor_line", "actor_id": "alain", "text": "Hello."},
+        {"block_type": "narrator", "text": "The salon."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_contract_pass"] == 0.0
+    assert score_values["live_runtime_contract_pass"] == 0.0
+
+
+def test_opening_contract_pass_trivially_passes_on_regular_turn(monkeypatch):
+    """OPEN-GATE-01: turn > 0 always gets opening_contract_pass=1.0 regardless of block structure."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    blocks = [
+        {"block_type": "narrator", "text": "The meeting continues."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "I disagree."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(1),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_contract_pass"] == 1.0

@@ -1107,6 +1107,16 @@ def _emit_langfuse_evidence_observations(
         "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 else 0.0,
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
+    # OPEN-GATE-01: opening turns must satisfy the narrator-led block contract.
+    # Turn > 0 trivially passes (contract is opening-only).
+    _turn_number = int(path_summary.get("turn_number") or 0)
+    if _turn_number == 0:
+        _opening_blocks = _scene_blocks_from_turn_event(event)
+        deterministic_scores["opening_contract_pass"] = (
+            1.0 if _opening_block_contract_satisfied(_opening_blocks) else 0.0
+        )
+    else:
+        deterministic_scores["opening_contract_pass"] = 1.0
     live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
     deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
     # Player-visible path only (excludes mock/usage/RAG gates). Stays green in mock_only when UI output is present.
@@ -1222,6 +1232,27 @@ def _scene_blocks_from_turn_event(event: dict[str, Any]) -> list[dict[str, Any]]
     if isinstance(blocks, list):
         return [dict(block) for block in blocks if isinstance(block, dict)]
     return []
+
+
+def _opening_block_contract_satisfied(scene_blocks: list[dict[str, Any]]) -> bool:
+    """OPEN-GATE-01: Turn 0 must start with 3 narrator blocks before any actor_line/action."""
+    if len(scene_blocks) < 4:
+        return False
+
+    def _bt(b: dict) -> str:
+        return str(b.get("block_type") or b.get("type") or "").strip().lower()
+
+    if _bt(scene_blocks[0]) != "narrator":
+        return False
+    if _bt(scene_blocks[1]) != "narrator":
+        return False
+    if _bt(scene_blocks[2]) != "narrator":
+        return False
+    first_actor = next(
+        (i for i, b in enumerate(scene_blocks) if _bt(b) in {"actor_line", "actor_action"}),
+        None,
+    )
+    return first_actor is not None and first_actor >= 3
 
 
 def _actor_response_visible_in_scene_blocks(blocks: list[dict[str, Any]]) -> bool:
@@ -2707,13 +2738,18 @@ class StoryRuntimeManager:
                 handover = str(osq.get("handover_to_scene_phase") or handover).strip() or handover
         except Exception:
             pass
+        human_actor_id = str(projection.get("human_actor_id") or "").strip()
+        role_label = human_actor_id if human_actor_id else "the player character"
         return (
             f"{base}\n\n"
             f"Session opening (canonical direction/opening_sequence.yaml; ADR-0035). Anchor: {anchor}. "
-            "Deliver TWO beats in order: (1) background/premise of the incident and why these adults meet; "
-            "(2) into the salon — room, ritual, social temperature. "
-            "Use two narrator paragraphs (blank line between) or two gm_narration strings before NPC speech. "
-            f"After handover, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines."
+            "Deliver THREE narrator beats in order before any NPC speech: "
+            "(1) narrator_intro — background/premise: the schoolyard incident and why these adults meet; "
+            f"(2) role_anchor — inner-perception narrator that places {role_label} in the scene "
+            "(who they are, their place in this room, their disposition at the start); "
+            "(3) scene_setup — the Paris salon: physical space, ritual objects, social temperature. "
+            "Use three narrator paragraphs (blank line between each) or three gm_narration strings. "
+            f"After all three beats, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines."
         )
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:

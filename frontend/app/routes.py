@@ -49,7 +49,15 @@ def _user_is_admin(user: dict[str, Any] | None) -> bool:
 def _fetch_me() -> dict[str, Any]:
     response = player_backend.request_backend("GET", "/api/v1/auth/me")
     payload = player_backend.require_success(response, "Could not fetch user profile.")
-    session["current_user"] = payload
+    # Store only the minimal fields needed by base.html (username) and role checks.
+    # The full payload (areas, allowed_features) goes to template context only — not the cookie.
+    session["current_user"] = {
+        "id": payload.get("id"),
+        "username": payload.get("username"),
+        "role": payload.get("role"),
+        "email": payload.get("email"),
+        "preferred_language": payload.get("preferred_language"),
+    }
     session.modified = True
     return payload
 
