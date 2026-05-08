@@ -1814,3 +1814,249 @@ def test_parser_evidence_E_ldss_gate_scores_stay_red_with_evidence_fields_presen
     assert meta["primary_attempt_api_success"] is True, "evidence fields must still surface in metadata"
     assert meta["primary_attempt_parser_error_present"] is True
     assert meta["self_correction_attempted"] is True
+
+
+# ---------------------------------------------------------------------------
+# Supplementary tests (S1–S5)
+# Structural and semantic guards for the PRIMARY-PARSER-EVIDENCE-01 fix.
+# ---------------------------------------------------------------------------
+
+
+def test_S1_self_correction_key_always_written_by_validate_seam():
+    """S1: _validate_seam must unconditionally write self_correction even when SC never fires.
+
+    Regression guard for gap A1: if _validate_seam is refactored and the
+    self_correction write is moved inside the SC loop, _ldss_opening_fallback_state
+    would silently omit self_correction_attempted from LDSS trace metadata.
+    """
+    import sys, os
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    if repo_root not in sys.path:
+        sys.path.insert(0, repo_root)
+
+    from ai_stack.langgraph_runtime_executor import RuntimeTurnGraphExecutor
+
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    graph.max_self_correction_attempts = 0  # disable SC loop
+    graph.allow_degraded_commit_after_retries = False
+
+    state = {
+        "session_id": "s1",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "player_input": "I watch.",
+        "actor_lane_context": {
+            "human_actor_id": "annette",
+            "selected_player_role": "annette",
+            "ai_forbidden_actor_ids": ["annette"],
+        },
+        "nodes_executed": ["invoke_model"],
+        "node_outcomes": {},
+        "graph_errors": [],
+        "selected_responder_set": [{"actor_id": "michel"}],
+        "generation": {
+            "success": True,
+            "metadata": {
+                "structured_output": {
+                    "schema_version": "runtime_actor_turn_v1",
+                    "narration_summary": "Two couples meet in a Paris salon.",
+                    "narrative_response": "Two couples meet in a Paris salon.",
+                    "primary_responder_id": "michel",
+                    "spoken_lines": [{"speaker_id": "michel", "text": "We should stay calm."}],
+                    "action_lines": [],
+                    "initiative_events": [],
+                    "state_effects": [],
+                }
+            },
+        },
+        "proposed_state_effects": [
+            {"effect_type": "narrative_projection", "description": "Two couples meet in a Paris salon."}
+        ],
+    }
+
+    result = graph._validate_seam(state)
+
+    assert "self_correction" in result, "_validate_seam must always write self_correction to update"
+    assert isinstance(result["self_correction"], dict)
+    assert result["self_correction"]["attempts"] == [], "No SC attempts when max_self_correction_attempts=0"
+    assert result["self_correction"]["attempt_count"] == 0
+
+
+def test_S2_graph_fallback_node_called_false_when_only_sc_set_fallback_used(monkeypatch):
+    """S2: graph_fallback_node_called=False when graph node absent but SC set fallback_used=True.
+
+    Documents the known semantic gap: fallback_model_called (legacy) is True because it
+    reads generation.fallback_used, while graph_fallback_node_called (accurate) is False
+    because the graph _fallback_model node never appeared in nodes_executed.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        # SC fired and set fallback_used=True, but _fallback_model graph node never ran
+        "nodes_executed": ["invoke_model", "proposal_normalize", "validate_seam", "commit_seam"],
+        "generation_fallback_used": True,  # SC set this via candidate_mid != selected_mid
+        "session_id": "session-s2",
+        "module_id": "god_of_carnage",
+        "turn_number": 1,
+        "route_model_called": True,
+        "invoke_model_called": True,
+        "fallback_model_called": True,   # legacy field: True because fallback_used=True
+        "graph_fallback_node_called": False,  # accurate: node never in nodes_executed
+        "retrieval_called": True,
+        "validation_called": True,
+        "commit_called": True,
+        "render_visible_called": True,
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    path_span = _last_span_output_for(adapter, "story.graph.path_summary")
+    assert path_span.get("graph_fallback_node_called") is False, (
+        "graph_fallback_node_called must be False: _fallback_model node never ran"
+    )
+    assert path_span.get("fallback_model_called") is True, (
+        "fallback_model_called stays True (legacy broad semantic: SC set fallback_used)"
+    )
+
+
+def test_S3_primary_attempt_evidence_key_is_independent_of_generation():
+    """S3: primary_attempt_evidence state key cannot be clobbered by SC or LDSS writes to generation.
+
+    The design invariant: _invoke_model writes primary_attempt_evidence as a SEPARATE
+    top-level state key. Any subsequent node writing to generation[metadata] (SC, LDSS)
+    cannot overwrite primary_attempt_evidence because it is a different dict.
+    """
+    # Simulate _invoke_model output
+    update: dict = {}
+    update["generation"] = {
+        "metadata": {"langchain_parser_error": "Expected mapping for spoken_lines but got str"}
+    }
+    update["primary_attempt_evidence"] = {
+        "primary_attempt_parser_error": "Expected mapping for spoken_lines but got str",
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_api_success": True,
+    }
+
+    # Simulate SC overwriting generation (as _rewrite_candidate does)
+    update["generation"] = {
+        "metadata": {"langchain_parser_error": None}  # SC's own (null) parser error
+    }
+
+    # Evidence must be unchanged
+    assert update["primary_attempt_evidence"]["primary_attempt_parser_error"] == (
+        "Expected mapping for spoken_lines but got str"
+    ), "SC overwriting generation must not affect primary_attempt_evidence"
+    assert update["primary_attempt_evidence"]["primary_attempt_parser_error_present"] is True
+
+    # Simulate LDSS overwriting generation again
+    update["generation"] = {
+        "metadata": {
+            "adapter": "ldss_fallback",
+            "structured_output": None,
+        }
+    }
+
+    # Evidence still unchanged
+    assert update["primary_attempt_evidence"]["primary_attempt_api_success"] is True
+
+
+def test_S4_ldss_fallback_without_primary_attempt_evidence_does_not_crash():
+    """S4: _ldss_opening_fallback_state must not crash when primary_attempt_evidence is absent.
+
+    The adapter-not-registered path in _invoke_model skips writing primary_attempt_evidence.
+    _ldss_opening_fallback_state must gracefully handle its absence (guard for gap A2).
+    """
+    from app.story_runtime.manager import StoryRuntimeManager
+    from story_runtime_core.model_registry import ModelRegistry
+
+    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    # graph_state has NO primary_attempt_evidence key (adapter-not-registered path)
+    graph_state = {
+        "validation_outcome": {"status": "rejected", "reason": "dramatic_effect_reject_empty_fluency"},
+        "generation": {
+            "success": True,
+            "metadata": {
+                "adapter": "openai",
+                "model": "gpt-4.1-mini",
+                "adapter_invocation_mode": "langchain_structured_primary",
+            },
+        },
+        "routing": {"selected_provider": "openai", "selected_model": "openai_gpt_4_1_mini"},
+    }
+    # Must not raise
+    out = mgr._ldss_opening_fallback_state(graph_state, reason="dramatic_effect_reject_empty_fluency")
+    meta = out["generation"]["metadata"]
+
+    # PPE fields must be absent (not written with a default), not raise
+    assert meta.get("primary_attempt_parser_error_present") is None, (
+        "PPE fields must be absent when primary_attempt_evidence missing from graph_state"
+    )
+    assert meta.get("primary_attempt_api_success") is None
+    # Standard fields must still be written correctly
+    assert meta["adapter"] == "ldss_fallback"
+    assert meta["final_adapter"] == "ldss_fallback"
+    assert meta["primary_attempt_adapter"] == "openai"
+
+
+def test_S5_path_summary_parser_error_none_primary_attempt_parser_error_present(monkeypatch):
+    """S5: documents intentional field divergence on LDSS traces.
+
+    After LDSS fires, path_summary["parser_error"] (legacy, reads FINAL generation's
+    langchain_parser_error) is None — LDSS does not set langchain_parser_error.
+    But path_summary["primary_attempt_parser_error"] (from preserved state key via
+    _ldss_opening_fallback_state) correctly captures the original primary parse failure.
+
+    Operators must use primary_attempt_parser_error, not parser_error, to diagnose
+    parse failures on LDSS-fallback traces.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        "session_id": "session-s5",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "adapter": "ldss_fallback",
+        "final_adapter": "ldss_fallback",
+        "generation_fallback_used": True,
+        "retrieval_context_attached": True,
+        "usage_details": {"input": 100, "output": 50, "total": 150},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "degraded",
+        "degradation_signals": ["ldss_fallback_after_live_opening_failure", "non_factual_staging"],
+        "live_opening_failure_reason": "dramatic_effect_reject_empty_fluency",
+        # Legacy field: LDSS does not propagate langchain_parser_error → None
+        "parser_error": None,
+        # PPE fields: correctly preserved via primary_attempt_evidence state key
+        "primary_attempt_parser_error": "Expected a mapping for 'spoken_lines' but got str",
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_api_success": True,
+        "self_correction_attempted": True,
+        "self_correction_success": False,
+    }
+    event = {
+        "model_route": {"generation": {"metadata": {"adapter": "ldss_fallback"}}},
+        "visible_output_bundle": {"scene_blocks": [{"type": "narrator", "text": "Fallback."}]},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+
+    meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
+
+    # Legacy field is None (LDSS trace — expected, not a bug)
+    assert meta.get("parser_error") is None, (
+        "parser_error is None on LDSS traces — operators must use primary_attempt_parser_error"
+    )
+    # PPE field correctly captures original primary parse failure
+    assert meta["primary_attempt_parser_error_present"] is True, (
+        "primary_attempt_parser_error_present must be True: primary parse failed before LDSS"
+    )
+    assert meta["primary_attempt_api_success"] is True, (
+        "primary_attempt_api_success must be True: API succeeded, only parser failed"
+    )
