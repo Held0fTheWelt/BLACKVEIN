@@ -187,16 +187,28 @@ def internal_observability_initialize():
 
 @api_v1_bp.route("/internal/observability/langfuse-credentials", methods=["GET"])
 @limiter.limit("300 per minute")
+@jwt_required(optional=True)
 def internal_langfuse_credentials():
     """
-    Internal endpoint for world-engine to fetch Langfuse credentials.
-    Used by world-engine service to initialize its own Langfuse tracing.
-    Requires internal config token for authentication.
+    Internal endpoint for world-engine / MCP to fetch Langfuse credentials.
+
+    Two accepted auth paths (first match wins):
+    1. X-Internal-Config-Token header — world-engine, play-service (no JWT needed)
+    2. Authorization: Bearer <admin-JWT> — MCP operator using BACKEND_BEARER_TOKEN
     """
+    # Path 1: internal config token
     token = (request.headers.get("X-Internal-Config-Token") or "").strip()
     expected = (current_app.config.get("INTERNAL_RUNTIME_CONFIG_TOKEN") or "").strip()
-    if not expected or token != expected:
-        return fail("credentials_forbidden", "Internal runtime config token is invalid.", 403, {})
+    via_internal_token = bool(token and expected and token == expected)
+
+    # Path 2: admin JWT bearer (MCP with BACKEND_BEARER_TOKEN)
+    via_jwt = False
+    if not via_internal_token:
+        user = get_current_user()
+        via_jwt = user is not None and user.is_admin
+
+    if not (via_internal_token or via_jwt):
+        return fail("credentials_forbidden", "Valid internal token or admin JWT required.", 403, {})
 
     try:
         from app.models.governance_core import ObservabilityConfig

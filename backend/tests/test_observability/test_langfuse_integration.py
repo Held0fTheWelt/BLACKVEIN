@@ -112,6 +112,65 @@ class TestLangfuseCredentialsEndpoint:
         assert resp_data["data"]["enabled"] is False
 
 
+class TestLangfuseCredentialsEndpointJwtAuth:
+    """Credentials endpoint: admin JWT bearer path (MCP / BACKEND_BEARER_TOKEN)."""
+
+    def test_admin_jwt_can_fetch_credentials_when_enabled(self, client, admin_jwt, db_session):
+        """Admin JWT bearer token is accepted as an alternative to X-Internal-Config-Token."""
+        config = ObservabilityConfig(
+            service_id="langfuse",
+            service_type="langfuse",
+            display_name="Langfuse",
+            is_enabled=True,
+            base_url="https://cloud.langfuse.com",
+        )
+        db.session.add(config)
+        db.session.commit()
+
+        write_observability_credential(
+            public_key="pk_mcp_test",
+            secret_key="sk_mcp_test",
+            actor="test_mcp",
+        )
+
+        resp = client.get(
+            "/api/v1/internal/observability/langfuse-credentials",
+            headers={"Authorization": f"Bearer {admin_jwt}"},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert data["enabled"] is True
+        assert data["public_key"] == "pk_mcp_test"
+        assert data["secret_key"] == "sk_mcp_test"
+
+    def test_non_admin_jwt_is_rejected(self, client, auth_headers):
+        """Regular user JWT is rejected — endpoint requires admin role."""
+        resp = client.get(
+            "/api/v1/internal/observability/langfuse-credentials",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 403
+        assert resp.get_json()["ok"] is False
+
+    def test_no_auth_at_all_is_rejected(self, client):
+        """No auth header at all returns 403."""
+        resp = client.get("/api/v1/internal/observability/langfuse-credentials")
+        assert resp.status_code == 403
+        assert resp.get_json()["ok"] is False
+
+    def test_admin_jwt_returns_disabled_when_not_configured(self, client, admin_jwt):
+        """Admin JWT path respects enabled=False same as token path."""
+        resp = client.get(
+            "/api/v1/internal/observability/langfuse-credentials",
+            headers={"Authorization": f"Bearer {admin_jwt}"},
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()["data"]
+        assert data["enabled"] is False
+        assert data["public_key"] is None
+        assert data["secret_key"] is None
+
+
 class TestLangfuseInitializationEndpoint:
     """Tests for the bootstrap initialization endpoint."""
 

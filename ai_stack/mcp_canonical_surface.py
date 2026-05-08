@@ -178,6 +178,9 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("query_langfuse_traces", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("assert_langfuse_opening_contract", McpToolClass.review_bound, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("summarize_live_opening_matrix", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("fetch_langfuse_trace_scores", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_opening_judge_scores", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("build_opening_quality_context", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
 )
 
 

@@ -31,6 +31,9 @@ MCP_DEFAULT_TOOL_DESCRIPTIONS: dict[str, str] = {
     "query_langfuse_traces": "Query recent Langfuse traces with optional filters",
     "assert_langfuse_opening_contract": "Assert live/test opening contract fields on a Langfuse trace",
     "summarize_live_opening_matrix": "Summarize live opening matrix across recent Langfuse traces",
+    "fetch_langfuse_trace_scores": "Fetch deterministic gates and LLM-as-a-Judge scores for a live trace (filters non-live by default)",
+    "summarize_opening_judge_scores": "Matrix of deterministic + judge score categories for recent live opening traces, filterable by role",
+    "build_opening_quality_context": "Build AI-readable quality context for a live opening trace: gates, judge scores, recommended repair card",
 }
 
 MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
@@ -194,5 +197,32 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
         "type": "object",
         "properties": {"limit": {"type": "integer"}},
         "required": [],
+    },
+    "fetch_langfuse_trace_scores": {
+        "type": "object",
+        "properties": {
+            "trace_id": {"type": "string"},
+            "allow_non_live": {"type": "boolean"},
+        },
+        "required": ["trace_id"],
+    },
+    "summarize_opening_judge_scores": {
+        "type": "object",
+        "properties": {
+            "trace_origin": {"type": "string"},
+            "execution_tier": {"type": "string"},
+            "canonical_player_flow": {"type": "boolean"},
+            "roles": {"type": "array", "items": {"type": "string"}},
+            "limit_per_role": {"type": "integer"},
+        },
+        "required": [],
+    },
+    "build_opening_quality_context": {
+        "type": "object",
+        "properties": {
+            "trace_id": {"type": "string"},
+            "include_raw_reasoning": {"type": "boolean"},
+        },
+        "required": ["trace_id"],
     },
 }
