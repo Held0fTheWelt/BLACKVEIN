@@ -91,9 +91,18 @@ class McpLangfuseTracer:
             or os.environ.get("LANGFUSE_HOST", "").strip()
             or "https://cloud.langfuse.com"
         )
-        # Backend credential source (mirrors world-engine adapter)
-        self._backend_url = os.environ.get("BACKEND_BASE_URL", "http://localhost:8000").rstrip("/")
-        self._internal_token = os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+        # Backend credential source (mirrors world-engine adapter + MCP runtime variants)
+        self._backend_url = (
+            os.environ.get("BACKEND_RUNTIME_CONFIG_URL", "").strip()
+            or os.environ.get("BACKEND_INTERNAL_URL", "").strip()
+            or os.environ.get("BACKEND_BASE_URL", "").strip()
+            or "http://localhost:8000"
+        ).rstrip("/")
+        self._internal_token = (
+            os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+            or os.environ.get("BACKEND_INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+            or os.environ.get("RUNTIME_CONFIG_TOKEN", "").strip()
+        )
         self._credentials_fetched = False
         self._lf: Any = None
 
@@ -108,27 +117,49 @@ class McpLangfuseTracer:
 
     def _fetch_credentials_from_backend(self) -> None:
         """Fetch Langfuse credentials from backend internal endpoint (best-effort)."""
-        if not self._internal_token:
+        backend_url = (
+            os.environ.get("BACKEND_RUNTIME_CONFIG_URL", "").strip()
+            or os.environ.get("BACKEND_INTERNAL_URL", "").strip()
+            or os.environ.get("BACKEND_BASE_URL", "").strip()
+            or self._backend_url
+            or "http://localhost:8000"
+        ).rstrip("/")
+        runtime_token = (
+            os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+            or os.environ.get("BACKEND_INTERNAL_RUNTIME_CONFIG_TOKEN", "").strip()
+            or os.environ.get("RUNTIME_CONFIG_TOKEN", "").strip()
+            or self._internal_token
+        )
+        bearer_token = os.environ.get("BACKEND_BEARER_TOKEN", "").strip()
+        if not runtime_token and not bearer_token:
             return
         try:
             import httpx  # type: ignore[import]
-            endpoint = f"{self._backend_url}/api/v1/internal/observability/langfuse-credentials"
+            endpoint = f"{backend_url}/api/v1/internal/observability/langfuse-credentials"
+            header_attempts: list[dict[str, str]] = []
+            if runtime_token:
+                header_attempts.append({"X-Internal-Config-Token": runtime_token})
+            if bearer_token:
+                # Optional runtime deployment fallback: some setups terminate auth upstream.
+                header_attempts.append({"Authorization": f"Bearer {bearer_token}"})
             with httpx.Client(timeout=5.0) as client:
-                resp = client.get(
-                    endpoint,
-                    headers={"X-Internal-Config-Token": self._internal_token},
-                )
-            if resp.status_code != 200:
-                return
-            data = resp.json().get("data", {})
-            if not data.get("enabled"):
-                return
-            pk = str(data.get("public_key") or "").strip()
-            sk = str(data.get("secret_key") or "").strip()
-            if pk and sk:
-                self._public_key = pk
-                self._secret_key = sk
-                self._base_url = str(data.get("base_url") or self._base_url)
+                for headers in header_attempts:
+                    resp = client.get(endpoint, headers=headers)
+                    if resp.status_code != 200:
+                        continue
+                    data = resp.json().get("data", {})
+                    if not data.get("enabled"):
+                        return
+                    pk = str(data.get("public_key") or "").strip()
+                    sk = str(data.get("secret_key") or "").strip()
+                    if pk and sk:
+                        self._public_key = pk
+                        self._secret_key = sk
+                        self._base_url = str(data.get("base_url") or self._base_url)
+                        self._backend_url = backend_url
+                        if runtime_token:
+                            self._internal_token = runtime_token
+                        return
         except Exception:
             pass
 

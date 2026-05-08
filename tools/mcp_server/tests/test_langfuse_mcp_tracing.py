@@ -186,6 +186,63 @@ def test_fetch_credentials_suppresses_network_error(monkeypatch):
         tracer._fetch_credentials_from_backend()  # must not raise
 
 
+def test_fetch_credentials_uses_runtime_backend_url_env(monkeypatch):
+    monkeypatch.setenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "tok-abc")
+    monkeypatch.setenv("BACKEND_RUNTIME_CONFIG_URL", "http://backend-runtime:8000")
+    tracer = McpLangfuseTracer()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "data": {
+            "enabled": True,
+            "public_key": "pk-runtime",
+            "secret_key": "sk-runtime",
+            "base_url": "https://cloud.langfuse.com",
+        }
+    }
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = mock_resp
+
+    with patch("httpx.Client", return_value=mock_client):
+        tracer._fetch_credentials_from_backend()
+
+    endpoint = mock_client.get.call_args.args[0]
+    assert endpoint.startswith("http://backend-runtime:8000/")
+    assert tracer._public_key == "pk-runtime"
+    assert tracer._secret_key == "sk-runtime"
+
+
+def test_fetch_credentials_uses_token_alias_env(monkeypatch):
+    monkeypatch.delenv("INTERNAL_RUNTIME_CONFIG_TOKEN", raising=False)
+    monkeypatch.setenv("BACKEND_INTERNAL_RUNTIME_CONFIG_TOKEN", "tok-alias")
+    tracer = McpLangfuseTracer()
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "data": {
+            "enabled": True,
+            "public_key": "pk-alias",
+            "secret_key": "sk-alias",
+            "base_url": "https://cloud.langfuse.com",
+        }
+    }
+    mock_client = MagicMock()
+    mock_client.__enter__ = MagicMock(return_value=mock_client)
+    mock_client.__exit__ = MagicMock(return_value=False)
+    mock_client.get.return_value = mock_resp
+
+    with patch("httpx.Client", return_value=mock_client):
+        tracer._fetch_credentials_from_backend()
+
+    assert mock_client.get.call_args.kwargs["headers"]["X-Internal-Config-Token"] == "tok-alias"
+    assert tracer._public_key == "pk-alias"
+    assert tracer._secret_key == "sk-alias"
+
+
 # ---------------------------------------------------------------------------
 # _sanitize_arguments
 # ---------------------------------------------------------------------------
