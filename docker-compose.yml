@@ -102,8 +102,10 @@ services:
       - FRONTEND_PORT=5002
       # Stable secret from .env (do not edit hardcoded value; manage in .env instead)
       - FRONTEND_SECRET_KEY=${FRONTEND_SECRET_KEY}
-      # Browser WebSocket / public play URL (host port maps play-service 8000 → 8001)
+      # Browser-reachable play URL (used for client-side bootstrapping only)
       - PLAY_SERVICE_PUBLIC_URL=http://localhost:8001
+      # Server-side internal URL for SSE proxy and future server→play-service calls
+      - PLAY_SERVICE_INTERNAL_URL=http://play-service:8000
 
   administration-tool:
     build:

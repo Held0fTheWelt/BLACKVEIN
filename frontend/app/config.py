@@ -30,6 +30,14 @@ class Config:
     # For local development, use http://127.0.0.1:5000
     BACKEND_API_URL = (os.environ.get("BACKEND_API_URL") or "http://backend:8000").rstrip("/")
     PLAY_SERVICE_PUBLIC_URL = (os.environ.get("PLAY_SERVICE_PUBLIC_URL") or "http://127.0.0.1:8001").rstrip("/")
+    # Server-side internal URL for proxy calls (e.g. SSE stream-narrator).
+    # In Docker: http://play-service:8000 (set via PLAY_SERVICE_INTERNAL_URL env var).
+    # For bare-metal local dev where both URLs are the same, falls back to PLAY_SERVICE_PUBLIC_URL.
+    PLAY_SERVICE_INTERNAL_URL = (
+        os.environ.get("PLAY_SERVICE_INTERNAL_URL")
+        or os.environ.get("PLAY_SERVICE_PUBLIC_URL")
+        or "http://127.0.0.1:8001"
+    ).rstrip("/")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = env_bool("PREFER_HTTPS", False)
@@ -43,4 +51,5 @@ class TestingConfig(Config):
     SECRET_KEY = "frontend-test-secret"
     BACKEND_API_URL = "http://backend.example.test"
     PLAY_SERVICE_PUBLIC_URL = "http://play.example.test"
+    PLAY_SERVICE_INTERNAL_URL = "http://play-internal.example.test"
     BYPASS_LOGIN_FOR_TESTS = False

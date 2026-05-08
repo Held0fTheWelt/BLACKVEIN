@@ -12,7 +12,9 @@ try:
 except ImportError:
     HAS_YAML = False
 
-from flask import current_app, flash, g, jsonify, make_response, redirect, render_template, request, session, url_for
+import requests as _requests
+
+from flask import Response, current_app, flash, g, jsonify, make_response, redirect, render_template, request, session, stream_with_context, url_for
 
 from . import player_backend
 from .player_backend import BackendApiError
@@ -943,7 +945,6 @@ def play_shell(session_id: str):
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
             "show_play_diagnostics": diagnostics_deep,
-            "play_service_url": (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").rstrip("/"),
         }
     )
     response_obj = make_response(
@@ -1026,7 +1027,6 @@ def play_execute(session_id: str):
             "shell_state_view": shell_state_view,
             "runtime_status_view": runtime_status_view,
             "show_play_diagnostics": diagnostics_deep,
-            "play_service_url": (current_app.config.get("PLAY_SERVICE_PUBLIC_URL") or "").rstrip("/"),
         }
     )
     return render_template(
@@ -1041,4 +1041,39 @@ def play_execute(session_id: str):
         governance=payload.get("governance") if isinstance(payload.get("governance"), dict) else {},
         play_bootstrap_json=play_bootstrap_json,
         show_play_diagnostics=diagnostics_deep,
+    )
+
+
+@frontend_bp.route("/api/story/sessions/<session_id>/stream-narrator", methods=["GET"])
+@require_login
+def stream_narrator_proxy(session_id: str):
+    """Same-origin SSE proxy: forwards narrator event-stream from play service to browser.
+
+    Keeps the browser EventSource on the frontend origin — avoids CORS, CSP, and
+    firewall issues that arise when the browser connects directly to the play service port.
+    """
+    play_url = (current_app.config.get("PLAY_SERVICE_INTERNAL_URL") or "").rstrip("/")
+    if not play_url:
+        return Response("Play service not configured", status=503, mimetype="text/plain")
+    target = f"{play_url}/api/story/sessions/{session_id}/stream-narrator"
+    try:
+        upstream = _requests.get(target, stream=True, timeout=120)
+    except _requests.RequestException as exc:
+        return Response(f"Play service unavailable: {exc!s:.80}", status=502, mimetype="text/plain")
+
+    def _generate():
+        try:
+            for chunk in upstream.iter_content(chunk_size=None):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    return Response(
+        stream_with_context(_generate()),
+        content_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
     )

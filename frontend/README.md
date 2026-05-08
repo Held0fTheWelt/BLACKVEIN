@@ -19,6 +19,7 @@ It does **not** include admin/management screens.
    - `FRONTEND_SECRET_KEY` (required)
    - `BACKEND_API_URL` (default: `http://127.0.0.1:5000`)
    - `PLAY_SERVICE_PUBLIC_URL` (default: `http://127.0.0.1:8001`)
+   - `PLAY_SERVICE_INTERNAL_URL` (default: falls back to `PLAY_SERVICE_PUBLIC_URL`)
    - `FRONTEND_PORT` (default: `5002`)
 3. Start:
    - `python frontend/run.py`
@@ -27,6 +28,7 @@ It does **not** include admin/management screens.
 
 - `FRONTEND_SECRET_KEY`: frontend session signing key
 - `BACKEND_API_URL`: backend API base URL
-- `PLAY_SERVICE_PUBLIC_URL`: public play-service URL used by play shell
+- `PLAY_SERVICE_PUBLIC_URL`: browser-reachable play-service URL (used for client-side bootstrapping)
+- `PLAY_SERVICE_INTERNAL_URL`: server-side play-service URL for proxy calls (e.g. SSE stream-narrator). In Docker set to `http://play-service:8000`; falls back to `PLAY_SERVICE_PUBLIC_URL` for bare-metal local dev
 - `FRONTEND_PORT` / `PORT`: bind port
 - `PREFER_HTTPS`: enables secure session cookies

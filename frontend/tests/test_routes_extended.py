@@ -1049,3 +1049,58 @@ def test_play_execute_json_includes_show_play_diagnostics_flag(client, monkeypat
     assert body["show_play_diagnostics"] is True
     assert "runtime_status_view" in body
     assert body["runtime_status_view"]["quality_class"] in {"healthy", "weak_but_legal", "degraded", "failed"}
+
+
+# ---------------------------------------------------------------------------
+# stream_narrator_proxy — SSE same-origin proxy
+# ---------------------------------------------------------------------------
+
+def test_stream_narrator_proxy_forwards_event_stream(client, monkeypatch):
+    """Proxy returns text/event-stream forwarded from play service via internal URL."""
+    captured_urls = []
+
+    class FakeUpstream:
+        status_code = 200
+        def iter_content(self, chunk_size=None):
+            yield b"data: {\"event_kind\": \"narrator_block\"}\n\n"
+        def close(self):
+            pass
+
+    def fake_get(url, **kw):
+        captured_urls.append(url)
+        return FakeUpstream()
+
+    monkeypatch.setattr("app.routes_play._requests.get", fake_get)
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.get("/api/story/sessions/test-sess/stream-narrator")
+    assert r.status_code == 200
+    assert "text/event-stream" in r.content_type
+    assert b"narrator_block" in r.data
+    # Must use internal URL, not public URL
+    assert len(captured_urls) == 1
+    assert "play-internal.example.test" in captured_urls[0]
+    assert "play.example.test" not in captured_urls[0]
+
+
+def test_stream_narrator_proxy_503_when_play_service_not_configured(client, monkeypatch):
+    """Returns 503 when PLAY_SERVICE_INTERNAL_URL is not set."""
+    monkeypatch.setitem(client.application.config, "PLAY_SERVICE_INTERNAL_URL", "")
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.get("/api/story/sessions/test-sess/stream-narrator")
+    assert r.status_code == 503
+
+
+def test_stream_narrator_proxy_502_when_play_service_unreachable(client, monkeypatch):
+    """Returns 502 when internal play service connection fails."""
+    import requests as _req
+
+    monkeypatch.setattr(
+        "app.routes_play._requests.get",
+        lambda url, **kw: (_ for _ in ()).throw(_req.RequestException("refused")),
+    )
+    with client.session_transaction() as sess:
+        sess["access_token"] = "t"
+    r = client.get("/api/story/sessions/test-sess/stream-narrator")
+    assert r.status_code == 502
