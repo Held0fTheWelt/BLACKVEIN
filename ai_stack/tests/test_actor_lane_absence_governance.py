@@ -364,3 +364,230 @@ def test_story_rendering_uses_canonical_normalized_entries():
     assert isinstance(narration, list), "gm_narration should be a list"
     assert len(narration) > 0, "gm_narration should contain prose entries"
     assert "canonical prose" in narration, "gm_narration should contain generation prose"
+
+
+def test_live_opening_validation_rejects_actor_only_structured_output_without_narration_summary():
+    """LIVE-OPENING-FAILURE-01 repro: actor lanes can be approved while dramatic gate rejects empty fluency."""
+    generation = {
+        "success": True,
+        "metadata": {
+            "structured_output": {
+                "schema_version": "runtime_actor_turn_v1",
+                "primary_responder_id": "veronique_vallon",
+                "spoken_lines": [
+                    {"speaker_id": "veronique_vallon", "text": "We should keep this civil."}
+                ],
+                "action_lines": [
+                    {"actor_id": "michel_longstreet", "text": "folds his hands"}
+                ],
+            }
+        },
+    }
+    outcome = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=[],
+        generation=generation,
+        actor_lane_summary={
+            "spoken_line_count": 1,
+            "action_line_count": 1,
+            "initiative_event_count": 0,
+            "actor_lane_status": "approved",
+        },
+    )
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] == "dramatic_effect_reject_empty_fluency"
+
+
+def test_live_opening_validation_accepts_when_narration_summary_is_present():
+    """Control fixture: same actor lanes with narration_summary should pass dramatic gate."""
+    narration = (
+        "Two couples measure each other in the salon while civility strains "
+        "under the memory of the schoolyard incident."
+    )
+    generation = {
+        "success": True,
+        "metadata": {
+            "structured_output": {
+                "schema_version": "runtime_actor_turn_v1",
+                "narration_summary": narration,
+                "primary_responder_id": "veronique_vallon",
+                "spoken_lines": [
+                    {"speaker_id": "veronique_vallon", "text": "We should keep this civil."}
+                ],
+                "action_lines": [
+                    {"actor_id": "michel_longstreet", "text": "folds his hands"}
+                ],
+            }
+        },
+    }
+    outcome = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=[
+            {"effect_type": "narrative_projection", "description": narration}
+        ],
+        generation=generation,
+        actor_lane_summary={
+            "spoken_line_count": 1,
+            "action_line_count": 1,
+            "initiative_event_count": 0,
+            "actor_lane_status": "approved",
+        },
+    )
+    assert outcome["status"] == "approved"
+
+
+def _opening_state_for_role(role: str) -> dict:
+    human_actor = f"{role}_reille" if role in {"annette", "alain"} else role
+    npc_pool = ["veronique_vallon", "michel_longstreet", "annette_reille", "alain_reille"]
+    selected_responders = [{"actor_id": actor} for actor in npc_pool if actor != human_actor]
+    return {
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "selected_scene_function": "establish_pressure",
+        "transition_pattern": "hard",
+        "selected_responder_set": selected_responders,
+        "actor_lane_context": {
+            "selected_player_role": role,
+            "human_actor_id": human_actor,
+            "ai_forbidden_actor_ids": [human_actor],
+        },
+        "fallback_markers": [],
+    }
+
+
+def _lane_only_generation() -> dict:
+    return {
+        "success": True,
+        "parser_error": None,
+        "metadata": {
+            "adapter": "openai",
+            "structured_output": {
+                "schema_version": "runtime_actor_turn_v1",
+                "primary_responder_id": "veronique_vallon",
+                "spoken_lines": [
+                    {"speaker_id": "veronique_vallon", "text": "We should keep this civil."}
+                ],
+                "action_lines": [
+                    {"actor_id": "michel_longstreet", "text": "folds his hands"}
+                ],
+            },
+        },
+    }
+
+
+def _actor_lane_summary_from_structured(structured: dict) -> dict:
+    return {
+        "spoken_line_count": len(structured.get("spoken_lines") or []),
+        "action_line_count": len(structured.get("action_lines") or []),
+        "initiative_event_count": len(structured.get("initiative_events") or []),
+        "actor_lane_status": "approved",
+    }
+
+
+def test_opening_narration_synth_from_approved_actor_lanes_unblocks_empty_fluency_reject():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    state["generation"] = _lane_only_generation()
+    result = graph._proposal_normalize(state)
+
+    structured = result["generation"]["metadata"]["structured_output"]
+    summary = structured.get("narration_summary")
+    assert isinstance(summary, str) and summary.strip()
+    assert result["generation"]["metadata"]["narration_summary_synthesized"] is True
+    assert result["generation"]["metadata"]["narration_summary_source"] == "actor_lane_fallback"
+    assert (
+        result["generation"]["metadata"]["synthetic_narration_reason"]
+        == "missing_narration_summary_with_approved_actor_lanes"
+    )
+    assert any(
+        str(effect.get("description") or "").strip() for effect in result["proposed_state_effects"]
+    )
+    outcome = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=result["proposed_state_effects"],
+        generation=result["generation"],
+        actor_lane_summary=_actor_lane_summary_from_structured(structured),
+        actor_lane_context=state["actor_lane_context"],
+    )
+    assert outcome["reason"] != "dramatic_effect_reject_empty_fluency"
+
+
+def test_opening_narration_synth_skipped_when_actor_lane_rejected():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    generation = _lane_only_generation()
+    generation["metadata"]["structured_output"]["spoken_lines"] = [
+        {"speaker_id": "annette_reille", "text": "I take the floor."}
+    ]
+    state["generation"] = generation
+    result = graph._proposal_normalize(state)
+    structured = result["generation"]["metadata"]["structured_output"]
+    assert not str(structured.get("narration_summary") or "").strip()
+    assert "narration_summary_synthesized" not in result["generation"]["metadata"]
+
+
+def test_opening_narration_synth_skipped_when_actor_lanes_empty():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    generation = _lane_only_generation()
+    generation["metadata"]["structured_output"]["spoken_lines"] = []
+    generation["metadata"]["structured_output"]["action_lines"] = []
+    state["generation"] = generation
+    result = graph._proposal_normalize(state)
+    structured = result["generation"]["metadata"]["structured_output"]
+    assert not str(structured.get("narration_summary") or "").strip()
+    assert "narration_summary_synthesized" not in result["generation"]["metadata"]
+
+
+def test_opening_narration_synth_does_not_override_existing_summary():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    generation = _lane_only_generation()
+    generation["metadata"]["structured_output"]["narration_summary"] = "Existing summary."
+    state["generation"] = generation
+    result = graph._proposal_normalize(state)
+    structured = result["generation"]["metadata"]["structured_output"]
+    assert structured["narration_summary"] == "Existing summary."
+    assert "narration_summary_synthesized" not in result["generation"]["metadata"]
+
+
+def test_opening_narration_synth_never_masks_human_actor_lane_violation():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    generation = _lane_only_generation()
+    generation["metadata"]["structured_output"]["spoken_lines"] = [
+        {"speaker_id": "annette_reille", "text": "I speak for myself."}
+    ]
+    state["generation"] = generation
+    normalized = graph._proposal_normalize(state)
+    outcome = run_validation_seam(
+        module_id="god_of_carnage",
+        proposed_state_effects=normalized["proposed_state_effects"],
+        generation=normalized["generation"],
+        actor_lane_summary=_actor_lane_summary_from_structured(
+            normalized["generation"]["metadata"]["structured_output"]
+        ),
+        actor_lane_context=state["actor_lane_context"],
+    )
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] in {"ai_controlled_human_actor", "human_actor_selected_as_responder"}
+
+
+def test_opening_narration_synth_annette_fixture_has_three_narrator_paragraphs():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("annette")
+    state["generation"] = _lane_only_generation()
+    result = graph._proposal_normalize(state)
+    summary = result["generation"]["metadata"]["structured_output"]["narration_summary"]
+    assert summary.count("\n\n") >= 2
+    assert "Annette" in summary
+
+
+def test_opening_narration_synth_alain_fixture_has_three_narrator_paragraphs():
+    graph = object.__new__(RuntimeTurnGraphExecutor)
+    state = _opening_state_for_role("alain")
+    state["generation"] = _lane_only_generation()
+    result = graph._proposal_normalize(state)
+    summary = result["generation"]["metadata"]["structured_output"]["narration_summary"]
+    assert summary.count("\n\n") >= 2
+    assert "Alain" in summary

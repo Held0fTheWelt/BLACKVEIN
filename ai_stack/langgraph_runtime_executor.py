@@ -418,6 +418,79 @@ def _actor_lane_validation(
     }
 
 
+def _has_usable_narrative_effect(proposed_effects: list[dict[str, Any]]) -> bool:
+    """Return True when proposed effects already include non-empty narrative prose."""
+    for effect in proposed_effects:
+        if not isinstance(effect, dict):
+            continue
+        desc = str(effect.get("description") or "").strip()
+        if not desc:
+            continue
+        effect_type = str(effect.get("effect_type") or "").strip().lower()
+        if effect_type.startswith("narrative") or effect_type in {"opening", "scene", "story"}:
+            return True
+    return False
+
+
+def _build_actor_lane_opening_narration(
+    *,
+    state: "RuntimeTurnState",
+    structured_output: dict[str, Any],
+) -> str:
+    """Synthesize opening narration from approved actor lanes when narration is missing."""
+    actor_lane_ctx = (
+        state.get("actor_lane_context")
+        if isinstance(state.get("actor_lane_context"), dict)
+        else {}
+    )
+    human_actor = str(
+        actor_lane_ctx.get("selected_player_role")
+        or actor_lane_ctx.get("human_actor_id")
+        or "the player"
+    ).strip()
+    role_label = human_actor.replace("_", " ").strip().title() if human_actor else "The player"
+
+    first_spoken = ""
+    spoken = structured_output.get("spoken_lines")
+    if isinstance(spoken, list):
+        for row in spoken:
+            if not isinstance(row, dict):
+                continue
+            text = str(row.get("text") or row.get("line") or "").strip()
+            speaker = str(row.get("speaker_id") or "").strip().replace("_", " ").title()
+            if text:
+                first_spoken = f"{speaker} breaks the silence: {text}" if speaker else text
+                break
+
+    first_action = ""
+    action = structured_output.get("action_lines")
+    if isinstance(action, list):
+        for row in action:
+            if not isinstance(row, dict):
+                continue
+            text = str(row.get("text") or row.get("line") or "").strip()
+            actor = str(row.get("actor_id") or "").strip().replace("_", " ").title()
+            if text:
+                first_action = f"{actor} {text}" if actor else text
+                break
+
+    narrator_intro = (
+        "Two couples gather after the schoolyard incident, each carrying a different version "
+        "of blame, civility, and what this meeting should settle."
+    )
+    role_anchor = (
+        f"You are {role_label}. Every glance in the room tests whether this conversation can stay civil."
+    )
+    scene_setup = (
+        "In the Paris salon, chairs face each other around a low table while untouched cups cool in the pause "
+        "before anyone yields the floor."
+    )
+    if first_spoken or first_action:
+        lane_projection = " ".join([x for x in (first_spoken, first_action) if x]).strip()
+        scene_setup = f"{scene_setup} {lane_projection}".strip()
+    return f"{narrator_intro}\n\n{role_anchor}\n\n{scene_setup}"
+
+
 def _derive_active_character_keys(
     *,
     yaml_slice: dict[str, Any] | None,
@@ -2391,6 +2464,56 @@ class RuntimeTurnGraphExecutor:
             meta["structured_output"] = cleaned
             generation["metadata"] = meta
         proposed = structured_output_to_proposed_effects(cleaned)
+        if isinstance(cleaned, dict):
+            schema_version = str(cleaned.get("schema_version") or "").strip()
+            narration_summary = str(cleaned.get("narration_summary") or "").strip()
+            narrative_response = str(cleaned.get("narrative_response") or "").strip()
+            spoken_count = len([x for x in (cleaned.get("spoken_lines") or []) if isinstance(x, dict)])
+            action_count = len([x for x in (cleaned.get("action_lines") or []) if isinstance(x, dict)])
+            has_actor_lane_substance = (spoken_count + action_count) > 0
+            has_existing_narrative = bool(narration_summary or narrative_response)
+            parser_error = (
+                generation.get("parser_error")
+                or meta.get("langchain_parser_error")
+                or meta.get("parser_error")
+            )
+            transition_pattern = str(state.get("transition_pattern") or "").strip().lower()
+            adapter_name = str(meta.get("adapter") or "").strip().lower()
+            fallback_active = bool(generation.get("fallback_used")) or adapter_name in {
+                "ldss_fallback",
+                "ldss_deterministic",
+            }
+            actor_lane_validation = _actor_lane_validation(state, generation)
+            actor_lane_status = str(actor_lane_validation.get("status") or "").strip().lower()
+            can_synthesize = (
+                schema_version == "runtime_actor_turn_v1"
+                and has_actor_lane_substance
+                and not has_existing_narrative
+                and not _has_usable_narrative_effect(proposed)
+                and actor_lane_status in {"approved", "not_applicable"}
+                and not parser_error
+                and transition_pattern != "diagnostics_only"
+                and not fallback_active
+                and int(state.get("turn_number") or 0) == 0
+            )
+            if can_synthesize:
+                synthesized = _build_actor_lane_opening_narration(
+                    state=state,
+                    structured_output=cleaned,
+                )
+                if synthesized.strip():
+                    cleaned = dict(cleaned)
+                    cleaned["narration_summary"] = synthesized
+                    cleaned["narrative_response"] = synthesized
+                    meta = dict(meta)
+                    meta["structured_output"] = cleaned
+                    meta["narration_summary_synthesized"] = True
+                    meta["narration_summary_source"] = "actor_lane_fallback"
+                    meta["synthetic_narration_reason"] = (
+                        "missing_narration_summary_with_approved_actor_lanes"
+                    )
+                    generation["metadata"] = meta
+                    proposed = structured_output_to_proposed_effects(cleaned)
         if isinstance(cleaned, dict):
             if cleaned.get("primary_responder_id"):
                 update["primary_responder_id"] = str(cleaned["primary_responder_id"])

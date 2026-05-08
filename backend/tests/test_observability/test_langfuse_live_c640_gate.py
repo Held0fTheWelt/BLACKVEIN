@@ -150,6 +150,26 @@ def _actor_lane_status_from_validation_span(trace: Any) -> str:
     return ""
 
 
+def _trace_classification_from_obs(obs: dict[str, Any]) -> tuple[str, str, bool | None]:
+    """Return (trace_origin, execution_tier, canonical_player_flow) from obs metadata.
+
+    Returns empty strings / None when fields are missing.
+    """
+    metadata = _coerce_dict(obs.get("metadata"))
+    origin = str(metadata.get("trace_origin") or "").strip().lower()
+    tier = str(metadata.get("execution_tier") or "").strip().lower()
+    canonical_raw = metadata.get("canonical_player_flow")
+    canonical: bool | None
+    if isinstance(canonical_raw, bool):
+        canonical = canonical_raw
+    elif isinstance(canonical_raw, str):
+        text = canonical_raw.strip().lower()
+        canonical = True if text in {"1", "true", "yes"} else False if text in {"0", "false", "no"} else None
+    else:
+        canonical = None
+    return origin, tier, canonical
+
+
 def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> None:
     by_name = {o.get("name"): o for o in _observation_dicts(fetched)}
     all_names = sorted(by_name.keys())
@@ -189,6 +209,7 @@ def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> 
         "visible_output_present",
         "live_runtime_visible_surface_pass",
         "live_runtime_contract_pass",
+        "live_opening_contract_pass",
         "fallback_absent",
         "non_mock_generation_pass",
         # usage_present is also asserted operationally via _usage_total(gen) > 0
@@ -196,6 +217,7 @@ def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> 
         "usage_present",
         # OPEN-GATE-01: trivially 1.0 on regular turns; blocks live_runtime_contract_pass
         # when turn 0 blocks violate the narrator_intro + role_anchor + scene_setup ordering.
+        "opening_shape_contract_pass",
         "opening_contract_pass",
     )
     missing = [n for n in required_scores if n not in scores]
@@ -213,6 +235,15 @@ def _assert_positive_live_trace_contract(fetched: Any, *, expected_sha: str) -> 
     we_sha = _player_input_sha256_from_obs(we[0])
     assert be_sha == expected_sha, f"backend.turn.execute sha mismatch: {be_sha!r} vs {expected_sha!r}"
     assert we_sha == expected_sha, f"world-engine.turn.execute sha mismatch: {we_sha!r} vs {expected_sha!r}"
+
+    be_origin, be_tier, be_canonical = _trace_classification_from_obs(be[0])
+    we_origin, we_tier, we_canonical = _trace_classification_from_obs(we[0])
+    assert be_origin == "live_ui", f"backend.turn.execute must be live_ui; got {be_origin!r}"
+    assert we_origin == "live_ui", f"world-engine.turn.execute must be live_ui; got {we_origin!r}"
+    assert be_tier == "live", f"backend.turn.execute must be execution_tier=live; got {be_tier!r}"
+    assert we_tier == "live", f"world-engine.turn.execute must be execution_tier=live; got {we_tier!r}"
+    assert be_canonical is True, f"backend.turn.execute must mark canonical_player_flow=true; got {be_canonical!r}"
+    assert we_canonical is True, f"world-engine.turn.execute must mark canonical_player_flow=true; got {we_canonical!r}"
 
     # ADR-0033 §13.8 Stage B: actor-lane whitelist on positive live trace.
     # actor_lane_safety_pass=1 alone is not sufficient; the validation evidence
@@ -311,7 +342,12 @@ def _build_positive_live_trace_fixture(
         {
             "name": "story.model.generation",
             "model": "openai_gpt_5_4_mini",
-            "metadata": {"adapter": "openai"},
+            "metadata": {
+                "adapter": "openai",
+                "trace_origin": "live_ui",
+                "execution_tier": "live",
+                "canonical_player_flow": True,
+            },
             "usage_details": {"input": 100, "output": 50, "total": 150},
         },
         {
@@ -320,11 +356,21 @@ def _build_positive_live_trace_fixture(
         },
         {
             "name": "backend.turn.execute",
-            "metadata": {"player_input_sha256": expected_sha},
+            "metadata": {
+                "player_input_sha256": expected_sha,
+                "trace_origin": "live_ui",
+                "execution_tier": "live",
+                "canonical_player_flow": True,
+            },
         },
         {
             "name": "world-engine.turn.execute",
-            "metadata": {"player_input_sha256": expected_sha},
+            "metadata": {
+                "player_input_sha256": expected_sha,
+                "trace_origin": "live_ui",
+                "execution_tier": "live",
+                "canonical_player_flow": True,
+            },
         },
     ]
     if actor_lane_status is not None:
@@ -345,9 +391,11 @@ def _build_positive_live_trace_fixture(
             "visible_output_present",
             "live_runtime_visible_surface_pass",
             "live_runtime_contract_pass",
+            "live_opening_contract_pass",
             "fallback_absent",
             "non_mock_generation_pass",
             "usage_present",
+            "opening_shape_contract_pass",
             "opening_contract_pass",
         )
     ]
@@ -403,6 +451,23 @@ def test_positive_live_trace_contract_rejects_rejected_actor_lane():
         actor_lane_status="rejected", expected_sha=expected_sha
     )
     with pytest.raises(AssertionError, match="actor_lane"):
+        _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
+
+
+def test_positive_live_trace_contract_rejects_non_live_trace_origin():
+    """TRACE-ORIGIN-01: positive live gate must reject pytest/mock classification."""
+    expected_sha = "0" * 64
+    fixture = _build_positive_live_trace_fixture(
+        actor_lane_status="approved", expected_sha=expected_sha
+    )
+    for obs in fixture["observations"]:
+        if obs.get("name") in {"backend.turn.execute", "world-engine.turn.execute"}:
+            meta = obs.get("metadata") or {}
+            meta["trace_origin"] = "pytest"
+            meta["execution_tier"] = "contract_test"
+            meta["canonical_player_flow"] = False
+            obs["metadata"] = meta
+    with pytest.raises(AssertionError, match="live_ui"):
         _assert_positive_live_trace_contract(fixture, expected_sha=expected_sha)
 
 

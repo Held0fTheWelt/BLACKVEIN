@@ -1188,16 +1188,21 @@ def _emit_langfuse_evidence_observations(
         "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 else 0.0,
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
-    # OPEN-GATE-01: opening turns must satisfy the narrator-led block contract.
-    # Turn > 0 trivially passes (contract is opening-only).
+    # OPEN-SCORE-SPLIT-01:
+    # - opening_shape_contract_pass: purely visible opening-shape quality (can pass in fixtures/mocks).
+    # - live_opening_contract_pass: strict live-only success marker for canonical live_ui opening.
+    # ``opening_contract_pass`` is kept as a compatibility alias to opening_shape_contract_pass.
+    # Turn > 0 trivially passes the shape check (opening-only structural contract).
     _turn_number = int(path_summary.get("turn_number") or 0)
     if _turn_number == 0:
         _opening_blocks = _scene_blocks_from_turn_event(event)
-        deterministic_scores["opening_contract_pass"] = (
+        opening_shape_pass = (
             1.0 if _opening_block_contract_satisfied(_opening_blocks) else 0.0
         )
     else:
-        deterministic_scores["opening_contract_pass"] = 1.0
+        opening_shape_pass = 1.0
+    deterministic_scores["opening_shape_contract_pass"] = opening_shape_pass
+    deterministic_scores["opening_contract_pass"] = opening_shape_pass
     live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
     deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
     # Player-visible path only (excludes mock/usage/RAG gates). Stays green in mock_only when UI output is present.
@@ -1209,6 +1214,23 @@ def _emit_langfuse_evidence_observations(
         and qc not in {"degraded", "failed"}
     )
     deterministic_scores["live_runtime_visible_surface_pass"] = 1.0 if surface_ok else 0.0
+    final_adapter = str(path_summary.get("final_adapter") or path_summary.get("adapter") or "").strip().lower()
+    trace_origin = str(path_summary.get("trace_origin") or "").strip().lower()
+    execution_tier = str(path_summary.get("execution_tier") or "").strip().lower()
+    canonical_player_flow = bool(path_summary.get("canonical_player_flow"))
+    live_opening_ok = (
+        _turn_number == 0
+        and trace_origin == "live_ui"
+        and execution_tier == "live"
+        and canonical_player_flow
+        and deterministic_scores["opening_shape_contract_pass"] == 1.0
+        and deterministic_scores["live_runtime_contract_pass"] == 1.0
+        and final_adapter not in {"ldss_fallback"}
+        and deterministic_scores["fallback_absent"] == 1.0
+        and deterministic_scores["non_mock_generation_pass"] == 1.0
+        and qc not in {"degraded", "failed"}
+    )
+    deterministic_scores["live_opening_contract_pass"] = 1.0 if live_opening_ok else 0.0
     canonical_signals = _build_canonical_degradation_signals(path_summary)
     degradation_chain = _build_degradation_chain(path_summary)
     degradation_prose_summary = _build_degradation_prose_summary(path_summary)

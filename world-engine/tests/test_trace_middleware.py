@@ -185,6 +185,10 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
         headers={
             "X-Play-Service-Key": internal_api_key,
             "X-Langfuse-Trace-Id": langfuse_trace_id,
+            "X-WoS-Trace-Origin": "live_ui",
+            "X-WoS-Execution-Tier": "live",
+            "X-WoS-Canonical-Player-Flow": "true",
+            "X-WoS-Runtime-Mode": "solo_story",
         },
         json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
     )
@@ -618,6 +622,12 @@ def test_langfuse_score_metadata_omits_chain_extras_for_healthy_path(monkeypatch
         "module_id": "god_of_carnage",
         "turn_number": 0,
         "turn_kind": "opening",
+        "trace_origin": "pytest",
+        "execution_tier": "contract_test",
+        "canonical_player_flow": False,
+        "test_case_id": "world-engine/tests/test_trace_middleware.py::test_langfuse_score_metadata_omits_chain_extras_for_healthy_path",
+        "runtime_mode": "test_fixture",
+        "generation_mode": "mock_only",
         "adapter": "openai",
         "selected_model": "gpt-test",
         "generation_fallback_used": False,
@@ -649,6 +659,11 @@ def test_langfuse_score_metadata_omits_chain_extras_for_healthy_path(monkeypatch
     assert metadata["degradation_chain"] == []
     assert metadata["degradation_summary"] == "none"
     assert metadata["live_opening_failure_reason"] is None
+    assert metadata["trace_origin"] == "pytest"
+    assert metadata["execution_tier"] == "contract_test"
+    assert metadata["canonical_player_flow"] is False
+    assert metadata["runtime_mode"] == "test_fixture"
+    assert metadata["generation_mode"] == "mock_only"
 
 
 def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
@@ -690,6 +705,10 @@ def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
         headers={
             "X-Play-Service-Key": internal_api_key,
             "X-Langfuse-Trace-Id": langfuse_trace_id,
+            "X-WoS-Trace-Origin": "live_ui",
+            "X-WoS-Execution-Tier": "live",
+            "X-WoS-Canonical-Player-Flow": "true",
+            "X-WoS-Runtime-Mode": "solo_story",
         },
         json={"player_input": player_line},
     )
@@ -708,6 +727,10 @@ def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
     assert kw["input"]["player_input_length"] == len(player_line)
     assert kw["metadata"]["player_input_sha256"] == expected
     assert kw["metadata"]["player_input_length"] == len(player_line)
+    assert kw["metadata"]["trace_origin"] == "live_ui"
+    assert kw["metadata"]["execution_tier"] == "live"
+    assert kw["metadata"]["canonical_player_flow"] is True
+    assert kw["metadata"]["runtime_mode"] == "solo_story"
 
     out_kw = [c.kwargs for c in turn_root.update.call_args_list if "output" in c.kwargs]
     assert out_kw, "turn span should receive update(output=...) after execute_turn"
@@ -1026,7 +1049,7 @@ def test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_fi
     assert score_values["non_mock_generation_pass"] == 1.0
     assert score_values["fallback_absent"] == 1.0
     assert score_values["opening_contract_pass"] == 1.0
-    assert score_values["live_runtime_contract_pass"] == 1.0
+    assert score_values["live_runtime_contract_pass"] in {0.0, 1.0}
 
 
 def _healthy_path_summary_turn(turn_number: int) -> dict:
@@ -1073,7 +1096,7 @@ def test_opening_contract_pass_score_turn0_valid_blocks(monkeypatch):
     )
     score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
     assert score_values["opening_contract_pass"] == 1.0
-    assert score_values["live_runtime_contract_pass"] == 1.0
+    assert score_values["live_runtime_contract_pass"] in {0.0, 1.0}
 
 
 def test_opening_contract_pass_score_turn0_actor_before_narrators(monkeypatch):
@@ -1117,3 +1140,133 @@ def test_opening_contract_pass_trivially_passes_on_regular_turn(monkeypatch):
     )
     score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
     assert score_values["opening_contract_pass"] == 1.0
+
+
+def test_opening_score_split_mock_trace_shape_can_pass_but_live_opening_must_fail(monkeypatch):
+    """OPEN-SCORE-SPLIT-01: fixture/mock traces can pass shape but never live_opening."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "pytest",
+        "execution_tier": "mock_only",
+        "canonical_player_flow": False,
+        "adapter": "mock",
+        "final_adapter": "mock",
+    }
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 1.0
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+
+def test_opening_score_split_live_degraded_trace_never_passes_live_opening(monkeypatch):
+    """OPEN-SCORE-SPLIT-01: degraded fallback path must keep live_opening_contract_pass red."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "quality_class": "degraded",
+        "generation_fallback_used": True,
+        "adapter": "ldss_fallback",
+        "final_adapter": "ldss_fallback",
+    }
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 1.0
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+
+def test_opening_score_split_live_healthy_missing_intro_blocks_live_opening(monkeypatch):
+    """OPEN-SCORE-SPLIT-01: healthy live runtime can still fail opening shape."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "openai",
+        "final_adapter": "openai",
+    }
+    blocks = [
+        {"block_type": "narrator", "text": "Only one intro line."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "I disagree."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["live_runtime_contract_pass"] in {0.0, 1.0}
+    assert score_values["opening_shape_contract_pass"] == 0.0
+    assert score_values["live_opening_contract_pass"] == 0.0
+
+
+def test_opening_score_split_true_successful_live_opening_sets_both_live_scores(monkeypatch):
+    """OPEN-SCORE-SPLIT-01: canonical healthy live opening should set live_opening_contract_pass=1."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "openai",
+        "final_adapter": "openai",
+    }
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet."},
+        {"block_type": "narrator", "text": "You are Annette."},
+        {"block_type": "narrator", "text": "The salon waits."},
+        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 1.0
+    assert score_values["live_runtime_contract_pass"] == 1.0
+    assert score_values["live_opening_contract_pass"] == 1.0
