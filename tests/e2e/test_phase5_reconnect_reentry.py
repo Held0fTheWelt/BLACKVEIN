@@ -40,12 +40,10 @@ class TestSessionPersistenceMapping:
         )
 
     def test_turn_log_session_key_is_correct(self):
-        """Turn log session key must match expected contract."""
-        from frontend.app.routes_play import PLAY_SHELL_TURN_LOG_KEY
+        """Turn-log legacy key stays in eviction list (no direct runtime usage)."""
+        from frontend.app.routes_play import _LEGACY_LARGE_SESSION_KEYS
 
-        assert PLAY_SHELL_TURN_LOG_KEY == "play_shell_turn_logs", (
-            f"Turn log key must be 'play_shell_turn_logs', got '{PLAY_SHELL_TURN_LOG_KEY}'"
-        )
+        assert "play_shell_turn_logs" in _LEGACY_LARGE_SESSION_KEYS
 
     def test_backend_turn_function_is_callable(self):
         """_run_backend_turn must be a callable (required for reconnect flow)."""
