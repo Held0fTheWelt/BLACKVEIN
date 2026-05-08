@@ -2060,3 +2060,100 @@ def test_S5_path_summary_parser_error_none_primary_attempt_parser_error_present(
     assert meta["primary_attempt_api_success"] is True, (
         "primary_attempt_api_success must be True: API succeeded, only parser failed"
     )
+
+
+def test_S6_primary_parse_span_emitted_with_warning_level_on_parse_failure(monkeypatch):
+    """S6: story.phase.primary_parse span is emitted at WARNING when parser_error_present=True.
+
+    On LDSS traces the parse failure is the root cause. The span must surface it
+    explicitly with level=WARNING so operators see the causal chain without joining spans.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    path_summary = {
+        "session_id": "s6-session",
+        "module_id": "god_of_carnage",
+        "turn_number": 0,
+        "turn_kind": "opening",
+        "invoke_model_called": True,
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": True,
+        "primary_attempt_parser_error": "Expected mapping but got str at line 1",
+        "primary_attempt_structured_output_present": False,
+        "primary_attempt_raw_output_sha256": "abc123",
+        "primary_attempt_raw_output_excerpt": "{'spoken_lines': 'hello'}",
+        "primary_attempt_adapter": "openai",
+        "primary_attempt_model": "gpt-4.1-mini",
+        "primary_attempt_invocation_mode": "langchain_structured_primary",
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    created_child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.phase.primary_parse" in created_child_names
+
+    output = _last_span_output_for(adapter, "story.phase.primary_parse")
+    assert output["api_success"] is True
+    assert output["parser_error_present"] is True
+    assert output["parser_error"] == "Expected mapping but got str at line 1"
+    assert output["structured_output_present"] is False
+    assert output["raw_output_sha256"] == "abc123"
+    assert output["adapter"] == "openai"
+    assert output["model"] == "gpt-4.1-mini"
+
+    # Level must be WARNING — parse failure is a degradation signal
+    span_call = next(
+        c for c in adapter.create_child_span.call_args_list
+        if c.kwargs.get("name") == "story.phase.primary_parse"
+    )
+    assert span_call.kwargs.get("level") == "WARNING", (
+        "story.phase.primary_parse must be WARNING when parser_error_present=True"
+    )
+
+
+def test_S7_primary_parse_span_default_level_on_healthy_path(monkeypatch):
+    """S7: story.phase.primary_parse span is DEFAULT on a healthy parse path.
+
+    When gpt-4.1-mini API + PydanticOutputParser both succeed, the span is emitted
+    at DEFAULT level with structured_output_present=True and parser_error_present=False.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    path_summary = {
+        "session_id": "s7-session",
+        "module_id": "god_of_carnage",
+        "turn_number": 1,
+        "turn_kind": "turn",
+        "invoke_model_called": True,
+        "primary_attempt_api_success": True,
+        "primary_attempt_parser_error_present": False,
+        "primary_attempt_parser_error": None,
+        "primary_attempt_structured_output_present": True,
+        "primary_attempt_raw_output_sha256": "deadbeef",
+        "primary_attempt_adapter": "openai",
+        "primary_attempt_model": "gpt-4.1-mini",
+        "primary_attempt_invocation_mode": "langchain_structured_primary",
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    output = _last_span_output_for(adapter, "story.phase.primary_parse")
+    assert output["api_success"] is True
+    assert output["parser_error_present"] is False
+    assert output["structured_output_present"] is True
+
+    span_call = next(
+        c for c in adapter.create_child_span.call_args_list
+        if c.kwargs.get("name") == "story.phase.primary_parse"
+    )
+    assert span_call.kwargs.get("level") == "DEFAULT", (
+        "story.phase.primary_parse must be DEFAULT when parse succeeded"
+    )
