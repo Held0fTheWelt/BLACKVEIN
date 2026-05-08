@@ -37,8 +37,6 @@ _DEGRADED_QUALITY_CLASSES = {"degraded", "failed"}
 
 # Flask session key: deep diagnostics strip for play shell (Phase B).
 PLAY_SHELL_DIAGNOSTICS_SESSION_KEY = "play_shell_diagnostics_deep"
-# Legacy seam contract: external tests import this symbol directly.
-PLAY_SHELL_TURN_LOG_KEY = "play_shell_turn_logs"
 
 # Whitelist: only these logical dramatic-context keys may surface in the player shell.
 # Values are taken from ``dramatic_context_summary`` (story-window shape) plus a few
@@ -258,71 +256,6 @@ def _coerce_shell_lines(value: Any) -> list[str]:
         if line:
             lines.append(line)
     return lines
-
-
-def _build_play_shell_runtime_view(payload: dict[str, Any]) -> dict[str, Any]:
-    """Compatibility projection helper for legacy seam tests.
-
-    The play shell now works with normalized story entries/runtime status views, but
-    older repair tests still validate this single-turn projection contract directly.
-    """
-    data = payload if isinstance(payload, dict) else {}
-    turn = data.get("turn") if isinstance(data.get("turn"), dict) else {}
-    state = data.get("state") if isinstance(data.get("state"), dict) else {}
-    bundle = (
-        turn.get("visible_output_bundle")
-        if isinstance(turn.get("visible_output_bundle"), dict)
-        else {}
-    )
-    commit = turn.get("narrative_commit") if isinstance(turn.get("narrative_commit"), dict) else {}
-    validation = (
-        turn.get("validation_outcome")
-        if isinstance(turn.get("validation_outcome"), dict)
-        else {}
-    )
-    interpreted = (
-        turn.get("interpreted_input")
-        if isinstance(turn.get("interpreted_input"), dict)
-        else {}
-    )
-    committed_state = (
-        state.get("committed_state")
-        if isinstance(state.get("committed_state"), dict)
-        else {}
-    )
-
-    narration_lines = _coerce_shell_lines(bundle.get("gm_narration"))
-    spoken_lines = _coerce_shell_lines(bundle.get("spoken_lines"))
-    committed_consequences = _coerce_shell_lines(
-        commit.get("committed_consequences")
-        or committed_state.get("last_committed_consequences")
-    )
-    view: dict[str, Any] = {
-        "turn_number": int(turn.get("turn_number") or 0),
-        "player_line": str(turn.get("raw_input") or "").strip(),
-        "interpreted_input_kind": str(interpreted.get("kind") or "").strip(),
-        "narration_text": "\n\n".join(narration_lines),
-        "spoken_lines": spoken_lines,
-        "committed_consequences": committed_consequences,
-        "turn_counter": int(state.get("turn_counter") or 0),
-    }
-
-    # Keep both legacy and player-surface contracts: omit diagnostics-only fields for
-    # explicit player-surface payloads, but preserve them for seam repair fixtures.
-    player_surface_mode = (
-        "world_engine_story_session_id" in data
-        or "raw_input" not in turn
-    )
-    if not player_surface_mode:
-        view["validation_status"] = str(validation.get("status") or "").strip() or None
-        view["committed_scene_id"] = str(commit.get("committed_scene_id") or "").strip() or None
-        view["current_scene_id"] = str(
-            state.get("current_scene_id")
-            or committed_state.get("current_scene_id")
-            or ""
-        ).strip() or None
-
-    return view
 
 
 def _is_runtime_entry_degraded(entry: dict[str, Any]) -> tuple[bool, list[str], str]:
