@@ -9,6 +9,8 @@ from unittest.mock import MagicMock
 from app.story_runtime.manager import (
     _emit_langfuse_evidence_observations,
     _emit_langfuse_path_spans,
+    _live_scene_blocks_from_visible_bundle,
+    _opening_block_contract_satisfied,
 )
 
 
@@ -1074,6 +1076,128 @@ def _openai_event(scene_blocks: list) -> dict:
         "visible_output_bundle": {"scene_blocks": scene_blocks},
     }
 
+
+def _projection_bundle_with_opening_narration(*, role_name: str) -> dict[str, Any]:
+    return {
+        "gm_narration": [
+            "Two couples gather after the schoolyard incident, each carrying a different version "
+            "of blame, civility, and what this meeting should settle.",
+            f"You are {role_name}. Every glance in the room tests whether this conversation can stay civil.",
+            "In the Paris salon, chairs face each other around a low table while untouched cups cool in the pause "
+            "before anyone yields the floor.",
+        ],
+        "spoken_lines": ["Veronique: We should keep this civil."],
+        "action_lines": ["Michel folds his hands."],
+    }
+
+
+def test_projection_guard_synthesized_opening_survives_into_scene_blocks():
+    bundle = _projection_bundle_with_opening_narration(role_name="Annette")
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0)
+    assert len(blocks) >= 5
+    assert str(blocks[0].get("block_type")) == "narrator"
+    assert str(blocks[1].get("block_type")) == "narrator"
+    assert str(blocks[2].get("block_type")) == "narrator"
+    assert str(blocks[3].get("block_type")) == "actor_line"
+    assert str(blocks[4].get("block_type")) == "actor_action"
+    assert _opening_block_contract_satisfied(blocks) is True
+
+
+def test_projection_guard_first_visible_block_is_narrator_not_actor():
+    bundle = _projection_bundle_with_opening_narration(role_name="Annette")
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0)
+    assert str(blocks[0].get("block_type")) == "narrator"
+    assert str(blocks[0].get("text") or "").strip()
+
+
+def test_projection_guard_role_anchor_keeps_selected_role_name_annette_and_alain():
+    annette_blocks = _live_scene_blocks_from_visible_bundle(
+        _projection_bundle_with_opening_narration(role_name="Annette"),
+        turn_number=0,
+    )
+    alain_blocks = _live_scene_blocks_from_visible_bundle(
+        _projection_bundle_with_opening_narration(role_name="Alain"),
+        turn_number=0,
+    )
+    assert "Annette" in str(annette_blocks[1].get("text") or "")
+    assert "Alain" in str(alain_blocks[1].get("text") or "")
+
+
+def test_projection_guard_opening_shape_score_fails_when_projection_drops_narration(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "openai",
+        "final_adapter": "openai",
+    }
+    event = {
+        "model_route": {
+            "generation": {"metadata": {"adapter": "openai", "model": "gpt-5-mini"}}
+        },
+        # no gm_narration + no scene_blocks -> projection lost opening narration
+        "visible_output_bundle": {
+            "spoken_lines": ["Veronique: We should keep this civil."],
+            "action_lines": ["Michel folds his hands."],
+        },
+    }
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 0.0
+
+
+def test_projection_guard_opening_shape_score_passes_when_scene_blocks_keep_three_narrators(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        **_healthy_path_summary_turn(0),
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "adapter": "openai",
+        "final_adapter": "openai",
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        _projection_bundle_with_opening_narration(role_name="Annette"),
+        turn_number=0,
+    )
+    # ensure non-narrator system/debug blocks are not treated as opening narrators
+    blocks.insert(
+        0,
+        {
+            "id": "turn-0-live-block-debug",
+            "block_type": "system_degraded_notice",
+            "text": "debug only",
+            "speaker_label": "System",
+        },
+    )
+    assert _opening_block_contract_satisfied(blocks) is False
+
+    # remove debug block: canonical opening shape should pass
+    canonical_blocks = [b for b in blocks if str(b.get("block_type")) != "system_degraded_notice"]
+    assert _opening_block_contract_satisfied(canonical_blocks) is True
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(canonical_blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 1.0
 
 def test_opening_contract_pass_score_turn0_valid_blocks(monkeypatch):
     """OPEN-GATE-01: turn 0 with 3 narrators then actor_line → opening_contract_pass=1.0."""

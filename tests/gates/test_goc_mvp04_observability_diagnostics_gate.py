@@ -289,9 +289,9 @@ def test_mvp04_ai_human_actor_violation_is_traced_as_rejected():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp4
-def test_mvp04_langfuse_trace_created_when_enabled():
+def test_mvp04_langfuse_trace_created_when_enabled(tmp_path):
     """When langfuse is enabled, local trace export is generated with real IDs."""
-    export_dir = str(REPO_ROOT / "tests" / "reports" / "langfuse")
+    export_dir = str(tmp_path / "langfuse")
     export = build_local_trace_export(
         story_session_id="test-session-lf",
         turn_number=3,

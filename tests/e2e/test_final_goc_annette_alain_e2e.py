@@ -15,11 +15,18 @@ Tests the complete MVP5 frontend integration:
 
 import pytest
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 
 # These tests require Playwright setup (--with-playwright flag)
 pytestmark = pytest.mark.e2e
+
+
+def _should_write_tracked_evidence_reports() -> bool:
+    """Allow tracked evidence writes only when explicitly requested."""
+    raw = str(os.environ.get("WOS_WRITE_TRACKED_EVIDENCE_REPORTS", "")).strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 
 @pytest.fixture(scope="module")
@@ -155,10 +162,11 @@ class TestFinalAnnetteSoloRun:
             }
         }
 
-        # Save evidence report
-        report_path = e2e_report_dir / "goc_final_e2e_annette_evidence.json"
-        with open(report_path, "w") as f:
-            json.dump(evidence, f, indent=2)
+        # Keep default test runs read-only for tracked evidence artifacts.
+        if _should_write_tracked_evidence_reports():
+            report_path = e2e_report_dir / "goc_final_e2e_annette_evidence.json"
+            with open(report_path, "w") as f:
+                json.dump(evidence, f, indent=2)
 
         # Assertions on real data
         assert evidence["status"] == "PASS"
@@ -285,10 +293,11 @@ class TestFinalAlainSoloRun:
             }
         }
 
-        # Save evidence report
-        report_path = e2e_report_dir / "goc_final_e2e_alain_evidence.json"
-        with open(report_path, "w") as f:
-            json.dump(evidence, f, indent=2)
+        # Keep default test runs read-only for tracked evidence artifacts.
+        if _should_write_tracked_evidence_reports():
+            report_path = e2e_report_dir / "goc_final_e2e_alain_evidence.json"
+            with open(report_path, "w") as f:
+                json.dump(evidence, f, indent=2)
 
         # Assertions on real data
         assert evidence["status"] == "PASS"
@@ -361,8 +370,9 @@ def final_acceptance_report(e2e_report_dir):
         }
     }
 
-    report_path = e2e_report_dir / "MVP5_FINAL_ACCEPTANCE_REPORT.json"
-    with open(report_path, "w") as f:
-        json.dump(report, f, indent=2)
+    if _should_write_tracked_evidence_reports():
+        report_path = e2e_report_dir / "MVP5_FINAL_ACCEPTANCE_REPORT.json"
+        with open(report_path, "w") as f:
+            json.dump(report, f, indent=2)
 
     return report

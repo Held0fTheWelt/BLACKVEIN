@@ -173,6 +173,11 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("wos.research.bundle.build", McpToolClass.review_bound, McpSuite.wos_ai, AUTH_AI_STACK_CAPABILITY_CATALOG),
     ("wos.canon.improvement.propose", McpToolClass.write_capable, McpSuite.wos_ai, AUTH_AI_STACK_CAPABILITY_CATALOG),
     ("wos.canon.improvement.preview", McpToolClass.review_bound, McpSuite.wos_ai, AUTH_AI_STACK_CAPABILITY_CATALOG),
+    ("run_projection_tests", McpToolClass.review_bound, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("fetch_langfuse_trace", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("query_langfuse_traces", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("assert_langfuse_opening_contract", McpToolClass.review_bound, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_live_opening_matrix", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
 )
 
 

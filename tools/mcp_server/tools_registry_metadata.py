@@ -26,6 +26,11 @@ MCP_DEFAULT_TOOL_DESCRIPTIONS: dict[str, str] = {
     "wos.research.bundle.build": "Build review-safe research bundle from run output",
     "wos.canon.improvement.propose": "Generate taxonomy-bound canon improvement proposals",
     "wos.canon.improvement.preview": "Preview generated canon improvement proposals",
+    "run_projection_tests": "Run projection pytest suite and return structured pass/fail",
+    "fetch_langfuse_trace": "Fetch one Langfuse trace and normalize metadata/scores",
+    "query_langfuse_traces": "Query recent Langfuse traces with optional filters",
+    "assert_langfuse_opening_contract": "Assert live/test opening contract fields on a Langfuse trace",
+    "summarize_live_opening_matrix": "Summarize live opening matrix across recent Langfuse traces",
 }
 
 MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
@@ -151,5 +156,43 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
         "type": "object",
         "properties": {"module_id": {"type": "string"}},
         "required": ["module_id"],
+    },
+    "run_projection_tests": {
+        "type": "object",
+        "properties": {
+            "extra_pytest_args": {
+                "type": "array",
+                "items": {"type": "string"},
+            }
+        },
+        "required": [],
+    },
+    "fetch_langfuse_trace": {
+        "type": "object",
+        "properties": {"langfuse_trace_id": {"type": "string"}},
+        "required": ["langfuse_trace_id"],
+    },
+    "query_langfuse_traces": {
+        "type": "object",
+        "properties": {
+            "limit": {"type": "integer"},
+            "trace_origin": {"type": "string"},
+            "canonical_player_flow": {"type": "boolean"},
+        },
+        "required": [],
+    },
+    "assert_langfuse_opening_contract": {
+        "type": "object",
+        "properties": {
+            "mode": {"type": "string"},
+            "langfuse_trace_id": {"type": "string"},
+            "limit": {"type": "integer"},
+        },
+        "required": [],
+    },
+    "summarize_live_opening_matrix": {
+        "type": "object",
+        "properties": {"limit": {"type": "integer"}},
+        "required": [],
     },
 }

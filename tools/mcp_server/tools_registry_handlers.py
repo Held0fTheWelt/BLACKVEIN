@@ -14,6 +14,9 @@ from tools.mcp_server.tools_registry_handlers_filesystem import build_filesystem
 from tools.mcp_server.tools_registry_handlers_governance import build_governance_mcp_handlers
 from tools.mcp_server.tools_registry_handlers_protocol import RegistryListToolNames
 from tools.mcp_server.tools_registry_handlers_research import build_research_mcp_handlers
+from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
+    build_langfuse_verify_mcp_handlers,
+)
 
 
 def build_default_mcp_tool_handlers(
@@ -31,4 +34,5 @@ def build_default_mcp_tool_handlers(
     handlers.update(build_backend_session_mcp_handlers(backend))
     handlers.update(build_governance_mcp_handlers(backend, registry))
     handlers.update(build_research_mcp_handlers(research_store))
+    handlers.update(build_langfuse_verify_mcp_handlers())
     return handlers, deferred_stub_handler_factory
