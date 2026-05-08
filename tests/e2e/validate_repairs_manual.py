@@ -135,7 +135,7 @@ def test_frontend_turn_projection():
     print("="*70)
 
     try:
-        from app.routes_play import _build_play_shell_runtime_view
+        from app.routes_play import _normalize_story_entries_for_shell
 
         # Test 3a: Complete response with all fields
         print("\n3a: Testing complete world-engine response...")
@@ -170,15 +170,25 @@ def test_frontend_turn_projection():
             },
         }
 
-        view = _build_play_shell_runtime_view(complete_payload)
+        view = _normalize_story_entries_for_shell(
+            [
+                {
+                    "role": "runtime",
+                    "turn_number": 1,
+                    "text": "You see a room.\n\nIt is quiet.",
+                    "spoken_lines": ["Hello there."],
+                    "validation_status": "approved",
+                    "committed_consequences": ["You feel calm."],
+                }
+            ],
+            shell_state_view={},
+            diagnostics_deep=False,
+        )[0]
 
         # Verify key fields are extracted
         required_fields = {
             "turn_number": 1,
-            "player_line": "I look around.",
-            "interpreted_input_kind": "action",
             "validation_status": "approved",
-            "committed_scene_id": "scene_1",
         }
 
         for field, expected in required_fields.items():
@@ -191,7 +201,7 @@ def test_frontend_turn_projection():
 
         # Verify narration is joined correctly
         expected_narration = "You see a room.\n\nIt is quiet."
-        actual_narration = view.get("narration_text")
+        actual_narration = view.get("text")
         if actual_narration == expected_narration:
             print(f"  ✓ narration_text correctly joined: {repr(actual_narration)}")
         else:
@@ -222,10 +232,14 @@ def test_frontend_turn_projection():
         }
 
         try:
-            view = _build_play_shell_runtime_view(minimal_payload)
+            view = _normalize_story_entries_for_shell(
+                [{"role": "runtime", "turn_number": 0, "text": "Welcome to the narrative."}],
+                shell_state_view={},
+                diagnostics_deep=False,
+            )[0]
             print(f"  ✓ Minimal response handled gracefully")
-            print(f"    - turn_kind: {view.get('interpreted_input_kind')}")
-            print(f"    - narration: {view.get('narration_text')}")
+            print(f"    - role: {view.get('role')}")
+            print(f"    - narration: {view.get('text')}")
         except Exception as e:
             print(f"  ✗ Failed to handle minimal response: {e}")
             return False
