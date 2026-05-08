@@ -31,6 +31,7 @@ from .logging_utils import (
     log_response,
     log_tool_call,
 )
+from .langfuse_tracing import McpLangfuseTracer
 from .rate_limiter import RateLimiter
 from .rpc_error_response import exception_to_jsonrpc_response
 from .rpc_method_router import route_mcp_method
@@ -102,14 +103,37 @@ class McpServer:
             authority_source=tool.authority_source,
             operating_profile=profile.value,
         )
+        _meta = params.get("_meta") if isinstance(params.get("_meta"), dict) else None
+        _suite = self._suite_filter.value if self._suite_filter else "all"
         try:
             result = tool.handler(arguments)
             duration_ms = (time.time() - start) * 1000
             log_tool_call(trace_id, tool_name, duration_ms, "success", **audit_kw)
+            McpLangfuseTracer.get_instance().trace_tool_call(
+                wos_trace_id=trace_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                result=result,
+                duration_ms=duration_ms,
+                status="success",
+                suite=_suite,
+                meta=_meta,
+            )
             return result
         except Exception as e:
             duration_ms = (time.time() - start) * 1000
             log_tool_call(trace_id, tool_name, duration_ms, "error", "TOOL_ERROR", **audit_kw)
+            McpLangfuseTracer.get_instance().trace_tool_call(
+                wos_trace_id=trace_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                result=None,
+                duration_ms=duration_ms,
+                status="error",
+                error=str(e),
+                suite=_suite,
+                meta=_meta,
+            )
             raise
 
     def handle_initialize(self, params: dict) -> dict:

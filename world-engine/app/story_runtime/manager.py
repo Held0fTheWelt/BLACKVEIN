@@ -488,6 +488,34 @@ def _short_text(value: Any, *, limit: int = 500) -> str | None:
     return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
 
 
+def _infer_execution_tier_for_pytest() -> str:
+    current = str(os.environ.get("PYTEST_CURRENT_TEST") or "").lower()
+    if not current:
+        return "diagnostic"
+    if "integration" in current:
+        return "integration_test"
+    if "contract" in current:
+        return "contract_test"
+    if "fixture" in current:
+        return "fixture"
+    return "contract_test"
+
+
+def _infer_generation_mode(path_summary_seed: dict[str, Any]) -> str:
+    adapter = str(path_summary_seed.get("adapter") or "").strip().lower()
+    final_adapter = str(path_summary_seed.get("final_adapter") or "").strip().lower()
+    invocation_mode = str(path_summary_seed.get("adapter_invocation_mode") or "").strip().lower()
+    fallback_mode = str(path_summary_seed.get("final_adapter_invocation_mode") or "").strip().lower()
+
+    if adapter == "mock" or final_adapter == "mock":
+        return "mock_only"
+    if "ldss_fallback" in adapter or "ldss_fallback" in final_adapter:
+        return "ldss_fallback"
+    if "fixture" in invocation_mode or "fixture" in fallback_mode:
+        return "deterministic_fixture"
+    return "live_openai"
+
+
 def _build_langfuse_path_summary(
     *,
     session: "StorySession",
@@ -540,8 +568,26 @@ def _build_langfuse_path_summary(
     graph_errors = _str_list(graph_state.get("graph_errors"))
     usage_details = gen_meta.get("usage_details") if isinstance(gen_meta.get("usage_details"), dict) else {}
     usage_total = int(usage_details.get("total") or gen_meta.get("tokens_total") or 0)
+    projection = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+    provenance = session.content_provenance if isinstance(session.content_provenance, dict) else {}
+    trace_classification = (
+        provenance.get("trace_classification")
+        if isinstance(provenance.get("trace_classification"), dict)
+        else {}
+    )
+    runtime_mode = str(
+        trace_classification.get("runtime_mode")
+        or projection.get("runtime_mode")
+        or "solo_story"
+    ).strip() or "solo_story"
+    trace_origin = str(trace_classification.get("trace_origin") or "").strip() or "unknown"
+    execution_tier = str(trace_classification.get("execution_tier") or "").strip()
+    if not execution_tier:
+        execution_tier = _infer_execution_tier_for_pytest() if trace_origin == "pytest" else "diagnostic"
+    canonical_player_flow = bool(trace_classification.get("canonical_player_flow", False))
+    test_case_id = trace_classification.get("test_case_id")
 
-    return {
+    summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
         "module_id": session.module_id,
@@ -650,7 +696,14 @@ def _build_langfuse_path_summary(
             if isinstance(governance.get("primary_passivity_factors"), list)
             else list(passivity.get("primary_passivity_factors") or [])
         ),
+        "trace_origin": trace_origin,
+        "execution_tier": execution_tier,
+        "canonical_player_flow": canonical_player_flow,
+        "test_case_id": test_case_id,
+        "runtime_mode": runtime_mode,
     }
+    summary["generation_mode"] = _infer_generation_mode(summary)
+    return summary
 
 
 def _langfuse_level_for_output(output: dict[str, Any]) -> str:
@@ -747,6 +800,11 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "module_id": path_summary.get("module_id"),
         "turn_number": path_summary.get("turn_number"),
         "turn_kind": path_summary.get("turn_kind"),
+        "trace_origin": path_summary.get("trace_origin"),
+        "execution_tier": path_summary.get("execution_tier"),
+        "canonical_player_flow": path_summary.get("canonical_player_flow"),
+        "runtime_mode": path_summary.get("runtime_mode"),
+        "generation_mode": path_summary.get("generation_mode"),
     }
 
     span_specs = [
@@ -765,6 +823,11 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "retrieval_hit_count": path_summary.get("retrieval_hit_count"),
                 "quality_class": path_summary.get("quality_class"),
                 "degradation_signals": path_summary.get("degradation_signals"),
+                "trace_origin": path_summary.get("trace_origin"),
+                "execution_tier": path_summary.get("execution_tier"),
+                "canonical_player_flow": path_summary.get("canonical_player_flow"),
+                "runtime_mode": path_summary.get("runtime_mode"),
+                "generation_mode": path_summary.get("generation_mode"),
             },
         ),
         (
@@ -883,6 +946,12 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                     "called": bool(output.get("called", True)),
                     "quality_class": path_summary.get("quality_class"),
                     "degradation_summary": path_summary.get("degradation_summary"),
+                    "trace_origin": path_summary.get("trace_origin"),
+                    "execution_tier": path_summary.get("execution_tier"),
+                    "canonical_player_flow": path_summary.get("canonical_player_flow"),
+                    "test_case_id": path_summary.get("test_case_id"),
+                    "runtime_mode": path_summary.get("runtime_mode"),
+                    "generation_mode": path_summary.get("generation_mode"),
                 },
                 level=level,
                 status_message=status_message,
@@ -1043,6 +1112,12 @@ def _emit_langfuse_evidence_observations(
                     "retrieval_context_attached": path_summary.get("retrieval_context_attached"),
                     "usage_available": path_summary.get("usage_available"),
                     "usage_source": path_summary.get("usage_source"),
+                    "trace_origin": path_summary.get("trace_origin"),
+                    "execution_tier": path_summary.get("execution_tier"),
+                    "canonical_player_flow": path_summary.get("canonical_player_flow"),
+                    "test_case_id": path_summary.get("test_case_id"),
+                    "runtime_mode": path_summary.get("runtime_mode"),
+                    "generation_mode": path_summary.get("generation_mode"),
                 },
             )
         except Exception:
@@ -1089,6 +1164,12 @@ def _emit_langfuse_evidence_observations(
                     "index_version": path_summary.get("retrieval_index_version"),
                     "degradation_mode": path_summary.get("retrieval_degradation_mode"),
                     "governance_summary": path_summary.get("retrieval_governance_summary"),
+                    "trace_origin": path_summary.get("trace_origin"),
+                    "execution_tier": path_summary.get("execution_tier"),
+                    "canonical_player_flow": path_summary.get("canonical_player_flow"),
+                    "test_case_id": path_summary.get("test_case_id"),
+                    "runtime_mode": path_summary.get("runtime_mode"),
+                    "generation_mode": path_summary.get("generation_mode"),
                 },
             )
         except Exception:
@@ -1153,6 +1234,12 @@ def _emit_langfuse_evidence_observations(
         "ldss_fallback_after_live_opening_failure": path_summary.get(
             "ldss_fallback_after_live_opening_failure"
         ),
+        "trace_origin": path_summary.get("trace_origin"),
+        "execution_tier": path_summary.get("execution_tier"),
+        "canonical_player_flow": path_summary.get("canonical_player_flow"),
+        "test_case_id": path_summary.get("test_case_id"),
+        "runtime_mode": path_summary.get("runtime_mode"),
+        "generation_mode": path_summary.get("generation_mode"),
     }
     for name, value in deterministic_scores.items():
         try:

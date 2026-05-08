@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from typing import Any
 
 from flask import current_app, g, jsonify, request, session
@@ -72,6 +73,26 @@ class GameIdentityContext(dict):
     character_id: str | None
     character_name: str | None
 
+
+
+def _trace_classification(*, canonical_player_flow: bool, runtime_mode: str = "solo_story") -> dict[str, Any]:
+    current_test = str(os.environ.get("PYTEST_CURRENT_TEST") or "").lower()
+    if current_test:
+        tier = "integration_test" if "integration" in current_test else "contract_test"
+        return {
+            "trace_origin": "pytest",
+            "execution_tier": tier,
+            "canonical_player_flow": canonical_player_flow,
+            "test_case_id": current_test or None,
+            "runtime_mode": runtime_mode,
+        }
+    return {
+        "trace_origin": "live_ui" if canonical_player_flow else "unknown",
+        "execution_tier": "live" if canonical_player_flow else "diagnostic",
+        "canonical_player_flow": canonical_player_flow,
+        "test_case_id": None,
+        "runtime_mode": runtime_mode,
+    }
 
 
 def _current_user() -> User | None:
@@ -647,6 +668,10 @@ def _ensure_player_session(
         user_id=str(user.id),
         trace_id=trace_id or g.get("trace_id"),
         langfuse_trace_id=langfuse_trace_id or g.get("langfuse_trace_id") or get_langfuse_trace_id(),
+        trace_origin="live_ui",
+        execution_tier="live",
+        canonical_player_flow=True,
+        runtime_mode="solo_story",
         content_provenance=provenance,
     )
     runtime_session_id = str(created.get("session_id") or "").strip()
@@ -903,6 +928,7 @@ def game_player_session_turn(run_id: str):
 
         trace_id = g.get("trace_id")
         langfuse_trace_id = g.get("langfuse_trace_id") or get_langfuse_trace_id()
+        trace_meta = _trace_classification(canonical_player_flow=True, runtime_mode="solo_story")
         adapter = LangfuseAdapter.get_instance()
         root_span = None
         player_input_sha256 = hashlib.sha256(player_input.encode("utf-8")).hexdigest()
@@ -920,6 +946,7 @@ def game_player_session_turn(run_id: str):
                     "player_input_sha256": player_input_sha256,
                     "stage": "turn_execution",
                     "route": "/game/player-sessions/<run_id>/turns",
+                    **trace_meta,
                 },
                 trace_id=langfuse_trace_id,
                 user_id=str(user.id),
@@ -930,6 +957,11 @@ def game_player_session_turn(run_id: str):
                 player_input=player_input,
                 trace_id=trace_id,
                 langfuse_trace_id=langfuse_trace_id,
+                trace_origin=str(trace_meta.get("trace_origin")),
+                execution_tier=str(trace_meta.get("execution_tier")),
+                canonical_player_flow=bool(trace_meta.get("canonical_player_flow")),
+                test_case_id=trace_meta.get("test_case_id"),
+                runtime_mode=str(trace_meta.get("runtime_mode")),
             )
             turn = turn_payload.get("turn") if isinstance(turn_payload.get("turn"), dict) else {}
             state = get_story_state(runtime_session_id, trace_id=trace_id)
@@ -942,6 +974,7 @@ def game_player_session_turn(run_id: str):
                         "turn_number": turn.get("turn_number"),
                         "player_input_length": len(player_input),
                         "player_input_sha256": player_input_sha256,
+                        **trace_meta,
                     },
                 )
 

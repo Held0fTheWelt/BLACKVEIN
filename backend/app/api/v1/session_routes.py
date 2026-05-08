@@ -13,6 +13,8 @@ from flask import request, jsonify, g
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
+from typing import Any
 
 from app.api.v1 import api_v1_bp
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -40,6 +42,26 @@ from app.observability.audit_log import log_world_engine_bridge
 from app.observability.langfuse_adapter import LangfuseAdapter
 from app.runtime.input_interpreter import interpret_player_input
 from app.config.route_constants import route_session_config, route_status_codes
+
+
+def _trace_classification(*, canonical_player_flow: bool, runtime_mode: str = "solo_story") -> dict[str, Any]:
+    current_test = str(os.environ.get("PYTEST_CURRENT_TEST") or "").lower()
+    if current_test:
+        tier = "integration_test" if "integration" in current_test else "contract_test"
+        return {
+            "trace_origin": "pytest",
+            "execution_tier": tier,
+            "canonical_player_flow": canonical_player_flow,
+            "test_case_id": current_test or None,
+            "runtime_mode": runtime_mode,
+        }
+    return {
+        "trace_origin": "unknown",
+        "execution_tier": "diagnostic",
+        "canonical_player_flow": canonical_player_flow,
+        "test_case_id": None,
+        "runtime_mode": runtime_mode,
+    }
 
 
 def _validate_world_engine_turn_contract(turn: dict, trace_id: str | None = None) -> None:
@@ -513,6 +535,7 @@ def execute_session_turn(session_id):
     root_span = None
 
     try:
+        trace_meta = _trace_classification(canonical_player_flow=False, runtime_mode="solo_story")
         # Create root span for this turn execution
         root_span = adapter.start_trace(
             name="backend.turn.execute",
@@ -526,6 +549,7 @@ def execute_session_turn(session_id):
                 "player_input_sha256": player_input_sha256,
                 "stage": "turn_execution",
                 "route": "/api/v1/sessions/<session_id>/turns",
+                **trace_meta,
             },
             trace_id=langfuse_trace_id,
         )
@@ -537,6 +561,11 @@ def execute_session_turn(session_id):
                 runtime_projection=compiled.runtime_projection.model_dump(mode="json"),
                 trace_id=trace_id,
                 langfuse_trace_id=langfuse_trace_id,
+                trace_origin=str(trace_meta.get("trace_origin")),
+                execution_tier=str(trace_meta.get("execution_tier")),
+                canonical_player_flow=bool(trace_meta.get("canonical_player_flow")),
+                test_case_id=trace_meta.get("test_case_id"),
+                runtime_mode=str(trace_meta.get("runtime_mode")),
             )
             engine_story_session_id = created["session_id"]
             metadata["world_engine_story_session_id"] = engine_story_session_id
@@ -554,6 +583,11 @@ def execute_session_turn(session_id):
             player_input=player_input,
             trace_id=trace_id,
             langfuse_trace_id=langfuse_trace_id,
+            trace_origin=str(trace_meta.get("trace_origin")),
+            execution_tier=str(trace_meta.get("execution_tier")),
+            canonical_player_flow=bool(trace_meta.get("canonical_player_flow")),
+            test_case_id=trace_meta.get("test_case_id"),
+            runtime_mode=str(trace_meta.get("runtime_mode")),
         )
         diagnostics = get_story_diagnostics(engine_story_session_id, trace_id=trace_id)
         current_state = get_story_state(engine_story_session_id, trace_id=trace_id)
@@ -566,6 +600,7 @@ def execute_session_turn(session_id):
                     "status": "completed",
                     "player_input_length": len(player_input),
                     "player_input_sha256": player_input_sha256,
+                    **trace_meta,
                 },
             )
     except GameServiceError as exc:

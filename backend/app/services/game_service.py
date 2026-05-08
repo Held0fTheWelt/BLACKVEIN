@@ -164,6 +164,12 @@ def _request(
     internal: bool = False,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
+    trace_origin: str | None = None,
+    execution_tier: str | None = None,
+    canonical_player_flow: bool | None = None,
+    test_case_id: str | None = None,
+    runtime_mode: str | None = None,
+    generation_mode: str | None = None,
     timeout_seconds: float | int | None = None,
 ) -> dict | list:
     if current_app.config.get("PLAY_SERVICE_CONTROL_DISABLED"):
@@ -184,6 +190,18 @@ def _request(
             headers["X-WoS-Trace-Id"] = trace_id
         if langfuse_trace_id:
             headers["X-Langfuse-Trace-Id"] = langfuse_trace_id
+        if trace_origin:
+            headers["X-WoS-Trace-Origin"] = trace_origin
+        if execution_tier:
+            headers["X-WoS-Execution-Tier"] = execution_tier
+        if canonical_player_flow is not None:
+            headers["X-WoS-Canonical-Player-Flow"] = "true" if canonical_player_flow else "false"
+        if test_case_id:
+            headers["X-WoS-Test-Case-Id"] = str(test_case_id)
+        if runtime_mode:
+            headers["X-WoS-Runtime-Mode"] = str(runtime_mode)
+        if generation_mode:
+            headers["X-WoS-Generation-Mode"] = str(generation_mode)
     try:
         with httpx.Client(base_url=base_url, timeout=float(timeout)) as client:
             response = client.request(method, path, json=json_payload, headers=headers)
@@ -431,6 +449,12 @@ def create_story_session(
     user_id: str | None = None,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
+    trace_origin: str | None = None,
+    execution_tier: str | None = None,
+    canonical_player_flow: bool | None = None,
+    test_case_id: str | None = None,
+    runtime_mode: str | None = None,
+    generation_mode: str | None = None,
     content_provenance: dict | None = None,
 ) -> dict:
     if not current_app.config.get("PLAY_SERVICE_ALLOW_NEW_SESSIONS", True):
@@ -453,6 +477,12 @@ def create_story_session(
         internal=True,
         trace_id=trace_id,
         langfuse_trace_id=langfuse_trace_id,
+        trace_origin=trace_origin,
+        execution_tier=execution_tier,
+        canonical_player_flow=canonical_player_flow,
+        test_case_id=test_case_id,
+        runtime_mode=runtime_mode,
+        generation_mode=generation_mode,
         timeout_seconds=current_app.config.get("PLAY_SERVICE_STORY_SESSION_TIMEOUT", 75),
     )
     if not isinstance(payload, dict) or "session_id" not in payload:
@@ -471,6 +501,12 @@ def execute_story_turn(
     player_input: str,
     trace_id: str | None = None,
     langfuse_trace_id: str | None = None,
+    trace_origin: str | None = None,
+    execution_tier: str | None = None,
+    canonical_player_flow: bool | None = None,
+    test_case_id: str | None = None,
+    runtime_mode: str | None = None,
+    generation_mode: str | None = None,
 ) -> dict:
     payload = _request(
         "POST",
@@ -479,6 +515,12 @@ def execute_story_turn(
         internal=True,
         trace_id=trace_id,
         langfuse_trace_id=langfuse_trace_id,
+        trace_origin=trace_origin,
+        execution_tier=execution_tier,
+        canonical_player_flow=canonical_player_flow,
+        test_case_id=test_case_id,
+        runtime_mode=runtime_mode,
+        generation_mode=generation_mode,
     )
     if not isinstance(payload, dict) or "turn" not in payload:
         raise GameServiceError("Play service returned an unexpected story-turn payload.")

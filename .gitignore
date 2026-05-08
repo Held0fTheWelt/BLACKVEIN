@@ -80,3 +80,4 @@ Task_Implementation.md
 /MVP
 __init__.cpython-310.pyc
 /tests/reports/*.xml
+.mcp.json

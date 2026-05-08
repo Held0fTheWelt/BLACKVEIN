@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any, Generator
@@ -82,6 +83,51 @@ def _langfuse_root_status(path_summary: dict[str, Any] | None) -> tuple[str, str
         f"degradation={path_summary.get('degradation_summary') or 'none'}"
     )
     return level, status_message
+
+
+def _trace_classification_from_request(
+    request: Request,
+    *,
+    runtime_projection: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    projection = runtime_projection if isinstance(runtime_projection, dict) else {}
+    header_origin = str(request.headers.get("X-WoS-Trace-Origin") or "").strip()
+    header_tier = str(request.headers.get("X-WoS-Execution-Tier") or "").strip()
+    header_canonical = str(request.headers.get("X-WoS-Canonical-Player-Flow") or "").strip().lower()
+    header_test_case = str(request.headers.get("X-WoS-Test-Case-Id") or "").strip() or None
+    header_runtime_mode = str(request.headers.get("X-WoS-Runtime-Mode") or "").strip()
+    header_generation_mode = str(request.headers.get("X-WoS-Generation-Mode") or "").strip()
+
+    if header_origin:
+        trace_origin = header_origin
+    elif os.environ.get("PYTEST_CURRENT_TEST"):
+        trace_origin = "pytest"
+    else:
+        trace_origin = "unknown"
+
+    if header_tier:
+        execution_tier = header_tier
+    elif trace_origin == "pytest":
+        current = str(os.environ.get("PYTEST_CURRENT_TEST") or "").lower()
+        execution_tier = "integration_test" if "integration" in current else "contract_test"
+    else:
+        execution_tier = "diagnostic"
+
+    canonical = (
+        header_canonical in {"1", "true", "yes"}
+        if header_canonical
+        else trace_origin == "live_ui"
+    )
+    runtime_mode = header_runtime_mode or str(projection.get("runtime_mode") or "solo_story")
+
+    return {
+        "trace_origin": trace_origin,
+        "execution_tier": execution_tier,
+        "canonical_player_flow": bool(canonical),
+        "test_case_id": header_test_case,
+        "runtime_mode": runtime_mode,
+        "generation_mode": header_generation_mode or None,
+    }
 
 
 def _get_narrative_loader(request: Request) -> NarrativePackageLoader:
@@ -488,6 +534,10 @@ def create_story_session(
     story_session_id = uuid4().hex
 
     try:
+        trace_classification = _trace_classification_from_request(
+            request,
+            runtime_projection=payload.runtime_projection,
+        )
         try:
             from app.observability.langfuse_adapter import LangfuseAdapter
             adapter = LangfuseAdapter.get_instance()
@@ -508,6 +558,7 @@ def create_story_session(
                         "stage": "world_engine_session_create",
                         "turn_kind": "opening",
                         "session_id": story_session_id,
+                        **trace_classification,
                     },
                 )
             else:
@@ -520,6 +571,7 @@ def create_story_session(
                         "turn_kind": "opening",
                         "session_id": story_session_id,
                         "environment": adapter.config.environment,
+                        **trace_classification,
                     },
                 )
             if root_span:
@@ -541,7 +593,10 @@ def create_story_session(
                 module_id=payload.module_id,
                 runtime_projection=payload.runtime_projection,
                 session_output_language=payload.session_output_language,
-                content_provenance=payload.content_provenance,
+                content_provenance={
+                    **(payload.content_provenance if isinstance(payload.content_provenance, dict) else {}),
+                    "trace_classification": trace_classification,
+                },
                 trace_id=trace_id if isinstance(trace_id, str) else None,
                 session_id=story_session_id,
             )
@@ -569,6 +624,7 @@ def create_story_session(
                         "session_id": session.session_id,
                         "turn_counter": session.turn_counter,
                         "environment": adapter.config.environment if adapter else "unknown",
+                        **trace_classification,
                         "cost_summary": cost_summary,
                         "path_quality": path_summary.get("quality_class") if path_summary else None,
                         "path_degradation": path_summary.get("degradation_summary") if path_summary else None,
@@ -626,6 +682,7 @@ def execute_story_turn(
     adapter = None
     root_span = None
     previous_active_span = None
+    trace_classification = _trace_classification_from_request(request)
 
     try:
         from app.observability.langfuse_adapter import LangfuseAdapter
@@ -654,6 +711,7 @@ def execute_story_turn(
                         "session_id": session_id,
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
+                        **trace_classification,
                     },
                 )
                 logger.info(f"[HTTP] Created world-engine span in Langfuse trace {langfuse_trace_id}")
@@ -678,6 +736,7 @@ def execute_story_turn(
                     "player_input_sha256": player_input_sha256,
                     "session_id": session_id,
                     "environment": adapter.config.environment,
+                    **trace_classification,
                 }
             )
             if root_span:
@@ -735,6 +794,7 @@ def execute_story_turn(
                     metadata={
                         "turn_number": turn_number,
                         "environment": adapter.config.environment if adapter else "unknown",
+                        **trace_classification,
                         "cost_summary": cost_summary,
                         "path_quality": path_summary.get("quality_class") if path_summary else None,
                         "path_degradation": path_summary.get("degradation_summary") if path_summary else None,
