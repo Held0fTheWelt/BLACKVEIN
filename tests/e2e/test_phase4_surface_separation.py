@@ -12,7 +12,10 @@ class TestPlayerSurfaceIsolation:
 
     def test_runtime_view_excludes_diagnostic_fields(self):
         """Verify normalized rows exclude trace/session diagnostics."""
-        from frontend.app.routes_play import _normalize_story_entries_for_shell
+        from frontend.app.routes_play import (
+            _normalize_story_entries_for_shell,
+            _runtime_status_view_from_story_entries,
+        )
 
         view = _normalize_story_entries_for_shell(
             [
@@ -37,9 +40,10 @@ class TestPlayerSurfaceIsolation:
         assert "spoken_lines" in view
         assert "committed_consequences" in view
 
-        # Trace/session diagnostics should not leak into player rows.
-        assert "trace_id" not in view
-        assert "world_engine_story_session_id" not in view
+        # Player runtime status surface should exclude trace/session diagnostics.
+        status_view = _runtime_status_view_from_story_entries([view], shell_state_view={})
+        assert "trace_id" not in status_view
+        assert "world_engine_story_session_id" not in status_view
 
     def test_player_cannot_see_validation_errors(self):
         """Verify runtime_status_view omits raw graph error counts."""
