@@ -95,3 +95,26 @@ def test_finalize_annette_role_visible_turn_zero():
     assert diag["selected_role_visible_in_opening"] is True
     assert diag["player_identity_anchor_present"] is True
     assert len(out) == 4
+
+
+def test_finalize_drops_narrator_label_colon_only_line():
+    blocks = [
+        {"block_type": "narrator", "speaker_label": "Narrator", "text": "Szene im Salon."},
+        {"block_type": "narrator", "speaker_label": "Narrator", "text": "Veronique:"},
+        {
+            "block_type": "actor_line",
+            "speaker_label": "Veronique",
+            "actor_id": "veronique_vallon",
+            "text": "Wir sollten das klären.",
+        },
+    ]
+    out, diag = finalize_visible_scene_blocks(
+        blocks,
+        expected_language="de",
+        human_actor_id="annette_reille",
+        selected_player_role="annette",
+        turn_number=1,
+    )
+    assert len(out) == 2
+    assert diag["label_only_line_removed"] == 1
+    assert all("Veronique:" not in (str(b.get("text") or "")) for b in out)

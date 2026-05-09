@@ -85,6 +85,9 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert entries[0]["scene_blocks"][0]["id"] == "turn-0-block-1"
     assert "internal opening prompt" not in entries[0]["text"]
     assert entries[1]["text"] == "I say that is enough."
+    assert entries[1]["scene_blocks"][0]["block_type"] == "player_input"
+    assert entries[1]["scene_blocks"][0]["text"] == "I say that is enough."
+    assert entries[1]["scene_blocks"][0]["speaker_label"] == "Du"
     assert entries[2]["text"] == "The answer lands hard."
     assert entries[2]["spoken_lines"] == ["Annette: Enough?"]
     assert entries[2]["action_lines"] == ["Annette folds her arms and leans over the table."]
@@ -101,6 +104,35 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert entries[2]["dramatic_context_summary"]["contract"] == "story_window_dramatic_context.v1"
     assert entries[2]["dramatic_context_summary"]["social_outcome"] == "tension_escalates"
     assert entries[2]["authority_summary"]["dramatic_context"]["social_risk_band"] == "high"
+
+
+def test_story_window_player_input_block_speaker_follows_session_output_language() -> None:
+    session = StorySession(
+        session_id="story-lang",
+        module_id="god_of_carnage",
+        session_output_language="en",
+        runtime_projection={"start_scene_id": "scene_1"},
+        current_scene_id="scene_1",
+    )
+    session.diagnostics = [
+        {
+            "turn_number": 1,
+            "turn_kind": "player",
+            "raw_input": "Hello there.",
+            "visible_output_bundle": {"gm_narration": ["Reply."]},
+            "narrative_commit": {"committed_consequences": ["x"]},
+            "committed_turn_authority": {
+                "authority_record_version": "committed_turn_authority.v1",
+                "validation_status": "approved",
+                "commit_applied": True,
+            },
+            "runtime_governance_surface": {"governed_runtime_active": True},
+        }
+    ]
+    entries = _story_window_entries_for_session(session)
+    player = entries[0]
+    assert player["role"] == "player"
+    assert player["scene_blocks"][0]["speaker_label"] == "You"
 
 
 def test_story_window_projection_preserves_degraded_quality_fields() -> None:

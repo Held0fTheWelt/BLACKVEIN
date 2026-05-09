@@ -167,6 +167,7 @@ describe('BlockRenderer', () => {
         'actor_line',
         'actor_action',
         'stage_shift',
+        'player_input',
       ];
       for (const kind of dramaticTypes) {
         const el = renderer.render({

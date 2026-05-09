@@ -324,6 +324,52 @@ def test_mvp4_visible_scene_output_is_cumulative_for_mvp5_transcript():
 
 
 @pytest.mark.mvp4
+def test_mvp4_visible_scene_output_cumulative_includes_player_input_blocks():
+    """Player story-window entries carry scene_blocks so MVP5 transcript shows player lines."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    opening_blocks = [{"id": "turn-0-block-1", "block_type": "narrator", "text": "Opening line."}]
+    player_blocks = [
+        {
+            "id": "sid-turn-1-player-input",
+            "block_type": "player_input",
+            "speaker_label": "Du",
+            "text": "I speak.",
+        }
+    ]
+    turn1_blocks = [{"id": "turn-1-block-1", "block_type": "actor_line", "text": "Follow-up."}]
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "entries": [
+                {"turn_number": 0, "kind": "opening", "role": "runtime", "scene_blocks": opening_blocks},
+                {"turn_number": 1, "kind": "player_turn", "role": "player", "scene_blocks": player_blocks},
+                {"turn_number": 1, "kind": "runtime_response", "role": "runtime", "scene_blocks": turn1_blocks},
+            ],
+            "entry_count": 3,
+            "latest_entry": {"turn_number": 1, "role": "runtime", "scene_blocks": turn1_blocks},
+        },
+        "last_committed_turn": {
+            "turn_number": 1,
+            "visible_output_bundle": {"scene_blocks": turn1_blocks},
+        },
+    }
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+    expected_blocks = opening_blocks + player_blocks + turn1_blocks
+    assert bundle["visible_scene_output"] == {
+        "blocks": expected_blocks,
+        "typewriter_slice_start_index": 2,
+    }
+
+
+@pytest.mark.mvp4
 def test_mvp4_typewriter_slice_start_index_non_cumulative_is_zero():
     """Fallback bundle (no entry-level scene_blocks) animates the whole slice from index 0."""
     from backend.app.api.v1.game_routes import _player_session_bundle

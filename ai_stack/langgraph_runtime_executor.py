@@ -90,6 +90,24 @@ from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 _GOC_FALLBACK_CAST_KEYS: tuple[str, ...] = ("veronique", "michel", "annette", "alain")
 
 
+def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
+    """Bind model output to ``session_output_language`` for non-opening turns (opening prompt already binds)."""
+    if str(state.get("turn_input_class") or "").strip().lower() == "opening":
+        return ""
+    lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    if lang == "en":
+        return (
+            "IMPORTANT — session_output_language=en: All player-visible narration, NPC dialogue, "
+            "and stage directions you generate MUST be in English.\n\n"
+        )
+    return (
+        "IMPORTANT — session_output_language=de: Alle für die Spielerin/den Spieler sichtbaren Texte "
+        "(Erzähler:in, NPC-Dialog, Bühnenanweisungen) MÜSSEN auf Deutsch sein. "
+        "Keine englischen Meta-/Regie-Zwischenfälle in denselben Zeilen wie Dialog; "
+        "Französisch nur als erkennbare Figurenrede, nicht als zweisprachige Anweisung.\n\n"
+    )
+
+
 def _prune_out_of_scope_actor_lanes(
     generation: dict[str, Any], out_of_scope_actors: list[str]
 ) -> dict[str, str]:
@@ -1161,6 +1179,7 @@ class RuntimeTurnGraphExecutor:
         turn_execution_mode: str | None = None,
         live_player_truth_surface: bool | None = None,
         actor_lane_context: dict[str, Any] | None = None,
+        session_output_language: str | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -1251,6 +1270,8 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_narrative_thread_state"] = dict(prior_narrative_thread_state)
         if prior_planner_truth:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
+        sol = str(session_output_language or "de").strip().lower()[:2] or "de"
+        initial_state["session_output_language"] = sol
         return self._graph.invoke(initial_state)
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -1942,7 +1963,8 @@ class RuntimeTurnGraphExecutor:
         )
 
         update = _track(state, node_name="assemble_model_context")
-        update["model_prompt"] = f"{prompt}\n\n" + "\n".join(lines)
+        directive = _session_language_directive_for_model(state)
+        update["model_prompt"] = f"{directive}{prompt}\n\n" + "\n".join(lines)
         update["dramatic_generation_packet"] = dramatic_packet
         return update
 

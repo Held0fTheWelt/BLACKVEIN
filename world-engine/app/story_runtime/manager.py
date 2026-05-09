@@ -801,6 +801,15 @@ def _infer_execution_tier_for_pytest() -> str:
     return "contract_test"
 
 
+def _goc_player_role_display_name(selected_player_role: str | None) -> str | None:
+    r = str(selected_player_role or "").strip().lower()
+    if r == "annette":
+        return "Annette Reille"
+    if r == "alain":
+        return "Alain Reille"
+    return None
+
+
 def _infer_generation_mode(path_summary_seed: dict[str, Any]) -> str:
     adapter = str(path_summary_seed.get("adapter") or "").strip().lower()
     final_adapter = str(path_summary_seed.get("final_adapter") or "").strip().lower()
@@ -887,14 +896,21 @@ def _build_langfuse_path_summary(
     canonical_player_flow = bool(trace_classification.get("canonical_player_flow", False))
     test_case_id = trace_classification.get("test_case_id")
 
+    _spr = (
+        str((session.runtime_projection or {}).get("selected_player_role") or "").strip()
+        if isinstance(session.runtime_projection, dict)
+        else ""
+    )
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
         "module_id": session.module_id,
         "turn_number": event.get("turn_number"),
         "turn_kind": event.get("turn_kind"),
-        "selected_player_role": (session.runtime_projection or {}).get("selected_player_role") if isinstance(session.runtime_projection, dict) else None,
+        "selected_player_role": _spr or None,
         "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
+        "player_role_display_name": _goc_player_role_display_name(_spr or None),
+        "session_output_language": getattr(session, "session_output_language", None) or "de",
         "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
         "route_model_called": "route_model" in nodes or bool(routing),
@@ -1043,6 +1059,12 @@ def _build_langfuse_path_summary(
             "selected_role_visible_in_opening",
             "player_identity_anchor_present",
             "visible_narrative_contract_version",
+            "name_only_actor_block_removed",
+            "label_only_line_removed",
+            "duplicate_actor_label_removed",
+            "placeholder_action_removed",
+            "actor_line_action_tail_stripped",
+            "near_duplicate_visible_block_removed",
         ):
             if key in vis_contract:
                 summary[key] = vis_contract[key]
@@ -1726,6 +1748,14 @@ def _emit_langfuse_evidence_observations(
         "selected_role_visible_in_opening": path_summary.get("selected_role_visible_in_opening"),
         "player_identity_anchor_present": path_summary.get("player_identity_anchor_present"),
         "visible_narrative_contract_version": path_summary.get("visible_narrative_contract_version"),
+        "name_only_actor_block_removed": path_summary.get("name_only_actor_block_removed"),
+        "label_only_line_removed": path_summary.get("label_only_line_removed"),
+        "duplicate_actor_label_removed": path_summary.get("duplicate_actor_label_removed"),
+        "placeholder_action_removed": path_summary.get("placeholder_action_removed"),
+        "actor_line_action_tail_stripped": path_summary.get("actor_line_action_tail_stripped"),
+        "near_duplicate_visible_block_removed": path_summary.get("near_duplicate_visible_block_removed"),
+        "player_role_display_name": path_summary.get("player_role_display_name"),
+        "session_output_language": path_summary.get("session_output_language"),
     }
     for name, value in deterministic_scores.items():
         try:
@@ -1992,9 +2022,24 @@ def _live_scene_blocks_from_visible_bundle(
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
     bundle = visible_output_bundle if isinstance(visible_output_bundle, dict) else {}
+    proj = runtime_projection if isinstance(runtime_projection, dict) else None
+    human_id = str((proj or {}).get("human_actor_id") or "").strip()
+    role = str((proj or {}).get("selected_player_role") or "").strip()
+    _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
+
     existing = bundle.get("scene_blocks")
     if isinstance(existing, list) and existing:
-        return [dict(block) for block in existing if isinstance(block, dict)]
+        blocks = [dict(block) for block in existing if isinstance(block, dict)]
+        blocks, vis_diag = finalize_visible_scene_blocks(
+            blocks,
+            expected_language=_exp_lang,
+            human_actor_id=human_id or None,
+            selected_player_role=role or None,
+            turn_number=turn_number,
+        )
+        if graph_state is not None:
+            graph_state["_visible_narrative_contract"] = vis_diag
+        return blocks
 
     def delivery() -> dict[str, Any]:
         return {
@@ -2006,7 +2051,6 @@ def _live_scene_blocks_from_visible_bundle(
         }
 
     blocks: list[dict[str, Any]] = []
-    _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
 
     def append_block(block_type: str, text: str, *, speaker_label: str, actor_id: str | None = None) -> None:
         raw = str(text or "").strip()
@@ -2045,10 +2089,6 @@ def _live_scene_blocks_from_visible_bundle(
         if aid in labels:
             return labels[aid]
         return aid.replace("_", " ").strip().title() or "Actor"
-
-    proj = runtime_projection if isinstance(runtime_projection, dict) else None
-    human_id = str((proj or {}).get("human_actor_id") or "").strip()
-    role = str((proj or {}).get("selected_player_role") or "").strip()
 
     def append_json_blocks(raw: str) -> bool:
         text = str(raw or "").strip()
@@ -2347,6 +2387,45 @@ def _build_live_scene_turn_envelope(
     }
 
 
+def _player_input_scene_blocks_for_story_window(
+    *,
+    session_id: str,
+    turn_number: Any,
+    raw_input: str,
+    session_output_language: str,
+) -> list[dict[str, Any]]:
+    """MVP5 cumulative transcript: one visible block per committed player line.
+
+    Player text is not part of runtime ``spoken_lines`` (human lane is filtered from
+    scene envelope). Story-window entries must still carry ``scene_blocks`` so backend
+    ``_cumulative_scene_blocks_from_story_window`` can replay the full transcript.
+    """
+    text = str(raw_input or "").strip()
+    if not text:
+        return []
+    lang = str(session_output_language or "de").strip().lower()
+    speaker_label = "Du" if lang.startswith("de") else "You"
+    turn_token = str(turn_number).strip() if turn_number is not None else "0"
+    return [
+        {
+            "id": f"{session_id}-turn-{turn_token}-player-input",
+            "block_type": "player_input",
+            "speaker_label": speaker_label,
+            "actor_id": None,
+            "target_actor_id": None,
+            "text": text,
+            "delivery": {
+                "mode": "typewriter",
+                "characters_per_second": 44,
+                "pause_before_ms": 0,
+                "pause_after_ms": 120,
+                "skippable": True,
+            },
+            "source": "player_commit",
+        }
+    ]
+
+
 def _story_window_entries_for_session(session: StorySession) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for event in session.diagnostics:
@@ -2416,17 +2495,24 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
         if turn_kind != "opening":
             raw_input = str(event.get("raw_input") or "").strip()
             if raw_input:
-                entries.append(
-                    {
-                        "entry_id": f"{session.session_id}:{turn_number}:player",
-                        "kind": "player_turn",
-                        "role": "player",
-                        "speaker": "You",
-                        "turn_number": turn_number,
-                        "text": raw_input,
-                        "source": "player_input",
-                    }
+                player_blocks = _player_input_scene_blocks_for_story_window(
+                    session_id=session.session_id,
+                    turn_number=turn_number,
+                    raw_input=raw_input,
+                    session_output_language=session.session_output_language,
                 )
+                player_entry: dict[str, Any] = {
+                    "entry_id": f"{session.session_id}:{turn_number}:player",
+                    "kind": "player_turn",
+                    "role": "player",
+                    "speaker": "You",
+                    "turn_number": turn_number,
+                    "text": raw_input,
+                    "source": "player_input",
+                }
+                if player_blocks:
+                    player_entry["scene_blocks"] = player_blocks
+                entries.append(player_entry)
 
         visible_lines = _visible_lines_from_turn_event(event)
         scene_blocks = _scene_blocks_from_turn_event(event)
@@ -2827,31 +2913,49 @@ def _story_window_dramatic_context(dramatic_context: dict[str, Any] | None) -> d
     }
 
 
-def _player_shell_context_from_dramatic_context(dramatic_context: dict[str, Any] | None) -> dict[str, Any]:
-    """Project a small player-shell slice from committed dramatic context."""
-    if not isinstance(dramatic_context, dict):
-        return {}
-    story_context = _story_window_dramatic_context(dramatic_context)
-    if not story_context:
-        return {}
-    return {
-        "contract": "player_shell_dramatic_context.v1",
-        "selected_scene_function": story_context.get("selected_scene_function"),
-        "responder_id": story_context.get("responder_id"),
-        "secondary_responder_ids": story_context.get("secondary_responder_ids") or [],
-        "pacing_mode": story_context.get("pacing_mode"),
-        "pressure_state": story_context.get("pressure_state"),
-        "thread_pressure_state": story_context.get("thread_pressure_state"),
-        "social_risk_band": story_context.get("social_risk_band"),
-        "social_outcome": story_context.get("social_outcome"),
-        "spoken_line_count": story_context.get("spoken_line_count"),
-        "action_line_count": story_context.get("action_line_count"),
-        "initiative_summary": story_context.get("initiative_summary") or {},
-        "last_actor_outcome_summary": story_context.get("last_actor_outcome_summary"),
-        "continuity_classes": story_context.get("continuity_classes") or [],
-        "thread_pressure_level": story_context.get("thread_pressure_level"),
-        "surface_note": "bounded_player_shell_context_not_operator_diagnostics",
-    }
+def _player_shell_context_from_dramatic_context(
+    dramatic_context: dict[str, Any] | None,
+    *,
+    session: "StorySession" | None = None,
+) -> dict[str, Any]:
+    """Project a small player-shell slice from committed dramatic context plus session identity."""
+    out: dict[str, Any] = {}
+    if isinstance(dramatic_context, dict):
+        story_context = _story_window_dramatic_context(dramatic_context)
+        if story_context:
+            out = {
+                "contract": "player_shell_dramatic_context.v1",
+                "selected_scene_function": story_context.get("selected_scene_function"),
+                "responder_id": story_context.get("responder_id"),
+                "secondary_responder_ids": story_context.get("secondary_responder_ids") or [],
+                "pacing_mode": story_context.get("pacing_mode"),
+                "pressure_state": story_context.get("pressure_state"),
+                "thread_pressure_state": story_context.get("thread_pressure_state"),
+                "social_risk_band": story_context.get("social_risk_band"),
+                "social_outcome": story_context.get("social_outcome"),
+                "spoken_line_count": story_context.get("spoken_line_count"),
+                "action_line_count": story_context.get("action_line_count"),
+                "initiative_summary": story_context.get("initiative_summary") or {},
+                "last_actor_outcome_summary": story_context.get("last_actor_outcome_summary"),
+                "continuity_classes": story_context.get("continuity_classes") or [],
+                "thread_pressure_level": story_context.get("thread_pressure_level"),
+                "surface_note": "bounded_player_shell_context_not_operator_diagnostics",
+            }
+    if session is not None:
+        proj = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+        role = str(proj.get("selected_player_role") or "").strip()
+        out["session_output_language"] = getattr(session, "session_output_language", None) or "de"
+        if role:
+            out["selected_player_role"] = role
+        pdn = _goc_player_role_display_name(role)
+        if pdn:
+            out["player_role_display_name"] = pdn
+        lang = str(out.get("session_output_language") or "de").strip().lower()[:2]
+        out["npc_responder_label"] = "NPC am Zug" if lang == "de" else "NPC responder"
+        out["player_identity_line"] = (
+            f"Du spielst: {pdn}" if lang == "de" and pdn else (f"You are playing: {pdn}" if pdn else None)
+        )
+    return out
 
 
 def _build_committed_turn_authority(
@@ -4406,6 +4510,7 @@ class StoryRuntimeManager:
                 turn_input_class="opening",
                 live_player_truth_surface=True,
                 actor_lane_context=actor_lane_ctx,
+                session_output_language=session.session_output_language,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -4575,6 +4680,7 @@ class StoryRuntimeManager:
                 turn_initiator_type="player",
                 live_player_truth_surface=True,
                 actor_lane_context=self._extract_actor_lane_context(session),
+                session_output_language=session.session_output_language,
             )
         except Exception as exc:
             session.turn_counter -= 1
@@ -4724,7 +4830,8 @@ class StoryRuntimeManager:
 
         story_entries = _story_window_entries_for_session(session)
         player_shell_context = _player_shell_context_from_dramatic_context(
-            last_dramatic_context_summary
+            last_dramatic_context_summary,
+            session=session,
         )
 
         return {

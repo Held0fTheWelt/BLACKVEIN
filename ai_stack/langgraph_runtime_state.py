@@ -108,6 +108,8 @@ class RuntimeTurnState(TypedDict, total=False):
     # PRIMARY-PARSER-EVIDENCE-01: captured by invoke_model node before any self-correction
     # or LDSS overwrite can erase the primary attempt's parser error and raw output.
     primary_attempt_evidence: dict[str, Any]
+    # ADR-0036: normative language for all model-visible turn text (host-injected).
+    session_output_language: str
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"

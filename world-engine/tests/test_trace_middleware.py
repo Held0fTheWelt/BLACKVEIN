@@ -2684,6 +2684,48 @@ def test_open_actor_block_projection_annette_npc_spoken_fixture_stays_green():
     assert _opening_block_contract_satisfied(blocks) is True
 
 
+def test_live_scene_blocks_prepackaged_scene_blocks_run_finalize_and_drop_name_only():
+    """LDSS-supplied scene_blocks must not bypass VISIBLE-NARRATIVE-CONTRACT-02 (name-only lines)."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {
+        "scene_blocks": [
+            {"id": "b1", "block_type": "narrator", "text": "Ein echter Beat.", "speaker_label": "Narrator"},
+            {
+                "id": "b2",
+                "block_type": "actor_line",
+                "text": "Veronique:",
+                "speaker_label": "Veronique",
+                "actor_id": "veronique_vallon",
+            },
+            {
+                "id": "b3",
+                "block_type": "actor_line",
+                "text": "Jetzt mit Inhalt.",
+                "speaker_label": "Veronique",
+                "actor_id": "veronique_vallon",
+            },
+        ]
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "annette",
+        "npc_actor_ids": ["veronique_vallon"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=1,
+        graph_state=gs,
+        runtime_projection=proj,
+        session_output_language="de",
+    )
+    assert len(blocks) == 2
+    assert str(blocks[0].get("block_type")) == "narrator"
+    assert str(blocks[1].get("block_type")) == "actor_line"
+    assert (blocks[1].get("text") or "").strip().startswith("Jetzt")
+    vis = gs.get("_visible_narrative_contract") or {}
+    assert isinstance(vis, dict) and vis.get("visible_narrative_contract_version") == "VISIBLE-NARRATIVE-CONTRACT-02"
+
+
 def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session():
     """VISIBLE-NARRATIVE-CONTRACT-01: internal beat labels never reach scene_blocks text."""
     gs: dict[str, Any] = {"generation": {"metadata": {}}}

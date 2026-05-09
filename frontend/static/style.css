@@ -1980,6 +1980,12 @@ button.secondary:hover {
     background: rgba(74, 126, 201, 0.05);
 }
 
+.scene-block--player_input {
+    border-left-color: var(--success);
+    background: rgba(74, 158, 106, 0.08);
+    font-style: italic;
+}
+
 .scene-block--stage_direction {
     border-left-color: var(--success);
     background: rgba(74, 158, 106, 0.05);
