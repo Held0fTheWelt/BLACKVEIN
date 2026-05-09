@@ -1,5 +1,7 @@
 """MCP server: JSON-RPC main loop, dispatch, rate limiting."""
 
+from __future__ import annotations
+
 import json
 import sys
 import time
@@ -41,6 +43,7 @@ from .resource_prompt_support import (
     list_prompt_descriptors,
     list_resource_descriptors,
 )
+from .call_tool_result import wrap_call_tool_result
 from .tools_registry import create_default_registry
 
 
@@ -107,19 +110,22 @@ class McpServer:
         _suite = self._suite_filter.value if self._suite_filter else "all"
         try:
             result = tool.handler(arguments)
+            if not isinstance(result, dict):
+                result = {"_non_dict_tool_result": str(result)}
+            inner: dict = dict(result)
             duration_ms = (time.time() - start) * 1000
             log_tool_call(trace_id, tool_name, duration_ms, "success", **audit_kw)
             McpLangfuseTracer.get_instance().trace_tool_call(
                 wos_trace_id=trace_id,
                 tool_name=tool_name,
                 arguments=arguments,
-                result=result,
+                result=inner,
                 duration_ms=duration_ms,
                 status="success",
                 suite=_suite,
                 meta=_meta,
             )
-            return result
+            return wrap_call_tool_result(inner)
         except Exception as e:
             duration_ms = (time.time() - start) * 1000
             log_tool_call(trace_id, tool_name, duration_ms, "error", "TOOL_ERROR", **audit_kw)

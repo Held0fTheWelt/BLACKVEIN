@@ -1,0 +1,674 @@
+{
+  "rows": [
+    {
+      "trace_id": "be1d291dd24f7b1148f1f4bec4aa07ed",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:10:05.866Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "annette",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.phase.validation": 1,
+        "story.phase.model_fallback": 1,
+        "story.phase.narrator": 1,
+        "story.phase.retrieval": 1,
+        "world-engine.session.create": 1,
+        "story.phase.model_route": 1,
+        "story.phase.model_invoke": 1,
+        "story.phase.commit": 1,
+        "story.phase.primary_parse": 1,
+        "story.graph.path_summary": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 2303,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 1,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "veronique_vallon",
+        "narration_summary_preview": "In einem Pariser Salon am Abend treffen Véronique und Michel ihre Gäste Annette und Alain, um die Folgen des Schulhofvorfalls zwischen ihren Kindern zu besprech"
+      },
+      "predicted_block_count": 3,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 2,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=3); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "In einem Pariser Salon am Abend treffen Véronique und Michel ihre Gäste Annette und Alain, um die Folgen des Schulhofvorfalls zwischen ihren Kindern zu bespr..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "veronique_vallon",
+          "text": "Willkommen in unserer Wohnung. Es ist nicht leicht, unter diesen Umständen zusammenzukommen, aber ich hoffe, wir können heute Abend in Ruhe über das Geschehe..."
+        },
+        {
+          "block_type": "actor_action",
+          "actor_id": "veronique_vallon",
+          "text": "Véronique begrüßt Annette und Alain mit einem höflichen, aber angespannten Lächeln und bietet ihnen Platz im Salon an."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": true,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    },
+    {
+      "trace_id": "ef71a9029b9867c8ee02d56a159d3a21",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:10:26.102Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "annette",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.phase.model_route": 1,
+        "story.phase.narrator": 1,
+        "story.phase.model_invoke": 1,
+        "story.phase.commit": 1,
+        "world-engine.session.create": 1,
+        "story.phase.validation": 1,
+        "story.phase.primary_parse": 1,
+        "story.graph.path_summary": 1,
+        "story.phase.model_fallback": 1,
+        "story.phase.retrieval": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 2437,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 1,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "veronique_vallon",
+        "narration_summary_preview": "Der Abend beginnt in der Pariser Wohnung von Véronique und Michel, wo die Eltern sich versammeln, um den Vorfall zwischen ihren Kindern zu besprechen. Véronique"
+      },
+      "predicted_block_count": 3,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 2,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=3); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "Der Abend beginnt in der Pariser Wohnung von Véronique und Michel, wo die Eltern sich versammeln, um den Vorfall zwischen ihren Kindern zu besprechen. Véroni..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "veronique_vallon",
+          "text": "Willkommen in unserer Wohnung. Es ist ein schwieriger Anlass, warum wir uns heute Abend hier versammeln, aber ich hoffe, wir können respektvoll und offen mit..."
+        },
+        {
+          "block_type": "actor_action",
+          "actor_id": "veronique_vallon",
+          "text": "Véronique lächelt höflich und reicht Annette die Hand, während sie sich im Salon umschaut."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": true,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    },
+    {
+      "trace_id": "9cc71c3196391caf2030ac6fb15fcbd6",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:10:42.701Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "annette",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.phase.model_invoke": 1,
+        "story.phase.model_fallback": 1,
+        "story.phase.commit": 1,
+        "story.phase.narrator": 1,
+        "story.graph.path_summary": 1,
+        "story.phase.primary_parse": 1,
+        "story.phase.validation": 1,
+        "story.phase.model_route": 1,
+        "story.phase.retrieval": 1,
+        "world-engine.session.create": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 2148,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 0,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "veronique_vallon",
+        "narration_summary_preview": "Der Abend beginnt in der Pariser Wohnung von Véronique und Michel, wo die Eltern der streitenden Jungen sich versammelt haben, um den Vorfall auf dem Schulhof z"
+      },
+      "predicted_block_count": 2,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 1,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=2); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "Der Abend beginnt in der Pariser Wohnung von Véronique und Michel, wo die Eltern der streitenden Jungen sich versammelt haben, um den Vorfall auf dem Schulho..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "veronique_vallon",
+          "text": "Willkommen bei uns zu Hause. Es ist uns wichtig, diese Angelegenheit in Ruhe und mit gegenseitigem Respekt zu besprechen. Unsere Söhne hatten einen Streit au..."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": false,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    },
+    {
+      "trace_id": "bd6f6c42781736a51e324392e69257ce",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:11:05.648Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "alain",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.phase.validation": 1,
+        "world-engine.session.create": 1,
+        "story.phase.model_fallback": 1,
+        "story.phase.model_invoke": 1,
+        "story.phase.model_route": 1,
+        "story.phase.retrieval": 1,
+        "story.phase.narrator": 1,
+        "story.graph.path_summary": 1,
+        "story.phase.primary_parse": 1,
+        "story.phase.commit": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 1400,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 0,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "annette_reille",
+        "narration_summary_preview": "Der Abend beginnt in der Pariser Wohnung mit einer ruhigen, aber spürbaren Spannung. Annette Reille, als Gast und intellektuelle Kämpferin, ergreift das Wort un"
+      },
+      "predicted_block_count": 2,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 1,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=2); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "Der Abend beginnt in der Pariser Wohnung mit einer ruhigen, aber spürbaren Spannung. Annette Reille, als Gast und intellektuelle Kämpferin, ergreift das Wort..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "annette_reille",
+          "text": "Guten Abend allerseits. Es ist wohl kaum zu leugnen, dass der Vorfall auf dem Schulhof uns heute hier zusammenführt. Ich hoffe, wir können diesen Abend nutze..."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": false,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    },
+    {
+      "trace_id": "ba6b63fc71eb65978986fc002246a1ac",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:11:24.445Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "alain",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.phase.model_invoke": 1,
+        "world-engine.session.create": 1,
+        "story.phase.narrator": 1,
+        "story.phase.model_route": 1,
+        "story.phase.commit": 1,
+        "story.phase.retrieval": 1,
+        "story.phase.primary_parse": 1,
+        "story.phase.validation": 1,
+        "story.phase.model_fallback": 1,
+        "story.graph.path_summary": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 2046,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 0,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "annette_reille",
+        "narration_summary_preview": "Im Pariser Salon treffen sich vier Erwachsene zu einem Abendessen, um den Streit ihrer Kinder auf dem Schulhof zu klären. Annette, als Gast und kritische Beobac"
+      },
+      "predicted_block_count": 2,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 1,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=2); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "Im Pariser Salon treffen sich vier Erwachsene zu einem Abendessen, um den Streit ihrer Kinder auf dem Schulhof zu klären. Annette, als Gast und kritische Beo..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "annette_reille",
+          "text": "Guten Abend allerseits. Es ist wohl kaum zu leugnen, dass der Vorfall auf dem Schulhof uns alle hierhergebracht hat. Ich hoffe, wir können heute Abend in Ruh..."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": false,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    },
+    {
+      "trace_id": "ccb057353d30ae3b18a99601b7e19b46",
+      "name": "world-engine.session.create",
+      "timestamp": "2026-05-08T23:11:37.724Z",
+      "trace_origin": "live_ui",
+      "execution_tier": "live",
+      "canonical_player_flow": true,
+      "selected_role": "alain",
+      "adapter": "openai",
+      "fallback_used": false,
+      "quality_class": "weak_but_legal",
+      "scores": {
+        "opening_shape_contract_pass": 0,
+        "opening_contract_pass": 0,
+        "live_runtime_contract_pass": 0,
+        "live_opening_contract_pass": 0,
+        "non_mock_generation_pass": 1,
+        "fallback_absent": 1,
+        "actor_lane_safety_pass": 1,
+        "live_runtime_visible_surface_pass": 1
+      },
+      "named_observation_inventory": {
+        "story.model.generation": 1,
+        "story.rag.retrieval": 1,
+        "story.graph.path_summary": 1,
+        "story.phase.narrator": 1,
+        "story.phase.commit": 1,
+        "story.phase.model_invoke": 1,
+        "world-engine.session.create": 1,
+        "story.phase.model_fallback": 1,
+        "story.phase.validation": 1,
+        "story.phase.model_route": 1,
+        "story.phase.primary_parse": 1,
+        "story.phase.retrieval": 1
+      },
+      "shape_field_hits_count": 0,
+      "shape_field_hits_sample": [],
+      "completion_present": true,
+      "completion_chars": 1716,
+      "completion_schema_version": "runtime_actor_turn_v1",
+      "completion_bundle": {
+        "schema_version": "runtime_actor_turn_v1",
+        "spoken_lines_count": 1,
+        "action_lines_count": 0,
+        "narration_summary_kind": "single_string",
+        "narration_summary_count": 1,
+        "primary_responder_id": "annette_reille",
+        "narration_summary_preview": "Der Abend beginnt in der Pariser Wohnung mit einer Atmosphäre der höflichen Zurückhaltung. Annette ergreift das Wort als erste und spricht die Anwesenden mit ru"
+      },
+      "predicted_block_count": 2,
+      "predicted_narrator_block_count": 1,
+      "predicted_actor_block_count": 1,
+      "first_visible_block_type": "narrator",
+      "narrator_intro_present": true,
+      "role_anchor_present": false,
+      "scene_setup_present": false,
+      "first_actor_block_index": 1,
+      "opening_shape_failure_reason": "block_count<4 (predicted=2); narrator_blocks<3 (predicted=1; narration_summary_kind=single_string count=1 -> 3 narrator blocks require narration_summary as list of >=3 strings); first_actor_block_index_predicted=1 (must be >=3 -> need 3 narrators first)",
+      "first_three_visible_blocks": [
+        {
+          "block_type": "narrator",
+          "actor_id": null,
+          "text": "Der Abend beginnt in der Pariser Wohnung mit einer Atmosphäre der höflichen Zurückhaltung. Annette ergreift das Wort als erste und spricht die Anwesenden mit..."
+        },
+        {
+          "block_type": "actor_line",
+          "actor_id": "annette_reille",
+          "text": "Es ist gut, dass wir heute Abend zusammenkommen, um über das, was auf dem Schulhof passiert ist, zu sprechen. Ich hoffe, wir können das in Ruhe und mit gegen..."
+        }
+      ],
+      "commit": {
+        "called": true,
+        "commit_applied": true,
+        "quality_class": "weak_but_legal",
+        "degradation_summary": "weak_signal_accepted, thin_prose_override",
+        "failure_markers": []
+      },
+      "primary_parse": {
+        "api_success": null,
+        "parser_error_present": null,
+        "parser_error": null,
+        "structured_output_present": null,
+        "raw_output_sha256": null,
+        "raw_output_excerpt": "",
+        "adapter": null,
+        "model": null,
+        "invocation_mode": null
+      },
+      "validation": {
+        "status": "approved",
+        "reason": "goc_default_validator_pass",
+        "actor_lane_validation_status": "approved",
+        "actor_lane_validation_reason": "actor_lane_legal",
+        "response_present": false,
+        "why_turn_felt_passive": [],
+        "primary_passivity_factors": []
+      },
+      "path_summary_signals": {
+        "degradation_signals": [
+          "weak_signal_accepted",
+          "thin_prose_override"
+        ],
+        "render_visible_called": true,
+        "fallback_model_called": false,
+        "ldss_fallback_after_live_opening_failure": false,
+        "live_opening_failure_reason": null,
+        "final_adapter": "openai",
+        "adapter_invocation_mode": "langchain_structured_primary"
+      }
+    }
+  ]
+}

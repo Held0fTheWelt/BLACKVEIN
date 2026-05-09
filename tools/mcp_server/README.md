@@ -130,10 +130,13 @@ The server reads JSON-RPC requests from stdin and writes responses to stdout.
 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "wos.system.health", "arguments": {}}}
 ```
 
-**Response:**
+**Response:** Successful ``tools/call`` returns MCP ``CallToolResult``: inner payload is JSON in ``result.content[0].text``. Use ``tools.mcp_server.call_tool_result.unwrap_call_tool_result`` in tests.
+
 ```json
-{"jsonrpc": "2.0", "id": 2, "result": {"status": "healthy", "backend": {"status": "ok"}}}
+{"jsonrpc": "2.0", "id": 2, "result": {"content": [{"type": "text", "text": "{\"status\": \"healthy\", \"backend\": {\"status\": \"ok\"}}"}]}}
 ```
+
+The examples below show the **inner** JSON only (after unwrap) for readability.
 
 ### tools/call: Create Session
 

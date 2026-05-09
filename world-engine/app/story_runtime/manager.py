@@ -50,7 +50,8 @@ from ai_stack.diagnostics_envelope import (
 )
 from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
-from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
+from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 
 from app.config import APP_VERSION
 from app.repo_root import resolve_wos_repo_root
@@ -294,6 +295,49 @@ def _ensure_gm_narration_from_narrator_scene_blocks(bundle: dict[str, Any]) -> d
     return out
 
 
+def _finalize_visible_bundle_opening_gm_narration(
+    *,
+    session: StorySession,
+    graph_state: dict[str, Any],
+    packaged_bundle: Any,
+    commit_turn_number: int,
+) -> Any:
+    """After experience packaging, restore three GM opening beats for GoC turn 0 when needed."""
+    graph_state.pop("_opening_narration_normalization", None)
+    if commit_turn_number != 0 or session.module_id != GOD_OF_CARNAGE_MODULE_ID:
+        return packaged_bundle
+    if not isinstance(packaged_bundle, dict):
+        return packaged_bundle
+    gen = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
+    meta = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
+    structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else None
+    if structured is None and isinstance(gen.get("structured_output"), dict):
+        structured = gen["structured_output"]
+    if not isinstance(structured, dict):
+        return packaged_bundle
+    narration = structured.get("narration_summary")
+    proj = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+    selected = proj.get("selected_player_role")
+    human = proj.get("human_actor_id")
+    spoken = structured.get("spoken_lines")
+    beats, norm_meta = normalize_opening_narration_beats(
+        narration,
+        selected_player_role=str(selected).strip() if selected else None,
+        human_actor_id=str(human).strip() if human else None,
+        module_id=session.module_id,
+        turn_number=commit_turn_number,
+        output_language=getattr(session, "session_output_language", None),
+        existing_actor_lines=spoken if isinstance(spoken, list) else None,
+    )
+    if isinstance(norm_meta, dict):
+        graph_state["_opening_narration_normalization"] = norm_meta
+    if beats is None or len(beats) < 3:
+        return packaged_bundle
+    out = dict(packaged_bundle)
+    out["gm_narration"] = beats[:3]
+    return out
+
+
 def _maybe_split_goc_opening_into_two_movements(
     blocks: list[dict[str, Any]],
     *,
@@ -331,6 +375,255 @@ def _actor_line_count(value: Any) -> int:
         if str(item).strip():
             count += 1
     return count
+
+
+def _structured_lane_dict_counts(structured: dict[str, Any] | None) -> tuple[int, int]:
+    """Count dict-only rows with visible text (structured lanes used for actor projection)."""
+    if not isinstance(structured, dict):
+        return 0, 0
+
+    def _dict_text_count(key: str) -> int:
+        lane = structured.get(key)
+        if not isinstance(lane, list):
+            return 0
+        return sum(
+            1
+            for item in lane
+            if isinstance(item, dict) and str(item.get("text") or item.get("line") or "").strip()
+        )
+
+    return _dict_text_count("spoken_lines"), _dict_text_count("action_lines")
+
+
+def _is_goc_human_lane_actor(
+    actor_raw: str,
+    *,
+    human_actor_id: str,
+    selected_player_role: str,
+) -> bool:
+    """True when this actor id/alias is the selected human role or human_actor_id."""
+    actor_canon = canonicalize_goc_actor_id(str(actor_raw or "").strip())
+    if not actor_canon:
+        return False
+    if human_actor_id:
+        h = canonicalize_goc_actor_id(str(human_actor_id).strip())
+        if h and actor_canon == h:
+            return True
+    if selected_player_role:
+        r = canonicalize_goc_actor_id(str(selected_player_role).strip())
+        if r and actor_canon == r:
+            return True
+    return False
+
+
+def _opening_shape_requires_actor_backfill(blocks: list[dict[str, Any]]) -> bool:
+    """OPEN-ACTOR-BLOCK-PROJECTION-01: first three blocks narrator but no actor at index >= 3."""
+    if len(blocks) < 3:
+        return False
+
+    def _bt(b: dict[str, Any]) -> str:
+        return str(b.get("block_type") or b.get("type") or "").strip().lower()
+
+    if not all(_bt(blocks[i]) == "narrator" for i in range(3)):
+        return False
+    first_actor = next(
+        (i for i, b in enumerate(blocks) if _bt(b) in {"actor_line", "actor_action"}),
+        None,
+    )
+    return first_actor is None
+
+
+def _actor_block_projection_count(blocks: list[dict[str, Any]]) -> int:
+    def _bt(b: dict[str, Any]) -> str:
+        return str(b.get("block_type") or b.get("type") or "").strip().lower()
+
+    return sum(1 for b in blocks if isinstance(b, dict) and _bt(b) in {"actor_line", "actor_action"})
+
+
+def _maybe_backfill_opening_actor_from_structured(
+    blocks: list[dict[str, Any]],
+    *,
+    structured_output: dict[str, Any],
+    runtime_projection: dict[str, Any] | None,
+    turn_number: int,
+    human_actor_id: str,
+    selected_player_role: str,
+    delivery_fn: Any,
+    actor_label_fn: Any,
+) -> tuple[list[dict[str, Any]], str, str | None]:
+    """Append first safe NPC actor block from structured lanes. Returns (blocks, source, filter_reason)."""
+    if turn_number != 0 or not _opening_shape_requires_actor_backfill(blocks):
+        return blocks, "none", None
+
+    inner_blocks: list[dict[str, Any]] = list(blocks)
+
+    def _append(t: str, text: str, *, speaker_label: str, actor_id: str | None = None) -> None:
+        clean = str(text or "").strip()
+        if not clean:
+            return
+        inner_blocks.append(
+            {
+                "id": f"turn-{turn_number}-live-block-{len(inner_blocks) + 1}",
+                "block_type": t,
+                "speaker_label": speaker_label,
+                "actor_id": actor_id,
+                "target_actor_id": None,
+                "text": clean,
+                "delivery": delivery_fn(),
+                "source": "live_runtime_graph",
+            }
+        )
+
+    src = _try_spoken_with_blocks(
+        append_fn=_append,
+        actor_label_fn=actor_label_fn,
+        runtime_projection=runtime_projection,
+        human_actor_id=human_actor_id,
+        selected_player_role=selected_player_role,
+        structured_output=structured_output,
+    )
+    if src:
+        return inner_blocks, src, None
+    src = _try_action_with_blocks(
+        append_fn=_append,
+        actor_label_fn=actor_label_fn,
+        runtime_projection=runtime_projection,
+        human_actor_id=human_actor_id,
+        selected_player_role=selected_player_role,
+        structured_output=structured_output,
+    )
+    if src:
+        return inner_blocks, src, None
+    src = _try_initiative_with_blocks(
+        append_fn=_append,
+        actor_label_fn=actor_label_fn,
+        runtime_projection=runtime_projection,
+        human_actor_id=human_actor_id,
+        selected_player_role=selected_player_role,
+        structured_output=structured_output,
+    )
+    if src:
+        return inner_blocks, src, None
+
+    sl, al = _structured_lane_dict_counts(structured_output)
+    initiative_ct = len([x for x in (structured_output.get("initiative_events") or []) if isinstance(x, dict)])
+    if (sl or al or initiative_ct) and runtime_projection is not None:
+        return inner_blocks, "none", "actor_block_missing_due_to_human_actor_filter"
+    return inner_blocks, "none", None
+
+
+def _try_spoken_with_blocks(
+    *,
+    append_fn: Any,
+    actor_label_fn: Any,
+    runtime_projection: dict[str, Any] | None,
+    human_actor_id: str,
+    selected_player_role: str,
+    structured_output: dict[str, Any],
+) -> str | None:
+    spoken = structured_output.get("spoken_lines")
+    if not isinstance(spoken, list):
+        return None
+    for row in spoken:
+        if not isinstance(row, dict):
+            continue
+        speaker_id = str(row.get("speaker_id") or "").strip()
+        line = str(row.get("text") or row.get("line") or "").strip()
+        if not line:
+            continue
+        if runtime_projection is not None:
+            if not speaker_id:
+                continue
+            if _is_goc_human_lane_actor(
+                speaker_id,
+                human_actor_id=human_actor_id,
+                selected_player_role=selected_player_role,
+            ):
+                continue
+        append_fn(
+            "actor_line",
+            line,
+            speaker_label=actor_label_fn(speaker_id),
+            actor_id=speaker_id or None,
+        )
+        return "spoken_lines"
+    return None
+
+
+def _try_action_with_blocks(
+    *,
+    append_fn: Any,
+    actor_label_fn: Any,
+    runtime_projection: dict[str, Any] | None,
+    human_actor_id: str,
+    selected_player_role: str,
+    structured_output: dict[str, Any],
+) -> str | None:
+    actions = structured_output.get("action_lines")
+    if not isinstance(actions, list):
+        return None
+    for row in actions:
+        if not isinstance(row, dict):
+            continue
+        aid = str(row.get("actor_id") or "").strip()
+        line = str(row.get("text") or row.get("line") or "").strip()
+        if not line:
+            continue
+        if runtime_projection is not None:
+            if not aid:
+                continue
+            if _is_goc_human_lane_actor(
+                aid,
+                human_actor_id=human_actor_id,
+                selected_player_role=selected_player_role,
+            ):
+                continue
+        append_fn(
+            "actor_action",
+            line,
+            speaker_label=actor_label_fn(aid),
+            actor_id=aid or None,
+        )
+        return "action_lines"
+    return None
+
+
+def _try_initiative_with_blocks(
+    *,
+    append_fn: Any,
+    actor_label_fn: Any,
+    runtime_projection: dict[str, Any] | None,
+    human_actor_id: str,
+    selected_player_role: str,
+    structured_output: dict[str, Any],
+) -> str | None:
+    events = structured_output.get("initiative_events")
+    if not isinstance(events, list):
+        return None
+    for ev in events:
+        if not isinstance(ev, dict):
+            continue
+        aid = str(ev.get("actor_id") or "").strip()
+        ev_type = str(ev.get("type") or "").strip().lower()
+        if ev_type not in {"interrupt", "counter", "seize_initiative"}:
+            continue
+        line = str(ev.get("text") or ev.get("line") or ev.get("summary") or "").strip()
+        if not line or not aid:
+            continue
+        if runtime_projection is not None and _is_goc_human_lane_actor(
+            aid,
+            human_actor_id=human_actor_id,
+            selected_player_role=selected_player_role,
+        ):
+            continue
+        append_fn(
+            "actor_action",
+            line,
+            speaker_label=actor_label_fn(aid),
+            actor_id=aid or None,
+        )
+        return "initiative_events"
+    return None
 
 
 def _append_canonical_signal(signals: list[str], signal: str) -> None:
@@ -713,6 +1006,27 @@ def _build_langfuse_path_summary(
         "test_case_id": test_case_id,
         "runtime_mode": runtime_mode,
     }
+    opening_norm = graph_state.get("_opening_narration_normalization")
+    if isinstance(opening_norm, dict):
+        for key in (
+            "opening_narration_normalized",
+            "opening_narration_source",
+            "opening_narration_beat_count",
+            "narration_summary_input_kind",
+        ):
+            if key in opening_norm:
+                summary[key] = opening_norm[key]
+    ev_proj = graph_state.get("_actor_block_projection_evidence")
+    if isinstance(ev_proj, dict):
+        for key in (
+            "actor_block_source",
+            "actor_block_filtered_reason",
+            "actor_line_count_before_projection",
+            "action_line_count_before_projection",
+            "actor_block_count_after_projection",
+        ):
+            if key in ev_proj:
+                summary[key] = ev_proj[key]
     summary["generation_mode"] = _infer_generation_mode(summary)
     return summary
 
@@ -1243,11 +1557,56 @@ def _emit_langfuse_evidence_observations(
     # ``opening_contract_pass`` is kept as a compatibility alias to opening_shape_contract_pass.
     # Turn > 0 trivially passes the shape check (opening-only structural contract).
     _turn_number = int(path_summary.get("turn_number") or 0)
+    _opening_shape_subgates: dict[str, bool] = {}
+    _opening_shape_failure_reasons: list[str] = []
+    _scene_block_summary: list[dict[str, Any]] = []
+    first_actor_block_index_val: int | None = None
+    narrator_block_count_val = 0
+    structured_narration_summary_kind: str | None = None
     if _turn_number == 0:
         _opening_blocks = _scene_blocks_from_turn_event(event)
         opening_shape_pass = (
             1.0 if _opening_block_contract_satisfied(_opening_blocks) else 0.0
         )
+        # OPEN-SHAPE-EVIDENCE-01: Decompose the contract into auditable subgates and
+        # capture a small scene-block excerpt so dashboards can answer "why did
+        # opening_shape_contract_pass fail?" without re-fetching the trace body.
+        _opening_shape_subgates, _opening_shape_failure_reasons = (
+            _compute_opening_shape_subgates(_opening_blocks)
+        )
+        _scene_block_summary = _compact_scene_block_summary(_opening_blocks)
+
+        def _bt_ev(b: dict) -> str:
+            return str(b.get("block_type") or b.get("type") or "").strip().lower()
+
+        narrator_block_count_val = sum(1 for b in _opening_blocks if _bt_ev(b) == "narrator")
+        for i, b in enumerate(_opening_blocks):
+            if _bt_ev(b) in {"actor_line", "actor_action"}:
+                first_actor_block_index_val = i
+                break
+        gen_ev = ((event.get("model_route") or {}).get("generation") or {}) if isinstance(event.get("model_route"), dict) else {}
+        meta_ev = gen_ev.get("metadata") if isinstance(gen_ev.get("metadata"), dict) else {}
+        struct_ev = meta_ev.get("structured_output") if isinstance(meta_ev.get("structured_output"), dict) else None
+        if struct_ev is None and isinstance(gen_ev.get("structured_output"), dict):
+            struct_ev = gen_ev["structured_output"]
+        if isinstance(struct_ev, dict):
+            ns_ev = struct_ev.get("narration_summary")
+            if isinstance(ns_ev, str) and ns_ev.strip():
+                structured_narration_summary_kind = "str"
+            elif isinstance(ns_ev, list):
+                structured_narration_summary_kind = "list"
+            else:
+                structured_narration_summary_kind = "absent"
+        else:
+            structured_narration_summary_kind = "missing_structured"
+        if (
+            opening_shape_pass < 1.0
+            and structured_narration_summary_kind == "str"
+            and "narration_summary_single_string" not in _opening_shape_failure_reasons
+        ):
+            _opening_shape_failure_reasons = list(_opening_shape_failure_reasons) + [
+                "narration_summary_single_string"
+            ]
     else:
         opening_shape_pass = 1.0
     deterministic_scores["opening_shape_contract_pass"] = opening_shape_pass
@@ -1304,6 +1663,15 @@ def _emit_langfuse_evidence_observations(
         "live_opening_failure_reason": live_opening_failure_reason,
         "live_opening_subgates": _live_subgates,
         "live_opening_failure_reasons": _live_failure_reasons,
+        # OPEN-SHAPE-EVIDENCE-01: opening_shape_contract_pass subgate decomposition
+        # + truncated scene_block excerpts. Surfaced on every score row to mirror
+        # the live_opening_* pattern; only populated on turn 0 (empty otherwise).
+        "opening_shape_subgates": _opening_shape_subgates,
+        "opening_shape_failure_reasons": _opening_shape_failure_reasons,
+        "scene_block_summary": _scene_block_summary,
+        "first_actor_block_index": first_actor_block_index_val,
+        "narrator_block_count": narrator_block_count_val,
+        "structured_narration_summary_kind": structured_narration_summary_kind,
         # ADR-0033 §13.10 primary-vs-final clarity (metadata only; no gate semantics).
         "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
         "primary_attempt_model": path_summary.get("primary_attempt_model"),
@@ -1326,6 +1694,12 @@ def _emit_langfuse_evidence_observations(
         "primary_attempt_parser_error_present": path_summary.get("primary_attempt_parser_error_present"),
         "self_correction_attempted": path_summary.get("self_correction_attempted"),
         "self_correction_success": path_summary.get("self_correction_success"),
+        # OPEN-ACTOR-BLOCK-PROJECTION-01: structured lane → scene_blocks audit fields.
+        "actor_block_source": path_summary.get("actor_block_source"),
+        "actor_block_filtered_reason": path_summary.get("actor_block_filtered_reason"),
+        "actor_line_count_before_projection": path_summary.get("actor_line_count_before_projection"),
+        "action_line_count_before_projection": path_summary.get("action_line_count_before_projection"),
+        "actor_block_count_after_projection": path_summary.get("actor_block_count_after_projection"),
     }
     for name, value in deterministic_scores.items():
         try:
@@ -1428,6 +1802,113 @@ def _opening_block_contract_satisfied(scene_blocks: list[dict[str, Any]]) -> boo
     return first_actor is not None and first_actor >= 3
 
 
+def _compute_opening_shape_subgates(
+    scene_blocks: list[dict[str, Any]],
+) -> tuple[dict[str, bool], list[str]]:
+    """OPEN-SHAPE-EVIDENCE-01: Decompose ``_opening_block_contract_satisfied`` into
+    auditable per-subgate truth values + ordered failure-reason tokens.
+
+    The aggregate truth of the returned subgates is functionally equivalent to
+    ``_opening_block_contract_satisfied(scene_blocks)`` — the helper exists only
+    to surface *why* the contract failed for Langfuse score metadata. It must
+    not introduce any new gate semantics.
+
+    Subgates (all booleans):
+        block_count_ok           — at least 4 visible blocks
+        narrator_intro_present   — block[0].block_type == "narrator"
+        role_anchor_present      — block[1].block_type == "narrator"
+        scene_setup_present      — block[2].block_type == "narrator"
+        first_three_are_narrator — narrator_intro AND role_anchor AND scene_setup
+        first_actor_after_intro  — first actor_line/actor_action appears at idx >= 3
+
+    Failure reasons (ordered, lowercase tokens) match the operator vocabulary
+    captured during the 2026-05-08 audit so dashboards can correlate score rows
+    with the audit narrative without bespoke joins.
+    """
+
+    def _bt(b: dict) -> str:
+        return str(b.get("block_type") or b.get("type") or "").strip().lower()
+
+    block_count = len(scene_blocks)
+    types = [_bt(b) for b in scene_blocks]
+    first_actor_idx = next(
+        (i for i, t in enumerate(types) if t in {"actor_line", "actor_action"}),
+        None,
+    )
+
+    narrator_intro_present = block_count >= 1 and types[0] == "narrator"
+    role_anchor_present = block_count >= 2 and types[1] == "narrator"
+    scene_setup_present = block_count >= 3 and types[2] == "narrator"
+    first_three_are_narrator = (
+        narrator_intro_present and role_anchor_present and scene_setup_present
+    )
+    first_actor_after_intro = first_actor_idx is not None and first_actor_idx >= 3
+    block_count_ok = block_count >= 4
+
+    subgates = {
+        "block_count_ok": block_count_ok,
+        "narrator_intro_present": narrator_intro_present,
+        "role_anchor_present": role_anchor_present,
+        "scene_setup_present": scene_setup_present,
+        "first_three_are_narrator": first_three_are_narrator,
+        "first_actor_after_intro": first_actor_after_intro,
+    }
+
+    failure_reasons: list[str] = []
+    if block_count == 0:
+        failure_reasons.append("no_visible_scene_blocks")
+    if not block_count_ok:
+        failure_reasons.append("block_count_lt_4")
+    if not narrator_intro_present:
+        failure_reasons.append("narrator_intro_missing")
+    if not role_anchor_present:
+        failure_reasons.append("role_anchor_missing")
+    if not scene_setup_present:
+        failure_reasons.append("scene_setup_missing")
+    if first_actor_idx is None:
+        failure_reasons.append("no_actor_block_present")
+    elif not first_actor_after_intro:
+        failure_reasons.append("actor_block_before_intro")
+
+    return subgates, failure_reasons
+
+
+def _compact_scene_block_summary(
+    scene_blocks: list[dict[str, Any]],
+    *,
+    max_count: int = 6,
+    text_excerpt_chars: int = 120,
+) -> list[dict[str, Any]]:
+    """OPEN-SHAPE-EVIDENCE-01: Build a small, score-metadata-safe scene_block excerpt list.
+
+    Caps at ``max_count`` blocks and truncates each ``text`` field to
+    ``text_excerpt_chars`` characters with an ellipsis. Keeps payload <= ~1KB
+    so attaching it to every score row in ``score_metadata_base`` does not
+    bloat Langfuse score storage.
+    """
+    out: list[dict[str, Any]] = []
+    for idx, block in enumerate(scene_blocks[:max_count]):
+        if not isinstance(block, dict):
+            continue
+        block_type = str(block.get("block_type") or block.get("type") or "").strip().lower() or None
+        actor_id = block.get("actor_id") or block.get("speaker_id")
+        actor_id_str = str(actor_id).strip() if actor_id else None
+        raw_text = str(block.get("text") or "").strip().replace("\r", " ").replace("\n", " ")
+        if len(raw_text) > text_excerpt_chars:
+            text_excerpt = raw_text[: max(0, text_excerpt_chars - 1)] + "\u2026"
+        else:
+            text_excerpt = raw_text
+        out.append(
+            {
+                "index": idx,
+                "block_type": block_type,
+                "actor_id": actor_id_str,
+                "text_excerpt": text_excerpt,
+            }
+        )
+    return out
+
+
 def _actor_response_visible_in_scene_blocks(blocks: list[dict[str, Any]]) -> bool:
     for block in blocks:
         if not isinstance(block, dict):
@@ -1477,7 +1958,12 @@ def _live_scene_blocks_from_visible_bundle(
     visible_output_bundle: dict[str, Any] | None,
     *,
     turn_number: int,
+    structured_output: dict[str, Any] | None = None,
+    runtime_projection: dict[str, Any] | None = None,
+    graph_state: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    if graph_state is not None and turn_number != 0:
+        graph_state.pop("_actor_block_projection_evidence", None)
     bundle = visible_output_bundle if isinstance(visible_output_bundle, dict) else {}
     existing = bundle.get("scene_blocks")
     if isinstance(existing, list) and existing:
@@ -1523,6 +2009,10 @@ def _live_scene_blocks_from_visible_bundle(
             return labels[aid]
         return aid.replace("_", " ").strip().title() or "Actor"
 
+    proj = runtime_projection if isinstance(runtime_projection, dict) else None
+    human_id = str((proj or {}).get("human_actor_id") or "").strip()
+    role = str((proj or {}).get("selected_player_role") or "").strip()
+
     def append_json_blocks(raw: str) -> bool:
         text = str(raw or "").strip()
         if not text.startswith("{"):
@@ -1545,9 +2035,19 @@ def _live_scene_blocks_from_visible_bundle(
                     continue
                 speaker_id = str(row.get("speaker_id") or "").strip()
                 line = str(row.get("text") or row.get("line") or "").strip()
-                if line:
-                    append_block("actor_line", line, speaker_label=actor_label(speaker_id), actor_id=speaker_id or None)
-                    emitted = True
+                if not line:
+                    continue
+                if proj is not None:
+                    if not speaker_id:
+                        continue
+                    if _is_goc_human_lane_actor(
+                        speaker_id,
+                        human_actor_id=human_id,
+                        selected_player_role=role,
+                    ):
+                        continue
+                append_block("actor_line", line, speaker_label=actor_label(speaker_id), actor_id=speaker_id or None)
+                emitted = True
         actions = parsed.get("action_lines")
         if isinstance(actions, list):
             for row in actions:
@@ -1555,9 +2055,19 @@ def _live_scene_blocks_from_visible_bundle(
                     continue
                 actor_id = str(row.get("actor_id") or "").strip()
                 line = str(row.get("text") or row.get("line") or "").strip()
-                if line:
-                    append_block("actor_action", line, speaker_label=actor_label(actor_id), actor_id=actor_id or None)
-                    emitted = True
+                if not line:
+                    continue
+                if proj is not None:
+                    if not actor_id:
+                        continue
+                    if _is_goc_human_lane_actor(
+                        actor_id,
+                        human_actor_id=human_id,
+                        selected_player_role=role,
+                    ):
+                        continue
+                append_block("actor_action", line, speaker_label=actor_label(actor_id), actor_id=actor_id or None)
+                emitted = True
         return emitted
 
     for line in _coerce_visible_text_lines(bundle.get("gm_narration")):
@@ -1565,18 +2075,97 @@ def _live_scene_blocks_from_visible_bundle(
             continue
         append_block("narrator", line, speaker_label="Narrator")
 
-    for line in _coerce_visible_text_lines(bundle.get("spoken_lines")):
-        label = "Actor"
-        text = line
-        if ":" in line:
-            maybe_label, maybe_text = line.split(":", 1)
-            if maybe_label.strip() and maybe_text.strip():
-                label = maybe_label.strip()
-                text = maybe_text.strip()
-        append_block("actor_line", text, speaker_label=label)
+    for item in bundle.get("spoken_lines") or []:
+        if isinstance(item, dict):
+            speaker_id = str(item.get("speaker_id") or "").strip()
+            line = str(item.get("text") or item.get("line") or "").strip()
+            if not line:
+                continue
+            if proj is not None:
+                if not speaker_id:
+                    continue
+                if _is_goc_human_lane_actor(
+                    speaker_id,
+                    human_actor_id=human_id,
+                    selected_player_role=role,
+                ):
+                    continue
+            append_block("actor_line", line, speaker_label=actor_label(speaker_id), actor_id=speaker_id or None)
+            continue
+        for line in _coerce_visible_text_lines(item):
+            label = "Actor"
+            text = line
+            if ":" in line:
+                maybe_label, maybe_text = line.split(":", 1)
+                if maybe_label.strip() and maybe_text.strip():
+                    label = maybe_label.strip()
+                    text = maybe_text.strip()
+            if proj is not None:
+                lane_key = canonicalize_goc_actor_id(label) or label.strip().lower()
+                if lane_key and _is_goc_human_lane_actor(
+                    lane_key,
+                    human_actor_id=human_id,
+                    selected_player_role=role,
+                ):
+                    continue
+            append_block("actor_line", text, speaker_label=label)
 
-    for line in _coerce_visible_text_lines(bundle.get("action_lines")):
-        append_block("actor_action", line, speaker_label="Action")
+    for item in bundle.get("action_lines") or []:
+        if isinstance(item, dict):
+            aid = str(item.get("actor_id") or "").strip()
+            line = str(item.get("text") or item.get("line") or "").strip()
+            if not line:
+                continue
+            if proj is not None:
+                if not aid:
+                    continue
+                if _is_goc_human_lane_actor(
+                    aid,
+                    human_actor_id=human_id,
+                    selected_player_role=role,
+                ):
+                    continue
+            append_block("actor_action", line, speaker_label=actor_label(aid), actor_id=aid or None)
+            continue
+        for line in _coerce_visible_text_lines(item):
+            append_block("actor_action", line, speaker_label="Action")
+
+    if graph_state is not None and turn_number == 0:
+        sl_n, al_n = _structured_lane_dict_counts(structured_output if isinstance(structured_output, dict) else None)
+        count_before_backfill = _actor_block_projection_count(blocks)
+        bf_src = "none"
+        bf_filt: str | None = None
+        if isinstance(structured_output, dict) and structured_output:
+            blocks, bf_src, bf_filt = _maybe_backfill_opening_actor_from_structured(
+                blocks,
+                structured_output=structured_output,
+                runtime_projection=proj,
+                turn_number=turn_number,
+                human_actor_id=human_id,
+                selected_player_role=role,
+                delivery_fn=delivery,
+                actor_label_fn=actor_label,
+            )
+        actor_src = bf_src
+        filt_out = bf_filt
+        if actor_src == "none" and count_before_backfill > 0:
+            for b in blocks[3:]:
+                if not isinstance(b, dict):
+                    continue
+                bt = str(b.get("block_type") or "").strip().lower()
+                if bt == "actor_line":
+                    actor_src = "spoken_lines"
+                    break
+                if bt == "actor_action":
+                    actor_src = "action_lines"
+                    break
+        graph_state["_actor_block_projection_evidence"] = {
+            "actor_line_count_before_projection": sl_n,
+            "action_line_count_before_projection": al_n,
+            "actor_block_count_after_projection": _actor_block_projection_count(blocks),
+            "actor_block_source": actor_src,
+            "actor_block_filtered_reason": filt_out,
+        }
 
     return blocks
 
@@ -2922,6 +3511,8 @@ class StoryRuntimeManager:
             "(who they are, their place in this room, their disposition at the start); "
             "(3) scene_setup — the Paris salon: physical space, ritual objects, social temperature. "
             "Use three narrator paragraphs (blank line between each) or three gm_narration strings. "
+            'Prefer JSON field narration_summary as a list of exactly three strings, e.g. '
+            '"narration_summary": ["narrator_intro: …", "role_anchor: …", "scene_setup: …"]. '
             f"After all three beats, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines."
         )
 
@@ -3332,6 +3923,12 @@ class StoryRuntimeManager:
         raw_bundle = graph_state.get("visible_output_bundle")
         experience_policy = self._story_runtime_experience_policy()
         packaged_bundle = self._apply_experience_packaging(raw_bundle, experience_policy)
+        packaged_bundle = _finalize_visible_bundle_opening_gm_narration(
+            session=session,
+            graph_state=graph_state,
+            packaged_bundle=packaged_bundle,
+            commit_turn_number=commit_turn_number,
+        )
         visible_bundle_for_summary = (
             packaged_bundle if isinstance(packaged_bundle, dict) else raw_bundle if isinstance(raw_bundle, dict) else {}
         )
@@ -3416,11 +4013,24 @@ class StoryRuntimeManager:
         if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
             live_scene_blocks = []
             if gen.get("success") is True and not graph_state.get("force_ldss_scene_fallback"):
+                gen_meta_for_blocks = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
+                structured_for_projection = (
+                    gen_meta_for_blocks.get("structured_output")
+                    if isinstance(gen_meta_for_blocks.get("structured_output"), dict)
+                    else None
+                )
+                if structured_for_projection is None and isinstance(gen.get("structured_output"), dict):
+                    structured_for_projection = gen["structured_output"]
                 live_scene_blocks = _live_scene_blocks_from_visible_bundle(
                     event.get("visible_output_bundle")
                     if isinstance(event.get("visible_output_bundle"), dict)
                     else {},
                     turn_number=commit_turn_number,
+                    structured_output=structured_for_projection,
+                    runtime_projection=session.runtime_projection
+                    if isinstance(session.runtime_projection, dict)
+                    else None,
+                    graph_state=graph_state,
                 )
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,

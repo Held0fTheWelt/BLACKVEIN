@@ -522,7 +522,9 @@ def test_opening_narration_synth_skipped_when_actor_lane_rejected():
     state["generation"] = generation
     result = graph._proposal_normalize(state)
     structured = result["generation"]["metadata"]["structured_output"]
-    assert not str(structured.get("narration_summary") or "").strip()
+    from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+
+    assert not narration_summary_to_plain_str(structured.get("narration_summary"))
     assert "narration_summary_synthesized" not in result["generation"]["metadata"]
 
 
@@ -535,7 +537,9 @@ def test_opening_narration_synth_skipped_when_actor_lanes_empty():
     state["generation"] = generation
     result = graph._proposal_normalize(state)
     structured = result["generation"]["metadata"]["structured_output"]
-    assert not str(structured.get("narration_summary") or "").strip()
+    from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+
+    assert not narration_summary_to_plain_str(structured.get("narration_summary"))
     assert "narration_summary_synthesized" not in result["generation"]["metadata"]
 
 

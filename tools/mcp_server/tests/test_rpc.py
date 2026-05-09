@@ -1,8 +1,8 @@
-import json
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from ai_stack.mcp_canonical_surface import CANONICAL_MCP_TOOL_DESCRIPTORS
+from tools.mcp_server.call_tool_result import unwrap_call_tool_result
 from tools.mcp_server.server import McpServer
 
 
@@ -38,7 +38,9 @@ def test_tools_call_success():
         request = {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "wos.system.health", "arguments": {}}}
         response = server.dispatch(request, "trace-3")
         assert "result" in response
-        assert response["result"]["status"] == "healthy"
+        inner = unwrap_call_tool_result(response["result"])
+        assert inner is not None
+        assert inner["status"] == "healthy"
 
 
 def test_unknown_method_returns_error():

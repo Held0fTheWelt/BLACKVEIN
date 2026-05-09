@@ -84,6 +84,7 @@ from ai_stack.langgraph_runtime_state import (
     RuntimeTurnState,
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
+from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 
 
 _GOC_FALLBACK_CAST_KEYS: tuple[str, ...] = ("veronique", "michel", "annette", "alain")
@@ -2489,7 +2490,7 @@ class RuntimeTurnGraphExecutor:
         proposed = structured_output_to_proposed_effects(cleaned)
         if isinstance(cleaned, dict):
             schema_version = str(cleaned.get("schema_version") or "").strip()
-            narration_summary = str(cleaned.get("narration_summary") or "").strip()
+            narration_summary = narration_summary_to_plain_str(cleaned.get("narration_summary"))
             narrative_response = str(cleaned.get("narrative_response") or "").strip()
             spoken_count = len([x for x in (cleaned.get("spoken_lines") or []) if isinstance(x, dict)])
             action_count = len([x for x in (cleaned.get("action_lines") or []) if isinstance(x, dict)])

@@ -264,6 +264,13 @@ def _extract_normalized_wos_evidence(
         "session_id", "selected_player_role", "human_actor_id", "npc_actor_ids",
         "trace_origin", "execution_tier", "canonical_player_flow",
         "final_adapter", "quality_class", "fallback_reason",
+        "first_actor_block_index",
+        "narrator_block_count",
+        "structured_narration_summary_kind",
+        "opening_narration_normalized",
+        "opening_narration_source",
+        "opening_narration_beat_count",
+        "narration_summary_input_kind",
     }
     _CLASSIFICATION_FIELDS = {"trace_origin", "execution_tier", "canonical_player_flow"}
 
@@ -304,6 +311,16 @@ def _extract_normalized_wos_evidence(
         _apply(score_meta, {
             "session_id", "selected_player_role", "human_actor_id",
             "final_adapter", "quality_class", "fallback_reason",
+            "first_actor_block_index",
+            "narrator_block_count",
+            "structured_narration_summary_kind",
+            "opening_narration_normalized",
+            "opening_narration_source",
+            "opening_narration_beat_count",
+            "narration_summary_input_kind",
+            "opening_shape_subgates",
+            "opening_shape_failure_reasons",
+            "scene_block_summary",
         })
 
     # --- Source 4: turn span metadata ---
@@ -843,6 +860,23 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         lo_val = _live_opening_value(det_scores, raw)
         enriched_det = dict(det_scores)
         enriched_det["live_opening_contract_pass"] = lo_val
+        sm = _first_score_metadata(raw) or {}
+        opening_shape_diagnostics = {
+            k: sm.get(k)
+            for k in (
+                "opening_shape_subgates",
+                "opening_shape_failure_reasons",
+                "scene_block_summary",
+                "first_actor_block_index",
+                "narrator_block_count",
+                "structured_narration_summary_kind",
+                "opening_narration_normalized",
+                "opening_narration_source",
+                "opening_narration_beat_count",
+                "narration_summary_input_kind",
+            )
+            if sm.get(k) is not None
+        }
         return {
             "ok": True,
             "trace_id": trace_id,
@@ -855,6 +889,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "human_actor_id": meta.get("human_actor_id"),
             "deterministic_scores": enriched_det,
             "judge_scores": judge_scores,
+            "opening_shape_diagnostics": opening_shape_diagnostics,
         }
 
     def summarize_opening_judge_scores(arguments: dict[str, Any]) -> dict[str, Any]:

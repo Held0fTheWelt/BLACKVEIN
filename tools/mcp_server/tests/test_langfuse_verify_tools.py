@@ -173,7 +173,18 @@ def _live_trace_with_scores(trace_id: str = "lf-live-1") -> dict:
             "human_actor_id": "annette",
         },
         "scores": [
-            {"name": "live_runtime_contract_pass", "value": 1.0},
+            {
+                "name": "live_runtime_contract_pass",
+                "value": 1.0,
+                "metadata": {
+                    "turn_number": 0,
+                    "first_actor_block_index": 3,
+                    "narrator_block_count": 3,
+                    "opening_shape_failure_reasons": [],
+                    "opening_narration_normalized": True,
+                    "opening_narration_source": "model_list_three_plus",
+                },
+            },
             {"name": "live_opening_contract_pass", "value": 1.0},
             {"name": "non_mock_generation_pass", "value": 1.0},
             {
@@ -217,6 +228,10 @@ def test_fetch_langfuse_trace_scores_returns_split_scores():
     assert out["judge_scores"]["opening_experience_judge"]["category"] == "acceptable"
     assert out["judge_scores"]["theatrical_style_judge"]["category"] == "flat"
     assert out["judge_scores"]["theatrical_style_judge"]["reasoning"] == "Too generic."
+    diag = out.get("opening_shape_diagnostics") or {}
+    assert diag.get("first_actor_block_index") == 3
+    assert diag.get("narrator_block_count") == 3
+    assert diag.get("opening_narration_normalized") is True
 
 
 def test_fetch_langfuse_trace_scores_blocks_non_live_by_default():

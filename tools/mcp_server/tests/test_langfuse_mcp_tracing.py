@@ -153,12 +153,7 @@ def test_fetch_credentials_populates_keys_on_200(monkeypatch):
             "base_url": "https://cloud.langfuse.com",
         }
     }
-    mock_client = MagicMock()
-    mock_client.__enter__ = MagicMock(return_value=mock_client)
-    mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.get.return_value = mock_resp
-
-    with patch("httpx.Client", return_value=mock_client):
+    with patch("tools.mcp_server.langfuse_tracing.requests.get", return_value=mock_resp):
         tracer._fetch_credentials_from_backend()
 
     assert tracer._public_key == "pk-backend"
@@ -176,12 +171,7 @@ def test_fetch_credentials_ignores_disabled_config(monkeypatch):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"data": {"enabled": False}}
-    mock_client = MagicMock()
-    mock_client.__enter__ = MagicMock(return_value=mock_client)
-    mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.get.return_value = mock_resp
-
-    with patch("httpx.Client", return_value=mock_client):
+    with patch("tools.mcp_server.langfuse_tracing.requests.get", return_value=mock_resp):
         tracer._fetch_credentials_from_backend()
 
     assert tracer._public_key == ""
@@ -190,7 +180,10 @@ def test_fetch_credentials_ignores_disabled_config(monkeypatch):
 def test_fetch_credentials_suppresses_network_error(monkeypatch):
     monkeypatch.setenv("INTERNAL_RUNTIME_CONFIG_TOKEN", "tok-abc")
     tracer = McpLangfuseTracer()
-    with patch("httpx.Client", side_effect=Exception("connection refused")):
+    with patch(
+        "tools.mcp_server.langfuse_tracing.requests.get",
+        side_effect=Exception("connection refused"),
+    ):
         tracer._fetch_credentials_from_backend()  # must not raise
 
 
@@ -209,15 +202,10 @@ def test_fetch_credentials_uses_runtime_backend_url_env(monkeypatch):
             "base_url": "https://cloud.langfuse.com",
         }
     }
-    mock_client = MagicMock()
-    mock_client.__enter__ = MagicMock(return_value=mock_client)
-    mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.get.return_value = mock_resp
-
-    with patch("httpx.Client", return_value=mock_client):
+    with patch("tools.mcp_server.langfuse_tracing.requests.get", return_value=mock_resp) as mock_get:
         tracer._fetch_credentials_from_backend()
 
-    endpoint = mock_client.get.call_args.args[0]
+    endpoint = mock_get.call_args.args[0]
     assert endpoint.startswith("http://backend-runtime:8000/")
     assert tracer._public_key == "pk-runtime"
     assert tracer._secret_key == "sk-runtime"
@@ -238,15 +226,10 @@ def test_fetch_credentials_uses_token_alias_env(monkeypatch):
             "base_url": "https://cloud.langfuse.com",
         }
     }
-    mock_client = MagicMock()
-    mock_client.__enter__ = MagicMock(return_value=mock_client)
-    mock_client.__exit__ = MagicMock(return_value=False)
-    mock_client.get.return_value = mock_resp
-
-    with patch("httpx.Client", return_value=mock_client):
+    with patch("tools.mcp_server.langfuse_tracing.requests.get", return_value=mock_resp) as mock_get:
         tracer._fetch_credentials_from_backend()
 
-    assert mock_client.get.call_args.kwargs["headers"]["X-Internal-Config-Token"] == "tok-alias"
+    assert mock_get.call_args.kwargs["headers"]["X-Internal-Config-Token"] == "tok-alias"
     assert tracer._public_key == "pk-alias"
     assert tracer._secret_key == "sk-alias"
 

@@ -7,8 +7,12 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from app.story_runtime.manager import (
+    StorySession,
+    _compact_scene_block_summary,
+    _compute_opening_shape_subgates,
     _emit_langfuse_evidence_observations,
     _emit_langfuse_path_spans,
+    _finalize_visible_bundle_opening_gm_narration,
     _live_scene_blocks_from_visible_bundle,
     _opening_block_contract_satisfied,
 )
@@ -302,6 +306,7 @@ def test_story_session_create_opening_live_projection_skips_ldss_fallback_span(
         visible_output_bundle: dict[str, Any] | None,
         *,
         turn_number: int,
+        **kwargs: Any,
     ) -> list[dict[str, Any]]:
         return _minimal_goc_live_scene_blocks(turn_number=turn_number)
 
@@ -1269,6 +1274,258 @@ def test_opening_contract_pass_trivially_passes_on_regular_turn(monkeypatch):
     assert score_values["opening_contract_pass"] == 1.0
 
 
+# ---------------------------------------------------------------------------
+# OPEN-SHAPE-EVIDENCE-01 tests
+# Verify that opening_shape_contract_pass score metadata carries the auditable
+# subgate breakdown + truncated scene_block excerpts so dashboards can answer
+# "why did opening shape fail?" without re-fetching the trace body.
+# ---------------------------------------------------------------------------
+
+
+def _canonical_opening_blocks() -> list[dict[str, Any]]:
+    return [
+        {"block_type": "narrator", "text": "Two couples meet in a Paris apartment after the schoolyard incident."},
+        {"block_type": "narrator", "text": "You are Annette Reille; the apartment is yours and so is the expectation of civility."},
+        {"block_type": "narrator", "text": "The salon: chairs around a low table, untouched espresso cups cooling."},
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "We should keep this brief."},
+    ]
+
+
+def test_opening_shape_subgates_all_pass_for_canonical_opening(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: canonical 3-narrator + actor opening yields all subgates true."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = _canonical_opening_blocks()
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 1.0
+
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    subgates = meta["opening_shape_subgates"]
+    assert subgates == {
+        "block_count_ok": True,
+        "narrator_intro_present": True,
+        "role_anchor_present": True,
+        "scene_setup_present": True,
+        "first_three_are_narrator": True,
+        "first_actor_after_intro": True,
+    }
+    assert meta["opening_shape_failure_reasons"] == []
+    summary = meta["scene_block_summary"]
+    assert len(summary) == 4
+    assert summary[0]["index"] == 0
+    assert summary[0]["block_type"] == "narrator"
+    assert summary[0]["actor_id"] is None
+    assert "Two couples meet" in summary[0]["text_excerpt"]
+    assert summary[3]["block_type"] == "actor_line"
+    assert summary[3]["actor_id"] == "alain_reille"
+
+
+def test_opening_shape_subgates_single_narrator_then_actor_failure(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: 1 narrator + actor (the audited 2026-05-08 failure mode) surfaces precise reasons."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = [
+        {"block_type": "narrator", "text": "Two couples meet, chairs ringing a low table; civility is on offer."},
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "We should keep this brief."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["opening_shape_contract_pass"] == 0.0
+
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    subgates = meta["opening_shape_subgates"]
+    assert subgates["narrator_intro_present"] is True
+    assert subgates["role_anchor_present"] is False
+    assert subgates["scene_setup_present"] is False
+    assert subgates["first_three_are_narrator"] is False
+    assert subgates["block_count_ok"] is False
+    assert subgates["first_actor_after_intro"] is False
+
+    reasons = meta["opening_shape_failure_reasons"]
+    assert "block_count_lt_4" in reasons
+    assert "role_anchor_missing" in reasons
+    assert "scene_setup_missing" in reasons
+    assert "actor_block_before_intro" in reasons
+    assert "narrator_intro_missing" not in reasons
+    assert "no_actor_block_present" not in reasons
+
+
+def test_opening_shape_subgates_actor_at_index_zero_failure(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: actor block before any narrator yields narrator_intro_missing + actor_block_before_intro."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = [
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hello."},
+        {"block_type": "narrator", "text": "The salon."},
+        {"block_type": "narrator", "text": "Civility on offer."},
+        {"block_type": "narrator", "text": "Coffee cools."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    subgates = meta["opening_shape_subgates"]
+    assert subgates["narrator_intro_present"] is False
+    assert subgates["block_count_ok"] is True
+    assert subgates["first_actor_after_intro"] is False
+    reasons = meta["opening_shape_failure_reasons"]
+    assert "narrator_intro_missing" in reasons
+    assert "actor_block_before_intro" in reasons
+    assert "block_count_lt_4" not in reasons
+
+
+def test_opening_shape_subgates_no_visible_blocks(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: empty scene_blocks produces no_visible_scene_blocks + all narrators absent."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event([]),
+    )
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    subgates = meta["opening_shape_subgates"]
+    assert subgates == {
+        "block_count_ok": False,
+        "narrator_intro_present": False,
+        "role_anchor_present": False,
+        "scene_setup_present": False,
+        "first_three_are_narrator": False,
+        "first_actor_after_intro": False,
+    }
+    reasons = meta["opening_shape_failure_reasons"]
+    assert "no_visible_scene_blocks" in reasons
+    assert "no_actor_block_present" in reasons
+    assert meta["scene_block_summary"] == []
+
+
+def test_opening_shape_subgates_empty_on_non_opening_turn(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: turn > 0 must keep subgates {} and reasons [] (avoid false negatives in trace history)."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = [
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "I disagree."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(2),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    assert meta["opening_shape_subgates"] == {}
+    assert meta["opening_shape_failure_reasons"] == []
+    assert meta["scene_block_summary"] == []
+
+
+def test_opening_shape_evidence_attached_to_alias_and_live_opening_scores(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: subgate metadata must surface on opening_contract_pass alias and live_opening_contract_pass too.
+
+    The metadata lives in score_metadata_base, so every score row carries it —
+    dashboards that filter by live_opening_contract_pass can still join the
+    shape diagnosis without an extra fetch.
+    """
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = [
+        {"block_type": "narrator", "text": "Only one beat present."},
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hello."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    for score_name in (
+        "opening_shape_contract_pass",
+        "opening_contract_pass",
+        "live_runtime_contract_pass",
+    ):
+        meta = _last_score_metadata_for(adapter, score_name)
+        assert meta["opening_shape_subgates"]["role_anchor_present"] is False, (
+            f"{score_name!r} missing opening_shape_subgates"
+        )
+        assert "role_anchor_missing" in meta["opening_shape_failure_reasons"], (
+            f"{score_name!r} missing opening_shape_failure_reasons"
+        )
+        assert len(meta["scene_block_summary"]) == 2
+
+
+def test_compact_scene_block_summary_caps_count_and_truncates_text():
+    """OPEN-SHAPE-EVIDENCE-01: helper bounds payload size for safe score-metadata embedding."""
+    long_text = "x" * 500
+    blocks: list[dict[str, Any]] = []
+    for i in range(12):
+        blocks.append(
+            {
+                "block_type": "narrator" if i < 3 else "actor_line",
+                "actor_id": None if i < 3 else f"actor_{i}",
+                "text": f"{long_text}_{i}",
+            }
+        )
+    summary = _compact_scene_block_summary(blocks)
+    assert len(summary) == 6
+    assert [row["index"] for row in summary] == [0, 1, 2, 3, 4, 5]
+    for row in summary:
+        assert len(row["text_excerpt"]) <= 120
+        assert row["text_excerpt"].endswith("\u2026"), "long text must be truncated with an ellipsis"
+
+    custom = _compact_scene_block_summary(blocks, max_count=2, text_excerpt_chars=20)
+    assert len(custom) == 2
+    for row in custom:
+        assert len(row["text_excerpt"]) <= 20
+
+    short_block = [{"block_type": "narrator", "text": "tiny"}]
+    untouched = _compact_scene_block_summary(short_block)
+    assert untouched == [
+        {"index": 0, "block_type": "narrator", "actor_id": None, "text_excerpt": "tiny"}
+    ]
+
+
+def test_compute_opening_shape_subgates_matches_opening_block_contract_satisfied():
+    """OPEN-SHAPE-EVIDENCE-01 invariant: aggregate subgate truth equals the gate function (no new semantics)."""
+    cases = [
+        _canonical_opening_blocks(),
+        [],
+        [{"block_type": "narrator", "text": "x"}],
+        [
+            {"block_type": "actor_line", "actor_id": "a", "text": "x"},
+            {"block_type": "narrator", "text": "y"},
+            {"block_type": "narrator", "text": "z"},
+            {"block_type": "narrator", "text": "w"},
+        ],
+        [
+            {"block_type": "narrator", "text": "a"},
+            {"block_type": "narrator", "text": "b"},
+            {"block_type": "narrator", "text": "c"},
+            {"block_type": "actor_action", "actor_id": "x", "text": "shrugs"},
+        ],
+    ]
+    for blocks in cases:
+        gate = _opening_block_contract_satisfied(blocks)
+        subgates, _ = _compute_opening_shape_subgates(blocks)
+        assert all(subgates.values()) == gate, (
+            f"Subgate aggregate diverged from gate for blocks={blocks!r}: "
+            f"gate={gate} subgates={subgates}"
+        )
+
+
 def test_opening_score_split_mock_trace_shape_can_pass_but_live_opening_must_fail(monkeypatch):
     """OPEN-SCORE-SPLIT-01: fixture/mock traces can pass shape but never live_opening."""
     adapter = MagicMock()
@@ -2157,3 +2414,262 @@ def test_S7_primary_parse_span_default_level_on_healthy_path(monkeypatch):
     assert span_call.kwargs.get("level") == "DEFAULT", (
         "story.phase.primary_parse must be DEFAULT when parse succeeded"
     )
+
+
+def test_opening_shape_score_metadata_includes_actor_index_and_narrator_count(monkeypatch):
+    """OPEN-SHAPE-EVIDENCE-01: first_actor_block_index + narrator_block_count on turn 0."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    blocks = [
+        {"block_type": "narrator", "text": "a"},
+        {"block_type": "narrator", "text": "b"},
+        {"block_type": "narrator", "text": "c"},
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hi."},
+    ]
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {
+                    "adapter": "openai",
+                    "structured_output": {
+                        "narration_summary": ["x", "y", "z"],
+                    },
+                },
+            },
+        },
+        "visible_output_bundle": {"scene_blocks": blocks},
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    assert meta["first_actor_block_index"] == 3
+    assert meta["narrator_block_count"] == 3
+    assert meta["structured_narration_summary_kind"] == "list"
+
+
+def test_opening_shape_failure_appends_single_string_token_when_structured_str(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    event = {
+        "model_route": {
+            "generation": {
+                "metadata": {
+                    "adapter": "openai",
+                    "structured_output": {"narration_summary": "one fused paragraph."},
+                },
+            },
+        },
+        "visible_output_bundle": {
+            "scene_blocks": [
+                {"block_type": "narrator", "text": "only one"},
+                {"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hi"},
+            ],
+        },
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=event,
+    )
+    meta = _last_score_metadata_for(adapter, "opening_shape_contract_pass")
+    assert meta["structured_narration_summary_kind"] == "str"
+    assert "narration_summary_single_string" in meta["opening_shape_failure_reasons"]
+
+
+def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
+    """P0: experience packaging collapses gm lines; post-pack hook restores three narrators."""
+    from ai_stack.story_runtime_experience import canonical_defaults, resolve_story_runtime_experience_policy
+    from ai_stack.story_runtime_experience_packaging import package_bundle_with_policy
+
+    session = StorySession(
+        session_id="s-opening-pack",
+        module_id="god_of_carnage",
+        runtime_projection={
+            "module_id": "god_of_carnage",
+            "human_actor_id": "annette",
+            "selected_player_role": "annette",
+            "start_scene_id": "living_room",
+            "npc_actor_ids": [],
+        },
+        session_output_language="de",
+    )
+    raw_bundle = {
+        "gm_narration": [
+            "Premise line one about the meeting.",
+            "Premise line two about tension.",
+            "Premise line three about the salon.",
+        ],
+        "spoken_lines": ["Veronique: We should keep this civil."],
+        "action_lines": ["Michel folds his hands."],
+    }
+    policy = resolve_story_runtime_experience_policy(
+        {
+            **canonical_defaults(),
+            "experience_mode": "live_dramatic_scene_simulator",
+            "delivery_profile": "cinematic_live",
+        }
+    )
+    packaged = package_bundle_with_policy(raw_bundle, policy)
+    assert len(packaged.get("gm_narration") or []) < 3
+
+    graph_state: dict[str, Any] = {
+        "generation": {
+            "metadata": {
+                "structured_output": {
+                    "schema_version": "runtime_actor_turn_v1",
+                    "narration_summary": (
+                        "Ein einziger Absatz über den Pariser Salonabend ohne genügend Leerzeilen."
+                    ),
+                    "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Willkommen."}],
+                    "action_lines": [{"actor_id": "michel_longstreet", "text": "nickt"}],
+                },
+            },
+        },
+    }
+    fixed = _finalize_visible_bundle_opening_gm_narration(
+        session=session,
+        graph_state=graph_state,
+        packaged_bundle=packaged,
+        commit_turn_number=0,
+    )
+    assert isinstance(fixed, dict)
+    assert len(fixed.get("gm_narration") or []) == 3
+    structured = graph_state["generation"]["metadata"]["structured_output"]
+    blocks = _live_scene_blocks_from_visible_bundle(
+        fixed,
+        turn_number=0,
+        structured_output=structured,
+        runtime_projection=session.runtime_projection,
+        graph_state=graph_state,
+    )
+    assert _opening_block_contract_satisfied(blocks)
+    assert graph_state.get("_opening_narration_normalization", {}).get("opening_narration_normalized") is True
+    ev = graph_state.get("_actor_block_projection_evidence") or {}
+    assert ev.get("actor_block_count_after_projection", 0) >= 1
+
+
+def test_open_actor_block_projection_structured_npc_spoken_backfills_after_three_narrators():
+    """OPEN-ACTOR-BLOCK-PROJECTION-01: dict spoken_lines in structured → actor_line at index 3."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {
+        "gm_narration": [
+            "Beat one premise.",
+            "Beat two role anchor.",
+            "Beat three scene setup.",
+        ],
+    }
+    structured = {
+        "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "We should keep this civil."}],
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "annette",
+        "npc_actor_ids": ["veronique_vallon", "michel_longstreet", "alain_reille"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        structured_output=structured,
+        runtime_projection=proj,
+        graph_state=gs,
+    )
+    assert _opening_block_contract_satisfied(blocks)
+    assert str(blocks[3].get("block_type")) == "actor_line"
+    ev = gs.get("_actor_block_projection_evidence") or {}
+    assert ev.get("actor_block_source") == "spoken_lines"
+    assert ev.get("actor_line_count_before_projection") == 1
+
+
+def test_open_actor_block_projection_structured_npc_action_backfills():
+    """OPEN-ACTOR-BLOCK-PROJECTION-01: NPC action_lines → actor_action at index 3."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {
+        "gm_narration": ["Narrator one.", "Narrator two.", "Narrator three."],
+    }
+    structured = {
+        "spoken_lines": [{"speaker_id": "annette_reille", "text": "Human line only"}],
+        "action_lines": [{"actor_id": "michel_longstreet", "text": "Michel folds his hands."}],
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "annette",
+        "npc_actor_ids": ["michel_longstreet"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        structured_output=structured,
+        runtime_projection=proj,
+        graph_state=gs,
+    )
+    assert _opening_block_contract_satisfied(blocks)
+    assert str(blocks[3].get("block_type")) == "actor_action"
+    ev = gs.get("_actor_block_projection_evidence") or {}
+    assert ev.get("actor_block_source") == "action_lines"
+
+
+def test_open_actor_block_projection_human_only_spoken_fails_and_surfaces_filter_reason():
+    """OPEN-ACTOR-BLOCK-PROJECTION-01: only human spoken_lines → no actor block + audit reason."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {"gm_narration": ["One.", "Two.", "Three."]}
+    structured = {"spoken_lines": [{"speaker_id": "alain_reille", "text": "I am the human PC."}]}
+    proj = {
+        "human_actor_id": "alain_reille",
+        "selected_player_role": "alain",
+        "npc_actor_ids": ["annette_reille"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        structured_output=structured,
+        runtime_projection=proj,
+        graph_state=gs,
+    )
+    assert _opening_block_contract_satisfied(blocks) is False
+    ev = gs.get("_actor_block_projection_evidence") or {}
+    assert ev.get("actor_block_filtered_reason") == "actor_block_missing_due_to_human_actor_filter"
+    assert ev.get("actor_block_source") == "none"
+
+
+def test_open_actor_block_projection_no_structured_actor_fails_contract():
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {"gm_narration": ["A", "B", "C"]}
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        structured_output={"spoken_lines": []},
+        runtime_projection={"human_actor_id": "annette_reille"},
+        graph_state=gs,
+    )
+    assert _opening_block_contract_satisfied(blocks) is False
+
+
+def test_open_actor_block_projection_annette_npc_spoken_fixture_stays_green():
+    """Annette-as-human with Veronique NPC string line remains valid opening shape."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {
+        "gm_narration": [
+            "Two couples gather after the schoolyard incident.",
+            "You are Annette. Every glance tests civility.",
+            "In the Paris salon, chairs face each other.",
+        ],
+        "spoken_lines": ["Veronique: We should keep this civil."],
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "Annette",
+        "npc_actor_ids": ["veronique_vallon"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        structured_output=None,
+        runtime_projection=proj,
+        graph_state=gs,
+    )
+    assert _opening_block_contract_satisfied(blocks) is True

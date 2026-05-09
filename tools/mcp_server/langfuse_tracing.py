@@ -23,6 +23,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+import requests
+
 _REDACTED_KEYS = frozenset({"password", "token", "secret", "key", "api_key", "bearer", "credential"})
 _MAX_VALUE_LEN = 500
 _MAX_RESULT_LEN = 2000
@@ -134,7 +136,6 @@ class McpLangfuseTracer:
         if not runtime_token and not bearer_token:
             return
         try:
-            import httpx  # type: ignore[import]
             endpoint = f"{backend_url}/api/v1/internal/observability/langfuse-credentials"
             header_attempts: list[dict[str, str]] = []
             if runtime_token:
@@ -142,24 +143,26 @@ class McpLangfuseTracer:
             if bearer_token:
                 # Optional runtime deployment fallback: some setups terminate auth upstream.
                 header_attempts.append({"Authorization": f"Bearer {bearer_token}"})
-            with httpx.Client(timeout=5.0) as client:
-                for headers in header_attempts:
-                    resp = client.get(endpoint, headers=headers)
-                    if resp.status_code != 200:
-                        continue
-                    data = resp.json().get("data", {})
-                    if not data.get("enabled"):
-                        return
-                    pk = str(data.get("public_key") or "").strip()
-                    sk = str(data.get("secret_key") or "").strip()
-                    if pk and sk:
-                        self._public_key = pk
-                        self._secret_key = sk
-                        self._base_url = str(data.get("base_url") or self._base_url)
-                        self._backend_url = backend_url
-                        if runtime_token:
-                            self._internal_token = runtime_token
-                        return
+            # Use ``requests`` (same stack as Langfuse HTTP helpers in verify tools), not
+            # ``httpx``. A missing or broken ``httpx`` import previously failed the entire
+            # fetch inside ``except Exception: pass``, leaving keys empty with no signal.
+            for headers in header_attempts:
+                resp = requests.get(endpoint, headers=headers, timeout=5.0)
+                if resp.status_code != 200:
+                    continue
+                data = resp.json().get("data", {})
+                if not data.get("enabled"):
+                    return
+                pk = str(data.get("public_key") or "").strip()
+                sk = str(data.get("secret_key") or "").strip()
+                if pk and sk:
+                    self._public_key = pk
+                    self._secret_key = sk
+                    self._base_url = str(data.get("base_url") or self._base_url)
+                    self._backend_url = backend_url
+                    if runtime_token:
+                        self._internal_token = runtime_token
+                    return
         except Exception:
             pass
 

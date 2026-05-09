@@ -6804,6 +6804,25 @@ paths:
           description: Rate limited.
         '500':
           description: Server error.
+  /api/v1/internal/observability/langfuse-verify-tool:
+    post:
+      tags:
+      - OperationalGovernance
+      summary: POST /internal/observability/langfuse-verify-tool
+      operationId: post_api_v1_internal_observability_langfuse_verify_tool
+      responses:
+        '200':
+          description: Success (see docs/api/REFERENCE.md for response shapes).
+        '401':
+          description: Unauthorized — missing or invalid JWT where required.
+        '403':
+          description: Forbidden — policy or role.
+        '404':
+          description: Not found.
+        '429':
+          description: Rate limited.
+        '500':
+          description: Server error.
   /api/v1/internal/provider-credential/{provider_id}:
     get:
       tags:

@@ -89,6 +89,43 @@ class LegacyResponderScopeAdapter(BaseModelAdapter):
         )
 
 
+class NarrationSummaryListAdapter(BaseModelAdapter):
+    adapter_name = "mock"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+        payload = {
+            "schema_version": "runtime_actor_turn_v1",
+            "narration_summary": ["Intro beat one.", "Role anchor two.", "Scene setup three."],
+            "narrative_response": "Intro beat one.\n\nRole anchor two.\n\nScene setup three.",
+            "primary_responder_id": "veronique_vallon",
+            "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Welcome."}],
+            "action_lines": [],
+        }
+        return ModelCallResult(
+            content=json.dumps(payload),
+            success=True,
+            metadata={"adapter": self.adapter_name, "prompt_length": len(prompt)},
+        )
+
+
+class NarrationSummaryJsonStringListAdapter(BaseModelAdapter):
+    adapter_name = "mock"
+
+    def generate(self, prompt: str, *, timeout_seconds: float = 10.0, retrieval_context: str | None = None) -> ModelCallResult:
+        payload = {
+            "schema_version": "runtime_actor_turn_v1",
+            "narration_summary": '["A beat", "B beat", "C beat"]',
+            "primary_responder_id": "veronique_vallon",
+            "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Hi."}],
+            "action_lines": [],
+        }
+        return ModelCallResult(
+            content=json.dumps(payload),
+            success=True,
+            metadata={"adapter": self.adapter_name, "prompt_length": len(prompt)},
+        )
+
+
 class RecordingCapabilityRegistry:
     def __init__(self) -> None:
         self.calls: list[dict] = []
@@ -496,6 +533,26 @@ def test_PR01_missing_narration_summary_parses_with_actor_lanes() -> None:
     # narration_summary defaults to "" — Pydantic model allows this
     assert result.parsed_output.narration_summary == ""
     assert result.parsed_output.spoken_lines  # actor lanes present
+
+
+def test_PR01_narration_summary_native_list_parses() -> None:
+    """Opening-friendly: narration_summary may be a JSON array of strings."""
+    result = _invoke(NarrationSummaryListAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert isinstance(result.parsed_output.narration_summary, list)
+    assert len(result.parsed_output.narration_summary) == 3
+    assert "Intro beat one." in result.parsed_output.effective_narration_summary()
+
+
+def test_PR01_narration_summary_json_string_list_coerced() -> None:
+    """Tolerant path: narration_summary as a JSON-encoded string array is coerced to list."""
+    result = _invoke(NarrationSummaryJsonStringListAdapter())
+    assert result.parsed_output is not None, f"Parse failed: {result.parser_error}"
+    assert result.parser_error is None
+    assert isinstance(result.parsed_output.narration_summary, list)
+    assert result.parsed_output.narration_summary[0] == "A beat"
+    assert any("coerced_str_to_list:narration_summary" in r for r in result.repair_log)
 
 
 def test_PR01_malformed_json_still_fails_with_parser_error() -> None:

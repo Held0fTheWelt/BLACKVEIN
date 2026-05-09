@@ -23,6 +23,7 @@ from ai_stack.goc_frozen_vocab import (
     expand_goc_actor_id_aliases,
 )
 from ai_stack.goc_yaml_authority import thin_edge_staging_line_from_guidance
+from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 
 _GOC_ACTOR_DISPLAY_NAMES = {
     "veronique_vallon": "Veronique",
@@ -57,10 +58,10 @@ def _gm_display_text_from_generation_content(raw: str) -> str:
             actor_lines.extend(_coerce_actor_lines(parsed.get("action_lines"), actor_key="actor_id"))
             if str(parsed.get("schema_version") or "").strip() == "runtime_actor_turn_v1" and actor_lines:
                 return "\n".join(actor_lines[:4])
-            narr = parsed.get("narration_summary")
-            if not isinstance(narr, str) or not narr.strip():
-                narr = parsed.get("narrative_response")
-            if isinstance(narr, str) and narr.strip():
+            narr = narration_summary_to_plain_str(parsed.get("narration_summary"))
+            if not narr.strip():
+                narr = narration_summary_to_plain_str(parsed.get("narrative_response"))
+            if narr.strip():
                 return narr.strip()
             if actor_lines:
                 return "\n".join(actor_lines[:4])
@@ -160,10 +161,10 @@ def structured_output_to_proposed_effects(structured: dict[str, Any] | None) -> 
                 if parts:
                     effect["description"] = ": ".join(parts)
             effects.append(effect)
-        narr = structured.get("narration_summary")
-        if not isinstance(narr, str) or not narr.strip():
-            narr = structured.get("narrative_response")
-        if isinstance(narr, str) and narr.strip():
+        narr = narration_summary_to_plain_str(structured.get("narration_summary"))
+        if not narr.strip():
+            narr = narration_summary_to_plain_str(structured.get("narrative_response"))
+        if narr.strip():
             effects.append(
                 {
                     "effect_type": "narrative_projection",
@@ -178,10 +179,10 @@ def structured_output_to_proposed_effects(structured: dict[str, Any] | None) -> 
             }
         ]
     else:
-        narr = structured.get("narration_summary")
-        if not isinstance(narr, str) or not narr.strip():
-            narr = structured.get("narrative_response")
-        if isinstance(narr, str) and narr.strip():
+        narr = narration_summary_to_plain_str(structured.get("narration_summary"))
+        if not narr.strip():
+            narr = narration_summary_to_plain_str(structured.get("narrative_response"))
+        if narr.strip():
             effects = [
                 {
                     "effect_type": "narrative_proposal",

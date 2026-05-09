@@ -143,7 +143,54 @@ def _normalize_raw_dict(data: dict) -> tuple[dict, list[str]]:
         data["schema_version"] = "runtime_actor_turn_v1"
         repairs.append("defaulted_schema_version")
 
+    ns = data.get("narration_summary")
+    if isinstance(ns, str):
+        stripped = ns.strip()
+        if stripped.startswith("["):
+            try:
+                parsed_ns = json.loads(stripped)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                parsed_ns = None
+            if isinstance(parsed_ns, list) and all(isinstance(x, str) for x in parsed_ns):
+                data["narration_summary"] = [str(x).strip() for x in parsed_ns if str(x).strip()]
+                repairs.append("coerced_str_to_list:narration_summary")
+    elif isinstance(ns, list):
+        data["narration_summary"] = [str(x).strip() for x in ns if isinstance(x, str) and str(x).strip()]
+
     return data, repairs
+
+
+def _apply_narration_summary_post_repairs(
+    parsed: "RuntimeTurnStructuredOutput",
+) -> tuple["RuntimeTurnStructuredOutput", list[str]]:
+    """When the fast Pydantic path accepts a JSON array literal as ``str``, coerce to ``list[str]``.
+
+    ``_normalize_raw_dict`` already handles this on the tolerant path; this closes the gap for
+    ``parser.parse`` successes (models sometimes emit ``narration_summary`` as a quoted JSON array).
+    """
+    repairs: list[str] = []
+    ns = parsed.narration_summary
+    if not isinstance(ns, str):
+        return parsed, repairs
+    stripped = ns.strip()
+    if not stripped.startswith("["):
+        return parsed, repairs
+    try:
+        parsed_ns = json.loads(stripped)
+    except (json.JSONDecodeError, ValueError, TypeError):
+        return parsed, repairs
+    if not isinstance(parsed_ns, list) or not parsed_ns or not all(isinstance(x, str) for x in parsed_ns):
+        return parsed, repairs
+    coerced = [str(x).strip() for x in parsed_ns if str(x).strip()]
+    if not coerced:
+        return parsed, repairs
+    joined = "\n\n".join(coerced)
+    nr = (parsed.narrative_response or "").strip()
+    updates: dict[str, Any] = {"narration_summary": coerced}
+    if not nr or nr == stripped:
+        updates["narrative_response"] = joined
+    repairs.append("coerced_str_to_list:narration_summary")
+    return parsed.model_copy(update=updates), repairs
 
 
 def _tolerant_parse(
@@ -163,7 +210,8 @@ def _tolerant_parse(
     # Fast path: standard parser (LangChain handles fence extraction + Pydantic validation).
     try:
         parsed = parser.parse(raw)
-        return parsed, None, []
+        parsed, post_repairs = _apply_narration_summary_post_repairs(parsed)
+        return parsed, None, post_repairs
     except Exception as first_exc:
         first_error = str(first_exc)
 
@@ -174,7 +222,8 @@ def _tolerant_parse(
         all_repairs = extract_repairs + norm_repairs
         try:
             parsed = RuntimeTurnStructuredOutput.model_validate(normalized)
-            return parsed, None, all_repairs
+            parsed, post_repairs = _apply_narration_summary_post_repairs(parsed)
+            return parsed, None, all_repairs + post_repairs
         except Exception:
             pass
         # Last resort: filter to known fields (defensive against strict-mode extras).
@@ -184,7 +233,8 @@ def _tolerant_parse(
             try:
                 parsed = RuntimeTurnStructuredOutput.model_validate(filtered)
                 all_repairs.append("filtered_unknown_fields")
-                return parsed, None, all_repairs
+                parsed, post_repairs = _apply_narration_summary_post_repairs(parsed)
+                return parsed, None, all_repairs + post_repairs
             except Exception:
                 pass
 
@@ -219,12 +269,14 @@ class RuntimeTurnStructuredOutput(BaseModel):
         value: str | None = None
 
     schema_version: str = Field(default="runtime_actor_turn_v1")
-    narration_summary: str = Field(
+    narration_summary: str | list[str] = Field(
         default="",
         description=(
             "Brief scene-level summary derived from actor lanes (spoken_lines, action_lines, "
             "initiative_events). Narration is a prose projection of actor realization, not the source of truth—"
-            "actor lanes hold primary authority. Narration should reflect, not invent, actor behavior."
+            "actor lanes hold primary authority. On opening turn (turn 0) for God of Carnage, prefer exactly "
+            "three strings: narrator_intro, role_anchor, scene_setup (see session opening prompt). "
+            "On later turns a single string remains normal."
         ),
     )
     proposed_scene_id: str | None = None
@@ -246,21 +298,31 @@ class RuntimeTurnStructuredOutput(BaseModel):
     dramatic_direction: str | None = None
 
     def effective_narration_summary(self) -> str:
-        summary = (self.narration_summary or "").strip()
-        if summary:
-            return summary
+        raw = self.narration_summary
+        if isinstance(raw, list):
+            joined = "\n\n".join(str(x).strip() for x in raw if str(x).strip())
+            if joined:
+                return joined
+        else:
+            summary = str(raw or "").strip()
+            if summary:
+                return summary
         return (self.narrative_response or "").strip()
+
+
+def _narration_summary_joined_plain(parsed: RuntimeTurnStructuredOutput) -> str:
+    return parsed.effective_narration_summary()
 
 
 def _normalize_runtime_structured_output(parsed: RuntimeTurnStructuredOutput) -> RuntimeTurnStructuredOutput:
     """Normalize new and legacy fields into one compatible runtime shape."""
     updates: dict[str, Any] = {}
-    narration_summary = (parsed.narration_summary or "").strip()
+    narration_plain = _narration_summary_joined_plain(parsed)
     narrative_response = (parsed.narrative_response or "").strip()
-    if not narration_summary and narrative_response:
+    if not narration_plain and narrative_response:
         updates["narration_summary"] = narrative_response
-    if not narrative_response and narration_summary:
-        updates["narrative_response"] = narration_summary
+    if not narrative_response and narration_plain:
+        updates["narrative_response"] = narration_plain
 
     primary_responder = (parsed.primary_responder_id or "").strip()
     legacy_responder = (parsed.responder_id or "").strip()
