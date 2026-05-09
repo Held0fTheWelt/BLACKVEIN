@@ -1101,7 +1101,7 @@ def _projection_bundle_with_opening_narration(*, role_name: str) -> dict[str, An
 
 def test_projection_guard_synthesized_opening_survives_into_scene_blocks():
     bundle = _projection_bundle_with_opening_narration(role_name="Annette")
-    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0)
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0, session_output_language="en")
     assert len(blocks) >= 5
     assert str(blocks[0].get("block_type")) == "narrator"
     assert str(blocks[1].get("block_type")) == "narrator"
@@ -1113,7 +1113,7 @@ def test_projection_guard_synthesized_opening_survives_into_scene_blocks():
 
 def test_projection_guard_first_visible_block_is_narrator_not_actor():
     bundle = _projection_bundle_with_opening_narration(role_name="Annette")
-    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0)
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0, session_output_language="en")
     assert str(blocks[0].get("block_type")) == "narrator"
     assert str(blocks[0].get("text") or "").strip()
 
@@ -1122,10 +1122,12 @@ def test_projection_guard_role_anchor_keeps_selected_role_name_annette_and_alain
     annette_blocks = _live_scene_blocks_from_visible_bundle(
         _projection_bundle_with_opening_narration(role_name="Annette"),
         turn_number=0,
+        session_output_language="en",
     )
     alain_blocks = _live_scene_blocks_from_visible_bundle(
         _projection_bundle_with_opening_narration(role_name="Alain"),
         turn_number=0,
+        session_output_language="en",
     )
     assert "Annette" in str(annette_blocks[1].get("text") or "")
     assert "Alain" in str(alain_blocks[1].get("text") or "")
@@ -1183,6 +1185,7 @@ def test_projection_guard_opening_shape_score_passes_when_scene_blocks_keep_thre
     blocks = _live_scene_blocks_from_visible_bundle(
         _projection_bundle_with_opening_narration(role_name="Annette"),
         turn_number=0,
+        session_output_language="en",
     )
     # ensure non-narrator system/debug blocks are not treated as opening narrators
     blocks.insert(
@@ -2546,6 +2549,7 @@ def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
         structured_output=structured,
         runtime_projection=session.runtime_projection,
         graph_state=graph_state,
+        session_output_language=session.session_output_language,
     )
     assert _opening_block_contract_satisfied(blocks)
     assert graph_state.get("_opening_narration_normalization", {}).get("opening_narration_normalized") is True
@@ -2577,6 +2581,7 @@ def test_open_actor_block_projection_structured_npc_spoken_backfills_after_three
         structured_output=structured,
         runtime_projection=proj,
         graph_state=gs,
+        session_output_language="en",
     )
     assert _opening_block_contract_satisfied(blocks)
     assert str(blocks[3].get("block_type")) == "actor_line"
@@ -2606,6 +2611,7 @@ def test_open_actor_block_projection_structured_npc_action_backfills():
         structured_output=structured,
         runtime_projection=proj,
         graph_state=gs,
+        session_output_language="en",
     )
     assert _opening_block_contract_satisfied(blocks)
     assert str(blocks[3].get("block_type")) == "actor_action"
@@ -2629,6 +2635,7 @@ def test_open_actor_block_projection_human_only_spoken_fails_and_surfaces_filter
         structured_output=structured,
         runtime_projection=proj,
         graph_state=gs,
+        session_output_language="en",
     )
     assert _opening_block_contract_satisfied(blocks) is False
     ev = gs.get("_actor_block_projection_evidence") or {}
@@ -2645,6 +2652,7 @@ def test_open_actor_block_projection_no_structured_actor_fails_contract():
         structured_output={"spoken_lines": []},
         runtime_projection={"human_actor_id": "annette_reille"},
         graph_state=gs,
+        session_output_language="en",
     )
     assert _opening_block_contract_satisfied(blocks) is False
 
@@ -2671,5 +2679,37 @@ def test_open_actor_block_projection_annette_npc_spoken_fixture_stays_green():
         structured_output=None,
         runtime_projection=proj,
         graph_state=gs,
+        session_output_language="en",
     )
     assert _opening_block_contract_satisfied(blocks) is True
+
+
+def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session():
+    """VISIBLE-NARRATIVE-CONTRACT-01: internal beat labels never reach scene_blocks text."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    bundle = {
+        "gm_narration": [
+            "narrator_intro: Erster deutscher Beat über das Treffen.",
+            "role_anchor: Du bist Annette, mitten in der Auseinandersetzung.",
+            "scene_setup: Der Pariser Salon ist still und angespannt.",
+        ],
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "annette",
+        "npc_actor_ids": ["veronique_vallon"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=0,
+        graph_state=gs,
+        runtime_projection=proj,
+        session_output_language="de",
+    )
+    assert str(blocks[0].get("block_type")) == "narrator"
+    assert "narrator_intro:" not in (blocks[0].get("text") or "").lower()
+    assert "role_anchor:" not in (blocks[1].get("text") or "").lower()
+    assert "scene_setup:" not in (blocks[2].get("text") or "").lower()
+    vis = gs.get("_visible_narrative_contract") or {}
+    assert vis.get("selected_role_visible_in_opening") is True
+    assert vis.get("visible_language_contract_pass") is True

@@ -32,9 +32,14 @@ def test_wrong_module_returns_none():
     assert beats is None and meta is None
 
 
-def test_three_list_strings_round_trip():
+def test_three_list_strings_strips_leaked_beat_prefixes():
     beats, meta = normalize_opening_narration_beats(
-        ["A intro.", "B anchor.", "C scene.", "extra ignored"],
+        [
+            "narrator_intro: A intro.",
+            "role_anchor: B anchor.",
+            "scene_setup: C scene.",
+            "extra ignored",
+        ],
         selected_player_role="annette",
         human_actor_id="annette_reille",
         module_id=GOD_OF_CARNAGE_MODULE_ID,

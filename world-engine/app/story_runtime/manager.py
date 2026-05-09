@@ -51,7 +51,14 @@ from ai_stack.diagnostics_envelope import (
 from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
-from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
+from ai_stack.opening_shape_normalizer import (
+    normalize_opening_narration_beats,
+    _role_display_name,
+)
+from ai_stack.visible_narrative_contract import (
+    finalize_visible_scene_blocks,
+    sanitize_visible_block_text,
+)
 
 from app.config import APP_VERSION
 from app.repo_root import resolve_wos_repo_root
@@ -1027,6 +1034,18 @@ def _build_langfuse_path_summary(
         ):
             if key in ev_proj:
                 summary[key] = ev_proj[key]
+    vis_contract = graph_state.get("_visible_narrative_contract")
+    if isinstance(vis_contract, dict):
+        for key in (
+            "visible_language_detected",
+            "mixed_language_detected",
+            "visible_language_contract_pass",
+            "selected_role_visible_in_opening",
+            "player_identity_anchor_present",
+            "visible_narrative_contract_version",
+        ):
+            if key in vis_contract:
+                summary[key] = vis_contract[key]
     summary["generation_mode"] = _infer_generation_mode(summary)
     return summary
 
@@ -1700,6 +1719,13 @@ def _emit_langfuse_evidence_observations(
         "actor_line_count_before_projection": path_summary.get("actor_line_count_before_projection"),
         "action_line_count_before_projection": path_summary.get("action_line_count_before_projection"),
         "actor_block_count_after_projection": path_summary.get("actor_block_count_after_projection"),
+        # VISIBLE-NARRATIVE-CONTRACT-01 (metadata only; not part of deterministic_scores gates).
+        "visible_language_detected": path_summary.get("visible_language_detected"),
+        "mixed_language_detected": path_summary.get("mixed_language_detected"),
+        "visible_language_contract_pass": path_summary.get("visible_language_contract_pass"),
+        "selected_role_visible_in_opening": path_summary.get("selected_role_visible_in_opening"),
+        "player_identity_anchor_present": path_summary.get("player_identity_anchor_present"),
+        "visible_narrative_contract_version": path_summary.get("visible_narrative_contract_version"),
     }
     for name, value in deterministic_scores.items():
         try:
@@ -1961,6 +1987,7 @@ def _live_scene_blocks_from_visible_bundle(
     structured_output: dict[str, Any] | None = None,
     runtime_projection: dict[str, Any] | None = None,
     graph_state: dict[str, Any] | None = None,
+    session_output_language: str = "de",
 ) -> list[dict[str, Any]]:
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
@@ -1979,9 +2006,19 @@ def _live_scene_blocks_from_visible_bundle(
         }
 
     blocks: list[dict[str, Any]] = []
+    _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
 
     def append_block(block_type: str, text: str, *, speaker_label: str, actor_id: str | None = None) -> None:
-        clean = str(text or "").strip()
+        raw = str(text or "").strip()
+        if not raw:
+            return
+        clean, _partial = sanitize_visible_block_text(
+            raw,
+            block_type=str(block_type or ""),
+            speaker_label=str(speaker_label or ""),
+            actor_id=str(actor_id).strip() if actor_id else None,
+            expected_language=_exp_lang,
+        )
         if not clean:
             return
         blocks.append(
@@ -2167,6 +2204,19 @@ def _live_scene_blocks_from_visible_bundle(
             "actor_block_filtered_reason": filt_out,
         }
 
+    blocks, vis_diag = finalize_visible_scene_blocks(
+        blocks,
+        expected_language=_exp_lang,
+        human_actor_id=human_id or None,
+        selected_player_role=role or None,
+        turn_number=turn_number,
+    )
+    if graph_state is not None:
+        graph_state["_visible_narrative_contract"] = vis_diag
+        ev_post = graph_state.get("_actor_block_projection_evidence")
+        if turn_number == 0 and isinstance(ev_post, dict):
+            ev_post["actor_block_count_after_projection"] = _actor_block_projection_count(blocks)
+
     return blocks
 
 
@@ -2230,6 +2280,11 @@ def _build_live_scene_turn_envelope(
         "content_module_id": session.module_id,
         "runtime_profile_id": str(proj.get("runtime_profile_id") or "god_of_carnage_solo"),
         "runtime_module_id": str(proj.get("runtime_module_id") or "solo_story_runtime"),
+        "session_output_language": session.session_output_language,
+        "player_role_display_name": _role_display_name(
+            human_actor_id=human_actor_id or None,
+            selected_player_role=selected_player_role or None,
+        ),
         "selected_player_role": selected_player_role,
         "human_actor_id": human_actor_id,
         "npc_actor_ids": sorted(npc_actor_ids),
@@ -4031,6 +4086,7 @@ class StoryRuntimeManager:
                     if isinstance(session.runtime_projection, dict)
                     else None,
                     graph_state=graph_state,
+                    session_output_language=session.session_output_language,
                 )
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,

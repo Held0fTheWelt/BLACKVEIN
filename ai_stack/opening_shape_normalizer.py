@@ -10,6 +10,8 @@ import json
 import re
 from typing import Any
 
+from ai_stack.visible_narrative_contract import sanitize_gm_narration_beat_line
+
 GOD_OF_CARNAGE_MODULE_ID = "god_of_carnage"
 
 
@@ -177,7 +179,7 @@ def normalize_opening_narration_beats(
     )
 
     if len(coerced) >= 3:
-        beats = coerced[:3]
+        beats = [sanitize_gm_narration_beat_line(b) for b in coerced[:3]]
         meta = {
             "opening_narration_normalized": True,
             "opening_narration_source": "model_list_three_plus",
@@ -192,7 +194,7 @@ def normalize_opening_narration_beats(
             return None, None
         paras = _split_paragraphs(first)
         if len(paras) >= 3:
-            beats = paras[:3]
+            beats = [sanitize_gm_narration_beat_line(b) for b in paras[:3]]
             meta = {
                 "opening_narration_normalized": True,
                 "opening_narration_source": "single_string_split_paragraphs",
@@ -205,14 +207,16 @@ def normalize_opening_narration_beats(
         if not _actor_lane_substance(existing_actor_lines):
             return None, None
         beats = [
-            first.strip(),
-            _deterministic_role_anchor(
-                role_display=role_display,
-                output_language=output_language,
-                human_actor_id=human_actor_id,
-                selected_player_role=selected_player_role,
+            sanitize_gm_narration_beat_line(first.strip()),
+            sanitize_gm_narration_beat_line(
+                _deterministic_role_anchor(
+                    role_display=role_display,
+                    output_language=output_language,
+                    human_actor_id=human_actor_id,
+                    selected_player_role=selected_player_role,
+                )
             ),
-            _deterministic_scene_setup(output_language=output_language),
+            sanitize_gm_narration_beat_line(_deterministic_scene_setup(output_language=output_language)),
         ]
         meta = {
             "opening_narration_normalized": True,
@@ -228,7 +232,7 @@ def normalize_opening_narration_beats(
             return None, None
         paras = _split_paragraphs(merged)
         if len(paras) >= 3:
-            beats = paras[:3]
+            beats = [sanitize_gm_narration_beat_line(b) for b in paras[:3]]
             meta = {
                 "opening_narration_normalized": True,
                 "opening_narration_source": "two_entries_split_paragraphs",
@@ -240,9 +244,9 @@ def normalize_opening_narration_beats(
             return None, None
         a, b = coerced[0].strip(), coerced[1].strip()
         beats = [
-            a,
-            b,
-            _deterministic_scene_setup(output_language=output_language),
+            sanitize_gm_narration_beat_line(a),
+            sanitize_gm_narration_beat_line(b),
+            sanitize_gm_narration_beat_line(_deterministic_scene_setup(output_language=output_language)),
         ]
         meta = {
             "opening_narration_normalized": True,
