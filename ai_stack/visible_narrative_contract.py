@@ -10,7 +10,79 @@ from __future__ import annotations
 
 import difflib
 import re
+import unicodedata
+from collections.abc import Sequence
 from typing import Any
+
+from .goc_frozen_vocab import canonicalize_goc_actor_id
+
+
+def _accent_fold(s: str) -> str:
+    """ASCII-ish fold for speaker-name matching (handles ``Véronique`` vs ``Veronique``)."""
+    raw = unicodedata.normalize("NFKD", str(s or ""))
+    return "".join(ch for ch in raw if unicodedata.category(ch) != "Mn").lower()
+
+
+def _consume_label_from(text: str, start: int, lab: str) -> int | None:
+    """Return exclusive end index if ``text[start:]`` begins with ``lab`` (accent-insensitive)."""
+    if start >= len(text) or not str(lab or "").strip():
+        return None
+    target = _accent_fold(lab)
+    acc = ""
+    for j in range(start, len(text)):
+        acc = _accent_fold(text[start : j + 1])
+        if acc == target:
+            return j + 1
+        if len(acc) > len(target) or not target.startswith(acc):
+            return None
+    return None
+
+
+def _strip_leading_label_colon_if_duplicate_name_follows(text: str, lab: str) -> str | None:
+    """``Veronique: Véronique lächelt`` → ``Véronique lächelt`` (strip redundant first attribution)."""
+    t = str(text or "")
+    i = 0
+    while i < len(t) and t[i].isspace():
+        i += 1
+    e1 = _consume_label_from(t, i, lab)
+    if e1 is None:
+        return None
+    j = e1
+    while j < len(t) and t[j].isspace():
+        j += 1
+    if j >= len(t) or t[j] != ":":
+        return None
+    tail = t[j + 1 :]
+    k = 0
+    while k < len(tail) and tail[k].isspace():
+        k += 1
+    e2 = _consume_label_from(tail, k, lab)
+    if e2 is None:
+        return None
+    if e2 < len(tail) and (tail[e2].isalnum() or tail[e2] == "_"):
+        return None
+    return tail[k:].strip()
+
+
+def _strip_folded_speaker_colon_prefix(text: str, candidate_label: str) -> tuple[str, bool]:
+    """Strip ``Label:`` at start when ``candidate_label`` matches accent-insensitively."""
+    t = str(text or "").strip()
+    lab = str(candidate_label or "").strip()
+    if not t or not lab:
+        return t, False
+    i = 0
+    while i < len(t) and t[i].isspace():
+        i += 1
+    e1 = _consume_label_from(t, i, lab)
+    if e1 is None:
+        return t, False
+    j = e1
+    while j < len(t) and t[j].isspace():
+        j += 1
+    if j >= len(t) or t[j] != ":":
+        return t, False
+    return t[j + 1 :].strip(), True
+
 
 # Model / prompt sometimes echo these prefixes into list items or paragraphs.
 _INTERNAL_BEAT_PREFIX_RE = re.compile(
@@ -91,19 +163,91 @@ def strip_duplicate_speaker_prefix(
     t = str(text or "").strip()
     if not t:
         return t
-    lab = str(speaker_label or "").strip()
-    if lab:
-        pat = re.compile(rf"^\s*{re.escape(lab)}\s*:\s*", re.IGNORECASE)
-        if pat.match(t):
-            t = pat.sub("", t).strip()
+    for _ in range(8):
+        before = t
+        lab = str(speaker_label or "").strip()
+        if lab:
+            pat = re.compile(rf"^\s*{re.escape(lab)}\s*:\s*", re.IGNORECASE)
+            if pat.match(t):
+                t = pat.sub("", t).strip()
+            else:
+                t2, ok = _strip_folded_speaker_colon_prefix(t, lab)
+                if ok:
+                    t = t2
+        aid = str(actor_id or "").strip()
+        if aid and "_" in aid:
+            short = aid.split("_")[0]
+            if short:
+                pat2 = re.compile(rf"^\s*{re.escape(short)}\s*:\s*", re.IGNORECASE)
+                if pat2.match(t):
+                    t = pat2.sub("", t).strip()
+                else:
+                    t2, ok = _strip_folded_speaker_colon_prefix(t, short)
+                    if ok:
+                        t = t2
+        if t == before:
+            break
+    return t
+
+
+def _speaker_labels_for_strip(speaker_label: str | None, actor_id: str | None) -> list[str]:
+    out: list[str] = []
+    if speaker_label and str(speaker_label).strip():
+        out.append(str(speaker_label).strip())
     aid = str(actor_id or "").strip()
     if aid and "_" in aid:
-        short = aid.split("_")[0]
-        if short:
-            pat2 = re.compile(rf"^\s*{re.escape(short)}\s*:\s*", re.IGNORECASE)
-            if pat2.match(t):
-                t = pat2.sub("", t).strip()
-    return t
+        short = aid.split("_")[0].strip()
+        if short and all(short.lower() != x.lower() for x in out):
+            out.append(short)
+    return out
+
+
+def _try_replace_first_double_colon_folded(t: str, lab: str) -> str | None:
+    """Find first ``L: L:`` (accent-insensitive) and collapse to ``L: ``."""
+    i = 0
+    while i < len(t):
+        if i > 0 and (t[i - 1].isalnum() or t[i - 1] == "_"):
+            i += 1
+            continue
+        e1 = _consume_label_from(t, i, lab)
+        if e1 is None:
+            i += 1
+            continue
+        j = e1
+        while j < len(t) and t[j].isspace():
+            j += 1
+        if j >= len(t) or t[j] != ":":
+            i += 1
+            continue
+        j += 1
+        while j < len(t) and t[j].isspace():
+            j += 1
+        e2 = _consume_label_from(t, j, lab)
+        if e2 is None:
+            i += 1
+            continue
+        k = e2
+        while k < len(t) and t[k].isspace():
+            k += 1
+        if k >= len(t) or t[k] != ":":
+            i += 1
+            continue
+        return t[:i] + lab + ": " + t[k + 1 :].lstrip()
+    return None
+
+
+def _collapse_accent_insensitive_double_colon(t: str, labels: list[str]) -> tuple[str, int]:
+    removed = 0
+    if not labels:
+        return t, 0
+    for lab in labels:
+        for _ in range(50):
+            repl = _try_replace_first_double_colon_folded(t, lab)
+            if repl is None:
+                break
+            t = repl
+            removed += 1
+    return t, removed
 
 
 def collapse_repeated_speaker_colon_segments(
@@ -115,19 +259,14 @@ def collapse_repeated_speaker_colon_segments(
     """Collapse ``Name: Name:`` (same label twice) anywhere in the string."""
     removed = 0
     t = str(text or "")
-    labels: list[str] = []
-    if speaker_label and speaker_label.strip():
-        labels.append(speaker_label.strip())
-    if actor_id and "_" in str(actor_id):
-        short = str(actor_id).split("_")[0].strip()
-        if short and all(short.lower() != x.lower() for x in labels):
-            labels.append(short)
+    labels = _speaker_labels_for_strip(speaker_label, actor_id)
     for lab in labels:
         pat = re.compile(rf"(?i)\b{re.escape(lab)}\s*:\s*{re.escape(lab)}\s*:\s*")
         while pat.search(t):
             t = pat.sub(f"{lab}: ", t, count=1)
             removed += 1
-    return t, removed
+    t2, n2 = _collapse_accent_insensitive_double_colon(t, labels)
+    return t2, removed + n2
 
 
 def _strip_cross_lane_leakage(text: str, *, block_type: str) -> str:
@@ -184,6 +323,21 @@ def sanitize_visible_block_text(
     t = t2
     if dup_n:
         partial["duplicate_actor_label_removed"] = int(dup_n)
+    dup_strip = 0
+    for _ in range(8):
+        prev_t = t
+        for lab in _speaker_labels_for_strip(speaker_label, actor_id):
+            stripped = _strip_leading_label_colon_if_duplicate_name_follows(t, lab)
+            if stripped is not None:
+                t = stripped
+                dup_strip += 1
+                break
+        if t == prev_t:
+            break
+    if dup_strip:
+        partial["duplicate_actor_label_removed"] = int(
+            partial.get("duplicate_actor_label_removed") or 0
+        ) + int(dup_strip)
     t = _strip_cross_lane_leakage(t, block_type=block_type)
     if not t.strip() and before.strip():
         t = strip_internal_beat_markers(before)
@@ -253,6 +407,11 @@ def _speaker_name_tokens(speaker_label: str, actor_id: str | None) -> set[str]:
     return {x for x in out if x}
 
 
+def _word_matches_any_speaker_token(word: str, tokens: set[str]) -> bool:
+    fw = _accent_fold(word)
+    return any(fw == _accent_fold(tok) for tok in tokens if tok)
+
+
 def _is_name_only_actor_block(
     text: str,
     *,
@@ -271,7 +430,7 @@ def _is_name_only_actor_block(
     words = [w for w in low.split() if w]
     if not words:
         return True
-    if len(words) <= 2 and all(w in tokens for w in words):
+    if len(words) <= 2 and all(_word_matches_any_speaker_token(w, tokens) for w in words):
         return True
     stripped = t
     for tok in sorted(tokens, key=len, reverse=True):
@@ -346,6 +505,90 @@ def _near_duplicate_visible_texts(a: str, b: str, *, threshold: float = 0.9) -> 
     return difflib.SequenceMatcher(None, na, nb).ratio() >= threshold
 
 
+def _collect_player_echo_strings(raw: Sequence[str] | None) -> list[str]:
+    """Deduped recent player lines (min length) for NPC echo suppression."""
+    if not raw:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        s = str(item or "").strip()
+        if len(s) < 6:
+            continue
+        key = _norm_for_near_dedupe(s)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+    return out[-5:]
+
+
+def _is_goc_human_lane_actor_id(
+    actor_id: str | None,
+    *,
+    human_actor_id: str | None,
+    selected_player_role: str | None,
+) -> bool:
+    if not actor_id or not str(actor_id).strip():
+        return False
+    actor_canon = canonicalize_goc_actor_id(str(actor_id).strip())
+    if not actor_canon:
+        return False
+    if human_actor_id:
+        h = canonicalize_goc_actor_id(str(human_actor_id).strip())
+        if h and actor_canon == h:
+            return True
+    if selected_player_role:
+        r = canonicalize_goc_actor_id(str(selected_player_role).strip())
+        if r and actor_canon == r:
+            return True
+    return False
+
+
+def _npc_visible_text_echoes_player_line(
+    cleaned: str,
+    *,
+    speaker_label: str,
+    actor_id: str | None,
+    block_type: str,
+    human_actor_id: str | None,
+    selected_player_role: str | None,
+    player_strings: list[str],
+) -> bool:
+    """True when an NPC actor_line / actor_action repeats committed player input (model leak)."""
+    bt = str(block_type or "").strip().lower()
+    if bt not in {"actor_line", "actor_action"}:
+        return False
+    if _is_goc_human_lane_actor_id(
+        actor_id, human_actor_id=human_actor_id, selected_player_role=selected_player_role
+    ):
+        return False
+    compare = strip_duplicate_speaker_prefix(
+        str(cleaned or "").strip(),
+        speaker_label=speaker_label,
+        actor_id=actor_id,
+    ).strip()
+    if not compare:
+        return False
+    cn = _norm_for_near_dedupe(compare)
+    if not cn:
+        return False
+    for pin in player_strings:
+        ps = str(pin or "").strip()
+        if len(ps) < 6:
+            continue
+        if _near_duplicate_visible_texts(compare, ps, threshold=0.86):
+            return True
+        pn = _norm_for_near_dedupe(ps)
+        if not pn:
+            continue
+        if pn == cn:
+            return True
+        if len(pn) >= 12 and pn in cn and len(pn) >= int(len(cn) * 0.82):
+            return True
+    return False
+
+
 def finalize_visible_scene_blocks(
     blocks: list[dict[str, Any]],
     *,
@@ -353,9 +596,11 @@ def finalize_visible_scene_blocks(
     human_actor_id: str | None,
     selected_player_role: str | None,
     turn_number: int,
+    player_input_echo_strings: Sequence[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Sanitize, dedupe, and attach VISIBLE-NARRATIVE-CONTRACT-02 diagnostics."""
     exp = str(expected_language or "de").strip().lower()[:2] or "de"
+    echo_candidates = _collect_player_echo_strings(player_input_echo_strings)
     out: list[dict[str, Any]] = []
     prev_key: tuple[Any, ...] | None = None
     counts: dict[str, int] = {
@@ -365,6 +610,8 @@ def finalize_visible_scene_blocks(
         "placeholder_action_removed": 0,
         "actor_line_action_tail_stripped": 0,
         "near_duplicate_visible_block_removed": 0,
+        "actor_action_subsumed_by_actor_line_removed": 0,
+        "player_input_echo_removed_from_npc_block": 0,
     }
 
     for b in blocks:
@@ -413,6 +660,17 @@ def finalize_visible_scene_blocks(
         cleaned = cleaned2.strip()
         if not cleaned:
             continue
+        if echo_candidates and _npc_visible_text_echoes_player_line(
+            cleaned,
+            speaker_label=lab,
+            actor_id=aid,
+            block_type=bt,
+            human_actor_id=human_actor_id,
+            selected_player_role=selected_player_role,
+            player_strings=echo_candidates,
+        ):
+            counts["player_input_echo_removed_from_npc_block"] += 1
+            continue
         nb["text"] = cleaned
         key = (bt, nb.get("actor_id"), cleaned)
         if key == prev_key and bt in {"actor_line", "actor_action"}:
@@ -441,6 +699,29 @@ def finalize_visible_scene_blocks(
                 continue
         deduped.append(nb)
     out = deduped
+
+    # actor_action whose visible text is already contained in the previous actor_line (same actor).
+    merged_subsumption: list[dict[str, Any]] = []
+    for nb in out:
+        if merged_subsumption:
+            prev = merged_subsumption[-1]
+            pbt = str(prev.get("block_type") or "").strip().lower()
+            bt = str(nb.get("block_type") or "").strip().lower()
+            if (
+                pbt == "actor_line"
+                and bt == "actor_action"
+                and prev.get("actor_id")
+                and prev.get("actor_id") == nb.get("actor_id")
+            ):
+                pt, nt = str(prev.get("text") or ""), str(nb.get("text") or "")
+                nt_st = nt.strip()
+                if len(nt_st) >= 10:
+                    nc, pc = _norm_for_near_dedupe(nt), _norm_for_near_dedupe(pt)
+                    if nc and pc and nc in pc and len(nc) < len(pc):
+                        counts["actor_action_subsumed_by_actor_line_removed"] += 1
+                        continue
+        merged_subsumption.append(nb)
+    out = merged_subsumption
 
     mixed = False
     for nb in out:
@@ -477,5 +758,9 @@ def finalize_visible_scene_blocks(
         "placeholder_action_removed": counts["placeholder_action_removed"],
         "actor_line_action_tail_stripped": counts["actor_line_action_tail_stripped"],
         "near_duplicate_visible_block_removed": counts["near_duplicate_visible_block_removed"],
+        "actor_action_subsumed_by_actor_line_removed": counts[
+            "actor_action_subsumed_by_actor_line_removed"
+        ],
+        "player_input_echo_removed_from_npc_block": counts["player_input_echo_removed_from_npc_block"],
     }
     return out, diag

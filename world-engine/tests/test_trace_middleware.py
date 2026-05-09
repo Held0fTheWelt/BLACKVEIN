@@ -2726,6 +2726,49 @@ def test_live_scene_blocks_prepackaged_scene_blocks_run_finalize_and_drop_name_o
     assert isinstance(vis, dict) and vis.get("visible_narrative_contract_version") == "VISIBLE-NARRATIVE-CONTRACT-02"
 
 
+def test_live_scene_blocks_player_input_echo_dropped_from_npc_prepackaged_blocks():
+    """Committed raw_input must not reappear as an NPC actor_line (model leak)."""
+    gs: dict[str, Any] = {"generation": {"metadata": {}}}
+    player = "Ich verlasse den Raum und gehe nach Hause, ohne mich zu verabschieden."
+    bundle = {
+        "scene_blocks": [
+            {"id": "b1", "block_type": "narrator", "text": "Szene.", "speaker_label": "Narrator"},
+            {
+                "id": "b2",
+                "block_type": "actor_line",
+                "text": f"Veronique: {player}",
+                "speaker_label": "Veronique",
+                "actor_id": "veronique_vallon",
+            },
+            {
+                "id": "b3",
+                "block_type": "actor_line",
+                "text": "Dann geh.",
+                "speaker_label": "Veronique",
+                "actor_id": "veronique_vallon",
+            },
+        ]
+    }
+    proj = {
+        "human_actor_id": "annette_reille",
+        "selected_player_role": "annette",
+        "npc_actor_ids": ["veronique_vallon"],
+    }
+    blocks = _live_scene_blocks_from_visible_bundle(
+        bundle,
+        turn_number=1,
+        graph_state=gs,
+        runtime_projection=proj,
+        session_output_language="de",
+        player_input=player,
+    )
+    assert len(blocks) == 2
+    assert str(blocks[1].get("block_type")) == "actor_line"
+    assert (blocks[1].get("text") or "").strip().startswith("Dann")
+    vis = gs.get("_visible_narrative_contract") or {}
+    assert vis.get("player_input_echo_removed_from_npc_block") == 1
+
+
 def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session():
     """VISIBLE-NARRATIVE-CONTRACT-01: internal beat labels never reach scene_blocks text."""
     gs: dict[str, Any] = {"generation": {"metadata": {}}}

@@ -250,13 +250,37 @@ class RuntimeTurnStructuredOutput(BaseModel):
     """
 
     class RuntimeSpokenLine(BaseModel):
-        speaker_id: str | None = None
-        text: str = Field(default="")
+        speaker_id: str | None = Field(
+            default=None,
+            description="Canonical runtime actor id for the speaker (required when this row carries speech).",
+        )
+        text: str = Field(
+            default="",
+            description=(
+                "Player-visible speech: wrap the spoken words in ASCII double quotes, e.g. "
+                '"Natürlich." or "Yes." '
+                "Optional German attributive lead-ins before the opening quote are allowed "
+                '(e.g. "meint: ", "führt aus: ", "stimmt zu: ") and may include the figure name '
+                '(e.g. "Alain stimmt zu: "). Avoid redundant SpeakerName: immediately before quoted speech '
+                "when the same name was already used in a clumsy duplicate. "
+                'English sessions: same quoting; optional lead-ins like "Name says: " are allowed.'
+            ),
+        )
         tone: str | None = None
 
     class RuntimeActionLine(BaseModel):
-        actor_id: str | None = None
-        text: str = Field(default="")
+        actor_id: str | None = Field(
+            default=None,
+            description="Canonical runtime actor id performing the physical beat (required for this row).",
+        )
+        text: str = Field(
+            default="",
+            description=(
+                "Pure stage action / blocking in third-person prose. The figure name should appear naturally "
+                "inside the sentence (e.g. \"Veronique steht auf und zeigt auf die Tür.\"). "
+                "Do NOT start this field with \"Name:\" — that colon-attribution form is reserved for spoken_lines."
+            ),
+        )
 
     class RuntimeInitiativeEvent(BaseModel):
         actor_id: str | None = None
@@ -284,8 +308,20 @@ class RuntimeTurnStructuredOutput(BaseModel):
 
     primary_responder_id: str | None = Field(default=None, description="Required for actor-bearing turns. The actor who responds in this turn. Falls back to director scope if absent.")
     secondary_responder_ids: list[str] = Field(default_factory=list, description="Actors who react or interrupt, if any.")
-    spoken_lines: list[RuntimeSpokenLine | str] = Field(default_factory=list, description="Required when actors speak. Each entry must have speaker_id.")
-    action_lines: list[RuntimeActionLine | str] = Field(default_factory=list, description="Physical actions by actors. Each entry must have actor_id.")
+    spoken_lines: list[RuntimeSpokenLine | str] = Field(
+        default_factory=list,
+        description=(
+            "Required when actors speak. Each entry must have speaker_id. "
+            "Each text must follow the player-visible speech quoting rules described on RuntimeSpokenLine.text."
+        ),
+    )
+    action_lines: list[RuntimeActionLine | str] = Field(
+        default_factory=list,
+        description=(
+            "Physical actions by actors. Each entry must have actor_id. "
+            "Each text must follow RuntimeActionLine.text: no leading Name: attribution; weave the name in prose."
+        ),
+    )
     initiative_events: list[RuntimeInitiativeEvent] = Field(default_factory=list, description="Semantics of who seized or lost the turn.")
     state_effects: list[RuntimeStateEffect] = Field(default_factory=list, description="World-state changes this turn produces.")
     responder_actor_ids: list[str] = Field(default_factory=list)
@@ -388,7 +424,11 @@ def _build_runtime_prompt_template() -> ChatPromptTemplate:
                     "- initiative_events capture turn seizure/escalation/deflection\n"
                     "- state_effects document world-state changes from actor choices\n"
                     "- narration_summary describes what happened (derived from actor output)\n"
-                    "- narrative_response MUST be a copy of narration_summary only\n\n"
+                    "- narrative_response MUST be a copy of narration_summary only\n"
+                    "- PLAYER-VISIBLE TYPOGRAPHY: spoken_lines[].text wraps spoken words in ASCII double quotes; optional "
+                    "attributive lead-ins (e.g. German \"meint:\", \"führt aus:\", \"Name stimmt zu:\") allowed before the quote; "
+                    "no name-only colon lines. action_lines[].text is third-person blocking with the name inside the sentence; "
+                    "never start with \"Name:\".\n\n"
                     "Return valid JSON. Prioritize actor lanes over prose beauty.",
                 ),
                 (
@@ -397,8 +437,8 @@ def _build_runtime_prompt_template() -> ChatPromptTemplate:
                     "{correction_block}"
                     "ACTOR REALIZATION TASK:\n"
                     "1. Identify the primary responder (actor responding to this move).\n"
-                    "2. Determine what they say (if speech: populate spoken_lines with speaker_id).\n"
-                    "3. Determine what they do (if action: populate action_lines with actor_id).\n"
+                    "2. Determine what they say (if speech: populate spoken_lines with speaker_id; use quoted speech per typography rules).\n"
+                    "3. Determine what they do (if action: populate action_lines with actor_id; prose action without a leading Name: prefix).\n"
                     "4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).\n"
                     "5. Identify state changes (state_effects for pressure/relationship/scene shifts).\n\n"
                     "PROSE PROJECTION:\n"

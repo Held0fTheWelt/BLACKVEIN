@@ -127,6 +127,9 @@ MECHANICS:
 - state_effects document what world-state changes result from actor choices
 - narration_summary describes what happened (derived from actor output above)
 - narrative_response MUST be a copy of narration_summary only
+- PLAYER-VISIBLE TYPOGRAPHY (spoken vs stage; apply in the session_output_language):
+  - spoken_lines[].text: Put the actual spoken words in ASCII double quotes ("…"). You may use an optional attributive lead-in before the opening quote (German examples: "meint: ", "führt aus: ", "Name stimmt zu: "). Do not leave a line that is only a name plus ":" with no quoted speech. Avoid clumsy duplicate speaker labels immediately before the quoted passage.
+  - action_lines[].text: Pure blocking / gesture in third-person prose; weave the actor's name inside the sentence (e.g. "Veronique steht auf und zeigt auf die Tür."). Never start this field with "Name:" — that colon form is for spoken_lines, not for silent action.
 - When prior_initiative_truth shows unresolved tension (initiative_pressure_label contested/floor_claimed), the next turn MUST show an actor response that addresses or escalates that pressure.
 - When secondary_responder_ids are nominated, at least one SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible.
 - When pacing_mode=thin_edge with silence, actors may react briefly but MUST NOT be completely absent if prior carry_forward_tension_notes are present.
@@ -140,8 +143,8 @@ Return valid JSON. Prioritize actor lanes over prose beauty.""",
                 "id": "runtime_turn_human",
                 "template": """{full_context}{correction_block}ACTOR REALIZATION TASK:
 1. Identify the primary responder (the actor who responds to this move/input).
-2. Determine what they say (if speech is present: populate spoken_lines with speaker_id).
-3. Determine what they do (if physical action: populate action_lines with actor_id).
+2. Determine what they say (if speech is present: populate spoken_lines with speaker_id; spoken text in "quotes" per MECHANICS typography rules).
+3. Determine what they do (if physical action: populate action_lines with actor_id; action text is prose without a leading "Name:" prefix).
 4. Capture secondary reactions (secondary_responder_ids and initiative_events if others respond/interrupt/escalate).
 4.5. If prior_initiative_truth is present: emit an initiative_event (seize/counter/escalate/deflect) that reflects who holds or contests the floor this turn.
 4.6. If preferred_reaction_order is present in the packet: realize actors in that order when narratively plausible. Interruption or validation constraints may justify divergence.

@@ -2018,6 +2018,7 @@ def _live_scene_blocks_from_visible_bundle(
     runtime_projection: dict[str, Any] | None = None,
     graph_state: dict[str, Any] | None = None,
     session_output_language: str = "de",
+    player_input: str | None = None,
 ) -> list[dict[str, Any]]:
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
@@ -2026,6 +2027,10 @@ def _live_scene_blocks_from_visible_bundle(
     human_id = str((proj or {}).get("human_actor_id") or "").strip()
     role = str((proj or {}).get("selected_player_role") or "").strip()
     _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
+    echo_strings: list[str] = []
+    pi = str(player_input or "").strip()
+    if pi:
+        echo_strings.append(pi)
 
     existing = bundle.get("scene_blocks")
     if isinstance(existing, list) and existing:
@@ -2036,6 +2041,7 @@ def _live_scene_blocks_from_visible_bundle(
             human_actor_id=human_id or None,
             selected_player_role=role or None,
             turn_number=turn_number,
+            player_input_echo_strings=echo_strings or None,
         )
         if graph_state is not None:
             graph_state["_visible_narrative_contract"] = vis_diag
@@ -2250,6 +2256,7 @@ def _live_scene_blocks_from_visible_bundle(
         human_actor_id=human_id or None,
         selected_player_role=role or None,
         turn_number=turn_number,
+        player_input_echo_strings=echo_strings or None,
     )
     if graph_state is not None:
         graph_state["_visible_narrative_contract"] = vis_diag
@@ -4191,6 +4198,7 @@ class StoryRuntimeManager:
                     else None,
                     graph_state=graph_state,
                     session_output_language=session.session_output_language,
+                    player_input=player_input,
                 )
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,
