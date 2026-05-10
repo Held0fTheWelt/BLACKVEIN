@@ -84,3 +84,13 @@ def test_interpreter_mixed_with_conflicting_signals_uses_narrative_delivery():
     assert result.kind == InterpretedInputKind.MIXED
     assert result.ambiguity == "conflicting_action_reaction"
     assert result.runtime_delivery_hint == RuntimeDeliveryHint.NARRATIVE_BODY
+
+
+def test_interpreter_german_question_defaults_to_speech():
+    result = interpret_player_input("Wieso sind wir hier?")
+    assert result.kind == InterpretedInputKind.SPEECH
+
+
+def test_interpreter_short_german_declarative_defaults_to_speech():
+    result = interpret_player_input("Das reicht.")
+    assert result.kind == InterpretedInputKind.SPEECH

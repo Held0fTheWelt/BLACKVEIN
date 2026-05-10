@@ -110,6 +110,8 @@ class RuntimeTurnState(TypedDict, total=False):
     primary_attempt_evidence: dict[str, Any]
     # ADR-0036: normative language for all model-visible turn text (host-injected).
     session_output_language: str
+    # HUMAN-INPUT-ATTRIBUTION-01: committed-turn diagnostics (host/world-engine may attach).
+    human_input_attribution: dict[str, Any]
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"

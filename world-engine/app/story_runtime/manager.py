@@ -51,10 +51,12 @@ from ai_stack.diagnostics_envelope import (
 from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
-from ai_stack.opening_shape_normalizer import (
-    normalize_opening_narration_beats,
-    _role_display_name,
+from ai_stack.goc_opening_handover import (
+    compute_opening_handover_from_scene_blocks,
+    polish_first_opening_actor_block,
+    role_display_name as _role_display_name,
 )
+from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.visible_narrative_contract import (
     finalize_visible_scene_blocks,
     sanitize_visible_block_text,
@@ -810,6 +812,65 @@ def _goc_player_role_display_name(selected_player_role: str | None) -> str | Non
     return None
 
 
+def _goc_shell_actor_firstname(actor_id: str) -> str:
+    aid = str(canonicalize_goc_actor_id(str(actor_id).strip()) or str(actor_id).strip()).strip()
+    short = {
+        "veronique_vallon": "Véronique",
+        "annette_reille": "Annette",
+        "michel_longstreet": "Michel",
+        "alain_reille": "Alain",
+    }
+    return short.get(aid, aid.replace("_", " ").title() if aid else "Actor")
+
+
+def _goc_npc_shell_legal_name(responder_id: str) -> str:
+    rid = str(canonicalize_goc_actor_id(str(responder_id).strip()) or str(responder_id).strip()).strip()
+    names = {
+        "veronique_vallon": "Véronique Vallon",
+        "annette_reille": "Annette Reille",
+        "alain_reille": "Alain Reille",
+        "michel_longstreet": "Michel Longstreet",
+    }
+    return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
+
+
+def _goc_player_attributed_visible_text(
+    *,
+    raw_input: str,
+    human_actor_id: str,
+    session_output_language: str,
+    interpreted_input: dict[str, Any] | None,
+) -> tuple[str, str]:
+    """Return (speaker_label, full_visible_line) for a committed human player line."""
+    raw = str(raw_input or "").strip()
+    lang = str(session_output_language or "de").strip().lower()[:2] or "de"
+    name = _goc_shell_actor_firstname(human_actor_id)
+    interp = interpreted_input if isinstance(interpreted_input, dict) else {}
+    ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
+    if ik in ("intent_only", "ambiguous", "reaction"):
+        ik = "speech"
+    is_question = raw.rstrip().endswith("?")
+    if lang == "de":
+        if ik == "action":
+            line = f"{name} führt aus: „{raw}“"
+        elif ik == "mixed":
+            line = f"{name} meint: „{raw}“"
+        elif is_question:
+            line = f"{name} fragt: „{raw}“"
+        else:
+            line = f"{name} sagt: „{raw}“"
+    else:
+        if ik == "action":
+            line = f'{name} acts: "{raw}"'
+        elif ik == "mixed":
+            line = f'{name} says: "{raw}"'
+        elif is_question:
+            line = f'{name} asks: "{raw}"'
+        else:
+            line = f'{name} says: "{raw}"'
+    return name, line
+
+
 def _infer_generation_mode(path_summary_seed: dict[str, Any]) -> str:
     adapter = str(path_summary_seed.get("adapter") or "").strip().lower()
     final_adapter = str(path_summary_seed.get("final_adapter") or "").strip().lower()
@@ -1068,6 +1129,10 @@ def _build_langfuse_path_summary(
         ):
             if key in vis_contract:
                 summary[key] = vis_contract[key]
+    oh_diag = graph_state.get("_opening_handover_diagnostics")
+    if isinstance(oh_diag, dict):
+        for key, val in oh_diag.items():
+            summary[key] = val
     summary["generation_mode"] = _infer_generation_mode(summary)
     return summary
 
@@ -1598,6 +1663,7 @@ def _emit_langfuse_evidence_observations(
     # ``opening_contract_pass`` is kept as a compatibility alias to opening_shape_contract_pass.
     # Turn > 0 trivially passes the shape check (opening-only structural contract).
     _turn_number = int(path_summary.get("turn_number") or 0)
+    _opening_blocks: list[dict[str, Any]] = []
     _opening_shape_subgates: dict[str, bool] = {}
     _opening_shape_failure_reasons: list[str] = []
     _scene_block_summary: list[dict[str, Any]] = []
@@ -1652,6 +1718,18 @@ def _emit_langfuse_evidence_observations(
         opening_shape_pass = 1.0
     deterministic_scores["opening_shape_contract_pass"] = opening_shape_pass
     deterministic_scores["opening_contract_pass"] = opening_shape_pass
+    if _turn_number == 0:
+        _handover_diag_for_scores = compute_opening_handover_from_scene_blocks(
+            _opening_blocks,
+            human_actor_id=str(path_summary.get("human_actor_id") or "").strip() or None,
+            selected_player_role=str(path_summary.get("selected_player_role") or "").strip() or None,
+        )
+        deterministic_scores["opening_handover_contract_pass"] = (
+            1.0 if _handover_diag_for_scores.get("opening_handover_contract_pass") else 0.0
+        )
+    else:
+        _handover_diag_for_scores = {}
+        deterministic_scores["opening_handover_contract_pass"] = 1.0
     live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
     deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
     # Player-visible path only (excludes mock/usage/RAG gates). Stays green in mock_only when UI output is present.
@@ -1679,6 +1757,7 @@ def _emit_langfuse_evidence_observations(
             "execution_tier_live": execution_tier == "live",
             "canonical_player_flow": canonical_player_flow,
             "opening_shape_pass": deterministic_scores["opening_shape_contract_pass"] == 1.0,
+            "opening_handover_pass": deterministic_scores.get("opening_handover_contract_pass", 1.0) == 1.0,
             "live_runtime_pass": deterministic_scores["live_runtime_contract_pass"] == 1.0,
             "not_ldss_fallback": final_adapter not in {"ldss_fallback"},
             "fallback_absent": deterministic_scores["fallback_absent"] == 1.0,
@@ -1756,6 +1835,7 @@ def _emit_langfuse_evidence_observations(
         "near_duplicate_visible_block_removed": path_summary.get("near_duplicate_visible_block_removed"),
         "player_role_display_name": path_summary.get("player_role_display_name"),
         "session_output_language": path_summary.get("session_output_language"),
+        **_handover_diag_for_scores,
     }
     for name, value in deterministic_scores.items():
         try:
@@ -2022,6 +2102,7 @@ def _live_scene_blocks_from_visible_bundle(
 ) -> list[dict[str, Any]]:
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
+        graph_state.pop("_opening_handover_diagnostics", None)
     bundle = visible_output_bundle if isinstance(visible_output_bundle, dict) else {}
     proj = runtime_projection if isinstance(runtime_projection, dict) else None
     human_id = str((proj or {}).get("human_actor_id") or "").strip()
@@ -2045,6 +2126,13 @@ def _live_scene_blocks_from_visible_bundle(
         )
         if graph_state is not None:
             graph_state["_visible_narrative_contract"] = vis_diag
+        if turn_number == 0 and graph_state is not None:
+            blocks, _polished = polish_first_opening_actor_block(blocks, output_language=_exp_lang)
+            graph_state["_opening_handover_diagnostics"] = compute_opening_handover_from_scene_blocks(
+                blocks,
+                human_actor_id=human_id or None,
+                selected_player_role=role or None,
+            )
         return blocks
 
     def delivery() -> dict[str, Any]:
@@ -2264,6 +2352,14 @@ def _live_scene_blocks_from_visible_bundle(
         if turn_number == 0 and isinstance(ev_post, dict):
             ev_post["actor_block_count_after_projection"] = _actor_block_projection_count(blocks)
 
+    if turn_number == 0 and graph_state is not None:
+        blocks, _polished = polish_first_opening_actor_block(blocks, output_language=_exp_lang)
+        graph_state["_opening_handover_diagnostics"] = compute_opening_handover_from_scene_blocks(
+            blocks,
+            human_actor_id=human_id or None,
+            selected_player_role=role or None,
+        )
+
     return blocks
 
 
@@ -2400,6 +2496,8 @@ def _player_input_scene_blocks_for_story_window(
     turn_number: Any,
     raw_input: str,
     session_output_language: str,
+    human_actor_id: str | None = None,
+    interpreted_input: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """MVP5 cumulative transcript: one visible block per committed player line.
 
@@ -2411,8 +2509,44 @@ def _player_input_scene_blocks_for_story_window(
     if not text:
         return []
     lang = str(session_output_language or "de").strip().lower()
-    speaker_label = "Du" if lang.startswith("de") else "You"
+    exp_lang = lang[:2] or "de"
     turn_token = str(turn_number).strip() if turn_number is not None else "0"
+    hid = str(human_actor_id or "").strip()
+    if hid:
+        canon = str(canonicalize_goc_actor_id(hid) or hid).strip()
+        spk, vis_line = _goc_player_attributed_visible_text(
+            raw_input=text,
+            human_actor_id=canon,
+            session_output_language=exp_lang,
+            interpreted_input=interpreted_input,
+        )
+        cleaned, _partial = sanitize_visible_block_text(
+            vis_line,
+            block_type="player_input",
+            speaker_label=spk,
+            actor_id=canon,
+            expected_language=exp_lang,
+        )
+        if cleaned:
+            return [
+                {
+                    "id": f"{session_id}-turn-{turn_token}-player-input",
+                    "block_type": "player_input",
+                    "speaker_label": spk,
+                    "actor_id": canon,
+                    "target_actor_id": None,
+                    "text": cleaned,
+                    "delivery": {
+                        "mode": "typewriter",
+                        "characters_per_second": 44,
+                        "pause_before_ms": 0,
+                        "pause_after_ms": 120,
+                        "skippable": True,
+                    },
+                    "source": "player_input",
+                }
+            ]
+    speaker_label = "Du" if lang.startswith("de") else "You"
     return [
         {
             "id": f"{session_id}-turn-{turn_token}-player-input",
@@ -2502,23 +2636,31 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
         if turn_kind != "opening":
             raw_input = str(event.get("raw_input") or "").strip()
             if raw_input:
+                proj_sw = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+                hid_sw = str(proj_sw.get("human_actor_id") or "").strip()
+                interp_sw = event.get("interpreted_input") if isinstance(event.get("interpreted_input"), dict) else {}
+                role_sw = str(proj_sw.get("selected_player_role") or "").strip()
+                pdn = _goc_player_role_display_name(role_sw) if role_sw else None
                 player_blocks = _player_input_scene_blocks_for_story_window(
                     session_id=session.session_id,
                     turn_number=turn_number,
                     raw_input=raw_input,
                     session_output_language=session.session_output_language,
+                    human_actor_id=hid_sw or None,
+                    interpreted_input=interp_sw,
                 )
                 player_entry: dict[str, Any] = {
                     "entry_id": f"{session.session_id}:{turn_number}:player",
                     "kind": "player_turn",
                     "role": "player",
-                    "speaker": "You",
+                    "speaker": pdn if pdn else ("Du" if str(session.session_output_language or "").lower().startswith("de") else "You"),
                     "turn_number": turn_number,
                     "text": raw_input,
                     "source": "player_input",
                 }
                 if player_blocks:
                     player_entry["scene_blocks"] = player_blocks
+                    player_entry["text"] = str(player_blocks[0].get("text") or raw_input).strip() or raw_input
                 entries.append(player_entry)
 
         visible_lines = _visible_lines_from_turn_event(event)
@@ -2960,8 +3102,11 @@ def _player_shell_context_from_dramatic_context(
         lang = str(out.get("session_output_language") or "de").strip().lower()[:2]
         out["npc_responder_label"] = "NPC am Zug" if lang == "de" else "NPC responder"
         out["player_identity_line"] = (
-            f"Du spielst: {pdn}" if lang == "de" and pdn else (f"You are playing: {pdn}" if pdn else None)
+            f"Du spielst: {pdn}" if lang == "de" and pdn else (f"You play: {pdn}" if pdn else None)
         )
+        rid = str(out.get("responder_id") or "").strip()
+        if rid:
+            out["npc_responder_display_name"] = _goc_npc_shell_legal_name(rid)
     return out
 
 
@@ -4464,6 +4609,53 @@ class StoryRuntimeManager:
             graph_state=graph_state,
             event=event,
         )
+
+        if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
+            vis_diag_fb = (
+                graph_state.get("_visible_narrative_contract")
+                if isinstance(graph_state.get("_visible_narrative_contract"), dict)
+                else {}
+            )
+            raw_vis_b = graph_state.get("visible_output_bundle") if isinstance(graph_state.get("visible_output_bundle"), dict) else {}
+            rs_fb = raw_vis_b.get("render_support") if isinstance(raw_vis_b.get("render_support"), dict) else {}
+            hf_fb = rs_fb.get("human_lane_structured_filters") if isinstance(rs_fb.get("human_lane_structured_filters"), dict) else {}
+            gen_filtered = int(hf_fb.get("spoken_lines_dropped") or 0) + int(hf_fb.get("action_lines_dropped") or 0)
+            proj_ev = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+            hid_ev = str(proj_ev.get("human_actor_id") or "").strip()
+            spr_ev = str(proj_ev.get("selected_player_role") or "").strip()
+            srs0 = (
+                selected_responder_set[0]
+                if selected_responder_set and isinstance(selected_responder_set[0], dict)
+                else {}
+            )
+            pri_ev = str(
+                graph_state.get("primary_responder_id") or srs0.get("actor_id") or srs0.get("responder_id") or ""
+            ).strip()
+            echo_n = int(vis_diag_fb.get("player_input_echo_removed_from_npc_block") or 0)
+            human_att = {
+                "player_input_actor_id": interpreted_input.get("actor_id")
+                if isinstance(interpreted_input, dict)
+                else None,
+                "human_actor_id": hid_ev or None,
+                "primary_responder_id": pri_ev or None,
+                "player_input_kind": interpreted_input.get("input_kind")
+                if isinstance(interpreted_input, dict)
+                else None,
+                "player_input_visible_block_present": bool(
+                    str(player_input or "").strip() and (hid_ev or spr_ev) and commit_turn_number > 0
+                ),
+                "npc_echoed_player_input": echo_n > 0,
+                "player_input_attribution_pass": bool(
+                    str(player_input or "").strip()
+                    and (hid_ev or spr_ev)
+                    and commit_turn_number > 0
+                    and echo_n == 0
+                ),
+                "generated_human_actor_output_filtered": gen_filtered > 0,
+                "generated_human_lane_rows_dropped": gen_filtered,
+            }
+            graph_state["human_input_attribution"] = human_att
+            event["human_input_attribution"] = human_att
 
         committed_record = {
             "turn_number": commit_turn_number,

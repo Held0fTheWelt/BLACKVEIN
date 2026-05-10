@@ -20,9 +20,16 @@
         <p class="play-story-window__hint runtime-meta">The opening and every turn below come from the authoritative World-Engine story runtime.</p>
         <div id="play-runtime-status" class="play-runtime-status">
           <p id="runtime-selected-responder" class="runtime-meta">
-            Responder:
-            <code>{{ runtime_status_view.selected_responder_id or "n/a" }}</code>
+            {% if runtime_status_view.npc_responder_display_name %}
+              NPC responder: <strong>{{ runtime_status_view.npc_responder_display_name }}</strong>
+              <span class="runtime-meta runtime-meta--subtle">(<code>{{ runtime_status_view.selected_responder_id or "n/a" }}</code>)</span>
+            {% else %}
+              NPC responder: <code>{{ runtime_status_view.selected_responder_id or "n/a" }}</code>
+            {% endif %}
           </p>
+          {% if runtime_status_view.player_identity_line %}
+          <p id="runtime-player-identity" class="runtime-meta">{{ runtime_status_view.player_identity_line }}</p>
+          {% endif %}
           <p id="runtime-validation-status" class="runtime-meta">
             Validation:
             <code>{{ runtime_status_view.validation_status or "unknown" }}</code>
@@ -87,7 +94,7 @@
             </ul>
           {% endif %}
           {% if entry.role == "runtime" and entry.responder_id %}
-            <p class="runtime-meta">Responder <code>{{ entry.responder_id }}</code></p>
+            <p class="runtime-meta">NPC responder: <code>{{ entry.responder_id }}</code></p>
           {% endif %}
           {% if entry.role == "runtime" %}
             <p class="runtime-meta">

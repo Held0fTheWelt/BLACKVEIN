@@ -1299,6 +1299,31 @@ class RuntimeTurnGraphExecutor:
         interpretation = self.interpreter(state["player_input"])
         task_type = "classification" if interpretation.kind.value in {"explicit_command", "meta"} else "narrative_formulation"
         interp_dict = interpretation.model_dump(mode="json")
+        alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+        human_actor_id = str(alc.get("human_actor_id") or "").strip()
+        selected_player_role = str(alc.get("selected_player_role") or "").strip()
+        actor_for_event = human_actor_id or selected_player_role or None
+        raw_pi = str(state.get("player_input") or "").strip()
+        kind_raw = str(interp_dict.get("kind") or "").strip().lower()
+        input_kind_map = {
+            "speech": "speech",
+            "action": "action",
+            "mixed": "mixed",
+            "reaction": "speech",
+            "intent_only": "speech",
+            "ambiguous": "speech",
+            "explicit_command": "speech",
+            "meta": "speech",
+        }
+        input_kind = input_kind_map.get(kind_raw, "speech")
+        interp_dict = {
+            **interp_dict,
+            "source": "player_input",
+            "actor_id": actor_for_event,
+            "selected_player_role": selected_player_role or human_actor_id or None,
+            "original_text": raw_pi,
+            "input_kind": input_kind,
+        }
         update = _track(state, node_name="interpret_input")
         update["interpreted_input"] = interp_dict
         move_class = str(interp_dict.get("kind") or "unknown")
@@ -1898,6 +1923,37 @@ class RuntimeTurnGraphExecutor:
                 actor = str(responder.get("actor_id") or responder.get("responder_id") or "?")
                 reason = str(responder.get("reason") or responder.get("responder_type") or "")
                 lines.append(f"- {actor}: {reason[:180]}")
+
+        turn_ic = str(state.get("turn_input_class") or "").strip().lower()
+        if str(state.get("module_id") or "") == GOC_MODULE_ID and turn_ic != "opening":
+            alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+            hid = str(alc.get("human_actor_id") or "").strip()
+            spr = str(alc.get("selected_player_role") or "").strip()
+            raw_pi = str(state.get("player_input") or "").strip()
+            if raw_pi and (hid or spr):
+                pri = ""
+                if responders and isinstance(responders[0], dict):
+                    pri = str(responders[0].get("actor_id") or responders[0].get("responder_id") or "").strip()
+                interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+                ik = str(interp.get("input_kind") or interp.get("kind") or "speech")
+                lines.append("PLAYER INPUT OWNERSHIP (canonical committed surface):")
+                lines.append(
+                    f"- human_actor_id (player words belong to this actor, not to primary_responder_id): {hid or spr}"
+                )
+                lines.append(f"- selected_player_role: {spr or hid}")
+                lines.append(f"- input_kind: {ik}")
+                lines.append(
+                    f"- primary_responder_id / NPC reaction scope (must not steal the player's line as this NPC): "
+                    f"{pri or '(model must still respect actor_lane_boundary)'}"
+                )
+                lines.append(
+                    f"- verbatim_player_input (already attributed to the human in the UI; do not duplicate as NPC "
+                    f"spoken_lines): {raw_pi[:420]}"
+                )
+                lines.append(
+                    "- Require: do NOT assign verbatim_player_input to a different speaker_id. Generate only "
+                    "NPC/narrator reaction; the human character has already spoken this line."
+                )
 
         actor_lane_boundary = dramatic_packet.get("actor_lane_boundary") if isinstance(dramatic_packet, dict) else None
         if isinstance(actor_lane_boundary, dict):
@@ -2842,6 +2898,10 @@ class RuntimeTurnGraphExecutor:
         primary = responders[0] if responders and isinstance(responders[0], dict) else {}
         actor_id = str(primary.get("actor_id") or "")
         actor_reason = str(primary.get("reason") or "")
+        actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+        hid = str(actor_lane_ctx.get("human_actor_id") or "").strip()
+        spr = str(actor_lane_ctx.get("selected_player_role") or "").strip()
+        pri = str(actor_id or state.get("primary_responder_id") or "").strip()
         char_snippet = goc_character_profile_snippet(
             actor_id=actor_id,
             yaml_slice=yslice,
@@ -2861,6 +2921,8 @@ class RuntimeTurnGraphExecutor:
             transition_pattern=tp,
             live_player_truth_surface=bool(state.get("live_player_truth_surface")),
             render_context={
+                "turn_number": int(state.get("turn_number") or 0),
+                "turn_input_class": str(state.get("turn_input_class") or ""),
                 "pacing_mode": state.get("pacing_mode") or "",
                 "silence_brevity_decision": state.get("silence_brevity_decision")
                 if isinstance(state.get("silence_brevity_decision"), dict)
@@ -2873,6 +2935,10 @@ class RuntimeTurnGraphExecutor:
                 "character_profile_snippet": char_snippet,
                 "scene_guidance_snippets": guidance_snip,
                 "carry_forward_tension_notes": (state.get("prior_planner_truth") or {}).get("carry_forward_tension_notes"),
+                "player_input": str(state.get("player_input") or "").strip(),
+                "human_actor_id": hid,
+                "selected_player_role": spr,
+                "primary_responder_id": pri,
                 # C3: Reaction order divergence for render support surfacing (computed from realized output)
                 **_compute_reaction_order_divergence_for_render(state),
             },

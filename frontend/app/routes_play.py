@@ -499,6 +499,8 @@ def _runtime_status_view_from_story_entries(
         return {
             "contract": "play_shell_runtime_status.v1",
             "selected_responder_id": player_shell_context.get("responder_id"),
+            "npc_responder_display_name": player_shell_context.get("npc_responder_display_name"),
+            "player_identity_line": player_shell_context.get("player_identity_line"),
             "validation_status": None,
             "quality_class": "healthy",
             "degradation_signals": [],
@@ -524,6 +526,8 @@ def _runtime_status_view_from_story_entries(
     return {
         "contract": "play_shell_runtime_status.v1",
         "selected_responder_id": latest_runtime.get("responder_id") or player_shell_context.get("responder_id"),
+        "npc_responder_display_name": player_shell_context.get("npc_responder_display_name"),
+        "player_identity_line": player_shell_context.get("player_identity_line"),
         "validation_status": latest_runtime.get("validation_status"),
         "quality_class": latest_runtime.get("quality_class") or "healthy",
         "degradation_signals": list(latest_runtime.get("degradation_signals") or []),

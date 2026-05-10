@@ -33,6 +33,43 @@ _GOC_ACTOR_DISPLAY_NAMES = {
 }
 
 
+def _goc_structured_rows_filtered_for_human_lane(
+    rows: Any,
+    *,
+    human_actor_id: str | None,
+    selected_player_role: str | None,
+    actor_key: str,
+) -> tuple[list[Any], int]:
+    """Drop dict rows whose actor matches the live human lane (player truth is not model output)."""
+    if not isinstance(rows, list):
+        return [], 0
+    out: list[Any] = []
+    dropped = 0
+    for item in rows:
+        if not isinstance(item, dict):
+            out.append(item)
+            continue
+        actor_raw = str(item.get(actor_key) or "").strip()
+        if not actor_raw:
+            out.append(item)
+            continue
+        canon = canonicalize_goc_actor_id(actor_raw) or actor_raw
+        match = False
+        if human_actor_id:
+            h = canonicalize_goc_actor_id(str(human_actor_id).strip())
+            if h and canon == h:
+                match = True
+        if not match and selected_player_role:
+            r = canonicalize_goc_actor_id(str(selected_player_role).strip())
+            if r and canon == r:
+                match = True
+        if match:
+            dropped += 1
+            continue
+        out.append(item)
+    return out, dropped
+
+
 def _gm_display_text_from_generation_content(raw: str) -> str:
     """Use narrative_response for GM lines when model content is JSON (e.g.
     raw graph fallback).
@@ -523,7 +560,28 @@ def run_visible_render(
     if content:
         content = _gm_display_text_from_generation_content(content)
     generation_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
-    structured = generation_meta.get("structured_output") if isinstance(generation_meta.get("structured_output"), dict) else {}
+    structured_source = generation_meta.get("structured_output") if isinstance(generation_meta.get("structured_output"), dict) else {}
+    structured: dict[str, Any] = dict(structured_source) if structured_source else {}
+    rc = render_context if isinstance(render_context, dict) else {}
+    human_actor_id = str(rc.get("human_actor_id") or "").strip() or None
+    selected_player_role = str(rc.get("selected_player_role") or "").strip() or None
+    spoken_human_drops = 0
+    action_human_drops = 0
+    if module_id == GOC_MODULE_ID and structured and (human_actor_id or selected_player_role):
+        filtered_spoken, spoken_human_drops = _goc_structured_rows_filtered_for_human_lane(
+            structured.get("spoken_lines"),
+            human_actor_id=human_actor_id,
+            selected_player_role=selected_player_role,
+            actor_key="speaker_id",
+        )
+        structured["spoken_lines"] = filtered_spoken
+        filtered_action, action_human_drops = _goc_structured_rows_filtered_for_human_lane(
+            structured.get("action_lines"),
+            human_actor_id=human_actor_id,
+            selected_player_role=selected_player_role,
+            actor_key="actor_id",
+        )
+        structured["action_lines"] = filtered_action
 
     # Gate actor lanes on actor_lane_validation status
     actor_lane_validation = validation_outcome.get("actor_lane_validation") if isinstance(validation_outcome, dict) else None
@@ -547,7 +605,6 @@ def run_visible_render(
     approved = validation_outcome.get("status") == "approved"
     committed = committed_result.get("committed_effects") or []
     has_commit = bool(committed) and committed_result.get("commit_applied")
-    rc = render_context if isinstance(render_context, dict) else {}
     pacing_mode = str(rc.get("pacing_mode") or "")
     silence_dec = rc.get("silence_brevity_decision") if isinstance(rc.get("silence_brevity_decision"), dict) else {}
     scene_id = str(rc.get("current_scene_id") or "")
@@ -595,7 +652,21 @@ def run_visible_render(
         if content:
             gm_lines.append(content)
         responder_name = _GOC_ACTOR_DISPLAY_NAMES.get(responder_actor_id)
-        if responder_name and content:
+        player_rc = str(rc.get("player_input") or "").strip()
+        live_human_lane = bool(human_actor_id or selected_player_role)
+        # Opening dramaturgy only: do not key off ``turn_number`` here — graph state can
+        # still read 0 on later turns during render; ``turn_input_class`` is authoritative.
+        is_opening_turn = str(rc.get("turn_input_class") or "").strip().lower() == "opening"
+        # Do not stage NPC "reacts immediately" when a bound human actor just supplied live
+        # player input; that line was mis-read as NPC reaction (HUMAN-INPUT-ATTRIBUTION-01).
+        # Turn-0 opening must not use this staging line (OPENING-DRAMATURGY-HANDOVER-01).
+        # Graph tests without actor_lane_context keep the legacy staging line on non-opening turns.
+        if (
+            responder_name
+            and content
+            and not (player_rc and live_human_lane)
+            and not is_opening_turn
+        ):
             gm_lines.insert(0, f"{responder_name} reacts immediately.")
         narr_len = len(prop_excerpt) if prop_excerpt else len(content)
         used_supplement = bool(
@@ -645,6 +716,18 @@ def run_visible_render(
             "spoken_lines": structured_spoken_lines,
             "action_lines": structured_action_lines,
         }
+        if spoken_human_drops or action_human_drops:
+            render_support = bundle.setdefault("render_support", {})
+            if not isinstance(render_support, dict):
+                render_support = {}
+                bundle["render_support"] = render_support
+            render_support.setdefault("projection_version", "render_support.v1")
+            render_support.setdefault("player_visible", False)
+            render_support["human_lane_structured_filters"] = {
+                "spoken_lines_dropped": spoken_human_drops,
+                "action_lines_dropped": action_human_drops,
+            }
+            markers.append("generated_human_actor_output_filtered")
 
         # Add multi_actor_realized marker when >= 2 distinct actors in lanes (primary render path only)
         if len(actor_ids_in_render) >= 2:

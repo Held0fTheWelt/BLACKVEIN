@@ -106,6 +106,42 @@ def test_story_window_projection_uses_committed_opening_and_player_turn() -> Non
     assert entries[2]["authority_summary"]["dramatic_context"]["social_risk_band"] == "high"
 
 
+def test_story_window_goc_player_block_uses_human_attribution_when_human_actor_bound() -> None:
+    session = StorySession(
+        session_id="story-attrib",
+        module_id="god_of_carnage",
+        session_output_language="de",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette",
+        },
+        current_scene_id="scene_1",
+    )
+    session.diagnostics = [
+        {
+            "turn_number": 1,
+            "turn_kind": "player",
+            "raw_input": "Wieso sind wir hier?",
+            "interpreted_input": {"input_kind": "speech", "kind": "speech"},
+            "visible_output_bundle": {"gm_narration": ["Antwort."]},
+            "narrative_commit": {"committed_consequences": ["x"]},
+            "committed_turn_authority": {
+                "authority_record_version": "committed_turn_authority.v1",
+                "validation_status": "approved",
+                "commit_applied": True,
+            },
+            "runtime_governance_surface": {"governed_runtime_active": True},
+        }
+    ]
+    entries = _story_window_entries_for_session(session)
+    player = entries[0]
+    assert player["role"] == "player"
+    assert "Annette" in (player["scene_blocks"][0].get("text") or "")
+    assert "fragt" in (player["scene_blocks"][0].get("text") or "").lower()
+    assert "Wieso sind wir hier?" in (player["scene_blocks"][0].get("text") or "")
+
+
 def test_story_window_player_input_block_speaker_follows_session_output_language() -> None:
     session = StorySession(
         session_id="story-lang",

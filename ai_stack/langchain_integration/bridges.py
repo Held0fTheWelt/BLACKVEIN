@@ -429,13 +429,18 @@ def _build_runtime_prompt_template() -> ChatPromptTemplate:
                     "attributive lead-ins (e.g. German \"meint:\", \"führt aus:\", \"Name stimmt zu:\") allowed before the quote; "
                     "no name-only colon lines. action_lines[].text is third-person blocking with the name inside the sentence; "
                     "never start with \"Name:\".\n\n"
-                    "Return valid JSON. Prioritize actor lanes over prose beauty.",
+                    "Return valid JSON. Prioritize actor lanes over prose beauty.\n"
+                    "PLAYER INPUT OWNERSHIP: primary_responder_id selects the NPC who reacts; it must never mean the "
+                    "player's raw words belong to that NPC. The human lane already consumed verbatim player speech; "
+                    "generate only NPC/narrator reaction.",
                 ),
                 (
                     "human",
                     "{full_context}"
                     "{correction_block}"
                     "ACTOR REALIZATION TASK:\n"
+                    "0. If the packet states the human actor already spoke verbatim_player_input, do not rewrite that "
+                    "line as NPC dialogue under primary_responder_id.\n"
                     "1. Identify the primary responder (actor responding to this move).\n"
                     "2. Determine what they say (if speech: populate spoken_lines with speaker_id; use quoted speech per typography rules).\n"
                     "3. Determine what they do (if action: populate action_lines with actor_id; prose action without a leading Name: prefix).\n"

@@ -156,6 +156,32 @@ def _classify_nl_kind_intent_ambiguity(
         return InterpretedInputKind.REACTION, 0.74, "player_reaction", None
     if has_speech:
         return InterpretedInputKind.SPEECH, 0.76, "dialogue", None
+    # HUMAN-INPUT-ATTRIBUTION-01: short questions and brief lines default to speech so
+    # runtime can attribute them to the human actor (not intent-only / ambiguous noise).
+    lowered_stripped = lowered.strip()
+    german_question_markers = (
+        "wieso",
+        "warum",
+        "wie ",
+        "was ",
+        "wo ",
+        "wann ",
+        "wer ",
+        "womit",
+        "weshalb",
+        "woran",
+        "wofür",
+        "wovon",
+        "welch",
+    )
+    german_questionish = any(lowered_stripped.startswith(p) for p in german_question_markers) or any(
+        ch in lowered_stripped for ch in ("ä", "ö", "ü", "ß")
+    )
+    if lowered_stripped.endswith("?") and not has_action and german_questionish:
+        return InterpretedInputKind.SPEECH, 0.72, "question_utterance", None
+    # Very short declarative / interjection (keep longer English lines on the ambiguous path).
+    if len(tokens) <= 3 and not has_action and not has_reaction and not lowered_stripped.endswith("?"):
+        return InterpretedInputKind.SPEECH, 0.68, "short_utterance_default_speech", None
     if len(tokens) <= 2:
         return InterpretedInputKind.INTENT_ONLY, 0.62, "high_level_intent", None
     return (

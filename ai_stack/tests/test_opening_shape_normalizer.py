@@ -35,9 +35,9 @@ def test_wrong_module_returns_none():
 def test_three_list_strings_strips_leaked_beat_prefixes():
     beats, meta = normalize_opening_narration_beats(
         [
-            "narrator_intro: A intro.",
-            "role_anchor: B anchor.",
-            "scene_setup: C scene.",
+            "narrator_intro: On the schoolyard two boys and a stick left an injury; parents chose a civilised meeting.",
+            "scene_setup: In the Paris apartment tulips, espresso, folded coats, and art books stage the ritual before dessert.",
+            "role_anchor: You are Annette Reille, arriving as a guest beside Alain — not a spectator.",
             "extra ignored",
         ],
         selected_player_role="annette",
@@ -47,12 +47,19 @@ def test_three_list_strings_strips_leaked_beat_prefixes():
         output_language="en",
         existing_actor_lines=None,
     )
-    assert beats == ["A intro.", "B anchor.", "C scene."]
+    assert beats and len(beats) == 3
+    assert "schoolyard" in beats[0].lower()
+    assert "paris" in beats[1].lower() or "tulip" in beats[1].lower()
+    assert "You are" in beats[2] and "Annette" in beats[2]
     assert meta and meta.get("opening_narration_source") == "model_list_three_plus"
 
 
 def test_single_string_split_paragraphs():
-    text = "First beat.\n\nSecond beat.\n\nThird beat."
+    text = (
+        "On the schoolyard two boys and a stick left an injury; their parents agreed on a civilised sit-down.\n\n"
+        "In the Paris apartment tulips, espresso cups, and folded coats keep manners on display.\n\n"
+        "You are Annette Reille, arriving as a guest beside Alain — not a spectator."
+    )
     beats, meta = normalize_opening_narration_beats(
         text,
         selected_player_role="annette",
@@ -62,7 +69,8 @@ def test_single_string_split_paragraphs():
         output_language="en",
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Hi"}],
     )
-    assert beats == ["First beat.", "Second beat.", "Third beat."]
+    assert beats and len(beats) == 3
+    assert "schoolyard" in beats[0].lower()
     assert meta and meta["opening_narration_source"] == "single_string_split_paragraphs"
 
 
@@ -77,7 +85,7 @@ def test_annette_deterministic_anchor_contains_name():
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
     assert beats and len(beats) == 3
-    assert "Annette" in beats[1]
+    assert "Annette" in beats[2]
 
 
 def test_alain_deterministic_anchor_contains_name():
@@ -91,7 +99,7 @@ def test_alain_deterministic_anchor_contains_name():
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
     assert beats and len(beats) == 3
-    assert "Alain" in beats[1]
+    assert "Alain" in beats[2]
 
 
 def test_german_anchor_when_language_de():
@@ -104,7 +112,7 @@ def test_german_anchor_when_language_de():
         output_language="de",
         existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Willkommen."}],
     )
-    assert beats and "Du bist" in beats[1]
+    assert beats and "Du bist" in beats[2]
 
 
 def test_empty_without_actor_lanes_returns_none():

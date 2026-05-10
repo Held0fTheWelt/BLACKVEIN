@@ -1021,6 +1021,8 @@ def test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_fi
         "actor_lane_validation_status": "approved",
         "quality_class": "healthy",
         "degradation_signals": [],
+        "selected_player_role": "annette",
+        "human_actor_id": "annette_reille",
     }
     graph_state = {"model_prompt": "Opening prompt."}
     event = {
@@ -1033,14 +1035,7 @@ def test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_fi
                 },
             }
         },
-        "visible_output_bundle": {
-            "scene_blocks": [
-                {"block_type": "narrator", "text": "Two couples meet in a Paris apartment."},
-                {"block_type": "narrator", "text": "You are Annette Reille."},
-                {"block_type": "narrator", "text": "The salon waits in strained silence."},
-                {"block_type": "actor_line", "actor_id": "alain", "text": "We should speak calmly."},
-            ],
-        },
+        "visible_output_bundle": {"scene_blocks": _live_openai_blocks()},
     }
     _emit_langfuse_evidence_observations(
         path_summary=path_summary,
@@ -1088,11 +1083,11 @@ def _openai_event(scene_blocks: list) -> dict:
 def _projection_bundle_with_opening_narration(*, role_name: str) -> dict[str, Any]:
     return {
         "gm_narration": [
-            "Two couples gather after the schoolyard incident, each carrying a different version "
-            "of blame, civility, and what this meeting should settle.",
-            f"You are {role_name}. Every glance in the room tests whether this conversation can stay civil.",
-            "In the Paris salon, chairs face each other around a low table while untouched cups cool in the pause "
-            "before anyone yields the floor.",
+            "On the schoolyard two boys and a stick left an injury; their parents agreed to meet "
+            "the civilised way — an adult appointment, not playground justice.",
+            "In the Vallons' Paris apartment tulips, art books, and espresso cups sit beside folded coats "
+            "and a dessert that still behaves politely.",
+            f"You are {role_name}, arriving as a guest — not a spectator; your spouse is beside you in this courteous pause.",
         ],
         "spoken_lines": ["Veronique: We should keep this civil."],
         "action_lines": ["Michel folds his hands."],
@@ -1129,8 +1124,8 @@ def test_projection_guard_role_anchor_keeps_selected_role_name_annette_and_alain
         turn_number=0,
         session_output_language="en",
     )
-    assert "Annette" in str(annette_blocks[1].get("text") or "")
-    assert "Alain" in str(alain_blocks[1].get("text") or "")
+    assert "Annette" in str(annette_blocks[2].get("text") or "")
+    assert "Alain" in str(alain_blocks[2].get("text") or "")
 
 
 def test_projection_guard_opening_shape_score_fails_when_projection_drops_narration(monkeypatch):
@@ -1287,10 +1282,28 @@ def test_opening_contract_pass_trivially_passes_on_regular_turn(monkeypatch):
 
 def _canonical_opening_blocks() -> list[dict[str, Any]]:
     return [
-        {"block_type": "narrator", "text": "Two couples meet in a Paris apartment after the schoolyard incident."},
-        {"block_type": "narrator", "text": "You are Annette Reille; the apartment is yours and so is the expectation of civility."},
-        {"block_type": "narrator", "text": "The salon: chairs around a low table, untouched espresso cups cooling."},
-        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "We should keep this brief."},
+        {
+            "block_type": "narrator",
+            "text": (
+                "On the schoolyard two boys and a stick left an injury; their parents agreed "
+                "to settle it the civilised way — adult procedure instead of playground bluntness."
+            ),
+        },
+        {
+            "block_type": "narrator",
+            "text": (
+                "In the Vallons' Paris apartment tulips and art books frame the salon; folded coats, "
+                "papers with neat edges, espresso and a dessert still wait with polite patience."
+            ),
+        },
+        {
+            "block_type": "narrator",
+            "text": (
+                "You are Annette Reille, arriving as a guest beside Alain — not a spectator; "
+                "your next move is yours to choose."
+            ),
+        },
+        {"block_type": "actor_line", "actor_id": "veronique_vallon", "text": "Please sit; I will bring coffee."},
     ]
 
 
@@ -1324,9 +1337,9 @@ def test_opening_shape_subgates_all_pass_for_canonical_opening(monkeypatch):
     assert summary[0]["index"] == 0
     assert summary[0]["block_type"] == "narrator"
     assert summary[0]["actor_id"] is None
-    assert "Two couples meet" in summary[0]["text_excerpt"]
+    assert "schoolyard" in summary[0]["text_excerpt"].lower()
     assert summary[3]["block_type"] == "actor_line"
-    assert summary[3]["actor_id"] == "alain_reille"
+    assert summary[3]["actor_id"] == "veronique_vallon"
 
 
 def test_opening_shape_subgates_single_narrator_then_actor_failure(monkeypatch):
@@ -1641,13 +1654,10 @@ def test_opening_score_split_true_successful_live_opening_sets_both_live_scores(
         "canonical_player_flow": True,
         "adapter": "openai",
         "final_adapter": "openai",
+        "selected_player_role": "annette",
+        "human_actor_id": "annette_reille",
     }
-    blocks = [
-        {"block_type": "narrator", "text": "Two couples meet."},
-        {"block_type": "narrator", "text": "You are Annette."},
-        {"block_type": "narrator", "text": "The salon waits."},
-        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
-    ]
+    blocks = _live_openai_blocks()
     _emit_langfuse_evidence_observations(
         path_summary=path_summary,
         graph_state={"model_prompt": "x"},
@@ -1677,10 +1687,24 @@ def _live_openai_path_summary_turn_0(**overrides) -> dict:
 
 def _live_openai_blocks() -> list[dict]:
     return [
-        {"block_type": "narrator", "text": "Two couples meet."},
-        {"block_type": "narrator", "text": "You are Annette."},
-        {"block_type": "narrator", "text": "The salon waits."},
-        {"block_type": "actor_line", "actor_id": "alain", "text": "We should talk."},
+        {
+            "block_type": "narrator",
+            "text": (
+                "On the schoolyard two boys and a stick left an injury; their parents agreed "
+                "to settle it the civilised way."
+            ),
+        },
+        {
+            "block_type": "narrator",
+            "text": (
+                "In the Vallons' Paris apartment tulips, espresso cups, and folded coats keep manners on display."
+            ),
+        },
+        {
+            "block_type": "narrator",
+            "text": "You are Annette Reille, arriving as a guest beside Alain — not a spectator.",
+        },
+        {"block_type": "actor_line", "actor_id": "veronique_vallon", "text": "Please sit; I will bring coffee."},
     ]
 
 

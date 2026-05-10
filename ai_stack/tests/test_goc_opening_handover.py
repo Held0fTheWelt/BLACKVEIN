@@ -1,0 +1,40 @@
+from __future__ import annotations
+
+from ai_stack.goc_opening_handover import (
+    enforce_opening_handover_on_beats,
+    generic_conflict_resolution_detected,
+    opening_part_1_premise_present,
+    opening_part_2_room_present,
+    prosecutorial_opening_detected,
+    schoolyard_incident_present,
+)
+
+
+def test_enforce_handover_fills_weak_premise():
+    beats, meta = enforce_opening_handover_on_beats(
+        ["The room is quiet.", "Paris apartment with tulips and espresso.", "You are Annette Reille, arriving as a guest beside Alain — not a spectator."],
+        output_language="en",
+        human_actor_id="annette_reille",
+        selected_player_role="annette",
+    )
+    assert meta.get("opening_handover_applied") is True
+    assert schoolyard_incident_present(beats[0])
+    assert opening_part_2_room_present(beats[1])
+    assert "Annette" in beats[2]
+
+
+def test_generic_conflict_resolution_pattern():
+    assert generic_conflict_resolution_detected("This is a conflict resolution meeting.")
+    assert not generic_conflict_resolution_detected("On the schoolyard two boys fought.")
+
+
+def test_prosecutorial_actor_line():
+    assert prosecutorial_opening_detected("You did this on purpose.")
+    assert not prosecutorial_opening_detected("Please sit; I will bring coffee.")
+
+
+def test_opening_part_1_requires_schoolyard_and_civilised():
+    assert opening_part_1_premise_present(
+        "On the playground two boys used a stick; parents agreed to a civilised sit-down."
+    )
+    assert not opening_part_1_premise_present("Two families meet in a Paris salon.")
