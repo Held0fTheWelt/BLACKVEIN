@@ -39,9 +39,16 @@ class BlockRenderer {
     if (block.speaker_label) {
       div.setAttribute('data-speaker-label', block.speaker_label);
     }
+    const beat = String(block.narration_beat || '').trim().toLowerCase();
+    if (beat) {
+      div.setAttribute('data-narration-beat', beat);
+    }
 
     const blockType = block.block_type || 'unknown';
     div.className = `scene-block scene-block--${blockType}`;
+    if (beat === 'role_anchor' && blockType === 'narrator') {
+      div.classList.add('scene-block--narrator-role-anchor');
+    }
     const diagnosticsBlock = this._isDiagnosticsBlock(blockType);
     div.setAttribute('data-player-visible', diagnosticsBlock ? 'false' : 'true');
     if (diagnosticsBlock) {

@@ -25,6 +25,10 @@ class BlocksOrchestrator {
     return kind.startsWith('diagnostic') || kind.startsWith('debug') || kind === 'system_meta';
   }
 
+  _fillBlockElement(el, block) {
+    el.textContent = (block && block.text) || '';
+  }
+
   /**
    * Load initial turn from HTTP response
    *
@@ -80,7 +84,7 @@ class BlocksOrchestrator {
         if (transcriptStable) {
           const el = this.renderer.getBlockElement(block.id);
           if (el) {
-            el.textContent = block.text || '';
+            this._fillBlockElement(el, block);
           }
         } else {
           this.typewriter.startDelivery(block);
@@ -88,7 +92,7 @@ class BlocksOrchestrator {
       } else {
         const el = this.renderer.getBlockElement(block.id);
         if (el) {
-          el.textContent = block.text || '';
+          this._fillBlockElement(el, block);
         }
       }
     }
@@ -130,7 +134,7 @@ class BlocksOrchestrator {
     } else {
       const el = this.renderer.getBlockElement(block.id);
       if (el) {
-        el.textContent = block.text;
+        this._fillBlockElement(el, block);
       }
       this.currentBlockIndex = this.blocks.length;
     }
@@ -169,7 +173,7 @@ class BlocksOrchestrator {
       for (let block of this.blocks) {
         const el = this.renderer.getBlockElement(block.id);
         if (el) {
-          el.textContent = block.text || '';
+          this._fillBlockElement(el, block);
         }
       }
     }

@@ -8,14 +8,17 @@ from unittest.mock import MagicMock
 
 from app.story_runtime.manager import (
     StorySession,
+    _annotate_goc_opening_narration_beats,
     _compact_scene_block_summary,
     _compute_opening_shape_subgates,
     _emit_langfuse_evidence_observations,
     _emit_langfuse_path_spans,
     _finalize_visible_bundle_opening_gm_narration,
     _live_scene_blocks_from_visible_bundle,
+    _maybe_split_goc_opening_into_two_movements,
     _opening_block_contract_satisfied,
 )
+from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
 
 
 def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
@@ -1126,6 +1129,27 @@ def test_projection_guard_role_anchor_keeps_selected_role_name_annette_and_alain
     )
     assert "Annette" in str(annette_blocks[2].get("text") or "")
     assert "Alain" in str(alain_blocks[2].get("text") or "")
+
+
+def test_opening_narration_beats_premise_scene_role_anchor_after_split_and_annotate():
+    bundle = _projection_bundle_with_opening_narration(role_name="Annette")
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0, session_output_language="en")
+    blocks = _maybe_split_goc_opening_into_two_movements(blocks, commit_turn_number=0)
+    _annotate_goc_opening_narration_beats(
+        blocks,
+        module_id=GOD_OF_CARNAGE_MODULE_ID,
+        turn_number=0,
+    )
+    assert blocks[0].get("narration_beat") == "premise"
+    assert blocks[1].get("narration_beat") == "scene_setup"
+    assert blocks[2].get("narration_beat") == "role_anchor"
+
+
+def test_opening_narration_beats_not_applied_for_non_goc_module():
+    bundle = _projection_bundle_with_opening_narration(role_name="Annette")
+    blocks = _live_scene_blocks_from_visible_bundle(bundle, turn_number=0, session_output_language="en")
+    _annotate_goc_opening_narration_beats(blocks, module_id="other_module", turn_number=0)
+    assert blocks[0].get("narration_beat") is None
 
 
 def test_projection_guard_opening_shape_score_fails_when_projection_drops_narration(monkeypatch):

@@ -4,6 +4,7 @@
     --void: #07070a;
     --obsidian: #0f0f12;
     --violet: #7a5c9e;
+    --role-anchor-amber: #d4a017;
     --violet-bright: #a07dcc;
     --violet-glow: rgba(122, 92, 158, 0.35);
     --violet-glow-strong: rgba(122, 92, 158, 0.6);
@@ -1970,6 +1971,11 @@ button.secondary:hover {
     background: rgba(122, 92, 158, 0.05);
 }
 
+.scene-block--narrator.scene-block--narrator-role-anchor {
+    border-left-color: var(--role-anchor-amber);
+    background: rgba(212, 160, 23, 0.1);
+}
+
 .scene-block--actor_line {
     border-left-color: var(--primary-hover);
     background: rgba(159, 109, 181, 0.05);
@@ -1984,6 +1990,15 @@ button.secondary:hover {
     border-left-color: var(--success);
     background: rgba(74, 158, 106, 0.08);
     font-style: italic;
+    color: var(--text);
+}
+
+/* Second block: diegetic line after an imperative greet — clearly darker green bar than player_input. */
+.scene-block--player_input_outcome {
+    border-left-color: #155e32;
+    background: rgba(14, 58, 36, 0.38);
+    font-style: normal;
+    color: var(--text);
 }
 
 .scene-block--stage_direction {

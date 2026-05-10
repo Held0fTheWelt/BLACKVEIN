@@ -371,6 +371,29 @@ def _maybe_split_goc_opening_into_two_movements(
     return out
 
 
+def _annotate_goc_opening_narration_beats(
+    blocks: list[dict[str, Any]],
+    *,
+    module_id: str | None,
+    turn_number: int,
+) -> None:
+    """Tag the first three opening narrator blocks for play UI (premise / scene / role anchor)."""
+    if turn_number != 0 or str(module_id or "").strip() != GOD_OF_CARNAGE_MODULE_ID:
+        return
+    if len(blocks) < 3:
+        return
+    for i in range(3):
+        b = blocks[i]
+        if not isinstance(b, dict):
+            return
+        bt = str(b.get("block_type") or b.get("type") or "").strip().lower()
+        if bt != "narrator":
+            return
+    beats = ("premise", "scene_setup", "role_anchor")
+    for i in range(3):
+        blocks[i]["narration_beat"] = beats[i]
+
+
 def _actor_line_count(value: Any) -> int:
     if not isinstance(value, list):
         return 0
@@ -832,6 +855,65 @@ def _goc_npc_shell_legal_name(responder_id: str) -> str:
         "michel_longstreet": "Michel Longstreet",
     }
     return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
+
+
+_RE_GOC_GREET_IMPERATIVE_DE = re.compile(
+    r"(?is)^(?:ich\s+)?begrüße\s+(.+)$",
+)
+_RE_GOC_GREET_IMPERATIVE_DE_SHORT = re.compile(r"(?is)^grüße\s+(.+)$")
+_RE_GOC_GREET_IMPERATIVE_EN = re.compile(r"(?is)^(?:i\s+)?greet\s+(.+)$")
+
+
+def _goc_greeting_imperative_addressee_fragment(raw: str, *, lang: str) -> str | None:
+    """If ``raw`` is a greet-X imperative (DE/EN), return the tail after the verb; else ``None``."""
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    if lang == "de":
+        m = _RE_GOC_GREET_IMPERATIVE_DE.match(text) or _RE_GOC_GREET_IMPERATIVE_DE_SHORT.match(text)
+    else:
+        m = _RE_GOC_GREET_IMPERATIVE_EN.match(text)
+    if not m:
+        return None
+    frag = str(m.group(1) or "").strip().strip('"„"«»').strip()
+    return frag or None
+
+
+def _goc_addressee_shell_firstname(fragment: str) -> str:
+    """Map a free-text addressee token to the same shell first-name spelling we use for NPC labels."""
+    frag = str(fragment or "").strip()
+    if not frag:
+        return ""
+    first = frag.split()[0] if frag.split() else frag
+    first = first.strip(".,;:!?")
+    canon = str(canonicalize_goc_actor_id(first) or first).strip()
+    return _goc_shell_actor_firstname(canon)
+
+
+def _goc_greeting_imperative_visible_pair(
+    *,
+    raw: str,
+    player_shell_name: str,
+    lang: str,
+) -> tuple[str, str] | None:
+    """Return (verbatim_player_typing, diegetic_attributed_line) for greet-X imperatives.
+
+    Used when the player typed an imperative greeting ("Begrüße Veronique") rather than
+    direct in-scene speech ("Hallo Veronique"). The story window emits two scene blocks.
+    """
+    tail = _goc_greeting_imperative_addressee_fragment(raw, lang=lang)
+    if not tail:
+        return None
+    addressee = _goc_addressee_shell_firstname(tail)
+    if not addressee:
+        return None
+    if lang == "de":
+        diegetic = f"Hallo {addressee}, vielen Dank für die Einladung."
+        line2 = f"{player_shell_name} sagt: „{diegetic}“"
+    else:
+        diegetic = f"Hello {addressee}, thank you for having us."
+        line2 = f'{player_shell_name} says: "{diegetic}"'
+    return (raw, line2)
 
 
 def _goc_player_attributed_visible_text(
@@ -2499,7 +2581,10 @@ def _player_input_scene_blocks_for_story_window(
     human_actor_id: str | None = None,
     interpreted_input: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """MVP5 cumulative transcript: one visible block per committed player line.
+    """MVP5 cumulative transcript: visible block(s) for each committed player line.
+
+    Imperative greetings (e.g. Begrüße X) emit two blocks: ``player_input`` then
+    ``player_input_outcome``. Otherwise a single ``player_input`` block.
 
     Player text is not part of runtime ``spoken_lines`` (human lane is filtered from
     scene envelope). Story-window entries must still carry ``scene_blocks`` so backend
@@ -2514,6 +2599,48 @@ def _player_input_scene_blocks_for_story_window(
     hid = str(human_actor_id or "").strip()
     if hid:
         canon = str(canonicalize_goc_actor_id(hid) or hid).strip()
+        name = _goc_shell_actor_firstname(canon)
+        interp = interpreted_input if isinstance(interpreted_input, dict) else {}
+        ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
+        if ik in ("intent_only", "ambiguous", "reaction"):
+            ik = "speech"
+        pair = _goc_greeting_imperative_visible_pair(raw=text, player_shell_name=name, lang=exp_lang)
+        if pair and ik in {"speech", "action"}:
+            raw_line, outcome_line = pair
+            delivery = {
+                "mode": "typewriter",
+                "characters_per_second": 44,
+                "pause_before_ms": 0,
+                "pause_after_ms": 120,
+                "skippable": True,
+            }
+            out_blocks: list[dict[str, Any]] = []
+            for suffix, line, bt in (
+                ("", raw_line, "player_input"),
+                ("-outcome", outcome_line, "player_input_outcome"),
+            ):
+                cleaned, _partial = sanitize_visible_block_text(
+                    line,
+                    block_type=bt,
+                    speaker_label=name,
+                    actor_id=canon,
+                    expected_language=exp_lang,
+                )
+                if cleaned:
+                    out_blocks.append(
+                        {
+                            "id": f"{session_id}-turn-{turn_token}-player-input{suffix}",
+                            "block_type": bt,
+                            "speaker_label": name,
+                            "actor_id": canon,
+                            "target_actor_id": None,
+                            "text": cleaned,
+                            "delivery": delivery,
+                            "source": "player_input",
+                        }
+                    )
+            if out_blocks:
+                return out_blocks
         spk, vis_line = _goc_player_attributed_visible_text(
             raw_input=text,
             human_actor_id=canon,
@@ -4348,6 +4475,11 @@ class StoryRuntimeManager:
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,
                     commit_turn_number=commit_turn_number,
+                )
+                _annotate_goc_opening_narration_beats(
+                    live_scene_blocks,
+                    module_id=session.module_id,
+                    turn_number=commit_turn_number,
                 )
             if live_scene_blocks:
                 event_bundle = (

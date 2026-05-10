@@ -168,6 +168,7 @@ describe('BlockRenderer', () => {
         'actor_action',
         'stage_shift',
         'player_input',
+        'player_input_outcome',
       ];
       for (const kind of dramaticTypes) {
         const el = renderer.render({
@@ -190,6 +191,29 @@ describe('BlockRenderer', () => {
       expect(el.getAttribute('data-player-visible')).toBe('false');
       expect(el.className).toContain('scene-block--diagnostic');
       expect(el.textContent).toBe('');
+    });
+
+    test('should add role-anchor class and data-narration-beat for opening role anchor narrator', () => {
+      const el = renderer.render({
+        id: 'turn-0-live-block-3',
+        block_type: 'narrator',
+        narration_beat: 'role_anchor',
+        text: 'Du bist Annette …',
+      });
+      expect(el.getAttribute('data-narration-beat')).toBe('role_anchor');
+      expect(el.className).toContain('scene-block--narrator-role-anchor');
+    });
+
+    test('should render player_input_outcome as its own scene block', () => {
+      const el = renderer.render({
+        id: 'sid-turn-1-player-input-outcome',
+        block_type: 'player_input_outcome',
+        speaker_label: 'Annette',
+        text: 'Annette sagt: „Hallo Véronique.“',
+      });
+      expect(el.getAttribute('data-block-type')).toBe('player_input_outcome');
+      expect(el.className).toContain('scene-block--player_input_outcome');
+      expect(el.textContent).toBe('Annette sagt: „Hallo Véronique.“');
     });
   });
 
