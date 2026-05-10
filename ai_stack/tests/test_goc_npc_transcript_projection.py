@@ -39,7 +39,7 @@ def test_split_speech_stage_policy_splits_same_actor() -> None:
 
 def test_merge_disabled_no_combine_same_actor() -> None:
     segs = split_merged_goc_actor_line_segments(
-        'Veronique: "A." Veronique: B. Alain: nickt.',
+        'Veronique: "A." Veronique: B. Alain: nods.',
         story_runtime_experience={"goc_transcript_merge_consecutive_same_actor": False},
     )
     assert len(segs) == 3

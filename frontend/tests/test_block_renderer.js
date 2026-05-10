@@ -221,7 +221,7 @@ describe('BlockRenderer', () => {
         id: 'turn-0-live-block-3',
         block_type: 'narrator',
         narration_beat: 'role_anchor',
-        text: 'Du bist Annette …',
+        text: 'You are Annette ...',
       });
       expect(el.getAttribute('data-narration-beat')).toBe('role_anchor');
       expect(el.className).toContain('scene-block--narrator-role-anchor');
@@ -233,7 +233,7 @@ describe('BlockRenderer', () => {
         block_type: 'narrator',
         card_style: 'narrative_story',
         narration_beat: 'role_anchor',
-        text: 'Du bist Annette …',
+        text: 'You are Annette ...',
       });
       expect(el.className).toContain('scene-block--player-shell-story');
       expect(el.className).toContain('scene-block--narrator-role-anchor');

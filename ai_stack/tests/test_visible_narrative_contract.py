@@ -83,7 +83,7 @@ def test_finalize_annette_role_visible_turn_zero():
             "block_type": "actor_line",
             "speaker_label": "Veronique",
             "actor_id": "veronique_vallon",
-            "text": "Willkommen.",
+            "text": "Welcome.",
         },
     ]
     out, diag = finalize_visible_scene_blocks(
@@ -111,13 +111,13 @@ def test_sanitize_strips_accent_mismatched_duplicate_speaker_prefix():
 
 def test_sanitize_collapses_veronique_colon_veronique_accent_variant():
     clean, _ = sanitize_visible_block_text(
-        "Veronique: Véronique lächelt leise.",
+        "Veronique: Veronique smiles softly.",
         block_type="actor_action",
         speaker_label="Veronique",
         actor_id="veronique_vallon",
         expected_language="de",
     )
-    assert clean == "Véronique lächelt leise."
+    assert clean == "Veronique smiles softly."
 
 
 def test_finalize_drops_name_only_accent_mismatch():
@@ -142,7 +142,7 @@ def test_finalize_drops_name_only_accent_mismatch():
 
 def test_sanitize_actor_line_dedupes_mid_string_veronique_colon_accent_after_lead_strip():
     """Leading ``Veronique:`` is stripped first; mid-string ``Veronique: Véronique`` must still collapse."""
-    raw = 'Veronique: "Kurz." Veronique: Véronique nickt leicht.'
+    raw = 'Veronique: "Brief." Veronique: Veronique nods lightly.'
     clean, partial = sanitize_visible_block_text(
         raw,
         block_type="actor_line",
@@ -151,16 +151,16 @@ def test_sanitize_actor_line_dedupes_mid_string_veronique_colon_accent_after_lea
         expected_language="de",
     )
     assert "Veronique: Véronique" not in clean
-    assert "Veronique nickt" in clean
+    assert "Veronique nods" in clean
     assert partial.get("goc_speaker_colon_stutter_deduped") is True
 
 
 def test_finalize_subsumes_actor_action_contained_in_prior_actor_line():
     long_line = (
-        "Veronique steht auf und geht zur Tür, während sie sagt, "
-        "dass sie das nicht länger ertragen kann."
+        "Veronique stands up and walks to the door, saying "
+        "that she cannot endure this any longer."
     )
-    short_action = "Veronique steht auf und geht zur Tür"
+    short_action = "Veronique stands up and walks to the door"
     blocks = [
         {
             "block_type": "actor_line",
@@ -188,10 +188,10 @@ def test_finalize_subsumes_actor_action_contained_in_prior_actor_line():
 
 def test_finalize_subsumes_actor_action_when_narrator_between_line_and_action():
     long_line = (
-        'Veronique: "Willkommen." Veronique: Véronique lächelt freundlich '
-        "und reicht Annette die Hand zum Gruß."
+        'Veronique: "Welcome." Veronique: Veronique smiles warmly '
+        "and offers Annette her hand in greeting."
     )
-    action = "Véronique lächelt freundlich und reicht Annette die Hand zum Gruß."
+    action = "Veronique smiles warmly and offers Annette her hand in greeting."
     blocks = [
         {
             "block_type": "actor_line",
@@ -199,7 +199,7 @@ def test_finalize_subsumes_actor_action_when_narrator_between_line_and_action():
             "actor_id": "veronique_vallon",
             "text": long_line,
         },
-        {"block_type": "narrator", "speaker_label": "Narrator", "text": "Die Luft bleibt höflich."},
+        {"block_type": "narrator", "speaker_label": "Narrator", "text": "The air remains polite."},
         {
             "block_type": "actor_action",
             "speaker_label": "Veronique",
@@ -221,7 +221,7 @@ def test_finalize_subsumes_actor_action_when_narrator_between_line_and_action():
 
 
 def test_finalize_removes_npc_actor_line_that_echoes_player_input():
-    player = "Ich gehe jetzt zur Tür und möchte nicht länger diskutieren."
+    player = "I am going to the door now and do not want to continue arguing."
     blocks = [
         {"block_type": "narrator", "speaker_label": "Narrator", "text": "Szene."},
         {
@@ -250,7 +250,7 @@ def test_finalize_removes_npc_actor_line_that_echoes_player_input():
 
 
 def test_finalize_keeps_human_lane_when_text_matches_player_input():
-    player = "Ich bleibe ruhig und höre zu."
+    player = "I stay calm and listen."
     blocks = [
         {
             "block_type": "actor_line",
@@ -279,7 +279,7 @@ def test_finalize_drops_narrator_label_colon_only_line():
             "block_type": "actor_line",
             "speaker_label": "Veronique",
             "actor_id": "veronique_vallon",
-            "text": "Wir sollten das klären.",
+            "text": "We should settle this.",
         },
     ]
     out, diag = finalize_visible_scene_blocks(
@@ -296,12 +296,12 @@ def test_finalize_drops_narrator_label_colon_only_line():
 
 def test_prune_drops_paraphrased_actor_action_token_overlap():
     line = (
-        "Véronique begrüßt Annette herzlich und drückt ihre Freude aus, sie zu sehen. "
-        "Sie reicht ihr die Hand zum Gruß und signalisiert damit den Beginn eines "
-        "höflichen und zivilen Austauschs. Alain beobachtet die Szene aufmerksam, "
-        "bereit, bei Bedarf zu reagieren."
+        "Veronique warmly welcomes Annette and expresses how glad she is to see her. "
+        "She offers her hand in greeting and signals the beginning of a "
+        "polite, civil exchange. Alain watches the scene closely, "
+        "ready to react if needed."
     )
-    action = "Veronique lächelt herzlich und reicht Annette die Hand zum Gruß."
+    action = "Veronique smiles warmly and offers Annette her hand in greeting."
     blocks = [
         {
             "block_type": "actor_line",

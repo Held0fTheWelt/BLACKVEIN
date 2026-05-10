@@ -112,8 +112,8 @@ def test_prune_action_when_substring_of_prior_line() -> None:
 
 def test_prune_action_accent_drift_still_matches() -> None:
     """Action lane uses accents; spoken lane uses Veronique: — fold must align for substring prune."""
-    line = "Veronique: redet. Veronique: Véronique nickt leicht."
-    action = "Véronique nickt leicht."
+    line = "Veronique: speaks. Veronique: Veronique nods lightly."
+    action = "Veronique nods lightly."
     blocks = [
         {"id": "1", "block_type": "actor_line", "actor_id": "veronique_vallon", "text": line},
         {"id": "2", "block_type": "actor_action", "actor_id": "veronique_vallon", "text": action},

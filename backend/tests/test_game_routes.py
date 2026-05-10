@@ -571,7 +571,7 @@ def test_game_player_session_turn_langfuse_correlates_player_input_hash(
             "story_window": {
                 "entries": [
                     {"role": "runtime", "text": "Opening.", "turn_number": 0},
-                    {"role": "player", "text": "Ich sehe zum Fenster.", "turn_number": 1},
+                    {"role": "player", "text": "I look toward the window.", "turn_number": 1},
                     {"role": "runtime", "text": "Die Szene reagiert.", "turn_number": 1},
                 ]
             },
@@ -582,7 +582,7 @@ def test_game_player_session_turn_langfuse_correlates_player_input_hash(
         "app.api.v1.game_routes.get_story_state",
         lambda session_id, trace_id=None: states.pop(0),
     )
-    player_line = "Ich sehe zum Fenster."
+    player_line = "I look toward the window."
     monkeypatch.setattr(
         "app.api.v1.game_routes.execute_story_turn_in_engine",
         lambda **kwargs: {
