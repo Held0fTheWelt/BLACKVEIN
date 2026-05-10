@@ -4,6 +4,9 @@
  * Responsibility: Manage typewriter animation with deterministic test mode.
  * VirtualClock allows tests to advance time manually via advanceBy().
  * Production mode uses requestAnimationFrame for smooth animation.
+ *
+ * Display text uses window.blockDisplayTextForShell (play_block_display_text.js).
+ * Single active block; orchestrator owns slice sequencing via setOnDeliveryComplete.
  */
 
 class VirtualClock {
@@ -14,11 +17,6 @@ class VirtualClock {
     this.requestId = null;
   }
 
-  /**
-   * Advance virtual time (test mode only)
-   *
-   * @param {number} ms - Milliseconds to advance
-   */
   advanceBy(ms) {
     if (!this.test_mode) {
       throw new Error('VirtualClock.advanceBy() only available in test mode');
@@ -27,11 +25,6 @@ class VirtualClock {
     this._notifyListeners();
   }
 
-  /**
-   * Register callback for time ticks
-   *
-   * @param {Function} callback - Called with current time on each tick
-   */
   onTick(callback) {
     if (typeof callback !== 'function') {
       throw new Error('VirtualClock.onTick: callback must be a function');
@@ -39,21 +32,13 @@ class VirtualClock {
     this.listeners.push(callback);
   }
 
-  /**
-   * Get current time
-   *
-   * @returns {number} Current time in milliseconds
-   */
   now() {
     return this.test_mode ? this.virtual_time : performance.now();
   }
 
-  /**
-   * Start animation loop (production mode only)
-   */
   start() {
     if (this.test_mode) {
-      return; // Test mode doesn't use animation loop
+      return;
     }
     const animate = () => {
       this._notifyListeners();
@@ -62,9 +47,6 @@ class VirtualClock {
     this.requestId = requestAnimationFrame(animate);
   }
 
-  /**
-   * Stop animation loop
-   */
   stop() {
     if (this.requestId) {
       cancelAnimationFrame(this.requestId);
@@ -72,9 +54,6 @@ class VirtualClock {
     }
   }
 
-  /**
-   * Notify all listeners of time update
-   */
   _notifyListeners() {
     const currentTime = this.now();
     this.listeners.forEach((cb) => {
@@ -87,27 +66,32 @@ class VirtualClock {
   }
 }
 
+function _shellDisplayText(block) {
+  if (typeof blockDisplayTextForShell === 'function') {
+    return String(blockDisplayTextForShell(block) ?? '');
+  }
+  if (!block) {
+    return '';
+  }
+  return block.player_display_text != null ? String(block.player_display_text) : String(block.text ?? '');
+}
+
 class TypewriterEngine {
   constructor(testMode = false) {
     this.clock = new VirtualClock(testMode);
-    this.queue = []; // Single-active contract: either [] or [current_item]
+    this.queue = [];
     this.current_block = null;
     this.test_mode = testMode;
+    this._onDeliveryComplete = null;
     this.config = {
       characters_per_second: 44,
       pause_before_ms: 150,
       pause_after_ms: 650,
       skippable: true,
     };
-    // One listener for the lifetime of the engine — avoids duplicate onTick handlers per block.
     this.clock.onTick((time) => this._onClockTick(time));
   }
 
-  /**
-   * Update typewriter configuration
-   *
-   * @param {Object} config - Delivery config (characters_per_second, pause_before_ms, etc.)
-   */
   setConfig(config) {
     if (config && typeof config === 'object') {
       Object.assign(this.config, config);
@@ -115,23 +99,40 @@ class TypewriterEngine {
   }
 
   /**
-   * Start delivery of a block
+   * Called with block id when the current block finishes naturally, skip, or empty immediate complete.
+   * Orchestrator owns slice queue — engine stays single-active.
    *
-   * @param {Object} block - Block with id, text, delivery config
+   * @param {function(string): void | null} fn
    */
+  setOnDeliveryComplete(fn) {
+    this._onDeliveryComplete = typeof fn === 'function' ? fn : null;
+  }
+
   startDelivery(block) {
-    if (!block || !block.id || !block.text) {
+    const text = _shellDisplayText(block);
+    if (!block || !block.id) {
+      return;
+    }
+    if (text.length === 0) {
+      const el = document.querySelector(`[data-block-id="${block.id}"]`);
+      if (el) {
+        el.textContent = '';
+      }
+      const cb = this._onDeliveryComplete;
+      if (cb) {
+        cb(block.id);
+      }
       return;
     }
 
     const cps = this.config.characters_per_second || 44;
-    const duration = (block.text.length / cps) * 1000; // ms
+    const duration = (text.length / cps) * 1000;
 
     const queueItem = {
       block_id: block.id,
-      text: block.text,
+      text,
       start_time: this.clock.now(),
-      duration: duration,
+      duration,
       visible_chars: 0,
     };
 
@@ -142,9 +143,6 @@ class TypewriterEngine {
     }
   }
 
-  /**
-   * Single clock tick handler (registered once in constructor).
-   */
   _onClockTick(time) {
     if (!this.current_block) {
       return;
@@ -164,33 +162,28 @@ class TypewriterEngine {
     }
   }
 
-  /**
-   * Complete current block and clear active delivery
-   */
   _completeCurrentBlock() {
-    if (this.current_block) {
-      this.current_block.visible_chars = this.current_block.text.length;
-      this._renderBlock();
-      this.queue = [];
-      this.current_block = null;
-      this.clock.stop();
+    if (!this.current_block) {
+      return;
+    }
+    const bid = this.current_block.block_id;
+    this.current_block.visible_chars = this.current_block.text.length;
+    this._renderBlock();
+    this.queue = [];
+    this.current_block = null;
+    this.clock.stop();
+    const cb = this._onDeliveryComplete;
+    if (cb) {
+      cb(bid);
     }
   }
 
-  /**
-   * Skip current block (user clicked "Skip")
-   *
-   * @param {string} blockId - Block ID to skip
-   */
   skipBlock(blockId) {
     if (this.current_block && this.current_block.block_id === blockId) {
       this._completeCurrentBlock();
     }
   }
 
-  /**
-   * Reveal all queued blocks immediately
-   */
   revealAll() {
     if (this.current_block) {
       this.current_block.visible_chars = this.current_block.text.length;
@@ -204,9 +197,6 @@ class TypewriterEngine {
     this.clock.stop();
   }
 
-  /**
-   * Update DOM element with current visible characters
-   */
   _renderBlock() {
     if (!this.current_block) {
       return;
@@ -218,9 +208,6 @@ class TypewriterEngine {
     }
   }
 
-  /**
-   * Get current queue state (for testing/diagnostics)
-   */
   getQueueState() {
     return {
       current_block_id: this.current_block ? this.current_block.block_id : null,
@@ -234,17 +221,14 @@ class TypewriterEngine {
     };
   }
 
-  /**
-   * Reset engine state
-   */
   reset() {
     this.clock.stop();
     this.queue = [];
     this.current_block = null;
+    this._onDeliveryComplete = null;
   }
 }
 
-// Export for use
 if (typeof window !== 'undefined') {
   window.VirtualClock = VirtualClock;
   window.TypewriterEngine = TypewriterEngine;

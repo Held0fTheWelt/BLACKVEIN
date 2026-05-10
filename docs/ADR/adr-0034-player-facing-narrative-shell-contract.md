@@ -9,8 +9,9 @@ Accepted
 **Core shell contract implemented; some test tiers pending.**
 
 **Implemented:**
-- `frontend/static/play_blocks_orchestrator.js`: `BlocksOrchestrator` implements `loadTurn()` with `typewriter_slice_start_index` support (blocks before index rendered as full transcript, blocks at/after index sequenced through typewriter).
-- `frontend/static/play_typewriter_engine.js`: single `VirtualClock` tick handler per lifetime; `TypewriterEngine` registered once — no duplicate `onTick` listeners.
+- `frontend/static/play_block_display_text.js`: shared `blockDisplayTextForShell(block)` — `player_display_text != null ? player_display_text : text` (same rule for renderer, orchestrator fill, and typewriter duration/DOM).
+- `frontend/static/play_blocks_orchestrator.js`: HTTP `loadTurn()` builds **`sliceQueue`** (indices `>= typewriter_slice_start_index`, excluding diagnostics); indices below the slice render **full text immediately**; the slice is delivered **sequentially** via `TypewriterEngine.startDelivery` + **`setOnDeliveryComplete`** (`currentSliceIndex` advances after each block). **`skipCurrentBlock`** completes the active block (full text) then continues the slice; **`revealAll`** fills all remaining slice blocks, clears the queue, and detaches the completion hook. **`appendNarratorBlock`** clears slice state and keeps **one block per stream chunk** (unchanged streaming semantics).
+- `frontend/static/play_typewriter_engine.js`: single active block; single `VirtualClock` listener; **`setOnDeliveryComplete(blockId)`** fires after natural completion, skip, or empty display immediate resolve; display text uses `blockDisplayTextForShell`.
 - `frontend/static/play_block_renderer.js`: block rendering with `block_type` semantic distinction; optional `narration_beat` on narrator blocks for presentation (e.g. opening **role anchor** uses extra CSS class).
 - `frontend/static/style.css`: distinct lane chrome per `block_type` (including `player_input_outcome`, narrator role-anchor accent).
 - `frontend/static/play_shell.js`: orchestrates renderer + typewriter + controls.

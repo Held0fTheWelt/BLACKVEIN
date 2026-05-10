@@ -171,6 +171,7 @@
 </div>
 
 <script type="application/json" id="play-shell-bootstrap">{{ play_bootstrap_json | safe }}</script>
+<script src="{{ url_for('static', filename='play_block_display_text.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_block_renderer.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_blocks_orchestrator.js') }}" defer></script>
 <script src="{{ url_for('static', filename='play_typewriter_engine.js') }}" defer></script>

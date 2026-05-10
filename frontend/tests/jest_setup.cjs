@@ -11,6 +11,7 @@ function loadStaticScript(filename) {
   eval(code);
 }
 
+loadStaticScript('play_block_display_text.js');
 loadStaticScript('play_typewriter_engine.js');
 loadStaticScript('play_block_renderer.js');
 loadStaticScript('play_blocks_orchestrator.js');

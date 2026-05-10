@@ -23,6 +23,18 @@ def _accent_fold(s: str) -> str:
     return "".join(ch for ch in raw if unicodedata.category(ch) != "Mn").lower()
 
 
+def speaker_labels_match_accent_insensitive(a: str | None, b: str | None) -> bool:
+    """Public accent-insensitive equality for ``speaker_label`` (player-shell card dedupe, roster UX).
+
+    Empty labels do not match each other (avoid collapsing unrelated anonymous blocks).
+    """
+    la = str(a or "").strip()
+    lb = str(b or "").strip()
+    if not la or not lb:
+        return False
+    return _accent_fold(la) == _accent_fold(lb)
+
+
 def _consume_label_from(text: str, start: int, lab: str) -> int | None:
     """Return exclusive end index if ``text[start:]`` begins with ``lab`` (accent-insensitive)."""
     if start >= len(text) or not str(lab or "").strip():

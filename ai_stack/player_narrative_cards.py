@@ -16,6 +16,7 @@ from ai_stack.visible_narrative_contract import (
     _goc_visible_lane_text_fold,
     _is_name_only_actor_block,
     dedupe_goc_speaker_colon_stutter_visible,
+    speaker_labels_match_accent_insensitive,
     strip_duplicate_speaker_prefix,
 )
 
@@ -28,6 +29,91 @@ def _same_actor_lane(aid_a: str | None, aid_b: str | None) -> bool:
     ca = canonicalize_goc_actor_id(a) or a
     cb = canonicalize_goc_actor_id(b) or b
     return ca == cb
+
+
+def _card_actor_id_optional(card: dict[str, Any]) -> str | None:
+    s = str(card.get("actor_id") or "").strip()
+    return s or None
+
+
+def _story_cards_share_voice_for_redundancy(prev: dict[str, Any], curr: dict[str, Any]) -> bool:
+    """True when consecutive story cards may represent the same speaking voice (collapse guard)."""
+    prev_bt = str(prev.get("block_type") or prev.get("type") or "").strip().lower()
+    curr_bt = str(curr.get("block_type") or curr.get("type") or "").strip().lower()
+    pa = _card_actor_id_optional(prev)
+    ca = _card_actor_id_optional(curr)
+    if pa and ca and _same_actor_lane(pa, ca):
+        return True
+    plab = str(prev.get("speaker_label") or "").strip()
+    clab = str(curr.get("speaker_label") or "").strip()
+    if speaker_labels_match_accent_insensitive(plab, clab):
+        return True
+    if prev_bt.startswith("narrator") and curr_bt.startswith("narrator") and not pa and not ca:
+        return True
+    return False
+
+
+def _union_player_shell_semantic_spans(a: dict[str, Any], b: dict[str, Any]) -> tuple[int, int] | None:
+    sa = a.get("player_shell_semantic_span")
+    sb = b.get("player_shell_semantic_span")
+    bounds: list[int] = []
+    if isinstance(sa, tuple) and len(sa) == 2:
+        bounds.extend([int(sa[0]), int(sa[1])])
+    if isinstance(sb, tuple) and len(sb) == 2:
+        bounds.extend([int(sb[0]), int(sb[1])])
+    if len(bounds) >= 2:
+        return (min(bounds), max(bounds))
+    return None
+
+
+def _visible_display_for_story_redundancy(card: dict[str, Any]) -> str:
+    return str(card.get("player_display_text") or card.get("text") or "")
+
+
+def _collapse_consecutive_redundant_story_cards(
+    cards: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Merge/drop consecutive story-lane cards when display text is redundant (same-voice guard)."""
+    collapse_diag: dict[str, Any] = {
+        "consecutive_redundant_story_card_removed": 0,
+        "consecutive_story_card_replaced_by_expansion": 0,
+    }
+    kept: list[dict[str, Any]] = []
+    for curr in cards:
+        if not kept:
+            kept.append(curr)
+            continue
+        prev = kept[-1]
+        if str(prev.get("visible_lane") or "") != "story" or str(curr.get("visible_lane") or "") != "story":
+            kept.append(curr)
+            continue
+        if not _story_cards_share_voice_for_redundancy(prev, curr):
+            kept.append(curr)
+            continue
+        t_prev = _visible_display_for_story_redundancy(prev)
+        t_curr = _visible_display_for_story_redundancy(curr)
+        # Fall A first: when both near-duplicate checks can fire, prefer keeping the prior
+        # card if the next line is only a redundant tail (common for repeated actor_line).
+        # Fall A: next card redundant vs previous — drop `curr`, widen span on `prev`.
+        if _goc_npc_action_redundant_vs_running_visible(t_curr, t_prev):
+            merged = dict(prev)
+            us = _union_player_shell_semantic_spans(prev, curr)
+            if us is not None:
+                merged["player_shell_semantic_span"] = us
+            kept[-1] = merged
+            collapse_diag["consecutive_redundant_story_card_removed"] += 1
+            continue
+        # Fall B: previous card text already expressed in the next (keep expanded `curr`).
+        if _goc_npc_action_redundant_vs_running_visible(t_prev, t_curr):
+            nc = dict(curr)
+            us = _union_player_shell_semantic_spans(prev, curr)
+            if us is not None:
+                nc["player_shell_semantic_span"] = us
+            kept[-1] = nc
+            collapse_diag["consecutive_story_card_replaced_by_expansion"] += 1
+            continue
+        kept.append(curr)
+    return kept, collapse_diag
 
 
 def _combine_npc_story_display(
@@ -80,6 +166,10 @@ def build_player_facing_narrative_cards(
     Adjacent ``actor_action`` rows with the same ``actor_id`` as a preceding
     ``actor_line`` are folded into that line's card (one DOM node); folded sources
     are listed under ``player_shell_folded_semantic_indices`` for debugging only.
+
+    After the main pass, consecutive **story**-lane cards from the same voice may be
+    merged or dropped when display text is redundant (see
+    ``consecutive_redundant_story_card_removed``); player-lane cards are unchanged.
 
     Diagnostics include ``near_duplicate_actor_action_removed`` for drops detected via
     near-duplicate / token-overlap (not strict folded substring) against prior story text.
@@ -264,6 +354,8 @@ def build_player_facing_narrative_cards(
         out.append(nb)
         si += 1
 
+    out, collapse_diag = _collapse_consecutive_redundant_story_cards(out)
+    diag.update(collapse_diag)
     diag["player_card_count"] = len(out)
     return out, diag
 

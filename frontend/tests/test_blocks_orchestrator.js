@@ -36,6 +36,7 @@ describe('BlocksOrchestrator', () => {
       skipBlock: jest.fn(),
       revealAll: jest.fn(),
       reset: jest.fn(),
+      setOnDeliveryComplete: jest.fn(),
       getQueueState: jest.fn(() => ({
         current_block_id: null,
         queue_length: 0,
@@ -89,7 +90,12 @@ describe('BlocksOrchestrator', () => {
       );
     });
 
-    test('with typewriter_slice_start_index 0, keeps only the last block active', () => {
+    test('with typewriter_slice_start_index 0, sequences both blocks after completion callback', () => {
+      let onSliceComplete;
+      mockTypewriter.setOnDeliveryComplete.mockImplementation((cb) => {
+        onSliceComplete = cb;
+      });
+
       const response = {
         visible_scene_output: {
           typewriter_slice_start_index: 0,
@@ -102,12 +108,23 @@ describe('BlocksOrchestrator', () => {
 
       orchestrator.loadTurn(response);
 
+      expect(mockTypewriter.setOnDeliveryComplete).toHaveBeenCalled();
       expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
-      expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'block-2' }),
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: 'block-1', text: 'First' }),
       );
       const el = container.querySelector('[data-block-id="block-1"]');
-      expect(el.textContent).toBe('First');
+      expect(el.textContent).toBe('');
+
+      expect(typeof onSliceComplete).toBe('function');
+      onSliceComplete('block-1');
+
+      expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(2);
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: 'block-2', text: 'Second' }),
+      );
     });
 
     test('with typewriter_slice_start_index 1, prior block full text then types the rest', () => {
@@ -263,34 +280,12 @@ describe('BlocksOrchestrator', () => {
   });
 
   describe('skipCurrentBlock()', () => {
-    test('should skip current block and increment index', () => {
+    test('should skip current block and invoke skipBlock with active id', () => {
       mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-2' });
-      orchestrator.blocks = [{ id: 'block-1', text: 'First' }, { id: 'block-2', text: 'Second' }];
 
       orchestrator.skipCurrentBlock();
 
       expect(mockTypewriter.skipBlock).toHaveBeenCalledWith('block-2');
-      expect(orchestrator.currentBlockIndex).toBe(2);
-    });
-
-    test('should handle multiple skips in sequence', () => {
-      orchestrator.blocks = [
-        { id: 'block-1', text: 'First' },
-        { id: 'block-2', text: 'Second' },
-        { id: 'block-3', text: 'Third' },
-      ];
-
-      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-1' });
-      orchestrator.skipCurrentBlock();
-      expect(orchestrator.currentBlockIndex).toBe(3);
-
-      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-2' });
-      orchestrator.skipCurrentBlock();
-      expect(orchestrator.currentBlockIndex).toBe(3);
-
-      mockTypewriter.getQueueState.mockReturnValue({ current_block_id: 'block-3' });
-      orchestrator.skipCurrentBlock();
-      expect(orchestrator.currentBlockIndex).toBe(3);
     });
 
     test('should handle skip beyond blocks array', () => {
@@ -307,6 +302,25 @@ describe('BlocksOrchestrator', () => {
     test('should call typewriter revealAll', () => {
       orchestrator.revealAll();
       expect(mockTypewriter.revealAll).toHaveBeenCalled();
+    });
+
+    test('should clear slice queue after revealing pending slice blocks', () => {
+      orchestrator.loadTurn({
+        visible_scene_output: {
+          typewriter_slice_start_index: 0,
+          blocks: [
+            { id: 'a', block_type: 'narrator', text: 'First' },
+            { id: 'b', block_type: 'narrator', text: 'Second' },
+          ],
+        },
+      });
+      expect(orchestrator.sliceQueue.length).toBe(2);
+
+      orchestrator.revealAll();
+
+      expect(mockTypewriter.revealAll).toHaveBeenCalled();
+      expect(orchestrator.sliceQueue.length).toBe(0);
+      expect(orchestrator.currentSliceIndex).toBe(0);
     });
 
     test('should work with no blocks', () => {
@@ -405,8 +419,9 @@ describe('BlocksOrchestrator', () => {
     test('should not enqueue diagnostics blocks for typewriter', () => {
       orchestrator.loadTurn({
         visible_scene_output: {
+          typewriter_slice_start_index: 0,
           blocks: [
-            { id: 'b1', block_type: 'narrator_scene', text: 'Scene' },
+            { id: 'b1', block_type: 'narrator', text: 'Scene' },
             { id: 'b2', block_type: 'diagnostic_trace', text: 'debug payload' },
           ],
         },

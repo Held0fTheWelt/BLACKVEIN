@@ -173,10 +173,35 @@ describe('TypewriterEngine', () => {
     test('should ignore invalid blocks', () => {
       engine.startDelivery(null);
       engine.startDelivery({});
-      engine.startDelivery({ id: 'block-1' }); // No text
 
       const state = engine.getQueueState();
       expect(state.queue_length).toBe(0);
+    });
+
+    test('should animate player_display_text when text is absent', () => {
+      const blockEl = document.createElement('div');
+      blockEl.setAttribute('data-block-id', 'shell-1');
+      container.appendChild(blockEl);
+
+      const block = {
+        id: 'shell-1',
+        player_display_text: 'Only shell line',
+      };
+
+      engine.setConfig({ characters_per_second: 100 });
+      engine.startDelivery(block);
+
+      expect(engine.getQueueState().current_block_id).toBe('shell-1');
+      engine.clock.advanceBy(50);
+      expect(blockEl.textContent.length).toBeGreaterThan(0);
+    });
+
+    test('should invoke setOnDeliveryComplete when empty display resolves immediately', () => {
+      const done = jest.fn();
+      engine.setOnDeliveryComplete(done);
+      engine.startDelivery({ id: 'empty-1', text: '', player_display_text: null });
+      expect(done).toHaveBeenCalledWith('empty-1');
+      expect(engine.getQueueState().current_block_id).toBeNull();
     });
 
     test('should calculate duration based on character count and speed', () => {
@@ -388,6 +413,32 @@ describe('TypewriterEngine', () => {
       const state = engine.getQueueState();
       expect(state.queue_length).toBe(0);
       expect(state.current_block_id).toBeNull();
+    });
+
+    test('should clear onDeliveryComplete callback', () => {
+      const fn = jest.fn();
+      engine.setOnDeliveryComplete(fn);
+      engine.reset();
+      engine.startDelivery({ id: 'b', text: 'x' });
+      engine.clock.advanceBy(10000);
+      expect(fn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setOnDeliveryComplete()', () => {
+    test('fires when block completes naturally', () => {
+      const blockEl = document.createElement('div');
+      blockEl.setAttribute('data-block-id', 'b1');
+      container.appendChild(blockEl);
+
+      const done = jest.fn();
+      engine.setOnDeliveryComplete(done);
+      engine.setConfig({ characters_per_second: 10 });
+      engine.startDelivery({ id: 'b1', text: 'Done' });
+
+      engine.clock.advanceBy(500);
+
+      expect(done).toHaveBeenCalledWith('b1');
     });
   });
 

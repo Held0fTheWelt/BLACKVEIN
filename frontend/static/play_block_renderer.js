@@ -62,9 +62,11 @@ class BlockRenderer {
       div.textContent = '';
     } else {
       const display =
-        block.player_display_text !== undefined && block.player_display_text !== null
-          ? String(block.player_display_text)
-          : block.text || '';
+        typeof blockDisplayTextForShell === 'function'
+          ? String(blockDisplayTextForShell(block) ?? '')
+          : block.player_display_text != null
+            ? String(block.player_display_text)
+            : String(block.text ?? '');
       div.textContent = display;
     }
 

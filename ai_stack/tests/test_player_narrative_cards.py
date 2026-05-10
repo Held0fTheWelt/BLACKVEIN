@@ -169,3 +169,119 @@ def test_typewriter_index_maps_across_fold() -> None:
     ]
     assert player_shell_typewriter_start_index(cards, prior_semantic_index=1, used_cumulative_story_blocks=True) == 1
     assert player_shell_typewriter_start_index(cards, prior_semantic_index=2, used_cumulative_story_blocks=True) == 1
+
+
+def _long_goc_dup_tail_pair() -> tuple[str, str]:
+    """Long dialogue plus trailing clause duplicated as a second block (redundancy path)."""
+    long_line = (
+        "Actor A: „Hallo.“ Actor A beobachtet die Gruppe und hält inne, während die Spannung steigt. "
+        "Dieser Satz ist absichtlich lang genug für Token- und Fold-Regeln."
+    )
+    dup_tail = (
+        "Actor A beobachtet die Gruppe und hält inne, während die Spannung steigt. "
+        "Dieser Satz ist absichtlich lang genug für Token- und Fold-Regeln."
+    )
+    return long_line, dup_tail
+
+
+def test_consecutive_actor_line_same_actor_dedupes_redundant_second() -> None:
+    long_line, dup_tail = _long_goc_dup_tail_pair()
+    blocks = [
+        {
+            "id": "l1",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": long_line,
+        },
+        {
+            "id": "l2",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": dup_tail,
+        },
+    ]
+    out, diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 1
+    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+
+
+def test_consecutive_actor_line_different_actors_no_collapse() -> None:
+    long_line, dup_tail = _long_goc_dup_tail_pair()
+    dup_b = dup_tail.replace("Actor A", "Actor B")
+    blocks = [
+        {
+            "id": "l1",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": long_line,
+        },
+        {
+            "id": "l2",
+            "block_type": "actor_line",
+            "actor_id": "actor_b_npc",
+            "speaker_label": "Actor B",
+            "text": dup_b,
+        },
+    ]
+    out, _diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 2
+
+
+def test_consecutive_actor_line_accent_matched_speaker_labels_dedupe() -> None:
+    long_line = (
+        "Véronique: „Bonjour.“ Véronique dreht sich zur Tür und wartet geduldig auf die nächste Replik. "
+        "Zusätzlicher Fülltext damit Substring- und Tokenregeln zuverlässig greifen können."
+    )
+    dup_tail = (
+        "Véronique dreht sich zur Tür und wartet geduldig auf die nächste Replik. "
+        "Zusätzlicher Fülltext damit Substring- und Tokenregeln zuverlässig greifen können."
+    )
+    blocks = [
+        {
+            "id": "l1",
+            "block_type": "actor_line",
+            "speaker_label": "Véronique",
+            "text": long_line,
+        },
+        {
+            "id": "l2",
+            "block_type": "actor_line",
+            "speaker_label": "Veronique",
+            "text": dup_tail,
+        },
+    ]
+    out, diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 1
+    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+
+
+def test_typewriter_index_after_consecutive_story_collapse() -> None:
+    long_line, dup_tail = _long_goc_dup_tail_pair()
+    blocks = [
+        {"id": "n0", "block_type": "narrator", "text": "Intro."},
+        {
+            "id": "l1",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": long_line,
+        },
+        {
+            "id": "l2",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": dup_tail,
+        },
+    ]
+    out, diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 2
+    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+    span = out[1].get("player_shell_semantic_span")
+    assert isinstance(span, tuple) and span == (1, 2)
+    i1 = player_shell_typewriter_start_index(out, prior_semantic_index=1, used_cumulative_story_blocks=True)
+    i2 = player_shell_typewriter_start_index(out, prior_semantic_index=2, used_cumulative_story_blocks=True)
+    assert i1 == i2 == 1

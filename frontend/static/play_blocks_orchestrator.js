@@ -3,7 +3,20 @@
  *
  * Responsibility: Coordinate BlockRenderer, TypewriterEngine, and PlayControls.
  * Manages blocks array, handles HTTP loads, WebSocket narrator streaming, and user controls.
+ *
+ * HTTP loadTurn: sliceQueue + currentSliceIndex drive sequential typewriter (ADR-0034 §7).
+ * Display text: blockDisplayTextForShell everywhere (shared with renderer).
  */
+
+function _shellDisplayText(block) {
+  if (typeof blockDisplayTextForShell === 'function') {
+    return String(blockDisplayTextForShell(block) ?? '');
+  }
+  if (!block) {
+    return '';
+  }
+  return block.player_display_text != null ? String(block.player_display_text) : String(block.text ?? '');
+}
 
 class BlocksOrchestrator {
   constructor(renderer, typewriter, controls = null) {
@@ -15,9 +28,14 @@ class BlocksOrchestrator {
     this.typewriter = typewriter;
     this.controls = controls;
 
-    this.blocks = []; // All blocks ever rendered
-    this.currentBlockIndex = 0; // Which block is being typed
+    this.blocks = [];
+    this.currentBlockIndex = 0;
     this.accessibility_mode = false;
+
+    /** @type {object[]} Blocks in the animated slice (indices >= typewriter_slice_start_index), non-diagnostics only */
+    this.sliceQueue = [];
+    /** @type {number} Index into sliceQueue for the block currently being typed */
+    this.currentSliceIndex = 0;
   }
 
   _isDiagnosticsBlock(block) {
@@ -30,11 +48,30 @@ class BlocksOrchestrator {
       el.textContent = '';
       return;
     }
-    const display =
-      block.player_display_text !== undefined && block.player_display_text !== null
-        ? String(block.player_display_text)
-        : block.text || '';
-    el.textContent = display;
+    el.textContent = _shellDisplayText(block);
+  }
+
+  _detachSliceDelivery() {
+    if (this.typewriter && typeof this.typewriter.setOnDeliveryComplete === 'function') {
+      this.typewriter.setOnDeliveryComplete(null);
+    }
+  }
+
+  _onSliceDeliveryComplete() {
+    this.currentSliceIndex++;
+    if (this.currentSliceIndex < this.sliceQueue.length) {
+      const next = this.sliceQueue[this.currentSliceIndex];
+      const el = this.renderer.getBlockElement(next.id);
+      if (el) {
+        el.textContent = '';
+      }
+      this.typewriter.startDelivery(next);
+    } else {
+      this._detachSliceDelivery();
+      this.sliceQueue = [];
+      this.currentSliceIndex = 0;
+    }
+    this.currentBlockIndex = this.blocks.length ? this.blocks.length - 1 : 0;
   }
 
   /**
@@ -50,7 +87,6 @@ class BlocksOrchestrator {
     const vso = response.visible_scene_output;
     const blocks = vso.blocks || [];
 
-    /** @type {number} Index into blocks where sequential typewriter begins (ADR-0034 §7). */
     let twStart;
     const rawStart = vso.typewriter_slice_start_index;
     if (typeof rawStart === 'number' && !Number.isNaN(rawStart)) {
@@ -61,26 +97,22 @@ class BlocksOrchestrator {
       twStart = 0;
     }
 
-    // Clear previous blocks
     this.renderer.clear();
     this.typewriter.reset();
     this.blocks = [];
-    this.currentBlockIndex = 0;
+    this.sliceQueue = [];
+    this.currentSliceIndex = 0;
 
-    // Single-active contract: at most one active typewriter block (latest unresolved block).
-    let activeIndex = -1;
-    if (blocks.length > 0 && twStart < blocks.length) {
-      for (let i = blocks.length - 1; i >= 0; i--) {
-        if (!this._isDiagnosticsBlock(blocks[i])) {
-          activeIndex = i;
-          break;
-        }
+    const sliceQueue = [];
+    for (let i = 0; i < blocks.length; i++) {
+      if (i >= twStart && !this._isDiagnosticsBlock(blocks[i])) {
+        sliceQueue.push(blocks[i]);
       }
     }
+    this.sliceQueue = sliceQueue;
 
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
-      const transcriptStable = i !== activeIndex;
       this.blocks.push(block);
       this.renderer.render(block);
 
@@ -88,41 +120,60 @@ class BlocksOrchestrator {
         continue;
       }
 
-      if (!this.accessibility_mode) {
-        if (transcriptStable) {
-          const el = this.renderer.getBlockElement(block.id);
-          if (el) {
-            this._fillBlockElement(el, block);
-          }
-        } else {
-          this.typewriter.startDelivery(block);
-        }
-      } else {
-        const el = this.renderer.getBlockElement(block.id);
-        if (el) {
-          this._fillBlockElement(el, block);
-        }
+      const el = this.renderer.getBlockElement(block.id);
+      if (!el) {
+        continue;
+      }
+
+      if (this.accessibility_mode) {
+        this._fillBlockElement(el, block);
+        continue;
+      }
+
+      const inSlice = i >= twStart && !this._isDiagnosticsBlock(block);
+      const stable = i < twStart && !this._isDiagnosticsBlock(block);
+
+      if (stable) {
+        this._fillBlockElement(el, block);
+      } else if (inSlice) {
+        el.textContent = '';
       }
     }
-    this.currentBlockIndex = activeIndex >= 0 ? activeIndex : this.blocks.length;
+
+    if (!this.accessibility_mode && this.sliceQueue.length > 0) {
+      this.currentSliceIndex = 0;
+      if (typeof this.typewriter.setOnDeliveryComplete === 'function') {
+        this.typewriter.setOnDeliveryComplete(() => this._onSliceDeliveryComplete());
+      }
+      this.typewriter.startDelivery(this.sliceQueue[0]);
+    }
+
+    if (this.accessibility_mode) {
+      this.sliceQueue = [];
+      this.currentSliceIndex = 0;
+    }
+
+    this.currentBlockIndex = this.blocks.length ? this.blocks.length - 1 : 0;
   }
 
   /**
    * Append narrator block from WebSocket streaming
    *
-   * Each chunk is one block; it becomes the active typewriter slice (ADR-0034 §5–§7).
+   * Each chunk is one block; it becomes the active typewriter slice (ADR-0034 §5–§8).
    *
    * @param {Object} block - Scene block from narrator stream
    */
   appendNarratorBlock(block) {
-    if (!block || !block.id || !block.text) {
+    const display = _shellDisplayText(block);
+    if (!block || !block.id || String(display || '').length === 0) {
       return;
     }
 
-    // Add to blocks array
-    this.blocks.push(block);
+    this._detachSliceDelivery();
+    this.sliceQueue = [];
+    this.currentSliceIndex = 0;
 
-    // Render to DOM
+    this.blocks.push(block);
     this.renderer.render(block);
 
     if (this._isDiagnosticsBlock(block)) {
@@ -130,13 +181,8 @@ class BlocksOrchestrator {
       return;
     }
 
-    // Finish any in-progress delivery so only the new block animates.
     if (!this.accessibility_mode) {
       this.typewriter.revealAll();
-    }
-
-    // Start typewriter delivery (unless accessibility mode)
-    if (!this.accessibility_mode) {
       this.typewriter.startDelivery(block);
       this.currentBlockIndex = this.blocks.length - 1;
     } else {
@@ -149,7 +195,7 @@ class BlocksOrchestrator {
   }
 
   /**
-   * Skip current block (user clicked "Skip")
+   * Skip current block — reveal full text, then continue slice queue if any.
    */
   skipCurrentBlock() {
     const tw = this.typewriter.getQueueState ? this.typewriter.getQueueState() : null;
@@ -158,26 +204,40 @@ class BlocksOrchestrator {
       return;
     }
     this.typewriter.skipBlock(activeId);
-    this.currentBlockIndex = this.blocks.length;
   }
 
   /**
-   * Reveal all blocks immediately (user clicked "Reveal All")
+   * Reveal all remaining slice blocks and cancel sequential delivery.
    */
   revealAll() {
+    const startIdx = this.currentSliceIndex;
+    const pending = this.sliceQueue.slice();
+
+    this._detachSliceDelivery();
     this.typewriter.revealAll();
+
+    if (pending.length > 0) {
+      for (let k = startIdx; k < pending.length; k++) {
+        const b = pending[k];
+        const el = this.renderer.getBlockElement(b.id);
+        if (el) {
+          this._fillBlockElement(el, b);
+        }
+      }
+    }
+
+    this.sliceQueue = [];
+    this.currentSliceIndex = 0;
   }
 
-  /**
-   * Toggle accessibility mode
-   *
-   * @param {boolean} enabled - Enable or disable accessibility mode
-   */
   setAccessibilityMode(enabled) {
     this.accessibility_mode = !!enabled;
 
     if (enabled) {
-      // Show all blocks immediately
+      this._detachSliceDelivery();
+      this.sliceQueue = [];
+      this.currentSliceIndex = 0;
+      this.typewriter.revealAll();
       for (let block of this.blocks) {
         const el = this.renderer.getBlockElement(block.id);
         if (el) {
@@ -187,20 +247,18 @@ class BlocksOrchestrator {
     }
   }
 
-  /**
-   * Get current state (for diagnostics)
-   */
   getState() {
     return {
       blocks_count: this.blocks.length,
       current_block_index: this.currentBlockIndex,
       accessibility_mode: this.accessibility_mode,
       typewriter_state: this.typewriter.getQueueState(),
+      slice_queue_length: this.sliceQueue.length,
+      current_slice_index: this.currentSliceIndex,
     };
   }
 }
 
-// Export for use
 if (typeof window !== 'undefined') {
   window.BlocksOrchestrator = BlocksOrchestrator;
 }
