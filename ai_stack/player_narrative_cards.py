@@ -124,17 +124,27 @@ def _allow_narrator_adjacent_tail_redundancy(
     return True
 
 
+def _is_story_lane(card: dict[str, Any]) -> bool:
+    return str(card.get("visible_lane") or "").strip().lower() == "story"
+
+
 def _collapse_consecutive_redundant_story_cards(
     cards: list[dict[str, Any]],
     *,
     allow_narrator_adjacent_actor_line_dedupe: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """Merge/drop consecutive story-lane cards when display text is redundant (same-voice guard)."""
+    """Collapse direct redundant story cards (presentation-only, v1 guarded rules)."""
     collapse_diag: dict[str, Any] = {
+        # New contract keys (DUPLICATE-STORY-CARD-DEDUP-01)
+        "consecutive_story_card_removed": 0,
+        "consecutive_story_card_span_extended": 0,
+        "narrator_adjacent_redundant_actor_action_removed": 0,
+        "same_actor_redundant_story_card_removed": 0,
+        "player_lane_collapse_skipped": 0,
+        # Backward compatibility keys (kept for existing dashboards/tests)
         "consecutive_redundant_story_card_removed": 0,
         "consecutive_story_card_replaced_by_expansion": 0,
         "narrator_adjacent_redundant_story_card_removed": 0,
-        "narrator_adjacent_redundant_actor_action_removed": 0,
         "narrator_adjacent_redundant_actor_line_removed": 0,
     }
     kept: list[dict[str, Any]] = []
@@ -143,54 +153,76 @@ def _collapse_consecutive_redundant_story_cards(
             kept.append(curr)
             continue
         prev = kept[-1]
-        if str(prev.get("visible_lane") or "") != "story" or str(curr.get("visible_lane") or "") != "story":
+        prev_lane = str(prev.get("visible_lane") or "").strip().lower()
+        curr_lane = str(curr.get("visible_lane") or "").strip().lower()
+        if prev_lane == "player" or curr_lane == "player":
+            collapse_diag["player_lane_collapse_skipped"] += 1
             kept.append(curr)
             continue
+        if not (_is_story_lane(prev) and _is_story_lane(curr)):
+            kept.append(curr)
+            continue
+
+        prev_bt = str(prev.get("block_type") or prev.get("type") or "").strip().lower()
         curr_bt = str(curr.get("block_type") or curr.get("type") or "").strip().lower()
-        if (
-            not _story_cards_share_voice_for_redundancy(prev, curr)
-            and _allow_narrator_adjacent_tail_redundancy(
-                prev,
-                curr,
-                allow_actor_line=allow_narrator_adjacent_actor_line_dedupe,
-            )
-        ):
-            merged = dict(prev)
-            us = _union_player_shell_semantic_spans(prev, curr)
-            if us is not None:
-                merged["player_shell_semantic_span"] = us
-            kept[-1] = merged
-            collapse_diag["narrator_adjacent_redundant_story_card_removed"] += 1
-            if curr_bt == "actor_action":
-                collapse_diag["narrator_adjacent_redundant_actor_action_removed"] += 1
-            elif curr_bt == "actor_line":
-                collapse_diag["narrator_adjacent_redundant_actor_line_removed"] += 1
-            continue
-        if not _story_cards_share_voice_for_redundancy(prev, curr):
-            kept.append(curr)
-            continue
+        prev_actor = _card_actor_id_optional(prev)
+        curr_actor = _card_actor_id_optional(curr)
         t_prev = _visible_display_for_story_redundancy(prev)
         t_curr = _visible_display_for_story_redundancy(curr)
-        # Fall A first: when both near-duplicate checks can fire, prefer keeping the prior
-        # card if the next line is only a redundant tail (common for repeated actor_line).
-        # Fall A: next card redundant vs previous — drop `curr`, widen span on `prev`.
-        if _goc_npc_action_redundant_vs_running_visible(t_curr, t_prev):
+        remove_curr = False
+
+        # Rule A: same actor + redundant/near-redundant direct successor.
+        same_actor = bool(prev_actor and curr_actor and _same_actor_lane(prev_actor, curr_actor))
+        if same_actor and curr_bt in {"actor_action", "actor_line"}:
+            redundant = _goc_npc_action_redundant_vs_running_visible(t_curr, t_prev)
+            if redundant:
+                # Never drop real new quoted speech unless quote itself is covered.
+                if curr_bt == "actor_line":
+                    if allow_narrator_adjacent_actor_line_dedupe and not _actor_line_contains_new_quote_value(
+                        narrator_text=t_prev,
+                        actor_line_text=t_curr,
+                    ):
+                        remove_curr = True
+                    else:
+                        remove_curr = False
+                else:
+                    remove_curr = True
+                if remove_curr:
+                    collapse_diag["same_actor_redundant_story_card_removed"] += 1
+                    if curr_bt == "actor_line":
+                        collapse_diag["narrator_adjacent_redundant_actor_line_removed"] += 1
+
+        # Rule B: narrator -> actor_action (v1) and optional narrator -> actor_line (guarded).
+        if (
+            not remove_curr
+            and prev_bt.startswith("narrator")
+            and curr_bt in {"actor_action", "actor_line"}
+            and _goc_npc_action_redundant_vs_running_visible(t_curr, t_prev)
+        ):
+            if curr_bt == "actor_line":
+                if allow_narrator_adjacent_actor_line_dedupe and not _actor_line_contains_new_quote_value(
+                    narrator_text=t_prev,
+                    actor_line_text=t_curr,
+                ):
+                    remove_curr = True
+                    collapse_diag["narrator_adjacent_redundant_actor_line_removed"] += 1
+            else:
+                remove_curr = True
+                collapse_diag["narrator_adjacent_redundant_actor_action_removed"] += 1
+            if remove_curr:
+                collapse_diag["narrator_adjacent_redundant_story_card_removed"] += 1
+
+        if remove_curr:
             merged = dict(prev)
             us = _union_player_shell_semantic_spans(prev, curr)
             if us is not None:
                 merged["player_shell_semantic_span"] = us
+                collapse_diag["consecutive_story_card_span_extended"] += 1
             kept[-1] = merged
+            collapse_diag["consecutive_story_card_removed"] += 1
             collapse_diag["consecutive_redundant_story_card_removed"] += 1
             continue
-        # Fall B: previous card text already expressed in the next (keep expanded `curr`).
-        if _goc_npc_action_redundant_vs_running_visible(t_prev, t_curr):
-            nc = dict(curr)
-            us = _union_player_shell_semantic_spans(prev, curr)
-            if us is not None:
-                nc["player_shell_semantic_span"] = us
-            kept[-1] = nc
-            collapse_diag["consecutive_story_card_replaced_by_expansion"] += 1
-            continue
+
         kept.append(curr)
     return kept, collapse_diag
 

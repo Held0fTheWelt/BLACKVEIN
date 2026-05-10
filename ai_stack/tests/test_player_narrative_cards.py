@@ -22,14 +22,14 @@ def test_fold_adjacent_actor_action_into_actor_line_same_actor() -> None:
             "block_type": "actor_action",
             "actor_id": "actor_a_npc",
             "speaker_label": "Actor A",
-            "text": "Actor A nickt freundlich.",
+            "text": "Actor A nods politely.",
         },
     ]
     out, diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 1
     assert out[0]["block_type"] == "actor_line"
     assert out[0]["card_style"] == "npc_story"
-    assert "nickt" in (out[0].get("player_display_text") or "")
+    assert "nods" in (out[0].get("player_display_text") or "")
     assert "Hello" in (out[0].get("player_display_text") or "")
     assert diag["actor_action_folded_into_actor_card"] == 1
 
@@ -41,7 +41,7 @@ def test_standalone_actor_action_is_npc_story_card() -> None:
             "block_type": "actor_action",
             "actor_id": "actor_b_npc",
             "speaker_label": "Actor B",
-            "text": "Actor B sieht sich um.",
+            "text": "Actor B looks around.",
         },
     ]
     out, _diag = build_player_facing_narrative_cards(blocks)
@@ -153,7 +153,7 @@ def test_colon_stutter_stripped_on_display() -> None:
             "block_type": "actor_line",
             "actor_id": "actor_a_npc",
             "speaker_label": "Actor A",
-            "text": "Actor A: Actor A testet etwas.",
+            "text": "Actor A: Actor A tests something.",
         },
     ]
     out, _diag = build_player_facing_narrative_cards(blocks)
@@ -201,9 +201,13 @@ def test_consecutive_actor_line_same_actor_dedupes_redundant_second() -> None:
             "text": dup_tail,
         },
     ]
-    out, diag = build_player_facing_narrative_cards(blocks)
+    out, diag = build_player_facing_narrative_cards(
+        blocks,
+        policy={"narrator_adjacent_actor_line_dedupe": True},
+    )
     assert len(out) == 1
-    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+    assert diag.get("same_actor_redundant_story_card_removed", 0) >= 1
+    assert diag.get("consecutive_story_card_removed", 0) >= 1
 
 
 def test_consecutive_actor_line_different_actors_no_collapse() -> None:
@@ -253,8 +257,8 @@ def test_consecutive_actor_line_accent_matched_speaker_labels_dedupe() -> None:
         },
     ]
     out, diag = build_player_facing_narrative_cards(blocks)
-    assert len(out) == 1
-    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+    assert len(out) == 2
+    assert diag.get("same_actor_redundant_story_card_removed", 0) == 0
 
 
 def test_typewriter_index_after_consecutive_story_collapse() -> None:
@@ -276,9 +280,13 @@ def test_typewriter_index_after_consecutive_story_collapse() -> None:
             "text": dup_tail,
         },
     ]
-    out, diag = build_player_facing_narrative_cards(blocks)
+    out, diag = build_player_facing_narrative_cards(
+        blocks,
+        policy={"narrator_adjacent_actor_line_dedupe": True},
+    )
     assert len(out) == 2
-    assert diag.get("consecutive_redundant_story_card_removed", 0) >= 1
+    assert diag.get("consecutive_story_card_removed", 0) >= 1
+    assert diag.get("consecutive_story_card_span_extended", 0) >= 1
     span = out[1].get("player_shell_semantic_span")
     assert isinstance(span, tuple) and span == (1, 2)
     i1 = player_shell_typewriter_start_index(out, prior_semantic_index=1, used_cumulative_story_blocks=True)
@@ -304,7 +312,7 @@ def test_narrator_adjacent_redundant_actor_action_removed() -> None:
     out, diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 1
     assert out[0]["block_type"] == "narrator"
-    assert diag.get("narrator_adjacent_redundant_story_card_removed", 0) >= 1
+    assert diag.get("consecutive_story_card_removed", 0) >= 1
     assert diag.get("narrator_adjacent_redundant_actor_action_removed", 0) >= 1
 
 
@@ -375,7 +383,7 @@ def test_narrator_adjacent_two_redundant_npc_cards_both_removed() -> None:
     ]
     out, diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 1
-    assert diag.get("narrator_adjacent_redundant_story_card_removed", 0) >= 2
+    assert diag.get("consecutive_story_card_removed", 0) >= 2
     assert diag.get("narrator_adjacent_redundant_actor_action_removed", 0) >= 2
 
 
@@ -397,7 +405,8 @@ def test_player_lane_between_narrator_and_npc_blocks_cross_dedupe() -> None:
     ]
     out, diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 3
-    assert diag.get("narrator_adjacent_redundant_story_card_removed", 0) == 0
+    assert diag.get("player_lane_collapse_skipped", 0) >= 1
+    assert diag.get("consecutive_story_card_removed", 0) == 0
 
 
 def test_narrator_adjacent_non_redundant_actor_action_kept() -> None:
@@ -417,4 +426,4 @@ def test_narrator_adjacent_non_redundant_actor_action_kept() -> None:
     ]
     out, diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 2
-    assert diag.get("narrator_adjacent_redundant_story_card_removed", 0) == 0
+    assert diag.get("consecutive_story_card_removed", 0) == 0
