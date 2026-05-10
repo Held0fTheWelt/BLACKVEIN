@@ -51,6 +51,25 @@ class BlocksOrchestrator {
     el.textContent = _shellDisplayText(block);
   }
 
+  /**
+   * Ensure a block has a DOM node (render once). Used for deferred slice cards,
+   * revealAll, and accessibility — keeps mount vs typewriter delivery ordered.
+   *
+   * @param {object} block
+   * @returns {HTMLElement|null}
+   */
+  _mountBlockIfNeeded(block) {
+    if (!block || !block.id) {
+      return null;
+    }
+    let el = this.renderer.getBlockElement(block.id);
+    if (!el) {
+      this.renderer.render(block);
+      el = this.renderer.getBlockElement(block.id);
+    }
+    return el;
+  }
+
   _detachSliceDelivery() {
     if (this.typewriter && typeof this.typewriter.setOnDeliveryComplete === 'function') {
       this.typewriter.setOnDeliveryComplete(null);
@@ -61,9 +80,9 @@ class BlocksOrchestrator {
     this.currentSliceIndex++;
     if (this.currentSliceIndex < this.sliceQueue.length) {
       const next = this.sliceQueue[this.currentSliceIndex];
-      const el = this.renderer.getBlockElement(next.id);
+      const el = this._mountBlockIfNeeded(next);
       if (el) {
-        el.textContent = '';
+        this._fillBlockElement(el, null);
       }
       this.typewriter.startDelivery(next);
     } else {
@@ -114,29 +133,39 @@ class BlocksOrchestrator {
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
       this.blocks.push(block);
-      this.renderer.render(block);
 
       if (this._isDiagnosticsBlock(block)) {
-        continue;
-      }
-
-      const el = this.renderer.getBlockElement(block.id);
-      if (!el) {
+        this.renderer.render(block);
         continue;
       }
 
       if (this.accessibility_mode) {
-        this._fillBlockElement(el, block);
+        this.renderer.render(block);
+        const el = this._mountBlockIfNeeded(block);
+        if (el) {
+          this._fillBlockElement(el, block);
+        }
         continue;
       }
 
-      const inSlice = i >= twStart && !this._isDiagnosticsBlock(block);
-      const stable = i < twStart && !this._isDiagnosticsBlock(block);
-
+      const stable = i < twStart;
       if (stable) {
-        this._fillBlockElement(el, block);
-      } else if (inSlice) {
-        el.textContent = '';
+        this.renderer.render(block);
+        const el = this._mountBlockIfNeeded(block);
+        if (el) {
+          this._fillBlockElement(el, block);
+        }
+        continue;
+      }
+
+      // Animated slice (i >= twStart), non-diagnostics: mount first card only; rest deferred.
+      const idxInSliceQueue = sliceQueue.findIndex((b) => b.id === block.id);
+      if (idxInSliceQueue === 0) {
+        this.renderer.render(block);
+        const el = this._mountBlockIfNeeded(block);
+        if (el) {
+          this._fillBlockElement(el, null);
+        }
       }
     }
 
@@ -219,7 +248,7 @@ class BlocksOrchestrator {
     if (pending.length > 0) {
       for (let k = startIdx; k < pending.length; k++) {
         const b = pending[k];
-        const el = this.renderer.getBlockElement(b.id);
+        const el = this._mountBlockIfNeeded(b);
         if (el) {
           this._fillBlockElement(el, b);
         }
@@ -239,7 +268,7 @@ class BlocksOrchestrator {
       this.currentSliceIndex = 0;
       this.typewriter.revealAll();
       for (let block of this.blocks) {
-        const el = this.renderer.getBlockElement(block.id);
+        const el = this._mountBlockIfNeeded(block);
         if (el) {
           this._fillBlockElement(el, block);
         }

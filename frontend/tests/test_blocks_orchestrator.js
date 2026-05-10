@@ -83,6 +83,7 @@ describe('BlocksOrchestrator', () => {
       orchestrator.loadTurn(response);
 
       expect(orchestrator.blocks).toHaveLength(2);
+      // Default twStart = last index: stable prefix + first slice card → both mounted.
       expect(mockRenderer.render).toHaveBeenCalledTimes(2);
       expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
       expect(mockTypewriter.startDelivery).toHaveBeenCalledWith(
@@ -109,6 +110,8 @@ describe('BlocksOrchestrator', () => {
       orchestrator.loadTurn(response);
 
       expect(mockTypewriter.setOnDeliveryComplete).toHaveBeenCalled();
+      expect(mockRenderer.render).toHaveBeenCalledTimes(1);
+      expect(container.querySelectorAll('[data-block-id]').length).toBe(1);
       expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(1);
       expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
         1,
@@ -120,6 +123,8 @@ describe('BlocksOrchestrator', () => {
       expect(typeof onSliceComplete).toBe('function');
       onSliceComplete('block-1');
 
+      expect(mockRenderer.render).toHaveBeenCalledTimes(2);
+      expect(container.querySelectorAll('[data-block-id]').length).toBe(2);
       expect(mockTypewriter.startDelivery).toHaveBeenCalledTimes(2);
       expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
         2,
@@ -146,6 +151,85 @@ describe('BlocksOrchestrator', () => {
       );
       const el = container.querySelector('[data-block-id="block-1"]');
       expect(el.textContent).toBe('Prior');
+      expect(mockRenderer.render).toHaveBeenCalledTimes(2);
+      expect(container.querySelector('[data-block-id="block-2"]')).not.toBeNull();
+    });
+
+    test('with typewriter_slice_start_index 1, defers third and later slice cards until prior delivery completes', () => {
+      let onSliceComplete;
+      mockTypewriter.setOnDeliveryComplete.mockImplementation((cb) => {
+        onSliceComplete = cb;
+      });
+
+      const response = {
+        visible_scene_output: {
+          typewriter_slice_start_index: 1,
+          blocks: [
+            { id: 'block-1', block_type: 'narrator', text: 'Stable' },
+            { id: 'block-2', block_type: 'actor_line', text: 'SliceA' },
+            { id: 'block-3', block_type: 'narrator', text: 'SliceB' },
+          ],
+        },
+      };
+
+      orchestrator.loadTurn(response);
+
+      expect(mockRenderer.render).toHaveBeenCalledTimes(2);
+      expect(container.querySelector('[data-block-id="block-1"]')).not.toBeNull();
+      expect(container.querySelector('[data-block-id="block-2"]')).not.toBeNull();
+      expect(container.querySelector('[data-block-id="block-3"]')).toBeNull();
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: 'block-2', text: 'SliceA' }),
+      );
+
+      onSliceComplete('block-2');
+      expect(mockRenderer.render).toHaveBeenCalledTimes(3);
+      expect(container.querySelector('[data-block-id="block-3"]')).not.toBeNull();
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: 'block-3', text: 'SliceB' }),
+      );
+    });
+
+    test('with typewriter_slice_start_index 0, typing uses player_display_text when set', () => {
+      let onSliceComplete;
+      mockTypewriter.setOnDeliveryComplete.mockImplementation((cb) => {
+        onSliceComplete = cb;
+      });
+
+      const response = {
+        visible_scene_output: {
+          typewriter_slice_start_index: 0,
+          blocks: [
+            {
+              id: 'b1',
+              block_type: 'narrator',
+              player_display_text: 'Shell one',
+              text: 'ignored',
+            },
+            {
+              id: 'b2',
+              block_type: 'actor_line',
+              player_display_text: 'Shell two',
+              text: 'ignored2',
+            },
+          ],
+        },
+      };
+
+      orchestrator.loadTurn(response);
+
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ id: 'b1', player_display_text: 'Shell one' }),
+      );
+
+      onSliceComplete('b1');
+      expect(mockTypewriter.startDelivery).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ id: 'b2', player_display_text: 'Shell two' }),
+      );
     });
 
     test('should clear previous blocks before loading', () => {
@@ -323,6 +407,30 @@ describe('BlocksOrchestrator', () => {
       expect(orchestrator.currentSliceIndex).toBe(0);
     });
 
+    test('revealAll mounts deferred slice blocks and fills full text', () => {
+      orchestrator.loadTurn({
+        visible_scene_output: {
+          typewriter_slice_start_index: 0,
+          blocks: [
+            { id: 'a', block_type: 'narrator', text: 'First' },
+            { id: 'b', block_type: 'narrator', text: 'Second' },
+          ],
+        },
+      });
+
+      expect(mockRenderer.render).toHaveBeenCalledTimes(1);
+      expect(container.querySelector('[data-block-id="b"]')).toBeNull();
+
+      orchestrator.revealAll();
+
+      expect(mockRenderer.render).toHaveBeenCalledTimes(2);
+      const elB = container.querySelector('[data-block-id="b"]');
+      expect(elB).not.toBeNull();
+      expect(elB.textContent).toBe('Second');
+      const elA = container.querySelector('[data-block-id="a"]');
+      expect(elA.textContent).toBe('First');
+    });
+
     test('should work with no blocks', () => {
       expect(() => orchestrator.revealAll()).not.toThrow();
     });
@@ -355,6 +463,28 @@ describe('BlocksOrchestrator', () => {
 
       expect(el1.textContent).toBe('First');
       expect(el2.textContent).toBe('Second');
+    });
+
+    test('when enabled after deferred loadTurn, mounts all blocks and fills full transcript', () => {
+      orchestrator.loadTurn({
+        visible_scene_output: {
+          typewriter_slice_start_index: 0,
+          blocks: [
+            { id: 'block-1', block_type: 'narrator', text: 'First' },
+            { id: 'block-2', block_type: 'actor_line', text: 'Second' },
+          ],
+        },
+      });
+
+      expect(mockRenderer.render).toHaveBeenCalledTimes(1);
+      expect(orchestrator.blocks).toHaveLength(2);
+
+      orchestrator.setAccessibilityMode(true);
+
+      expect(mockRenderer.render).toHaveBeenCalledTimes(2);
+      expect(container.querySelectorAll('[data-block-id]').length).toBe(2);
+      expect(container.querySelector('[data-block-id="block-1"]').textContent).toBe('First');
+      expect(container.querySelector('[data-block-id="block-2"]').textContent).toBe('Second');
     });
 
     test('should coerce truthy/falsy values', () => {
@@ -398,6 +528,7 @@ describe('BlocksOrchestrator', () => {
 
       const response = {
         visible_scene_output: {
+          typewriter_slice_start_index: 0,
           blocks: [
             { id: 'b1', block_type: 'narrator', text: 'First' },
             { id: 'b2', block_type: 'actor_line', text: 'Second' },
@@ -407,9 +538,8 @@ describe('BlocksOrchestrator', () => {
 
       orch.loadTurn(response);
 
-      expect(realContainer.children.length).toBe(2);
+      expect(realContainer.children.length).toBe(1);
       expect(realContainer.children[0].getAttribute('data-block-id')).toBe('b1');
-      expect(realContainer.children[1].getAttribute('data-block-id')).toBe('b2');
 
       document.body.removeChild(realContainer);
     });
