@@ -47,9 +47,11 @@ def test_interpreter_handles_ambiguous_input():
 
 
 def test_interpreter_handles_intent_only_input():
+    """Short non-meta lines default to speech so the runtime can attribute them (HUMAN-INPUT-ATTRIBUTION-01)."""
     result = interpret_player_input("escape now")
-    assert result.kind == InterpretedInputKind.INTENT_ONLY
-    assert result.runtime_delivery_hint == RuntimeDeliveryHint.EMOTE
+    assert result.kind == InterpretedInputKind.SPEECH
+    assert result.intent == "short_utterance_default_speech"
+    assert result.runtime_delivery_hint == RuntimeDeliveryHint.SAY
 
 
 def test_interpreter_tell_him_without_quotes_is_speech():

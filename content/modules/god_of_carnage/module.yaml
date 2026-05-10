@@ -47,6 +47,10 @@ files:
   - direction/scene_guidance.yaml        # Per-scene constraints and context
   - direction/opening_sequence.yaml      # Session opening: two-part handover + narrator bar (ADR-0035)
   - direction/character_voice.yaml       # Character voice and tone guidance
+  - locale/module_strings.yaml           # Shell / diegetic player-visible strings per session_output_language
+  - locale/player_input_rules.yaml       # Data-only player-input patterns (greeting imperative, future rules)
+  - locale/model_directives/session_output_language_de.md
+  - locale/model_directives/session_output_language_en.md
 
 # Quality principles
 quality_principles:

@@ -15,6 +15,7 @@ on:
       - 'tests/run_tests.py'
       - 'setup-test-environment.sh'
       - 'setup-test-environment.bat'
+      - 'scripts/check_runtime_shell_locale_drift.py'
   pull_request:
     branches: [ master, main, develop ]
     paths:
@@ -29,6 +30,7 @@ on:
       - 'tests/run_tests.py'
       - 'setup-test-environment.sh'
       - 'setup-test-environment.bat'
+      - 'scripts/check_runtime_shell_locale_drift.py'
 
 jobs:
   engine-fast-tests:
@@ -58,6 +60,9 @@ jobs:
           python -m pip install -e "./story_runtime_core"
           python -m pip install -e "./ai_stack[test]"
           pip install -r world-engine/requirements-dev.txt
+
+      - name: Runtime shell locale drift check
+        run: python scripts/check_runtime_shell_locale_drift.py
 
       - name: Run engine fast tests
         working-directory: ./world-engine

@@ -1,0 +1,31 @@
+# Player shell and diegetic player-line templates (ADR-0036 session_output_language selects row).
+# Keys are stable API identifiers; de/en values are module-authored content (not engine literals).
+version: 1
+strings:
+  player_shell.second_person:
+    de: "Du"
+    en: "You"
+  player_shell.npc_responder_label:
+    de: "NPC am Zug"
+    en: "NPC responder"
+  player_shell.player_identity_line:
+    de: "Du spielst: {role}"
+    en: "You play: {role}"
+  greeting.polite_line:
+    de: "Hallo {addressee}, vielen Dank für die Einladung."
+    en: "Hello {addressee}, thank you for having us."
+  greeting.attributed_outcome:
+    de: "{player_shell_name} sagt: \u201e{diegetic}\u201c"
+    en: '{player_shell_name} says: "{diegetic}"'
+  player_outcome.speech_question:
+    de: "{name} fragt: \u201e{raw}\u201c"
+    en: '{name} asks: "{raw}"'
+  player_outcome.speech_statement:
+    de: "{name} sagt: \u201e{raw}\u201c"
+    en: '{name} says: "{raw}"'
+  player_outcome.action_display:
+    de: "{name} f\u00fchrt aus: \u201e{raw}\u201c"
+    en: '{name} acts: "{raw}"'
+  player_outcome.mixed_display:
+    de: "{name} meint: \u201e{raw}\u201c"
+    en: '{name} says: "{raw}"'

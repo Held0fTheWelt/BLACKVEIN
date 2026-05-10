@@ -1,0 +1,11 @@
+# Data-only patterns for optional deterministic classification (extensible; engine has zero prose).
+version: 1
+greeting_imperative:
+  de:
+    patterns:
+      - "(?is)^(?:ich\\s+)?begr\u00fc\u00dfe\\s+(.+)$"
+      - "(?is)^gr\u00fc\u00dfe\\s+(.+)$"
+  en:
+    patterns:
+      - "(?is)^(?:i\\s+)?greet\\s+(.+)$"
+classification_rules: []

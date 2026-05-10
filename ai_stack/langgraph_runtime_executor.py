@@ -85,6 +85,7 @@ from ai_stack.langgraph_runtime_state import (
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from story_runtime_core.content_locale import load_session_language_model_directive
 
 
 _GOC_FALLBACK_CAST_KEYS: tuple[str, ...] = ("veronique", "michel", "annette", "alain")
@@ -95,27 +96,10 @@ def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
     if str(state.get("turn_input_class") or "").strip().lower() == "opening":
         return ""
     lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
-    if lang == "en":
-        return (
-            "IMPORTANT — session_output_language=en: All player-visible narration, NPC dialogue, "
-            "and stage directions you generate MUST be in English.\n"
-            "VISIBLE DIALOGUE: In spoken_lines[].text put the spoken words in ASCII double quotes (\"…\"). "
-            "Optional English lead-ins before the quote are allowed (e.g. \"Name says: \", \"Name agrees: \"). "
-            "Do not emit a line that is only a name plus ':' with no quoted speech. "
-            "In action_lines[].text use third-person blocking with the actor name woven into the sentence; "
-            "never start that field with \"Name:\".\n\n"
-        )
-    return (
-        "IMPORTANT — session_output_language=de: Alle für die Spielerin/den Spieler sichtbaren Texte "
-        "(Erzähler:in, NPC-Dialog, Bühnenanweisungen) MÜSSEN auf Deutsch sein. "
-        "Keine englischen Meta-/Regie-Zwischenfälle in denselben Zeilen wie Dialog; "
-        "Französisch nur als erkennbare Figurenrede, nicht als zweisprachige Anweisung.\n"
-        "SICHTBARER DIALOG (spoken_lines[].text): Gesprochenes steht in ASCII-Doppelanführungszeichen (\"…\"). "
-        "Vor dem öffnenden Anführungszeichen dürfen einleitende Formulierungen stehen (z. B. \"meint: \", "
-        "\"führt aus: \", \"Name stimmt zu: \"). Keine Zeile, die nur aus Name + Doppelpunkt ohne zitierte Rede besteht. "
-        "Handlung nur in action_lines[].text: szenische Erzählform, Figurenname natürlich im Satz; "
-        "dieses Feld nicht mit \"Name:\" beginnen (Doppelpunkt-Attribution nur bei gesprochener Rede).\n\n"
-    )
+    mid = str(state.get("module_id") or "").strip()
+    if not mid:
+        return ""
+    return load_session_language_model_directive(module_id=mid, lang=lang, content_modules_root=None)
 
 
 def _prune_out_of_scope_actor_lanes(

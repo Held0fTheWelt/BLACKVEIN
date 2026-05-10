@@ -13,6 +13,12 @@ from uuid import uuid4
 logger = logging.getLogger(__name__)
 
 from story_runtime_core import ModelRegistry, RoutingPolicy, interpret_player_input
+from story_runtime_core.content_locale import (
+    build_player_attributed_visible_line,
+    greeting_imperative_addressee_fragment,
+    greeting_imperative_visible_pair,
+    resolve_string,
+)
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -101,6 +107,11 @@ from app.story_runtime.narrative_threads import (
     thread_continuity_metrics,
     update_narrative_threads,
 )
+
+
+def _goc_content_modules_root() -> Path:
+    return resolve_wos_repo_root() / "content" / "modules"
+
 
 SUPPORTED_LIVE_STORY_MODULE_IDS = (GOD_OF_CARNAGE_MODULE_ID,)
 
@@ -984,26 +995,14 @@ def _goc_npc_shell_legal_name(responder_id: str) -> str:
     return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
 
 
-_RE_GOC_GREET_IMPERATIVE_DE = re.compile(
-    r"(?is)^(?:ich\s+)?begrüße\s+(.+)$",
-)
-_RE_GOC_GREET_IMPERATIVE_DE_SHORT = re.compile(r"(?is)^grüße\s+(.+)$")
-_RE_GOC_GREET_IMPERATIVE_EN = re.compile(r"(?is)^(?:i\s+)?greet\s+(.+)$")
-
-
 def _goc_greeting_imperative_addressee_fragment(raw: str, *, lang: str) -> str | None:
     """If ``raw`` is a greet-X imperative (DE/EN), return the tail after the verb; else ``None``."""
-    text = str(raw or "").strip()
-    if not text:
-        return None
-    if lang == "de":
-        m = _RE_GOC_GREET_IMPERATIVE_DE.match(text) or _RE_GOC_GREET_IMPERATIVE_DE_SHORT.match(text)
-    else:
-        m = _RE_GOC_GREET_IMPERATIVE_EN.match(text)
-    if not m:
-        return None
-    frag = str(m.group(1) or "").strip().strip('"„"«»').strip()
-    return frag or None
+    return greeting_imperative_addressee_fragment(
+        raw,
+        lang=lang,
+        module_id=GOD_OF_CARNAGE_MODULE_ID,
+        content_modules_root=_goc_content_modules_root(),
+    )
 
 
 def _goc_addressee_shell_firstname(fragment: str) -> str:
@@ -1034,13 +1033,14 @@ def _goc_greeting_imperative_visible_pair(
     addressee = _goc_addressee_shell_firstname(tail)
     if not addressee:
         return None
-    if lang == "de":
-        diegetic = f"Hallo {addressee}, vielen Dank für die Einladung."
-        line2 = f"{player_shell_name} sagt: „{diegetic}“"
-    else:
-        diegetic = f"Hello {addressee}, thank you for having us."
-        line2 = f'{player_shell_name} says: "{diegetic}"'
-    return (raw, line2)
+    return greeting_imperative_visible_pair(
+        raw,
+        addressee=addressee,
+        player_shell_name=player_shell_name,
+        lang=lang,
+        module_id=GOD_OF_CARNAGE_MODULE_ID,
+        content_modules_root=_goc_content_modules_root(),
+    )
 
 
 def _goc_player_attributed_visible_text(
@@ -1056,27 +1056,14 @@ def _goc_player_attributed_visible_text(
     name = _goc_shell_actor_firstname(human_actor_id)
     interp = interpreted_input if isinstance(interpreted_input, dict) else {}
     ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
-    if ik in ("intent_only", "ambiguous", "reaction"):
-        ik = "speech"
-    is_question = raw.rstrip().endswith("?")
-    if lang == "de":
-        if ik == "action":
-            line = f"{name} führt aus: „{raw}“"
-        elif ik == "mixed":
-            line = f"{name} meint: „{raw}“"
-        elif is_question:
-            line = f"{name} fragt: „{raw}“"
-        else:
-            line = f"{name} sagt: „{raw}“"
-    else:
-        if ik == "action":
-            line = f'{name} acts: "{raw}"'
-        elif ik == "mixed":
-            line = f'{name} says: "{raw}"'
-        elif is_question:
-            line = f'{name} asks: "{raw}"'
-        else:
-            line = f'{name} says: "{raw}"'
+    line = build_player_attributed_visible_line(
+        name=name,
+        raw=raw,
+        input_kind=ik,
+        lang=lang,
+        module_id=GOD_OF_CARNAGE_MODULE_ID,
+        content_modules_root=_goc_content_modules_root(),
+    )
     return name, line
 
 
@@ -2749,6 +2736,7 @@ def _player_input_scene_blocks_for_story_window(
     session_output_language: str,
     human_actor_id: str | None = None,
     interpreted_input: dict[str, Any] | None = None,
+    module_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """MVP5 cumulative transcript: visible player line for the story shell.
 
@@ -2771,6 +2759,8 @@ def _player_input_scene_blocks_for_story_window(
         return []
     lang = str(session_output_language or "de").strip().lower()
     exp_lang = lang[:2] or "de"
+    mid = (module_id or GOD_OF_CARNAGE_MODULE_ID).strip()
+    root = _goc_content_modules_root()
     turn_token = str(turn_number).strip() if turn_number is not None else "0"
     hid = str(human_actor_id or "").strip()
     if hid:
@@ -2826,7 +2816,7 @@ def _player_input_scene_blocks_for_story_window(
                 )
         if out_blocks:
             return out_blocks
-    speaker_label = "Du" if lang.startswith("de") else "You"
+    speaker_label = resolve_string(mid, "player_shell.second_person", exp_lang, content_modules_root=root)
     return [
         {
             "id": f"{session_id}-turn-{turn_token}-player-input",
@@ -2928,12 +2918,21 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                     session_output_language=session.session_output_language,
                     human_actor_id=hid_sw or None,
                     interpreted_input=interp_sw,
+                    module_id=session.module_id,
+                )
+                _mid_sw = str(session.module_id or GOD_OF_CARNAGE_MODULE_ID).strip() or GOD_OF_CARNAGE_MODULE_ID
+                _lang_sw = str(session.session_output_language or "de").strip().lower()[:2] or "de"
+                _second = resolve_string(
+                    _mid_sw,
+                    "player_shell.second_person",
+                    _lang_sw,
+                    content_modules_root=_goc_content_modules_root(),
                 )
                 player_entry: dict[str, Any] = {
                     "entry_id": f"{session.session_id}:{turn_number}:player",
                     "kind": "player_turn",
                     "role": "player",
-                    "speaker": pdn if pdn else ("Du" if str(session.session_output_language or "").lower().startswith("de") else "You"),
+                    "speaker": pdn if pdn else _second,
                     "turn_number": turn_number,
                     "text": raw_input,
                     "source": "player_input",
@@ -3380,10 +3379,17 @@ def _player_shell_context_from_dramatic_context(
         if pdn:
             out["player_role_display_name"] = pdn
         lang = str(out.get("session_output_language") or "de").strip().lower()[:2]
-        out["npc_responder_label"] = "NPC am Zug" if lang == "de" else "NPC responder"
-        out["player_identity_line"] = (
-            f"Du spielst: {pdn}" if lang == "de" and pdn else (f"You play: {pdn}" if pdn else None)
+        mid = str(getattr(session, "module_id", None) or GOD_OF_CARNAGE_MODULE_ID).strip() or GOD_OF_CARNAGE_MODULE_ID
+        root = _goc_content_modules_root()
+        out["npc_responder_label"] = resolve_string(
+            mid, "player_shell.npc_responder_label", lang, content_modules_root=root
         )
+        if pdn:
+            out["player_identity_line"] = resolve_string(
+                mid, "player_shell.player_identity_line", lang, content_modules_root=root, role=pdn
+            )
+        else:
+            out["player_identity_line"] = None
         rid = str(out.get("responder_id") or "").strip()
         if rid:
             out["npc_responder_display_name"] = _goc_npc_shell_legal_name(rid)
