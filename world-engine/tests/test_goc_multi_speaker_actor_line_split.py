@@ -19,7 +19,7 @@ from app.story_runtime.manager import (
 
 def test_split_two_speakers_veronique_alain() -> None:
     segs = _split_merged_goc_actor_line_segments(
-        'Veronique: "Hallo." Alain: "Ja."',
+        'Veronique: "Hello." Alain: "Yes."',
     )
     assert len(segs) == 2
     assert segs[0][0] == "veronique_vallon"
@@ -28,11 +28,11 @@ def test_split_two_speakers_veronique_alain() -> None:
 
 def test_merge_consecutive_same_speaker() -> None:
     segs = _split_merged_goc_actor_line_segments(
-        'Veronique: "A." Veronique: lächelt. Alain: nickt.',
+        'Veronique: "A." Veronique: smiles. Alain: nods.',
     )
     assert len(segs) == 2
     assert segs[0][0] == "veronique_vallon"
-    assert '"A."' in segs[0][2] and "lächelt" in segs[0][2]
+    assert '"A."' in segs[0][2] and "smiles" in segs[0][2]
     assert segs[1][0] == "alain_reille"
 
 
@@ -97,10 +97,10 @@ def test_single_speaker_unchanged() -> None:
 
 def test_prune_action_when_substring_of_prior_line() -> None:
     line = (
-        'Veronique: "Willkommen." Veronique: Véronique lächelt freundlich '
-        "und reicht Annette die Hand zum Gruß."
+        'Veronique: "Welcome." Veronique: Veronique smiles warmly '
+        "and offers Annette her hand in greeting."
     )
-    action = "Véronique lächelt freundlich und reicht Annette die Hand zum Gruß."
+    action = "Veronique smiles warmly and offers Annette her hand in greeting."
     blocks = [
         {"id": "1", "block_type": "actor_line", "actor_id": "veronique_vallon", "text": line},
         {"id": "2", "block_type": "actor_action", "actor_id": "veronique_vallon", "text": action},
@@ -124,18 +124,18 @@ def test_prune_action_accent_drift_still_matches() -> None:
 
 def test_dedupe_keeps_name_before_quoted_speech_only_fixes_regie_tail() -> None:
     raw = (
-        'Veronique: "Willkommen bei uns, Annette. Es freut mich sehr, dich hier zu haben." '
-        "Veronique: Véronique lächelt herzlich und reicht Annette die Hand zum Gruß."
+        'Veronique: "Welcome, Annette. I am very glad you are here." '
+        "Veronique: Veronique smiles warmly and offers Annette her hand in greeting."
     )
     out = _dedupe_goc_speaker_colon_stutter(raw)
-    assert 'Veronique: "Willkommen' in out
+    assert 'Veronique: "Welcome' in out
     assert "Veronique: Véronique" not in out
-    assert "Veronique lächelt herzlich" in out
+    assert "Veronique smiles warmly" in out
 
 
 def test_dedupe_michel_stutter_after_quote() -> None:
-    raw = 'Michel: "Natürlich, Annette." Michel: Michel zeigt mit einer einladenden Geste nach vorn.'
+    raw = 'Michel: "Of course, Annette." Michel: Michel gestures forward with an inviting motion.'
     out = _dedupe_goc_speaker_colon_stutter(raw)
-    assert 'Michel: "Natürlich' in out
+    assert 'Michel: "Of course' in out
     assert "Michel: Michel" not in out
-    assert "Michel zeigt mit" in out
+    assert "Michel gestures forward" in out

@@ -245,11 +245,11 @@ describe('BlockRenderer', () => {
         id: 'sid-turn-1-player-input-outcome',
         block_type: 'player_input_outcome',
         speaker_label: 'Annette',
-        text: 'Annette sagt: „Hallo Véronique.“',
+        text: 'Annette says: "Hello Veronique."',
       });
       expect(el.getAttribute('data-block-type')).toBe('player_input_outcome');
       expect(el.className).toContain('scene-block--player_input_outcome');
-      expect(el.textContent).toBe('Annette sagt: „Hallo Véronique.“');
+      expect(el.textContent).toBe('Annette says: "Hello Veronique."');
     });
   });
 

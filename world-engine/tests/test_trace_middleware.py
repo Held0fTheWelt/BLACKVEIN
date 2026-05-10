@@ -700,7 +700,7 @@ def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
     )
 
     langfuse_trace_id = "fedcba9876543210fedcba9876543210"
-    player_line = "Ich lehne mich zum Fenster."
+    player_line = "I lean toward the window."
 
     response = client.post(
         "/api/story/sessions",
@@ -2574,10 +2574,10 @@ def test_opening_turn0_live_packaging_then_gm_hook_passes_opening_shape():
                 "structured_output": {
                     "schema_version": "runtime_actor_turn_v1",
                     "narration_summary": (
-                        "Ein einziger Absatz über den Pariser Salonabend ohne genügend Leerzeilen."
+                        "A single paragraph about the Paris salon evening without enough blank lines."
                     ),
-                    "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Willkommen."}],
-                    "action_lines": [{"actor_id": "michel_longstreet", "text": "nickt"}],
+                    "spoken_lines": [{"speaker_id": "veronique_vallon", "text": "Welcome."}],
+                    "action_lines": [{"actor_id": "michel_longstreet", "text": "nods"}],
                 },
             },
         },
@@ -2777,10 +2777,10 @@ def test_live_scene_blocks_prepackaged_scene_blocks_run_finalize_and_drop_name_o
 def test_live_scene_blocks_player_input_echo_dropped_from_npc_prepackaged_blocks():
     """Committed raw_input must not reappear as an NPC actor_line (model leak)."""
     gs: dict[str, Any] = {"generation": {"metadata": {}}}
-    player = "Ich verlasse den Raum und gehe nach Hause, ohne mich zu verabschieden."
+    player = "I leave the room and go home without saying goodbye."
     bundle = {
         "scene_blocks": [
-            {"id": "b1", "block_type": "narrator", "text": "Szene.", "speaker_label": "Narrator"},
+            {"id": "b1", "block_type": "narrator", "text": "Scene.", "speaker_label": "Narrator"},
             {
                 "id": "b2",
                 "block_type": "actor_line",
@@ -2791,7 +2791,7 @@ def test_live_scene_blocks_player_input_echo_dropped_from_npc_prepackaged_blocks
             {
                 "id": "b3",
                 "block_type": "actor_line",
-                "text": "Dann geh.",
+                "text": "Then go.",
                 "speaker_label": "Veronique",
                 "actor_id": "veronique_vallon",
             },
@@ -2812,7 +2812,7 @@ def test_live_scene_blocks_player_input_echo_dropped_from_npc_prepackaged_blocks
     )
     assert len(blocks) == 2
     assert str(blocks[1].get("block_type")) == "actor_line"
-    assert (blocks[1].get("text") or "").strip().startswith("Dann")
+    assert (blocks[1].get("text") or "").strip().startswith("Then")
     vis = gs.get("_visible_narrative_contract") or {}
     assert vis.get("player_input_echo_removed_from_npc_block") == 1
 

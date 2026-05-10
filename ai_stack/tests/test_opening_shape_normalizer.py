@@ -110,7 +110,7 @@ def test_german_anchor_when_language_de():
         module_id=GOD_OF_CARNAGE_MODULE_ID,
         turn_number=0,
         output_language="de",
-        existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Willkommen."}],
+        existing_actor_lines=[{"speaker_id": "veronique_vallon", "text": "Welcome."}],
     )
     assert beats and "Du bist" in beats[2]
 

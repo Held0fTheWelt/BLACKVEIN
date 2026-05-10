@@ -75,6 +75,8 @@ Separately, ADR-0033 now requires **non-PII player-input correlation** on Backen
 
 9. **Progressive DOM mount for HTTP slice cards:** Applies to **every** turn where `visible_scene_output.blocks` includes **multiple** animated slice entries (same rule as opening multi-beat flows — not opening-specific). **`this.blocks` keeps the full committed list** while **DOM insertion** for slice cards is **one card at a time**: first slice block mounts on `loadTurn`; each subsequent slice block mounts **immediately before** its typewriter run (`render` → empty displayed cell → `startDelivery`) so **empty placeholder cards are not shown ahead of animation**. **`revealAll`** and **`setAccessibilityMode(true)`** must **`render` any not-yet-mounted blocks** and fill **`blockDisplayTextForShell`** so “show all” and reduced motion expose the **complete** transcript. **Diagnostics** blocks render when encountered (not queued in `sliceQueue`). **DOM ordering:** v1 appends in API order as deliveries advance; **anchor placement** (`render before/after`) is reserved for a future refinement if diagnostics or stable rows must interleave visually between deferred slice cards.
 
+10. **Direct narrator-tail cleanup (presentation-only):** The player-facing card builder may remove a **directly adjacent** story-lane NPC card when a preceding narrator card already fully subsumes that NPC visible text under the redundancy guardrails; this affects only the rendered player-card projection (`visible_scene_output.blocks`) and does **not** modify committed semantic runtime `scene_blocks`.
+
 ## Consequences
 
 ### Positive

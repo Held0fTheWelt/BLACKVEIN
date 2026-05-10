@@ -12,7 +12,7 @@ from ai_stack.goc_npc_transcript_projection import (
 
 
 def test_split_two_speakers_default_roster() -> None:
-    segs = split_merged_goc_actor_line_segments('Veronique: "Hallo." Alain: "Ja."')
+    segs = split_merged_goc_actor_line_segments('Veronique: "Hello." Alain: "Yes."')
     assert len(segs) == 2
     assert segs[0][0] == "veronique_vallon"
     assert segs[1][0] == "alain_reille"
@@ -20,17 +20,17 @@ def test_split_two_speakers_default_roster() -> None:
 
 def test_merge_consecutive_same_actor_default_policy() -> None:
     segs = split_merged_goc_actor_line_segments(
-        'Veronique: "A." Veronique: lächelt. Alain: nickt.',
+        'Veronique: "A." Veronique: smiles. Alain: nods.',
     )
     assert len(segs) == 2
     assert segs[0][0] == "veronique_vallon"
-    assert '"A."' in segs[0][2] and "lächelt" in segs[0][2]
+    assert '"A."' in segs[0][2] and "smiles" in segs[0][2]
     assert segs[1][0] == "alain_reille"
 
 
 def test_split_speech_stage_policy_splits_same_actor() -> None:
     segs = split_merged_goc_actor_line_segments(
-        'Veronique: "A." Veronique: lächelt. Alain: nickt.',
+        'Veronique: "A." Veronique: smiles. Alain: nods.',
         story_runtime_experience={"goc_transcript_split_speech_stage_same_actor": True},
     )
     assert len(segs) == 3

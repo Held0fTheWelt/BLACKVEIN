@@ -8,6 +8,7 @@ for typewriter remapping. No GoC name literals — folding keys on ``actor_id`` 
 
 from __future__ import annotations
 
+import re
 from typing import Any, Sequence
 
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id
@@ -70,13 +71,71 @@ def _visible_display_for_story_redundancy(card: dict[str, Any]) -> str:
     return str(card.get("player_display_text") or card.get("text") or "")
 
 
+def _extract_dialogue_quote_segments(text: str) -> list[str]:
+    """Extract quoted speech segments from display text (Unicode/ASCII/French quotes)."""
+    s = str(text or "")
+    out: list[str] = []
+    for pattern in (
+        r"„([^“]{6,})“",
+        r"\"([^\"]{6,})\"",
+        r"«([^»]{6,})»",
+    ):
+        out.extend([m.strip() for m in re.findall(pattern, s) if str(m).strip()])
+    return out
+
+
+def _actor_line_contains_new_quote_value(*, narrator_text: str, actor_line_text: str) -> bool:
+    """True when actor_line has quoted speech not already covered by narrator."""
+    quotes = _extract_dialogue_quote_segments(actor_line_text)
+    if not quotes:
+        return False
+    for q in quotes:
+        if not _goc_npc_action_redundant_vs_running_visible(q, narrator_text):
+            return True
+    return False
+
+
+def _allow_narrator_adjacent_tail_redundancy(
+    prev: dict[str, Any],
+    curr: dict[str, Any],
+    *,
+    allow_actor_line: bool,
+) -> bool:
+    """Narrator-adjacent redundancy gate (presentation-only, direct neighbors only)."""
+    if str(prev.get("visible_lane") or "") != "story" or str(curr.get("visible_lane") or "") != "story":
+        return False
+    prev_bt = str(prev.get("block_type") or prev.get("type") or "").strip().lower()
+    curr_bt = str(curr.get("block_type") or curr.get("type") or "").strip().lower()
+    if not prev_bt.startswith("narrator"):
+        return False
+    if curr_bt not in {"actor_action", "actor_line"}:
+        return False
+    if curr_bt == "actor_line" and not allow_actor_line:
+        return False
+    t_prev = _visible_display_for_story_redundancy(prev)
+    t_curr = _visible_display_for_story_redundancy(curr)
+    if not _goc_npc_action_redundant_vs_running_visible(t_curr, t_prev):
+        return False
+    if curr_bt == "actor_line" and _actor_line_contains_new_quote_value(
+        narrator_text=t_prev,
+        actor_line_text=t_curr,
+    ):
+        return False
+    return True
+
+
 def _collapse_consecutive_redundant_story_cards(
     cards: list[dict[str, Any]],
+    *,
+    allow_narrator_adjacent_actor_line_dedupe: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Merge/drop consecutive story-lane cards when display text is redundant (same-voice guard)."""
     collapse_diag: dict[str, Any] = {
         "consecutive_redundant_story_card_removed": 0,
         "consecutive_story_card_replaced_by_expansion": 0,
+        "narrator_adjacent_redundant_story_card_removed": 0,
+        "narrator_adjacent_redundant_actor_action_removed": 0,
+        "narrator_adjacent_redundant_actor_line_removed": 0,
     }
     kept: list[dict[str, Any]] = []
     for curr in cards:
@@ -86,6 +145,26 @@ def _collapse_consecutive_redundant_story_cards(
         prev = kept[-1]
         if str(prev.get("visible_lane") or "") != "story" or str(curr.get("visible_lane") or "") != "story":
             kept.append(curr)
+            continue
+        curr_bt = str(curr.get("block_type") or curr.get("type") or "").strip().lower()
+        if (
+            not _story_cards_share_voice_for_redundancy(prev, curr)
+            and _allow_narrator_adjacent_tail_redundancy(
+                prev,
+                curr,
+                allow_actor_line=allow_narrator_adjacent_actor_line_dedupe,
+            )
+        ):
+            merged = dict(prev)
+            us = _union_player_shell_semantic_spans(prev, curr)
+            if us is not None:
+                merged["player_shell_semantic_span"] = us
+            kept[-1] = merged
+            collapse_diag["narrator_adjacent_redundant_story_card_removed"] += 1
+            if curr_bt == "actor_action":
+                collapse_diag["narrator_adjacent_redundant_actor_action_removed"] += 1
+            elif curr_bt == "actor_line":
+                collapse_diag["narrator_adjacent_redundant_actor_line_removed"] += 1
             continue
         if not _story_cards_share_voice_for_redundancy(prev, curr):
             kept.append(curr)
@@ -176,6 +255,9 @@ def build_player_facing_narrative_cards(
     """
     policy = policy if isinstance(policy, dict) else {}
     action_before_speech = bool(policy.get("npc_card_action_before_speech", True))
+    allow_narrator_adjacent_actor_line_dedupe = bool(
+        policy.get("narrator_adjacent_actor_line_dedupe", False)
+    )
 
     diag: dict[str, Any] = {
         "player_card_count": 0,
@@ -354,7 +436,10 @@ def build_player_facing_narrative_cards(
         out.append(nb)
         si += 1
 
-    out, collapse_diag = _collapse_consecutive_redundant_story_cards(out)
+    out, collapse_diag = _collapse_consecutive_redundant_story_cards(
+        out,
+        allow_narrator_adjacent_actor_line_dedupe=allow_narrator_adjacent_actor_line_dedupe,
+    )
     diag.update(collapse_diag)
     diag["player_card_count"] = len(out)
     return out, diag

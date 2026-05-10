@@ -68,7 +68,7 @@ def wiki_data(app, test_user):
             language_code="de",
             title="Startseite",
             slug="startseite",
-            content_markdown="# Willkommen zum Wiki",
+            content_markdown="# Welcome to the Wiki",
             translation_status=TRANSLATION_STATUS_PUBLISHED,
             source_version=now.isoformat()
         )

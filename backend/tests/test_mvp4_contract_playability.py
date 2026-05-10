@@ -388,10 +388,10 @@ def test_mvp4_player_bundle_polishes_goc_colon_stutter_and_redundant_actor_actio
     from backend.app.api.v1.game_routes import _player_session_bundle
 
     raw_line = (
-        'Veronique: "Willkommen." Veronique: Véronique lächelt freundlich '
-        "und reicht Annette die Hand zum Gruß."
+        'Veronique: "Welcome." Veronique: Veronique smiles warmly '
+        "and offers Annette her hand in greeting."
     )
-    dup_action = "Véronique lächelt freundlich und reicht Annette die Hand zum Gruß."
+    dup_action = "Veronique smiles warmly and offers Annette her hand in greeting."
     opening_blocks = [{"id": "turn-0-block-1", "block_type": "narrator", "text": "Opening line."}]
     turn1_blocks = [
         {
@@ -436,7 +436,60 @@ def test_mvp4_player_bundle_polishes_goc_colon_stutter_and_redundant_actor_actio
     assert blocks[1]["block_type"] == "actor_line"
     merged_visible = blocks[1].get("player_display_text") or blocks[1].get("text") or ""
     assert "Veronique: Véronique" not in merged_visible
-    assert "Veronique lächelt freundlich" in merged_visible
+    assert "Veronique smiles warmly" in merged_visible
+
+
+@pytest.mark.mvp4
+def test_mvp4_player_bundle_removes_direct_narrator_adjacent_redundant_actor_action():
+    """Presentation-layer cleanup: narrator-adjacent redundant actor_action may be removed."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    opening_blocks = [
+        {"id": "turn-0-block-1", "block_type": "narrator", "text": "Opening line."},
+    ]
+    turn1_blocks = [
+        {
+            "id": "turn-1-block-1",
+            "block_type": "narrator",
+            "text": "Veronique smiles warmly and offers Annette her hand.",
+        },
+        {
+            "id": "turn-1-block-2",
+            "block_type": "actor_action",
+            "actor_id": "veronique_vallon",
+            "speaker_label": "Véronique",
+            "text": "Veronique smiles warmly and offers Annette her hand.",
+        },
+    ]
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "entries": [
+                {"turn_number": 0, "kind": "opening", "role": "runtime", "scene_blocks": opening_blocks},
+                {"turn_number": 1, "kind": "runtime_response", "role": "runtime", "scene_blocks": turn1_blocks},
+            ],
+            "entry_count": 2,
+            "latest_entry": {"turn_number": 1, "role": "runtime", "scene_blocks": turn1_blocks},
+        },
+        "last_committed_turn": {"turn_number": 1, "visible_output_bundle": {"scene_blocks": turn1_blocks}},
+    }
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+    vso = bundle["visible_scene_output"]
+    blocks = vso["blocks"]
+    assert len(blocks) == 2
+    assert blocks[0]["id"] == opening_blocks[0]["id"]
+    assert blocks[1]["block_type"] == "narrator"
+    diag = vso.get("player_shell_narrative_card_diagnostics") or {}
+    assert diag.get("narrator_adjacent_redundant_story_card_removed", 0) >= 1
+    assert diag.get("narrator_adjacent_redundant_actor_action_removed", 0) >= 1
+    assert diag.get("narrator_adjacent_redundant_actor_line_removed", 0) == 0
 
 
 @pytest.mark.mvp4
