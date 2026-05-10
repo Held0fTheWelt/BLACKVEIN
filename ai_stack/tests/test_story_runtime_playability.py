@@ -58,6 +58,20 @@ def test_degraded_commit_blocked_for_actor_lane_illegal_reason() -> None:
     assert decision.allow_degraded_commit is False
 
 
+def test_transcript_shell_npc_lane_rejection_triggers_retry() -> None:
+    d = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=1,
+        max_attempts=3,
+        outcome={"status": "rejected", "reason": "actor_lane_text_exceeds_transcript_beat"},
+        generation={"success": True, "content": "x" * 200, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    assert d.should_retry is True
+    assert "actor_lane_text_exceeds_transcript_beat" in d.feedback_codes
+
+
 def test_degraded_commit_blocked_for_parser_failure_feedback() -> None:
     decision = decide_playability_recovery(
         turn_number=2,

@@ -36,7 +36,7 @@ def test_ich_begrüße_de_same_two_blocks() -> None:
     assert "Véronique" in str(blocks[1].get("text") or "")
 
 
-def test_direct_address_hallo_unchanged_single_block() -> None:
+def test_direct_address_hallo_echo_and_attributed_outcome_two_blocks() -> None:
     _, line = _goc_player_attributed_visible_text(
         raw_input="Hallo Veronique",
         human_actor_id="annette_reille",
@@ -52,8 +52,11 @@ def test_direct_address_hallo_unchanged_single_block() -> None:
         human_actor_id="annette_reille",
         interpreted_input={"kind": "speech"},
     )
-    assert len(blocks) == 1
+    assert len(blocks) == 2
     assert blocks[0]["block_type"] == "player_input"
+    assert blocks[0]["text"] == "Hallo Veronique"
+    assert blocks[1]["block_type"] == "player_input_outcome"
+    assert blocks[1]["text"] == line
 
 
 def test_greeting_imperative_en_two_blocks() -> None:

@@ -1986,6 +1986,18 @@ button.secondary:hover {
     background: rgba(74, 126, 201, 0.05);
 }
 
+/* PLAYER-SHELL-NARRATIVE-CARD-01: unified story lane (narrator + NPC speech + stage on same card). */
+.scene-block.scene-block--player-shell-story {
+    border-left-color: var(--violet);
+    background: rgba(122, 92, 158, 0.08);
+}
+
+/* Role anchor: amber must override player-shell-story (same specificity order would lose). */
+.scene-block.scene-block--narrator.scene-block--narrator-role-anchor.scene-block--player-shell-story {
+    border-left-color: var(--role-anchor-amber);
+    background: rgba(212, 160, 23, 0.1);
+}
+
 .scene-block--player_input {
     border-left-color: var(--success);
     background: rgba(74, 158, 106, 0.08);
@@ -1993,7 +2005,7 @@ button.secondary:hover {
     color: var(--text);
 }
 
-/* Second block: diegetic line after an imperative greet — clearly darker green bar than player_input. */
+/* Second block: diegetic player line (paired with verbatim player_input on GoC human-bound turns). */
 .scene-block--player_input_outcome {
     border-left-color: #155e32;
     background: rgba(14, 58, 36, 0.38);

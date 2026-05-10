@@ -26,7 +26,15 @@ class BlocksOrchestrator {
   }
 
   _fillBlockElement(el, block) {
-    el.textContent = (block && block.text) || '';
+    if (!block) {
+      el.textContent = '';
+      return;
+    }
+    const display =
+      block.player_display_text !== undefined && block.player_display_text !== null
+        ? String(block.player_display_text)
+        : block.text || '';
+    el.textContent = display;
   }
 
   /**

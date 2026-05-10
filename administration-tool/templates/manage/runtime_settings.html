@@ -183,6 +183,10 @@
                         <option value="passive">passive</option><option value="reactive">reactive</option><option value="assertive">assertive</option>
                     </select>
                 </label>
+                <label class="form-label">Max NPC spoken / action text (chars per row)
+                    <input type="number" id="manage-sre-npc-lane-char-cap" class="form-input" min="400" max="8000" value="1200" />
+                    <span class="muted" style="display:block;margin-top:0.25rem;">Hard cap on each <code>spoken_lines</code> / <code>action_lines</code> dict row for NPC transcript cards. Narrator prose (<code>narration_summary</code>) is not limited here.</span>
+                </label>
                 <label class="form-label">Inter-NPC Exchange Intensity
                     <select id="manage-sre-exchange-intensity" class="form-input">
                         <option value="off">off</option><option value="light">light</option><option value="medium">medium</option><option value="strong">strong</option>

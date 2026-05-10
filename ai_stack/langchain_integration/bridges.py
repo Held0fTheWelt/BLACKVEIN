@@ -312,14 +312,17 @@ class RuntimeTurnStructuredOutput(BaseModel):
         default_factory=list,
         description=(
             "Required when actors speak. Each entry must have speaker_id. "
-            "Each text must follow the player-visible speech quoting rules described on RuntimeSpokenLine.text."
+            "Each text must follow the player-visible speech quoting rules described on RuntimeSpokenLine.text. "
+            "Prefer one row per speaking beat and per speaker so the transcript can render as person-scoped shell "
+            "blocks—not one internal novel paragraph for everyone."
         ),
     )
     action_lines: list[RuntimeActionLine | str] = Field(
         default_factory=list,
         description=(
             "Physical actions by actors. Each entry must have actor_id. "
-            "Each text must follow RuntimeActionLine.text: no leading Name: attribution; weave the name in prose."
+            "Each text must follow RuntimeActionLine.text: no leading Name: attribution; weave the name in prose. "
+            "Prefer one row per actor beat when multiple people move on stage so blocks stay person-scoped."
         ),
     )
     initiative_events: list[RuntimeInitiativeEvent] = Field(default_factory=list, description="Semantics of who seized or lost the turn.")

@@ -569,6 +569,40 @@ class TestW31MultiActorRenderLabeling:
 
         assert "multi_actor_realized" not in markers
 
+    def test_jammed_multi_speaker_in_one_spoken_row_surfaces_diagnostic_marker(self) -> None:
+        """ADR-0034: model may merge two speakers into one ``spoken_lines`` row — surface a marker."""
+        from ai_stack.goc_turn_seams import run_visible_render
+
+        _bundle, markers = run_visible_render(
+            module_id="god_of_carnage",
+            committed_result={"committed_effects": ["test"], "commit_applied": True},
+            validation_outcome={"status": "approved"},
+            generation={
+                "content": "test",
+                "metadata": {
+                    "structured_output": {
+                        "spoken_lines": [
+                            {
+                                "speaker_id": "veronique_vallon",
+                                "text": 'Veronique: "Hi." Alain: "Da."',
+                            },
+                        ],
+                        "action_lines": [],
+                    }
+                },
+            },
+            transition_pattern="hard",
+            render_context={
+                "pacing_mode": "standard",
+                "runtime_projection": {
+                    "human_actor_id": "annette_reille",
+                    "npc_actor_ids": ["veronique_vallon", "alain_reille", "michel_longstreet"],
+                },
+            },
+        )
+
+        assert "goc_multi_speaker_merged_into_single_spoken_line_row" in markers
+
     def test_multi_actor_excludes_empty_and_null_actor_ids(self):
         """Verify empty/None actor IDs are excluded from count."""
         from ai_stack.goc_turn_seams import run_visible_render

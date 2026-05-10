@@ -45,7 +45,13 @@ class BlockRenderer {
     }
 
     const blockType = block.block_type || 'unknown';
+    const cardStyle = String(block.card_style || '').trim().toLowerCase();
     div.className = `scene-block scene-block--${blockType}`;
+    if (cardStyle === 'npc_story' || cardStyle === 'narrative_story') {
+      div.classList.add('scene-block--player-shell-story');
+    } else if (cardStyle === 'player_lane') {
+      div.classList.add('scene-block--player-shell-player');
+    }
     if (beat === 'role_anchor' && blockType === 'narrator') {
       div.classList.add('scene-block--narrator-role-anchor');
     }
@@ -55,7 +61,11 @@ class BlockRenderer {
       div.classList.add('scene-block--diagnostic');
       div.textContent = '';
     } else {
-      div.textContent = block.text || '';
+      const display =
+        block.player_display_text !== undefined && block.player_display_text !== null
+          ? String(block.player_display_text)
+          : block.text || '';
+      div.textContent = display;
     }
 
     this.dom_root.appendChild(div);

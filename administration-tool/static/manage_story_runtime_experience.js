@@ -19,7 +19,8 @@
     pulse_length: "manage-sre-pulse-length",
     max_scene_pulses_per_response: "manage-sre-max-pulses",
     allow_scene_progress_without_player_action: "manage-sre-allow-auto-progress",
-    beat_progression_speed: "manage-sre-beat-speed"
+    beat_progression_speed: "manage-sre-beat-speed",
+    npc_spoken_action_text_char_cap: "manage-sre-npc-lane-char-cap"
   };
 
   function show(kind, msg) {

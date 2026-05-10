@@ -71,7 +71,7 @@ characters:
   alain:
     id: alain
     name: Alain
-    role: "Annette's spouse, mediator, conflict manager"
+    role: "Guest (visiting couple with Annette); spouse, mediator, conflict manager — not an apartment host"
     baseline_attitude: "Keep conversation manageable; avoid emotional extremes; preserve relationship"
 
     emotional_state: 45          # Moderate; trying to maintain equilibrium

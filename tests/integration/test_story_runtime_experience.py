@@ -31,6 +31,7 @@ def test_canonical_defaults_are_recap_and_safe():
     assert defaults["delivery_profile"] == "classic_recap"
     assert defaults["max_scene_pulses_per_response"] == 1
     assert defaults["allow_scene_progress_without_player_action"] is False
+    assert defaults.get("npc_spoken_action_text_char_cap") == 1200
 
 
 def test_normalize_drops_unknown_keys_and_coerces():
@@ -50,6 +51,19 @@ def test_normalize_drops_unknown_keys_and_coerces():
     assert normalized["max_scene_pulses_per_response"] == 2
     assert normalized["allow_scene_progress_without_player_action"] is True
     assert "unknown_key" not in normalized
+    assert normalized.get("npc_spoken_action_text_char_cap") == 1200
+
+
+def test_normalize_clamps_npc_spoken_action_text_char_cap():
+    n = normalize_story_runtime_experience({"npc_spoken_action_text_char_cap": 50_000})
+    assert n["npc_spoken_action_text_char_cap"] == 8000
+    n2 = normalize_story_runtime_experience({"npc_spoken_action_text_char_cap": 100})
+    assert n2["npc_spoken_action_text_char_cap"] == 400
+
+
+def test_policy_npc_spoken_action_text_char_cap_property():
+    policy = resolve_story_runtime_experience_policy(canonical_defaults())
+    assert policy.npc_spoken_action_text_char_cap == 1200
 
 
 def test_delivery_profile_overrides_apply_before_advanced_fields():

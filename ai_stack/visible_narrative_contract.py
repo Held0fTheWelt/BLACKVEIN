@@ -14,7 +14,7 @@ import unicodedata
 from collections.abc import Sequence
 from typing import Any
 
-from .goc_frozen_vocab import canonicalize_goc_actor_id
+from .goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 
 def _accent_fold(s: str) -> str:
@@ -269,6 +269,83 @@ def collapse_repeated_speaker_colon_segments(
     return t2, removed + n2
 
 
+_GOC_STUTTER_DISPLAY_NAMES = ("Michel", "Alain", "Annette", "Veronique", "Véronique")
+
+
+def _goc_stutter_name_tokens(
+    *,
+    speaker_label: str | None = None,
+    actor_id: str | None = None,
+) -> tuple[str, ...]:
+    """Surface tokens for ``Name: Name`` stutter collapse (roster + static GoC fallback)."""
+    ordered: list[str] = []
+    seen_lower: set[str] = set()
+
+    def _add(name: str) -> None:
+        n = str(name or "").strip()
+        if not n:
+            return
+        low = _accent_fold(n)
+        if low in seen_lower:
+            return
+        seen_lower.add(low)
+        ordered.append(n)
+
+    for n in _GOC_STUTTER_DISPLAY_NAMES:
+        _add(n)
+    for lab in _speaker_labels_for_strip(speaker_label, actor_id):
+        _add(lab)
+    aid = str(actor_id or "").strip()
+    if aid:
+        canon = canonicalize_goc_actor_id(aid) or aid
+        for al in expand_goc_actor_id_aliases(canon):
+            a = str(al).strip()
+            if not a or "_" in a:
+                continue
+            _add(a)
+            if a.islower():
+                _add(a.title())
+    return tuple(ordered)
+
+
+def dedupe_goc_speaker_colon_stutter_visible(
+    text: str,
+    *,
+    speaker_label: str | None = None,
+    actor_id: str | None = None,
+) -> str:
+    """Collapse mistaken ``Name: Name …`` before stage prose (any GoC NPC), globally.
+
+    Runs repeatedly so chained model stutter is fully removed. Safe for quoted speech:
+    ``Name: "…"`` is preserved because the colon is not followed by a repeated surface name
+    token. Handles ``Veronique: Véronique lächelt`` → ``Veronique lächelt``.
+
+    When ``speaker_label`` / ``actor_id`` are provided, also folds alias spellings derived
+    from the roster (not only the static GoC display tuple).
+    """
+    t = str(text or "")
+    if not t.strip():
+        return t
+    names = _goc_stutter_name_tokens(speaker_label=speaker_label, actor_id=actor_id)
+    for _ in range(24):
+        before = t
+        for name in names:
+            esc = re.escape(name)
+            t = re.sub(rf"(?i)\b({esc})\s*:\s*\1\s+", r"\1 ", t)
+        t = re.sub(r"(?i)\b(Veronique)\s*:\s*(V[ée]ronique)\s+", r"\1 ", t)
+        t = re.sub(r"(?i)\b(V[ée]ronique)\s*:\s*(Veronique)\s+", r"\1 ", t)
+        for i, a in enumerate(names):
+            for b in names[i + 1 :]:
+                if _accent_fold(a) != _accent_fold(b) or a.lower() == b.lower():
+                    continue
+                ea, eb = re.escape(a), re.escape(b)
+                t = re.sub(rf"(?i)\b({ea})\s*:\s*({eb})\s+", rf"{a} ", t)
+                t = re.sub(rf"(?i)\b({eb})\s*:\s*({ea})\s+", rf"{b} ", t)
+        if t == before:
+            break
+    return t
+
+
 def _strip_cross_lane_leakage(text: str, *, block_type: str) -> str:
     """Reduce actor_line carrying stage-direction-only leakage (heuristic)."""
     t = str(text or "").strip()
@@ -338,6 +415,15 @@ def sanitize_visible_block_text(
         partial["duplicate_actor_label_removed"] = int(
             partial.get("duplicate_actor_label_removed") or 0
         ) + int(dup_strip)
+    if str(block_type or "").strip().lower() in {"actor_line", "actor_action"}:
+        t_stutter = dedupe_goc_speaker_colon_stutter_visible(
+            t,
+            speaker_label=str(speaker_label or "") or None,
+            actor_id=str(actor_id).strip() if actor_id else None,
+        )
+        if t_stutter != t:
+            partial["goc_speaker_colon_stutter_deduped"] = True
+        t = t_stutter
     t = _strip_cross_lane_leakage(t, block_type=block_type)
     if not t.strip() and before.strip():
         t = strip_internal_beat_markers(before)
@@ -496,6 +582,128 @@ def _norm_for_near_dedupe(s: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"[^\w]", "", s.lower(), flags=re.UNICODE))
 
 
+def _goc_visible_lane_text_fold(s: str) -> str:
+    """Lowercase + light accent fold (matches world-engine ``_goc_visible_text_fold`` for substring checks)."""
+    t = (s or "").strip().lower()
+    for a, b in (
+        ("ä", "a"),
+        ("ö", "o"),
+        ("ü", "u"),
+        ("ß", "ss"),
+        ("é", "e"),
+        ("è", "e"),
+        ("ê", "e"),
+        ("ë", "e"),
+        ("à", "a"),
+        ("â", "a"),
+        ("á", "a"),
+        ("ô", "o"),
+        ("ò", "o"),
+        ("ó", "o"),
+        ("ù", "u"),
+        ("û", "u"),
+        ("ú", "u"),
+        ("ç", "c"),
+        ("ï", "i"),
+        ("î", "i"),
+        ("ì", "i"),
+        ("í", "i"),
+    ):
+        t = t.replace(a, b)
+    return re.sub(r"\s+", " ", t, flags=re.UNICODE).strip()
+
+
+def prune_goc_actor_actions_subsumed_by_prior_actor_lines(
+    blocks: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Remove ``actor_action`` blocks already covered by prior same-actor story text.
+
+    Uses a running concatenation of each actor's last ``actor_line`` plus any kept
+    ``actor_action`` rows so a duplicate action that only appears after merging
+    non-duplicate actions is still dropped. Match is **per** ``actor_id``.
+
+    Drops when folded action is a substring of the running text, when
+    ``_near_duplicate_visible_texts`` matches paraphrased duplicates, or when
+    significant-token recall from the action appears in the running text
+    (``_goc_npc_action_redundant_vs_running_visible``).
+
+    Used by world-engine projection and by the backend player bundle (cumulative transcript).
+    """
+    out: list[dict[str, Any]] = []
+    running_visible_by_actor: dict[str, str] = {}
+    min_fold = 12
+
+    def _actor_key(block: dict[str, Any]) -> str:
+        return str(block.get("actor_id") or "").strip() or "__none__"
+
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        bt = str(b.get("block_type") or "").strip().lower()
+        if bt == "actor_action":
+            ak = _actor_key(b)
+            lab = str(b.get("speaker_label") or "").strip()
+            aid = str(b.get("actor_id") or "").strip() or None
+            raw = str(b.get("text") or "")
+            act_clean = strip_duplicate_speaker_prefix(
+                raw, speaker_label=lab, actor_id=aid
+            ).strip()
+            act_clean = dedupe_goc_speaker_colon_stutter_visible(
+                act_clean, speaker_label=lab or None, actor_id=aid
+            )
+            af = _goc_visible_lane_text_fold(act_clean)
+            if len(af) >= min_fold:
+                run = running_visible_by_actor.get(ak, "")
+                if _goc_npc_action_redundant_vs_running_visible(act_clean, run):
+                    continue
+            out.append(b)
+            prev_run = running_visible_by_actor.get(ak, "")
+            running_visible_by_actor[ak] = (
+                f"{prev_run} {act_clean}".strip() if prev_run else act_clean
+            )
+            continue
+
+        out.append(b)
+        if bt == "actor_line":
+            ak = _actor_key(b)
+            lab = str(b.get("speaker_label") or "").strip()
+            aid = str(b.get("actor_id") or "").strip() or None
+            line = str(b.get("text") or "")
+            line_clean = strip_duplicate_speaker_prefix(
+                line, speaker_label=lab, actor_id=aid
+            ).strip()
+            line_clean = dedupe_goc_speaker_colon_stutter_visible(
+                line_clean, speaker_label=lab or None, actor_id=aid
+            )
+            running_visible_by_actor[ak] = line_clean
+    return out
+
+
+def polish_goc_scene_blocks_for_player_shell(blocks: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    """Lightweight GoC-only polish for blocks served to the player shell (HTTP bundle path).
+
+    World-engine already finalizes at commit time; this pass fixes **persisted** cumulative
+    ``story_window`` slices and any edge path that skipped projection — colon stutter and
+    redundant ``actor_action`` rows that echo the same turn's ``actor_line`` tail.
+    """
+    if not blocks:
+        return []
+    out: list[dict[str, Any]] = []
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        nb = dict(b)
+        bt = str(nb.get("block_type") or "").strip().lower()
+        if bt in {"actor_line", "actor_action"}:
+            nb["text"] = dedupe_goc_speaker_colon_stutter_visible(
+                str(nb.get("text") or ""),
+                speaker_label=str(nb.get("speaker_label") or "") or None,
+                actor_id=str(nb.get("actor_id") or "").strip() or None,
+            )
+        out.append(nb)
+    return prune_goc_actor_actions_subsumed_by_prior_actor_lines(out)
+
+
 def _near_duplicate_visible_texts(a: str, b: str, *, threshold: float = 0.9) -> bool:
     na, nb = _norm_for_near_dedupe(a), _norm_for_near_dedupe(b)
     if not na or not nb:
@@ -503,6 +711,54 @@ def _near_duplicate_visible_texts(a: str, b: str, *, threshold: float = 0.9) -> 
     if na == nb:
         return True
     return difflib.SequenceMatcher(None, na, nb).ratio() >= threshold
+
+
+def _goc_npc_action_redundant_vs_running_visible(
+    act_clean: str,
+    running_visible: str,
+    *,
+    min_fold: int = 12,
+    near_duplicate_threshold: float = 0.88,
+    near_dup_min_len: int = 24,
+    min_act_chars_token_rule: int = 28,
+    min_run_chars_token_rule: int = 40,
+    min_distinct_tokens: int = 5,
+    token_coverage_of_action: float = 0.82,
+) -> bool:
+    """True when NPC ``actor_action`` text is already expressed in prior same-actor story text.
+
+    Uses (1) folded substring containment, (2) ``_near_duplicate_visible_texts`` on full
+    strings, or (3) high recall of length>=4 tokens from the action in the running text
+    (paraphrases where ``SequenceMatcher`` vs the full line is too low).
+    """
+    act = str(act_clean or "").strip()
+    run = str(running_visible or "").strip()
+    if not act or not run:
+        return False
+    af = _goc_visible_lane_text_fold(act)
+    rf = _goc_visible_lane_text_fold(run)
+    if len(af) >= min_fold and rf and af in rf:
+        return True
+    if (
+        len(af) >= min_fold
+        and len(act) >= near_dup_min_len
+        and len(run) >= near_dup_min_len
+        and _near_duplicate_visible_texts(act, run, threshold=near_duplicate_threshold)
+    ):
+        return True
+    fold_a = _goc_visible_lane_text_fold(act)
+    fold_r = _goc_visible_lane_text_fold(run)
+    toks_a = set(re.findall(r"[a-z]{4,}", fold_a))
+    toks_r = set(re.findall(r"[a-z]{4,}", fold_r))
+    if (
+        len(toks_a) >= min_distinct_tokens
+        and len(act) >= min_act_chars_token_rule
+        and len(run) >= min_run_chars_token_rule
+    ):
+        cov = len(toks_a & toks_r) / len(toks_a)
+        if cov >= token_coverage_of_action:
+            return True
+    return False
 
 
 def _collect_player_echo_strings(raw: Sequence[str] | None) -> list[str]:
@@ -700,26 +956,32 @@ def finalize_visible_scene_blocks(
         deduped.append(nb)
     out = deduped
 
-    # actor_action whose visible text is already contained in the previous actor_line (same actor).
+    # actor_action whose visible text is already contained in a prior actor_line (same actor).
     merged_subsumption: list[dict[str, Any]] = []
     for nb in out:
-        if merged_subsumption:
-            prev = merged_subsumption[-1]
-            pbt = str(prev.get("block_type") or "").strip().lower()
-            bt = str(nb.get("block_type") or "").strip().lower()
-            if (
-                pbt == "actor_line"
-                and bt == "actor_action"
-                and prev.get("actor_id")
-                and prev.get("actor_id") == nb.get("actor_id")
-            ):
-                pt, nt = str(prev.get("text") or ""), str(nb.get("text") or "")
-                nt_st = nt.strip()
-                if len(nt_st) >= 10:
-                    nc, pc = _norm_for_near_dedupe(nt), _norm_for_near_dedupe(pt)
-                    if nc and pc and nc in pc and len(nc) < len(pc):
-                        counts["actor_action_subsumed_by_actor_line_removed"] += 1
-                        continue
+        bt = str(nb.get("block_type") or "").strip().lower()
+        if bt == "actor_action":
+            aid = str(nb.get("actor_id") or "").strip()
+            nt = str(nb.get("text") or "")
+            nt_st = nt.strip()
+            drop = False
+            if aid and len(nt_st) >= 10:
+                nfold = _goc_visible_lane_text_fold(nt)
+                if len(nfold) >= 12:
+                    for prev_nb in reversed(merged_subsumption):
+                        pbt = str(prev_nb.get("block_type") or "").strip().lower()
+                        if pbt != "actor_line":
+                            continue
+                        if str(prev_nb.get("actor_id") or "").strip() != aid:
+                            continue
+                        pt = str(prev_nb.get("text") or "")
+                        pfold = _goc_visible_lane_text_fold(pt)
+                        if nfold and pfold and nfold in pfold:
+                            drop = True
+                            break
+            if drop:
+                counts["actor_action_subsumed_by_actor_line_removed"] += 1
+                continue
         merged_subsumption.append(nb)
     out = merged_subsumption
 

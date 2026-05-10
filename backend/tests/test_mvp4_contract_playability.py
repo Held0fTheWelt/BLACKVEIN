@@ -266,10 +266,14 @@ def test_mvp4_visible_scene_output_survives_resume_state():
     )
 
     assert bundle["opening_turn"] is None
-    assert bundle["visible_scene_output"] == {
-        "blocks": scene_blocks,
-        "typewriter_slice_start_index": 0,
-    }
+    vso = bundle["visible_scene_output"]
+    assert vso["typewriter_slice_start_index"] == 0
+    assert "player_shell_narrative_card_diagnostics" in vso
+    assert len(vso["blocks"]) == len(scene_blocks)
+    for got, exp in zip(vso["blocks"], scene_blocks):
+        assert got["id"] == exp["id"]
+        assert got["block_type"] == exp["block_type"]
+        assert got.get("text") == exp.get("text")
 
 
 @pytest.mark.mvp4
@@ -317,10 +321,15 @@ def test_mvp4_visible_scene_output_is_cumulative_for_mvp5_transcript():
         state=state,
         created=None,
     )
-    assert bundle["visible_scene_output"] == {
-        "blocks": opening_blocks + turn1_blocks,
-        "typewriter_slice_start_index": 1,
-    }
+    vso = bundle["visible_scene_output"]
+    assert vso["typewriter_slice_start_index"] == 1
+    assert "player_shell_narrative_card_diagnostics" in vso
+    merged = opening_blocks + turn1_blocks
+    assert len(vso["blocks"]) == len(merged)
+    for got, exp in zip(vso["blocks"], merged):
+        assert got["id"] == exp["id"]
+        assert got["block_type"] == exp["block_type"]
+        assert got.get("text") == exp.get("text")
 
 
 @pytest.mark.mvp4
@@ -363,10 +372,71 @@ def test_mvp4_visible_scene_output_cumulative_includes_player_input_blocks():
         created=None,
     )
     expected_blocks = opening_blocks + player_blocks + turn1_blocks
-    assert bundle["visible_scene_output"] == {
-        "blocks": expected_blocks,
-        "typewriter_slice_start_index": 2,
+    vso = bundle["visible_scene_output"]
+    assert vso["typewriter_slice_start_index"] == 2
+    assert "player_shell_narrative_card_diagnostics" in vso
+    assert len(vso["blocks"]) == len(expected_blocks)
+    for got, exp in zip(vso["blocks"], expected_blocks):
+        assert got["id"] == exp["id"]
+        assert got["block_type"] == exp["block_type"]
+        assert got.get("text") == exp.get("text")
+
+
+@pytest.mark.mvp4
+def test_mvp4_player_bundle_polishes_goc_colon_stutter_and_redundant_actor_action():
+    """GoC cumulative blocks from persisted story_window are re-polished for the shell (ADR-0034)."""
+    from backend.app.api.v1.game_routes import _player_session_bundle
+
+    raw_line = (
+        'Veronique: "Willkommen." Veronique: Véronique lächelt freundlich '
+        "und reicht Annette die Hand zum Gruß."
+    )
+    dup_action = "Véronique lächelt freundlich und reicht Annette die Hand zum Gruß."
+    opening_blocks = [{"id": "turn-0-block-1", "block_type": "narrator", "text": "Opening line."}]
+    turn1_blocks = [
+        {
+            "id": "turn-1-block-1",
+            "block_type": "actor_line",
+            "actor_id": "veronique_vallon",
+            "speaker_label": "Veronique",
+            "text": raw_line,
+        },
+        {
+            "id": "turn-1-block-2",
+            "block_type": "actor_action",
+            "actor_id": "veronique_vallon",
+            "speaker_label": "Veronique",
+            "text": dup_action,
+        },
+    ]
+    state = {
+        "story_window": {
+            "contract": "authoritative_story_window_v1",
+            "entries": [
+                {"turn_number": 0, "kind": "opening", "role": "runtime", "scene_blocks": opening_blocks},
+                {"turn_number": 1, "kind": "runtime_response", "role": "runtime", "scene_blocks": turn1_blocks},
+            ],
+            "entry_count": 2,
+            "latest_entry": {"turn_number": 1, "role": "runtime", "scene_blocks": turn1_blocks},
+        },
+        "last_committed_turn": {"turn_number": 1, "visible_output_bundle": {"scene_blocks": turn1_blocks}},
     }
+    bundle = _player_session_bundle(
+        run_id="test_run",
+        template_id="god_of_carnage",
+        module_id="god_of_carnage",
+        runtime_session_id="test_session",
+        state=state,
+        created=None,
+    )
+    blocks = bundle["visible_scene_output"]["blocks"]
+    assert len(blocks) == 2
+    assert blocks[0]["block_type"] == opening_blocks[0]["block_type"]
+    assert blocks[0].get("text") == opening_blocks[0].get("text")
+    assert blocks[1]["block_type"] == "actor_line"
+    merged_visible = blocks[1].get("player_display_text") or blocks[1].get("text") or ""
+    assert "Veronique: Véronique" not in merged_visible
+    assert "Veronique lächelt freundlich" in merged_visible
 
 
 @pytest.mark.mvp4
@@ -395,7 +465,11 @@ def test_mvp4_typewriter_slice_start_index_non_cumulative_is_zero():
         state=state,
         created=None,
     )
-    assert bundle["visible_scene_output"] == {
-        "blocks": turn_blocks,
-        "typewriter_slice_start_index": 0,
-    }
+    vso = bundle["visible_scene_output"]
+    assert vso["typewriter_slice_start_index"] == 0
+    assert "player_shell_narrative_card_diagnostics" in vso
+    assert len(vso["blocks"]) == len(turn_blocks)
+    for got, exp in zip(vso["blocks"], turn_blocks):
+        assert got["id"] == exp["id"]
+        assert got["block_type"] == exp["block_type"]
+        assert got.get("text") == exp.get("text")

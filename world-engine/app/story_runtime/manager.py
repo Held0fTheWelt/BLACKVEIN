@@ -51,6 +51,10 @@ from ai_stack.diagnostics_envelope import (
 from ai_stack.runtime_cost_attribution import aggregate_phase_costs, build_deterministic_phase_cost
 from ai_stack.narrative import NarrativeRuntimeAgent, NarrativeRuntimeAgentInput, NarrativeEventKind
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+from ai_stack.goc_npc_transcript_projection import (
+    goc_transcript_policy_flags,
+    split_merged_goc_actor_line_segments,
+)
 from ai_stack.goc_opening_handover import (
     compute_opening_handover_from_scene_blocks,
     polish_first_opening_actor_block,
@@ -58,7 +62,10 @@ from ai_stack.goc_opening_handover import (
 )
 from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.visible_narrative_contract import (
+    _goc_visible_lane_text_fold,
+    dedupe_goc_speaker_colon_stutter_visible,
     finalize_visible_scene_blocks,
+    prune_goc_actor_actions_subsumed_by_prior_actor_lines,
     sanitize_visible_block_text,
 )
 
@@ -394,6 +401,118 @@ def _annotate_goc_opening_narration_beats(
         blocks[i]["narration_beat"] = beats[i]
 
 
+def _dedupe_goc_speaker_colon_stutter(text: str) -> str:
+    """Delegate to shared visible-text helper (also applied inside ``sanitize_visible_block_text``)."""
+    return dedupe_goc_speaker_colon_stutter_visible(text)
+
+
+def _apply_goc_actor_block_colon_stutter_cleanup(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Normalize actor_line / actor_action visible text before split/prune."""
+    out: list[dict[str, Any]] = []
+    for b in blocks:
+        if not isinstance(b, dict):
+            out.append(b)
+            continue
+        bt = str(b.get("block_type") or "").strip().lower()
+        if bt in {"actor_line", "actor_action"}:
+            nb = dict(b)
+            nb["text"] = dedupe_goc_speaker_colon_stutter_visible(
+                str(b.get("text") or ""),
+                speaker_label=str(b.get("speaker_label") or "") or None,
+                actor_id=str(b.get("actor_id") or "").strip() or None,
+            )
+            out.append(nb)
+        else:
+            out.append(b)
+    return out
+
+
+def _goc_visible_text_fold(s: str) -> str:
+    """Lowercase + light accent fold so prune substring checks survive Véronique vs Veronique drift."""
+    return _goc_visible_lane_text_fold(s)
+
+
+def _split_merged_goc_actor_line_segments(
+    text: str,
+    *,
+    runtime_projection: dict[str, Any] | None = None,
+    story_runtime_experience: dict[str, Any] | None = None,
+) -> list[tuple[str, str, str]]:
+    """Split one ``actor_line`` by roster speaker prefixes (``ai_stack.goc_npc_transcript_projection``)."""
+    return split_merged_goc_actor_line_segments(
+        text,
+        runtime_projection=runtime_projection,
+        story_runtime_experience=story_runtime_experience,
+    )
+
+
+def _expand_multi_speaker_actor_lines(
+    blocks: list[dict[str, Any]],
+    *,
+    runtime_projection: dict[str, Any] | None = None,
+    story_runtime_experience: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Turn one model ``actor_line`` that jams multiple speakers into separate blocks."""
+    out: list[dict[str, Any]] = []
+    for b in blocks:
+        if not isinstance(b, dict):
+            continue
+        bt = str(b.get("block_type") or "").strip().lower()
+        if bt != "actor_line":
+            out.append(b)
+            continue
+        segs = _split_merged_goc_actor_line_segments(
+            str(b.get("text") or ""),
+            runtime_projection=runtime_projection,
+            story_runtime_experience=story_runtime_experience,
+        )
+        if len(segs) < 2:
+            out.append(b)
+            continue
+        base_id = str(b.get("id") or "live-block").strip() or "live-block"
+        for idx, (aid, sh, body) in enumerate(segs):
+            nb = dict(b)
+            nb["id"] = base_id if idx == 0 else f"{base_id}-spk{idx}"
+            nb["actor_id"] = aid
+            nb["speaker_label"] = sh
+            nb["text"] = f"{sh}: {body}"
+            out.append(nb)
+    return out
+
+
+def _prune_actor_actions_subsumed_by_prior_actor_lines(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Delegate to shared ai_stack prune (also used by backend player bundle polish)."""
+    return prune_goc_actor_actions_subsumed_by_prior_actor_lines(blocks)
+
+
+def _finalize_visible_blocks_with_goc_actor_split(
+    blocks: list[dict[str, Any]],
+    *,
+    expected_language: str,
+    human_actor_id: str | None,
+    selected_player_role: str | None,
+    turn_number: int,
+    player_input_echo_strings: list[str] | None,
+    runtime_projection: dict[str, Any] | None = None,
+    story_runtime_experience: dict[str, Any] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    blocks = _apply_goc_actor_block_colon_stutter_cleanup(blocks)
+    blocks = _expand_multi_speaker_actor_lines(
+        blocks,
+        runtime_projection=runtime_projection,
+        story_runtime_experience=story_runtime_experience,
+    )
+    out, diag = finalize_visible_scene_blocks(
+        blocks,
+        expected_language=expected_language,
+        human_actor_id=human_actor_id,
+        selected_player_role=selected_player_role,
+        turn_number=turn_number,
+        player_input_echo_strings=player_input_echo_strings,
+    )
+    return _prune_actor_actions_subsumed_by_prior_actor_lines(out), diag
+
+
 def _actor_line_count(value: Any) -> int:
     if not isinstance(value, list):
         return 0
@@ -482,6 +601,7 @@ def _maybe_backfill_opening_actor_from_structured(
     selected_player_role: str,
     delivery_fn: Any,
     actor_label_fn: Any,
+    story_runtime_experience: dict[str, Any] | None = None,
 ) -> tuple[list[dict[str, Any]], str, str | None]:
     """Append first safe NPC actor block from structured lanes. Returns (blocks, source, filter_reason)."""
     if turn_number != 0 or not _opening_shape_requires_actor_backfill(blocks):
@@ -516,6 +636,8 @@ def _maybe_backfill_opening_actor_from_structured(
     )
     if src:
         return inner_blocks, src, None
+    _flags = goc_transcript_policy_flags(story_runtime_experience)
+    _action_bt = "actor_line" if _flags["map_action_lines_to_actor_line_lane"] else "actor_action"
     src = _try_action_with_blocks(
         append_fn=_append,
         actor_label_fn=actor_label_fn,
@@ -523,6 +645,7 @@ def _maybe_backfill_opening_actor_from_structured(
         human_actor_id=human_actor_id,
         selected_player_role=selected_player_role,
         structured_output=structured_output,
+        action_block_type=_action_bt,
     )
     if src:
         return inner_blocks, src, None
@@ -590,6 +713,7 @@ def _try_action_with_blocks(
     human_actor_id: str,
     selected_player_role: str,
     structured_output: dict[str, Any],
+    action_block_type: str = "actor_action",
 ) -> str | None:
     actions = structured_output.get("action_lines")
     if not isinstance(actions, list):
@@ -610,8 +734,11 @@ def _try_action_with_blocks(
                 selected_player_role=selected_player_role,
             ):
                 continue
+        bt = str(action_block_type or "actor_action").strip().lower()
+        if bt not in {"actor_action", "actor_line"}:
+            bt = "actor_action"
         append_fn(
-            "actor_action",
+            bt,
             line,
             speaker_label=actor_label_fn(aid),
             actor_id=aid or None,
@@ -2172,6 +2299,31 @@ def _reconcile_governance_passivity_with_final_projection(event: dict[str, Any])
             vit["response_present"] = True
 
 
+def _effective_story_runtime_experience_slice(
+    graph_state: dict[str, Any] | None,
+    explicit: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Resolve governed experience flags (effective slice) for GoC transcript policy."""
+    if isinstance(explicit, dict) and explicit:
+        return dict(explicit)
+    if isinstance(graph_state, dict):
+        sre = graph_state.get("story_runtime_experience")
+        if isinstance(sre, dict):
+            eff = sre.get("effective")
+            if isinstance(eff, dict) and eff:
+                return dict(eff)
+            if any(
+                k in sre
+                for k in (
+                    "experience_mode",
+                    "goc_transcript_merge_consecutive_same_actor",
+                    "goc_map_action_lines_to_actor_line_lane",
+                )
+            ):
+                return dict(sre)
+    return {}
+
+
 def _live_scene_blocks_from_visible_bundle(
     visible_output_bundle: dict[str, Any] | None,
     *,
@@ -2181,6 +2333,7 @@ def _live_scene_blocks_from_visible_bundle(
     graph_state: dict[str, Any] | None = None,
     session_output_language: str = "de",
     player_input: str | None = None,
+    story_runtime_experience: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     if graph_state is not None and turn_number != 0:
         graph_state.pop("_actor_block_projection_evidence", None)
@@ -2189,6 +2342,12 @@ def _live_scene_blocks_from_visible_bundle(
     proj = runtime_projection if isinstance(runtime_projection, dict) else None
     human_id = str((proj or {}).get("human_actor_id") or "").strip()
     role = str((proj or {}).get("selected_player_role") or "").strip()
+    _exp_eff = _effective_story_runtime_experience_slice(graph_state, story_runtime_experience)
+    _goc_action_block_type = (
+        "actor_line"
+        if goc_transcript_policy_flags(_exp_eff)["map_action_lines_to_actor_line_lane"]
+        else "actor_action"
+    )
     _exp_lang = str(session_output_language or "de").strip().lower()[:2] or "de"
     echo_strings: list[str] = []
     pi = str(player_input or "").strip()
@@ -2198,13 +2357,15 @@ def _live_scene_blocks_from_visible_bundle(
     existing = bundle.get("scene_blocks")
     if isinstance(existing, list) and existing:
         blocks = [dict(block) for block in existing if isinstance(block, dict)]
-        blocks, vis_diag = finalize_visible_scene_blocks(
+        blocks, vis_diag = _finalize_visible_blocks_with_goc_actor_split(
             blocks,
             expected_language=_exp_lang,
             human_actor_id=human_id or None,
             selected_player_role=role or None,
             turn_number=turn_number,
             player_input_echo_strings=echo_strings or None,
+            runtime_projection=proj,
+            story_runtime_experience=_exp_eff,
         )
         if graph_state is not None:
             graph_state["_visible_narrative_contract"] = vis_diag
@@ -2319,7 +2480,12 @@ def _live_scene_blocks_from_visible_bundle(
                         selected_player_role=role,
                     ):
                         continue
-                append_block("actor_action", line, speaker_label=actor_label(actor_id), actor_id=actor_id or None)
+                append_block(
+                    _goc_action_block_type,
+                    line,
+                    speaker_label=actor_label(actor_id),
+                    actor_id=actor_id or None,
+                )
                 emitted = True
         return emitted
 
@@ -2378,10 +2544,10 @@ def _live_scene_blocks_from_visible_bundle(
                     selected_player_role=role,
                 ):
                     continue
-            append_block("actor_action", line, speaker_label=actor_label(aid), actor_id=aid or None)
+            append_block(_goc_action_block_type, line, speaker_label=actor_label(aid), actor_id=aid or None)
             continue
         for line in _coerce_visible_text_lines(item):
-            append_block("actor_action", line, speaker_label="Action")
+            append_block(_goc_action_block_type, line, speaker_label="Action")
 
     if graph_state is not None and turn_number == 0:
         sl_n, al_n = _structured_lane_dict_counts(structured_output if isinstance(structured_output, dict) else None)
@@ -2398,6 +2564,7 @@ def _live_scene_blocks_from_visible_bundle(
                 selected_player_role=role,
                 delivery_fn=delivery,
                 actor_label_fn=actor_label,
+                story_runtime_experience=_exp_eff,
             )
         actor_src = bf_src
         filt_out = bf_filt
@@ -2420,13 +2587,15 @@ def _live_scene_blocks_from_visible_bundle(
             "actor_block_filtered_reason": filt_out,
         }
 
-    blocks, vis_diag = finalize_visible_scene_blocks(
+    blocks, vis_diag = _finalize_visible_blocks_with_goc_actor_split(
         blocks,
         expected_language=_exp_lang,
         human_actor_id=human_id or None,
         selected_player_role=role or None,
         turn_number=turn_number,
         player_input_echo_strings=echo_strings or None,
+        runtime_projection=proj,
+        story_runtime_experience=_exp_eff,
     )
     if graph_state is not None:
         graph_state["_visible_narrative_contract"] = vis_diag
@@ -2581,10 +2750,17 @@ def _player_input_scene_blocks_for_story_window(
     human_actor_id: str | None = None,
     interpreted_input: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    """MVP5 cumulative transcript: visible block(s) for each committed player line.
+    """MVP5 cumulative transcript: visible player line for the story shell.
 
-    Imperative greetings (e.g. Begrüße X) emit two blocks: ``player_input`` then
-    ``player_input_outcome``. Otherwise a single ``player_input`` block.
+    When ``human_actor_id`` is bound (canonical GoC solo path), **always** emit **two**
+    cards: ``player_input`` (verbatim typing, italic shell lane) then
+    ``player_input_outcome`` (diegetic attributed line, e.g. *Annette sagt: „…“*).
+
+    Imperative greetings (e.g. *Begrüße Veronique*) still use the scripted polite
+    outcome line for the second card; all other inputs use ``_goc_player_attributed_visible_text``.
+
+    Without a human actor id (legacy / non-solo), a single ``player_input`` block
+    with speaker *Du* / *You* is emitted.
 
     Player text is not part of runtime ``spoken_lines`` (human lane is filtered from
     scene envelope). Story-window entries must still carry ``scene_blocks`` so backend
@@ -2604,75 +2780,52 @@ def _player_input_scene_blocks_for_story_window(
         ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
         if ik in ("intent_only", "ambiguous", "reaction"):
             ik = "speech"
+        verbatim_line = text
+        outcome_line: str
         pair = _goc_greeting_imperative_visible_pair(raw=text, player_shell_name=name, lang=exp_lang)
         if pair and ik in {"speech", "action"}:
-            raw_line, outcome_line = pair
-            delivery = {
-                "mode": "typewriter",
-                "characters_per_second": 44,
-                "pause_before_ms": 0,
-                "pause_after_ms": 120,
-                "skippable": True,
-            }
-            out_blocks: list[dict[str, Any]] = []
-            for suffix, line, bt in (
-                ("", raw_line, "player_input"),
-                ("-outcome", outcome_line, "player_input_outcome"),
-            ):
-                cleaned, _partial = sanitize_visible_block_text(
-                    line,
-                    block_type=bt,
-                    speaker_label=name,
-                    actor_id=canon,
-                    expected_language=exp_lang,
+            verbatim_line, outcome_line = pair[0], pair[1]
+        else:
+            _, outcome_line = _goc_player_attributed_visible_text(
+                raw_input=text,
+                human_actor_id=canon,
+                session_output_language=exp_lang,
+                interpreted_input=interpreted_input,
+            )
+        delivery = {
+            "mode": "typewriter",
+            "characters_per_second": 44,
+            "pause_before_ms": 0,
+            "pause_after_ms": 120,
+            "skippable": True,
+        }
+        out_blocks: list[dict[str, Any]] = []
+        for suffix, line, bt in (
+            ("", verbatim_line, "player_input"),
+            ("-outcome", outcome_line, "player_input_outcome"),
+        ):
+            cleaned, _partial = sanitize_visible_block_text(
+                line,
+                block_type=bt,
+                speaker_label=name,
+                actor_id=canon,
+                expected_language=exp_lang,
+            )
+            if cleaned:
+                out_blocks.append(
+                    {
+                        "id": f"{session_id}-turn-{turn_token}-player-input{suffix}",
+                        "block_type": bt,
+                        "speaker_label": name,
+                        "actor_id": canon,
+                        "target_actor_id": None,
+                        "text": cleaned,
+                        "delivery": delivery,
+                        "source": "player_input",
+                    }
                 )
-                if cleaned:
-                    out_blocks.append(
-                        {
-                            "id": f"{session_id}-turn-{turn_token}-player-input{suffix}",
-                            "block_type": bt,
-                            "speaker_label": name,
-                            "actor_id": canon,
-                            "target_actor_id": None,
-                            "text": cleaned,
-                            "delivery": delivery,
-                            "source": "player_input",
-                        }
-                    )
-            if out_blocks:
-                return out_blocks
-        spk, vis_line = _goc_player_attributed_visible_text(
-            raw_input=text,
-            human_actor_id=canon,
-            session_output_language=exp_lang,
-            interpreted_input=interpreted_input,
-        )
-        cleaned, _partial = sanitize_visible_block_text(
-            vis_line,
-            block_type="player_input",
-            speaker_label=spk,
-            actor_id=canon,
-            expected_language=exp_lang,
-        )
-        if cleaned:
-            return [
-                {
-                    "id": f"{session_id}-turn-{turn_token}-player-input",
-                    "block_type": "player_input",
-                    "speaker_label": spk,
-                    "actor_id": canon,
-                    "target_actor_id": None,
-                    "text": cleaned,
-                    "delivery": {
-                        "mode": "typewriter",
-                        "characters_per_second": 44,
-                        "pause_before_ms": 0,
-                        "pause_after_ms": 120,
-                        "skippable": True,
-                    },
-                    "source": "player_input",
-                }
-            ]
+        if out_blocks:
+            return out_blocks
     speaker_label = "Du" if lang.startswith("de") else "You"
     return [
         {
@@ -3888,10 +4041,12 @@ class StoryRuntimeManager:
             if isinstance(actor_id, str) and actor_id.strip():
                 ai_allowed_set.update(expand_goc_actor_id_aliases(actor_id))
         ai_allowed = sorted(ai_allowed_set)
+        npc_ids = [str(x).strip() for x in (npc_actor_ids or []) if isinstance(x, str) and str(x).strip()]
         return {
             "human_actor_id": human_actor_id,
             "ai_forbidden_actor_ids": ai_forbidden,
             "ai_allowed_actor_ids": ai_allowed,
+            "npc_actor_ids": npc_ids,
             "selected_player_role": str(proj.get("selected_player_role") or "").strip(),
             "actor_lanes": proj.get("actor_lanes") or {},
         }
@@ -4471,6 +4626,7 @@ class StoryRuntimeManager:
                     graph_state=graph_state,
                     session_output_language=session.session_output_language,
                     player_input=player_input,
+                    story_runtime_experience=experience_policy.effective,
                 )
                 live_scene_blocks = _maybe_split_goc_opening_into_two_movements(
                     live_scene_blocks,
@@ -4843,6 +4999,7 @@ class StoryRuntimeManager:
                 live_player_truth_surface=True,
                 actor_lane_context=actor_lane_ctx,
                 session_output_language=session.session_output_language,
+                story_runtime_experience=self._story_runtime_experience_policy().effective,
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -5013,6 +5170,7 @@ class StoryRuntimeManager:
                 live_player_truth_surface=True,
                 actor_lane_context=self._extract_actor_lane_context(session),
                 session_output_language=session.session_output_language,
+                story_runtime_experience=self._story_runtime_experience_policy().effective,
             )
         except Exception as exc:
             session.turn_counter -= 1

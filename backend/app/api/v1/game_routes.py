@@ -8,7 +8,13 @@ from flask import current_app, g, jsonify, request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from sqlalchemy import select
 
+from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
+from ai_stack.player_narrative_cards import (
+    build_player_facing_narrative_cards,
+    player_shell_typewriter_start_index,
+)
+from ai_stack.visible_narrative_contract import polish_goc_scene_blocks_for_player_shell
 
 from app.api.v1 import api_v1_bp
 from app.auth.permissions import require_jwt_moderator_or_admin
@@ -388,12 +394,26 @@ def _player_session_bundle(
         )
     visible_scene_output: dict[str, Any] | None = None
     if scene_blocks:
-        tw_start = _typewriter_slice_start_index_for_bundle(
-            story_window=story_window,
-            scene_blocks=scene_blocks,
-            used_cumulative_story_blocks=used_cumulative,
-        )
-        visible_scene_output = {"blocks": scene_blocks}
+        if str(module_id or "").strip() == GOC_MODULE_ID:
+            scene_blocks = polish_goc_scene_blocks_for_player_shell(scene_blocks)
+        player_cards, shell_diag = build_player_facing_narrative_cards(scene_blocks)
+        if used_cumulative and player_cards:
+            prior_semantic = _scene_blocks_count_prior_story_entries(story_window)
+            tw_start = player_shell_typewriter_start_index(
+                player_cards,
+                prior_semantic_index=prior_semantic,
+                used_cumulative_story_blocks=True,
+            )
+        else:
+            tw_start = _typewriter_slice_start_index_for_bundle(
+                story_window=story_window,
+                scene_blocks=player_cards,
+                used_cumulative_story_blocks=used_cumulative,
+            )
+        visible_scene_output = {
+            "blocks": player_cards,
+            "player_shell_narrative_card_diagnostics": shell_diag,
+        }
         if tw_start is not None:
             visible_scene_output["typewriter_slice_start_index"] = tw_start
     opening_readiness = evaluate_session_opening_readiness(

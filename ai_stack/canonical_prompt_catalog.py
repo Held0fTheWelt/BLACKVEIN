@@ -130,11 +130,13 @@ MECHANICS:
 - PLAYER-VISIBLE TYPOGRAPHY (spoken vs stage; apply in the session_output_language):
   - spoken_lines[].text: Put the actual spoken words in ASCII double quotes ("…"). You may use an optional attributive lead-in before the opening quote (German examples: "meint: ", "führt aus: ", "Name stimmt zu: "). Do not leave a line that is only a name plus ":" with no quoted speech. Avoid clumsy duplicate speaker labels immediately before the quoted passage.
   - action_lines[].text: Pure blocking / gesture in third-person prose; weave the actor's name inside the sentence (e.g. "Veronique steht auf und zeigt auf die Tür."). Never start this field with "Name:" — that colon form is for spoken_lines, not for silent action.
+- TRANSCRIPT / SHELL (not novel prose): The play surface renders **typed blocks**—a theatrical transcript whose **count follows the cast and beats** (one visible NPC focus may be one card; several distinct speakers or actions may be several cards; narrator beats are separate cards). Do **not** replace that with a **single book-style omniscient paragraph** that smears everyone together. When multiple people have speech or blocking this turn, emit **separate** `spoken_lines` / `action_lines` rows per speaker and per physical actor so downstream can show **person-scoped narrative blocks**. Keep `narration_summary` a concise projection of those rows—not a long internal novel that is the only place the cast appears.
 - When prior_initiative_truth shows unresolved tension (initiative_pressure_label contested/floor_claimed), the next turn MUST show an actor response that addresses or escalates that pressure.
 - When secondary_responder_ids are nominated, at least one SHOULD appear in spoken_lines or action_lines unless an interruption or validation constraint makes that impossible.
 - When pacing_mode=thin_edge with silence, actors may react briefly but MUST NOT be completely absent if prior carry_forward_tension_notes are present.
 - preferred_reaction_order lists the runtime's preferred dramatic actor order (e.g., [alice, bob, carol]). When present: deliver visible actor beats in that sequence when it is narratively plausible. Interruption, validation constraints, or scene pressure may justify divergence from preferred order—that is acceptable and expected.
 - PLAYER INPUT OWNERSHIP (God of Carnage live human lane): primary_responder_id only selects which NPC reacts next; it must never re-assign the player's raw words to that NPC. The human actor has already spoken/acted the player line in the committed surface; do not paraphrase it as NPC spoken_lines unless it is clearly distinct new dialogue (never a verbatim or trivial rewrite of the player line). Generate only NPC/narrator reaction and stage blocking.
+- GOD OF CARNAGE HOST/GUEST FOOTING: Véronique and Michel are hosts in their apartment; Annette and Alain are guests. Do not write Alain as primary apartment host (landlord-style welcome, "our home" authority, hosting the space as if it were his). He may mediate or speak politely as a guest; ritual welcome and hosting primacy default to the hosts unless the beat explicitly frames a deliberate contradiction.
 
 Return valid JSON. Prioritize actor lanes over prose beauty.""",
                 "description": "System prompt for World of Shadows runtime turn generation.",
@@ -152,7 +154,7 @@ Return valid JSON. Prioritize actor lanes over prose beauty.""",
 5. Identify state changes (state_effects for pressure shifts, relationship changes, scene shifts).
 
 PROSE PROJECTION:
-After completing actor realization above, write narration_summary that expresses the scene from the actor choices you determined. Think of this as a narrative view of the actor output, not a separate prose invention. Narration should be grounded in actor behavior.
+After completing actor realization above, write narration_summary that expresses the scene from the actor choices you determined. Think of this as a narrative view of the actor output, not a separate prose invention. Narration should be grounded in actor behavior. If several actors are visible this turn, your earlier `spoken_lines` / `action_lines` should already be split per person so the shell never depends on one merged novel paragraph for cast clarity.
 
 COHERENCE CHECK:
 - Does narration_summary reflect the actor choices (responder, spoken/action lines, initiative)?

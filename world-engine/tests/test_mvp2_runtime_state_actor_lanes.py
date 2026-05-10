@@ -657,6 +657,9 @@ def test_actor_lane_enforcement_active_in_graph_execution():
         "RuntimeTurnGraphExecutor.run() must accept actor_lane_context. "
         "False-green: enforcement was dead code without this parameter."
     )
+    assert "story_runtime_experience" in sig.parameters, (
+        "RuntimeTurnGraphExecutor.run() must accept story_runtime_experience for governed caps."
+    )
 
 
 def test_runtime_turn_state_has_actor_lane_context_field():
@@ -672,6 +675,9 @@ def test_runtime_turn_state_has_actor_lane_context_field():
     assert "actor_lane_context" in annotations, (
         "RuntimeTurnState must have actor_lane_context field. "
         "Without it, actor-lane enforcement cannot flow through graph state."
+    )
+    assert "story_runtime_experience" in annotations, (
+        "RuntimeTurnState must carry story_runtime_experience for transcript-shell caps."
     )
 
 
@@ -716,5 +722,6 @@ def test_extract_actor_lane_context_returns_context_with_ownership():
     ctx = StoryRuntimeManager._extract_actor_lane_context(session)
     assert ctx is not None
     assert ctx["human_actor_id"] == "annette"
+    assert ctx.get("npc_actor_ids") == ["alain", "veronique", "michel"]
     assert "annette" in ctx["ai_forbidden_actor_ids"]
     assert "alain" in ctx["ai_allowed_actor_ids"]

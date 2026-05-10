@@ -5,6 +5,7 @@ from __future__ import annotations
 from ai_stack.visible_narrative_contract import (
     detect_english_leak_in_german_session,
     finalize_visible_scene_blocks,
+    prune_goc_actor_actions_subsumed_by_prior_actor_lines,
     sanitize_gm_narration_beat_line,
     sanitize_visible_block_text,
     strip_internal_beat_markers,
@@ -139,6 +140,21 @@ def test_finalize_drops_name_only_accent_mismatch():
     assert diag["name_only_actor_block_removed"] >= 1
 
 
+def test_sanitize_actor_line_dedupes_mid_string_veronique_colon_accent_after_lead_strip():
+    """Leading ``Veronique:`` is stripped first; mid-string ``Veronique: Véronique`` must still collapse."""
+    raw = 'Veronique: "Kurz." Veronique: Véronique nickt leicht.'
+    clean, partial = sanitize_visible_block_text(
+        raw,
+        block_type="actor_line",
+        speaker_label="Veronique",
+        actor_id="veronique_vallon",
+        expected_language="de",
+    )
+    assert "Veronique: Véronique" not in clean
+    assert "Veronique nickt" in clean
+    assert partial.get("goc_speaker_colon_stutter_deduped") is True
+
+
 def test_finalize_subsumes_actor_action_contained_in_prior_actor_line():
     long_line = (
         "Veronique steht auf und geht zur Tür, während sie sagt, "
@@ -167,6 +183,40 @@ def test_finalize_subsumes_actor_action_contained_in_prior_actor_line():
         turn_number=1,
     )
     assert len(out) == 1
+    assert diag["actor_action_subsumed_by_actor_line_removed"] == 1
+
+
+def test_finalize_subsumes_actor_action_when_narrator_between_line_and_action():
+    long_line = (
+        'Veronique: "Willkommen." Veronique: Véronique lächelt freundlich '
+        "und reicht Annette die Hand zum Gruß."
+    )
+    action = "Véronique lächelt freundlich und reicht Annette die Hand zum Gruß."
+    blocks = [
+        {
+            "block_type": "actor_line",
+            "speaker_label": "Veronique",
+            "actor_id": "veronique_vallon",
+            "text": long_line,
+        },
+        {"block_type": "narrator", "speaker_label": "Narrator", "text": "Die Luft bleibt höflich."},
+        {
+            "block_type": "actor_action",
+            "speaker_label": "Veronique",
+            "actor_id": "veronique_vallon",
+            "text": action,
+        },
+    ]
+    out, diag = finalize_visible_scene_blocks(
+        blocks,
+        expected_language="de",
+        human_actor_id="annette",
+        selected_player_role="annette",
+        turn_number=1,
+    )
+    assert len(out) == 2
+    assert out[0]["block_type"] == "actor_line"
+    assert out[1]["block_type"] == "narrator"
     assert diag["actor_action_subsumed_by_actor_line_removed"] == 1
 
 
@@ -242,3 +292,30 @@ def test_finalize_drops_narrator_label_colon_only_line():
     assert len(out) == 2
     assert diag["label_only_line_removed"] == 1
     assert all("Veronique:" not in (str(b.get("text") or "")) for b in out)
+
+
+def test_prune_drops_paraphrased_actor_action_token_overlap():
+    line = (
+        "Véronique begrüßt Annette herzlich und drückt ihre Freude aus, sie zu sehen. "
+        "Sie reicht ihr die Hand zum Gruß und signalisiert damit den Beginn eines "
+        "höflichen und zivilen Austauschs. Alain beobachtet die Szene aufmerksam, "
+        "bereit, bei Bedarf zu reagieren."
+    )
+    action = "Veronique lächelt herzlich und reicht Annette die Hand zum Gruß."
+    blocks = [
+        {
+            "block_type": "actor_line",
+            "actor_id": "veronique_vallon",
+            "speaker_label": "Véronique",
+            "text": line,
+        },
+        {
+            "block_type": "actor_action",
+            "actor_id": "veronique_vallon",
+            "speaker_label": "Véronique",
+            "text": action,
+        },
+    ]
+    out = prune_goc_actor_actions_subsumed_by_prior_actor_lines(blocks)
+    assert len(out) == 1
+    assert out[0].get("block_type") == "actor_line"

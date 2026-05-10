@@ -113,7 +113,7 @@ characters:
     vulnerability: "Her cynicism and intellectual dominance can be devastating, but she's capable of being genuinely hurt (rarely revealed)"
 
   alain:
-    formal_role: "Annette's spouse, mediator, conflict manager"
+    formal_role: "Guest; Annette's spouse; mediator, conflict manager (hosts are Véronique and Michel in their home)"
 
     core_worldview: |
       Conflict is exhausting. The goal is to keep things manageable and preserve the relationship.
@@ -127,6 +127,12 @@ characters:
       idiom: "Mediation language; appeals to shared interests; minimization"
 
     baseline_tone: "Weary, diplomatic, exhausted from managing Annette"
+
+    guest_footing: |
+      Alain is a guest in the Vallons' apartment, not the host of the house. Ritual welcome,
+      hosting logistics, and "our home" authority belong to Véronique/Michel by default.
+      Alain may be courteous or mediate as a guest would; do not cast him as primary greeter
+      or landlord-style welcomer unless the scenario explicitly plays that as a contradiction.
 
     escalation_arc:
       phase_1: "Trying to smooth things over; playing the good guest"

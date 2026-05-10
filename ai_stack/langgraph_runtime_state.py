@@ -110,6 +110,8 @@ class RuntimeTurnState(TypedDict, total=False):
     primary_attempt_evidence: dict[str, Any]
     # ADR-0036: normative language for all model-visible turn text (host-injected).
     session_output_language: str
+    # Effective ``story_runtime_experience`` slice from governed runtime config (operator/admin).
+    story_runtime_experience: dict[str, Any]
     # HUMAN-INPUT-ATTRIBUTION-01: committed-turn diagnostics (host/world-engine may attach).
     human_input_attribution: dict[str, Any]
 

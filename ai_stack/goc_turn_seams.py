@@ -22,6 +22,7 @@ from ai_stack.goc_frozen_vocab import (
     canonicalize_goc_actor_id,
     expand_goc_actor_id_aliases,
 )
+from ai_stack.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
 from ai_stack.goc_yaml_authority import thin_edge_staging_line_from_guidance
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 
@@ -334,6 +335,54 @@ def _check_human_actor_violations(
     return None
 
 
+# Default when ``story_runtime_experience`` is absent (operator DB / resolved config).
+GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT = 1200
+
+
+def _resolved_npc_lane_char_cap(story_runtime_experience: dict[str, Any] | None) -> int:
+    """Effective cap for NPC ``spoken_lines`` / ``action_lines`` rows from governed experience."""
+    if not isinstance(story_runtime_experience, dict):
+        return GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT
+    try:
+        v = int(story_runtime_experience.get("npc_spoken_action_text_char_cap") or GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT)
+    except (TypeError, ValueError):
+        return GOC_NPC_LANE_TEXT_CHAR_CAP_DEFAULT
+    return max(400, min(8000, v))
+
+
+def _check_npc_spoken_action_lane_blob_cap(
+    structured: dict[str, Any], *, npc_char_cap: int
+) -> dict[str, Any] | None:
+    """Reject a single NPC lane row that exceeds the operator-configured character cap.
+
+    Narrator prose is not evaluated here (``narration_summary`` / narrator blocks may be
+    longer). Runs only for god_of_carnage after caller checks module_id.
+    """
+    cap = max(128, min(16000, int(npc_char_cap)))
+    for lane_key in ("spoken_lines", "action_lines"):
+        rows = structured.get(lane_key)
+        if not isinstance(rows, list):
+            continue
+        for idx, item in enumerate(rows):
+            if not isinstance(item, dict):
+                continue
+            blob = str(item.get("text") or item.get("line") or "").strip()
+            if len(blob) > cap:
+                return {
+                    "status": "rejected",
+                    "reason": "actor_lane_text_exceeds_transcript_beat",
+                    "validator_lane": "goc_transcript_shell_contract_v1",
+                    "transcript_shell_validation": {
+                        "rule": "npc_lane_blob_cap",
+                        "lane": lane_key,
+                        "index": idx,
+                        "char_len": len(blob),
+                        "cap": cap,
+                    },
+                }
+    return None
+
+
 def run_validation_seam(
     *,
     module_id: str,
@@ -342,6 +391,7 @@ def run_validation_seam(
     evaluation_context: DramaticEffectEvaluationContext | None = None,
     actor_lane_summary: dict[str, Any] | None = None,
     actor_lane_context: dict[str, Any] | None = None,
+    story_runtime_experience: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text
     (CANONICAL_TURN_CONTRACT_GOC.md §2.1).
@@ -351,7 +401,8 @@ def run_validation_seam(
     BEFORE the dramatic-effect gate. Rejects AI output that speaks, acts,
     emotes, or nominates the selected human actor.
 
-    Error codes: ai_controlled_human_actor, human_actor_selected_as_responder.
+    Error codes: ai_controlled_human_actor, human_actor_selected_as_responder,
+    actor_lane_text_exceeds_transcript_beat (NPC lanes only; cap from story_runtime_experience).
     """
     # MVP2: Actor-lane enforcement runs before dramatic-effect gate and before commit.
     if actor_lane_context and isinstance(actor_lane_context, dict):
@@ -380,6 +431,13 @@ def run_validation_seam(
             "reason": "model_generation_failed",
             "validator_lane": "goc_rule_engine_v1",
         }
+    gen_meta_pre = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured_pre = gen_meta_pre.get("structured_output") if isinstance(gen_meta_pre.get("structured_output"), dict) else {}
+    if structured_pre:
+        npc_cap = _resolved_npc_lane_char_cap(story_runtime_experience)
+        shell_violation = _check_npc_spoken_action_lane_blob_cap(structured_pre, npc_char_cap=npc_cap)
+        if shell_violation is not None:
+            return shell_violation
     for eff in proposed_state_effects:
         if not isinstance(eff, dict):
             return {
@@ -595,6 +653,15 @@ def run_visible_render(
     structured_action_lines = _coerce_actor_lines(structured.get("action_lines"), actor_key="actor_id")
 
     markers: list[str] = []
+    if module_id == GOC_MODULE_ID:
+        markers.extend(
+            goc_spoken_lines_multi_speaker_row_markers(
+                structured,
+                runtime_projection=rc.get("runtime_projection")
+                if isinstance(rc.get("runtime_projection"), dict)
+                else None,
+            )
+        )
     if actor_lanes_rejected:
         markers.append("actor_lanes_validation_gated")
 

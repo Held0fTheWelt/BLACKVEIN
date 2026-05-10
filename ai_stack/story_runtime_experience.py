@@ -83,6 +83,14 @@ def canonical_defaults() -> dict[str, Any]:
         "max_scene_pulses_per_response": 1,
         "allow_scene_progress_without_player_action": False,
         "beat_progression_speed": "normal",
+        # Hard validation (GoC transcript shell): max characters per spoken_lines /
+        # action_lines dict row — NPC dialogue/blocking only; narrator prose uses
+        # narration_summary / narrator blocks and is not capped here.
+        "npc_spoken_action_text_char_cap": 1200,
+        # GoC live transcript projection (world-engine): roster-driven split; no fixed card count.
+        "goc_transcript_merge_consecutive_same_actor": True,
+        "goc_transcript_split_speech_stage_same_actor": False,
+        "goc_map_action_lines_to_actor_line_lane": False,
     }
 
 
@@ -191,6 +199,24 @@ def normalize_story_runtime_experience(payload: Any) -> dict[str, Any]:
         payload.get("allow_scene_progress_without_player_action"),
         base["allow_scene_progress_without_player_action"],
     )
+    base["npc_spoken_action_text_char_cap"] = _coerce_int(
+        payload.get("npc_spoken_action_text_char_cap"),
+        400,
+        8000,
+        int(base.get("npc_spoken_action_text_char_cap") or 1200),
+    )
+    base["goc_transcript_merge_consecutive_same_actor"] = _coerce_bool(
+        payload.get("goc_transcript_merge_consecutive_same_actor"),
+        bool(base.get("goc_transcript_merge_consecutive_same_actor", True)),
+    )
+    base["goc_transcript_split_speech_stage_same_actor"] = _coerce_bool(
+        payload.get("goc_transcript_split_speech_stage_same_actor"),
+        bool(base.get("goc_transcript_split_speech_stage_same_actor", False)),
+    )
+    base["goc_map_action_lines_to_actor_line_lane"] = _coerce_bool(
+        payload.get("goc_map_action_lines_to_actor_line_lane"),
+        bool(base.get("goc_map_action_lines_to_actor_line_lane", False)),
+    )
     return base
 
 
@@ -281,6 +307,26 @@ class StoryRuntimeExperiencePolicy:
     @property
     def is_dramatic_turn(self) -> bool:
         return self.experience_mode == "dramatic_turn"
+
+    @property
+    def npc_spoken_action_text_char_cap(self) -> int:
+        """Max characters per NPC ``spoken_lines`` / ``action_lines`` row (transcript shell)."""
+        try:
+            return int(self.effective.get("npc_spoken_action_text_char_cap") or 1200)
+        except (TypeError, ValueError):
+            return 1200
+
+    @property
+    def goc_transcript_merge_consecutive_same_actor(self) -> bool:
+        return bool(self.effective.get("goc_transcript_merge_consecutive_same_actor", True))
+
+    @property
+    def goc_transcript_split_speech_stage_same_actor(self) -> bool:
+        return bool(self.effective.get("goc_transcript_split_speech_stage_same_actor", False))
+
+    @property
+    def goc_map_action_lines_to_actor_line_lane(self) -> bool:
+        return bool(self.effective.get("goc_map_action_lines_to_actor_line_lane", False))
 
     def to_truth_surface(self) -> dict[str, Any]:
         return {

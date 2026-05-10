@@ -137,9 +137,13 @@ def test_story_window_goc_player_block_uses_human_attribution_when_human_actor_b
     entries = _story_window_entries_for_session(session)
     player = entries[0]
     assert player["role"] == "player"
-    assert "Annette" in (player["scene_blocks"][0].get("text") or "")
-    assert "fragt" in (player["scene_blocks"][0].get("text") or "").lower()
-    assert "Wieso sind wir hier?" in (player["scene_blocks"][0].get("text") or "")
+    assert len(player["scene_blocks"]) == 2
+    assert player["scene_blocks"][0]["block_type"] == "player_input"
+    assert player["scene_blocks"][0]["text"] == "Wieso sind wir hier?"
+    assert player["scene_blocks"][1]["block_type"] == "player_input_outcome"
+    assert "Annette" in (player["scene_blocks"][1].get("text") or "")
+    assert "fragt" in (player["scene_blocks"][1].get("text") or "").lower()
+    assert "Wieso sind wir hier?" in (player["scene_blocks"][1].get("text") or "")
 
 
 def test_story_window_player_input_block_speaker_follows_session_output_language() -> None:

@@ -1190,6 +1190,7 @@ class RuntimeTurnGraphExecutor:
         live_player_truth_surface: bool | None = None,
         actor_lane_context: dict[str, Any] | None = None,
         session_output_language: str | None = None,
+        story_runtime_experience: dict[str, Any] | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -1282,6 +1283,8 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
         sol = str(session_output_language or "de").strip().lower()[:2] or "de"
         initial_state["session_output_language"] = sol
+        if story_runtime_experience and isinstance(story_runtime_experience, dict):
+            initial_state["story_runtime_experience"] = dict(story_runtime_experience)
         return self._graph.invoke(initial_state)
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -2725,6 +2728,8 @@ class RuntimeTurnGraphExecutor:
             _actor_lane_ctx = state.get("actor_lane_context")
             if not isinstance(_actor_lane_ctx, dict):
                 _actor_lane_ctx = None
+            _sre = state.get("story_runtime_experience")
+            _sre_arg = dict(_sre) if isinstance(_sre, dict) else None
             return run_validation_seam(
                 module_id=state.get("module_id") or "",
                 proposed_state_effects=current_proposed,
@@ -2732,6 +2737,7 @@ class RuntimeTurnGraphExecutor:
                 evaluation_context=eval_ctx,
                 actor_lane_summary=actor_lane_sum,
                 actor_lane_context=_actor_lane_ctx,
+                story_runtime_experience=_sre_arg,
             )
 
         outcome = _run_validation(generation, proposed)
@@ -2939,6 +2945,11 @@ class RuntimeTurnGraphExecutor:
                 "human_actor_id": hid,
                 "selected_player_role": spr,
                 "primary_responder_id": pri,
+                "runtime_projection": {
+                    "human_actor_id": hid,
+                    "selected_player_role": spr,
+                    "npc_actor_ids": list(actor_lane_ctx.get("npc_actor_ids") or []),
+                },
                 # C3: Reaction order divergence for render support surfacing (computed from realized output)
                 **_compute_reaction_order_divergence_for_render(state),
             },

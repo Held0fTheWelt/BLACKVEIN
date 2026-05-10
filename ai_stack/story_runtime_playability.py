@@ -25,6 +25,7 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "actor_lane_illegal_actor",
         "actor_lane_invalid_initiative_type",
         "actor_lane_scene_function_mismatch",
+        "actor_lane_text_exceeds_transcript_beat",
     }
 )
 

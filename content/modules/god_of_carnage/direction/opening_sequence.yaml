@@ -35,6 +35,8 @@ parts:
     npc_speech:
       must_not: |
         Accusatory or prosecutorial lines; no “X reacts immediately” attack dialogue.
+        Do not have Alain perform primary host-of-the-house welcome (that footing is
+        Véronique/Michel); he remains a guest alongside Annette.
       may: |
         Minimal ritual (greeting, apology formula deferred, procedural agreement) if it
         stays non-inflammatory.
@@ -58,6 +60,9 @@ parts:
         character essays.
       must_not: |
         Name every relationship axis or summarise the whole evening’s arc before play.
+        Do not offload all character speech and blocking into one narrator “novel paragraph”;
+        keep dialogue and gesture in their own per-person / per-beat channels so the shell can
+        render typed transcript cards.
 
 # Canonical fact seeds (non-dialogue); generation may adapt wording; do not contradict runtime.
 premise_fact_seeds:

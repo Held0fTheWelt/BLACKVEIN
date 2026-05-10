@@ -93,6 +93,29 @@ describe('BlockRenderer', () => {
       expect(el.textContent).toBe(text);
     });
 
+    test('should prefer player_display_text over text when present', () => {
+      const block = {
+        id: 'turn-1-block-pdisp',
+        block_type: 'actor_line',
+        text: 'Original.',
+        player_display_text: 'Merged NPC story text.',
+        card_style: 'npc_story',
+      };
+      const el = renderer.render(block);
+      expect(el.textContent).toBe('Merged NPC story text.');
+    });
+
+    test('should add player-shell story lane class for npc_story card_style', () => {
+      const block = {
+        id: 'turn-1-shell-story',
+        block_type: 'actor_action',
+        text: 'Stage beat.',
+        card_style: 'npc_story',
+      };
+      const el = renderer.render(block);
+      expect(el.className).toContain('scene-block--player-shell-story');
+    });
+
     test('should append element to dom_root', () => {
       const block = {
         id: 'turn-1-block-6',
@@ -202,6 +225,19 @@ describe('BlockRenderer', () => {
       });
       expect(el.getAttribute('data-narration-beat')).toBe('role_anchor');
       expect(el.className).toContain('scene-block--narrator-role-anchor');
+    });
+
+    test('role anchor with narrative_story keeps player-shell-story for CSS amber override', () => {
+      const el = renderer.render({
+        id: 'turn-0-role-anchor',
+        block_type: 'narrator',
+        card_style: 'narrative_story',
+        narration_beat: 'role_anchor',
+        text: 'Du bist Annette …',
+      });
+      expect(el.className).toContain('scene-block--player-shell-story');
+      expect(el.className).toContain('scene-block--narrator-role-anchor');
+      expect(el.className).toContain('scene-block--narrator');
     });
 
     test('should render player_input_outcome as its own scene block', () => {
