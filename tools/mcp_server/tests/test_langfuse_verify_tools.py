@@ -307,6 +307,11 @@ def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
     assert out["judge_scores"]["opening_experience_judge"]["category"] == "excellent"
     assert "canonical_live_langfuse_filters" in out
     assert "categorical_judge_names" in out
+    names = out["categorical_judge_names"]
+    assert "player_action_resolution_judge" in names
+    assert "turn_generation_categorical_evaluators" in out["canonical_live_langfuse_filters"]
+    tge = out["canonical_live_langfuse_filters"]["turn_generation_categorical_evaluators"]
+    assert tge["observation_filters"]["Name"] == ["story.model.generation"]
 
 
 # ---------------------------------------------------------------------------

@@ -129,6 +129,10 @@ _JUDGE_TO_REPAIR_CARD: dict[str, str] = {
     "language_consistency_judge": "TURN-LANG-01",
     "dramatic_pacing_judge": "TURN-PACING-01",
     "goc_tone_fidelity_judge": "TURN-GOC-TONE-01",
+    "player_action_resolution_judge": "TURN-ACTION-RESOLUTION-01",
+    "blocked_action_playability_judge": "TURN-BLOCKED-PLAY-01",
+    "affordance_plausibility_judge": "TURN-AFFORDANCE-01",
+    "npc_reaction_appropriateness_judge": "TURN-NPC-REACTION-01",
 }
 
 _MATRIX_JUDGE_COLUMN_KEYS: dict[str, str] = {
@@ -144,6 +148,10 @@ _MATRIX_JUDGE_COLUMN_KEYS: dict[str, str] = {
     "language_consistency_judge": "language_consistency_category",
     "dramatic_pacing_judge": "dramatic_pacing_category",
     "goc_tone_fidelity_judge": "goc_tone_fidelity_category",
+    "player_action_resolution_judge": "player_action_resolution_category",
+    "blocked_action_playability_judge": "blocked_action_playability_category",
+    "affordance_plausibility_judge": "affordance_plausibility_category",
+    "npc_reaction_appropriateness_judge": "npc_reaction_appropriateness_category",
 }
 
 _JUDGE_DISPLAY_SHORT: dict[str, str] = {
@@ -159,6 +167,10 @@ _JUDGE_DISPLAY_SHORT: dict[str, str] = {
     "language_consistency_judge": "language consistency",
     "dramatic_pacing_judge": "dramatic pacing",
     "goc_tone_fidelity_judge": "GoC tone fidelity",
+    "player_action_resolution_judge": "player action resolution",
+    "blocked_action_playability_judge": "blocked action playability",
+    "affordance_plausibility_judge": "affordance plausibility",
+    "npc_reaction_appropriateness_judge": "NPC reaction appropriateness",
 }
 
 
@@ -1087,6 +1099,27 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "trace_origin": "live_ui",
                     "execution_tier": "live",
                     "canonical_player_flow": True,
+                },
+                # Langfuse evaluator UI: attach scores to GENERATION on story.model.generation
+                # under live turn traces (WoS canonical live metadata when available).
+                "turn_generation_categorical_evaluators": {
+                    "judges": [
+                        "player_action_resolution_judge",
+                        "blocked_action_playability_judge",
+                        "affordance_plausibility_judge",
+                        "npc_reaction_appropriateness_judge",
+                    ],
+                    "observation_filters": {
+                        "Type": ["GENERATION"],
+                        "Name": ["story.model.generation"],
+                        "Trace Name": ["world-engine.turn.execute"],
+                        "Environment": ["live"],
+                    },
+                    "trace_metadata_when_available": {
+                        "trace_origin": "live_ui",
+                        "execution_tier": "live",
+                        "canonical_player_flow": True,
+                    },
                 },
             },
             "categorical_judge_names": list(WOS_CATEGORICAL_JUDGES_ORDER),
