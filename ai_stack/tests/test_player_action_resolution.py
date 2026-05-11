@@ -41,7 +41,7 @@ def test_gehe_ins_bad_resolves_movement_offscreen() -> None:
     frame = out["player_action_frame"]
     assert frame["player_input_kind"] == "action"
     assert frame["verb"] == "move_to"
-    assert frame["target_query"] == "ins Bad"
+    assert frame["target_query"] == "Bad"
     assert frame["resolved_target_type"] == "location"
     assert frame["resolved_target_id"] == "bathroom"
     assert frame["affordance_status"] == "allowed_offscreen"

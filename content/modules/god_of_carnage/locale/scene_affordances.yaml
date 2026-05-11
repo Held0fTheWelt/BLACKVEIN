@@ -9,7 +9,7 @@ scene_affordances:
       aliases: ["Bad", "Badezimmer", "Toilette", "bathroom"]
       access: inferred_offscreen
     - id: kitchen
-      aliases: ["Küche", "kitchen"]
+      aliases: ["Küche", "Kueche", "kitchen"]
       access: inferred_offscreen
   objects:
     - id: window

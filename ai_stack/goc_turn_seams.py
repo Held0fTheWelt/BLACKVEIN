@@ -458,6 +458,23 @@ def run_validation_seam(
             if violation is not None:
                 return violation
 
+    _paf_early = player_action_frame if isinstance(player_action_frame, dict) else {}
+    if (
+        module_id == GOC_MODULE_ID
+        and str(_paf_early.get("validation_surface") or "").strip() == "synthetic_action_resolution"
+    ):
+        _aff_early = affordance_resolution if isinstance(affordance_resolution, dict) else {}
+        return {
+            "status": "approved",
+            "reason": "action_resolution_synthetic_surface",
+            "validator_lane": "goc_action_resolution_surface_v1",
+            "dramatic_quality_gate": "waived_synthetic_surface",
+            "dramatic_effect_weak_signal": False,
+            "intent_surface_diagnostics": {"npc_narrated_player_action_violation": False},
+            "player_action_frame": _paf_early,
+            "affordance_resolution": _aff_early,
+        }
+
     if module_id != GOC_MODULE_ID:
         return {
             "status": "waived",
@@ -601,6 +618,7 @@ def run_commit_seam(
     proposed_state_effects: list[dict[str, Any]],
     candidate_deltas: list[dict[str, Any]] | None = None,
     state_delta_boundary: dict[str, Any] | None = None,
+    player_action_frame: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Commit approved effects after all validation passes.
 
@@ -648,11 +666,29 @@ def run_commit_seam(
             "commit_applied": False,
             "commit_lane": "goc_commit_seam_v1",
         }
-    return {
+    base_out: dict[str, Any] = {
         "committed_effects": list(proposed_state_effects),
         "commit_applied": bool(proposed_state_effects),
         "commit_lane": "goc_commit_seam_v1",
     }
+    paf = player_action_frame if isinstance(player_action_frame, dict) else {}
+    if paf and validation_outcome.get("status") == "approved":
+        nested = paf.get("affordance_resolution") if isinstance(paf.get("affordance_resolution"), dict) else {}
+        pol = str(nested.get("action_commit_policy") or "").strip().lower()
+        aff_st = str(nested.get("affordance_status") or paf.get("affordance_status") or "").strip().lower()
+        verb = str(paf.get("verb") or "").strip().lower()
+        applied = bool(base_out["commit_applied"])
+        base_out["player_action_authority"] = {
+            "player_action_committed": applied and pol == "commit_action",
+            "player_speech_committed": (applied and pol == "commit_speech")
+            or bool(str(paf.get("speech_text") or "").strip()),
+            "action_commit_status": "committed" if applied else "skipped",
+            "affordance_status": aff_st,
+            "verb": verb,
+            "resolved_target_id": paf.get("resolved_target_id"),
+            "validation_surface": paf.get("validation_surface"),
+        }
+    return base_out
 
 
 def run_visible_render(

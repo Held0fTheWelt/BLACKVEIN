@@ -45,3 +45,34 @@ strings:
   player_outcome.perception_question_at_window:
     de: "{name} tritt ans Fenster und betrachtet die Aussicht."
     en: "{name} steps to the window and studies the view."
+  # Action-resolution synthetic surfaces (keys only; {target_label} from resolved entity, not raw input).
+  action_resolution.narrator.generic:
+    de: "Die Szene verschiebt sich leise um dich herum."
+    en: "The scene shifts quietly around you."
+  action_resolution.narrator.move_offscreen:
+    de: "Du gehst kurz abseits Richtung {target_label}; im Salon bleibt die Anspannung hörbar."
+    en: "You step aside toward {target_label}; tension remains audible in the salon."
+  action_resolution.narrator.move_local:
+    de: "Du setzt dich in Bewegung; der Raum reagiert mit kleinen, spürbaren Verschiebungen."
+    en: "You move; the room responds with small, perceptible shifts."
+  action_resolution.narrator.perception_object:
+    de: "Du richtest deine Aufmerksamkeit auf {target_label}."
+    en: "You focus your attention on {target_label}."
+  action_resolution.narrator.perception_generic:
+    de: "Du nimmst die Umgebung bewusst wahr."
+    en: "You take in the surroundings deliberately."
+  action_resolution.narrator.partial:
+    de: "Das lässt sich gerade nur teilweise klären; du bleibst im Ungefähren."
+    en: "That can only be partly clarified for now; you stay approximate."
+  action_resolution.clarification.unknown_target:
+    de: "Das Ziel ist unklar. Worauf genau bezieht sich deine Aktion?"
+    en: "The target is unclear. What exactly do you mean?"
+  action_resolution.clarification.ambiguous:
+    de: "Mehrere Deutungen sind möglich. Worauf willst du hinaus?"
+    en: "Several readings are possible. What do you intend?"
+  action_resolution.blocked.generic:
+    de: "Das geht hier gerade nicht."
+    en: "That is not possible here right now."
+  action_resolution.graph_failure:
+    de: "Der Zug konnte technisch nicht vollständig geladen werden. Bitte versuche es erneut."
+    en: "This turn could not be fully loaded. Please try again."

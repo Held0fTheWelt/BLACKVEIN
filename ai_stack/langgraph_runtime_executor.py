@@ -85,6 +85,7 @@ from ai_stack.langgraph_runtime_state import (
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
+from ai_stack.langgraph_synthetic_action_resolution import build_synthetic_generation_for_action_resolution
 from ai_stack.player_action_resolution import resolve_player_action
 from story_runtime_core.content_locale import (
     classify_player_input_from_rules,
@@ -1108,6 +1109,7 @@ class RuntimeTurnGraphExecutor:
     allow_degraded_commit_after_retries: bool = True
     generation_execution_mode: str | None = None
     retrieval_config: RuntimeRetrievalConfig | None = None
+    action_resolution_synthetic_enabled: bool = True
 
     def __post_init__(self) -> None:
         """``__post_init__`` — see implementation for behaviour and contracts.
@@ -1127,6 +1129,7 @@ class RuntimeTurnGraphExecutor:
         graph = StateGraph(RuntimeTurnState)
         graph.add_node("interpret_input", self._interpret_input)
         graph.add_node("resolve_player_action", self._resolve_player_action)
+        graph.add_node("synthetic_action_resolution", self._synthetic_action_resolution_turn)
         graph.add_node("retrieve_context", self._retrieve_context)
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
@@ -1142,7 +1145,15 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("package_output", self._package_output)
         graph.set_entry_point("interpret_input")
         graph.add_edge("interpret_input", "resolve_player_action")
-        graph.add_edge("resolve_player_action", "retrieve_context")
+        graph.add_conditional_edges(
+            "resolve_player_action",
+            self._route_after_resolve_player_action,
+            {
+                "full_pipeline": "retrieve_context",
+                "synthetic_action_resolution": "synthetic_action_resolution",
+            },
+        )
+        graph.add_edge("synthetic_action_resolution", "proposal_normalize")
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
@@ -1631,11 +1642,15 @@ class RuntimeTurnGraphExecutor:
         if model:
             update["scene_affordance_model"] = model
         if interp and frame:
+            affn = frame.get("affordance_resolution") if isinstance(frame.get("affordance_resolution"), dict) else {}
+            pol = str(affn.get("action_commit_policy") or "").strip().lower()
             merged_interp = {
                 **interp,
                 "player_input_kind": frame.get("player_input_kind") or interp.get("player_input_kind"),
                 "narrator_response_expected": bool(frame.get("narrator_response_expected")),
                 "npc_response_expected": bool(frame.get("npc_response_expected")),
+                "player_action_committed": pol == "commit_action",
+                "player_speech_committed": pol == "commit_speech" or bool(str(frame.get("speech_text") or "").strip()),
             }
             update["interpreted_input"] = merged_interp
             move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
@@ -1647,6 +1662,63 @@ class RuntimeTurnGraphExecutor:
                 "resolved_target_id": frame.get("resolved_target_id"),
                 "affordance_status": frame.get("affordance_status"),
             }
+        return update
+
+    def _route_after_resolve_player_action(self, state: RuntimeTurnState) -> str:
+        """Branch: full LLM pipeline vs synthetic action-resolution surface."""
+        if not self.action_resolution_synthetic_enabled:
+            return "full_pipeline"
+        frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
+        aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
+        # Ontology fallback verb for unmatched ``action`` inputs — not a spatial
+        # affordance verb; keep dramatic director + model path (see GoC breadth tests).
+        verb_early = str(frame.get("verb") or "").strip().lower()
+        if verb_early == "interact":
+            return "full_pipeline"
+        pik = str(frame.get("player_input_kind") or "").strip().lower()
+        if pik in {"speech", "question", "meta"}:
+            return "full_pipeline"
+        if pik == "mixed":
+            return "full_pipeline"
+        if str(state.get("module_id") or "") != GOC_MODULE_ID:
+            return "full_pipeline"
+        pol = str(aff.get("action_commit_policy") or "").strip().lower()
+        st = str(aff.get("affordance_status") or "").strip().lower()
+        verb = str(frame.get("verb") or "").strip().lower()
+        if pol == "needs_clarification" or st in {"unknown_target", "ambiguous"}:
+            return "synthetic_action_resolution"
+        if st in {"blocked", "unsafe"}:
+            return "synthetic_action_resolution"
+        if st in {"allowed", "allowed_offscreen", "partial"} and verb in {
+            "move_to",
+            "look_at",
+            "listen_to",
+            "stand_up",
+        }:
+            return "synthetic_action_resolution"
+        return "full_pipeline"
+
+    def _synthetic_action_resolution_turn(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Deterministic narrator/clarification surface; skips retrieve/director/model."""
+        update = _track(state, node_name="synthetic_action_resolution")
+        frame = dict(state.get("player_action_frame") or {})
+        aff = dict(state.get("affordance_resolution") or {})
+        frame["validation_surface"] = "synthetic_action_resolution"
+        lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+        gen = build_synthetic_generation_for_action_resolution(
+            module_id=str(state.get("module_id") or ""),
+            lang=lang,
+            player_action_frame=frame,
+            affordance_resolution=aff,
+            content_modules_root=None,
+        )
+        routing = dict(state.get("routing") or {})
+        routing["action_resolution_branch"] = "synthetic"
+        update["player_action_frame"] = frame
+        update["generation"] = gen
+        update["routing"] = routing
+        update["transition_pattern"] = "hard"
+        update["fallback_needed"] = False
         return update
 
     def _goc_resolve_canonical_content(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -3022,6 +3094,9 @@ class RuntimeTurnGraphExecutor:
             module_id=state.get("module_id") or "",
             validation_outcome=validation,
             proposed_state_effects=proposed,
+            player_action_frame=state.get("player_action_frame")
+            if isinstance(state.get("player_action_frame"), dict)
+            else None,
         )
         continuity: list[dict[str, Any]] = []
         if (

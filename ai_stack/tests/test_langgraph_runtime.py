@@ -394,6 +394,9 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert aff.get("affordance_status") in {"allowed_offscreen", "allowed", "partial"}
     nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
     assert "resolve_player_action" in nodes
+    assert "synthetic_action_resolution" in nodes
+    meta = (result.get("generation") or {}).get("metadata") or {}
+    assert meta.get("adapter") == "action_resolution_synthetic"
 
 
 def test_execution_health_constants_are_stable_set() -> None:

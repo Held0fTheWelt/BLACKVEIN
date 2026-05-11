@@ -1,32 +1,28 @@
-"""Player action resolution contracts and deterministic resolver.
-
-Stage 1 contract (PLAYER-ACTION-RESOLUTION-01):
-- raw player input -> PlayerActionFrame
-- target/entity resolution against scene affordances
-- affordance status + commit policy emitted before validation seam
-"""
+"""Player action resolution: ontology-driven verbs, entity registry matching, affordance contracts."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import re
 from pathlib import Path
 from typing import Any
 
-import re
 import yaml
 
-from story_runtime_core.content_locale import resolve_content_modules_root
-
-
-_QUESTION_RE = re.compile(r"\?\s*$")
-_MOVE_RE = re.compile(
-    r"(?is)^\s*(?:ich\s+)?(?:gehe?|lauf(?:e)?|bewege\s+mich|go|walk|move)\b"
+from ai_stack.action_ontology import infer_verb_and_action_kind
+from ai_stack.action_resolution_contracts import (
+    AffordanceResolutionContract,
+    PlayerActionFrameContract,
+    ResolvedTarget,
+    collapse_ws,
+    fold_match,
+    fold_unicode,
+    longest_embedded_alias_match,
+    strip_directional_prefixes,
 )
-_LOOK_RE = re.compile(
-    r"(?is)\b(?:schaue?|schau|blicke?|look|watch|observe|peek)\b"
+from story_runtime_core.content_locale import (
+    greeting_imperative_addressee_fragment,
+    resolve_content_modules_root,
 )
-_TAKE_RE = re.compile(r"(?is)\b(?:nimm|nehme|greif|take|grab|pick\s+up)\b")
-_GREET_RE = re.compile(r"(?is)\b(?:begr[üu]ße?|gr[üu]ße?|greet|hello|hi)\b")
 
 
 def _normalize(value: str) -> str:
@@ -37,39 +33,54 @@ def _normalize(value: str) -> str:
     return low.strip()
 
 
-def _infer_verb(raw_text: str, player_input_kind: str) -> str:
-    low = str(raw_text or "").strip().lower()
-    if player_input_kind in {"speech", "question"}:
-        return "ask" if _QUESTION_RE.search(low) else "say"
-    if player_input_kind == "perception":
-        return "look_at"
-    if _MOVE_RE.search(low):
-        return "move_to"
-    if _TAKE_RE.search(low):
-        return "take"
-    if _GREET_RE.search(low):
-        return "greet"
-    if _LOOK_RE.search(low):
-        return "look_at"
-    if player_input_kind == "action":
-        return "interact"
-    return "say"
+def _load_characters_blob(module_id: str, *, content_modules_root: Path | None = None) -> dict[str, Any]:
+    root = resolve_content_modules_root(content_modules_root)
+    path = root / str(module_id).strip() / "characters.yaml"
+    if not path.exists():
+        return {}
+    try:
+        payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    ch = payload.get("characters")
+    return ch if isinstance(ch, dict) else {}
 
 
-def _infer_target_query(raw_text: str, interpreted_input: dict[str, Any], verb: str) -> str | None:
-    captures = (
-        interpreted_input.get("projection_captures")
-        if isinstance(interpreted_input.get("projection_captures"), dict)
-        else {}
-    )
-    room = str(captures.get("room") or "").strip()
-    if room:
-        return room
-    if verb == "look_at":
-        raw_low = str(raw_text or "").lower()
-        if "fenster" in raw_low or "window" in raw_low:
-            return "Fenster"
-    return None
+def _enrich_actor_aliases(
+    actor_rows: list[dict[str, Any]],
+    *,
+    module_id: str,
+    content_modules_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    chars = _load_characters_blob(module_id, content_modules_root=content_modules_root)
+    out: list[dict[str, Any]] = []
+    for row in actor_rows:
+        if not isinstance(row, dict):
+            continue
+        r = dict(row)
+        aid = str(r.get("id") or "").strip()
+        aliases = [str(a).strip() for a in r.get("aliases") or [] if str(a).strip()]
+        base_slug = aid.split("_")[0].lower() if aid else ""
+        for _ck, blob in chars.items():
+            if not isinstance(blob, dict):
+                continue
+            cid = str(blob.get("id") or "").strip().lower()
+            name = str(blob.get("name") or "").strip()
+            slug = str(_ck).strip().lower()
+            if not name:
+                continue
+            if aid.lower() == cid or aid.lower().startswith(slug) or base_slug == slug or base_slug == cid:
+                if name not in aliases:
+                    aliases.append(name)
+                # ASCII folding companion for accented display names
+                ascii_name = name.encode("ascii", "ignore").decode("ascii").strip()
+                if ascii_name and ascii_name not in aliases and ascii_name.lower() != name.lower():
+                    aliases.append(ascii_name)
+        r["aliases"] = aliases
+        out.append(r)
+    return out
 
 
 def _actor_rows_from_runtime_projection(runtime_projection: dict[str, Any]) -> list[dict[str, Any]]:
@@ -128,6 +139,8 @@ def build_scene_affordance_model(
         module_id,
         content_modules_root=content_modules_root,
     )
+    raw_actors = _actor_rows_from_runtime_projection(runtime_projection)
+    actors = _enrich_actor_aliases(raw_actors, module_id=module_id, content_modules_root=content_modules_root)
     model: dict[str, Any] = {
         "module_id": module_id,
         "current_area": scene_affordances.get("current_area"),
@@ -138,33 +151,83 @@ def build_scene_affordance_model(
         "objects": scene_affordances.get("objects")
         if isinstance(scene_affordances.get("objects"), list)
         else [],
-        "actors": _actor_rows_from_runtime_projection(runtime_projection),
+        "actors": actors,
     }
     return model
 
 
-@dataclass(slots=True)
-class ResolutionOutcome:
-    affordance_status: str
-    action_commit_policy: str
-    resolved_target_id: str | None
-    resolved_target_type: str | None
-    target_resolution_source: str
-    resolution_confidence: str
-    access_status: str | None = None
+def _entity_rows_for_scan(affordance_model: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for cat in ("locations", "objects", "actors"):
+        for row in affordance_model.get(cat) or []:
+            if isinstance(row, dict):
+                rows.append(row)
+    return rows
 
 
-def _resolve_target(target_query: str | None, affordance_model: dict[str, Any]) -> ResolutionOutcome:
+def _infer_target_query(
+    raw_text: str,
+    interpreted_input: dict[str, Any],
+    verb: str,
+    action_kind: str,
+    *,
+    module_id: str,
+    lang: str,
+    affordance_model: dict[str, Any],
+    content_modules_root: Path | None = None,
+) -> str | None:
+    captures = (
+        interpreted_input.get("projection_captures")
+        if isinstance(interpreted_input.get("projection_captures"), dict)
+        else {}
+    )
+    room = str(captures.get("room") or "").strip()
+    if room:
+        return strip_directional_prefixes(room, lang=lang)
+    if verb == "greet" and action_kind == "social_action":
+        frag = greeting_imperative_addressee_fragment(
+            raw_text,
+            lang=lang,
+            module_id=module_id,
+            content_modules_root=content_modules_root,
+        )
+        if frag:
+            return collapse_ws(frag)
+    pik = str(interpreted_input.get("player_input_kind") or "").strip().lower()
+    if pik in {"action", "perception", "mixed"} and verb in {"look_at", "listen_to", "move_to", "take", "interact"}:
+        ent_rows = _entity_rows_for_scan(affordance_model)
+        eid, alias, _ln = longest_embedded_alias_match(raw_text, rows=ent_rows)
+        if alias:
+            return collapse_ws(alias)
+    return None
+
+
+def _resolve_target(
+    target_query: str | None,
+    affordance_model: dict[str, Any],
+    *,
+    verb: str,
+) -> tuple[str, str, str | None, str | None, str | None, str | None]:
+    """Return tuple: status, policy, target_id, target_type, source, access."""
     query = str(target_query or "").strip()
     nq = _normalize(query)
+    if not nq and verb == "stand_up":
+        return (
+            "allowed",
+            "commit_action",
+            None,
+            None,
+            "posture_local_no_target",
+            None,
+        )
     if not nq:
-        return ResolutionOutcome(
-            affordance_status="ambiguous",
-            action_commit_policy="needs_clarification",
-            resolved_target_id=None,
-            resolved_target_type=None,
-            target_resolution_source="missing_target_query",
-            resolution_confidence="low",
+        return (
+            "ambiguous",
+            "needs_clarification",
+            None,
+            None,
+            "missing_target_query",
+            None,
         )
 
     for row in affordance_model.get("locations") or []:
@@ -172,17 +235,17 @@ def _resolve_target(target_query: str | None, affordance_model: dict[str, Any]) 
             continue
         aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
         aliases.append(str(row.get("id") or "").strip())
-        if nq in {_normalize(a) for a in aliases if a}:
+        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
             access = str(row.get("access") or "").strip() or None
             status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
-            return ResolutionOutcome(
-                affordance_status=status,
-                action_commit_policy="commit_action",
-                resolved_target_id=str(row.get("id") or "").strip() or None,
-                resolved_target_type="location",
-                target_resolution_source="scene_affordances.location_alias",
-                resolution_confidence="high",
-                access_status=access,
+            tid = str(row.get("id") or "").strip() or None
+            return (
+                status,
+                "commit_action",
+                tid,
+                "location",
+                "scene_affordances.location_alias",
+                access,
             )
 
     for row in affordance_model.get("objects") or []:
@@ -190,39 +253,56 @@ def _resolve_target(target_query: str | None, affordance_model: dict[str, Any]) 
             continue
         aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
         aliases.append(str(row.get("id") or "").strip())
-        if nq in {_normalize(a) for a in aliases if a}:
-            return ResolutionOutcome(
-                affordance_status="allowed",
-                action_commit_policy="commit_action",
-                resolved_target_id=str(row.get("id") or "").strip() or None,
-                resolved_target_type="object",
-                target_resolution_source="scene_affordances.object_alias",
-                resolution_confidence="high",
-            )
+        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
+            tid = str(row.get("id") or "").strip() or None
+            return ("allowed", "commit_action", tid, "object", "scene_affordances.object_alias", None)
 
     for row in affordance_model.get("actors") or []:
         if not isinstance(row, dict):
             continue
         aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
         aliases.append(str(row.get("id") or "").strip())
-        if nq in {_normalize(a) for a in aliases if a}:
-            return ResolutionOutcome(
-                affordance_status="allowed",
-                action_commit_policy="commit_action",
-                resolved_target_id=str(row.get("id") or "").strip() or None,
-                resolved_target_type="actor",
-                target_resolution_source="runtime_roster.actor_alias",
-                resolution_confidence="high",
-            )
+        if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
+            tid = str(row.get("id") or "").strip() or None
+            return ("allowed", "commit_action", tid, "actor", "runtime_roster.actor_alias", None)
 
-    return ResolutionOutcome(
-        affordance_status="unknown_target",
-        action_commit_policy="needs_clarification",
-        resolved_target_id=None,
-        resolved_target_type=None,
-        target_resolution_source="no_target_match",
-        resolution_confidence="low",
-    )
+    folded_q = fold_unicode(nq)
+    if len(folded_q) >= 2:
+        for row in affordance_model.get("locations") or []:
+            if not isinstance(row, dict):
+                continue
+            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
+            for a in aliases:
+                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
+                    access = str(row.get("access") or "").strip() or None
+                    status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
+                    tid = str(row.get("id") or "").strip() or None
+                    return (
+                        status,
+                        "commit_action",
+                        tid,
+                        "location",
+                        "scene_affordances.location_substring",
+                        access,
+                    )
+        for row in affordance_model.get("objects") or []:
+            if not isinstance(row, dict):
+                continue
+            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
+            for a in aliases:
+                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
+                    tid = str(row.get("id") or "").strip() or None
+                    return ("allowed", "commit_action", tid, "object", "scene_affordances.object_substring", None)
+        for row in affordance_model.get("actors") or []:
+            if not isinstance(row, dict):
+                continue
+            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
+            for a in aliases:
+                if fold_unicode(a) in folded_q or folded_q in fold_unicode(a):
+                    tid = str(row.get("id") or "").strip() or None
+                    return ("allowed", "commit_action", tid, "actor", "runtime_roster.actor_substring", None)
+
+    return ("unknown_target", "needs_clarification", None, None, "no_target_match", None)
 
 
 def resolve_player_action(
@@ -234,71 +314,110 @@ def resolve_player_action(
     content_modules_root: Path | None = None,
 ) -> dict[str, Any]:
     pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
-    verb = _infer_verb(raw_text, pik)
+    lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    verb, action_kind = infer_verb_and_action_kind(
+        raw_text,
+        module_id=module_id,
+        player_input_kind=pik,
+        content_modules_root=content_modules_root,
+    )
     affordance_model = build_scene_affordance_model(
         module_id=module_id,
         runtime_projection=runtime_projection,
         content_modules_root=content_modules_root,
     )
-    target_query = _infer_target_query(raw_text, interpreted_input, verb)
+    speech_text: str | None = None
+    if pik == "mixed":
+        caps = interpreted_input.get("projection_captures") if isinstance(interpreted_input.get("projection_captures"), dict) else {}
+        st = str(caps.get("speech") or "").strip()
+        speech_text = st or None
+        if verb not in {"stand_up"}:
+            verb, action_kind = infer_verb_and_action_kind(
+                raw_text,
+                module_id=module_id,
+                player_input_kind="action",
+                content_modules_root=content_modules_root,
+            )
+
+    target_query = _infer_target_query(
+        raw_text,
+        interpreted_input,
+        verb,
+        action_kind,
+        module_id=module_id,
+        lang=lang,
+        affordance_model=affordance_model,
+        content_modules_root=content_modules_root,
+    )
 
     if pik in {"speech", "question", "meta"}:
-        outcome = ResolutionOutcome(
-            affordance_status="allowed",
-            action_commit_policy="commit_speech",
-            resolved_target_id=None,
-            resolved_target_type=None,
-            target_resolution_source="speech_turn",
-            resolution_confidence="high",
+        status, policy, tid, ttyp, src, access = (
+            "allowed",
+            "commit_speech",
+            None,
+            None,
+            "speech_turn",
+            None,
         )
     else:
-        outcome = _resolve_target(target_query, affordance_model)
-        if verb in {"look_at", "listen_to"} and outcome.affordance_status == "unknown_target":
-            outcome = ResolutionOutcome(
-                affordance_status="partial",
-                action_commit_policy="commit_action",
-                resolved_target_id=outcome.resolved_target_id,
-                resolved_target_type=outcome.resolved_target_type,
-                target_resolution_source=outcome.target_resolution_source,
-                resolution_confidence=outcome.resolution_confidence,
-                access_status=outcome.access_status,
-            )
+        status, policy, tid, ttyp, src, access = _resolve_target(
+            target_query,
+            affordance_model,
+            verb=verb,
+        )
+        if verb in {"look_at", "listen_to"} and status == "unknown_target":
+            status, policy = "partial", "commit_action"
 
     actor_id = str(interpreted_input.get("actor_id") or interpreted_input.get("player_input_actor_id") or "").strip()
     narrator_expected = bool(interpreted_input.get("narrator_response_expected"))
     npc_expected = bool(interpreted_input.get("npc_response_expected"))
-    if pik in {"action", "perception"}:
+    if pik in {"action", "perception", "mixed"}:
         narrator_expected = True
-    if pik in {"action", "perception"} and verb in {"move_to", "look_at", "listen_to"}:
+    if pik in {"action", "perception", "mixed"} and verb in {"move_to", "look_at", "listen_to", "stand_up", "take"}:
         npc_expected = False
+    if pik == "mixed":
+        npc_expected = bool(interpreted_input.get("npc_response_expected", True))
 
-    player_action_frame = {
-        "actor_id": actor_id or None,
-        "source_text": str(raw_text or "").strip(),
-        "player_input_kind": pik,
-        "verb": verb,
-        "target_query": target_query,
-        "resolved_target_id": outcome.resolved_target_id,
-        "resolved_target_type": outcome.resolved_target_type,
-        "resolution_confidence": outcome.resolution_confidence,
-        "affordance_status": outcome.affordance_status,
-        "action_commit_policy": outcome.action_commit_policy,
-        "narrator_response_expected": narrator_expected,
-        "npc_response_expected": npc_expected,
-        "target_resolution_source": outcome.target_resolution_source,
-        "access_status": outcome.access_status,
-    }
-    affordance_resolution = {
-        "affordance_status": outcome.affordance_status,
-        "action_commit_policy": outcome.action_commit_policy,
-        "resolved_target_id": outcome.resolved_target_id,
-        "resolved_target_type": outcome.resolved_target_type,
-        "target_resolution_source": outcome.target_resolution_source,
-        "resolution_confidence": outcome.resolution_confidence,
-        "access_status": outcome.access_status,
-    }
+    matched_alias = None
+    if target_query and tid:
+        matched_alias = target_query.strip()
+
+    res_conf = "high" if tid else ("medium" if status == "partial" else "low")
+    rt = ResolvedTarget.from_outcome(
+        resolved_target_id=tid,
+        resolved_target_type=ttyp,
+        matched_alias=matched_alias,
+        resolution_confidence=res_conf,
+        access_status=access,
+    )
+    aff = AffordanceResolutionContract(
+        status=status,
+        action_commit_policy=policy,
+        reason=None,
+        resolved_target=rt,
+        target_resolution_source=src,
+        access_status=access,
+    )
+
+    rt_for_frame = None if pik in {"speech", "question", "meta"} else rt
+    frame = PlayerActionFrameContract(
+        raw_text=str(raw_text or "").strip(),
+        input_kind=pik,
+        action_kind=action_kind,
+        verb=verb,
+        speech_text=speech_text,
+        target_query=target_query,
+        resolved_target=rt_for_frame,
+        affordance_resolution=aff,
+        narrator_response_expected=narrator_expected,
+        npc_response_expected=npc_expected,
+        actor_id=actor_id or None,
+        validation_surface=None,
+        projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
+    )
+
     return {
-        "player_action_frame": player_action_frame,
-        "affordance_resolution": affordance_resolution,
+        "player_action_frame": frame.to_dict(),
+        "affordance_resolution": aff.to_dict(),
         "scene_affordance_model": affordance_model,
     }

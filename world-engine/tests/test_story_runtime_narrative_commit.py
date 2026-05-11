@@ -652,3 +652,34 @@ def test_human_input_attribution_uses_player_input_kind_surface(
     assert att.get("player_speech_committed") is False
     assert att.get("narrator_response_expected") is True
     assert att.get("npc_response_expected") is False
+
+
+def test_graph_execution_exception_returns_playable_turn(manager: StoryRuntimeManager) -> None:
+    class _BoomGraph:
+        def run(self, **_kwargs: Any) -> dict[str, Any]:
+            raise RuntimeError("simulated graph failure")
+
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}],
+            "human_actor_id": "annette",
+            "selected_player_role": "annette",
+            "npc_actor_ids": ["veronique", "michel", "alain"],
+            "actor_lanes": {
+                "annette": "human",
+                "veronique": "npc",
+                "michel": "npc",
+                "alain": "npc",
+            },
+        },
+    )
+    manager.turn_graph = _BoomGraph()  # type: ignore[assignment]
+    turn = manager.execute_turn(session_id=session.session_id, player_input="test")
+    assert turn["ok"] is False
+    assert turn["turn_status"] == "rejected_recoverable"
+    assert turn["reason"] == "graph_execution_exception"
+    vb = turn.get("visible_output_bundle") or {}
+    assert isinstance(vb.get("scene_blocks"), list) and vb["scene_blocks"]

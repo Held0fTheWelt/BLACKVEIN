@@ -246,3 +246,4 @@ def test_story_turn_rejected_recoverable_stays_http_200(client, internal_api_key
     turn = response.json()["turn"]
     assert turn["ok"] is False
     assert turn["turn_status"] == "rejected_recoverable"
+
