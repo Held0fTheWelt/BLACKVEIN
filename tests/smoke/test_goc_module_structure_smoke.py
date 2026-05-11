@@ -261,14 +261,16 @@ class TestGocModuleStructureSmoke:
             module = yaml.safe_load(f)
 
         listed_files = module.get("files", [])
-        # Collect all files: .yaml in root + all files in subdirectories
-        actual_files = {f.name for f in self.MODULE_ROOT.glob("*.yaml")}
-        for subdir_file in self.MODULE_ROOT.glob("*/*"):
-            if subdir_file.is_file():
-                actual_files.add(f"{subdir_file.parent.name}/{subdir_file.name}")
+        # Registry uses repo-relative paths under the module root (may nest deeper than one dir).
+        actual_files = {
+            p.relative_to(self.MODULE_ROOT).as_posix()
+            for p in self.MODULE_ROOT.rglob("*")
+            if p.is_file()
+        }
 
         for listed_file in listed_files:
-            assert listed_file in actual_files, f"Listed file {listed_file} not found on disk"
+            normalized = str(listed_file).split("#", 1)[0].strip()
+            assert normalized in actual_files, f"Listed file {listed_file} not found on disk"
 
 
 class TestGocModuleConsistencySmoke:

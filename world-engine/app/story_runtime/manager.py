@@ -1268,7 +1268,29 @@ def _build_langfuse_path_summary(
         structured = generation.get("structured_output")
     graph_errors = _str_list(graph_state.get("graph_errors"))
     usage_details = gen_meta.get("usage_details") if isinstance(gen_meta.get("usage_details"), dict) else {}
-    usage_total = int(usage_details.get("total") or gen_meta.get("tokens_total") or 0)
+    _u_in = int(usage_details.get("input") or gen_meta.get("tokens_prompt") or 0)
+    _u_out = int(usage_details.get("output") or gen_meta.get("tokens_completion") or 0)
+    _u_tot = int(usage_details.get("total") or gen_meta.get("tokens_total") or 0)
+    if _u_tot <= 0 and (_u_in > 0 or _u_out > 0):
+        _u_tot = _u_in + _u_out
+    usage_total = _u_tot
+    _graph_pkg = event.get("graph") if isinstance(event.get("graph"), dict) else {}
+    _graph_name = str(_graph_pkg.get("graph_name") or "").strip() or None
+    _route_id = str(routing.get("route_id") or "").strip()
+    _route_family = str(routing.get("route_family") or "").strip()
+    _langfuse_prompt_parts = [p for p in (_route_id, _route_family, _graph_name) if p]
+    _langfuse_prompt_name = "/".join(_langfuse_prompt_parts) if _langfuse_prompt_parts else None
+    _lat_raw = gen_meta.get("generation_latency_ms")
+    _lat_ms = float(_lat_raw) if isinstance(_lat_raw, (int, float)) else None
+    _tps_out: float | None = None
+    if _lat_ms is not None and _lat_ms > 0 and _u_out > 0:
+        _tps_out = round(_u_out / (_lat_ms / 1000.0), 4)
+    _streaming = gen_meta.get("llm_invocation_streaming")
+    _ttft_ms: float | None = None
+    if _lat_ms is not None and _lat_ms >= 0:
+        # Non-streaming HTTP completions: no true first-token boundary; use full call latency.
+        if _streaming is False:
+            _ttft_ms = round(_lat_ms, 3)
     projection = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
     provenance = session.content_provenance if isinstance(session.content_provenance, dict) else {}
     trace_classification = (
@@ -1401,10 +1423,19 @@ def _build_langfuse_path_summary(
         "usage_available": bool(gen_meta.get("usage_available")) or usage_total > 0,
         "usage_source": gen_meta.get("usage_source"),
         "usage_details": {
-            "input": int(usage_details.get("input") or gen_meta.get("tokens_prompt") or 0),
-            "output": int(usage_details.get("output") or gen_meta.get("tokens_completion") or 0),
+            "input": _u_in,
+            "output": _u_out,
             "total": usage_total,
         },
+        "langfuse_prompt_name": _langfuse_prompt_name,
+        "provided_model_name": str(gen_meta.get("model") or "").strip() or None,
+        "generation_latency_ms": round(_lat_ms, 3) if isinstance(_lat_ms, (int, float)) else None,
+        "llm_invocation_streaming": _streaming,
+        "time_to_first_token_ms": _ttft_ms,
+        "time_to_first_token_note": (
+            "non_streaming_latency_proxy" if _streaming is False and _ttft_ms is not None else None
+        ),
+        "tokens_per_second_output": _tps_out,
         "retrieval_status": retrieval.get("status"),
         "retrieval_route": retrieval.get("retrieval_route"),
         "retrieval_hit_count": retrieval.get("hit_count"),
@@ -2080,8 +2111,24 @@ def _emit_langfuse_evidence_observations(
     gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     adapter_name = str(gen_meta.get("adapter") or "").strip()
     usage_details = path_summary.get("usage_details") if isinstance(path_summary.get("usage_details"), dict) else {}
+    _ud_in = int(usage_details.get("input") or 0)
+    _ud_out = int(usage_details.get("output") or 0)
+    _ud_tot = int(usage_details.get("total") or 0)
+    if _ud_tot <= 0 and (_ud_in > 0 or _ud_out > 0):
+        _ud_tot = _ud_in + _ud_out
+    usage_for_lf = (
+        {"input": _ud_in, "output": _ud_out, "total": _ud_tot} if (_ud_in or _ud_out or _ud_tot) else None
+    )
     model_name = str(path_summary.get("api_model") or path_summary.get("selected_model") or gen_meta.get("model") or "unknown").strip()
     provider = str(path_summary.get("selected_provider") or adapter_name or "unknown").strip()
+    _lat_ev = path_summary.get("generation_latency_ms")
+    _lat_ev_f = float(_lat_ev) if isinstance(_lat_ev, (int, float)) else None
+    _tps_ev = path_summary.get("tokens_per_second_output")
+    _tps_ev_f = float(_tps_ev) if isinstance(_tps_ev, (int, float)) else None
+    _ttft_ev = path_summary.get("time_to_first_token_ms")
+    _ttft_ev_f = float(_ttft_ev) if isinstance(_ttft_ev, (int, float)) else None
+    _provided = str(path_summary.get("provided_model_name") or gen_meta.get("model") or model_name).strip()
+    _prompt_name_ev = path_summary.get("langfuse_prompt_name")
     if adapter_name and adapter_name not in {"mock", "ldss_fallback", "ldss_deterministic"}:
         try:
             adapter.record_generation(
@@ -2090,7 +2137,12 @@ def _emit_langfuse_evidence_observations(
                 provider=provider,
                 prompt=str(graph_state.get("model_prompt") or "")[:20000],
                 completion=str(generation.get("model_raw_text") or generation.get("content") or "")[:20000],
-                usage_details=usage_details if usage_details.get("total") else None,
+                usage_details=usage_for_lf,
+                provided_model_name=_provided or None,
+                prompt_name=str(_prompt_name_ev).strip() if _prompt_name_ev else None,
+                latency_ms=_lat_ev_f,
+                time_to_first_token_ms=_ttft_ev_f,
+                tokens_per_second=_tps_ev_f,
                 metadata={
                     "session_id": path_summary.get("session_id"),
                     "module_id": path_summary.get("module_id"),
@@ -2115,6 +2167,10 @@ def _emit_langfuse_evidence_observations(
                     "test_case_id": path_summary.get("test_case_id"),
                     "runtime_mode": path_summary.get("runtime_mode"),
                     "generation_mode": path_summary.get("generation_mode"),
+                    "input_tokens": _ud_in,
+                    "output_tokens": _ud_out,
+                    "total_tokens": _ud_tot,
+                    "time_to_first_token_note": path_summary.get("time_to_first_token_note"),
                 },
             )
         except Exception:

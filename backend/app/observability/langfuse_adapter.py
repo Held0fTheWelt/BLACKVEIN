@@ -272,9 +272,16 @@ class LangfuseAdapter:
                     metadata=trace_metadata,
                 )
 
+            # First-class Langfuse sessionId / userId come from OTEL propagation, not metadata alone.
+            prop_kwargs: dict[str, Any] = {}
+            if session_id:
+                prop_kwargs["session_id"] = session_id
             if user_id:
+                prop_kwargs["user_id"] = user_id
+            if prop_kwargs:
                 from langfuse import propagate_attributes
-                with propagate_attributes(user_id=user_id):
+
+                with propagate_attributes(**prop_kwargs):
                     self._active_trace = _create()
             else:
                 self._active_trace = _create()

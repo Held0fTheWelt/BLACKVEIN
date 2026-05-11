@@ -954,14 +954,18 @@ def game_player_session_turn(run_id: str):
         player_input_sha256 = hashlib.sha256(player_input.encode("utf-8")).hexdigest()
 
         try:
-            # Create root span for this turn execution
+            # Langfuse sessionId must match world-engine story session id so opening + turns
+            # group under the same session view; keep play run id as run_id for correlation.
             root_span = adapter.start_trace(
                 name="backend.turn.execute",
-                session_id=run_id,
+                session_id=runtime_session_id,
+                run_id=run_id,
                 module_id=str(bundle.get("module_id") or ""),
                 metadata={
                     "wos_trace_id": trace_id,
                     "langfuse_trace_id": langfuse_trace_id,
+                    "play_run_id": run_id,
+                    "world_engine_story_session_id": runtime_session_id,
                     "player_input_length": len(player_input),
                     "player_input_sha256": player_input_sha256,
                     "stage": "turn_execution",

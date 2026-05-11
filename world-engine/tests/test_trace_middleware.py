@@ -54,6 +54,7 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     assert cc_kw["name"] == "live_runtime_contract_pass"
     assert cc_kw["trace_id"] == "trace-id-adr0033"
     assert cc_kw["value"] == 0.0
+    assert cc_kw.get("session_id") == "s1"
 
 
 def _goc_projection():
@@ -368,6 +369,12 @@ def test_langfuse_evidence_observations_record_live_generation_retrieval_and_sco
         "usage_available": True,
         "usage_source": "provider_response",
         "usage_details": {"input": 12, "output": 8, "total": 20},
+        "langfuse_prompt_name": "goc_opening/story_runtime",
+        "provided_model_name": "gpt-5-nano",
+        "generation_latency_ms": 50.0,
+        "time_to_first_token_ms": 50.0,
+        "time_to_first_token_note": "non_streaming_latency_proxy",
+        "tokens_per_second_output": 160.0,
         "retrieval_status": "ok",
         "retrieval_route": "hybrid",
         "retrieval_hit_count": 1,
@@ -418,13 +425,62 @@ def test_langfuse_evidence_observations_record_live_generation_retrieval_and_sco
     )
 
     adapter.record_generation.assert_called_once()
-    assert adapter.record_generation.call_args.kwargs["name"] == "story.model.generation"
-    assert adapter.record_generation.call_args.kwargs["usage_details"] == {"input": 12, "output": 8, "total": 20}
+    rg_kw = adapter.record_generation.call_args.kwargs
+    assert rg_kw["name"] == "story.model.generation"
+    assert rg_kw["usage_details"] == {"input": 12, "output": 8, "total": 20}
+    assert rg_kw.get("prompt_name") == "goc_opening/story_runtime"
+    assert rg_kw.get("provided_model_name") == "gpt-5-nano"
+    assert rg_kw.get("latency_ms") == 50.0
+    assert rg_kw.get("time_to_first_token_ms") == 50.0
+    assert rg_kw.get("tokens_per_second") == 160.0
+    assert rg_kw["metadata"].get("time_to_first_token_note") == "non_streaming_latency_proxy"
     adapter.record_retrieval.assert_called_once()
     assert adapter.record_retrieval.call_args.kwargs["documents"][0]["id"] == "chunk-1"
     score_names = {call.kwargs["name"] for call in adapter.add_score.call_args_list}
     assert "live_runtime_contract_pass" in score_names
     assert "live_runtime_visible_surface_pass" in score_names
+
+
+def test_langfuse_record_generation_derives_total_when_usage_missing_total(monkeypatch):
+    """usage_details without total still reaches Langfuse when input/output are present."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr(
+        "app.story_runtime.manager.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+    path_summary = {
+        "session_id": "session-usage-partial",
+        "module_id": "god_of_carnage",
+        "turn_number": 1,
+        "turn_kind": "player",
+        "generation_fallback_used": False,
+        "retrieval_context_attached": False,
+        "usage_details": {"input": 3, "output": 4},
+        "actor_lane_validation_status": "approved",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+    }
+    graph_state = {"model_prompt": "x"}
+    event = {
+        "model_route": {
+            "generation": {
+                "content": "y",
+                "metadata": {"adapter": "openai", "model": "gpt-test"},
+            }
+        },
+    }
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+    adapter.record_generation.assert_called_once()
+    assert adapter.record_generation.call_args.kwargs["usage_details"] == {
+        "input": 3,
+        "output": 4,
+        "total": 7,
+    }
 
 
 def test_langfuse_visible_output_counts_gm_narration_when_scene_blocks_absent(monkeypatch):

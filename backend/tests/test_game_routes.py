@@ -621,6 +621,8 @@ def test_game_player_session_turn_langfuse_correlates_player_input_hash(
     assert fake_adapter.start_trace.called
     st_kwargs = fake_adapter.start_trace.call_args.kwargs
     assert st_kwargs["name"] == "backend.turn.execute"
+    assert st_kwargs["session_id"] == "story-session-lf"
+    assert st_kwargs["run_id"] == "run-langfuse-correlation"
     meta = st_kwargs["metadata"]
     assert meta["player_input_length"] == len(player_line)
     assert meta["player_input_sha256"] == hashlib.sha256(player_line.encode("utf-8")).hexdigest()

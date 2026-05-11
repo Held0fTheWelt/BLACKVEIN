@@ -683,7 +683,6 @@ def execute_story_turn(
     request: Request,
     manager: StoryRuntimeManager = Depends(get_story_manager),
 ) -> dict[str, Any]:
-    print(f">>> execute_story_turn CALLED for session {session_id}", flush=True)
     player_line = str(payload.player_input).strip()
     player_input_sha256 = hashlib.sha256(player_line.encode("utf-8")).hexdigest()
     player_input_length = len(player_line)
@@ -804,6 +803,10 @@ def execute_story_turn(
                 )
                 level, status_message = _langfuse_root_status(path_summary)
                 logger.info(f"[HTTP] Updating root span with turn_number={turn_number}")
+                raw_player_input = str(turn.get("raw_input") or player_line or "").strip()
+                p0_evidence = None
+                if isinstance(path_summary, dict):
+                    p0_evidence = path_summary.get("p0_action_resolution_evidence")
                 root_span.update(
                     output={
                         "turn_number": turn_number,
@@ -812,6 +815,7 @@ def execute_story_turn(
                         "turn_status": turn.get("turn_status"),
                         "turn_reason": turn.get("reason"),
                         "path_summary": path_summary,
+                        "raw_player_input": raw_player_input,
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
                     },
@@ -827,6 +831,7 @@ def execute_story_turn(
                         "path_fallback_used": path_summary.get("generation_fallback_used") if path_summary else None,
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
+                        "p0_action_resolution_evidence": p0_evidence,
                     },
                     level=level,
                     status_message=status_message,

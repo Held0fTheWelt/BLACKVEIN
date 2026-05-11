@@ -168,14 +168,24 @@ class LangfuseAdapter:
                 logger.warning("[LANGFUSE] start_trace skipped: no client for environment %r", env)
                 return None
 
-            # Use Langfuse SDK v4.x API: start_observation with as_type="span"
-            span = client.start_observation(
-                as_type="span",
-                name=name,
-                trace_context={"trace_id": trace_id} if trace_id else None,
-                input=input or {"session_id": session_id},
-                metadata=trace_metadata,
-            )
+            safe_sid = self._safe_session_id(session_id)
+
+            def _create_root():
+                return client.start_observation(
+                    as_type="span",
+                    name=name,
+                    trace_context={"trace_id": trace_id} if trace_id else None,
+                    input=input or {"session_id": session_id},
+                    metadata=trace_metadata,
+                )
+
+            if safe_sid:
+                from langfuse import propagate_attributes
+
+                with propagate_attributes(session_id=safe_sid, trace_name=name):
+                    span = _create_root()
+            else:
+                span = _create_root()
             _active_langfuse_client.set(client)
             logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
@@ -207,13 +217,24 @@ class LangfuseAdapter:
             if not client:
                 logger.warning("[LANGFUSE] start_span_in_trace skipped: no client for environment %r", env)
                 return None
-            span = client.start_observation(
-                as_type="span",
-                name=name,
-                trace_context={"trace_id": trace_id},
-                input=input or {},
-                metadata=md,
-            )
+            safe_sid = self._safe_session_id(md.get("session_id"))
+
+            def _create_joined():
+                return client.start_observation(
+                    as_type="span",
+                    name=name,
+                    trace_context={"trace_id": trace_id},
+                    input=input or {},
+                    metadata=md,
+                )
+
+            if safe_sid:
+                from langfuse import propagate_attributes
+
+                with propagate_attributes(session_id=safe_sid, trace_name=name):
+                    span = _create_joined()
+            else:
+                span = _create_joined()
             _active_langfuse_client.set(client)
             logger.info(f"[LANGFUSE] span created in trace: name={name}, trace_id={trace_id}")
             return span
@@ -347,6 +368,11 @@ class LangfuseAdapter:
         completion: Optional[str] = None,
         usage_details: Optional[dict[str, Any]] = None,
         metadata: Optional[dict[str, Any]] = None,
+        provided_model_name: Optional[str] = None,
+        prompt_name: Optional[str] = None,
+        latency_ms: Optional[float] = None,
+        time_to_first_token_ms: Optional[float] = None,
+        tokens_per_second: Optional[float] = None,
     ) -> Optional[Any]:
         """Record a Langfuse generation observation under the active story span."""
         if not self.is_enabled():
@@ -356,25 +382,46 @@ class LangfuseAdapter:
             logger.warning(f"[LANGFUSE] No active parent span to record generation '{name}'")
             return None
         try:
+            resolved_model = (provided_model_name or model or "").strip() or model
+            gen_metadata: dict[str, Any] = {
+                **(metadata or {}),
+                "model": resolved_model,
+                "provider": provider,
+                "provided_model_name": (provided_model_name or model or "").strip() or None,
+            }
+            if prompt_name:
+                gen_metadata["langfuse_prompt_name"] = prompt_name
+            if latency_ms is not None:
+                gen_metadata["generation_latency_ms"] = latency_ms
+            if time_to_first_token_ms is not None:
+                gen_metadata["time_to_first_token_ms"] = time_to_first_token_ms
+            if tokens_per_second is not None:
+                gen_metadata["tokens_per_second_output"] = tokens_per_second
             generation = parent_span.start_observation(
                 as_type="generation",
                 name=name,
-                model=model,
+                model=resolved_model,
                 input={"prompt": prompt} if prompt else {},
-                metadata={
-                    **(metadata or {}),
-                    "model": model,
-                    "provider": provider,
-                },
+                metadata=gen_metadata,
             )
             update_kwargs: dict[str, Any] = {
                 "output": {"completion": completion} if completion else {},
+                "model": resolved_model,
             }
-            if isinstance(usage_details, dict):
-                update_kwargs["usage_details"] = usage_details
+            if isinstance(usage_details, dict) and usage_details:
+                # Langfuse expects int counts; keys typically input / output / total.
+                ud: dict[str, int] = {}
+                for k in ("input", "output", "total"):
+                    if k in usage_details and usage_details[k] is not None:
+                        try:
+                            ud[k] = int(usage_details[k])
+                        except (TypeError, ValueError):
+                            pass
+                if ud:
+                    update_kwargs["usage_details"] = ud
             generation.update(**update_kwargs)
             generation.end()
-            logger.info(f"[LANGFUSE] generation observation recorded: name={name}, model={model}")
+            logger.info(f"[LANGFUSE] generation observation recorded: name={name}, model={resolved_model}")
             return generation
         except Exception as e:
             logger.error(f"[LANGFUSE] Failed to record generation '{name}': {str(e)}", exc_info=True)
@@ -446,13 +493,17 @@ class LangfuseAdapter:
             if trace_id and lf_client:
                 meta = dict(metadata or {})
                 meta.setdefault("score_attachment", "trace_duplicate")
-                lf_client.create_score(
-                    name=name,
-                    value=value,
-                    trace_id=str(trace_id),
-                    comment=comment,
-                    metadata=meta,
-                )
+                score_session_id = self._safe_session_id(meta.get("session_id"))
+                create_kw: dict[str, Any] = {
+                    "name": name,
+                    "value": value,
+                    "trace_id": str(trace_id),
+                    "comment": comment,
+                    "metadata": meta,
+                }
+                if score_session_id:
+                    create_kw["session_id"] = score_session_id
+                lf_client.create_score(**create_kw)
         except Exception as e:
             logger.warning(
                 f"[LANGFUSE] Trace-level create_score failed for '{name}': {str(e)}",

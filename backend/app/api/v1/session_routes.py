@@ -536,24 +536,8 @@ def execute_session_turn(session_id):
 
     try:
         trace_meta = _trace_classification(canonical_player_flow=False, runtime_mode="solo_story")
-        # Create root span for this turn execution
-        root_span = adapter.start_trace(
-            name="backend.turn.execute",
-            session_id=session_id,
-            turn_id=str(runtime_session.turn_counter) if hasattr(runtime_session, 'turn_counter') else None,
-            module_id=state.module_id if state else None,
-            metadata={
-                "wos_trace_id": trace_id,
-                "langfuse_trace_id": langfuse_trace_id,
-                "player_input_length": len(player_input),
-                "player_input_sha256": player_input_sha256,
-                "stage": "turn_execution",
-                "route": "/api/v1/sessions/<session_id>/turns",
-                **trace_meta,
-            },
-            trace_id=langfuse_trace_id,
-        )
-
+        # Resolve world-engine story session before opening a Langfuse trace so sessionId
+        # matches world-engine.session.create / world-engine.turn.execute (same session view).
         if not engine_story_session_id:
             compiled = compile_module(state.module_id)
             created = create_story_session(
@@ -577,6 +561,26 @@ def execute_session_turn(session_id):
                 world_engine_story_session_id=engine_story_session_id,
                 outcome="ok",
             )
+
+        root_span = adapter.start_trace(
+            name="backend.turn.execute",
+            session_id=engine_story_session_id,
+            run_id=session_id,
+            turn_id=str(runtime_session.turn_counter) if hasattr(runtime_session, "turn_counter") else None,
+            module_id=state.module_id if state else None,
+            metadata={
+                "wos_trace_id": trace_id,
+                "langfuse_trace_id": langfuse_trace_id,
+                "operator_runtime_session_id": session_id,
+                "world_engine_story_session_id": engine_story_session_id,
+                "player_input_length": len(player_input),
+                "player_input_sha256": player_input_sha256,
+                "stage": "turn_execution",
+                "route": "/api/v1/sessions/<session_id>/turns",
+                **trace_meta,
+            },
+            trace_id=langfuse_trace_id,
+        )
 
         turn = execute_story_turn_in_engine(
             session_id=engine_story_session_id,

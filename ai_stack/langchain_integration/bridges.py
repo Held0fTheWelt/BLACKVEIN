@@ -7,6 +7,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -570,7 +571,13 @@ def invoke_runtime_adapter_with_langchain(
     }
     if model_name:
         gen_kw["model_name"] = model_name
+    _t0 = time.monotonic()
     call = adapter.generate(prompt_text, **_adapter_generate_kwargs(adapter, gen_kw))
+    _latency_ms = (time.monotonic() - _t0) * 1000.0
+    _md = dict(call.metadata)
+    _md["generation_latency_ms"] = round(_latency_ms, 3)
+    _md["llm_invocation_streaming"] = False
+    call = ModelCallResult(content=call.content, success=call.success, metadata=_md)
     if not call.success:
         return RuntimeInvocationResult(call=call, prompt_text=prompt_text, parsed_output=None, parser_error=None)
     parsed, parser_error, repair_log = _tolerant_parse(call.content, parser)
