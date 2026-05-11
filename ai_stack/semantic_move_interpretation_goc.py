@@ -278,11 +278,14 @@ def interpret_goc_semantic_move(
     combined = _normalize(f"{player_input} {mv.get('player_intent', '')}")
 
     kind = str(inp.get("kind") or "")
+    player_input_kind = str(inp.get("player_input_kind") or "").strip().lower()
+    player_action_committed = bool(inp.get("player_action_committed"))
+    player_speech_committed = bool(inp.get("player_speech_committed"))
     intent_s = str(inp.get("intent") or mv.get("player_intent") or "")
     trace.append(
         InterpretationTraceItem(
             step_id="read_interpreted_signals",
-            detail_code=f"kind={kind[:48]}",
+            detail_code=f"kind={kind[:48]}|player_input_kind={player_input_kind[:48]}",
         )
     )
 
@@ -301,6 +304,12 @@ def interpret_goc_semantic_move(
         "syn_escalate": _contains_syn(combined, _ESCALATE_SYN),
         "prior_blame_pressure": "blame_pressure" in prior,
         "prior_alliance_shift": "alliance_shift" in prior,
+        "player_input_kind_is_action": player_input_kind == "action",
+        "player_input_kind_is_perception": player_input_kind == "perception",
+        "player_input_kind_is_speech": player_input_kind == "speech",
+        "player_input_kind_is_mixed": player_input_kind == "mixed",
+        "player_action_committed": player_action_committed,
+        "player_speech_committed": player_speech_committed,
     }
     trace.append(InterpretationTraceItem(step_id="score_feature_vector", detail_code="features_computed"))
 

@@ -139,6 +139,7 @@ class TestPlannerFieldsFromLastTurn:
             "turn_id": "turn-1",
         }
         result = _planner_fields_from_last_turn(last_turn)
+        assert result["interpreted_input"] == {"signals": ["attack"]}
         assert result["interpreted_move"] == {"signals": ["attack"]}
         assert result["turn_id"] == "turn-1"
 
@@ -149,7 +150,11 @@ class TestPlannerFieldsFromLastTurn:
             "interpreted_input": {"signals": ["indirect"]},
         }
         result = _planner_fields_from_last_turn(last_turn)
+        assert result["interpreted_input"] == {"signals": ["indirect"]}
         assert result["interpreted_move"] == {"move": "direct"}
+
+    def test_planner_keys_include_interpreted_input(self) -> None:
+        assert "interpreted_input" in _LAST_TURN_PLANNER_KEYS
 
     def test_planner_fields_empty_last_turn(self):
         """Test with empty last_turn dict."""

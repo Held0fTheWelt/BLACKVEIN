@@ -8,7 +8,15 @@ from app.services.operator_turn_history_service import (
 )
 
 
-def _event(turn_number: int, *, quality_class: str, degraded_signals: list[str], response_present: bool, fallback_used: bool) -> dict:
+def _event(
+    turn_number: int,
+    *,
+    quality_class: str,
+    degraded_signals: list[str],
+    response_present: bool,
+    fallback_used: bool,
+    observability_path_summary: dict | None = None,
+) -> dict:
     return {
         "turn_number": turn_number,
         "turn_kind": "player",
@@ -61,6 +69,7 @@ def _event(turn_number: int, *, quality_class: str, degraded_signals: list[str],
                 "primary_passivity_factors": ["single_actor_only"] if not response_present else [],
             },
         },
+        "observability_path_summary": observability_path_summary or {},
     }
 
 
@@ -110,3 +119,36 @@ def test_operator_surface_exposes_top_passivity_factors_and_actions():
     assert "operator_actions" in surface
     assert isinstance(surface["operator_actions"], list)
     assert "vitality_breakdown" in surface
+
+
+def test_turn_history_row_surfaces_intent_surface_evidence_from_path_summary():
+    summary = build_turn_history_summary_for_session(
+        [
+            _event(
+                1,
+                quality_class="healthy",
+                degraded_signals=[],
+                response_present=True,
+                fallback_used=False,
+                observability_path_summary={
+                    "player_input_kind": "action",
+                    "narrator_response_expected": True,
+                    "npc_response_expected": False,
+                    "semantic_move_kind": "move_to_room",
+                    "scene_director_selection_source": "intent_surface",
+                    "planner_rationale_codes": ["player_action_requires_spatial_consequence"],
+                    "intent_surface_contract_pass": 1,
+                    "player_input_attribution_pass": 1,
+                    "semantic_move_alignment_pass": 1,
+                    "npc_action_narration_boundary_pass": 1,
+                },
+            )
+        ]
+    )
+    row = summary["rows"][0]
+    intent = row["intent_surface_evidence"]
+    assert intent["player_input_kind"] == "action"
+    assert intent["semantic_move_kind"] == "move_to_room"
+    assert intent["scene_director_selection_source"] == "intent_surface"
+    assert intent["planner_rationale_codes"] == ["player_action_requires_spatial_consequence"]
+    assert intent["intent_surface_contract_pass"] == 1

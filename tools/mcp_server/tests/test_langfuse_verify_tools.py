@@ -277,6 +277,38 @@ def test_fetch_langfuse_trace_scores_requires_trace_id():
     assert "trace_id" in out["error"]
 
 
+def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
+    """Langfuse categorical rows may expose the chosen label under metadata.label."""
+    registry = _registry()
+    tool = registry.get("fetch_langfuse_trace_scores")
+    trace = {
+        "id": "lf-label-1",
+        "metadata": {
+            "trace_origin": "live_ui",
+            "execution_tier": "live",
+            "canonical_player_flow": True,
+        },
+        "scores": [
+            {"name": "live_opening_contract_pass", "value": 1.0},
+            {
+                "name": "opening_experience_judge",
+                "value": 1.0,
+                "comment": "Narrator-led intro.",
+                "metadata": {"label": "excellent"},
+            },
+        ],
+    }
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        return_value=trace,
+    ):
+        out = tool.handler({"trace_id": "lf-label-1"})
+    assert out["ok"] is True
+    assert out["judge_scores"]["opening_experience_judge"]["category"] == "excellent"
+    assert "canonical_live_langfuse_filters" in out
+    assert "categorical_judge_names" in out
+
+
 # ---------------------------------------------------------------------------
 # summarize_opening_judge_scores
 # ---------------------------------------------------------------------------
@@ -328,6 +360,18 @@ def test_summarize_opening_judge_scores_builds_matrix():
     assert annette_row["main_issue"] == "theatrical_style_judge"
     assert alain_row["live_opening"] == "fail"
     assert alain_row["main_issue"] == "live_opening_fail"
+
+
+def test_summarize_opening_judge_scores_passes_trace_name_to_query():
+    registry = _registry()
+    tool = registry.get("summarize_opening_judge_scores")
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        return_value=[],
+    ) as qm:
+        tool.handler({"trace_name": "world-engine.session.create"})
+    qm.assert_called_once()
+    assert qm.call_args.kwargs.get("trace_name") == "world-engine.session.create"
 
 
 def test_summarize_opening_judge_scores_respects_limit_per_role():
@@ -449,7 +493,7 @@ def test_build_opening_quality_context_no_card_when_all_pass():
         "scores": [
             {"name": "live_opening_contract_pass", "value": 1.0},
             {"name": "live_runtime_contract_pass", "value": 1.0},
-            {"name": "opening_experience_judge", "value": 0.9, "comment": "Strong.", "metadata": {"category": "strong"}},
+            {"name": "opening_experience_judge", "value": 1.0, "comment": "Strong.", "metadata": {"category": "excellent"}},
         ],
     }
     with patch(

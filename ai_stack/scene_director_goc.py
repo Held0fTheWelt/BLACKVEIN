@@ -743,6 +743,7 @@ def build_responder_and_function(
     *,
     player_input: str,
     interpreted_move: dict[str, Any],
+    interpreted_input: dict[str, Any] | None = None,
     pacing_mode: str,
     prior_continuity_impacts: list[dict[str, Any]] | None = None,
     yaml_slice: dict[str, Any] | None = None,
@@ -777,6 +778,10 @@ def build_responder_and_function(
             str], dict[str, Any]]``; see the function body for structure, error paths, and sentinels.
     """
     text = f"{player_input} {interpreted_move.get('player_intent', '')}".lower()
+    interp = interpreted_input if isinstance(interpreted_input, dict) else {}
+    player_input_kind = str(interp.get("player_input_kind") or "").strip().lower()
+    narrator_expected = bool(interp.get("narrator_response_expected"))
+    npc_expected = bool(interp.get("npc_response_expected"))
     prior_classes = prior_continuity_classes(prior_continuity_impacts)
     selection_source = "semantic_pipeline_v1"
     if semantic_move_record and isinstance(semantic_move_record, dict) and semantic_move_record.get("move_type"):
@@ -815,6 +820,15 @@ def build_responder_and_function(
     ):
         scene_fn = "scene_pivot"
         heuristic_trace.append("thread:progression_blocked_override->scene_pivot")
+    if (
+        player_input_kind in {"action", "perception"}
+        and narrator_expected
+        and not npc_expected
+        and scene_fn == "probe_motive"
+    ):
+        # Keep action/perception turns out of NPC-answer-first scene modes.
+        scene_fn = "establish_pressure"
+        heuristic_trace.append("intent_surface:action_or_perception_override->establish_pressure")
     assert_subdecision_label_in_matrix("scene_function", scene_fn)
 
     semantic_trace_ref = ""
@@ -833,6 +847,10 @@ def build_responder_and_function(
         ),
         "heuristic_trace": heuristic_trace[:16],
         "selection_source": selection_source,
+        "legacy_keyword_scene_candidates_used": selection_source == "legacy_fallback",
+        "player_input_kind": player_input_kind or None,
+        "narrator_response_expected": narrator_expected,
+        "npc_response_expected": npc_expected,
         "semantic_move_trace_ref": semantic_trace_ref,
         "semantic_secondary_move_type": (
             str(semantic_move_record.get("secondary_move_type") or "").strip()
@@ -881,6 +899,15 @@ def build_responder_and_function(
         thread_feedback=thread_feedback,
     )
     resolution["responder_set_resolution"] = responder_set_resolution
+    if player_input_kind in {"action", "perception"} and narrator_expected and not npc_expected:
+        resolution["selection_source"] = "advisory_npc_reaction_after_player_action"
+        resolution["npc_response_policy"] = "optional_social_only"
+        if responders and isinstance(responders[0], dict):
+            responders[0] = {
+                **responders[0],
+                "reason": "advisory_npc_reaction_after_player_action",
+                "role": "advisory_reaction",
+            }
     resolution["selected_responder_roles"] = [
         {
             "actor_id": str(row.get("actor_id") or "").strip(),

@@ -2080,3 +2080,34 @@ def test_narrative_thread_feedback_shapes_responder_and_function():
     assert responders[0]["reason"] == "narrative_thread_related_entity_focus"
     assert "thread:progression_blocked_override->scene_pivot" in resolution["heuristic_trace"]
     assert resolution["narrative_thread_feedback"]["dominant_thread_kind"] == "progression_blocked"
+
+
+def test_build_responder_and_function_marks_advisory_mode_for_perception() -> None:
+    responders, scene_fn, _implied, resolution = build_responder_and_function(
+        player_input="Schau aus dem Fenster",
+        interpreted_move={"move_class": "action", "player_intent": "observe"},
+        interpreted_input={
+            "player_input_kind": "perception",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        },
+        pacing_mode="standard",
+        semantic_move_record={"move_type": "establish_situational_pressure"},
+    )
+    assert scene_fn in {"establish_pressure", "repair_or_stabilize", "withhold_or_evade", "scene_pivot", "probe_motive"}
+    assert resolution["selection_source"] == "advisory_npc_reaction_after_player_action"
+    assert resolution["npc_response_policy"] == "optional_social_only"
+    assert resolution["player_input_kind"] == "perception"
+    assert resolution["legacy_keyword_scene_candidates_used"] is False
+    assert responders and responders[0]["role"] == "advisory_reaction"
+
+
+def test_build_responder_and_function_marks_legacy_fallback_usage() -> None:
+    _responders, _scene_fn, _implied, resolution = build_responder_and_function(
+        player_input="continue",
+        interpreted_move={},
+        interpreted_input={"player_input_kind": "speech"},
+        pacing_mode="standard",
+        semantic_move_record=None,
+    )
+    assert resolution["legacy_keyword_scene_candidates_used"] is True

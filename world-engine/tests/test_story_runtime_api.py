@@ -167,3 +167,82 @@ def test_story_turns_cover_primary_free_input_paths(client, internal_api_key):
     )
     assert state_response.status_code == 200
     assert state_response.json()["turn_counter"] == len(samples)
+
+
+def test_story_turn_hard_boundary_maps_to_422(client, internal_api_key, monkeypatch):
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": _goc_projection(),
+        },
+    )
+    assert create_response.status_code == 200
+    session_id = create_response.json()["session_id"]
+
+    manager = client.app.state.story_manager
+
+    def _raise_hard_boundary(*, session_id: str, player_input: str, trace_id=None):
+        raise RuntimeError("Hard narrative boundary: boundary_player_safety_violation")
+
+    monkeypatch.setattr(manager, "execute_turn", _raise_hard_boundary)
+
+    response = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers=_headers(internal_api_key),
+        json={"player_input": "unsafe"},
+    )
+    assert response.status_code == 422
+    assert response.json().get("detail") == "boundary_player_safety_violation"
+
+
+def test_story_turn_rejected_recoverable_stays_http_200(client, internal_api_key, monkeypatch):
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": _goc_projection(),
+        },
+    )
+    assert create_response.status_code == 200
+    session_id = create_response.json()["session_id"]
+
+    manager = client.app.state.story_manager
+
+    def _recoverable_turn(*, session_id: str, player_input: str, trace_id=None):
+        return {
+            "turn_number": 1,
+            "turn_kind": "player_rejected_recoverable",
+            "raw_input": player_input,
+            "interpreted_input": {"kind": "action", "player_input_kind": "action"},
+            "narrative_commit": {
+                "situation_status": "continue",
+                "allowed": False,
+                "commit_reason_code": "recoverable_rejection",
+                "committed_scene_id": "scene_1",
+            },
+            "validation_outcome": {
+                "status": "rejected",
+                "reason": "dramatic_effect_reject_continuity_pressure",
+            },
+            "visible_output_bundle": {"gm_narration": ["blocked"], "spoken_lines": [], "action_lines": []},
+            "ok": False,
+            "turn_status": "rejected_recoverable",
+            "reason": "dramatic_effect_reject_continuity_pressure",
+            "player_visible_message": "blocked",
+            "diagnostics": {"recoverable_rejection": True, "hard_boundary_failure": False},
+        }
+
+    monkeypatch.setattr(manager, "execute_turn", _recoverable_turn)
+
+    response = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers=_headers(internal_api_key),
+        json={"player_input": "Gehe ins Bad"},
+    )
+    assert response.status_code == 200
+    turn = response.json()["turn"]
+    assert turn["ok"] is False
+    assert turn["turn_status"] == "rejected_recoverable"

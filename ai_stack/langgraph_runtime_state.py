@@ -25,6 +25,9 @@ class RuntimeTurnState(TypedDict, total=False):
     thread_pressure_summary: str
     interpreted_input: dict[str, Any]
     interpreted_move: dict[str, Any]
+    player_action_frame: dict[str, Any]
+    affordance_resolution: dict[str, Any]
+    scene_affordance_model: dict[str, Any]
     task_type: str
     routing: dict[str, Any]
     selected_provider: str

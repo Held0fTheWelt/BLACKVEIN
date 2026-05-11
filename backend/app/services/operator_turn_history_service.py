@@ -96,6 +96,7 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
     vitality = _extract_vitality(event)
     hints = _extract_operator_hints(event)
     governance = event.get("runtime_governance_surface") if isinstance(event.get("runtime_governance_surface"), dict) else {}
+    path_summary = event.get("observability_path_summary") if isinstance(event.get("observability_path_summary"), dict) else {}
 
     quality_class = str(
         vitality.get("quality_class")
@@ -155,6 +156,30 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
         "why_turn_felt_passive": passivity,
         "primary_passivity_factors": passivity[:3],
         "vitality_breakdown": vitality_breakdown,
+        "intent_surface_evidence": {
+            "player_input_kind": path_summary.get("player_input_kind"),
+            "player_action_committed": path_summary.get("player_action_committed"),
+            "player_speech_committed": path_summary.get("player_speech_committed"),
+            "narrator_response_expected": path_summary.get("narrator_response_expected"),
+            "npc_response_expected": path_summary.get("npc_response_expected"),
+            "semantic_move_kind": path_summary.get("semantic_move_kind"),
+            "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+            "planner_rationale_codes": path_summary.get("planner_rationale_codes")
+            if isinstance(path_summary.get("planner_rationale_codes"), list)
+            else [],
+            "legacy_keyword_scene_candidates_used": path_summary.get(
+                "legacy_keyword_scene_candidates_used"
+            ),
+            "npc_narrated_player_action_violation": path_summary.get(
+                "npc_narrated_player_action_violation"
+            ),
+            "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
+            "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
+            "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+            "npc_action_narration_boundary_pass": path_summary.get(
+                "npc_action_narration_boundary_pass"
+            ),
+        },
     }
 
 

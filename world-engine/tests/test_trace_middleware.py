@@ -2846,3 +2846,90 @@ def test_visible_narrative_contract_strips_leaked_beat_prefixes_german_session()
     vis = gs.get("_visible_narrative_contract") or {}
     assert vis.get("selected_role_visible_in_opening") is True
     assert vis.get("visible_language_contract_pass") is True
+
+
+def test_langfuse_path_spans_include_intent_semantic_director_fields(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    path_summary = {
+        "session_id": "session-intent-001",
+        "module_id": "god_of_carnage",
+        "turn_number": 3,
+        "turn_kind": "normal",
+        "nodes_executed": ["interpret_input", "validate_seam", "commit_seam"],
+        "quality_class": "healthy",
+        "degradation_signals": [],
+        "trace_origin": "live_ui",
+        "execution_tier": "live",
+        "canonical_player_flow": True,
+        "runtime_mode": "solo_story",
+        "generation_mode": "live_openai",
+        "validation_called": True,
+        "commit_called": True,
+        "player_input_kind": "action",
+        "player_action_committed": True,
+        "player_speech_committed": False,
+        "narrator_response_expected": True,
+        "npc_response_expected": False,
+        "semantic_move_kind": "move_to_room",
+        "scene_director_selection_source": "intent_surface",
+        "planner_rationale_codes": ["player_action_requires_spatial_consequence"],
+        "legacy_keyword_scene_candidates_used": False,
+        "npc_narrated_player_action_violation": False,
+        "intent_surface_contract_pass": 1,
+        "player_input_attribution_pass": 1,
+        "semantic_move_alignment_pass": 1,
+        "npc_action_narration_boundary_pass": 1,
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    created_child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.phase.intent_interpretation" in created_child_names
+    validation_output = _last_span_output_for(adapter, "story.phase.validation")
+    assert validation_output["player_input_kind"] == "action"
+    assert validation_output["semantic_move_kind"] == "move_to_room"
+    assert validation_output["scene_director_selection_source"] == "intent_surface"
+    assert validation_output["planner_rationale_codes"] == ["player_action_requires_spatial_consequence"]
+    assert validation_output["npc_narrated_player_action_violation"] is False
+
+
+def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    path_summary = _healthy_path_summary_turn(1)
+    path_summary.update(
+        {
+            "player_input_kind": "perception",
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "semantic_move_kind": "observe",
+            "scene_director_selection_source": "semantic_move",
+            "planner_rationale_codes": ["player_perception_requires_environmental_feedback"],
+            "legacy_keyword_scene_candidates_used": False,
+            "npc_narrated_player_action_violation": False,
+            "player_input_attribution_pass": 1,
+        }
+    )
+    graph_state = {"model_prompt": "prompt"}
+    event = {"visible_output_bundle": {"scene_blocks": [{"block_type": "narrator", "text": "x"}]}}
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state=graph_state,
+        event=event,
+    )
+
+    score_values = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert score_values["intent_surface_contract_pass"] == 1.0
+    assert score_values["player_input_attribution_pass"] == 1.0
+    assert score_values["semantic_move_alignment_pass"] == 1.0
+    assert score_values["npc_action_narration_boundary_pass"] == 1.0
+
+    metadata = _last_score_metadata_for(adapter, "intent_surface_contract_pass")
+    assert metadata["player_input_kind"] == "perception"
+    assert metadata["semantic_move_kind"] == "observe"
+    assert metadata["scene_director_selection_source"] == "semantic_move"
+    assert metadata["planner_rationale_codes"] == ["player_perception_requires_environmental_feedback"]

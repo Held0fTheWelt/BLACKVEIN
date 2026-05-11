@@ -85,7 +85,12 @@ from ai_stack.langgraph_runtime_state import (
 )
 from ai_stack.langgraph_runtime_tracking import _dist_version, _track
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
-from story_runtime_core.content_locale import load_session_language_model_directive
+from ai_stack.player_action_resolution import resolve_player_action
+from story_runtime_core.content_locale import (
+    classify_player_input_from_rules,
+    default_player_intent_commit_flags,
+    load_session_language_model_directive,
+)
 
 
 _GOC_FALLBACK_CAST_KEYS: tuple[str, ...] = ("veronique", "michel", "annette", "alain")
@@ -940,6 +945,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         )
 
     scene_assessment = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
+    interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
     semantic = state.get("semantic_move_record") if isinstance(state.get("semantic_move_record"), dict) else {}
     ranked_semantic = semantic.get("ranked_move_candidates") if isinstance(semantic.get("ranked_move_candidates"), list) else []
     ranked_semantic_compact: list[dict[str, Any]] = []
@@ -1001,6 +1007,13 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             if isinstance(semantic.get("secondary_dramatic_features"), list)
             else [],
             "ranked_move_candidates": ranked_semantic_compact,
+        },
+        "player_intent_surface": {
+            "player_input_kind": interpreted_input.get("player_input_kind"),
+            "player_action_committed": bool(interpreted_input.get("player_action_committed")),
+            "player_speech_committed": bool(interpreted_input.get("player_speech_committed")),
+            "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")),
+            "npc_response_expected": bool(interpreted_input.get("npc_response_expected")),
         },
         "character_mind_records": compact_minds,
         "continuity_constraints": continuity_constraints,
@@ -1113,6 +1126,7 @@ class RuntimeTurnGraphExecutor:
         """
         graph = StateGraph(RuntimeTurnState)
         graph.add_node("interpret_input", self._interpret_input)
+        graph.add_node("resolve_player_action", self._resolve_player_action)
         graph.add_node("retrieve_context", self._retrieve_context)
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
@@ -1127,7 +1141,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("render_visible", self._render_visible)
         graph.add_node("package_output", self._package_output)
         graph.set_entry_point("interpret_input")
-        graph.add_edge("interpret_input", "retrieve_context")
+        graph.add_edge("interpret_input", "resolve_player_action")
+        graph.add_edge("resolve_player_action", "retrieve_context")
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
@@ -1292,6 +1307,8 @@ class RuntimeTurnGraphExecutor:
         actor_for_event = human_actor_id or selected_player_role or None
         raw_pi = str(state.get("player_input") or "").strip()
         kind_raw = str(interp_dict.get("kind") or "").strip().lower()
+        session_lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
+        module_for_rules = str(state.get("module_id") or "").strip() or GOC_MODULE_ID
         input_kind_map = {
             "speech": "speech",
             "action": "action",
@@ -1302,21 +1319,78 @@ class RuntimeTurnGraphExecutor:
             "explicit_command": "speech",
             "meta": "speech",
         }
-        input_kind = input_kind_map.get(kind_raw, "speech")
-        interp_dict = {
-            **interp_dict,
+        intent_fields: dict[str, Any] = {
             "source": "player_input",
             "actor_id": actor_for_event,
             "selected_player_role": selected_player_role or human_actor_id or None,
             "original_text": raw_pi,
-            "input_kind": input_kind,
+            "player_input_actor_id": actor_for_event,
+            "player_input_visible_block_present": True,
         }
+        if kind_raw in ("explicit_command", "meta"):
+            intent_fields["player_input_kind"] = "meta" if kind_raw == "meta" else "unclear"
+            intent_fields["projection_key"] = None
+            intent_fields["projection_captures"] = {}
+            intent_fields["player_action_committed"] = False
+            intent_fields["player_speech_committed"] = kind_raw != "meta"
+            intent_fields["narrator_response_expected"] = False
+            intent_fields["npc_response_expected"] = True
+        else:
+            hit = classify_player_input_from_rules(
+                raw_pi,
+                module_id=module_for_rules,
+                lang_hint=session_lang,
+                content_modules_root=None,
+            )
+            rid = str(hit.get("deterministic_intent_rule") or "")
+            if rid not in ("no_rules", "no_rule_match"):
+                pik = str(hit.get("player_input_kind") or "unclear").strip().lower()
+                intent_fields["player_input_kind"] = pik
+                intent_fields["projection_key"] = hit.get("projection_key")
+                intent_fields["projection_captures"] = hit.get("captures") or {}
+                intent_fields["player_action_committed"] = bool(hit.get("player_action_committed"))
+                intent_fields["player_speech_committed"] = bool(hit.get("player_speech_committed"))
+                intent_fields["narrator_response_expected"] = bool(hit.get("narrator_response_expected"))
+                intent_fields["npc_response_expected"] = bool(hit.get("npc_response_expected"))
+                if pik == "speech":
+                    json_kind = "speech"
+                elif pik == "mixed":
+                    json_kind = "mixed"
+                elif pik in ("action", "perception"):
+                    json_kind = "action"
+                else:
+                    json_kind = kind_raw
+                interp_dict["kind"] = json_kind
+                kind_raw = json_kind
+            else:
+                imap = {
+                    "speech": "speech",
+                    "action": "action",
+                    "mixed": "mixed",
+                    "reaction": "speech",
+                    "intent_only": "speech",
+                    "ambiguous": "speech",
+                }
+                pik = imap.get(kind_raw, "speech")
+                intent_fields["player_input_kind"] = pik
+                intent_fields["projection_key"] = None
+                intent_fields["projection_captures"] = {}
+                flags = default_player_intent_commit_flags(pik)
+                intent_fields.update(flags)
+        input_kind = input_kind_map.get(kind_raw, "speech")
+        if str(intent_fields.get("player_input_kind") or "") == "perception":
+            input_kind = "action"
+        intent_fields["input_kind"] = input_kind
+        interp_dict = {**interp_dict, **intent_fields}
         update = _track(state, node_name="interpret_input")
         update["interpreted_input"] = interp_dict
         move_class = str(interp_dict.get("kind") or "unknown")
         update["interpreted_move"] = {
             "player_intent": str(interp_dict.get("intent") or "unspecified"),
             "move_class": move_class,
+            "player_input_kind": str(interp_dict.get("player_input_kind") or "").strip().lower() or None,
+            "narrator_response_expected": bool(interp_dict.get("narrator_response_expected")),
+            "npc_response_expected": bool(interp_dict.get("npc_response_expected")),
         }
         update["task_type"] = task_type
         if "turn_input_class" not in state or not state.get("turn_input_class"):
@@ -1514,6 +1588,65 @@ class RuntimeTurnGraphExecutor:
         update["model_prompt"] = prompt
         if capability_audit:
             update["capability_audit"] = capability_audit
+        return update
+
+    def _resolve_player_action(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Build PlayerActionFrame + AffordanceResolution before validation."""
+        update = _track(state, node_name="resolve_player_action")
+        interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        runtime_projection: dict[str, Any] = {}
+        actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+        if actor_lane_ctx:
+            runtime_projection = {
+                "human_actor_id": actor_lane_ctx.get("human_actor_id"),
+                "selected_player_role": actor_lane_ctx.get("selected_player_role"),
+                "npc_actor_ids": list(actor_lane_ctx.get("npc_actor_ids") or []),
+                "actor_lanes": dict(actor_lane_ctx.get("actor_lanes") or {}),
+            }
+        host_template = (
+            state.get("host_experience_template")
+            if isinstance(state.get("host_experience_template"), dict)
+            else {}
+        )
+        if host_template and not runtime_projection:
+            runtime_projection = host_template
+        resolution = resolve_player_action(
+            raw_text=str(state.get("player_input") or ""),
+            interpreted_input=interp,
+            module_id=str(state.get("module_id") or ""),
+            runtime_projection=runtime_projection,
+            content_modules_root=None,
+        )
+        frame = resolution.get("player_action_frame") if isinstance(resolution.get("player_action_frame"), dict) else {}
+        aff = resolution.get("affordance_resolution") if isinstance(resolution.get("affordance_resolution"), dict) else {}
+        if frame:
+            update["player_action_frame"] = frame
+        if aff:
+            update["affordance_resolution"] = aff
+        model = (
+            resolution.get("scene_affordance_model")
+            if isinstance(resolution.get("scene_affordance_model"), dict)
+            else {}
+        )
+        if model:
+            update["scene_affordance_model"] = model
+        if interp and frame:
+            merged_interp = {
+                **interp,
+                "player_input_kind": frame.get("player_input_kind") or interp.get("player_input_kind"),
+                "narrator_response_expected": bool(frame.get("narrator_response_expected")),
+                "npc_response_expected": bool(frame.get("npc_response_expected")),
+            }
+            update["interpreted_input"] = merged_interp
+            move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
+            update["interpreted_move"] = {
+                **move,
+                "player_input_kind": frame.get("player_input_kind") or move.get("player_input_kind"),
+                "resolved_action_verb": frame.get("verb"),
+                "resolved_target_type": frame.get("resolved_target_type"),
+                "resolved_target_id": frame.get("resolved_target_id"),
+                "affordance_status": frame.get("affordance_status"),
+            }
         return update
 
     def _goc_resolve_canonical_content(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -1735,6 +1868,9 @@ class RuntimeTurnGraphExecutor:
         responders, scene_fn, _implied, resolution = build_responder_and_function(
             player_input=player_input,
             interpreted_move=interpreted_move,
+            interpreted_input=state.get("interpreted_input")
+            if isinstance(state.get("interpreted_input"), dict)
+            else None,
             pacing_mode=pacing,
             prior_continuity_impacts=prior,
             yaml_slice=yslice,
@@ -1819,6 +1955,16 @@ class RuntimeTurnGraphExecutor:
             str(resolution.get("selection_source") or "unknown"),
             f"scene_fn:{scene_fn}",
         ]
+        if bool(resolution.get("legacy_keyword_scene_candidates_used")):
+            rationale_codes.append("legacy_keyword_scene_candidates_used")
+        pik = str(
+            (
+                state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+            ).get("player_input_kind")
+            or ""
+        ).strip()
+        if pik:
+            rationale_codes.append(f"player_input_kind:{pik}")
         scene_plan = ScenePlanRecord(
             selected_scene_function=scene_fn,
             selected_responder_set=list(responders),
@@ -1923,12 +2069,18 @@ class RuntimeTurnGraphExecutor:
                     pri = str(responders[0].get("actor_id") or responders[0].get("responder_id") or "").strip()
                 interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
                 ik = str(interp.get("input_kind") or interp.get("kind") or "speech")
+                pik = str(interp.get("player_input_kind") or ik or "speech").strip().lower()
+                narrator_expected = bool(interp.get("narrator_response_expected"))
+                npc_expected = bool(interp.get("npc_response_expected"))
                 lines.append("PLAYER INPUT OWNERSHIP (canonical committed surface):")
                 lines.append(
                     f"- human_actor_id (player words belong to this actor, not to primary_responder_id): {hid or spr}"
                 )
                 lines.append(f"- selected_player_role: {spr or hid}")
                 lines.append(f"- input_kind: {ik}")
+                lines.append(f"- player_input_kind: {pik}")
+                lines.append(f"- narrator_response_expected: {str(narrator_expected).lower()}")
+                lines.append(f"- npc_response_expected: {str(npc_expected).lower()}")
                 lines.append(
                     f"- primary_responder_id / NPC reaction scope (must not steal the player's line as this NPC): "
                     f"{pri or '(model must still respect actor_lane_boundary)'}"
@@ -1941,6 +2093,30 @@ class RuntimeTurnGraphExecutor:
                     "- Require: do NOT assign verbatim_player_input to a different speaker_id. Generate only "
                     "NPC/narrator reaction; the human character has already spoken this line."
                 )
+                if pik in ("action", "perception"):
+                    lines.append("PHYSICAL_PLAYER_MOVE (PLAYER-ACTION-INTENT-01):")
+                    lines.append(
+                        "- The human actor has already performed or attempted this physical move in-scene. "
+                        "Do NOT recast it as NPC dialogue, coaching, or spatial explanation unless the NPC is "
+                        "explicitly guiding the human in-world."
+                    )
+                    lines.append(
+                        "- NPC spoken_lines: brief social reaction only; do NOT narrate the player's movement as "
+                        "if the NPC performed it or explained what the player sees."
+                    )
+                    lines.append(
+                        "- Narration (narrator / narration_summary): describe immediate environment and what the "
+                        "human character perceives; NPCs do not replace narrator responsibilities."
+                    )
+                    if narrator_expected:
+                        lines.append(
+                            "- Hard requirement: emit a narrator-visible spatial/perceptual consequence for this turn."
+                        )
+                    if not npc_expected:
+                        lines.append(
+                            "- Hard requirement: do NOT produce NPC answer/explanation as primary response; "
+                            "NPC contribution is optional social reaction only."
+                        )
 
         actor_lane_boundary = dramatic_packet.get("actor_lane_boundary") if isinstance(dramatic_packet, dict) else None
         if isinstance(actor_lane_boundary, dict):
@@ -2722,6 +2898,16 @@ class RuntimeTurnGraphExecutor:
                 actor_lane_summary=actor_lane_sum,
                 actor_lane_context=_actor_lane_ctx,
                 story_runtime_experience=_sre_arg,
+                interpreted_input=state.get("interpreted_input")
+                if isinstance(state.get("interpreted_input"), dict)
+                else None,
+                raw_player_input=str(state.get("player_input") or "").strip() or None,
+                player_action_frame=state.get("player_action_frame")
+                if isinstance(state.get("player_action_frame"), dict)
+                else None,
+                affordance_resolution=state.get("affordance_resolution")
+                if isinstance(state.get("affordance_resolution"), dict)
+                else None,
             )
 
         outcome = _run_validation(generation, proposed)

@@ -212,6 +212,41 @@ def build_decision_trace_data(
         Decision trace data dictionary.
     """
     flow_nodes = build_flow_nodes_list(nodes)
+    observability_path_summary = (
+        bundle.get("last_turn_observability_path_summary")
+        if isinstance(bundle.get("last_turn_observability_path_summary"), dict)
+        else {}
+    )
+    intent_evidence = {
+        "player_input_kind": observability_path_summary.get("player_input_kind"),
+        "player_action_committed": observability_path_summary.get("player_action_committed"),
+        "player_speech_committed": observability_path_summary.get("player_speech_committed"),
+        "narrator_response_expected": observability_path_summary.get("narrator_response_expected"),
+        "npc_response_expected": observability_path_summary.get("npc_response_expected"),
+        "semantic_move_kind": observability_path_summary.get("semantic_move_kind"),
+        "scene_director_selection_source": observability_path_summary.get(
+            "scene_director_selection_source"
+        ),
+        "planner_rationale_codes": observability_path_summary.get("planner_rationale_codes"),
+        "legacy_keyword_scene_candidates_used": observability_path_summary.get(
+            "legacy_keyword_scene_candidates_used"
+        ),
+        "npc_narrated_player_action_violation": observability_path_summary.get(
+            "npc_narrated_player_action_violation"
+        ),
+        "intent_surface_contract_pass": observability_path_summary.get(
+            "intent_surface_contract_pass"
+        ),
+        "player_input_attribution_pass": observability_path_summary.get(
+            "player_input_attribution_pass"
+        ),
+        "semantic_move_alignment_pass": observability_path_summary.get(
+            "semantic_move_alignment_pass"
+        ),
+        "npc_action_narration_boundary_pass": observability_path_summary.get(
+            "npc_action_narration_boundary_pass"
+        ),
+    }
     return {
         "graph_name": graph.get("graph_name"),
         "graph_version": graph.get("graph_version"),
@@ -227,6 +262,7 @@ def build_decision_trace_data(
         "adapter_invocation_mode": (bundle.get("last_turn_repro_metadata") or {}).get(
             "adapter_invocation_mode"
         ),
+        "intent_surface_evidence": intent_evidence,
         "semantic_decision_flow": semantic_flow,
         "graph_execution_flow": {
             "flow_nodes": flow_nodes,
@@ -237,7 +273,11 @@ def build_decision_trace_data(
     }
 
 
-def build_validation_projection_data(validation: dict[str, Any]) -> dict[str, Any]:
+def build_validation_projection_data(
+    validation: dict[str, Any],
+    canonical_record: dict[str, Any],
+    observability_path_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Build validation projection data.
 
     Args:
@@ -246,12 +286,48 @@ def build_validation_projection_data(validation: dict[str, Any]) -> dict[str, An
     Returns:
         Validation projection data.
     """
+    intent_surface = extract_dict_safe(canonical_record.get("interpreted_input"))
+    intent_diag = extract_dict_safe(validation.get("intent_surface_diagnostics"))
+    path_summary = extract_dict_safe(observability_path_summary)
+    planner_rationale = canonical_record.get("planner_rationale_codes")
+    if not isinstance(planner_rationale, list):
+        planner_rationale = path_summary.get("planner_rationale_codes")
+    if not isinstance(planner_rationale, list):
+        planner_rationale = []
     return {
         "status": validation.get("status"),
         "reason": validation.get("reason"),
         "validator_lane": validation.get("validator_lane"),
         "dramatic_quality_gate": validation.get("dramatic_quality_gate"),
         "dramatic_effect_weak_signal": validation.get("dramatic_effect_weak_signal"),
+        "intent_surface_diagnostics": intent_diag,
+        "npc_narrated_player_action_violation": bool(intent_diag.get("npc_narrated_player_action_violation")),
+        "player_input_kind": canonical_record.get("player_input_kind")
+        or intent_surface.get("player_input_kind"),
+        "player_action_committed": bool(canonical_record.get("player_action_committed"))
+        or bool(intent_surface.get("player_action_committed")),
+        "player_speech_committed": bool(canonical_record.get("player_speech_committed"))
+        or bool(intent_surface.get("player_speech_committed")),
+        "narrator_response_expected": bool(canonical_record.get("narrator_response_expected"))
+        or bool(intent_surface.get("narrator_response_expected")),
+        "npc_response_expected": bool(canonical_record.get("npc_response_expected"))
+        or bool(intent_surface.get("npc_response_expected")),
+        "semantic_move_kind": canonical_record.get("semantic_move_kind")
+        or path_summary.get("semantic_move_kind"),
+        "scene_director_selection_source": canonical_record.get("scene_director_selection_source")
+        or path_summary.get("scene_director_selection_source"),
+        "planner_rationale_codes": planner_rationale,
+        "legacy_keyword_scene_candidates_used": (
+            canonical_record.get("legacy_keyword_scene_candidates_used")
+            if canonical_record.get("legacy_keyword_scene_candidates_used") is not None
+            else path_summary.get("legacy_keyword_scene_candidates_used")
+        ),
+        "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
+        "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
+        "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+        "npc_action_narration_boundary_pass": path_summary.get(
+            "npc_action_narration_boundary_pass"
+        ),
     }
 
 

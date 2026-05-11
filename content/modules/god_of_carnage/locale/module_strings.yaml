@@ -29,3 +29,19 @@ strings:
   player_outcome.mixed_display:
     de: "{name} meint: \u201e{raw}\u201c"
     en: '{name} says: "{raw}"'
+  player_outcome.mixed_stand_speech:
+    de: "{name} steht auf und sagt: \u201e{speech}\u201c"
+    en: '{name} stands up and says: "{speech}"'
+  player_outcome.action_toward_room:
+    de: "{name} geht in Richtung {room}."
+    en: "{name} moves toward {room}."
+  player_outcome.perception_at_window:
+    de: "{name} tritt ans Fenster und schaut hinaus."
+    en: "{name} steps to the window and looks out."
+  player_outcome.perception_generic:
+    de: "{name} schaut aufmerksam."
+    en: "{name} looks carefully."
+  # Perception framed as a question (player asks what they see) — not diegetic quoted speech (PLAYER-ACTION-INTENT-01).
+  player_outcome.perception_question_at_window:
+    de: "{name} tritt ans Fenster und betrachtet die Aussicht."
+    en: "{name} steps to the window and studies the view."

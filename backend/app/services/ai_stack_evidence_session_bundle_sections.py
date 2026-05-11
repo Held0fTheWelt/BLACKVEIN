@@ -91,6 +91,13 @@ def apply_diagnostics_execution_truth_and_retrieval(
             last_turn = tail if isinstance(tail, dict) else None
         if last_turn is not None:
             execution_truth["retrieval_influence"] = ev._retrieval_influence_from_turn(last_turn)
+            obs_path_summary = (
+                last_turn.get("observability_path_summary")
+                if isinstance(last_turn.get("observability_path_summary"), dict)
+                else {}
+            )
+            if obs_path_summary:
+                bundle["last_turn_observability_path_summary"] = obs_path_summary
             graph = last_turn.get("graph")
             if isinstance(graph, dict):
                 execution_truth["last_turn_graph_mode"] = ev._last_turn_graph_mode(graph)

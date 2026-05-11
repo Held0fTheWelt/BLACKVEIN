@@ -43,7 +43,21 @@ def build_planner_projection_section(
         "social_state_record": canonical_record.get("social_state_record"),
         "character_mind_records": canonical_record.get("character_mind_records"),
         "scene_plan_record": canonical_record.get("scene_plan_record"),
+        "interpreted_input": canonical_record.get("interpreted_input"),
         "interpreted_move": canonical_record.get("interpreted_move"),
+        "player_input_kind": canonical_record.get("player_input_kind"),
+        "player_action_committed": canonical_record.get("player_action_committed"),
+        "player_speech_committed": canonical_record.get("player_speech_committed"),
+        "narrator_response_expected": canonical_record.get("narrator_response_expected"),
+        "npc_response_expected": canonical_record.get("npc_response_expected"),
+        "scene_director_selection_source": canonical_record.get("scene_director_selection_source"),
+        "planner_rationale_codes": canonical_record.get("planner_rationale_codes"),
+        "legacy_keyword_scene_candidates_used": canonical_record.get("legacy_keyword_scene_candidates_used"),
+        "npc_narrated_player_action_violation": canonical_record.get(
+            "npc_narrated_player_action_violation"
+        ),
+        "intent_surface_diagnostics": canonical_record.get("intent_surface_diagnostics"),
+        "semantic_move_kind": canonical_record.get("semantic_move_kind"),
         "scene_assessment": canonical_record.get("scene_assessment"),
         "selected_responder_set": canonical_record.get("selected_responder_set"),
         "selected_scene_function": canonical_record.get("selected_scene_function"),
@@ -110,7 +124,15 @@ def assemble_filled_inspector_sections(
             build_decision_trace_data(graph, routing, nodes, flow_edges, bundle, semantic_flow)
         ),
         "gate_projection": gate_section,
-        "validation_projection": make_supported_section(build_validation_projection_data(validation)),
+        "validation_projection": make_supported_section(
+            build_validation_projection_data(
+                validation,
+                canonical_record,
+                (bundle.get("last_turn_observability_path_summary") or {})
+                if isinstance(bundle.get("last_turn_observability_path_summary"), dict)
+                else {},
+            )
+        ),
         "authority_projection": make_supported_section(build_authority_projection_data(committed, canonical_record)),
         "fallback_projection": make_supported_section(
             build_fallback_projection_data(graph, routing, generation, gate_outcome)

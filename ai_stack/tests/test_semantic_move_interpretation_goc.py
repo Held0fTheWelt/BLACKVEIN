@@ -87,3 +87,23 @@ def test_ranked_semantic_candidates_preserve_primary_and_secondary() -> None:
     assert r.secondary_move_type in {None, r.ranked_move_candidates[1].move_type if len(r.ranked_move_candidates) > 1 else None}
     assert isinstance(r.secondary_dramatic_features, list)
     assert any("secondary_move:" in tag for tag in r.secondary_dramatic_features)
+
+
+def test_perception_question_not_forced_into_probe_inquiry() -> None:
+    """Wave A: physical/perception question shape should not demand NPC answer semantics."""
+    rec = interpret_goc_semantic_move(
+        module_id=GOC_MODULE_ID,
+        player_input="Was sehe ich, wenn ich aus dem Fenster schaue?",
+        interpreted_input={
+            **_base_interp(),
+            "player_input_kind": "perception",
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        },
+        interpreted_move={"player_intent": "observe", "move_class": "action"},
+        prior_continuity_classes=[],
+    )
+    assert rec.move_type != "probe_inquiry"
+    assert rec.feature_snapshot.get("player_input_kind_is_perception") is True

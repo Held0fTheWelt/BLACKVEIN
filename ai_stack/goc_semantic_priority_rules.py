@@ -275,6 +275,10 @@ def _pred_probe_or_question(
         bool:
             Returns a value of type ``bool``; see the function body for structure, error paths, and sentinels.
     """
+    # PLAYER-ACTION-INTENT-01: physical moves/perception questions should not default
+    # to probe_inquiry / NPC-answer demand.
+    if bool(f.get("player_input_kind_is_action")) or bool(f.get("player_input_kind_is_perception")):
+        return False
     return bool(
         f["syn_probe"] or f["question_end"] or "question" in str(mv.get("move_class", "")).lower()
     )
@@ -295,6 +299,8 @@ def _pred_provocation(_f: dict[str, Any], combined: str, intent_s: str, _mv: dic
         bool:
             Returns a value of type ``bool``; see the function body for structure, error paths, and sentinels.
     """
+    if bool(_f.get("player_input_kind_is_action")) or bool(_f.get("player_input_kind_is_perception")):
+        return False
     return "cynic" in intent_s or "provok" in combined
 
 

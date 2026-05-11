@@ -17,6 +17,7 @@ __all__ = [
     "build_player_attributed_visible_line",
     "classify_player_input_from_rules",
     "clear_content_locale_caches",
+    "default_player_intent_commit_flags",
     "greeting_imperative_addressee_fragment",
     "greeting_imperative_visible_pair",
     "load_session_language_model_directive",
@@ -212,6 +213,41 @@ def greeting_imperative_visible_pair(
     return (raw, outcome)
 
 
+def _normalize_room_direction_fragment(phrase: str, *, lang: str) -> str:
+    """Strip common German/English path prefixes for ``action_toward_room`` templates."""
+    p = (phrase or "").strip().rstrip(".").strip()
+    if not p:
+        return ""
+    low = p.lower()
+    lg = (lang or "de").strip().lower()[:2] or "de"
+    prefs = (
+        (
+            "in die ",
+            "in das ",
+            "in den ",
+            "in der ",
+            "ins ",
+            "in ",
+            "zur ",
+            "zum ",
+            "nach ",
+            "zu ",
+            "auf die ",
+            "auf das ",
+        )
+        if lg == "de"
+        else ("to the ", "to ", "toward ", "towards ", "into ", "in ")
+    )
+    for pref in prefs:
+        if low.startswith(pref):
+            p = p[len(pref) :].strip()
+            low = p.lower()
+            break
+    if not p:
+        return (phrase or "").strip().rstrip(".")
+    return p[0].upper() + p[1:] if len(p) > 1 else p.upper()
+
+
 def build_player_attributed_visible_line(
     *,
     name: str,
@@ -220,12 +256,33 @@ def build_player_attributed_visible_line(
     lang: str,
     module_id: str,
     content_modules_root: Path | None = None,
+    projection_key: str | None = None,
+    projection_captures: dict[str, Any] | None = None,
 ) -> str:
-    """Diegetic one-line shell outcome for committed human input (speech / action / mixed)."""
+    """Diegetic one-line shell outcome for committed human input (speech / action / mixed).
+
+    When ``projection_key`` is set (from ``player_input_rules.yaml`` classification), the
+    template is resolved from module locale with ``name``/``raw`` plus any captures.
+    """
+    raw_s = str(raw or "").strip()
+    pk = str(projection_key or "").strip()
+    caps = dict(projection_captures or {})
+    if pk:
+        if "speech" in caps and str(caps.get("speech") or "").strip():
+            caps.setdefault("raw", str(caps["speech"]).strip())
+        if "room" in caps and str(caps.get("room") or "").strip():
+            caps["room"] = _normalize_room_direction_fragment(str(caps["room"]), lang=lang)
+        merged: dict[str, Any] = {"name": name, "raw": raw_s, **caps}
+        return resolve_string(
+            module_id,
+            pk,
+            lang,
+            content_modules_root=content_modules_root,
+            **merged,
+        )
     ik = str(input_kind or "speech").strip().lower()
     if ik in ("intent_only", "ambiguous", "reaction"):
         ik = "speech"
-    raw_s = str(raw or "").strip()
     is_question = raw_s.rstrip().endswith("?")
     if ik == "action":
         key = "player_outcome.action_display"
@@ -258,16 +315,137 @@ def load_session_language_model_directive(
     return ""
 
 
+def default_player_intent_commit_flags(player_input_kind: str) -> dict[str, bool]:
+    """Public helper: booleans aligned with PLAYER-ACTION-INTENT-01 commit expectations."""
+    d = _intent_defaults_from_kind(player_input_kind)
+    return {k: bool(d[k]) for k in d}
+
+
+def _intent_defaults_from_kind(player_input_kind: str) -> dict[str, Any]:
+    k = (player_input_kind or "").strip().lower()
+    if k == "action":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
+    if k == "perception":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
+    if k == "mixed":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": True,
+            "narrator_response_expected": True,
+            "npc_response_expected": True,
+        }
+    if k in ("speech", "meta"):
+        return {
+            "player_action_committed": False,
+            "player_speech_committed": True,
+            "narrator_response_expected": False,
+            "npc_response_expected": True,
+        }
+    return {
+        "player_action_committed": False,
+        "player_speech_committed": False,
+        "narrator_response_expected": True,
+        "npc_response_expected": True,
+    }
+
+
 def classify_player_input_from_rules(
     raw_text: str,
     *,
     module_id: str,
+    lang_hint: str = "de",
     content_modules_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Reserved: ordered ``classification_rules`` in ``player_input_rules.yaml`` (v1: none)."""
+    """First-match ordered rules from ``player_input_rules.yaml`` (PLAYER-ACTION-INTENT-01)."""
     root = resolve_content_modules_root(content_modules_root)
     rules = _load_player_rules_cached(str(_player_rules_path(module_id, root)))
     cls = rules.get("classification_rules")
     if not isinstance(cls, list) or not cls:
-        return {"player_input_kind": "unclear", "deterministic_intent_rule": "no_rules"}
-    return {"player_input_kind": "unclear", "deterministic_intent_rule": "no_rules"}
+        return {
+            "player_input_kind": "unclear",
+            "deterministic_intent_rule": "no_rules",
+            "projection_key": None,
+            "captures": {},
+            **_intent_defaults_from_kind("unclear"),
+        }
+    lg = (lang_hint or "de").strip().lower()[:2] or "de"
+    text = str(raw_text or "").strip()
+    if not text:
+        return {
+            "player_input_kind": "unclear",
+            "deterministic_intent_rule": "no_rule_match",
+            "projection_key": None,
+            "captures": {},
+            **_intent_defaults_from_kind("unclear"),
+        }
+    for row in cls:
+        if not isinstance(row, dict):
+            continue
+        wl = str(row.get("when_lang") or row.get("scope_lang") or "").strip().lower()[:2]
+        if wl and wl != lg:
+            continue
+        pat = row.get("pattern") or row.get("match")
+        if isinstance(pat, dict):
+            pat = pat.get(lg) or pat.get("de") or pat.get("en")
+        if not isinstance(pat, str) or not pat.strip():
+            continue
+        try:
+            m = re.match(pat.strip(), text)
+        except re.error:
+            continue
+        if not m:
+            continue
+        then = row.get("then") if isinstance(row.get("then"), dict) else {}
+        captures: dict[str, str] = {}
+        cg = then.get("capture_groups")
+        if isinstance(cg, dict):
+            for cap_name, idx in cg.items():
+                if not isinstance(cap_name, str):
+                    continue
+                gi: int | None = None
+                if isinstance(idx, int):
+                    gi = idx
+                elif isinstance(idx, str) and idx.isdigit():
+                    gi = int(idx)
+                if gi is None or gi < 1 or gi > len(m.groups()):
+                    continue
+                gval = m.group(gi)
+                captures[cap_name] = (str(gval) if gval is not None else "").strip()
+        rid = str(row.get("id") or "matched_rule")
+        pik = str(then.get("player_input_kind") or "unclear").strip().lower()
+        pk = str(then.get("projection_key") or "").strip() or None
+        out = {
+            "player_input_kind": pik,
+            "deterministic_intent_rule": rid,
+            "projection_key": pk,
+            "captures": captures,
+        }
+        for fld in (
+            "player_action_committed",
+            "player_speech_committed",
+            "narrator_response_expected",
+            "npc_response_expected",
+        ):
+            if fld in then:
+                out[fld] = bool(then.get(fld))
+            else:
+                d = _intent_defaults_from_kind(pik)
+                out[fld] = d[fld]
+        return out
+    return {
+        "player_input_kind": "unclear",
+        "deterministic_intent_rule": "no_rule_match",
+        "projection_key": None,
+        "captures": {},
+        **_intent_defaults_from_kind("unclear"),
+    }

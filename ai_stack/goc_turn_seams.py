@@ -6,6 +6,7 @@ Proposal, validation, commit, visible seams helpers
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from ai_stack.dramatic_effect_contract import DramaticEffectEvaluationContext
@@ -350,6 +351,41 @@ def _resolved_npc_lane_char_cap(story_runtime_experience: dict[str, Any] | None)
     return max(400, min(8000, v))
 
 
+def _detect_npc_narrated_player_action_violation(
+    *,
+    structured: dict[str, Any],
+    raw_player_input: str,
+    player_input_kind: str,
+    human_actor_id: str,
+) -> bool:
+    """Heuristic diagnostic: NPC ``spoken_lines`` echo long physical player input (PLAYER-ACTION-INTENT-01)."""
+    pik = (player_input_kind or "").strip().lower()
+    if pik not in ("action", "perception"):
+        return False
+    raw = (raw_player_input or "").strip().lower()
+    raw = re.sub(r'[\u201c\u201d\u201e\u201f"„«»]', "", raw).strip()
+    if len(raw) < 10:
+        return False
+    rows = structured.get("spoken_lines") if isinstance(structured.get("spoken_lines"), list) else []
+    h = canonicalize_goc_actor_id(str(human_actor_id).strip()) or str(human_actor_id).strip()
+    blob_parts: list[str] = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        sid_raw = str(item.get("speaker_id") or "").strip()
+        sid = canonicalize_goc_actor_id(sid_raw) or sid_raw
+        if h and sid == h:
+            continue
+        t = str(item.get("text") or item.get("line") or "").strip().lower()
+        if t:
+            blob_parts.append(t)
+    blob = " ".join(blob_parts)
+    if len(raw) >= 14 and raw in blob:
+        return True
+    frag = raw[:18].strip()
+    return len(frag) >= 12 and frag in blob
+
+
 def _check_npc_spoken_action_lane_blob_cap(
     structured: dict[str, Any], *, npc_char_cap: int
 ) -> dict[str, Any] | None:
@@ -392,6 +428,10 @@ def run_validation_seam(
     actor_lane_summary: dict[str, Any] | None = None,
     actor_lane_context: dict[str, Any] | None = None,
     story_runtime_experience: dict[str, Any] | None = None,
+    interpreted_input: dict[str, Any] | None = None,
+    raw_player_input: str | None = None,
+    player_action_frame: dict[str, Any] | None = None,
+    affordance_resolution: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text
     (CANONICAL_TURN_CONTRACT_GOC.md §2.1).
@@ -433,11 +473,30 @@ def run_validation_seam(
         }
     gen_meta_pre = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     structured_pre = gen_meta_pre.get("structured_output") if isinstance(gen_meta_pre.get("structured_output"), dict) else {}
+    intent_surface_diagnostics: dict[str, Any] = {"npc_narrated_player_action_violation": False}
+    if (
+        structured_pre
+        and isinstance(actor_lane_context, dict)
+        and module_id == GOC_MODULE_ID
+    ):
+        hid = str(actor_lane_context.get("human_actor_id") or "").strip()
+        interp_loc = interpreted_input if isinstance(interpreted_input, dict) else {}
+        raw_pi_eff = str(raw_player_input or interp_loc.get("original_text") or "").strip()
+        pik_eff = str(interp_loc.get("player_input_kind") or "").strip().lower()
+        if hid and raw_pi_eff and pik_eff in ("action", "perception"):
+            intent_surface_diagnostics["npc_narrated_player_action_violation"] = (
+                _detect_npc_narrated_player_action_violation(
+                    structured=structured_pre,
+                    raw_player_input=raw_pi_eff,
+                    player_input_kind=pik_eff,
+                    human_actor_id=hid,
+                )
+            )
     if structured_pre:
         npc_cap = _resolved_npc_lane_char_cap(story_runtime_experience)
         shell_violation = _check_npc_spoken_action_lane_blob_cap(structured_pre, npc_char_cap=npc_cap)
         if shell_violation is not None:
-            return shell_violation
+            return {**shell_violation, "intent_surface_diagnostics": intent_surface_diagnostics}
     for eff in proposed_state_effects:
         if not isinstance(eff, dict):
             return {
@@ -471,6 +530,9 @@ def run_validation_seam(
     base: dict[str, Any] = {
         "dramatic_effect_gate_outcome": gate_dict,
         "validator_lane": "goc_rule_engine_v1",
+        "intent_surface_diagnostics": intent_surface_diagnostics,
+        "player_action_frame": player_action_frame if isinstance(player_action_frame, dict) else None,
+        "affordance_resolution": affordance_resolution if isinstance(affordance_resolution, dict) else None,
     }
 
     gr = gate_out.gate_result.value
@@ -488,6 +550,21 @@ def run_validation_seam(
         "rejected_scene_function_mismatch",
         "rejected_continuity_pressure",
     ):
+        aff = affordance_resolution if isinstance(affordance_resolution, dict) else {}
+        aff_status = str(aff.get("affordance_status") or "").strip().lower()
+        commit_policy = str(aff.get("action_commit_policy") or "").strip().lower()
+        if gr == "rejected_continuity_pressure" and aff_status in {"allowed", "allowed_offscreen", "partial"}:
+            return {
+                **base,
+                "status": "approved",
+                "reason": "action_resolution_continuity_supported",
+                "dramatic_quality_gate": "effect_gate_action_resolution_override",
+                "continuity_pressure_resolution": {
+                    "override_applied": True,
+                    "affordance_status": aff_status,
+                    "action_commit_policy": commit_policy,
+                },
+            }
         if gate_out.legacy_fallback_used and gate_out.rejection_reasons:
             reason = gate_out.rejection_reasons[0]
         else:
@@ -1157,6 +1234,13 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
     """
     gd = state.get("graph_diagnostics") if isinstance(state.get("graph_diagnostics"), dict) else {}
     repro = gd.get("repro_metadata") if isinstance(gd.get("repro_metadata"), dict) else {}
+    interpreted_input = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+    validation_outcome = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
+    intent_surface_diag = (
+        validation_outcome.get("intent_surface_diagnostics")
+        if isinstance(validation_outcome.get("intent_surface_diagnostics"), dict)
+        else {}
+    )
     return {
         "turn_metadata": {
             "session_id": state.get("session_id"),
@@ -1171,10 +1255,51 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
             "turn_execution_mode": state.get("turn_execution_mode"),
         },
         "semantic_move_record": state.get("semantic_move_record"),
+        "semantic_move_kind": (
+            (state.get("semantic_move_record") or {}).get("move_type")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None
+        ),
         "social_state_record": state.get("social_state_record"),
         "character_mind_records": state.get("character_mind_records"),
         "scene_plan_record": state.get("scene_plan_record"),
         "interpreted_move": state.get("interpreted_move"),
+        "interpreted_input": interpreted_input or None,
+        "player_action_frame": state.get("player_action_frame")
+        if isinstance(state.get("player_action_frame"), dict)
+        else None,
+        "affordance_resolution": state.get("affordance_resolution")
+        if isinstance(state.get("affordance_resolution"), dict)
+        else None,
+        "scene_affordance_model": state.get("scene_affordance_model")
+        if isinstance(state.get("scene_affordance_model"), dict)
+        else None,
+        "player_input_kind": interpreted_input.get("player_input_kind") if interpreted_input else None,
+        "player_action_committed": bool(interpreted_input.get("player_action_committed")) if interpreted_input else False,
+        "player_speech_committed": bool(interpreted_input.get("player_speech_committed")) if interpreted_input else False,
+        "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")) if interpreted_input else False,
+        "npc_response_expected": bool(interpreted_input.get("npc_response_expected")) if interpreted_input else False,
+        "scene_director_selection_source": (
+            ((state.get("scene_assessment") or {}).get("multi_pressure_resolution") or {}).get("selection_source")
+            if isinstance(state.get("scene_assessment"), dict)
+            else None
+        ),
+        "planner_rationale_codes": (
+            (state.get("scene_plan_record") or {}).get("planner_rationale_codes")
+            if isinstance(state.get("scene_plan_record"), dict)
+            else None
+        ),
+        "legacy_keyword_scene_candidates_used": (
+            bool(
+                (((state.get("scene_assessment") or {}).get("multi_pressure_resolution") or {}).get(
+                    "legacy_keyword_scene_candidates_used"
+                ))
+            )
+            if isinstance(state.get("scene_assessment"), dict)
+            else False
+        ),
+        "intent_surface_diagnostics": intent_surface_diag or None,
+        "npc_narrated_player_action_violation": bool(intent_surface_diag.get("npc_narrated_player_action_violation")),
         "scene_assessment": state.get("scene_assessment"),
         "selected_responder_set": state.get("selected_responder_set"),
         "selected_scene_function": state.get("selected_scene_function"),

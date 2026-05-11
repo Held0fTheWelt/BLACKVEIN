@@ -60,6 +60,170 @@ def _is_judge_score(name: str) -> bool:
     return name.endswith("_judge")
 
 
+# Canonical WoS Langfuse categorical evaluators (allow_multiple_matches=false; one category / observation).
+WOS_CATEGORICAL_JUDGES_ORDER: tuple[str, ...] = (
+    "opening_experience_judge",
+    "role_anchor_quality_judge",
+    "theatrical_style_judge",
+    "actor_lane_narrative_violation_judge",
+    "rag_context_usefulness_judge",
+    "player_action_intent_judge",
+    "narrator_npc_boundary_judge",
+    "visible_card_cleanliness_judge",
+    "turn_relevance_judge",
+    "language_consistency_judge",
+    "dramatic_pacing_judge",
+    "goc_tone_fidelity_judge",
+    "player_action_resolution_judge",
+    "blocked_action_playability_judge",
+    "affordance_plausibility_judge",
+    "npc_reaction_appropriateness_judge",
+)
+
+# Categories that trigger "needs improvement" routing (matrix main_issue, repair cards).
+# Middle tiers (e.g. acceptable, minor_blur) are not issues.
+_WOS_JUDGE_ISSUE_CATEGORIES: dict[str, frozenset[str]] = {
+    "opening_experience_judge": frozenset({"weak", "invalid"}),
+    "role_anchor_quality_judge": frozenset({"weak_anchor", "missing_anchor"}),
+    "theatrical_style_judge": frozenset({"flat", "broken_style"}),
+    "actor_lane_narrative_violation_judge": frozenset({"possible_violation", "clear_violation"}),
+    "rag_context_usefulness_judge": frozenset({"weak_use", "no_or_bad_use"}),
+    "player_action_intent_judge": frozenset({"wrong_intent", "invalid_takeover"}),
+    "narrator_npc_boundary_judge": frozenset({"npc_narrates_action", "severe_boundary_violation"}),
+    "visible_card_cleanliness_judge": frozenset({"messy", "broken_cards"}),
+    "turn_relevance_judge": frozenset({"weakly_related", "irrelevant_or_wrong"}),
+    "language_consistency_judge": frozenset({"mixed_language", "wrong_language"}),
+    "dramatic_pacing_judge": frozenset({"weak_pacing", "broken_pacing"}),
+    "goc_tone_fidelity_judge": frozenset({"generic_tone", "wrong_tone"}),
+    "player_action_resolution_judge": frozenset({"partially_resolved", "misresolved", "not_resolved"}),
+    "blocked_action_playability_judge": frozenset({"unclear_block", "technical_failure"}),
+    "affordance_plausibility_judge": frozenset({"questionable", "implausible"}),
+    "npc_reaction_appropriateness_judge": frozenset({"unnecessary_commentary", "npc_takes_over"}),
+}
+
+# Unknown *_judge scores: conservative fallback if category is not in the per-judge map.
+_LEGACY_JUDGE_ISSUE_TOKENS: frozenset[str] = frozenset().union(
+    *_WOS_JUDGE_ISSUE_CATEGORIES.values(),
+    frozenset(
+        {
+            "bad",
+            "missing",
+            "wrong_role",
+            "unused",
+            "misused",
+            "partial",
+        }
+    ),
+)
+
+_JUDGE_TO_REPAIR_CARD: dict[str, str] = {
+    "opening_experience_judge": "OPEN-EXP-01",
+    "role_anchor_quality_judge": "OPEN-ROLE-01",
+    "theatrical_style_judge": "OPEN-STYLE-01",
+    "actor_lane_narrative_violation_judge": "OPEN-ACTORLANE-01",
+    "rag_context_usefulness_judge": "OPEN-RAG-01",
+    "player_action_intent_judge": "TURN-INTENT-01",
+    "narrator_npc_boundary_judge": "TURN-NPCBOUNDARY-01",
+    "visible_card_cleanliness_judge": "TURN-CARD-01",
+    "turn_relevance_judge": "TURN-RELEVANCE-01",
+    "language_consistency_judge": "TURN-LANG-01",
+    "dramatic_pacing_judge": "TURN-PACING-01",
+    "goc_tone_fidelity_judge": "TURN-GOC-TONE-01",
+}
+
+_MATRIX_JUDGE_COLUMN_KEYS: dict[str, str] = {
+    "opening_experience_judge": "opening_judge_category",
+    "role_anchor_quality_judge": "role_anchor_category",
+    "theatrical_style_judge": "style_category",
+    "actor_lane_narrative_violation_judge": "actor_lane_judge_category",
+    "rag_context_usefulness_judge": "rag_use_category",
+    "player_action_intent_judge": "player_action_intent_category",
+    "narrator_npc_boundary_judge": "narrator_npc_boundary_category",
+    "visible_card_cleanliness_judge": "visible_card_cleanliness_category",
+    "turn_relevance_judge": "turn_relevance_category",
+    "language_consistency_judge": "language_consistency_category",
+    "dramatic_pacing_judge": "dramatic_pacing_category",
+    "goc_tone_fidelity_judge": "goc_tone_fidelity_category",
+}
+
+_JUDGE_DISPLAY_SHORT: dict[str, str] = {
+    "opening_experience_judge": "opening experience",
+    "role_anchor_quality_judge": "role anchor",
+    "theatrical_style_judge": "theatrical style",
+    "actor_lane_narrative_violation_judge": "actor-lane judge",
+    "rag_context_usefulness_judge": "RAG use",
+    "player_action_intent_judge": "player action intent",
+    "narrator_npc_boundary_judge": "narrator/NPC boundary",
+    "visible_card_cleanliness_judge": "visible card cleanliness",
+    "turn_relevance_judge": "turn relevance",
+    "language_consistency_judge": "language consistency",
+    "dramatic_pacing_judge": "dramatic pacing",
+    "goc_tone_fidelity_judge": "GoC tone fidelity",
+}
+
+
+def _extract_judge_category_from_row(row: dict[str, Any]) -> str | None:
+    """Resolve categorical label from Langfuse score row metadata (API shape varies)."""
+    row_meta = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+    for key in (
+        "category",
+        "label",
+        "selectedCategory",
+        "selected_category",
+        "valueCategory",
+        "value_category",
+    ):
+        if key not in row_meta:
+            continue
+        v = row_meta.get(key)
+        if isinstance(v, list) and len(v) == 1:
+            v = v[0]
+        if v is None:
+            continue
+        s = str(v).strip()
+        if s:
+            return s
+    cats = row_meta.get("categories")
+    if isinstance(cats, list):
+        non_empty = [str(c).strip() for c in cats if str(c).strip()]
+        if len(non_empty) == 1:
+            return non_empty[0]
+    if isinstance(cats, str) and cats.strip():
+        return cats.strip()
+    matched = row_meta.get("matched_categories")
+    if isinstance(matched, list) and len(matched) == 1:
+        s = str(matched[0]).strip()
+        if s:
+            return s
+    return None
+
+
+def _normalize_judge_category_for_issue_check(judge_name: str, category: str | None) -> str | None:
+    """Map legacy evaluator labels to current rubric tokens (case-insensitive)."""
+    if not category:
+        return None
+    c = str(category).strip()
+    if not c:
+        return None
+    low = c.lower()
+    if judge_name == "opening_experience_judge" and low == "strong":
+        return "excellent"
+    return c
+
+
+def _judge_category_triggers_issue(judge_name: str, category: str | None) -> bool:
+    if not category:
+        return False
+    normalized = _normalize_judge_category_for_issue_check(judge_name, category)
+    if not normalized:
+        return False
+    low = normalized.strip().lower()
+    spec = _WOS_JUDGE_ISSUE_CATEGORIES.get(judge_name)
+    if spec is not None:
+        return low in spec
+    return low in _LEGACY_JUDGE_ISSUE_TOKENS
+
+
 def _extract_scores_split(
     raw_trace: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -84,8 +248,7 @@ def _extract_scores_split(
             if name in judge:
                 continue
             comment = str(row.get("comment") or "").strip()
-            row_meta = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
-            category = str(row_meta.get("category") or "").strip() or None
+            category = _extract_judge_category_from_row(row)
             judge[name] = {"value": value, "category": category, "reasoning": comment or None}
         else:
             if name in det:
@@ -457,6 +620,8 @@ def _langfuse_query_traces(
     limit: int,
     trace_origin: str | None,
     canonical_player_flow: bool | None,
+    execution_tier: str | None = None,
+    trace_name: str | None = None,
 ) -> list[dict[str, Any]]:
     payload = _langfuse_public_get_json(
         endpoint="/api/public/traces",
@@ -478,7 +643,16 @@ def _langfuse_query_traces(
             origin_ok = str(meta.get("trace_origin") or "").strip().lower() == trace_origin.lower()
         if canonical_player_flow is not None:
             canonical_ok = bool(meta.get("canonical_player_flow")) is canonical_player_flow
-        if origin_ok and canonical_ok:
+        tier_ok = True
+        if execution_tier is not None:
+            tier_ok = (
+                str(meta.get("execution_tier") or "").strip().lower()
+                == str(execution_tier).strip().lower()
+            )
+        name_ok = True
+        if trace_name is not None:
+            name_ok = str(row.get("name") or "").strip() == str(trace_name).strip()
+        if origin_ok and canonical_ok and tier_ok and name_ok:
             filtered.append(row)
     return filtered
 
@@ -698,10 +872,18 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             if isinstance(cpf_raw, bool)
             else None
         )
+        exec_tier = arguments.get("execution_tier")
+        trace_nm = arguments.get("trace_name")
         rows = _langfuse_query_traces(
             limit=limit,
             trace_origin=str(trace_origin) if isinstance(trace_origin, str) else None,
             canonical_player_flow=canonical_player_flow,
+            execution_tier=str(exec_tier).strip()
+            if isinstance(exec_tier, str) and str(exec_tier).strip()
+            else None,
+            trace_name=str(trace_nm).strip()
+            if isinstance(trace_nm, str) and str(trace_nm).strip()
+            else None,
         )
         if rows and isinstance(rows[0], dict) and rows[0].get("error"):
             return {"ok": False, "error": rows[0]["error"], "details": rows[0].get("body")}
@@ -783,10 +965,18 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
 
     def summarize_live_opening_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
         limit = int(arguments.get("limit") or 20)
+        exec_tier = arguments.get("execution_tier")
+        trace_nm = arguments.get("trace_name")
         rows = _langfuse_query_traces(
             limit=limit,
             trace_origin="live_ui",
             canonical_player_flow=True,
+            execution_tier=str(exec_tier).strip()
+            if isinstance(exec_tier, str) and str(exec_tier).strip()
+            else None,
+            trace_name=str(trace_nm).strip()
+            if isinstance(trace_nm, str) and str(trace_nm).strip()
+            else None,
         )
         if rows and isinstance(rows[0], dict) and rows[0].get("error"):
             return {"ok": False, "error": rows[0]["error"]}
@@ -821,11 +1011,6 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "count": len(matrix),
             "rows": matrix,
         }
-
-    _BAD_JUDGE_CATS = frozenset({
-        "invalid", "weak", "flat", "bad", "missing", "wrong_role",
-        "possible_violation", "clear_violation", "unused", "misused", "partial",
-    })
 
     def fetch_langfuse_trace_scores(arguments: dict[str, Any]) -> dict[str, Any]:
         trace_id = str(arguments.get("trace_id") or "").strip()
@@ -890,6 +1075,21 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "deterministic_scores": enriched_det,
             "judge_scores": judge_scores,
             "opening_shape_diagnostics": opening_shape_diagnostics,
+            "canonical_live_langfuse_filters": {
+                "opening_evaluators": {
+                    "trace.name": "world-engine.session.create",
+                    "trace_origin": "live_ui",
+                    "execution_tier": "live",
+                    "canonical_player_flow": True,
+                },
+                "turn_evaluators": {
+                    "trace.name": "world-engine.turn.execute",
+                    "trace_origin": "live_ui",
+                    "execution_tier": "live",
+                    "canonical_player_flow": True,
+                },
+            },
+            "categorical_judge_names": list(WOS_CATEGORICAL_JUDGES_ORDER),
         }
 
     def summarize_opening_judge_scores(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -897,6 +1097,10 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         execution_tier = str(arguments.get("execution_tier") or "live").strip()
         cpf_arg = arguments.get("canonical_player_flow")
         canonical_player_flow = bool(cpf_arg) if isinstance(cpf_arg, bool) else True
+        trace_nm = arguments.get("trace_name")
+        trace_name_filter = (
+            str(trace_nm).strip() if isinstance(trace_nm, str) and str(trace_nm).strip() else None
+        )
         roles_raw = arguments.get("roles")
         roles = (
             [str(r).strip().lower() for r in roles_raw if str(r).strip()]
@@ -909,6 +1113,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             limit=fetch_limit,
             trace_origin=trace_origin,
             canonical_player_flow=canonical_player_flow,
+            execution_tier=execution_tier,
+            trace_name=trace_name_filter,
         )
         if rows and isinstance(rows[0], dict) and rows[0].get("error"):
             return {"ok": False, "error": rows[0]["error"]}
@@ -918,8 +1124,6 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             if not isinstance(row, dict):
                 continue
             meta = _extract_metadata(row)
-            if execution_tier and str(meta.get("execution_tier") or "").lower() != execution_tier.lower():
-                continue
             score_meta_row = _first_score_metadata(row)
             role = str(
                 meta.get("selected_player_role") or score_meta_row.get("selected_player_role") or ""
@@ -938,7 +1142,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 j = _j.get(jname)
                 if not j:
                     return None
-                return j.get("category") or (str(j.get("value") or "") or None)
+                return j.get("category")
 
             if lo_val == "not_applicable":
                 live_opening_str = "not_applicable"
@@ -954,30 +1158,22 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             elif det_scores.get("live_runtime_contract_pass") == 0.0:
                 main_issue = "runtime_contract_fail"
             else:
-                for jname in (
-                    "opening_experience_judge",
-                    "role_anchor_quality_judge",
-                    "theatrical_style_judge",
-                    "actor_lane_narrative_violation_judge",
-                    "rag_context_usefulness_judge",
-                ):
+                for jname in WOS_CATEGORICAL_JUDGES_ORDER:
                     cat = _jcat(jname)
-                    if cat and cat.lower() in _BAD_JUDGE_CATS:
+                    if _judge_category_triggers_issue(jname, cat):
                         main_issue = jname
                         break
-            matrix.append({
+            row_out: dict[str, Any] = {
                 "role": role,
                 "trace_id": row.get("id"),
                 "trace_name": row.get("name"),
                 "is_opening_trace": is_opening,
                 "live_opening": live_opening_str,
-                "opening_judge_category": _jcat("opening_experience_judge"),
-                "role_anchor_category": _jcat("role_anchor_quality_judge"),
-                "style_category": _jcat("theatrical_style_judge"),
-                "actor_lane_judge_category": _jcat("actor_lane_narrative_violation_judge"),
-                "rag_use_category": _jcat("rag_context_usefulness_judge"),
                 "main_issue": main_issue,
-            })
+            }
+            for jname, col_key in _MATRIX_JUDGE_COLUMN_KEYS.items():
+                row_out[col_key] = _jcat(jname)
+            matrix.append(row_out)
         return {
             "ok": True,
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -985,6 +1181,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 "trace_origin": trace_origin,
                 "execution_tier": execution_tier,
                 "canonical_player_flow": canonical_player_flow,
+                "trace_name": trace_name_filter,
                 "roles": roles,
                 "limit_per_role": limit_per_role,
             },
@@ -1051,34 +1248,16 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         else:
             summary_parts.append("passed deterministic runtime gates")
             judge_issue_labels: list[str] = []
-            judge_cats = {
-                "opening_experience_judge": _jcat("opening_experience_judge"),
-                "role_anchor_quality_judge": _jcat("role_anchor_quality_judge"),
-                "theatrical_style_judge": _jcat("theatrical_style_judge"),
-                "actor_lane_narrative_violation_judge": _jcat("actor_lane_narrative_violation_judge"),
-                "rag_context_usefulness_judge": _jcat("rag_context_usefulness_judge"),
-            }
-            detail_parts = []
-            for short, full in (
-                ("opening experience", "opening_experience_judge"),
-                ("role anchor", "role_anchor_quality_judge"),
-                ("theatrical style", "theatrical_style_judge"),
-                ("actor-lane judge", "actor_lane_narrative_violation_judge"),
-                ("RAG use", "rag_context_usefulness_judge"),
-            ):
-                cat = judge_cats[full]
+            detail_parts: list[str] = []
+            for full in WOS_CATEGORICAL_JUDGES_ORDER:
+                cat = _jcat(full)
+                short = _JUDGE_DISPLAY_SHORT.get(full, full.replace("_", " "))
                 if cat:
                     detail_parts.append(f"{short}: {cat}")
-                if cat and cat.lower() in _BAD_JUDGE_CATS:
+                if _judge_category_triggers_issue(full, cat):
                     judge_issue_labels.append(short.replace("-", "_").replace(" ", "_"))
                     if not recommended_next_card:
-                        recommended_next_card = {
-                            "opening_experience_judge": "OPEN-EXP-01",
-                            "role_anchor_quality_judge": "OPEN-ROLE-01",
-                            "theatrical_style_judge": "OPEN-STYLE-01",
-                            "actor_lane_narrative_violation_judge": "OPEN-ACTORLANE-01",
-                            "rag_context_usefulness_judge": "OPEN-RAG-01",
-                        }[full]
+                        recommended_next_card = _JUDGE_TO_REPAIR_CARD.get(full)
                     if full == "actor_lane_narrative_violation_judge":
                         must_not_change.append(
                             "Deterministic actor-lane gate is authoritative — judge is advisory only"

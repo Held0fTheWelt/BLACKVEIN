@@ -1056,6 +1056,8 @@ def _goc_player_attributed_visible_text(
     name = _goc_shell_actor_firstname(human_actor_id)
     interp = interpreted_input if isinstance(interpreted_input, dict) else {}
     ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
+    pk = str(interp.get("projection_key") or "").strip() or None
+    pc = interp.get("projection_captures") if isinstance(interp.get("projection_captures"), dict) else {}
     line = build_player_attributed_visible_line(
         name=name,
         raw=raw,
@@ -1063,6 +1065,8 @@ def _goc_player_attributed_visible_text(
         lang=lang,
         module_id=GOD_OF_CARNAGE_MODULE_ID,
         content_modules_root=_goc_content_modules_root(),
+        projection_key=pk,
+        projection_captures=pc,
     )
     return name, line
 
@@ -1091,6 +1095,31 @@ def _build_langfuse_path_summary(
     nodes = _str_list(graph_state.get("nodes_executed"))
     routing = graph_state.get("routing") if isinstance(graph_state.get("routing"), dict) else {}
     generation = graph_state.get("generation") if isinstance(graph_state.get("generation"), dict) else {}
+    interpreted_input = (
+        graph_state.get("interpreted_input")
+        if isinstance(graph_state.get("interpreted_input"), dict)
+        else {}
+    )
+    semantic_move_record = (
+        graph_state.get("semantic_move_record")
+        if isinstance(graph_state.get("semantic_move_record"), dict)
+        else {}
+    )
+    scene_plan_record = (
+        graph_state.get("scene_plan_record")
+        if isinstance(graph_state.get("scene_plan_record"), dict)
+        else {}
+    )
+    scene_assessment = (
+        graph_state.get("scene_assessment")
+        if isinstance(graph_state.get("scene_assessment"), dict)
+        else {}
+    )
+    multi_pressure_resolution = (
+        scene_assessment.get("multi_pressure_resolution")
+        if isinstance(scene_assessment.get("multi_pressure_resolution"), dict)
+        else {}
+    )
     gen_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
     validation = (
         graph_state.get("validation_outcome")
@@ -1127,6 +1156,11 @@ def _build_langfuse_path_summary(
         if isinstance(event.get("runtime_governance_surface"), dict)
         else {}
     )
+    human_input_attribution = (
+        event.get("human_input_attribution")
+        if isinstance(event.get("human_input_attribution"), dict)
+        else {}
+    )
     retrieval = graph_state.get("retrieval") if isinstance(graph_state.get("retrieval"), dict) else {}
     structured = gen_meta.get("structured_output")
     if structured is None:
@@ -1157,6 +1191,39 @@ def _build_langfuse_path_summary(
         str((session.runtime_projection or {}).get("selected_player_role") or "").strip()
         if isinstance(session.runtime_projection, dict)
         else ""
+    )
+    _player_input_kind = str(interpreted_input.get("player_input_kind") or "").strip().lower()
+    _allowed_player_input_kinds = {"action", "perception", "speech", "question", "mixed", "unclear", "meta"}
+    _semantic_move_kind = str(semantic_move_record.get("move_type") or "").strip()
+    _intent_surface_contract_pass = True
+    if _player_input_kind:
+        _intent_surface_contract_pass = (
+            _player_input_kind in _allowed_player_input_kinds
+            and isinstance(interpreted_input.get("player_action_committed"), bool)
+            and isinstance(interpreted_input.get("player_speech_committed"), bool)
+            and isinstance(interpreted_input.get("narrator_response_expected"), bool)
+            and isinstance(interpreted_input.get("npc_response_expected"), bool)
+        )
+    _player_input_attribution_pass = (
+        bool(human_input_attribution.get("player_input_attribution_pass"))
+        if "player_input_attribution_pass" in human_input_attribution
+        else True
+    )
+    _semantic_move_alignment_pass = True
+    if _semantic_move_kind:
+        _semantic_move_alignment_pass = True
+    if _player_input_kind in {"action", "perception"} and _semantic_move_kind:
+        _semantic_move_alignment_pass = _semantic_move_alignment_pass and _semantic_move_kind not in {
+            "probe_inquiry",
+            "provoke",
+            "demand_explanation",
+        }
+    _npc_action_narration_boundary_pass = not bool(
+        (
+            validation.get("intent_surface_diagnostics")
+            if isinstance(validation.get("intent_surface_diagnostics"), dict)
+            else {}
+        ).get("npc_narrated_player_action_violation")
     )
     summary = {
         "contract": "story_runtime_path_observability.v1",
@@ -1250,9 +1317,42 @@ def _build_langfuse_path_summary(
         "retrieval_governance_summary": retrieval.get("retrieval_governance_summary"),
         "validation_status": validation.get("status"),
         "validation_reason": validation.get("reason"),
+        "intent_surface_diagnostics": (
+            validation.get("intent_surface_diagnostics")
+            if isinstance(validation.get("intent_surface_diagnostics"), dict)
+            else {}
+        ),
+        "npc_narrated_player_action_violation": bool(
+            (
+                validation.get("intent_surface_diagnostics")
+                if isinstance(validation.get("intent_surface_diagnostics"), dict)
+                else {}
+            ).get("npc_narrated_player_action_violation")
+        ),
         "actor_lane_validation_status": actor_lane_validation.get("status"),
         "actor_lane_validation_reason": actor_lane_validation.get("reason"),
         "commit_applied": bool(committed.get("commit_applied")),
+        "player_input_kind": str(interpreted_input.get("player_input_kind") or "").strip().lower() or None,
+        "player_action_committed": bool(interpreted_input.get("player_action_committed")),
+        "player_speech_committed": bool(interpreted_input.get("player_speech_committed")),
+        "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")),
+        "npc_response_expected": bool(interpreted_input.get("npc_response_expected")),
+        "semantic_move_kind": str(semantic_move_record.get("move_type") or "").strip() or None,
+        "scene_director_selection_source": (
+            str(multi_pressure_resolution.get("selection_source") or "").strip()
+            or str(scene_plan_record.get("selection_source") or "").strip()
+            or None
+        ),
+        "planner_rationale_codes": list(scene_plan_record.get("planner_rationale_codes") or [])
+        if isinstance(scene_plan_record.get("planner_rationale_codes"), list)
+        else [],
+        "legacy_keyword_scene_candidates_used": bool(
+            multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
+        ),
+        "intent_surface_contract_pass": 1 if _intent_surface_contract_pass else 0,
+        "player_input_attribution_pass": 1 if _player_input_attribution_pass else 0,
+        "semantic_move_alignment_pass": 1 if _semantic_move_alignment_pass else 0,
+        "npc_action_narration_boundary_pass": 1 if _npc_action_narration_boundary_pass else 0,
         "quality_class": governance.get("quality_class") or graph_state.get("quality_class"),
         "degradation_signals": list(governance.get("degradation_signals") or graph_state.get("degradation_signals") or []),
         "degradation_summary": governance.get("degradation_summary") or graph_state.get("degradation_summary"),
@@ -1386,12 +1486,21 @@ def _langfuse_status_for_output(name: str, output: dict[str, Any]) -> str:
         return (
             f"called={output.get('called')} status={output.get('status') or 'unknown'} "
             f"actor_lane={output.get('actor_lane_validation_status') or 'unknown'} "
-            f"passive_factors={len(output.get('primary_passivity_factors') or [])}"
+            f"intent={output.get('player_input_kind') or 'unknown'} "
+            f"sem={output.get('semantic_move_kind') or 'unknown'} "
+            f"violation={output.get('npc_narrated_player_action_violation')}"
         )
     if name == "story.phase.commit":
         return (
             f"called={output.get('called')} commit_applied={output.get('commit_applied')} "
-            f"quality={output.get('quality_class') or 'unknown'} degradation={output.get('degradation_summary') or 'none'}"
+            f"quality={output.get('quality_class') or 'unknown'} degradation={output.get('degradation_summary') or 'none'} "
+            f"selection={output.get('scene_director_selection_source') or 'unknown'}"
+        )
+    if name == "story.phase.intent_interpretation":
+        return (
+            f"kind={output.get('player_input_kind') or 'unknown'} "
+            f"action={output.get('player_action_committed')} speech={output.get('player_speech_committed')} "
+            f"narrator_expected={output.get('narrator_response_expected')} npc_expected={output.get('npc_response_expected')}"
         )
     return name
 
@@ -1443,6 +1552,8 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "canonical_player_flow": path_summary.get("canonical_player_flow"),
         "runtime_mode": path_summary.get("runtime_mode"),
         "generation_mode": path_summary.get("generation_mode"),
+        "player_input_kind": path_summary.get("player_input_kind"),
+        "semantic_move_kind": path_summary.get("semantic_move_kind"),
     }
 
     span_specs = [
@@ -1467,6 +1578,36 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "canonical_player_flow": path_summary.get("canonical_player_flow"),
                 "runtime_mode": path_summary.get("runtime_mode"),
                 "generation_mode": path_summary.get("generation_mode"),
+                "player_input_kind": path_summary.get("player_input_kind"),
+                "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+                "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
+                "legacy_keyword_scene_candidates_used": path_summary.get(
+                    "legacy_keyword_scene_candidates_used"
+                ),
+                "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
+                "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
+                "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+                "npc_action_narration_boundary_pass": path_summary.get(
+                    "npc_action_narration_boundary_pass"
+                ),
+            },
+        ),
+        (
+            "story.phase.intent_interpretation",
+            {
+                "called": True,
+                "player_input_kind": path_summary.get("player_input_kind"),
+                "player_action_committed": path_summary.get("player_action_committed"),
+                "player_speech_committed": path_summary.get("player_speech_committed"),
+                "narrator_response_expected": path_summary.get("narrator_response_expected"),
+                "npc_response_expected": path_summary.get("npc_response_expected"),
+                "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+                "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
+                "legacy_keyword_scene_candidates_used": path_summary.get(
+                    "legacy_keyword_scene_candidates_used"
+                ),
             },
         ),
         (
@@ -1581,6 +1722,27 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "response_present": path_summary.get("response_present"),
                 "why_turn_felt_passive": path_summary.get("why_turn_felt_passive"),
                 "primary_passivity_factors": path_summary.get("primary_passivity_factors"),
+                "player_input_kind": path_summary.get("player_input_kind"),
+                "player_action_committed": path_summary.get("player_action_committed"),
+                "player_speech_committed": path_summary.get("player_speech_committed"),
+                "narrator_response_expected": path_summary.get("narrator_response_expected"),
+                "npc_response_expected": path_summary.get("npc_response_expected"),
+                "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+                "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
+                "legacy_keyword_scene_candidates_used": path_summary.get(
+                    "legacy_keyword_scene_candidates_used"
+                ),
+                "intent_surface_contract_pass": path_summary.get("intent_surface_contract_pass"),
+                "player_input_attribution_pass": path_summary.get("player_input_attribution_pass"),
+                "semantic_move_alignment_pass": path_summary.get("semantic_move_alignment_pass"),
+                "npc_action_narration_boundary_pass": path_summary.get(
+                    "npc_action_narration_boundary_pass"
+                ),
+                "npc_narrated_player_action_violation": path_summary.get(
+                    "npc_narrated_player_action_violation"
+                ),
+                "intent_surface_diagnostics": path_summary.get("intent_surface_diagnostics"),
             },
         ),
         (
@@ -1591,6 +1753,16 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "quality_class": path_summary.get("quality_class"),
                 "degradation_summary": path_summary.get("degradation_summary"),
                 "failure_markers": path_summary.get("failure_markers"),
+                "player_input_kind": path_summary.get("player_input_kind"),
+                "semantic_move_kind": path_summary.get("semantic_move_kind"),
+                "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+                "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
+                "legacy_keyword_scene_candidates_used": path_summary.get(
+                    "legacy_keyword_scene_candidates_used"
+                ),
+                "npc_narrated_player_action_violation": path_summary.get(
+                    "npc_narrated_player_action_violation"
+                ),
             },
         ),
     ]
@@ -1853,6 +2025,40 @@ def _emit_langfuse_evidence_observations(
         "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 else 0.0,
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
+    intent_kind = str(path_summary.get("player_input_kind") or "").strip().lower()
+    allowed_intent_kinds = {"action", "perception", "speech", "question", "mixed", "unclear", "meta"}
+    semantic_move_kind = str(path_summary.get("semantic_move_kind") or "").strip()
+    semantic_alignment_pass = True
+    if semantic_move_kind:
+        semantic_alignment_pass = True
+    if intent_kind in {"action", "perception"} and semantic_move_kind:
+        semantic_alignment_pass = semantic_alignment_pass and semantic_move_kind not in {
+            "probe_inquiry",
+            "provoke",
+            "demand_explanation",
+        }
+    npc_action_narration_boundary_pass = not bool(
+        path_summary.get("npc_narrated_player_action_violation")
+    )
+    player_input_attribution = path_summary.get("player_input_attribution_pass")
+    player_input_attribution_pass = (
+        True if player_input_attribution is None else bool(player_input_attribution)
+    )
+    intent_surface_contract_pass = True
+    if intent_kind:
+        intent_surface_contract_pass = (
+            intent_kind in allowed_intent_kinds
+            and isinstance(path_summary.get("player_action_committed"), bool)
+            and isinstance(path_summary.get("player_speech_committed"), bool)
+            and isinstance(path_summary.get("narrator_response_expected"), bool)
+            and isinstance(path_summary.get("npc_response_expected"), bool)
+        )
+    deterministic_scores["intent_surface_contract_pass"] = 1.0 if intent_surface_contract_pass else 0.0
+    deterministic_scores["player_input_attribution_pass"] = 1.0 if player_input_attribution_pass else 0.0
+    deterministic_scores["semantic_move_alignment_pass"] = 1.0 if semantic_alignment_pass else 0.0
+    deterministic_scores["npc_action_narration_boundary_pass"] = (
+        1.0 if npc_action_narration_boundary_pass else 0.0
+    )
     # OPEN-SCORE-SPLIT-01:
     # - opening_shape_contract_pass: purely visible opening-shape quality (can pass in fixtures/mocks).
     # - live_opening_contract_pass: strict live-only success marker for canonical live_ui opening.
@@ -1976,6 +2182,26 @@ def _emit_langfuse_evidence_observations(
         "degradation_signals": canonical_signals,
         "degradation_chain": degradation_chain,
         "degradation_summary": degradation_prose_summary,
+        "player_input_kind": path_summary.get("player_input_kind"),
+        "player_action_committed": path_summary.get("player_action_committed"),
+        "player_speech_committed": path_summary.get("player_speech_committed"),
+        "narrator_response_expected": path_summary.get("narrator_response_expected"),
+        "npc_response_expected": path_summary.get("npc_response_expected"),
+        "semantic_move_kind": path_summary.get("semantic_move_kind"),
+        "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
+        "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
+        "legacy_keyword_scene_candidates_used": path_summary.get(
+            "legacy_keyword_scene_candidates_used"
+        ),
+        "npc_narrated_player_action_violation": path_summary.get(
+            "npc_narrated_player_action_violation"
+        ),
+        "intent_surface_contract_pass": deterministic_scores.get("intent_surface_contract_pass"),
+        "player_input_attribution_pass": deterministic_scores.get("player_input_attribution_pass"),
+        "semantic_move_alignment_pass": deterministic_scores.get("semantic_move_alignment_pass"),
+        "npc_action_narration_boundary_pass": deterministic_scores.get(
+            "npc_action_narration_boundary_pass"
+        ),
         "live_opening_failure_reason": live_opening_failure_reason,
         "live_opening_subgates": _live_subgates,
         "live_opening_failure_reasons": _live_failure_reasons,
@@ -2789,6 +3015,8 @@ def _player_input_scene_blocks_for_story_window(
             "pause_after_ms": 120,
             "skippable": True,
         }
+        pik_lane = str(interp.get("player_input_kind") or interp.get("kind") or "speech").strip().lower()
+        render_hints = {"player_input_kind": pik_lane}
         out_blocks: list[dict[str, Any]] = []
         for suffix, line, bt in (
             ("", verbatim_line, "player_input"),
@@ -2812,6 +3040,7 @@ def _player_input_scene_blocks_for_story_window(
                         "text": cleaned,
                         "delivery": delivery,
                         "source": "player_input",
+                        "render_hints": render_hints,
                     }
                 )
         if out_blocks:
@@ -4926,15 +5155,32 @@ class StoryRuntimeManager:
                 graph_state.get("primary_responder_id") or srs0.get("actor_id") or srs0.get("responder_id") or ""
             ).strip()
             echo_n = int(vis_diag_fb.get("player_input_echo_removed_from_npc_block") or 0)
+            _pik = None
+            _gik = None
+            if isinstance(interpreted_input, dict):
+                _pik = interpreted_input.get("player_input_kind")
+                _gik = interpreted_input.get("input_kind") or interpreted_input.get("kind")
             human_att = {
                 "player_input_actor_id": interpreted_input.get("actor_id")
                 if isinstance(interpreted_input, dict)
                 else None,
                 "human_actor_id": hid_ev or None,
                 "primary_responder_id": pri_ev or None,
-                "player_input_kind": interpreted_input.get("input_kind")
+                # Canonical intent surface (Wave A). Keep graph_input_kind as legacy alias.
+                "player_input_kind": _pik or _gik,
+                "graph_input_kind": _gik,
+                "player_action_committed": bool(interpreted_input.get("player_action_committed"))
                 if isinstance(interpreted_input, dict)
-                else None,
+                else False,
+                "player_speech_committed": bool(interpreted_input.get("player_speech_committed"))
+                if isinstance(interpreted_input, dict)
+                else False,
+                "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected"))
+                if isinstance(interpreted_input, dict)
+                else False,
+                "npc_response_expected": bool(interpreted_input.get("npc_response_expected"))
+                if isinstance(interpreted_input, dict)
+                else False,
                 "player_input_visible_block_present": bool(
                     str(player_input or "").strip() and (hid_ev or spr_ev) and commit_turn_number > 0
                 ),
@@ -5194,7 +5440,15 @@ class StoryRuntimeManager:
             session.turn_counter -= 1
             if is_hard_boundary_failure(val):
                 raise RuntimeError(f"Hard narrative boundary: {val.get('reason') or 'rejected'}")
-            raise RuntimeError(f"Turn rejected after bounded recovery: {val.get('reason') or 'rejected'}")
+            return self._build_recoverable_rejection_turn(
+                session=session,
+                graph_state=graph_state,
+                trace_id=trace_id,
+                attempted_turn_number=commit_turn_number,
+                player_input=player_input,
+                prior_scene_id=prior_scene_id,
+                validation_outcome=val,
+            )
         return self._finalize_committed_turn(
             session=session,
             graph_state=graph_state,
@@ -5209,6 +5463,63 @@ class StoryRuntimeManager:
             host_experience_template=host_experience_template,
             prior_ci=prior_ci,
         )
+
+    def _build_recoverable_rejection_turn(
+        self,
+        *,
+        session: StorySession,
+        graph_state: dict[str, Any],
+        trace_id: str | None,
+        attempted_turn_number: int,
+        player_input: str,
+        prior_scene_id: str,
+        validation_outcome: dict[str, Any],
+    ) -> dict[str, Any]:
+        reason = str(validation_outcome.get("reason") or "rejected")
+        interpreted_input = (
+            graph_state.get("interpreted_input")
+            if isinstance(graph_state.get("interpreted_input"), dict)
+            else {}
+        )
+        message = (
+            "Annette zoegert; diese Bewegung laesst sich im Moment nicht sauber aus der Szene heraus aufloesen."
+            if reason == "dramatic_effect_reject_continuity_pressure"
+            else "Diese Aktion laesst sich gerade nicht klar aus der Szene heraus aufloesen."
+        )
+        return {
+            "turn_number": attempted_turn_number,
+            "turn_kind": "player_rejected_recoverable",
+            "raw_input": player_input,
+            "trace_id": trace_id,
+            "interpreted_input": interpreted_input,
+            "narrative_commit": {
+                "situation_status": "continue",
+                "allowed": False,
+                "commit_reason_code": "recoverable_rejection",
+                "committed_scene_id": prior_scene_id,
+                "proposed_scene_id": prior_scene_id,
+                "selected_candidate_source": "validation_gate",
+                "is_terminal": False,
+            },
+            "validation_outcome": {
+                **validation_outcome,
+                "recoverable_rejection": True,
+                "hard_boundary_failure": False,
+            },
+            "visible_output_bundle": {
+                "gm_narration": [message],
+                "spoken_lines": [],
+                "action_lines": [],
+            },
+            "ok": False,
+            "turn_status": "rejected_recoverable",
+            "reason": reason,
+            "player_visible_message": message,
+            "diagnostics": {
+                "recoverable_rejection": True,
+                "hard_boundary_failure": False,
+            },
+        }
 
     def get_session(self, session_id: str) -> StorySession:
         session = self.sessions.get(session_id)

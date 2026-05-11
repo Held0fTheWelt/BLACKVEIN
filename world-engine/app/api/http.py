@@ -791,6 +791,7 @@ def execute_story_turn(
             # Update root span with turn results
             if root_span and turn:
                 turn_number = turn.get("turn_number", 0)
+                turn_ok = bool(turn.get("ok", True))
                 cost_summary = (
                     turn.get("diagnostics_envelope", {}).get("cost_summary")
                     if isinstance(turn.get("diagnostics_envelope"), dict)
@@ -807,7 +808,9 @@ def execute_story_turn(
                     output={
                         "turn_number": turn_number,
                         "session_id": session_id,
-                        "success": True,
+                        "success": turn_ok,
+                        "turn_status": turn.get("turn_status"),
+                        "turn_reason": turn.get("reason"),
                         "path_summary": path_summary,
                         "player_input_length": player_input_length,
                         "player_input_sha256": player_input_sha256,
@@ -841,6 +844,15 @@ def execute_story_turn(
         if root_span:
             root_span.update(output={"error": str(exc)}, metadata={"error": "governance_error"})
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    except RuntimeError as exc:
+        msg = str(exc)
+        if root_span:
+            root_span.update(output={"error": msg}, metadata={"error": "runtime_error"})
+        if msg.startswith("Hard narrative boundary:"):
+            detail = msg.split(":", 1)[1].strip() or "hard_boundary_failure"
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail) from exc
+        raise
 
     except Exception as exc:
         if root_span:

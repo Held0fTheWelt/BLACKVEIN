@@ -1,4 +1,5 @@
-# Data-only patterns for optional deterministic classification (extensible; engine has zero prose).
+# Ordered deterministic classification (PLAYER-ACTION-INTENT-01). First match wins.
+# Patterns are Python regex; when_lang filters before match.
 version: 1
 greeting_imperative:
   de:
@@ -8,4 +9,146 @@ greeting_imperative:
   en:
     patterns:
       - "(?is)^(?:i\\s+)?greet\\s+(.+)$"
-classification_rules: []
+classification_rules:
+  - id: de_mixed_stand_and_say
+    when_lang: de
+    pattern: "(?is)^ich\\s+stehe\\s+auf\\s+und\\s+sage:\\s*(.+)$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_stand_speech
+      capture_groups:
+        speech: 1
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
+      npc_response_expected: true
+  - id: de_ich_sage_speech
+    when_lang: de
+    pattern: "(?is)^ich\\s+sage:\\s*(.+)$"
+    then:
+      player_input_kind: speech
+      projection_key: player_outcome.speech_statement
+      capture_groups:
+        speech: 1
+      player_action_committed: false
+      player_speech_committed: true
+      narrator_response_expected: false
+      npc_response_expected: true
+  - id: de_movement_gehe
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?gehe\\s+(.+)$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.action_toward_room
+      capture_groups:
+        room: 1
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: de_perception_window
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:schaue?|schau)\\s+(?:aus\\s+dem\\s+fenster|hinaus|zum\\s+fenster|ins\\s+fenster|in\\s+das\\s+fenster)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_at_window
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: de_perception_schau_generic
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:schaue?|schau)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_generic
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_mixed_stand_and_say
+    when_lang: en
+    pattern: "(?is)^i\\s+stand\\s+up\\s+and\\s+say:\\s*(.+)$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_stand_speech
+      capture_groups:
+        speech: 1
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
+      npc_response_expected: true
+  - id: en_i_say_speech
+    when_lang: en
+    pattern: "(?is)^i\\s+say:\\s*(.+)$"
+    then:
+      player_input_kind: speech
+      projection_key: player_outcome.speech_statement
+      capture_groups:
+        speech: 1
+      player_action_committed: false
+      player_speech_committed: true
+      narrator_response_expected: false
+      npc_response_expected: true
+  - id: en_movement_go
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?go\\s+(.+)$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.action_toward_room
+      capture_groups:
+        room: 1
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_perception_window
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:look)\\s+(?:out\\s+(?:of\\s+)?the\\s+window|through\\s+the\\s+window)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_at_window
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_perception_look_generic
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?look\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_generic
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # Questions about *seeing* at/through the window are perception intent, not in-scene quoted dialogue.
+  - id: de_perception_question_window
+    when_lang: de
+    pattern: "(?is)^was\\s+(sehe\\s+ich|kann\\s+ich\\s+sehen)\\b.*fenster.*\\?$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_question_at_window
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_perception_question_window
+    when_lang: en
+    pattern: "(?is)^what\\s+(do\\s+i\\s+see|can\\s+i\\s+see)\\b.*window.*\\?$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_question_at_window
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: any_lang_question_speech
+    pattern: "(?s).+\\?\\s*$"
+    then:
+      player_input_kind: speech
+      projection_key: player_outcome.speech_question
+      player_action_committed: false
+      player_speech_committed: true
+      narrator_response_expected: false
+      npc_response_expected: true

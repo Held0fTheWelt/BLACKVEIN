@@ -32,7 +32,7 @@ MCP_DEFAULT_TOOL_DESCRIPTIONS: dict[str, str] = {
     "assert_langfuse_opening_contract": "Assert live/test opening contract fields on a Langfuse trace",
     "summarize_live_opening_matrix": "Summarize live opening matrix across recent Langfuse traces",
     "fetch_langfuse_trace_scores": "Fetch deterministic gates and LLM-as-a-Judge scores for a live trace (filters non-live by default)",
-    "summarize_opening_judge_scores": "Matrix of deterministic + judge score categories for recent live opening traces, filterable by role",
+    "summarize_opening_judge_scores": "Matrix of deterministic + categorical judge categories for recent live traces (opening + turn judges), filterable by role and trace.name",
     "build_opening_quality_context": "Build AI-readable quality context for a live opening trace: gates, judge scores, recommended repair card",
 }
 
@@ -181,6 +181,8 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
             "limit": {"type": "integer"},
             "trace_origin": {"type": "string"},
             "canonical_player_flow": {"type": "boolean"},
+            "execution_tier": {"type": "string"},
+            "trace_name": {"type": "string"},
         },
         "required": [],
     },
@@ -195,7 +197,11 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
     },
     "summarize_live_opening_matrix": {
         "type": "object",
-        "properties": {"limit": {"type": "integer"}},
+        "properties": {
+            "limit": {"type": "integer"},
+            "execution_tier": {"type": "string"},
+            "trace_name": {"type": "string"},
+        },
         "required": [],
     },
     "fetch_langfuse_trace_scores": {
@@ -212,6 +218,7 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
             "trace_origin": {"type": "string"},
             "execution_tier": {"type": "string"},
             "canonical_player_flow": {"type": "boolean"},
+            "trace_name": {"type": "string"},
             "roles": {"type": "array", "items": {"type": "string"}},
             "limit_per_role": {"type": "integer"},
         },

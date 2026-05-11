@@ -367,6 +367,35 @@ def test_runtime_turn_graph_missing_mock_fallback_is_explicit_degraded(tmp_path:
     assert outcomes.get("invoke_model") == "error"
 
 
+def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Path) -> None:
+    graph = _build_graph(tmp_path)
+    result = graph.run(
+        session_id="session-action-1",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Gehe ins Bad",
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+    frame = result.get("player_action_frame") or {}
+    aff = result.get("affordance_resolution") or {}
+    assert frame.get("verb") == "move_to"
+    assert frame.get("player_input_kind") == "action"
+    assert frame.get("resolved_target_id") == "bathroom"
+    assert aff.get("affordance_status") in {"allowed_offscreen", "allowed", "partial"}
+    nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
+    assert "resolve_player_action" in nodes
+
+
 def test_execution_health_constants_are_stable_set() -> None:
     assert set(EXECUTION_HEALTH_VALUES) == {"healthy", "graph_error", "model_fallback", "degraded_generation"}
 

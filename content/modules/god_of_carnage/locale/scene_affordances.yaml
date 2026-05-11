@@ -1,0 +1,17 @@
+scene_affordances:
+  current_area: vallon_living_room
+  inferred_area_policy: residential_apartment
+  locations:
+    - id: hallway
+      aliases: ["Flur", "Gang", "hallway"]
+      access: adjacent_or_implied
+    - id: bathroom
+      aliases: ["Bad", "Badezimmer", "Toilette", "bathroom"]
+      access: inferred_offscreen
+    - id: kitchen
+      aliases: ["Küche", "kitchen"]
+      access: inferred_offscreen
+  objects:
+    - id: window
+      aliases: ["Fenster", "window"]
+      affordances: ["look_at"]

@@ -226,6 +226,55 @@ def test_illegal_proposal_is_blocked_committed_truth(manager: StoryRuntimeManage
     assert "proposal_blocked:illegal_transition" in nc["committed_consequences"]
 
 
+def test_recoverable_validation_rejection_returns_structured_turn(manager: StoryRuntimeManager) -> None:
+    payload = _envelope(
+        interpreted_input={"kind": "action", "player_input_kind": "action", "confidence": 0.81},
+        generation={"success": True, "metadata": {}},
+    )
+    payload["validation_outcome"] = {
+        "status": "rejected",
+        "reason": "dramatic_effect_reject_continuity_pressure",
+    }
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+    )
+    manager.turn_graph = _FakeTurnGraph(payload)  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Gehe ins Bad")
+
+    assert turn["ok"] is False
+    assert turn["turn_status"] == "rejected_recoverable"
+    assert turn["reason"] == "dramatic_effect_reject_continuity_pressure"
+    assert turn["player_visible_message"]
+    assert turn["diagnostics"]["recoverable_rejection"] is True
+    assert turn["diagnostics"]["hard_boundary_failure"] is False
+    assert turn["validation_outcome"]["status"] == "rejected"
+    assert turn["turn_kind"] == "player_rejected_recoverable"
+    assert session.turn_counter == 0
+
+
+def test_hard_boundary_rejection_still_raises(manager: StoryRuntimeManager) -> None:
+    payload = _envelope(
+        interpreted_input={"kind": "action", "player_input_kind": "action", "confidence": 0.81},
+        generation={"success": True, "metadata": {}},
+    )
+    payload["validation_outcome"] = {
+        "status": "rejected",
+        "reason": "boundary_player_safety_violation",
+    }
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+    )
+    manager.turn_graph = _FakeTurnGraph(payload)  # type: ignore[assignment]
+
+    with pytest.raises(RuntimeError, match="Hard narrative boundary: boundary_player_safety_violation"):
+        manager.execute_turn(session_id=session.session_id, player_input="unsafe move")
+
+
 def test_token_scan_proposal_commits_only_when_legal_and_known(manager: StoryRuntimeManager) -> None:
     manager.turn_graph = _FakeTurnGraph(
         _envelope(
@@ -558,3 +607,48 @@ def test_execute_turn_propagates_vitality_telemetry_to_event_and_governance(
     gov = row.get("runtime_governance_surface") or {}
     assert isinstance(gov.get("vitality_telemetry_v1"), dict)
     assert gov.get("vitality_telemetry_v1", {}).get("selected_primary_responder_id") == "annette_reille"
+
+
+def test_human_input_attribution_uses_player_input_kind_surface(
+    manager: StoryRuntimeManager,
+) -> None:
+    manager.turn_graph = _FakeTurnGraph(
+        _envelope(
+            interpreted_input={
+                "kind": "action",
+                "input_kind": "action",
+                "player_input_kind": "perception",
+                "player_action_committed": True,
+                "player_speech_committed": False,
+                "narrator_response_expected": True,
+                "npc_response_expected": False,
+                "confidence": 0.91,
+            },
+            generation={"success": True, "metadata": {}},
+        )
+    )
+    session = manager.create_session(
+        module_id="god_of_carnage",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "module_id": "god_of_carnage",
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["michel_longstreet", "veronique_vallon", "alain_reille"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "michel_longstreet": "npc",
+                "veronique_vallon": "npc",
+                "alain_reille": "npc",
+            },
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Schau aus dem Fenster")
+    att = turn.get("human_input_attribution") or {}
+    assert att.get("player_input_kind") == "perception"
+    assert att.get("graph_input_kind") == "action"
+    assert att.get("player_action_committed") is True
+    assert att.get("player_speech_committed") is False
+    assert att.get("narrator_response_expected") is True
+    assert att.get("npc_response_expected") is False
