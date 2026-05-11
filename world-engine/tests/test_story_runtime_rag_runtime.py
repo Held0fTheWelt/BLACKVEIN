@@ -167,6 +167,16 @@ def test_story_runtime_retrieval_context_influences_authoritative_turn(tmp_path)
     repro = turn["graph"].get("repro_metadata") or {}
     assert repro.get("adapter_invocation_mode") == "langchain_structured_primary"
     assert repro.get("graph_path_summary") == "primary_invoke_langchain_only"
+    nodes = turn["graph"].get("nodes_executed") or []
+    assert "retrieve_context" in nodes
+    assert "invoke_model" in nodes
+    assert "authoritative_action_resolution" not in nodes
+    assert repro.get("action_resolution_short_path") is False
+    assert repro.get("synthetic_short_path") is False
+    assert repro.get("model_attempted") is True
+    assert repro.get("generation_required") is True
+    assert adapter.last_prompt
+    assert adapter.last_retrieval_context
 
 
 def test_story_runtime_manager_capability_path_respects_retrieval_min_score():

@@ -33,6 +33,70 @@ def _normalize(value: str) -> str:
     return low.strip()
 
 
+# Verbs whose missing direct object should surface as unknown_target (not vague ambiguous).
+_OBJECT_ACTION_VERBS: frozenset[str] = frozenset(
+    {"activate", "deactivate", "open", "place", "take"}
+)
+
+_DE_ARTICLE = r"(?:den|die|das|einen|eine|ein|einem|einer|dem|der|des)"
+
+
+def _strip_leading_german_article(phrase: str) -> str:
+    p = str(phrase or "").strip()
+    if not p:
+        return ""
+    return re.sub(
+        rf"(?is)^{_DE_ARTICLE}\s+",
+        "",
+        p,
+        count=1,
+    ).strip()
+
+
+def _extract_german_imperative_object_phrase(raw_text: str, verb: str) -> str | None:
+    """Accusative object head for imperative / separable-verb lines (regex-driven, no noun tables)."""
+    t = str(raw_text or "").strip()
+    if not t:
+        return None
+    art = _DE_ARTICLE
+    v = str(verb or "").strip().lower()
+    if v == "activate":
+        m = re.search(rf"(?is)\bschalt(?:e|est|et|en)?\s+{art}\s+(.+?)\s+(?:ein|an)\b", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+an\b", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        return None
+    if v == "deactivate":
+        m = re.search(rf"(?is)\bschalt(?:e|est|et|en)?\s+{art}\s+(.+?)\s+aus\b", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+aus\b", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        return None
+    if v == "open":
+        m = re.search(rf"(?is)\böffn(?:e|est|et|en)?\s+{art}\s+([^\n.?!]+)", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        m = re.search(rf"(?is)\bmacht?\s+{art}\s+(.+?)\s+auf\b", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        return None
+    if v == "place":
+        m = re.search(rf"(?is)\bleg(?:e|est|et|en)?\s+{art}\s+(.+?)\s+auf\s+{art}\s+([^\n.?!]+)", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        return None
+    if v == "take":
+        m = re.search(rf"(?is)\b(?:nimm|nehme)\s+{art}\s+([^\n.?!]+)", t)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        return None
+    return None
+
+
 def _load_characters_blob(module_id: str, *, content_modules_root: Path | None = None) -> dict[str, Any]:
     root = resolve_content_modules_root(content_modules_root)
     path = root / str(module_id).strip() / "characters.yaml"
@@ -193,8 +257,23 @@ def _infer_target_query(
         )
         if frag:
             return collapse_ws(frag)
+    lg = str(lang or "de").strip().lower()[:2] or "de"
+    if lg == "de" and (action_kind == "object_interaction" or verb in {"activate", "deactivate", "open", "place"}):
+        frag = _extract_german_imperative_object_phrase(raw_text, verb)
+        if frag:
+            return collapse_ws(frag)
     pik = str(interpreted_input.get("player_input_kind") or "").strip().lower()
-    if pik in {"action", "perception", "mixed"} and verb in {"look_at", "listen_to", "move_to", "take", "interact"}:
+    if pik in {"action", "perception", "mixed"} and verb in {
+        "look_at",
+        "listen_to",
+        "move_to",
+        "take",
+        "interact",
+        "activate",
+        "deactivate",
+        "open",
+        "place",
+    }:
         ent_rows = _entity_rows_for_scan(affordance_model)
         eid, alias, _ln = longest_embedded_alias_match(raw_text, rows=ent_rows)
         if alias:
@@ -221,6 +300,15 @@ def _resolve_target(
             None,
         )
     if not nq:
+        if verb in _OBJECT_ACTION_VERBS:
+            return (
+                "unknown_target",
+                "needs_clarification",
+                None,
+                None,
+                "missing_object_interaction_target",
+                None,
+            )
         return (
             "ambiguous",
             "needs_clarification",
@@ -315,6 +403,18 @@ def resolve_player_action(
 ) -> dict[str, Any]:
     pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
     lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
+    # Upstream intent can label bounded German device imperatives as ``speech``. If the
+    # action-only ontology path resolves a concrete object-interaction verb, treat as
+    # ``action`` so affordances and P0 evidence match resolver semantics (no NPC speech lane).
+    if pik in {"speech", "question"}:
+        v_act, ak_act = infer_verb_and_action_kind(
+            raw_text,
+            module_id=module_id,
+            player_input_kind="action",
+            content_modules_root=content_modules_root,
+        )
+        if ak_act == "object_interaction" and v_act in _OBJECT_ACTION_VERBS:
+            pik = "action"
     verb, action_kind = infer_verb_and_action_kind(
         raw_text,
         module_id=module_id,
@@ -369,11 +469,27 @@ def resolve_player_action(
             status, policy = "partial", "commit_action"
 
     actor_id = str(interpreted_input.get("actor_id") or interpreted_input.get("player_input_actor_id") or "").strip()
+    selected_actor_id = str(
+        runtime_projection.get("human_actor_id")
+        or runtime_projection.get("selected_player_role")
+        or actor_id
+        or ""
+    ).strip() or None
     narrator_expected = bool(interpreted_input.get("narrator_response_expected"))
     npc_expected = bool(interpreted_input.get("npc_response_expected"))
     if pik in {"action", "perception", "mixed"}:
         narrator_expected = True
-    if pik in {"action", "perception", "mixed"} and verb in {"move_to", "look_at", "listen_to", "stand_up", "take"}:
+    if pik in {"action", "perception", "mixed"} and verb in {
+        "move_to",
+        "look_at",
+        "listen_to",
+        "stand_up",
+        "take",
+        "activate",
+        "deactivate",
+        "open",
+        "place",
+    }:
         npc_expected = False
     if pik == "mixed":
         npc_expected = bool(interpreted_input.get("npc_response_expected", True))
@@ -412,6 +528,7 @@ def resolve_player_action(
         narrator_response_expected=narrator_expected,
         npc_response_expected=npc_expected,
         actor_id=actor_id or None,
+        selected_actor_id=selected_actor_id,
         validation_surface=None,
         projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
     )

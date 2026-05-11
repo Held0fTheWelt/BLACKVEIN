@@ -15,3 +15,6 @@ scene_affordances:
     - id: window
       aliases: ["Fenster", "window"]
       affordances: ["look_at"]
+    - id: television
+      aliases: ["Fernseher", "TV", "Fernsehgerät", "Fernsehapparat", "television"]
+      affordances: ["activate", "deactivate", "look_at"]

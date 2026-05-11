@@ -2,8 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+from ai_stack.action_ontology import clear_action_ontology_cache
 from ai_stack.goc_turn_seams import run_validation_seam
 from ai_stack.player_action_resolution import resolve_player_action
+
+
+@pytest.fixture(autouse=True)
+def _clear_action_ontology_cache() -> None:
+    clear_action_ontology_cache()
+    yield
+    clear_action_ontology_cache()
 
 
 def _runtime_projection() -> dict:

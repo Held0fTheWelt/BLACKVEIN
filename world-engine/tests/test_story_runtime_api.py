@@ -169,6 +169,77 @@ def test_story_turns_cover_primary_free_input_paths(client, internal_api_key):
     assert state_response.json()["turn_counter"] == len(samples)
 
 
+def _visible_output_text_lower(turn: dict) -> str:
+    bundle = turn.get("visible_output_bundle") or {}
+    parts: list[str] = []
+    for key in ("gm_narration", "spoken_lines", "action_lines"):
+        val = bundle.get(key)
+        if isinstance(val, list):
+            for row in val:
+                if isinstance(row, dict):
+                    parts.append(str(row.get("text") or row.get("line") or ""))
+                else:
+                    parts.append(str(row))
+        elif isinstance(val, str):
+            parts.append(val)
+    for block in bundle.get("scene_blocks") or []:
+        if isinstance(block, dict):
+            parts.append(str(block.get("text") or block.get("player_display_text") or ""))
+    return " ".join(parts).lower()
+
+
+def test_p0_action_resolution_evidence_opening_vs_schalte_fernseher(client, internal_api_key):
+    """Opening traces must not carry applicable P0 player-action evidence; real turns must."""
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": _goc_projection(),
+        },
+    )
+    assert create_response.status_code == 200
+    created = create_response.json()
+    opening = created.get("opening_turn") or {}
+    opening_path = opening.get("observability_path_summary") or {}
+    opening_p0 = opening_path.get("p0_action_resolution_evidence") or {}
+    assert opening_p0.get("p0_player_action_evidence_applicable") is False
+    assert opening_p0.get("player_action_frame") is None
+
+    session_id = created["session_id"]
+    raw = "Schalte den Fernseher ein"
+    turn_response = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers=_headers(internal_api_key),
+        json={"player_input": raw},
+    )
+    assert turn_response.status_code == 200
+    turn = turn_response.json()["turn"]
+    assert turn.get("turn_number", 0) >= 1
+    assert turn.get("http_status") == 200
+    assert turn.get("turn_status") in {"committed", "committed_degraded"}
+    path = turn.get("observability_path_summary") or {}
+    p0 = path.get("p0_action_resolution_evidence") or {}
+    assert p0.get("p0_player_action_evidence_applicable") is True
+    assert p0.get("raw_player_input") == raw
+    frame = p0.get("player_action_frame") or {}
+    assert frame.get("input_kind") == "action"
+    assert frame.get("action_kind") == "object_interaction"
+    assert frame.get("verb") == "activate"
+    assert frame.get("target_query") == "Fernseher"
+    assert p0.get("player_speech_committed") is False
+    assert p0.get("npc_committed_player_action") is False
+    assert "interpreted_input" in turn
+    assert turn["interpreted_input"].get("player_input_kind") == "action"
+    aff = str(p0.get("affordance_status") or "").strip().lower()
+    assert aff in {"allowed", "unknown_target", "blocked", "partial", "ambiguous", "allowed_offscreen"}
+    if aff in {"unknown_target", "blocked"}:
+        assert p0.get("player_action_committed") is False
+    visible = _visible_output_text_lower(turn)
+    assert "alain sagt:" not in visible
+    assert "alain says:" not in visible
+
+
 def test_story_turn_hard_boundary_maps_to_422(client, internal_api_key, monkeypatch):
     create_response = client.post(
         "/api/story/sessions",

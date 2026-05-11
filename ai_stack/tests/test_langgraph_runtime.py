@@ -374,6 +374,11 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
         module_id="god_of_carnage",
         current_scene_id="living_room",
         player_input="Gehe ins Bad",
+        trace_id="trace-action-surface-1",
+        host_experience_template={
+            "template_id": "god_of_carnage_solo",
+            "title": "God of Carnage",
+        },
         actor_lane_context={
             "human_actor_id": "annette_reille",
             "selected_player_role": "annette_reille",
@@ -394,9 +399,18 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert aff.get("affordance_status") in {"allowed_offscreen", "allowed", "partial"}
     nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
     assert "resolve_player_action" in nodes
-    assert "synthetic_action_resolution" in nodes
+    assert "authoritative_action_resolution" in nodes
     meta = (result.get("generation") or {}).get("metadata") or {}
-    assert meta.get("adapter") == "action_resolution_synthetic"
+    assert meta.get("adapter") == "action_resolution_authoritative"
+    repro = (result.get("graph_diagnostics") or {}).get("repro_metadata") or {}
+    assert repro.get("action_resolution_short_path") is True
+    assert repro.get("graph_path_summary") == "authoritative_action_resolution_deterministic"
+    assert repro.get("repro_complete") is True
+    assert repro.get("authoritative_action_resolution_reason") == "authoritative_action_resolution"
+    assert repro.get("execution_tier") == "live"
+    assert repro.get("fallback_used") is False
+    assert repro.get("mock_used") is False
+    assert repro.get("ldss_fallback") is False
 
 
 def test_execution_health_constants_are_stable_set() -> None:

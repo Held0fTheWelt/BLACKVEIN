@@ -61,6 +61,9 @@ strings:
   action_resolution.narrator.perception_generic:
     de: "Du nimmst die Umgebung bewusst wahr."
     en: "You take in the surroundings deliberately."
+  action_resolution.narrator.object_interaction:
+    de: "Du führst die Aktion an {target_label} aus; der Raum bleibt in deiner Wahrnehmung."
+    en: "You act on {target_label}; the room stays within your perception."
   action_resolution.narrator.partial:
     de: "Das lässt sich gerade nur teilweise klären; du bleibst im Ungefähren."
     en: "That can only be partly clarified for now; you stay approximate."

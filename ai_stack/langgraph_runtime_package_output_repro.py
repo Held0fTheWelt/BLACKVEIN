@@ -8,6 +8,7 @@ from ai_stack.goc_turn_seams import repro_metadata_complete
 from ai_stack.langgraph_runtime_state import RuntimeTurnState
 from ai_stack.langgraph_runtime_tracking import _dist_version
 from ai_stack.runtime_turn_contracts import (
+    ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION,
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
     ADAPTER_INVOCATION_LANGCHAIN_PRIMARY,
     EXECUTION_HEALTH_DEGRADED_GENERATION,
@@ -81,6 +82,22 @@ def build_repro_metadata_and_health(
         "session_id": state.get("session_id"),
         "host_versions": host_versions,
     }
+    _short_path = bool(routing.get("action_resolution_short_path"))
+    _nodes_ex = list(state.get("nodes_executed") or [])
+    _gen_req = routing.get("generation_required")
+    if _gen_req is None:
+        _gen_req = bool("invoke_model" in _nodes_ex or "fallback_model" in _nodes_ex)
+    repro_metadata["action_resolution_short_path"] = _short_path
+    repro_metadata["synthetic_short_path"] = _short_path
+    repro_metadata["generation_required"] = bool(_gen_req)
+    if _short_path:
+        _reason = str(routing.get("action_resolution_short_path_reason") or "authoritative_action_resolution")
+        repro_metadata["action_resolution_short_path_reason"] = _reason
+        repro_metadata["authoritative_action_resolution_reason"] = _reason
+        repro_metadata["execution_tier"] = str(state.get("execution_tier") or "live")
+        repro_metadata["fallback_used"] = False
+        repro_metadata["mock_used"] = False
+        repro_metadata["ldss_fallback"] = False
     graph_errors = list(state.get("graph_errors", []))
     execution_health = EXECUTION_HEALTH_HEALTHY
     if graph_errors:
@@ -98,6 +115,8 @@ def build_repro_metadata_and_health(
         graph_path_summary = "used_fallback_model_node_raw_adapter"
     elif adapter_mode == ADAPTER_INVOCATION_LANGCHAIN_PRIMARY:
         graph_path_summary = "primary_invoke_langchain_only"
+    elif adapter_mode == ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION:
+        graph_path_summary = "authoritative_action_resolution_deterministic"
     elif adapter_mode == ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK:
         graph_path_summary = "degraded_adapter_or_fallback_missing"
     else:

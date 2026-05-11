@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,125 @@ def test_begruesse_accented_name_resolves_actor() -> None:
     assert frame["verb"] == "greet"
     assert frame["resolved_target_type"] == "actor"
     assert frame["resolved_target_id"] == "veronique_vallon"
+
+
+def _modules_root_with_scene_objects(tmp_path: Path, *, empty_objects: bool) -> Path:
+    """Minimal ``content/modules`` tree for ``resolve_player_action`` tests."""
+    repo_locale = _root() / "god_of_carnage" / "locale"
+    dst_root = tmp_path / "modules"
+    loc = dst_root / "god_of_carnage" / "locale"
+    loc.mkdir(parents=True)
+    shutil.copy2(repo_locale / "action_ontology.yaml", loc / "action_ontology.yaml")
+    shutil.copy2(repo_locale / "module_strings.yaml", loc / "module_strings.yaml")
+    if empty_objects:
+        (loc / "scene_affordances.yaml").write_text(
+            "scene_affordances:\n"
+            "  current_area: test_area\n"
+            "  inferred_area_policy: residential_apartment\n"
+            "  locations: []\n"
+            "  objects: []\n",
+            encoding="utf-8",
+        )
+    else:
+        shutil.copy2(repo_locale / "scene_affordances.yaml", loc / "scene_affordances.yaml")
+    return dst_root
+
+
+def test_schalte_fernseher_ein_when_upstream_labels_speech_still_object_interaction(tmp_path: Path) -> None:
+    """Intent classifier may emit ``speech``; bounded device imperatives stay action + object path."""
+    root = _modules_root_with_scene_objects(tmp_path, empty_objects=False)
+    out = resolve_player_action(
+        raw_text="Schalte den Fernseher ein",
+        interpreted_input={
+            "player_input_kind": "speech",
+            "lang": "de",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=root,
+    )
+    frame = out["player_action_frame"]
+    assert frame["input_kind"] == "action"
+    assert frame["action_kind"] == "object_interaction"
+    assert frame["verb"] == "activate"
+
+
+def test_schalte_fernseher_ein_object_interaction_with_scene_object(tmp_path: Path) -> None:
+    root = _modules_root_with_scene_objects(tmp_path, empty_objects=False)
+    out = resolve_player_action(
+        raw_text="Schalte den Fernseher ein",
+        interpreted_input={
+            "player_input_kind": "action",
+            "lang": "de",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=root,
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["player_input_kind"] == "action"
+    assert frame["action_kind"] == "object_interaction"
+    assert frame["verb"] == "activate"
+    assert frame["target_query"] == "Fernseher"
+    assert frame["resolved_target_id"] == "television"
+    assert frame["selected_actor_id"] == "annette_reille"
+    assert frame["narrator_response_expected"] is True
+    assert frame["npc_response_expected"] is False
+    assert aff["affordance_status"] == "allowed"
+    assert aff["action_commit_policy"] == "commit_action"
+
+
+def test_schalte_fernseher_ein_unknown_target_stays_action_without_scene_object(tmp_path: Path) -> None:
+    root = _modules_root_with_scene_objects(tmp_path, empty_objects=True)
+    out = resolve_player_action(
+        raw_text="Schalte den Fernseher ein",
+        interpreted_input={
+            "player_input_kind": "action",
+            "lang": "de",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=root,
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["player_input_kind"] == "action"
+    assert frame["action_kind"] == "object_interaction"
+    assert frame["verb"] == "activate"
+    assert frame["target_query"] == "Fernseher"
+    assert aff["affordance_status"] == "unknown_target"
+    assert aff["action_commit_policy"] == "needs_clarification"
+    assert aff["commit_allowed"] is False
+
+
+def test_mach_das_licht_aus_deactivate_extracts_object(tmp_path: Path) -> None:
+    root = _modules_root_with_scene_objects(tmp_path, empty_objects=True)
+    out = resolve_player_action(
+        raw_text="Mach das Licht aus",
+        interpreted_input={
+            "player_input_kind": "action",
+            "lang": "de",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=root,
+    )
+    frame = out["player_action_frame"]
+    assert frame["verb"] == "deactivate"
+    assert frame["target_query"] == "Licht"
+    assert frame["action_kind"] == "object_interaction"
 
 
 def test_mixed_stand_and_say_carries_speech_text() -> None:

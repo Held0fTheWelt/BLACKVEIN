@@ -1086,6 +1086,107 @@ def _infer_generation_mode(path_summary_seed: dict[str, Any]) -> str:
     return "live_openai"
 
 
+def _compose_resolved_target_status(
+    player_action_frame: dict[str, Any],
+    affordance_status: str | None,
+) -> str | None:
+    """Single operator-facing token for target + affordance (P0 evidence lane)."""
+    rid = str(player_action_frame.get("resolved_target_id") or "").strip()
+    aff = str(affordance_status or "").strip().lower()
+    if rid:
+        return f"{rid}:{aff}" if aff else rid
+    if aff:
+        return aff
+    return "unresolved" if player_action_frame else None
+
+
+def _build_p0_action_resolution_evidence(
+    *,
+    event: dict[str, Any],
+    graph_state: dict[str, Any],
+    interpreted_input: dict[str, Any],
+    validation: dict[str, Any],
+    committed_result: dict[str, Any],
+) -> dict[str, Any]:
+    """Deterministic P0 player-action audit fields for real player turns only.
+
+    Opening traces (``turn_number == 0``) set ``p0_player_action_evidence_applicable`` false
+    and omit player-action payload so Langfuse scores/metadata are not misread as P0 proof.
+    """
+    turn_number = int(event.get("turn_number") or 0)
+    p0_applicable = turn_number > 0
+    intent_surface_diag = (
+        validation.get("intent_surface_diagnostics")
+        if isinstance(validation.get("intent_surface_diagnostics"), dict)
+        else {}
+    )
+    npc_narrated_violation = bool(
+        validation.get("npc_narrated_player_action_violation")
+        or intent_surface_diag.get("npc_narrated_player_action_violation")
+    )
+    if not p0_applicable:
+        return {
+            "contract": "p0_action_resolution_evidence.v1",
+            "p0_player_action_evidence_applicable": False,
+            "p0_excluded_reason": "opening_turn_not_player_action_evidence_lane",
+            "raw_player_input": None,
+            "player_action_frame": None,
+            "resolved_target_status": None,
+            "affordance_status": None,
+            "action_commit_policy": None,
+            "action_commit_status": None,
+            "player_speech_committed": None,
+            "player_action_committed": None,
+            "narrator_response_expected": None,
+            "npc_response_expected": None,
+            "npc_committed_player_action": None,
+            "turn_status": event.get("turn_status"),
+            "http_status": event.get("http_status"),
+        }
+
+    paf = graph_state.get("player_action_frame") if isinstance(graph_state.get("player_action_frame"), dict) else {}
+    inner_aff = paf.get("affordance_resolution") if isinstance(paf.get("affordance_resolution"), dict) else {}
+    top_aff = (
+        graph_state.get("affordance_resolution") if isinstance(graph_state.get("affordance_resolution"), dict) else {}
+    )
+    aff_src = inner_aff or top_aff
+    aff_st = str(aff_src.get("affordance_status") or paf.get("affordance_status") or "").strip() or None
+    pol = str(aff_src.get("action_commit_policy") or "").strip() or None
+    paa = (
+        committed_result.get("player_action_authority")
+        if isinstance(committed_result.get("player_action_authority"), dict)
+        else {}
+    )
+    action_commit_status = str(paa.get("action_commit_status") or "").strip() or None
+
+    p_frame = {
+        "raw_text": paf.get("raw_text"),
+        "input_kind": paf.get("input_kind") or paf.get("player_input_kind"),
+        "action_kind": paf.get("action_kind"),
+        "verb": paf.get("verb"),
+        "target_query": paf.get("target_query"),
+    }
+
+    return {
+        "contract": "p0_action_resolution_evidence.v1",
+        "p0_player_action_evidence_applicable": True,
+        "p0_excluded_reason": None,
+        "raw_player_input": str(event.get("raw_input") or graph_state.get("player_input") or "").strip() or None,
+        "player_action_frame": p_frame,
+        "resolved_target_status": _compose_resolved_target_status(paf, aff_st),
+        "affordance_status": aff_st,
+        "action_commit_policy": pol,
+        "action_commit_status": action_commit_status,
+        "player_speech_committed": interpreted_input.get("player_speech_committed"),
+        "player_action_committed": interpreted_input.get("player_action_committed"),
+        "narrator_response_expected": interpreted_input.get("narrator_response_expected"),
+        "npc_response_expected": interpreted_input.get("npc_response_expected"),
+        "npc_committed_player_action": npc_narrated_violation,
+        "turn_status": event.get("turn_status"),
+        "http_status": event.get("http_status"),
+    }
+
+
 def _build_langfuse_path_summary(
     *,
     session: "StorySession",
@@ -1370,6 +1471,19 @@ def _build_langfuse_path_summary(
             or None
         ),
         "action_resolution_branch": routing.get("action_resolution_branch"),
+        "action_resolution_short_path": bool(routing.get("action_resolution_short_path")),
+        "action_resolution_short_path_reason": routing.get("action_resolution_short_path_reason"),
+        "synthetic_short_path": bool(routing.get("action_resolution_short_path")),
+        "authoritative_action_resolution_reason": (
+            routing.get("action_resolution_short_path_reason")
+            if routing.get("action_resolution_short_path")
+            else None
+        ),
+        "generation_required": (
+            bool(routing.get("generation_required"))
+            if routing.get("generation_required") is not None
+            else bool("invoke_model" in nodes or "fallback_model" in nodes)
+        ),
         "semantic_move_kind": str(semantic_move_record.get("move_type") or "").strip() or None,
         "scene_director_selection_source": (
             str(multi_pressure_resolution.get("selection_source") or "").strip()
@@ -1462,6 +1576,13 @@ def _build_langfuse_path_summary(
     if isinstance(oh_diag, dict):
         for key, val in oh_diag.items():
             summary[key] = val
+    summary["p0_action_resolution_evidence"] = _build_p0_action_resolution_evidence(
+        event=event,
+        graph_state=graph_state,
+        interpreted_input=interpreted_input,
+        validation=validation,
+        committed_result=committed,
+    )
     summary["generation_mode"] = _infer_generation_mode(summary)
     return summary
 
@@ -1624,6 +1745,12 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "npc_action_narration_boundary_pass": path_summary.get(
                     "npc_action_narration_boundary_pass"
                 ),
+                "p0_player_action_evidence_applicable": (
+                    (path_summary.get("p0_action_resolution_evidence") or {}).get(
+                        "p0_player_action_evidence_applicable"
+                    )
+                ),
+                "p0_action_resolution_evidence": path_summary.get("p0_action_resolution_evidence"),
             },
         ),
         (
@@ -2050,18 +2177,21 @@ def _emit_langfuse_evidence_observations(
     has_visible_surface = bool(_scene_blocks_from_turn_event(event)) or bool(
         _visible_lines_from_turn_event(event)
     )
-    _synthetic_action_surface = adapter_name == "action_resolution_synthetic"
+    _authoritative_action_surface = adapter_name in {
+        "action_resolution_authoritative",
+        "action_resolution_synthetic",
+    }
     deterministic_scores = {
         "non_mock_generation_pass": (
             1.0
-            if _synthetic_action_surface
+            if _authoritative_action_surface
             or adapter_name not in {"", "mock", "ldss_fallback", "ldss_deterministic"}
             else 0.0
         ),
         "visible_output_present": 1.0 if has_visible_surface else 0.0,
         "actor_lane_safety_pass": 1.0 if path_summary.get("actor_lane_validation_status") in {"approved", None} else 0.0,
         "fallback_absent": 0.0 if path_summary.get("generation_fallback_used") else 1.0,
-        "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 or _synthetic_action_surface else 0.0,
+        "usage_present": 1.0 if int(usage_details.get("total") or 0) > 0 or _authoritative_action_surface else 0.0,
         "rag_context_attached": 1.0 if path_summary.get("retrieval_context_attached") else 0.0,
     }
     intent_kind = str(path_summary.get("player_input_kind") or "").strip().lower()
@@ -2171,7 +2301,19 @@ def _emit_langfuse_evidence_observations(
     else:
         _handover_diag_for_scores = {}
         deterministic_scores["opening_handover_contract_pass"] = 1.0
-    live_contract_pass = all(value == 1.0 for value in deterministic_scores.values()) and path_summary.get("quality_class") not in {"degraded", "failed"}
+    _p0_player_turn_langfuse_scores = frozenset(
+        {
+            "player_action_frame_present",
+            "affordance_resolution_present",
+            "affordance_status_valid",
+            "action_commit_policy_present",
+        }
+    )
+    live_contract_pass = all(
+        value == 1.0
+        for key, value in deterministic_scores.items()
+        if _turn_number > 0 or key not in _p0_player_turn_langfuse_scores
+    ) and path_summary.get("quality_class") not in {"degraded", "failed"}
     deterministic_scores["live_runtime_contract_pass"] = 1.0 if live_contract_pass else 0.0
     # Player-visible path only (excludes mock/usage/RAG gates). Stays green in mock_only when UI output is present.
     qc = path_summary.get("quality_class")
@@ -2187,16 +2329,20 @@ def _emit_langfuse_evidence_observations(
     )
     _aff_st_ev = str(path_summary.get("affordance_status") or "").strip().lower()
     _aff_pres_ev = bool(path_summary.get("affordance_resolution_present"))
-    deterministic_scores["player_action_frame_present"] = (
-        1.0 if bool(path_summary.get("player_action_frame_present")) else 0.0
-    )
-    deterministic_scores["affordance_resolution_present"] = 1.0 if _aff_pres_ev else 0.0
-    deterministic_scores["affordance_status_valid"] = (
-        1.0 if (not _aff_pres_ev or _aff_st_ev in _valid_aff) else 0.0
-    )
-    deterministic_scores["action_commit_policy_present"] = (
-        1.0 if str(path_summary.get("action_commit_policy") or "").strip() else 0.0
-    )
+    # P0 player-action Langfuse scores apply only to real player turns (``turn_number > 0``).
+    # Opening traces must not contribute ``player_action_frame_present`` / affordance scores
+    # that could be mistaken for P0 correctness evidence.
+    if _turn_number > 0:
+        deterministic_scores["player_action_frame_present"] = (
+            1.0 if bool(path_summary.get("player_action_frame_present")) else 0.0
+        )
+        deterministic_scores["affordance_resolution_present"] = 1.0 if _aff_pres_ev else 0.0
+        deterministic_scores["affordance_status_valid"] = (
+            1.0 if (not _aff_pres_ev or _aff_st_ev in _valid_aff) else 0.0
+        )
+        deterministic_scores["action_commit_policy_present"] = (
+            1.0 if str(path_summary.get("action_commit_policy") or "").strip() else 0.0
+        )
     # live_opening_contract_pass is only meaningful on the opening turn (turn 0).
     # Writing it on subsequent turns would produce false negatives that pollute
     # the trace score history and make passing openings appear to have failed.
@@ -2241,6 +2387,7 @@ def _emit_langfuse_evidence_observations(
         "player_speech_committed": path_summary.get("player_speech_committed"),
         "narrator_response_expected": path_summary.get("narrator_response_expected"),
         "npc_response_expected": path_summary.get("npc_response_expected"),
+        "p0_action_resolution_evidence": path_summary.get("p0_action_resolution_evidence"),
         "semantic_move_kind": path_summary.get("semantic_move_kind"),
         "scene_director_selection_source": path_summary.get("scene_director_selection_source"),
         "planner_rationale_codes": path_summary.get("planner_rationale_codes"),
@@ -3972,7 +4119,7 @@ class StoryRuntimeManager:
         # Injected adapters imply an isolated test or custom stack that expects
         # the full retrieve→model path (e.g. RAG + CaptureAdapter). Production
         # sessions use governed components only (adapters parameter None).
-        self._action_resolution_synthetic_enabled = adapters is None
+        self._action_resolution_short_path_enabled = adapters is None
         self._rebuild_turn_graph()
         if self._session_store is not None:
             for _sid, raw in self._session_store.load_all_raw().items():
@@ -4149,8 +4296,8 @@ class StoryRuntimeManager:
             allow_degraded_commit_after_retries=self._allow_degraded_commit_after_retries(),
             generation_execution_mode=gen_mode,
             retrieval_config=retrieval_cfg,
-            action_resolution_synthetic_enabled=getattr(
-                self, "_action_resolution_synthetic_enabled", True
+            action_resolution_short_path_enabled=getattr(
+                self, "_action_resolution_short_path_enabled", True
             ),
         )
 
@@ -5180,6 +5327,13 @@ class StoryRuntimeManager:
 
         # Langfuse path summary and evidence scores must run after live projection
         # populates ``scene_blocks`` (GoC); otherwise ``visible_output_present`` is 0.
+        if event.get("turn_status") is None:
+            tk_final = str(turn_kind or "").strip().lower()
+            if tk_final == "opening":
+                event["turn_status"] = "opening_committed"
+            else:
+                event["turn_status"] = "committed" if outcome == "ok" else "committed_degraded"
+        event.setdefault("http_status", 200)
         _reconcile_governance_passivity_with_final_projection(event)
         path_summary = _build_langfuse_path_summary(
             session=session,

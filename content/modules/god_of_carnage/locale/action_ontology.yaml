@@ -23,6 +23,29 @@ action_kinds:
       - verb: listen_to
         patterns:
           - "(?is)\\b(?:h[oö]re?|lausche|listen)\\b"
+  object_interaction:
+    narrator_owned: true
+    npc_reaction_allowed: optional
+    verb_map:
+      # Separable / periphrastic device & object control (German imperative, accusative object).
+      - verb: activate
+        patterns:
+          - "(?is)\\bschalt(?:e|est|et|en)?\\b.{0,140}\\b(?:ein|an)\\b"
+          - "(?is)\\bmacht?\\b.{0,100}\\b(?:an)\\b"
+      - verb: deactivate
+        patterns:
+          - "(?is)\\bschalt(?:e|est|et|en)?\\b.{0,140}\\b(?:aus)\\b"
+          - "(?is)\\bmacht?\\b.{0,100}\\b(?:aus)\\b"
+      - verb: open
+        patterns:
+          - "(?is)\\böffn(?:e|est|et|en)?\\b"
+          - "(?is)\\bmacht?\\b.{0,100}\\b(?:auf)\\b"
+      - verb: place
+        patterns:
+          - "(?is)\\bleg(?:e|est|et|en)?\\b"
+      - verb: take
+        patterns:
+          - "(?is)\\b(?:nimm|nehme)\\b"
   speech:
     narrator_owned: false
     npc_reaction_allowed: true
@@ -43,11 +66,12 @@ action_kinds:
     verb_map:
       - verb: take
         patterns:
-          - "(?is)\\b(?:nimm|nehme|greif|take|grab|pick\\s+up)\\b"
+          - "(?is)\\b(?:grab|pick\\s+up|take)\\b"
 
 priority_order:
   - movement
   - perception
+  - object_interaction
   - social_action
   - manipulation
   - speech

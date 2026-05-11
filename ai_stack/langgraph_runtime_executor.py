@@ -1109,7 +1109,7 @@ class RuntimeTurnGraphExecutor:
     allow_degraded_commit_after_retries: bool = True
     generation_execution_mode: str | None = None
     retrieval_config: RuntimeRetrievalConfig | None = None
-    action_resolution_synthetic_enabled: bool = True
+    action_resolution_short_path_enabled: bool = True
 
     def __post_init__(self) -> None:
         """``__post_init__`` — see implementation for behaviour and contracts.
@@ -1129,7 +1129,7 @@ class RuntimeTurnGraphExecutor:
         graph = StateGraph(RuntimeTurnState)
         graph.add_node("interpret_input", self._interpret_input)
         graph.add_node("resolve_player_action", self._resolve_player_action)
-        graph.add_node("synthetic_action_resolution", self._synthetic_action_resolution_turn)
+        graph.add_node("authoritative_action_resolution", self._authoritative_action_resolution_turn)
         graph.add_node("retrieve_context", self._retrieve_context)
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
@@ -1150,10 +1150,10 @@ class RuntimeTurnGraphExecutor:
             self._route_after_resolve_player_action,
             {
                 "full_pipeline": "retrieve_context",
-                "synthetic_action_resolution": "synthetic_action_resolution",
+                "authoritative_action_resolution": "authoritative_action_resolution",
             },
         )
-        graph.add_edge("synthetic_action_resolution", "proposal_normalize")
+        graph.add_edge("authoritative_action_resolution", "proposal_normalize")
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
@@ -1666,7 +1666,7 @@ class RuntimeTurnGraphExecutor:
 
     def _route_after_resolve_player_action(self, state: RuntimeTurnState) -> str:
         """Branch: full LLM pipeline vs synthetic action-resolution surface."""
-        if not self.action_resolution_synthetic_enabled:
+        if not self.action_resolution_short_path_enabled:
             return "full_pipeline"
         frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
         aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
@@ -1686,24 +1686,29 @@ class RuntimeTurnGraphExecutor:
         st = str(aff.get("affordance_status") or "").strip().lower()
         verb = str(frame.get("verb") or "").strip().lower()
         if pol == "needs_clarification" or st in {"unknown_target", "ambiguous"}:
-            return "synthetic_action_resolution"
+            return "authoritative_action_resolution"
         if st in {"blocked", "unsafe"}:
-            return "synthetic_action_resolution"
+            return "authoritative_action_resolution"
         if st in {"allowed", "allowed_offscreen", "partial"} and verb in {
             "move_to",
             "look_at",
             "listen_to",
             "stand_up",
+            "activate",
+            "deactivate",
+            "open",
+            "place",
+            "take",
         }:
-            return "synthetic_action_resolution"
+            return "authoritative_action_resolution"
         return "full_pipeline"
 
-    def _synthetic_action_resolution_turn(self, state: RuntimeTurnState) -> RuntimeTurnState:
-        """Deterministic narrator/clarification surface; skips retrieve/director/model."""
-        update = _track(state, node_name="synthetic_action_resolution")
+    def _authoritative_action_resolution_turn(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Deterministic authoritative surface; no LLM invoke (not mock/LDSS/fallback)."""
+        update = _track(state, node_name="authoritative_action_resolution")
         frame = dict(state.get("player_action_frame") or {})
         aff = dict(state.get("affordance_resolution") or {})
-        frame["validation_surface"] = "synthetic_action_resolution"
+        frame["validation_surface"] = "authoritative_action_resolution"
         lang = str(state.get("session_output_language") or "de").strip().lower()[:2] or "de"
         gen = build_synthetic_generation_for_action_resolution(
             module_id=str(state.get("module_id") or ""),
@@ -1713,7 +1718,31 @@ class RuntimeTurnGraphExecutor:
             content_modules_root=None,
         )
         routing = dict(state.get("routing") or {})
-        routing["action_resolution_branch"] = "synthetic"
+        routing["action_resolution_branch"] = "authoritative_deterministic"
+        routing["action_resolution_short_path"] = True
+        routing["action_resolution_short_path_reason"] = "authoritative_action_resolution"
+        routing["generation_required"] = False
+        routing.setdefault("selected_model", "authoritative_action_resolution")
+        routing.setdefault("selected_provider", "wos_runtime")
+        routing.setdefault("route_reason", "authoritative_action_resolution")
+        rc = self.retrieval_config or RuntimeRetrievalConfig()
+        skip_retrieval: dict[str, Any] = {
+            "domain": RetrievalDomain.RUNTIME.value,
+            "profile": rc.retrieval_profile,
+            "status": "skipped",
+            "retrieval_route": "authoritative_action_resolution_short_path",
+            "hit_count": 0,
+            "sources": [],
+            "ranking_notes": ["authoritative_action_resolution_short_path_no_retrieval"],
+            "index_version": "",
+            "corpus_fingerprint": "",
+            "storage_path": "",
+            "embedding_model_id": "",
+            "top_hit_score": "",
+        }
+        attach_retrieval_governance_summary(skip_retrieval)
+        update["retrieval"] = skip_retrieval
+        update["context_text"] = str(state.get("context_text") or "")
         update["player_action_frame"] = frame
         update["generation"] = gen
         update["routing"] = routing

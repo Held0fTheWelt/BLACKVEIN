@@ -178,6 +178,8 @@ class PlayerActionFrameContract:
     narrator_response_expected: bool
     npc_response_expected: bool
     actor_id: str | None = None
+    # Human-lane actor executing the turn (from runtime projection / interpreter).
+    selected_actor_id: str | None = None
     validation_surface: str | None = None
     projection_rule_id: str | None = None
 
@@ -185,6 +187,7 @@ class PlayerActionFrameContract:
         aff = self.affordance_resolution.to_dict()
         base: dict[str, Any] = {
             "actor_id": self.actor_id,
+            "selected_actor_id": self.selected_actor_id,
             "source_text": self.raw_text,
             "raw_text": self.raw_text,
             "player_input_kind": self.input_kind,

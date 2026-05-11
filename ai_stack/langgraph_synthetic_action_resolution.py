@@ -1,10 +1,17 @@
-"""Synthetic narrator / clarification surfaces for action-resolution branch (no LLM)."""
+"""Deterministic authoritative action-resolution surfaces (no LLM invoke).
+
+This module builds the runtime short path for affordance-resolved mundane
+actions. It is **not** a mock of live generation: there is no adapter.generate
+call, no LDSS fallback, and no model fallback — see ``metadata`` flags.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
 from story_runtime_core.content_locale import resolve_string
+
+from ai_stack.runtime_turn_contracts import ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION
 
 
 def build_synthetic_generation_for_action_resolution(
@@ -44,6 +51,18 @@ def build_synthetic_generation_for_action_resolution(
             if target_label
             else "action_resolution.narrator.perception_generic"
         )
+    elif action_kind == "object_interaction" or verb in {
+        "activate",
+        "deactivate",
+        "open",
+        "place",
+        "take",
+    }:
+        key = (
+            "action_resolution.narrator.object_interaction"
+            if target_label
+            else "action_resolution.narrator.generic"
+        )
     elif status == "partial":
         key = "action_resolution.narrator.partial"
 
@@ -74,11 +93,17 @@ def build_synthetic_generation_for_action_resolution(
     }
     return {
         "success": True,
+        "attempted": False,
+        "fallback_used": False,
         "content": narr,
         "text": narr,
         "metadata": {
-            "adapter": "action_resolution_synthetic",
+            "adapter": "action_resolution_authoritative",
+            "adapter_invocation_mode": ADAPTER_INVOCATION_AUTHORITATIVE_ACTION_RESOLUTION,
             "structured_output": structured,
-            "synthetic_action_resolution": True,
+            "authoritative_action_resolution": True,
+            "generation_required": False,
+            "mock_used": False,
+            "ldss_fallback": False,
         },
     }

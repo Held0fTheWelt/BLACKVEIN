@@ -461,14 +461,14 @@ def run_validation_seam(
     _paf_early = player_action_frame if isinstance(player_action_frame, dict) else {}
     if (
         module_id == GOC_MODULE_ID
-        and str(_paf_early.get("validation_surface") or "").strip() == "synthetic_action_resolution"
+        and str(_paf_early.get("validation_surface") or "").strip() == "authoritative_action_resolution"
     ):
         _aff_early = affordance_resolution if isinstance(affordance_resolution, dict) else {}
         return {
             "status": "approved",
-            "reason": "action_resolution_synthetic_surface",
+            "reason": "authoritative_action_resolution_surface",
             "validator_lane": "goc_action_resolution_surface_v1",
-            "dramatic_quality_gate": "waived_synthetic_surface",
+            "dramatic_quality_gate": "waived_authoritative_action_resolution_surface",
             "dramatic_effect_weak_signal": False,
             "intent_surface_diagnostics": {"npc_narrated_player_action_violation": False},
             "player_action_frame": _paf_early,
