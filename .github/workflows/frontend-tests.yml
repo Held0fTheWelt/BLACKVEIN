@@ -61,7 +61,7 @@ jobs:
 
       - name: Run frontend suite with test runner
         run: |
-          python tests/run_tests.py --mvp5 --verbose
+          python tests/run_tests.py --mvp5 --quick --stats
 
       - name: Upload test reports
         if: always()

@@ -15,6 +15,8 @@ on:
       - 'pyproject.toml'
       - 'tests/experience_scoring_cli/**'
       - 'tests/tools/**'
+      - 'tools/mcp_server/**'
+      - 'database/**'
       - 'scripts/g9_threshold_validator.py'
       - "'fy'-suites/docify/**"
       - 'docs/goc_evidence_templates/**'
@@ -34,6 +36,8 @@ on:
       - 'pyproject.toml'
       - 'tests/experience_scoring_cli/**'
       - 'tests/tools/**'
+      - 'tools/mcp_server/**'
+      - 'database/**'
       - 'scripts/g9_threshold_validator.py'
       - "'fy'-suites/docify/**"
       - 'docs/goc_evidence_templates/**'
@@ -100,6 +104,48 @@ jobs:
           name: backend-fast-test-results
           path: test_reports/
           retention-days: 30
+
+  tools-mcp-server-tests:
+    name: Tools MCP server tests
+    runs-on: ubuntu-latest
+    needs: [ requirements-test-hygiene ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: tools/mcp_server/pyproject.toml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "./tools/mcp_server[test]"
+      - name: Run tools/mcp_server tests
+        run: |
+          python -m pytest tools/mcp_server/tests -q --tb=short --capture=no
+
+  database-tests:
+    name: Database schema and migration tests
+    runs-on: ubuntu-latest
+    needs: [ requirements-test-hygiene ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: |
+            pyproject.toml
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+      - name: Run database tests
+        working-directory: ./database
+        run: |
+          python -m pytest tests/ -q --tb=short --no-cov
 
   # Explicit path proves Gate G7 Writers' Room tests execute in CI (not only via broad `pytest tests/`).
   writers-room-g7-contract-tests:
