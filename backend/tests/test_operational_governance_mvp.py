@@ -409,6 +409,7 @@ def test_openai_gpt5_family_model_tests_execute_minimal_responses_probe(client, 
         call = _ProbeHTTPClient.calls[0]
         assert call["url"] == "https://api.openai.com/v1/responses"
         assert call["json"]["model"] == model_name
+        assert call["json"]["input"] == [{"role": "user", "content": "Reply with OK."}]
         assert call["json"]["max_output_tokens"] == 8
         assert call["json"]["reasoning"] == {"effort": "minimal"}
 

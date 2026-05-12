@@ -437,7 +437,7 @@ def _minimal_openai_probe(
                 endpoint = f"{base_url}/responses"
                 payload: dict[str, object] = {
                     "model": model_name,
-                    "input": "Reply with OK.",
+                    "input": [{"role": "user", "content": "Reply with OK."}],
                     "max_output_tokens": 8,
                 }
                 if OpenAIChatAdapter._uses_reasoning_controls(model_name):

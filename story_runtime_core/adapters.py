@@ -1,13 +1,31 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 _log = logging.getLogger(__name__)
+
+_DEBUG_LOG_ENV = "WOS_DEBUG_OPENAI_ADAPTER"
+_DEBUG_SESSION_ID = "a4ace1"
+
+
+def _debug_openai_adapter_ndjson(payload: dict[str, Any]) -> None:
+    if os.environ.get(_DEBUG_LOG_ENV) != "1":
+        return
+    line = json.dumps({"sessionId": _DEBUG_SESSION_ID, "timestamp": int(time.time() * 1000), **payload}, ensure_ascii=False)
+    try:
+        log_path = Path(__file__).resolve().parents[1] / "debug-a4ace1.log"
+        with log_path.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
+        return
 
 
 @dataclass(slots=True)
@@ -105,28 +123,77 @@ class OpenAIChatAdapter(BaseModelAdapter):
 
     @staticmethod
     def _extract_responses_text(payload: dict[str, Any]) -> str:
+        """Collect visible model text from a Responses API JSON body.
+
+        The HTTP JSON body does not always include the SDK-only ``output_text`` helper; it
+        often only has ``output`` items (message, output_text, reasoning summaries, …).
+        """
+
+        def _append_non_empty(acc: list[str], value: str) -> None:
+            stripped = value.strip()
+            if stripped:
+                acc.append(stripped)
+
         output_text = payload.get("output_text")
-        if isinstance(output_text, str):
-            return output_text
+        if isinstance(output_text, str) and output_text.strip():
+            return output_text.strip()
+        if isinstance(output_text, list):
+            parts = [p.strip() for p in output_text if isinstance(p, str) and p.strip()]
+            if parts:
+                return "\n".join(parts)
+
         chunks: list[str] = []
         output_items = payload.get("output")
-        if isinstance(output_items, list):
-            for item in output_items:
-                if not isinstance(item, dict):
+        if not isinstance(output_items, list):
+            return ""
+
+        for item in output_items:
+            if not isinstance(item, dict):
+                continue
+            itype = str(item.get("type") or "")
+
+            if itype == "output_text":
+                text = item.get("text")
+                if isinstance(text, str):
+                    _append_non_empty(chunks, text)
+                continue
+
+            if itype == "reasoning":
+                summaries = item.get("summary")
+                if isinstance(summaries, list):
+                    for sm in summaries:
+                        if isinstance(sm, dict):
+                            st = sm.get("text")
+                            if isinstance(st, str):
+                                _append_non_empty(chunks, st)
+                continue
+
+            content_items = item.get("content")
+            if isinstance(content_items, str):
+                _append_non_empty(chunks, content_items)
+                continue
+            if not isinstance(content_items, list):
+                continue
+
+            for content_item in content_items:
+                if not isinstance(content_item, dict):
                     continue
-                content_items = item.get("content")
-                if not isinstance(content_items, list):
-                    continue
-                for content_item in content_items:
-                    if not isinstance(content_item, dict):
-                        continue
-                    text = content_item.get("text")
-                    if isinstance(text, str):
-                        chunks.append(text)
-                    refusal = content_item.get("refusal")
-                    if isinstance(refusal, str) and not chunks:
-                        chunks.append(refusal)
-        return "\n".join(chunk for chunk in chunks if chunk)
+                text = content_item.get("text")
+                if isinstance(text, str):
+                    _append_non_empty(chunks, text)
+                refusal = content_item.get("refusal")
+                if isinstance(refusal, str):
+                    _append_non_empty(chunks, refusal)
+
+        if chunks:
+            return "\n".join(chunks)
+
+        for item in output_items:
+            if isinstance(item, dict):
+                text = item.get("text")
+                if isinstance(text, str) and text.strip():
+                    _append_non_empty(chunks, text)
+        return "\n".join(chunks)
 
     @staticmethod
     def _usage_details(usage: dict[str, Any]) -> tuple[int, int, int]:
@@ -147,9 +214,10 @@ class OpenAIChatAdapter(BaseModelAdapter):
     ) -> ModelCallResult:
         payload: dict[str, Any] = {
             "model": chosen_model,
-            "instructions": retrieval_context or "No retrieval context attached.",
-            "input": prompt,
+            "input": [{"role": "user", "content": prompt}],
         }
+        if retrieval_context and retrieval_context.strip():
+            payload["instructions"] = retrieval_context.strip()
         if self._supports_custom_temperature(chosen_model):
             payload["temperature"] = 0.3
         if self._uses_reasoning_controls(chosen_model):
@@ -165,6 +233,30 @@ class OpenAIChatAdapter(BaseModelAdapter):
         response.raise_for_status()
         response_payload = response.json()
         message = self._extract_responses_text(response_payload)
+        # #region agent log
+        if isinstance(response_payload, dict):
+            out = response_payload.get("output")
+            out_types: list[str] = []
+            if isinstance(out, list):
+                for el in out:
+                    if isinstance(el, dict) and isinstance(el.get("type"), str):
+                        out_types.append(str(el["type"]))
+            _debug_openai_adapter_ndjson(
+                {
+                    "hypothesisId": "H1-H5",
+                    "location": "adapters.py:_generate_with_responses_api",
+                    "message": "responses_parse",
+                    "data": {
+                        "model": chosen_model,
+                        "top_keys": sorted(response_payload.keys()),
+                        "output_item_types": out_types,
+                        "extracted_len": len(message),
+                        "has_output_text_key": "output_text" in response_payload,
+                    },
+                    "runId": "pre-fix",
+                }
+            )
+        # #endregion
         usage = response_payload.get("usage") if isinstance(response_payload.get("usage"), dict) else {}
         prompt_tokens, completion_tokens, total_tokens = self._usage_details(usage)
         return ModelCallResult(

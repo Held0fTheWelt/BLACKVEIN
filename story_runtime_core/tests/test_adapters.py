@@ -1,3 +1,4 @@
+import pytest
 from unittest.mock import Mock, patch
 
 from story_runtime_core.adapters import MockModelAdapter, OpenAIChatAdapter, build_default_model_adapters
@@ -43,6 +44,8 @@ def test_openai_adapter_omits_temperature_for_gpt5_models():
     assert client.post.call_args.args[0].endswith("/responses")
     payload = client.post.call_args.kwargs["json"]
     assert payload["model"] == "gpt-5.4-mini"
+    assert payload["input"] == [{"role": "user", "content": "Return valid JSON."}]
+    assert "instructions" not in payload
     assert "temperature" not in payload
     assert payload["reasoning"] == {"effort": "minimal"}
     assert payload["max_output_tokens"] == 1200
@@ -96,3 +99,79 @@ def test_build_default_model_adapters_registers_providers():
     adapters = build_default_model_adapters()
     assert set(adapters.keys()) == {"mock", "openai", "ollama"}
     assert adapters["mock"].generate("x").success is True
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"output_text": "  hi  "}, "hi"),
+        ({"output_text": ["a", "", "b"]}, "a\nb"),
+        (
+            {
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": "Hello"}],
+                    }
+                ]
+            },
+            "Hello",
+        ),
+        (
+            {
+                "output": [
+                    {"type": "message", "role": "assistant", "content": "Plain string body"},
+                ]
+            },
+            "Plain string body",
+        ),
+        (
+            {
+                "output": [
+                    {"type": "output_text", "text": "standalone"},
+                ]
+            },
+            "standalone",
+        ),
+        (
+            {
+                "output": [
+                    {
+                        "type": "reasoning",
+                        "summary": [{"type": "summary_text", "text": "thought"}],
+                    },
+                    {
+                        "type": "message",
+                        "content": [{"type": "output_text", "text": "answer"}],
+                    },
+                ]
+            },
+            "thought\nanswer",
+        ),
+        ({"output": [{"type": "message", "content": [{"refusal": "no"}]}]}, "no"),
+    ],
+)
+def test_openai_extract_responses_text_handles_documented_shapes(payload, expected):
+    assert OpenAIChatAdapter._extract_responses_text(payload) == expected
+
+
+def test_openai_responses_request_includes_instructions_when_retrieval_present():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"output_text": "ok"}
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        OpenAIChatAdapter(api_key="sk-test").generate(
+            "hello",
+            model_name="gpt-5.4-nano",
+            retrieval_context="System context here.",
+        )
+
+    payload = client.post.call_args.kwargs["json"]
+    assert payload["instructions"] == "System context here."
+    assert payload["input"] == [{"role": "user", "content": "hello"}]
