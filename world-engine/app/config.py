@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -239,6 +241,47 @@ def env_truthy(name: str, *, default: bool = False) -> bool:
     if not raw:
         return default
     return raw in ("1", "true", "yes", "on")
+
+
+_WOS_PROCESS_LOGGING_BOOTSTRAP = False
+
+
+def configure_world_engine_process_logging() -> None:
+    """Ensure ``app.*`` INFO reaches stderr under uvicorn/Docker.
+
+    Uvicorn's default ``LOGGING_CONFIG`` only configures ``uvicorn*`` loggers; the root logger keeps
+    Python's default effective WARNING, so ``logger.info()`` from ``app`` never appears in ``docker logs``.
+    Respect ``LOG_LEVEL`` / ``WOS_LOG_LEVEL`` (default ``INFO``). Set ``WOS_DISABLE_PROCESS_LOGGING_BOOTSTRAP=1``
+    to skip (e.g. exotic host logging setups).
+    """
+    global _WOS_PROCESS_LOGGING_BOOTSTRAP
+    if _WOS_PROCESS_LOGGING_BOOTSTRAP:
+        return
+    _WOS_PROCESS_LOGGING_BOOTSTRAP = True
+    if env_truthy("WOS_DISABLE_PROCESS_LOGGING_BOOTSTRAP"):
+        return
+    raw = (os.getenv("WOS_LOG_LEVEL") or os.getenv("LOG_LEVEL") or "INFO").strip().upper()
+    level = getattr(logging, raw, None)
+    if not isinstance(level, int):
+        level = logging.INFO
+    root = logging.getLogger()
+    if root.level == logging.NOTSET:
+        root.setLevel(level)
+    else:
+        root.setLevel(min(root.level, level))
+    if not root.handlers:
+        h = logging.StreamHandler(sys.stderr)
+        h.setLevel(level)
+        h.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+                datefmt="%H:%M:%S",
+            )
+        )
+        root.addHandler(h)
+
+
+configure_world_engine_process_logging()
 
 
 # Ungoverned story runtime no longer allowed - always enforce governed config

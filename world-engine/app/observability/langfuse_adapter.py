@@ -18,6 +18,23 @@ _LANGFUSE_DEBUG_APPLIED = False
 _LANGFUSE_DEBUG_HANDLER_ATTR = "_wos_langfuse_debug_handler"
 
 
+def _wos_langfuse_diagnostic_env_enabled(var_name: str, *, default_when_unset: bool = True) -> bool:
+    """Docker-compose uses ``${VAR:-1}``; a blank ``VAR=`` in ``.env`` can still yield an empty string in the container.
+
+    Treat **unset** and **blank** like the compose default (on). Only explicit ``0`` / ``false`` / ``no`` / ``off``
+    disables. Unknown non-empty strings fall back to ``default_when_unset``.
+    """
+    raw = os.getenv(var_name)
+    if raw is None or str(raw).strip() == "":
+        return default_when_unset
+    s = str(raw).strip().lower()
+    if s in {"0", "false", "no", "off"}:
+        return False
+    if s in {"1", "true", "yes", "on"}:
+        return True
+    return default_when_unset
+
+
 def _langfuse_debug_handler_installed(lg: logging.Logger) -> bool:
     return any(getattr(h, _LANGFUSE_DEBUG_HANDLER_ATTR, False) for h in lg.handlers)
 
@@ -83,7 +100,7 @@ def _install_langfuse_ingestion_error_bridge() -> None:
     """Log Langfuse SDK score/API batch exceptions at WARNING with full ``APIError`` / ``APIErrors`` text.
 
     The SDK's ``handle_exception`` only logs generic messages at ERROR; details are on DEBUG. When
-    ``WOS_LANGFUSE_INGESTION_ERROR_DETAIL`` is truthy, wrap ``parse_error.handle_exception`` once.
+    ``WOS_LANGFUSE_INGESTION_ERROR_DETAIL`` is enabled (unset/blank defaults to on, like compose ``:-1``).
 
     ``score_ingestion_consumer`` does ``from ... import handle_exception`` (bound at import time), so we
     must also replace ``langfuse._task_manager.score_ingestion_consumer.handle_exception`` or the
@@ -92,8 +109,7 @@ def _install_langfuse_ingestion_error_bridge() -> None:
     global _LANGFUSE_INGESTION_ERROR_BRIDGE
     if _LANGFUSE_INGESTION_ERROR_BRIDGE:
         return
-    raw = (os.getenv("WOS_LANGFUSE_INGESTION_ERROR_DETAIL") or "").strip().lower()
-    if raw not in {"1", "true", "yes"}:
+    if not _wos_langfuse_diagnostic_env_enabled("WOS_LANGFUSE_INGESTION_ERROR_DETAIL", default_when_unset=True):
         return
     try:
         from langfuse._task_manager import score_ingestion_consumer as _lf_score_consumer
@@ -704,6 +720,85 @@ class LangfuseAdapter:
             return None
         return v
 
+    @staticmethod
+    def _observation_id_from_span_for_score(parent_span: object) -> str | None:
+        """Return a string observation id for ``create_score``; ignore unittest mocks / non-strings."""
+        oid = getattr(parent_span, "id", None)
+        if oid is None:
+            oid = getattr(parent_span, "observation_id", None)
+        try:
+            from unittest.mock import MagicMock, NonCallableMagicMock
+
+            if isinstance(oid, (MagicMock, NonCallableMagicMock)):
+                return None
+        except Exception:
+            pass
+        if isinstance(oid, str):
+            s = oid.strip()
+            return s or None
+        return None
+
+    @staticmethod
+    def _normalize_langfuse_create_score_scope_kwargs(
+        kw: dict[str, Any],
+    ) -> tuple[dict[str, Any] | None, str]:
+        """Enforce Langfuse rule: exactly one of traceId (+ optional observationId), sessionId, or datasetRunId.
+
+        Returns ``(payload, emitted_scope)`` where ``emitted_scope`` is one of
+        ``trace``, ``observation``, ``session``, ``dataset``, or ``skipped``.
+        When ``skipped``, ``payload`` is ``None`` and the caller must not call ``create_score``.
+        """
+        base = dict(kw)
+        tid = base.pop("trace_id", None)
+        oid = base.pop("observation_id", None)
+        sid = base.pop("session_id", None)
+        drid = base.pop("dataset_run_id", None)
+
+        def _present(x: object) -> bool:
+            if x is None:
+                return False
+            if isinstance(x, str):
+                return bool(x.strip())
+            return True
+
+        if _present(drid):
+            base["dataset_run_id"] = drid
+            return base, "dataset"
+        if _present(tid):
+            base["trace_id"] = tid
+            if _present(oid):
+                base["observation_id"] = oid
+                return base, "observation"
+            return base, "trace"
+        if _present(sid):
+            base["session_id"] = sid
+            return base, "session"
+        if _present(oid):
+            return None, "skipped"
+        return None, "skipped"
+
+    @staticmethod
+    def _log_wos_langfuse_score_scope_debug(
+        score_name: str,
+        *,
+        has_trace_id: bool,
+        has_observation_id: bool,
+        had_session_before_norm: bool,
+        emitted_scope: str,
+    ) -> None:
+        if not _wos_langfuse_diagnostic_env_enabled("WOS_LANGFUSE_SCORE_DEBUG", default_when_unset=True):
+            return
+        # Use INFO so play-service default (uvicorn/root INFO) still shows lines when this flag is on.
+        logger.info(
+            "[LANGFUSE] score_scope name=%r has_trace_id=%s has_observation_id=%s "
+            "has_session_id_before_normalization=%s emitted_scope=%s",
+            score_name,
+            has_trace_id,
+            has_observation_id,
+            had_session_before_norm,
+            emitted_scope,
+        )
+
     def add_score(
         self,
         *,
@@ -764,6 +859,7 @@ class LangfuseAdapter:
                     max_dict=40,
                 )
                 score_session_id = self._safe_session_id(meta.get("session_id"))
+                obs_for_score = self._observation_id_from_span_for_score(parent_span)
                 create_kw: dict[str, Any] = {
                     "name": name,
                     "value": coerced,
@@ -772,9 +868,25 @@ class LangfuseAdapter:
                     "metadata": safe_trace_meta,
                     "data_type": ScoreDataType.NUMERIC,
                 }
-                if score_session_id:
-                    create_kw["session_id"] = score_session_id
-                lf_client.create_score(**create_kw)
+                if obs_for_score:
+                    create_kw["observation_id"] = obs_for_score
+                # Langfuse rejects trace_id + session_id together; session stays in metadata only.
+                normed, emitted_scope = self._normalize_langfuse_create_score_scope_kwargs(create_kw)
+                self._log_wos_langfuse_score_scope_debug(
+                    name,
+                    has_trace_id=True,
+                    has_observation_id=bool(obs_for_score),
+                    had_session_before_norm=bool(score_session_id),
+                    emitted_scope=emitted_scope,
+                )
+                if normed is None:
+                    logger.warning(
+                        "[LANGFUSE] Skipping create_score for %r after scope normalization (scope=%s)",
+                        name,
+                        emitted_scope,
+                    )
+                else:
+                    lf_client.create_score(**normed)
             elif lf_client and not tid:
                 logger.warning(
                     "[LANGFUSE] Skipping trace-level create_score for %r: invalid or non-W3C trace_id %r",

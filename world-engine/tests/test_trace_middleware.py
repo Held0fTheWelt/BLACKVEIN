@@ -53,6 +53,7 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     span = MagicMock()
     span.trace_id = trace_hex
     span.span_id = "obs-id-span"
+    span.id = "0f0e0d0c0b0a0908"
     span.name = "world-engine.session.create"
     token = lf_mod._active_span_context.set(span)
     try:
@@ -76,7 +77,8 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     assert cc_kw["trace_id"] == trace_hex
     assert cc_kw["value"] == 0.0
     assert str(cc_kw.get("data_type")) == "NUMERIC"
-    assert cc_kw.get("session_id") == "s1"
+    assert cc_kw.get("observation_id") == "0f0e0d0c0b0a0908"
+    assert "session_id" not in cc_kw
 
 
 def test_langfuse_start_trace_sets_first_class_session_context(monkeypatch):
@@ -133,6 +135,7 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     adapter._clients = {"development": client}
     parent_span = MagicMock()
     parent_span.trace_id = "b116645221d4f504a9f119969f6f4dd9"
+    parent_span.id = "deadbeefcafebabe"
     child_span = MagicMock()
     parent_span.start_observation.return_value = child_span
     token_span = lf_mod._active_span_context.set(parent_span)
@@ -163,8 +166,11 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     assert str(parent_span.score.call_args.kwargs.get("data_type")) == "NUMERIC"
     assert parent_span.score.call_args.kwargs["metadata"]["session_id"] == "story-session-2"
     client.create_score.assert_called_once()
-    assert str(client.create_score.call_args.kwargs.get("data_type")) == "NUMERIC"
-    assert client.create_score.call_args.kwargs["session_id"] == "story-session-2"
+    cc_kw = client.create_score.call_args.kwargs
+    assert str(cc_kw.get("data_type")) == "NUMERIC"
+    assert cc_kw["trace_id"] == "b116645221d4f504a9f119969f6f4dd9"
+    assert cc_kw.get("observation_id") == "deadbeefcafebabe"
+    assert "session_id" not in cc_kw
 
 
 def _aspect_test_ledger() -> dict[str, Any]:
