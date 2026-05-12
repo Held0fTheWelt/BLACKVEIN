@@ -21,8 +21,9 @@ def test_openai_adapter_omits_temperature_for_gpt5_models():
     response = Mock()
     response.raise_for_status.return_value = None
     response.json.return_value = {
-        "choices": [{"message": {"content": "ok"}}],
-        "usage": {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18},
+        "id": "resp_test",
+        "output_text": "ok",
+        "usage": {"input_tokens": 11, "output_tokens": 7, "total_tokens": 18},
     }
     client = Mock()
     client.__enter__ = Mock(return_value=client)
@@ -30,26 +31,28 @@ def test_openai_adapter_omits_temperature_for_gpt5_models():
     client.post.return_value = response
 
     with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
-        result = OpenAIChatAdapter(api_key="sk-test").generate("Return valid JSON.", model_name="gpt-5-mini")
+        result = OpenAIChatAdapter(api_key="sk-test").generate("Return valid JSON.", model_name="gpt-5.4-mini")
 
     assert result.success is True
+    assert result.metadata["adapter_api"] == "responses"
     assert result.metadata["usage_available"] is True
     assert result.metadata["usage_source"] == "provider_response"
     assert result.metadata["usage_details"] == {"input": 11, "output": 7, "total": 18}
     assert client.post.call_args is not None
     assert result.metadata["timeout_seconds"] == 60.0
+    assert client.post.call_args.args[0].endswith("/responses")
     payload = client.post.call_args.kwargs["json"]
-    assert payload["model"] == "gpt-5-mini"
+    assert payload["model"] == "gpt-5.4-mini"
     assert "temperature" not in payload
-    assert payload["reasoning_effort"] == "minimal"
-    assert payload["max_completion_tokens"] == 1200
-    assert payload["response_format"] == {"type": "json_object"}
+    assert payload["reasoning"] == {"effort": "minimal"}
+    assert payload["max_output_tokens"] == 1200
+    assert payload["text"] == {"format": {"type": "json_object"}}
 
 
 def test_openai_adapter_caps_reasoning_model_timeout(monkeypatch):
     response = Mock()
     response.raise_for_status.return_value = None
-    response.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+    response.json.return_value = {"output_text": "ok"}
     client = Mock()
     client.__enter__ = Mock(return_value=client)
     client.__exit__ = Mock(return_value=None)
@@ -59,13 +62,14 @@ def test_openai_adapter_caps_reasoning_model_timeout(monkeypatch):
     with patch("story_runtime_core.adapters.httpx.Client", return_value=client) as client_cls:
         result = OpenAIChatAdapter(api_key="sk-test").generate(
             "hello",
-            model_name="gpt-5-mini",
+            model_name="gpt-5.5",
             timeout_seconds=30,
         )
 
     assert result.success is True
     assert result.metadata["timeout_seconds"] == 7.0
     assert client_cls.call_args.kwargs["timeout"] == 7.0
+    assert client.post.call_args.kwargs["json"]["model"] == "gpt-5.5"
 
 
 def test_openai_adapter_keeps_temperature_for_non_reasoning_chat_models():

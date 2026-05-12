@@ -16,12 +16,10 @@ from story_runtime_core.model_registry import ModelSpec, RoutingDecision
 
 
 _MODEL_NAME_ALIASES: dict[str, str] = {
-    "gpt-5.4 mini": "gpt-5-mini",
-    "gpt-5.4 nano": "gpt-5-nano",
-    "chatgpt mini": "gpt-5-mini",
-    "chatgpt nano": "gpt-5-nano",
-    "gpt 5 mini": "gpt-5-mini",
-    "gpt 5 nano": "gpt-5-nano",
+    "chatgpt mini": "gpt-5.4-mini",
+    "chatgpt nano": "gpt-5.4-nano",
+    "gpt 5 mini": "gpt-5.4-mini",
+    "gpt 5 nano": "gpt-5.4-nano",
 }
 
 
@@ -29,13 +27,12 @@ def normalize_provider_model_name(value: str | None) -> str:
     raw = (value or "").strip()
     if not raw:
         return ""
-    low = raw.lower().strip()
-    if low in _MODEL_NAME_ALIASES:
-        return _MODEL_NAME_ALIASES[low]
-    normalized = low.replace(" ", "-")
-    normalized = normalized.replace(".4-", "-")
-    normalized = normalized.replace(".5-", "-")
-    normalized = normalized.replace("--", "-")
+    normalized = " ".join(raw.split()).lower()
+    if normalized in _MODEL_NAME_ALIASES:
+        return _MODEL_NAME_ALIASES[normalized]
+    normalized = normalized.replace(" ", "-")
+    while "--" in normalized:
+        normalized = normalized.replace("--", "-")
     return normalized
 
 
@@ -314,6 +311,8 @@ def build_governed_story_runtime_components(config: dict[str, Any] | None):
         if not provider_id or provider_id not in provider_ids or not model_id:
             continue
         role = str(row.get("model_role") or "llm").strip().lower()
+        if role in {"embedding", "embeddings", "embedding_role"}:
+            continue
         provider_model_name = normalize_provider_model_name(str(row.get("model_name") or ""))
         registry.register(
             ModelSpec(

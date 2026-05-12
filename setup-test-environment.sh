@@ -78,6 +78,13 @@ if [[ -d "ai_stack" ]]; then
         exit 1
     fi
 fi
+if [[ -f "tools/mcp_server/pyproject.toml" ]]; then
+    echo -e "${YELLOW}Installing tools/mcp_server[test] (editable)...${NC}"
+    if ! $PYTHON_BIN -m pip install -e "./tools/mcp_server[test]" -q; then
+        echo -e "${RED}Error: editable install of tools/mcp_server[test] failed${NC}" >&2
+        exit 1
+    fi
+fi
 
 # Other components needed for ``python tests/run_tests.py --suite all`` (orchestrator cwd per suite).
 if [[ -f "frontend/requirements-dev.txt" ]]; then
@@ -102,7 +109,7 @@ echo -e "${YELLOW}Verifying critical dependencies...${NC}"
 
 MISSING=()
 
-packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio" "langchain_core" "langgraph" "fastapi" "httpx")
+packages=("flask" "sqlalchemy" "flask_sqlalchemy" "flask_migrate" "flask_limiter" "pytest" "pytest_asyncio" "pytest_cov" "langchain_core" "langgraph" "fastapi" "httpx" "requests")
 
 for pkg in "${packages[@]}"; do
     if $PYTHON_BIN -c "import ${pkg}" 2>/dev/null; then

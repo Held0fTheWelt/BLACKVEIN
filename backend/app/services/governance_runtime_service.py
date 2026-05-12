@@ -10,6 +10,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
+import httpx
 from flask import current_app
 from sqlalchemy import and_
 from sqlalchemy import inspect
@@ -133,6 +134,7 @@ def _provider_contract(provider_type: str) -> dict:
                 "streaming": True,
                 "tool_calling": True,
                 "model_discovery": True,
+                "embeddings": True,
                 "local_provider": False,
                 "cloud_provider": True,
                 "openai_compatible": True,
@@ -183,6 +185,7 @@ def _provider_contract(provider_type: str) -> dict:
                 "streaming": True,
                 "tool_calling": True,
                 "model_discovery": True,
+                "embeddings": False,
                 "local_provider": False,
                 "cloud_provider": True,
                 "openai_compatible": True,
@@ -210,6 +213,7 @@ def _provider_contract(provider_type: str) -> dict:
                 "streaming": True,
                 "tool_calling": True,
                 "model_discovery": True,
+                "embeddings": False,
                 "local_provider": False,
                 "cloud_provider": True,
                 "openai_compatible": False,
@@ -235,6 +239,7 @@ def _provider_contract(provider_type: str) -> dict:
                 "streaming": False,
                 "tool_calling": False,
                 "model_discovery": False,
+                "embeddings": False,
                 "local_provider": True,
                 "cloud_provider": False,
                 "openai_compatible": False,
@@ -260,6 +265,7 @@ def _provider_contract(provider_type: str) -> dict:
                 "streaming": False,
                 "tool_calling": False,
                 "model_discovery": False,
+                "embeddings": False,
                 "local_provider": False,
                 "cloud_provider": True,
                 "openai_compatible": False,
@@ -291,16 +297,45 @@ def _normalize_provider_url(base_url: str | None, contract: dict) -> str:
     return base.rstrip("/")
 
 
-def _normalize_model_role(raw_role: str | None) -> str:
+_GENERATION_MODEL_ROLES = frozenset({"llm", "slm"})
+_EMBEDDING_MODEL_ROLE = "embedding_role"
+_MODEL_ROLE_ALIASES = {
+    "embedding": _EMBEDDING_MODEL_ROLE,
+    "embeddings": _EMBEDDING_MODEL_ROLE,
+    "embedding_model": _EMBEDDING_MODEL_ROLE,
+    "embedding_role": _EMBEDDING_MODEL_ROLE,
+}
+
+
+def _looks_like_embedding_model_name(model_name: str | None) -> bool:
+    normalized = (model_name or "").strip().lower()
+    return normalized.startswith("text-embedding-")
+
+
+def _normalize_model_role(raw_role: str | None, *, model_name: str | None = None) -> str:
     role = (raw_role or "llm").strip().lower()
-    if role not in {"llm", "slm", "mock"}:
+    role = _MODEL_ROLE_ALIASES.get(role, role)
+    if _looks_like_embedding_model_name(model_name) and role in {*_GENERATION_MODEL_ROLES, _EMBEDDING_MODEL_ROLE}:
+        role = _EMBEDDING_MODEL_ROLE
+    if role not in {*_GENERATION_MODEL_ROLES, "mock", _EMBEDDING_MODEL_ROLE}:
         raise governance_error(
             "model_role_invalid",
-            "model_role must be one of llm, slm, or mock.",
+            "model_role must be one of llm, slm, mock, or embedding_role.",
             400,
             {"model_role": raw_role},
         )
     return role
+
+
+def _is_generation_model(model: AIModelConfig) -> bool:
+    if _looks_like_embedding_model_name(model.model_name):
+        return False
+    return (model.model_role or "").strip().lower() in _GENERATION_MODEL_ROLES
+
+
+def _is_embedding_model(model: AIModelConfig) -> bool:
+    role = _normalize_model_role(model.model_role, model_name=model.model_name)
+    return role == _EMBEDDING_MODEL_ROLE or _looks_like_embedding_model_name(model.model_name)
 
 
 def _derive_model_id(provider_id: str, model_name: str) -> str:
@@ -327,6 +362,160 @@ def _provider_headers(contract: dict, secret: str | None) -> dict[str, str]:
     elif auth_mode == "x_api_key" and secret:
         headers["x-api-key"] = secret
     return headers
+
+
+def _minimal_openai_probe(
+    *,
+    base_url: str,
+    contract: dict,
+    secret: str | None,
+    model: AIModelConfig,
+    timeout_seconds: float,
+    provider_type: str,
+) -> dict:
+    headers = _provider_headers(contract, secret)
+    headers["Content-Type"] = "application/json"
+    model_name = (model.model_name or "").strip()
+    metadata: dict[str, object] = {
+        "concrete_probe_executed": True,
+        "minimal_request_executed": True,
+        "provider_type": provider_type,
+        "model_role": _normalize_model_role(model.model_role, model_name=model.model_name),
+        "request_model_name": model_name,
+    }
+    try:
+        with httpx.Client(timeout=timeout_seconds) as client:
+            if _is_embedding_model(model):
+                endpoint = f"{base_url}/embeddings"
+                payload = {"model": model_name, "input": "ping"}
+                response = client.post(endpoint, headers=headers, json=payload)
+                metadata.update(
+                    {
+                        "probe_kind": "embedding",
+                        "adapter_api": "embeddings",
+                        "probe_endpoint": "/embeddings",
+                        "http_status": response.status_code,
+                    }
+                )
+                response.raise_for_status()
+                response_payload = response.json()
+                data = response_payload.get("data") if isinstance(response_payload, dict) else None
+                first = data[0] if isinstance(data, list) and data else {}
+                embedding = first.get("embedding") if isinstance(first, dict) else None
+                dimensions = len(embedding) if isinstance(embedding, list) else 0
+                metadata["embedding_dimensions"] = dimensions
+                if dimensions <= 0:
+                    return {
+                        "success": False,
+                        "content": "",
+                        "metadata": metadata,
+                        "error_code": "embedding_response_missing_vector",
+                        "operator_message": "Embedding probe completed but returned no embedding vector.",
+                    }
+                return {
+                    "success": True,
+                    "content": f"embedding_dimensions={dimensions}",
+                    "metadata": metadata,
+                    "error_code": None,
+                    "operator_message": "Embedding model responded successfully.",
+                }
+
+            if provider_type == "openai" and OpenAIChatAdapter._uses_responses_api(model_name):
+                endpoint = f"{base_url}/responses"
+                payload: dict[str, object] = {
+                    "model": model_name,
+                    "input": "Reply with OK.",
+                    "max_output_tokens": 8,
+                }
+                if OpenAIChatAdapter._uses_reasoning_controls(model_name):
+                    payload["reasoning"] = {"effort": "minimal"}
+                response = client.post(endpoint, headers=headers, json=payload)
+                metadata.update(
+                    {
+                        "probe_kind": "text_generation",
+                        "adapter_api": "responses",
+                        "probe_endpoint": "/responses",
+                        "http_status": response.status_code,
+                    }
+                )
+                response.raise_for_status()
+                response_payload = response.json()
+                content = OpenAIChatAdapter._extract_responses_text(response_payload if isinstance(response_payload, dict) else {})
+                metadata["response_id"] = response_payload.get("id") if isinstance(response_payload, dict) else None
+                if not content and not (isinstance(response_payload, dict) and response_payload.get("output")):
+                    return {
+                        "success": False,
+                        "content": "",
+                        "metadata": metadata,
+                        "error_code": "responses_response_missing_output",
+                        "operator_message": "Responses probe completed but returned no output.",
+                    }
+                return {
+                    "success": True,
+                    "content": content or "ok",
+                    "metadata": metadata,
+                    "error_code": None,
+                    "operator_message": "Model responded successfully.",
+                }
+
+            endpoint = f"{base_url}/chat/completions"
+            payload: dict[str, object] = {
+                "model": model_name,
+                "messages": [{"role": "user", "content": "Reply with OK."}],
+                "max_tokens": 8,
+            }
+            if OpenAIChatAdapter._supports_custom_temperature(model_name):
+                payload["temperature"] = 0
+            response = client.post(endpoint, headers=headers, json=payload)
+            metadata.update(
+                {
+                    "probe_kind": "text_generation",
+                    "adapter_api": "chat_completions",
+                    "probe_endpoint": "/chat/completions",
+                    "http_status": response.status_code,
+                }
+            )
+            response.raise_for_status()
+            response_payload = response.json()
+            choices = response_payload.get("choices") if isinstance(response_payload, dict) else None
+            first_choice = choices[0] if isinstance(choices, list) and choices else {}
+            message = first_choice.get("message") if isinstance(first_choice, dict) else {}
+            content = str(message.get("content") or "").strip() if isinstance(message, dict) else ""
+            if not content:
+                return {
+                    "success": False,
+                    "content": "",
+                    "metadata": metadata,
+                    "error_code": "chat_completion_response_missing_content",
+                    "operator_message": "Chat completion probe completed but returned no message content.",
+                }
+            return {
+                "success": True,
+                "content": content,
+                "metadata": metadata,
+                "error_code": None,
+                "operator_message": "Model responded successfully.",
+            }
+    except httpx.HTTPStatusError as exc:
+        response = getattr(exc, "response", None)
+        status = getattr(response, "status_code", None)
+        metadata["http_status"] = status
+        return {
+            "success": False,
+            "content": "",
+            "metadata": metadata,
+            "error_code": f"http_{status}" if status else "http_status_error",
+            "operator_message": f"Provider responded with HTTP {status}." if status else str(exc),
+        }
+    except httpx.HTTPError as exc:
+        metadata["error_type"] = type(exc).__name__
+        return {
+            "success": False,
+            "content": "",
+            "metadata": metadata,
+            "error_code": type(exc).__name__,
+            "operator_message": str(exc),
+        }
 
 
 def _attempt_runtime_rebind() -> dict[str, object]:
@@ -946,6 +1135,11 @@ def list_models() -> list[dict]:
     out: list[dict] = []
     for row in rows:
         provider = providers.get(row.provider_id)
+        normalized_role = _normalize_model_role(row.model_role, model_name=row.model_name)
+        provider_runtime_eligible = _provider_runtime_eligible(provider)
+        runtime_eligible = row.is_enabled and provider_runtime_eligible
+        generation_runtime_eligible = runtime_eligible and _is_generation_model(row)
+        embedding_runtime_eligible = runtime_eligible and _is_embedding_model(row)
         blockers: list[str] = []
         if provider is None:
             blockers.append("provider_missing")
@@ -965,7 +1159,7 @@ def list_models() -> list[dict]:
                 "provider_id": row.provider_id,
                 "model_name": row.model_name,
                 "display_name": row.display_name,
-                "model_role": row.model_role,
+                "model_role": normalized_role,
                 "is_enabled": row.is_enabled,
                 "structured_output_capable": row.structured_output_capable,
                 "timeout_seconds": row.timeout_seconds,
@@ -974,8 +1168,10 @@ def list_models() -> list[dict]:
                 "input_price_per_1k": str(row.input_price_per_1k) if row.input_price_per_1k is not None else None,
                 "output_price_per_1k": str(row.output_price_per_1k) if row.output_price_per_1k is not None else None,
                 "flat_request_price": str(row.flat_request_price) if row.flat_request_price is not None else None,
-                "provider_runtime_eligible": _provider_runtime_eligible(provider),
-                "runtime_eligible": row.is_enabled and _provider_runtime_eligible(provider),
+                "provider_runtime_eligible": provider_runtime_eligible,
+                "runtime_eligible": runtime_eligible,
+                "generation_runtime_eligible": generation_runtime_eligible,
+                "embedding_runtime_eligible": embedding_runtime_eligible,
                 "readiness_blockers": blockers,
             }
         )
@@ -1003,7 +1199,7 @@ def create_model(payload: dict, actor: str) -> AIModelConfig:
     model = db.session.get(AIModelConfig, model_id)
     if model:
         return model
-    model_role = _normalize_model_role(payload.get("model_role"))
+    model_role = _normalize_model_role(payload.get("model_role"), model_name=model_name)
     model = AIModelConfig(
         model_id=model_id,
         provider_id=provider_id,
@@ -1042,8 +1238,8 @@ def update_model(model_id: str, payload: dict, actor: str) -> AIModelConfig:
         if key in payload:
             setattr(model, key, payload[key])
 
-    if "model_role" in payload:
-        model.model_role = _normalize_model_role(payload.get("model_role"))
+    if "model_role" in payload or "model_name" in payload:
+        model.model_role = _normalize_model_role(payload.get("model_role", model.model_role), model_name=model.model_name)
 
     for key in ("input_price_per_1k", "output_price_per_1k", "flat_request_price"):
         if key in payload:
@@ -1178,10 +1374,17 @@ def test_model_connection(model_id: str, actor: str) -> dict:
         raise governance_error("provider_disabled", "Provider is disabled.", 409, {"provider_id": provider.provider_id})
 
     contract = _provider_contract(provider.provider_type)
-    if not contract.get("capabilities", {}).get("text_generation", False):
+    capabilities = contract.get("capabilities", {}) if isinstance(contract.get("capabilities"), dict) else {}
+    if _is_embedding_model(model):
+        supported = bool(capabilities.get("embeddings"))
+        unsupported_message = "Provider does not expose a supported embedding test path."
+    else:
+        supported = bool(capabilities.get("text_generation"))
+        unsupported_message = "Provider does not expose a supported text-generation test path."
+    if not supported:
         raise governance_error(
             "model_test_unsupported",
-            "Provider does not expose a supported text-generation test path.",
+            unsupported_message,
             409,
             {"provider_id": provider.provider_id, "provider_type": provider.provider_type},
         )
@@ -1212,17 +1415,33 @@ def test_model_connection(model_id: str, actor: str) -> dict:
 
     started = perf_counter()
     try:
-        result = adapter.generate(
-            "Reply with OK.",
-            timeout_seconds=float(model.timeout_seconds or 10),
-            model_name=model.model_name,
-        )
+        if provider.provider_type == "openai":
+            probe = _minimal_openai_probe(
+                base_url=base_url,
+                contract=contract,
+                secret=secret,
+                model=model,
+                timeout_seconds=float(model.timeout_seconds or 10),
+                provider_type=provider.provider_type,
+            )
+            result = None
+            success = bool(probe.get("success"))
+            content = str(probe.get("content") or "").strip()
+            metadata = probe.get("metadata") if isinstance(probe.get("metadata"), dict) else {}
+            error_code = probe.get("error_code")
+            operator_message = str(probe.get("operator_message") or ("Model responded successfully." if success else "Model probe failed."))
+        else:
+            result = adapter.generate(
+                "Reply with OK.",
+                timeout_seconds=float(model.timeout_seconds or 10),
+                model_name=model.model_name,
+            )
+            success = bool(getattr(result, "success", False))
+            content = str(getattr(result, "content", "") or "").strip()
+            metadata = getattr(result, "metadata", {}) or {}
+            error_code = None if success else "model_test_unsuccessful"
+            operator_message = "Model responded successfully." if success else "Model call completed but did not report success."
         latency_ms = int((perf_counter() - started) * 1000)
-        success = bool(getattr(result, "success", False))
-        content = str(getattr(result, "content", "") or "").strip()
-        metadata = getattr(result, "metadata", {}) or {}
-        error_code = None if success else "model_test_unsuccessful"
-        operator_message = "Model responded successfully." if success else "Model call completed but did not report success."
     except Exception as exc:  # noqa: BLE001 — operator-facing probe
         latency_ms = int((perf_counter() - started) * 1000)
         success = False
@@ -1260,7 +1479,7 @@ def list_routes() -> list[dict]:
     model_rows = {m.model_id: m for m in AIModelConfig.query.all()}
     provider_rows = {p.provider_id: p for p in AIProviderConfig.query.all()}
 
-    def _model_runtime_eligible(model_id: str | None, *, require_non_mock: bool) -> tuple[bool, str | None]:
+    def _model_runtime_eligible(model_id: str | None, *, route_field: str) -> tuple[bool, str | None]:
         if not model_id:
             return False, "model_reference_missing"
         model = model_rows.get(model_id)
@@ -1268,6 +1487,10 @@ def list_routes() -> list[dict]:
             return False, "model_reference_not_found"
         if not model.is_enabled:
             return False, "model_disabled"
+        if route_field in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
+            return False, "model_role_not_generation"
+        if route_field == "mock_model_id" and (model.model_role or "").strip().lower() != "mock":
+            return False, "model_role_not_mock"
         provider = provider_rows.get(model.provider_id)
         if provider is None:
             return False, "provider_not_found"
@@ -1278,16 +1501,16 @@ def list_routes() -> list[dict]:
         contract = _provider_contract(provider.provider_type)
         if bool(contract.get("requires_credential")) and not provider.credential_configured:
             return False, "provider_credential_missing"
-        if require_non_mock and provider.provider_type == "mock":
+        if route_field in {"preferred_model_id", "fallback_model_id"} and provider.provider_type == "mock":
             return False, "provider_is_mock"
         return True, None
 
     out: list[dict] = []
     for row in rows:
         blockers: list[str] = []
-        pref_ok, pref_blocker = _model_runtime_eligible(row.preferred_model_id, require_non_mock=True)
-        fb_ok, fb_blocker = _model_runtime_eligible(row.fallback_model_id, require_non_mock=True)
-        mock_ok, mock_blocker = _model_runtime_eligible(row.mock_model_id, require_non_mock=False)
+        pref_ok, pref_blocker = _model_runtime_eligible(row.preferred_model_id, route_field="preferred_model_id")
+        fb_ok, fb_blocker = _model_runtime_eligible(row.fallback_model_id, route_field="fallback_model_id")
+        mock_ok, mock_blocker = _model_runtime_eligible(row.mock_model_id, route_field="mock_model_id")
         if pref_blocker and row.preferred_model_id:
             blockers.append(f"preferred_{pref_blocker}")
         if fb_blocker and row.fallback_model_id:
@@ -1366,7 +1589,7 @@ def evaluate_runtime_readiness() -> dict:
         p["eligible_for_runtime_assignment"] and p["provider_type"] != "mock" for p in provider_rows
     )
     enabled_non_mock_model = any(
-        m["runtime_eligible"]
+        m.get("generation_runtime_eligible")
         and (next((p for p in provider_rows if p["provider_id"] == m["provider_id"]), {}).get("provider_type") != "mock")
         for m in model_rows
     )
@@ -1555,7 +1778,7 @@ def evaluate_runtime_readiness() -> dict:
             "runtime_eligible_non_mock": sum(
                 1
                 for m in model_rows
-                if m["runtime_eligible"]
+                if m.get("generation_runtime_eligible")
                 and (next((p for p in provider_rows if p["provider_id"] == m["provider_id"]), {}).get("provider_type") != "mock")
             ),
         },
@@ -1574,10 +1797,10 @@ def _ensure_model_exists(model_id: str | None, *, route_field: str | None = None
     model = db.session.get(AIModelConfig, model_id)
     if model is None or not model.is_enabled:
         raise governance_error("route_invalid_model_reference", "Route references missing or disabled model.", 409, {"model_id": model_id})
-    if route_field in {"preferred_model_id", "fallback_model_id"} and model.model_role == "mock":
+    if route_field in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
         raise governance_error(
             "route_invalid_model_role",
-            "Preferred and fallback route models must be AI-classified models, not mock.",
+            "Preferred and fallback route models must be generation models (llm/slm), not mock or embedding_role.",
             409,
             {"model_id": model_id, "route_field": route_field, "model_role": model.model_role},
         )
@@ -1694,7 +1917,7 @@ def _validate_runtime_modes(modes: dict) -> None:
         for mid in (route.preferred_model_id, route.fallback_model_id):
             if mid:
                 model = db.session.get(AIModelConfig, mid)
-                if model and model.provider_id in real_provider_ids and model.is_enabled:
+                if model and model.provider_id in real_provider_ids and model.is_enabled and _is_generation_model(model):
                     route_models.add(mid)
         if route.mock_model_id:
             model = db.session.get(AIModelConfig, route.mock_model_id)
@@ -1750,7 +1973,23 @@ def _validate_and_resolve_routes(*, routes: list[AITaskRoute], models_by_id: dic
             model = models_by_id.get(ref_id)
             if model is None:
                 raise governance_error("resolved_config_generation_failed", "Route references missing model.", 500, {"route_id": route.route_id, "model_id": ref_id})
-            if model.provider_id in selected_provider_ids or model.model_role == "mock":
+            if ref_name in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
+                raise governance_error(
+                    "resolved_config_generation_failed",
+                    "Route preferred/fallback reference is not a generation model.",
+                    500,
+                    {"route_id": route.route_id, "model_id": ref_id, "model_role": model.model_role},
+                )
+            if ref_name == "mock_model_id" and (model.model_role or "").strip().lower() != "mock":
+                raise governance_error(
+                    "resolved_config_generation_failed",
+                    "Route mock reference is not a mock model.",
+                    500,
+                    {"route_id": route.route_id, "model_id": ref_id, "model_role": model.model_role},
+                )
+            if ref_name in {"preferred_model_id", "fallback_model_id"} and model.provider_id in selected_provider_ids:
+                has_selectable_model = True
+            if ref_name == "mock_model_id" and model.model_role == "mock":
                 has_selectable_model = True
 
         # Only fail if route has NO selectable models in non-mock_only modes
@@ -1815,7 +2054,7 @@ def _serialize_model_rows(models: list[AIModelConfig], selected_provider_ids: se
             "model_id": model.model_id,
             "provider_id": model.provider_id,
             "model_name": model.model_name,
-            "model_role": model.model_role,
+            "model_role": _normalize_model_role(model.model_role, model_name=model.model_name),
             "timeout_seconds": model.timeout_seconds,
             "structured_output_capable": model.structured_output_capable,
         }

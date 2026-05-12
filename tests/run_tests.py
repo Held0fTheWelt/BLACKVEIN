@@ -230,6 +230,19 @@ def combined_marker_expression(
         return parts[0]
     return " and ".join(parts)
 
+
+def _capture_flags_for_suite(suite_name: str) -> list[str]:
+    """Return suite-specific capture overrides.
+
+    ``story_runtime_core`` is collected from the repository root but owns its own
+    package-local pytest config. In some Windows/WSL workspaces pytest's default
+    temp-file capture can disappear before teardown; disabling capture keeps the
+    runner aligned with the direct command that is reliable locally and in CI.
+    """
+    if suite_name in {"story_runtime_core", "tools_mcp_server"}:
+        return ["--capture=no"]
+    return []
+
 # Matches backend/pytest.ini coverage gate when running backend tests
 BACKEND_COV_FAIL_UNDER = "85"
 FRONTEND_COV_FAIL_UNDER = "90"
@@ -690,6 +703,24 @@ def check_environment(suites: dict[str, SuiteConfig]) -> bool:
             if g_err:
                 print_info(g_err)
 
+    if "tools_mcp_server" in labels:
+        print_info("Probing tools/mcp_server stack (cwd=repo root) …")
+        passed, err = _import_probe(
+            cwd=PROJECT_ROOT,
+            py_code="import pydantic, requests\n",
+            env_overrides={"PYTHONPATH": str(PROJECT_ROOT)},
+        )
+        if passed:
+            print_success("tools_mcp_server suite: Pydantic and Requests importable (see tools/mcp_server/pyproject.toml).")
+        else:
+            ok = False
+            print_error(
+                "tools_mcp_server import probe failed. From repo root run: "
+                "`pip install -e \"./tools/mcp_server[test]\"`, then retry."
+            )
+            if err:
+                print_info(err)
+
     print()
     return ok
 
@@ -730,7 +761,7 @@ def show_test_stats(suites: dict[str, SuiteConfig], *, scope: str = "all", domai
         if missing:
             print_info(f"{suite_name}: no tests directory or file ({', '.join(str(suite_cwd / tp) for tp in missing)})")
             continue
-        collect_argv = ["--collect-only", "-q", "--no-cov"]
+        collect_argv = ["--collect-only", "-q", "--no-cov", *_capture_flags_for_suite(suite_name)]
         m = combined_marker_expression(suite_name, scope, domain)
         if m:
             collect_argv.extend(["-m", m])
@@ -902,7 +933,7 @@ def build_pytest_argv(
         argv_inner.extend(extra_targets)
 
     if quick:
-        argv = ["-v", "--tb=short", "--no-cov", "-x"]
+        argv = ["-v", "--tb=short", "--no-cov", "-x", *_capture_flags_for_suite(suite_name)]
         m = combined_marker_expression(suite_name, scope, domain, extra_marker_clauses)
         if m:
             argv.extend(["-m", m])
@@ -911,7 +942,7 @@ def build_pytest_argv(
         return argv
 
     if coverage_mode:
-        argv = ["-v", "--tb=short"]
+        argv = ["-v", "--tb=short", *_capture_flags_for_suite(suite_name)]
         _append_cov_flags(argv, suite_name)
         argv.extend(
             [
@@ -930,7 +961,7 @@ def build_pytest_argv(
         )
         _append_cov_fail_under(argv)
     else:
-        argv = ["-v", "--tb=short"]
+        argv = ["-v", "--tb=short", *_capture_flags_for_suite(suite_name)]
         _append_cov_flags(argv, suite_name)
         argv.extend(
             [

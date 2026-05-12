@@ -93,6 +93,162 @@ class OpenAIChatAdapter(BaseModelAdapter):
         model = model_name.strip().lower()
         return model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3") or model.startswith("o4")
 
+    @staticmethod
+    def _uses_responses_api(model_name: str) -> bool:
+        model = model_name.strip().lower()
+        return model.startswith("gpt-5") or model.startswith("o1") or model.startswith("o3") or model.startswith("o4")
+
+    @staticmethod
+    def _json_mode_requested(prompt: str) -> bool:
+        text = prompt.lower()
+        return "return valid json" in text or "format instructions" in text
+
+    @staticmethod
+    def _extract_responses_text(payload: dict[str, Any]) -> str:
+        output_text = payload.get("output_text")
+        if isinstance(output_text, str):
+            return output_text
+        chunks: list[str] = []
+        output_items = payload.get("output")
+        if isinstance(output_items, list):
+            for item in output_items:
+                if not isinstance(item, dict):
+                    continue
+                content_items = item.get("content")
+                if not isinstance(content_items, list):
+                    continue
+                for content_item in content_items:
+                    if not isinstance(content_item, dict):
+                        continue
+                    text = content_item.get("text")
+                    if isinstance(text, str):
+                        chunks.append(text)
+                    refusal = content_item.get("refusal")
+                    if isinstance(refusal, str) and not chunks:
+                        chunks.append(refusal)
+        return "\n".join(chunk for chunk in chunks if chunk)
+
+    @staticmethod
+    def _usage_details(usage: dict[str, Any]) -> tuple[int, int, int]:
+        prompt_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+        completion_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        total_tokens = int(usage.get("total_tokens") or (prompt_tokens + completion_tokens))
+        return prompt_tokens, completion_tokens, total_tokens
+
+    def _generate_with_responses_api(
+        self,
+        *,
+        client: httpx.Client,
+        api_key: str,
+        prompt: str,
+        retrieval_context: str | None,
+        chosen_model: str,
+        request_timeout: float,
+    ) -> ModelCallResult:
+        payload: dict[str, Any] = {
+            "model": chosen_model,
+            "instructions": retrieval_context or "No retrieval context attached.",
+            "input": prompt,
+        }
+        if self._supports_custom_temperature(chosen_model):
+            payload["temperature"] = 0.3
+        if self._uses_reasoning_controls(chosen_model):
+            payload["reasoning"] = {"effort": "minimal"}
+            payload["max_output_tokens"] = 1200
+        if self._json_mode_requested(prompt):
+            payload["text"] = {"format": {"type": "json_object"}}
+        response = client.post(
+            f"{self.base_url}/responses",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=payload,
+        )
+        response.raise_for_status()
+        response_payload = response.json()
+        message = self._extract_responses_text(response_payload)
+        usage = response_payload.get("usage") if isinstance(response_payload.get("usage"), dict) else {}
+        prompt_tokens, completion_tokens, total_tokens = self._usage_details(usage)
+        return ModelCallResult(
+            content=message,
+            success=True,
+            metadata={
+                "adapter": self.adapter_name,
+                "adapter_api": "responses",
+                "model": chosen_model,
+                "base_url": self.base_url,
+                "timeout_seconds": request_timeout,
+                "usage_available": bool(usage),
+                "usage_source": "provider_response" if usage else "provider_response_missing_usage",
+                "usage_details": {
+                    "input": prompt_tokens,
+                    "output": completion_tokens,
+                    "total": total_tokens,
+                },
+                "tokens_prompt": prompt_tokens,
+                "tokens_completion": completion_tokens,
+                "tokens_total": total_tokens,
+                "response_id": response_payload.get("id"),
+            },
+        )
+
+    def _generate_with_chat_completions_api(
+        self,
+        *,
+        client: httpx.Client,
+        api_key: str,
+        prompt: str,
+        retrieval_context: str | None,
+        chosen_model: str,
+        request_timeout: float,
+    ) -> ModelCallResult:
+        payload: dict[str, Any] = {
+            "model": chosen_model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": retrieval_context or "No retrieval context attached.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        }
+        if self._supports_custom_temperature(chosen_model):
+            payload["temperature"] = 0.3
+        if self._uses_reasoning_controls(chosen_model):
+            payload["reasoning_effort"] = "minimal"
+            payload["max_completion_tokens"] = 1200
+        if self._json_mode_requested(prompt):
+            payload["response_format"] = {"type": "json_object"}
+        response = client.post(
+            f"{self.base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=payload,
+        )
+        response.raise_for_status()
+        response_payload = response.json()
+        message = response_payload["choices"][0]["message"]["content"]
+        usage = response_payload.get("usage") if isinstance(response_payload.get("usage"), dict) else {}
+        prompt_tokens, completion_tokens, total_tokens = self._usage_details(usage)
+        return ModelCallResult(
+            content=message,
+            success=True,
+            metadata={
+                "adapter": self.adapter_name,
+                "adapter_api": "chat_completions",
+                "model": chosen_model,
+                "base_url": self.base_url,
+                "timeout_seconds": request_timeout,
+                "usage_available": bool(usage),
+                "usage_source": "provider_response" if usage else "provider_response_missing_usage",
+                "usage_details": {
+                    "input": prompt_tokens,
+                    "output": completion_tokens,
+                    "total": total_tokens,
+                },
+                "tokens_prompt": prompt_tokens,
+                "tokens_completion": completion_tokens,
+                "tokens_total": total_tokens,
+            },
+        )
+
     def generate(
         self,
         prompt: str,
@@ -106,7 +262,7 @@ class OpenAIChatAdapter(BaseModelAdapter):
         uses_reasoning_controls = self._uses_reasoning_controls(chosen_model)
         request_timeout = timeout_seconds
         if uses_reasoning_controls:
-            override_raw = os.getenv("OPENAI_REASONING_CHAT_TIMEOUT_SECONDS")
+            override_raw = os.getenv("OPENAI_REASONING_RESPONSES_TIMEOUT_SECONDS") or os.getenv("OPENAI_REASONING_CHAT_TIMEOUT_SECONDS")
             if override_raw is not None and override_raw.strip():
                 try:
                     request_timeout = max(1.0, float(override_raw.strip()))
@@ -122,55 +278,17 @@ class OpenAIChatAdapter(BaseModelAdapter):
             )
         try:
             with httpx.Client(timeout=request_timeout) as client:
-                payload: dict[str, Any] = {
-                    "model": chosen_model,
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": retrieval_context or "No retrieval context attached.",
-                        },
-                        {"role": "user", "content": prompt},
-                    ],
+                call_kwargs = {
+                    "client": client,
+                    "api_key": api_key,
+                    "prompt": prompt,
+                    "retrieval_context": retrieval_context,
+                    "chosen_model": chosen_model,
+                    "request_timeout": request_timeout,
                 }
-                if self._supports_custom_temperature(chosen_model):
-                    payload["temperature"] = 0.3
-                if uses_reasoning_controls:
-                    payload["reasoning_effort"] = "minimal"
-                    payload["max_completion_tokens"] = 1200
-                if "return valid json" in prompt.lower() or "format instructions" in prompt.lower():
-                    payload["response_format"] = {"type": "json_object"}
-                response = client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers={"Authorization": f"Bearer {api_key}"},
-                    json=payload,
-                )
-                response.raise_for_status()
-                payload = response.json()
-                message = payload["choices"][0]["message"]["content"]
-                usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
-                prompt_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
-                completion_tokens = int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
-                total_tokens = int(usage.get("total_tokens") or (prompt_tokens + completion_tokens))
-                return ModelCallResult(
-                    content=message,
-                    success=True,
-                    metadata={
-                        "adapter": self.adapter_name,
-                        "model": chosen_model,
-                        "base_url": self.base_url,
-                        "timeout_seconds": request_timeout,
-                        "usage_available": bool(usage),
-                        "usage_source": "provider_response" if usage else "provider_response_missing_usage",
-                        "usage_details": {
-                            "input": prompt_tokens,
-                            "output": completion_tokens,
-                            "total": total_tokens,
-                        },
-                        "tokens_prompt": prompt_tokens,
-                        "tokens_completion": completion_tokens,
-                        "tokens_total": total_tokens,
-                    },
-                )
+                if self._uses_responses_api(chosen_model):
+                    return self._generate_with_responses_api(**call_kwargs)
+                return self._generate_with_chat_completions_api(**call_kwargs)
         except Exception as exc:
             error_str = str(exc)
             _log.error("Model adapter call failed: adapter=%s model=%s error=%s", self.adapter_name, chosen_model, error_str)

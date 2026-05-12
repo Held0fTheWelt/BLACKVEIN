@@ -42,6 +42,60 @@ def _ensure_mock_provider_and_model(client, admin_headers, *, provider_id: str, 
     return created_provider_id, model_response.get_json()["data"]["model_id"]
 
 
+def _ensure_openai_provider_with_credential(client, admin_headers, monkeypatch, *, provider_id: str) -> str:
+    _with_kek(monkeypatch)
+    provider_response = client.post(
+        "/api/v1/admin/ai/providers",
+        headers=admin_headers,
+        json={
+            "provider_id": provider_id,
+            "provider_type": "openai",
+            "display_name": provider_id.replace("_", " ").title(),
+            "base_url": "https://api.openai.com/v1",
+            "is_enabled": True,
+        },
+    )
+    assert provider_response.status_code == 200
+    created_provider_id = provider_response.get_json()["data"]["provider_id"]
+    credential_response = client.post(
+        f"/api/v1/admin/ai/providers/{created_provider_id}/credential",
+        headers=admin_headers,
+        json={"api_key": "sk-test-model-probe"},
+    )
+    assert credential_response.status_code == 200
+    return created_provider_id
+
+
+class _ProbeHTTPResponse:
+    def __init__(self, payload: dict, *, status_code: int = 200) -> None:
+        self._payload = payload
+        self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _ProbeHTTPClient:
+    calls: list[dict] = []
+    response_payload: dict = {}
+
+    def __init__(self, timeout: float = 0) -> None:
+        self.timeout = timeout
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def post(self, url, *, headers=None, json=None):
+        self.calls.append({"url": url, "headers": headers or {}, "json": json or {}, "timeout": self.timeout})
+        return _ProbeHTTPResponse(self.response_payload)
+
+
 def test_bootstrap_public_status_available(client):
     response = client.get("/api/v1/bootstrap/public-status")
     assert response.status_code == 200
@@ -313,6 +367,130 @@ def test_model_test_endpoint_runs_concrete_probe(client, admin_headers):
     payload = test_response.get_json()["data"]
     assert payload["success"] is True
     assert payload["available"] is True
+
+
+def test_openai_gpt5_family_model_tests_execute_minimal_responses_probe(client, admin_headers, monkeypatch):
+    provider_id = _ensure_openai_provider_with_credential(
+        client,
+        admin_headers,
+        monkeypatch,
+        provider_id="openai_gpt54_probe",
+    )
+    monkeypatch.setattr(governance_runtime_service.httpx, "Client", _ProbeHTTPClient)
+
+    for model_name in ("gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.5"):
+        model_id = f"probe_{model_name.replace('.', '_').replace('-', '_')}"
+        model_response = client.post(
+            "/api/v1/admin/ai/models",
+            headers=admin_headers,
+            json={
+                "provider_id": provider_id,
+                "model_id": model_id,
+                "model_name": model_name,
+                "display_name": model_name,
+                "model_role": "llm",
+                "is_enabled": True,
+                "timeout_seconds": 30,
+            },
+        )
+        assert model_response.status_code == 200
+        _ProbeHTTPClient.calls = []
+        _ProbeHTTPClient.response_payload = {"id": "resp_probe", "output_text": "OK"}
+
+        test_response = client.post(f"/api/v1/admin/ai/models/{model_id}/test", headers=admin_headers, json={})
+        assert test_response.status_code == 200
+        payload = test_response.get_json()["data"]
+        assert payload["success"] is True
+        assert payload["metadata"]["concrete_probe_executed"] is True
+        assert payload["metadata"]["minimal_request_executed"] is True
+        assert payload["metadata"]["adapter_api"] == "responses"
+        assert payload["metadata"]["probe_endpoint"] == "/responses"
+        assert _ProbeHTTPClient.calls
+        call = _ProbeHTTPClient.calls[0]
+        assert call["url"] == "https://api.openai.com/v1/responses"
+        assert call["json"]["model"] == model_name
+        assert call["json"]["max_output_tokens"] == 8
+        assert call["json"]["reasoning"] == {"effort": "minimal"}
+
+
+def test_openai_embedding_role_model_test_executes_embeddings_probe(client, admin_headers, monkeypatch):
+    provider_id = _ensure_openai_provider_with_credential(
+        client,
+        admin_headers,
+        monkeypatch,
+        provider_id="openai_embedding_probe",
+    )
+    model_response = client.post(
+        "/api/v1/admin/ai/models",
+        headers=admin_headers,
+        json={
+            "provider_id": provider_id,
+            "model_id": "embedding_probe_model",
+            "model_name": "text-embedding-3-small",
+            "display_name": "Text Embedding 3 Small",
+            "model_role": "embedding_role",
+            "is_enabled": True,
+            "timeout_seconds": 30,
+        },
+    )
+    assert model_response.status_code == 200
+    _ProbeHTTPClient.calls = []
+    _ProbeHTTPClient.response_payload = {"data": [{"embedding": [0.1, 0.2, 0.3]}]}
+    monkeypatch.setattr(governance_runtime_service.httpx, "Client", _ProbeHTTPClient)
+
+    test_response = client.post("/api/v1/admin/ai/models/embedding_probe_model/test", headers=admin_headers, json={})
+    assert test_response.status_code == 200
+    payload = test_response.get_json()["data"]
+    assert payload["success"] is True
+    assert payload["metadata"]["adapter_api"] == "embeddings"
+    assert payload["metadata"]["probe_endpoint"] == "/embeddings"
+    assert payload["metadata"]["embedding_dimensions"] == 3
+    call = _ProbeHTTPClient.calls[0]
+    assert call["url"] == "https://api.openai.com/v1/embeddings"
+    assert call["json"] == {"model": "text-embedding-3-small", "input": "ping"}
+
+
+def test_embedding_role_models_are_not_valid_generation_route_models(client, admin_headers, monkeypatch):
+    provider_id = _ensure_openai_provider_with_credential(
+        client,
+        admin_headers,
+        monkeypatch,
+        provider_id="openai_embedding_route_guard",
+    )
+    model_response = client.post(
+        "/api/v1/admin/ai/models",
+        headers=admin_headers,
+        json={
+            "provider_id": provider_id,
+            "model_id": "embedding_route_guard_model",
+            "model_name": "text-embedding-3-large",
+            "display_name": "Text Embedding 3 Large",
+            "model_role": "llm",
+            "is_enabled": True,
+        },
+    )
+    assert model_response.status_code == 200
+    models_response = client.get("/api/v1/admin/ai/models", headers=admin_headers)
+    assert models_response.status_code == 200
+    model_row = next(row for row in models_response.get_json()["data"]["models"] if row["model_id"] == "embedding_route_guard_model")
+    assert model_row["model_role"] == "embedding_role"
+    assert model_row["runtime_eligible"] is True
+    assert model_row["embedding_runtime_eligible"] is True
+    assert model_row["generation_runtime_eligible"] is False
+
+    route_response = client.post(
+        "/api/v1/admin/ai/routes",
+        headers=admin_headers,
+        json={
+            "task_kind": "research_synthesis",
+            "workflow_scope": "global",
+            "preferred_model_id": "embedding_route_guard_model",
+            "is_enabled": True,
+        },
+    )
+    assert route_response.status_code == 409
+    payload = route_response.get_json()
+    assert payload["error"]["code"] == "route_invalid_model_role"
 
 
 def test_model_delete_repairs_routes_to_mock_fallback(client, admin_headers, monkeypatch):

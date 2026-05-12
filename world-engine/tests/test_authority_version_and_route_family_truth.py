@@ -30,6 +30,7 @@ from app.story_runtime.governed_runtime import (
     GovernedStoryRoutingPolicy,
     LiveStoryRoutingError,
     build_governed_story_runtime_components,
+    normalize_provider_model_name,
 )
 from app.story_runtime.manager import StoryRuntimeManager
 from story_runtime_core import ModelRegistry
@@ -283,6 +284,29 @@ def test_build_governed_components_uses_new_policy() -> None:
     routing.choose(task_type="narrative_formulation")
     meta = routing._last_choice_meta or {}
     assert meta["route_family"] == "narrative_live_generation"
+
+
+def test_provider_model_name_preserves_current_openai_api_ids() -> None:
+    assert normalize_provider_model_name("gpt-5.4") == "gpt-5.4"
+    assert normalize_provider_model_name("gpt-5.4-mini") == "gpt-5.4-mini"
+    assert normalize_provider_model_name("gpt-5.4-nano") == "gpt-5.4-nano"
+    assert normalize_provider_model_name("gpt-5.5") == "gpt-5.5"
+
+
+def test_build_governed_components_skips_embedding_role_models() -> None:
+    cfg = _governed_config()
+    cfg["models"].append(
+        {
+            "provider_id": "mock_provider",
+            "model_id": "embed_model",
+            "model_role": "embedding_role",
+            "model_name": "text-embedding-3-small",
+        }
+    )
+    components = build_governed_story_runtime_components(cfg)
+    assert components is not None
+    registry, _, _ = components
+    assert registry.get("embed_model") is None
 
 
 def test_governed_routing_prefers_rich_model_for_high_complexity_turns() -> None:

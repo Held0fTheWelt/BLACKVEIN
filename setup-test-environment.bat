@@ -104,7 +104,7 @@ if exist "frontend\requirements-dev.txt" (
 )
 if exist "administration-tool\requirements-dev.txt" (
     echo Installing administration-tool test dependencies...
-    python -m pip install -r administration-tool/requirements-dev.txt -q
+    "%PYTHON_EXE%" -m pip install -r administration-tool/requirements-dev.txt -q
     if errorlevel 1 exit /b 1
 )
 if exist "world-engine\requirements-dev.txt" (
@@ -131,6 +131,14 @@ if exist "ai_stack\pyproject.toml" (
         exit /b 1
     )
 )
+if exist "tools\mcp_server\pyproject.toml" (
+    echo Installing tools/mcp_server[test] ^(editable^)...
+    "%PYTHON_EXE%" -m pip install -e "./tools/mcp_server[test]" -q
+    if errorlevel 1 (
+        echo Error: editable install of tools/mcp_server[test] failed
+        exit /b 1
+    )
+)
 
 echo Ensuring Python 3.14-safe pytest-asyncio range...
 "%PYTHON_EXE%" -m pip install --upgrade "pytest-asyncio>=1.3,<2" -q
@@ -145,7 +153,7 @@ echo Verifying critical dependencies...
 
 set "MISSING="
 
-for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio langchain_core langgraph fastapi httpx) do (
+for %%p in (flask sqlalchemy flask_sqlalchemy flask_migrate flask_limiter pytest pytest_asyncio pytest_cov langchain_core langgraph fastapi httpx requests) do (
     "%PYTHON_EXE%" -c "import %%p" >nul 2>&1
     if !errorlevel! equ 0 (
         echo   [OK] %%p

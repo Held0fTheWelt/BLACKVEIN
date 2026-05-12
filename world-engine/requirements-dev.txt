@@ -2,5 +2,6 @@
 -r requirements.txt
 
 # Test runner and plugins
+pytest-cov>=4.0,<6
 pytest-timeout>=2.1
 pytest-asyncio>=1.3,<2

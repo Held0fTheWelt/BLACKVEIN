@@ -33,16 +33,31 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
+          cache-dependency-path: frontend/requirements-dev.txt
 
-      - name: Install test dependencies
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Python test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install 'pytest>=7,<9' 'jest>=29,<31'
+          python -m pip install -r frontend/requirements-dev.txt
 
-      - name: Run MVP5 frontend unit tests
-        run: |
-          cd frontend
-          python -m pytest tests/test_block_renderer.js tests/test_typewriter_engine.js tests/test_blocks_orchestrator.js tests/test_play_controls.js -v --tb=short || npm test
+      - name: Install Node test dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Run frontend Python tests
+        working-directory: ./frontend
+        run: python -m pytest tests -v --tb=short --no-cov
+
+      - name: Run frontend Jest tests
+        working-directory: ./frontend
+        run: npm test -- --ci
 
       - name: Run frontend suite with test runner
         run: |
@@ -50,7 +65,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-test-reports-${{ matrix.python-version }}
           path: tests/reports/
