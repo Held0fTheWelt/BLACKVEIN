@@ -317,6 +317,8 @@ def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
     assert "turn_generation_categorical_evaluators" in out["canonical_live_langfuse_filters"]
     tge = out["canonical_live_langfuse_filters"]["turn_generation_categorical_evaluators"]
     assert tge["observation_filters"]["Name"] == ["story.model.generation"]
+    assert tge["observation_filters"]["Trace Name"] == ["backend.turn.execute"]
+    assert tge["legacy_trace_names"] == ["world-engine.turn.execute"]
 
 
 # ---------------------------------------------------------------------------
@@ -707,3 +709,18 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["selected_beat"] == "domestic_disruption"
     assert row["beat_realized"] is False
     assert row["main_failure"] == "beat_realization_not_visible"
+
+
+def test_summarize_runtime_aspect_matrix_defaults_to_backend_and_world_engine_turn_traces():
+    registry = _registry()
+    tool = registry.get("summarize_runtime_aspect_matrix")
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        return_value=[{"id": "backend-turn", "name": "backend.turn.execute", "observations": [{}]}],
+    ) as query:
+        out = tool.handler({"limit": 1})
+
+    assert out["ok"] is True
+    kwargs = query.call_args.kwargs
+    assert kwargs["trace_name"] is None
+    assert kwargs["trace_names"] == ("backend.turn.execute", "world-engine.turn.execute")

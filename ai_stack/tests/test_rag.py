@@ -353,6 +353,86 @@ def test_persistent_rag_store_roundtrip_preserves_chunks(tmp_path: Path) -> None
     assert loaded.chunks[0].chunk_id == corpus.chunks[0].chunk_id
 
 
+def test_persistent_rag_store_retries_transient_replace_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import os
+
+    _write(tmp_path / "content" / "persist.md", "Persistent retrieval corpus retry sample text.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    path = tmp_path / "nested" / "corpus.json"
+    store = PersistentRagStore(path)
+    real_replace = os.replace
+    calls = {"count": 0}
+
+    def flaky_replace(source: str, destination: str | Path) -> None:
+        calls["count"] += 1
+        if calls["count"] < 3:
+            raise PermissionError(errno.EACCES, "simulated transient lock")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(os, "replace", flaky_replace)
+    monkeypatch.setattr("ai_stack.rag_persistent_store.time.sleep", lambda _delay: None)
+
+    store.save(corpus)
+
+    assert calls["count"] == 3
+    assert store.load(expected_fingerprint=corpus.corpus_fingerprint) is not None
+    assert list(path.parent.glob(".rag_*.json")) == []
+
+
+def test_persistent_rag_store_preserves_existing_cache_when_replace_remains_locked(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import os
+
+    _write(tmp_path / "content" / "persist.md", "Persistent retrieval corpus original sample text.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    path = tmp_path / "nested" / "corpus.json"
+    store = PersistentRagStore(path)
+    store.save(corpus)
+    original_payload = path.read_text(encoding="utf-8")
+    _write(tmp_path / "content" / "persist.md", "Persistent retrieval corpus updated sample text.")
+    updated = RagIngestionPipeline().build_corpus(tmp_path)
+
+    def locked_replace(_source: str, _destination: str | Path) -> None:
+        raise PermissionError(errno.EACCES, "simulated persistent lock")
+
+    monkeypatch.setattr(os, "replace", locked_replace)
+    monkeypatch.setattr("ai_stack.rag_persistent_store.time.sleep", lambda _delay: None)
+
+    store.save(updated)
+
+    assert path.read_text(encoding="utf-8") == original_payload
+    assert list(path.parent.glob(".rag_*.json")) == []
+
+
+def test_persistent_rag_store_raises_non_transient_replace_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+    import os
+
+    _write(tmp_path / "content" / "persist.md", "Persistent retrieval corpus non transient sample text.")
+    corpus = RagIngestionPipeline().build_corpus(tmp_path)
+    path = tmp_path / "nested" / "corpus.json"
+    store = PersistentRagStore(path)
+
+    def no_space_replace(_source: str, _destination: str | Path) -> None:
+        raise OSError(errno.ENOSPC, "simulated disk full")
+
+    monkeypatch.setattr(os, "replace", no_space_replace)
+
+    with pytest.raises(OSError):
+        store.save(corpus)
+    assert list(path.parent.glob(".rag_*.json")) == []
+
+
 @requires_embeddings
 def test_hybrid_ranking_beats_sparse_only_on_paraphrase_with_low_lexical_overlap(tmp_path: Path) -> None:
     """Dense similarity should connect paraphrases where sparse token overlap is weak."""

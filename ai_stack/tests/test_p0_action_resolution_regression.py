@@ -126,6 +126,27 @@ def _modules_root_with_beer_fridge(tmp_path: Path, *, available: bool) -> Path:
     return dst_root
 
 
+def _modules_root_with_beer_without_fridge(tmp_path: Path) -> Path:
+    repo_locale = _root() / "god_of_carnage" / "locale"
+    dst_root = tmp_path / "modules"
+    loc = dst_root / "god_of_carnage" / "locale"
+    loc.mkdir(parents=True)
+    shutil.copy2(repo_locale / "action_ontology.yaml", loc / "action_ontology.yaml")
+    shutil.copy2(repo_locale / "module_strings.yaml", loc / "module_strings.yaml")
+    (loc / "scene_affordances.yaml").write_text(
+        "scene_affordances:\n"
+        "  current_area: test_kitchen\n"
+        "  inferred_area_policy: residential_apartment\n"
+        "  locations: []\n"
+        "  objects:\n"
+        '    - id: beer\n'
+        '      aliases: ["Bier", "beer"]\n'
+        '      affordances: ["take"]\n',
+        encoding="utf-8",
+    )
+    return dst_root
+
+
 def test_take_beer_from_fridge_available_stays_object_action_with_source_query(tmp_path: Path) -> None:
     root = _modules_root_with_beer_fridge(tmp_path, available=True)
     out = resolve_player_action(
@@ -154,6 +175,32 @@ def test_take_beer_from_fridge_available_stays_object_action_with_source_query(t
     assert aff["action_commit_policy"] == "commit_action"
     assert frame["narrator_response_expected"] is True
     assert frame["npc_response_expected"] is False
+
+
+def test_take_beer_from_unknown_source_is_clarification_not_speech(tmp_path: Path) -> None:
+    root = _modules_root_with_beer_without_fridge(tmp_path)
+    out = resolve_player_action(
+        raw_text="Ich nehme ein Bier aus dem Kuehlschrank",
+        interpreted_input={
+            "player_input_kind": "action",
+            "lang": "de",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+            "actor_id": "annette_reille",
+        },
+        module_id="god_of_carnage",
+        runtime_projection=_projection(),
+        content_modules_root=root,
+    )
+    frame = out["player_action_frame"]
+    aff = out["affordance_resolution"]
+    assert frame["player_input_kind"] == "action"
+    assert frame["resolved_target_id"] == "beer"
+    assert frame["source_query"] == "Kuehlschrank"
+    assert frame["resolved_source_id"] is None
+    assert aff["affordance_status"] == "unknown_target"
+    assert aff["action_commit_policy"] == "needs_clarification"
+    assert aff["reason"] == "source_query_unresolved"
 
 
 def test_take_beer_from_fridge_unavailable_remains_action_unknown_target(tmp_path: Path) -> None:

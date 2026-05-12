@@ -34,7 +34,7 @@ MCP_DEFAULT_TOOL_DESCRIPTIONS: dict[str, str] = {
     "fetch_langfuse_trace_scores": "Fetch deterministic gates and LLM-as-a-Judge scores for a live trace (filters non-live by default)",
     "summarize_opening_judge_scores": "Matrix of deterministic + categorical judge categories for recent live traces (opening + turn judges), filterable by role and trace.name",
     "build_opening_quality_context": "Build AI-readable quality context for a live opening trace: gates, judge scores, recommended repair card",
-    "summarize_runtime_aspect_matrix": "Summarize backend-owned RuntimeAspectLedger evidence across Langfuse traces",
+    "summarize_runtime_aspect_matrix": "Summarize backend-owned RuntimeAspectLedger evidence across Langfuse turn traces (backend.turn.execute UI roots plus world-engine.turn.execute legacy/runtime traces)",
     "summarize_beat_realization_failures": "Summarize traces where a selected beat was missing, degraded, or lost in projection",
     "summarize_narrator_npc_authority": "Summarize narrator/NPC authority contracts and violations from runtime aspect evidence",
     "summarize_capability_realization": "Summarize selected, realized, missing, and forbidden dramatic runtime capabilities",

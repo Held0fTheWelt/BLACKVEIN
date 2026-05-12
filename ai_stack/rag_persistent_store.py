@@ -2,14 +2,65 @@
 
 from __future__ import annotations
 
+import errno
 import json
+import logging
 import os
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from ai_stack.rag_constants import INDEX_VERSION
+
+logger = logging.getLogger(__name__)
+
+_ATOMIC_REPLACE_MAX_ATTEMPTS = 6
+_ATOMIC_REPLACE_INITIAL_BACKOFF_SECONDS = 0.05
+_TRANSIENT_REPLACE_ERRNOS = {
+    errno.EACCES,
+    errno.EPERM,
+    getattr(errno, "EBUSY", 16),
+    getattr(errno, "ETXTBSY", 26),
+}
+_TRANSIENT_REPLACE_WINERRORS = {5, 32, 33}
+
+
+def _is_transient_atomic_replace_error(exc: OSError) -> bool:
+    """Return whether ``os.replace`` likely hit a transient file lock."""
+    if isinstance(exc, PermissionError):
+        return True
+    exc_errno = getattr(exc, "errno", None)
+    if exc_errno in _TRANSIENT_REPLACE_ERRNOS:
+        return True
+    winerror = getattr(exc, "winerror", None)
+    return winerror in _TRANSIENT_REPLACE_WINERRORS
+
+
+def _replace_cache_file_with_retries(source: str, destination: Path) -> bool:
+    """Atomically replace a cache file, tolerating transient Windows/WSL locks."""
+    delay = _ATOMIC_REPLACE_INITIAL_BACKOFF_SECONDS
+    last_error: OSError | None = None
+    for attempt in range(1, _ATOMIC_REPLACE_MAX_ATTEMPTS + 1):
+        try:
+            os.replace(source, destination)
+            return True
+        except OSError as exc:
+            if not _is_transient_atomic_replace_error(exc):
+                raise
+            last_error = exc
+            if attempt >= _ATOMIC_REPLACE_MAX_ATTEMPTS:
+                break
+            time.sleep(delay)
+            delay *= 2
+    logger.warning(
+        "Runtime RAG corpus cache replace remained locked after %s attempts; "
+        "continuing with in-memory corpus and leaving existing cache unchanged: %s",
+        _ATOMIC_REPLACE_MAX_ATTEMPTS,
+        last_error,
+    )
+    return False
 
 
 @dataclass(slots=True)
@@ -63,6 +114,7 @@ class PersistentRagStore:
         payload["storage_path"] = str(self.storage_path)
         serialized = json.dumps(payload, ensure_ascii=True, indent=2)
         tmp_name: str | None = None
+        replace_committed = False
         try:
             with tempfile.NamedTemporaryFile(
                 mode="w",
@@ -75,7 +127,7 @@ class PersistentRagStore:
                 tmp.write(serialized)
                 tmp_name = tmp.name
             if tmp_name:
-                os.replace(tmp_name, self.storage_path)
+                replace_committed = _replace_cache_file_with_retries(tmp_name, self.storage_path)
         except Exception:
             if tmp_name:
                 try:
@@ -83,3 +135,9 @@ class PersistentRagStore:
                 except OSError:
                     pass
             raise
+        finally:
+            if tmp_name and not replace_committed:
+                try:
+                    Path(tmp_name).unlink(missing_ok=True)
+                except OSError:
+                    pass

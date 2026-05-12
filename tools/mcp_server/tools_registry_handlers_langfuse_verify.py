@@ -718,7 +718,8 @@ def _runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
             trace_origin=arguments.get("trace_origin"),
             canonical_player_flow=arguments.get("canonical_player_flow"),
             execution_tier=arguments.get("execution_tier"),
-            trace_name=arguments.get("trace_name") or "world-engine.turn.execute",
+            trace_name=arguments.get("trace_name"),
+            trace_names=("backend.turn.execute", "world-engine.turn.execute"),
         )
         raw_rows = [
             _langfuse_get_trace(str(row.get("id") or row.get("trace_id") or "").strip())
@@ -802,6 +803,7 @@ def _langfuse_query_traces(
     canonical_player_flow: bool | None,
     execution_tier: str | None = None,
     trace_name: str | None = None,
+    trace_names: tuple[str, ...] | None = None,
 ) -> list[dict[str, Any]]:
     payload = _langfuse_public_get_json(
         endpoint="/api/public/traces",
@@ -832,6 +834,9 @@ def _langfuse_query_traces(
         name_ok = True
         if trace_name is not None:
             name_ok = str(row.get("name") or "").strip() == str(trace_name).strip()
+        elif trace_names:
+            allowed_names = {str(name).strip() for name in trace_names if str(name).strip()}
+            name_ok = str(row.get("name") or "").strip() in allowed_names
         if origin_ok and canonical_ok and tier_ok and name_ok:
             filtered.append(row)
     return filtered
@@ -1263,7 +1268,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "canonical_player_flow": True,
                 },
                 "turn_evaluators": {
-                    "trace.name": "world-engine.turn.execute",
+                    "trace.name": "backend.turn.execute",
+                    "world_engine_observation.name": "world-engine.turn.execute",
                     "trace_origin": "live_ui",
                     "execution_tier": "live",
                     "canonical_player_flow": True,
@@ -1280,9 +1286,10 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     "observation_filters": {
                         "Type": ["GENERATION"],
                         "Name": ["story.model.generation"],
-                        "Trace Name": ["world-engine.turn.execute"],
+                        "Trace Name": ["backend.turn.execute"],
                         "Environment": ["live"],
                     },
+                    "legacy_trace_names": ["world-engine.turn.execute"],
                     "trace_metadata_when_available": {
                         "trace_origin": "live_ui",
                         "execution_tier": "live",
@@ -1567,4 +1574,3 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         "summarize_capability_realization": summarize_capability_realization,
         "summarize_visible_projection_origin_loss": summarize_visible_projection_origin_loss,
     }
-

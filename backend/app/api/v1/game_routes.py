@@ -147,7 +147,14 @@ def _error_response(exc: Exception):
     if isinstance(exc, GameServiceConfigError):
         return jsonify({"error": str(exc)}), exc.status_code
     if isinstance(exc, GameServiceError):
-        return jsonify({"error": str(exc)}), exc.status_code
+        body: dict[str, Any] = {"error": str(exc)}
+        code = getattr(exc, "code", None)
+        payload = getattr(exc, "payload", None)
+        if code:
+            body["code"] = code
+        if isinstance(payload, dict):
+            body.update(payload)
+        return jsonify(body), exc.status_code
     return jsonify({"error": "Unexpected game launcher error."}), route_status_codes.internal_error
 
 
@@ -657,6 +664,16 @@ def _ensure_player_session(
             except GameServiceError as exc:
                 if exc.status_code != route_status_codes.not_found:
                     raise
+                raise GameServiceError(
+                    "World-Engine story session is no longer available; restart is required.",
+                    status_code=route_status_codes.conflict,
+                    code="session_lost",
+                    payload={
+                        "resume_status": "needs_restart",
+                        "runtime_session_id": runtime_session_id,
+                        "run_id": clean_run_id,
+                    },
+                ) from exc
 
     if not isinstance(run_payload, dict):
         run_payload = get_play_run_details(clean_run_id)
@@ -995,7 +1012,11 @@ def game_player_session_turn(run_id: str):
                 root_span.update(
                     output={
                         "status": "completed",
+                        "root_trace_name": "backend.turn.execute",
+                        "world_engine_turn_observation_name": "world-engine.turn.execute",
                         "turn_number": turn.get("turn_number"),
+                        "canonical_turn_id": turn.get("canonical_turn_id"),
+                        "turn_aspect_ledger_present": isinstance(turn.get("turn_aspect_ledger"), dict),
                         "player_input_length": len(player_input),
                         "player_input_sha256": player_input_sha256,
                         **trace_meta,

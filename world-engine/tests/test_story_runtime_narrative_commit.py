@@ -252,7 +252,11 @@ def test_recoverable_validation_rejection_returns_structured_turn(manager: Story
     assert turn["diagnostics"]["hard_boundary_failure"] is False
     assert turn["validation_outcome"]["status"] == "rejected"
     assert turn["turn_kind"] == "player_rejected_recoverable"
-    assert session.turn_counter == 0
+    assert turn["canonical_turn_id"].endswith(":turn:1")
+    assert session.turn_counter == 1
+    state = manager.get_state(session.session_id)
+    assert state["history_count"] == 2
+    assert state["story_window"]["latest_entry"]["text"] == turn["player_visible_message"]
 
 
 def test_hard_boundary_rejection_still_raises(manager: StoryRuntimeManager) -> None:
@@ -683,3 +687,6 @@ def test_graph_execution_exception_returns_playable_turn(manager: StoryRuntimeMa
     assert turn["reason"] == "graph_execution_exception"
     vb = turn.get("visible_output_bundle") or {}
     assert isinstance(vb.get("scene_blocks"), list) and vb["scene_blocks"]
+    state = manager.get_state(session.session_id)
+    assert state["history_count"] == 2
+    assert state["story_window"]["latest_entry"]["turn_number"] == 1

@@ -17,6 +17,7 @@ from app.services.game_service import (
     _request,
     create_run,
     create_story_session,
+    execute_story_turn,
     get_play_service_public_url,
     get_play_service_websocket_url,
     get_run_details,
@@ -175,6 +176,46 @@ class TestGameServiceClient:
         with app.app_context():
             app.config["PLAY_SERVICE_PUBLIC_URL"] = "https://play.example.com"
             assert _request("GET", "/api/runs") is None
+
+    def test_execute_story_turn_requires_canonical_evidence(self, app, monkeypatch):
+        response = _FakeResponse(
+            status_code=200,
+            payload={"session_id": "story-1", "turn": {"turn_number": 1}},
+        )
+        monkeypatch.setattr(
+            "app.services.game_service.httpx.Client",
+            lambda **kwargs: _FakeClient(response=response, **kwargs),
+        )
+
+        with app.app_context():
+            app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://internal.example.com"
+            app.config["PLAY_SERVICE_INTERNAL_API_KEY"] = "internal-key"
+            app.config["PLAY_SERVICE_CONTROL_DISABLED"] = False
+            with pytest.raises(GameServiceError, match="missing canonical evidence") as exc:
+                execute_story_turn(session_id="story-1", player_input="Gehe in die Kueche")
+            assert exc.value.code == "missing_canonical_turn_evidence"
+            assert "turn_aspect_ledger" in exc.value.payload["missing"]
+
+    def test_execute_story_turn_accepts_recoverable_canonical_evidence(self, app, monkeypatch):
+        turn = {
+            "canonical_turn_id": "story-1:turn:1",
+            "turn_number": 1,
+            "turn_aspect_ledger": {"turn_aspect_ledger": {"input": {"status": "passed"}}},
+            "diagnostics": {"recoverable_rejection": True},
+            "visible_output_bundle": {"scene_blocks": [{"block_type": "narrator", "text": "Klarer Hinweis."}]},
+        }
+        response = _FakeResponse(status_code=200, payload={"session_id": "story-1", "turn": turn})
+        monkeypatch.setattr(
+            "app.services.game_service.httpx.Client",
+            lambda **kwargs: _FakeClient(response=response, **kwargs),
+        )
+
+        with app.app_context():
+            app.config["PLAY_SERVICE_INTERNAL_URL"] = "https://internal.example.com"
+            app.config["PLAY_SERVICE_INTERNAL_API_KEY"] = "internal-key"
+            app.config["PLAY_SERVICE_CONTROL_DISABLED"] = False
+            payload = execute_story_turn(session_id="story-1", player_input="Gehe in die Kueche")
+            assert payload["turn"]["canonical_turn_id"] == "story-1:turn:1"
 
     def test_internal_request_includes_trace_header_when_configured(self, app, monkeypatch):
         capture = {}

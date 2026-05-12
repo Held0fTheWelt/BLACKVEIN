@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from app.extensions import db
 from app.models import GameCharacter, GameExperienceTemplate, GameSaveSlot
-from app.services.game_service import PlayJoinContext
+from app.services.game_service import GameServiceError, PlayJoinContext
 
 pytestmark = pytest.mark.routes_core
 
@@ -632,6 +632,48 @@ def test_game_player_session_turn_langfuse_correlates_player_input_hash(
     assert upd_kwargs["output"]["player_input_sha256"] == meta["player_input_sha256"]
     assert upd_kwargs["output"]["player_input_length"] == len(player_line)
     assert upd_kwargs["output"]["status"] == "completed"
+    assert upd_kwargs["output"]["root_trace_name"] == "backend.turn.execute"
+    assert upd_kwargs["output"]["world_engine_turn_observation_name"] == "world-engine.turn.execute"
+
+
+def test_player_session_resume_lost_world_engine_session_needs_restart(
+    client,
+    auth_headers,
+    test_user,
+    monkeypatch,
+):
+    user, _ = test_user
+    run_id = "run-lost-session"
+    slot_key = f"player-{hashlib.sha1(run_id.encode('utf-8')).hexdigest()[:24]}"
+    with client.application.app_context():
+        db.session.add(
+            GameSaveSlot(
+                user_id=user.id,
+                slot_key=slot_key,
+                title="Lost runtime session",
+                template_id="god_of_carnage_solo",
+                template_title="God of Carnage",
+                run_id=run_id,
+                kind="canonical_player_session",
+                status="active",
+                metadata_json={
+                    "module_id": "god_of_carnage",
+                    "runtime_session_id": "missing-story-session",
+                },
+            )
+        )
+        db.session.commit()
+
+    def _missing_state(*_args, **_kwargs):
+        raise GameServiceError("Story session not found", status_code=404)
+
+    monkeypatch.setattr("app.api.v1.game_routes.get_story_state", _missing_state)
+
+    response = client.get(f"/api/v1/game/player-sessions/{run_id}", headers=auth_headers)
+    assert response.status_code == 409
+    body = response.get_json()
+    assert body["code"] == "session_lost"
+    assert body["resume_status"] == "needs_restart"
 
 
 def test_game_bootstrap_marks_play_service_unconfigured_when_secret_missing(client, auth_headers, app):

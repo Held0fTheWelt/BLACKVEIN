@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 _active_span_context: ContextVar[Optional[Any]] = ContextVar("active_span", default=None)
 _active_langfuse_client: ContextVar[Optional[Any]] = ContextVar("langfuse_client", default=None)
 _active_langfuse_session_id: ContextVar[Optional[str]] = ContextVar("langfuse_session_id", default=None)
+_span_context_registry: dict[int, tuple[Optional[Any], Optional[str]]] = {}
 
 
 class LangfuseAdapter:
@@ -189,6 +190,7 @@ class LangfuseAdapter:
                 span = _create_root()
             _active_langfuse_client.set(client)
             _active_langfuse_session_id.set(safe_sid)
+            _span_context_registry[id(span)] = (client, safe_sid)
             logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
         except Exception as e:
@@ -239,6 +241,7 @@ class LangfuseAdapter:
                 span = _create_joined()
             _active_langfuse_client.set(client)
             _active_langfuse_session_id.set(safe_sid)
+            _span_context_registry[id(span)] = (client, safe_sid)
             logger.info(f"[LANGFUSE] span created in trace: name={name}, trace_id={trace_id}")
             return span
         except Exception as e:
@@ -327,6 +330,13 @@ class LangfuseAdapter:
         if span is None:
             _active_langfuse_client.set(None)
             _active_langfuse_session_id.set(None)
+        else:
+            client, session_id = _span_context_registry.get(
+                id(span),
+                (_active_langfuse_client.get(), _active_langfuse_session_id.get()),
+            )
+            _active_langfuse_client.set(client)
+            _active_langfuse_session_id.set(session_id)
         span_name = getattr(span, 'name', 'unknown') if span else None
         span_id = getattr(span, 'span_id', 'unknown') if span else None
         logger.info(f"[LANGFUSE] set_active_span: name={span_name}, span_id={span_id}")
@@ -371,6 +381,10 @@ class LangfuseAdapter:
                 metadata=self._metadata_with_active_session(metadata),
                 level=level,  # type: ignore[arg-type]
                 status_message=status_message,
+            )
+            _span_context_registry[id(child_span)] = (
+                _active_langfuse_client.get(),
+                _active_langfuse_session_id.get(),
             )
             logger.info(f"[LANGFUSE] child span created: name={name}, span_id={getattr(child_span, 'span_id', 'unknown')}, parent_span_id={getattr(parent_span, 'span_id', 'unknown')}")
             return child_span

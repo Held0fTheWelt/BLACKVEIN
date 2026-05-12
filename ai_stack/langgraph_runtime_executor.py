@@ -2008,10 +2008,18 @@ class RuntimeTurnGraphExecutor:
                     "resolved_target_id": frame.get("resolved_target_id") or aff.get("resolved_target_id"),
                     "resolved_target_type": frame.get("resolved_target_type") or aff.get("resolved_target_type"),
                     "target_resolution_source": frame.get("target_resolution_source") or aff.get("target_resolution_source"),
+                    "resolved_source_id": frame.get("resolved_source_id"),
+                    "resolved_source_type": frame.get("resolved_source_type"),
+                    "source_resolution_source": frame.get("source_resolution_source"),
                     "affordance_status": affordance_status or None,
                     "action_commit_policy": action_commit_policy or None,
                     "narrator_response_expected": bool(frame.get("narrator_response_expected")),
                     "npc_response_expected": bool(frame.get("npc_response_expected")),
+                    "response_plan": {
+                        "narrator_response_expected": bool(frame.get("narrator_response_expected")),
+                        "npc_response_expected": bool(frame.get("npc_response_expected")),
+                        "commit_policy": action_commit_policy or None,
+                    },
                     "real_player_turn_evidence_lane": True,
                 },
                 reasons=[] if ok else ["action_resolution_evidence_missing"],
@@ -2088,6 +2096,31 @@ class RuntimeTurnGraphExecutor:
         routing.setdefault("selected_model", "authoritative_action_resolution")
         routing.setdefault("selected_provider", "wos_runtime")
         routing.setdefault("route_reason", "authoritative_action_resolution")
+        player_input_kind = str(frame.get("player_input_kind") or "").strip().lower()
+        action_kind = str(frame.get("action_kind") or "").strip().lower()
+        verb = str(frame.get("verb") or "").strip().lower()
+        affordance_status = str(aff.get("affordance_status") or frame.get("affordance_status") or "").strip().lower()
+        scene_id = str(state.get("current_scene_id") or "unknown_scene").strip() or "unknown_scene"
+        response_plan = {
+            "deterministic_action_resolution": True,
+            "generation_required": False,
+            "player_action_frame_present": bool(frame),
+            "affordance_resolution_present": bool(aff),
+            "narrator_response_expected": bool(frame.get("narrator_response_expected")),
+            "npc_response_expected": bool(frame.get("npc_response_expected")),
+            "affordance_status": affordance_status or None,
+            "action_commit_policy": aff.get("action_commit_policy") or frame.get("action_commit_policy"),
+        }
+        expected_realization: list[str] = []
+        if response_plan["narrator_response_expected"]:
+            expected_realization.append(
+                "narrator_perception_result"
+                if player_input_kind == "perception" or verb in {"look_at", "listen_to"}
+                else "narrator_physical_consequence"
+            )
+        if response_plan["npc_response_expected"]:
+            expected_realization.append("npc_social_reaction")
+        selected_beat_id = f"{scene_id}:deterministic_action_resolution:{action_kind or player_input_kind or 'input'}"
         rc = self.retrieval_config or RuntimeRetrievalConfig()
         skip_retrieval: dict[str, Any] = {
             "domain": RetrievalDomain.RUNTIME.value,
@@ -2109,6 +2142,42 @@ class RuntimeTurnGraphExecutor:
         update["player_action_frame"] = frame
         update["generation"] = gen
         update["routing"] = routing
+        update["response_plan"] = response_plan
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_BEAT,
+            make_aspect_record(
+                applicable=True,
+                status="partial",
+                expected={
+                    "prior_beat_id": (
+                        (state.get("prior_dramatic_signature") or {}).get("prior_beat_id")
+                        if isinstance(state.get("prior_dramatic_signature"), dict)
+                        else None
+                    ),
+                    "candidate_beats": [selected_beat_id],
+                    "expected_realization": expected_realization,
+                    "deterministic_action_resolution_marker": True,
+                },
+                selected={
+                    "selected_beat_id": selected_beat_id,
+                    "selected_scene_function": "deterministic_action_resolution",
+                    "selection_reason": "authoritative_action_resolution_short_path",
+                    "transition_allowed": affordance_status not in {"unsafe"},
+                },
+                actual={
+                    "realized": None,
+                    "committed": None,
+                    "lost_at_stage": None,
+                    "failure_classification": "observability_gap",
+                    "deterministic_action_resolution": True,
+                    "response_plan": response_plan,
+                },
+                reasons=["deterministic_action_resolution_beat_selected_not_yet_realized"],
+                source="runtime",
+                selected_beat=selected_beat_id,
+            ),
+        )
         update["transition_pattern"] = "hard"
         update["fallback_needed"] = False
         return update

@@ -34,6 +34,39 @@ def test_fold_adjacent_actor_action_into_actor_line_same_actor() -> None:
     assert diag["actor_action_folded_into_actor_card"] == 1
 
 
+def test_actor_action_fold_preserves_origin_capability_metadata() -> None:
+    blocks = [
+        {
+            "id": "a1",
+            "block_type": "actor_line",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": 'Actor A: "Hello."',
+            "origin_aspect": "npc_authority",
+            "origin_beat_id": "beat-1",
+            "origin_capability": "npc.dialogue",
+            "authority_owner": "npc",
+        },
+        {
+            "id": "a2",
+            "block_type": "actor_action",
+            "actor_id": "actor_a_npc",
+            "speaker_label": "Actor A",
+            "text": "Actor A nods politely.",
+            "origin_aspect": "npc_authority",
+            "origin_beat_id": "beat-1",
+            "origin_capability": "npc.gesture",
+            "authority_owner": "npc",
+        },
+    ]
+    out, _diag = build_player_facing_narrative_cards(blocks)
+    assert len(out) == 1
+    assert out[0]["origin_capability"] == "npc.dialogue"
+    assert "npc.gesture" in out[0]["origin_capabilities"]
+    folded = out[0]["player_shell_folded_origin_metadata"]
+    assert folded[0]["origin_capability"] == "npc.gesture"
+
+
 def test_standalone_actor_action_is_npc_story_card() -> None:
     blocks = [
         {

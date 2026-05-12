@@ -266,6 +266,88 @@ def _recoverable_runtime_aspect_ledger(
     return normalize_runtime_aspect_ledger(ledger)
 
 
+def _canonical_turn_id(session_id: str, turn_number: int) -> str:
+    sid = str(session_id or "").strip() or "session"
+    return f"{sid}:turn:{int(turn_number or 0)}"
+
+
+def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
+    lang = str(getattr(session, "session_output_language", "de") or "de").strip().lower()[:2] or "de"
+    if lang == "en":
+        if reason == "graph_execution_exception":
+            return "This turn could not be fully loaded. Please try again."
+        return "This action cannot be resolved cleanly from the current scene right now."
+    if reason == "graph_execution_exception":
+        return "Dieser Zug konnte nicht vollstaendig geladen werden. Bitte versuche es erneut."
+    return "Dieser Zug laesst sich im Moment nicht sauber aus der Szene heraus aufloesen."
+
+
+def _build_human_input_attribution_record(
+    *,
+    session: "StorySession",
+    graph_state: dict[str, Any],
+    interpreted_input: dict[str, Any],
+    selected_responder_set: list[dict[str, Any]] | None,
+    commit_turn_number: int,
+    player_input: str,
+) -> dict[str, Any]:
+    vis_diag = (
+        graph_state.get("_visible_narrative_contract")
+        if isinstance(graph_state.get("_visible_narrative_contract"), dict)
+        else {}
+    )
+    raw_bundle = graph_state.get("visible_output_bundle") if isinstance(graph_state.get("visible_output_bundle"), dict) else {}
+    render_support = raw_bundle.get("render_support") if isinstance(raw_bundle.get("render_support"), dict) else {}
+    human_filters = (
+        render_support.get("human_lane_structured_filters")
+        if isinstance(render_support.get("human_lane_structured_filters"), dict)
+        else {}
+    )
+    generated_human_rows_dropped = int(human_filters.get("spoken_lines_dropped") or 0) + int(
+        human_filters.get("action_lines_dropped") or 0
+    )
+    projection = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+    human_actor_id = str(projection.get("human_actor_id") or "").strip()
+    selected_player_role = str(projection.get("selected_player_role") or "").strip()
+    responders = selected_responder_set if isinstance(selected_responder_set, list) else []
+    first_responder = responders[0] if responders and isinstance(responders[0], dict) else {}
+    primary_responder_id = str(
+        graph_state.get("primary_responder_id")
+        or first_responder.get("actor_id")
+        or first_responder.get("responder_id")
+        or ""
+    ).strip()
+    player_input_kind = interpreted_input.get("player_input_kind")
+    graph_input_kind = interpreted_input.get("input_kind") or interpreted_input.get("kind")
+    if not player_input_kind:
+        player_input_kind = graph_input_kind
+    echo_count = int(vis_diag.get("player_input_echo_removed_from_npc_block") or 0)
+    return {
+        "player_input_actor_id": interpreted_input.get("actor_id"),
+        "human_actor_id": human_actor_id or None,
+        "selected_player_role": selected_player_role or None,
+        "primary_responder_id": primary_responder_id or None,
+        "player_input_kind": player_input_kind,
+        "graph_input_kind": graph_input_kind,
+        "player_action_committed": bool(interpreted_input.get("player_action_committed")),
+        "player_speech_committed": bool(interpreted_input.get("player_speech_committed")),
+        "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected")),
+        "npc_response_expected": bool(interpreted_input.get("npc_response_expected")),
+        "player_input_visible_block_present": bool(
+            str(player_input or "").strip() and (human_actor_id or selected_player_role) and commit_turn_number > 0
+        ),
+        "npc_echoed_player_input": echo_count > 0,
+        "player_input_attribution_pass": bool(
+            str(player_input or "").strip()
+            and (human_actor_id or selected_player_role)
+            and commit_turn_number > 0
+            and echo_count == 0
+        ),
+        "generated_human_actor_output_filtered": generated_human_rows_dropped > 0,
+        "generated_human_lane_rows_dropped": generated_human_rows_dropped,
+    }
+
+
 def _record_visible_projection_aspect(
     *,
     ledger: dict[str, Any] | None,
@@ -4059,6 +4141,13 @@ def _player_input_scene_blocks_for_story_window(
         }
         pik_lane = str(interp.get("player_input_kind") or interp.get("kind") or "speech").strip().lower()
         render_hints = {"player_input_kind": pik_lane}
+        player_capability = {
+            "action": "player.action.attempt",
+            "perception": "player.perception.request",
+            "mixed": "player.social_action.perform",
+            "question": "player.social_action.perform",
+            "speech": "player.social_action.perform",
+        }.get(pik_lane, "player.input")
         out_blocks: list[dict[str, Any]] = []
         for suffix, line, bt in (
             ("", verbatim_line, "player_input"),
@@ -4083,6 +4172,10 @@ def _player_input_scene_blocks_for_story_window(
                         "delivery": delivery,
                         "source": "player_input",
                         "render_hints": render_hints,
+                        "origin_aspect": ASPECT_INPUT,
+                        "origin_beat_id": None,
+                        "origin_capability": player_capability,
+                        "authority_owner": "player",
                     }
                 )
         if out_blocks:
@@ -4104,6 +4197,10 @@ def _player_input_scene_blocks_for_story_window(
                 "skippable": True,
             },
             "source": "player_commit",
+            "origin_aspect": ASPECT_INPUT,
+            "origin_beat_id": None,
+            "origin_capability": "player.input",
+            "authority_owner": "player",
         }
     ]
 
@@ -5898,6 +5995,7 @@ class StoryRuntimeManager:
         )
         event: dict[str, Any] = {
             "turn_number": commit_turn_number,
+            "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
             "turn_kind": turn_kind or "player",
             "trace_id": trace_id or "",
             "raw_input": player_input,
@@ -6246,6 +6344,17 @@ class StoryRuntimeManager:
             else:
                 event["turn_status"] = "committed" if outcome == "ok" else "committed_degraded"
         event.setdefault("http_status", 200)
+        if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
+            human_att = _build_human_input_attribution_record(
+                session=session,
+                graph_state=graph_state,
+                interpreted_input=interpreted_input,
+                selected_responder_set=selected_responder_set,
+                commit_turn_number=commit_turn_number,
+                player_input=player_input,
+            )
+            graph_state["human_input_attribution"] = human_att
+            event["human_input_attribution"] = human_att
         _reconcile_governance_passivity_with_final_projection(event)
         path_summary = _build_langfuse_path_summary(
             session=session,
@@ -6261,71 +6370,8 @@ class StoryRuntimeManager:
             event=event,
         )
 
-        if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
-            vis_diag_fb = (
-                graph_state.get("_visible_narrative_contract")
-                if isinstance(graph_state.get("_visible_narrative_contract"), dict)
-                else {}
-            )
-            raw_vis_b = graph_state.get("visible_output_bundle") if isinstance(graph_state.get("visible_output_bundle"), dict) else {}
-            rs_fb = raw_vis_b.get("render_support") if isinstance(raw_vis_b.get("render_support"), dict) else {}
-            hf_fb = rs_fb.get("human_lane_structured_filters") if isinstance(rs_fb.get("human_lane_structured_filters"), dict) else {}
-            gen_filtered = int(hf_fb.get("spoken_lines_dropped") or 0) + int(hf_fb.get("action_lines_dropped") or 0)
-            proj_ev = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
-            hid_ev = str(proj_ev.get("human_actor_id") or "").strip()
-            spr_ev = str(proj_ev.get("selected_player_role") or "").strip()
-            srs0 = (
-                selected_responder_set[0]
-                if selected_responder_set and isinstance(selected_responder_set[0], dict)
-                else {}
-            )
-            pri_ev = str(
-                graph_state.get("primary_responder_id") or srs0.get("actor_id") or srs0.get("responder_id") or ""
-            ).strip()
-            echo_n = int(vis_diag_fb.get("player_input_echo_removed_from_npc_block") or 0)
-            _pik = None
-            _gik = None
-            if isinstance(interpreted_input, dict):
-                _pik = interpreted_input.get("player_input_kind")
-                _gik = interpreted_input.get("input_kind") or interpreted_input.get("kind")
-            human_att = {
-                "player_input_actor_id": interpreted_input.get("actor_id")
-                if isinstance(interpreted_input, dict)
-                else None,
-                "human_actor_id": hid_ev or None,
-                "primary_responder_id": pri_ev or None,
-                # Canonical intent surface (Wave A). Keep graph_input_kind as legacy alias.
-                "player_input_kind": _pik or _gik,
-                "graph_input_kind": _gik,
-                "player_action_committed": bool(interpreted_input.get("player_action_committed"))
-                if isinstance(interpreted_input, dict)
-                else False,
-                "player_speech_committed": bool(interpreted_input.get("player_speech_committed"))
-                if isinstance(interpreted_input, dict)
-                else False,
-                "narrator_response_expected": bool(interpreted_input.get("narrator_response_expected"))
-                if isinstance(interpreted_input, dict)
-                else False,
-                "npc_response_expected": bool(interpreted_input.get("npc_response_expected"))
-                if isinstance(interpreted_input, dict)
-                else False,
-                "player_input_visible_block_present": bool(
-                    str(player_input or "").strip() and (hid_ev or spr_ev) and commit_turn_number > 0
-                ),
-                "npc_echoed_player_input": echo_n > 0,
-                "player_input_attribution_pass": bool(
-                    str(player_input or "").strip()
-                    and (hid_ev or spr_ev)
-                    and commit_turn_number > 0
-                    and echo_n == 0
-                ),
-                "generated_human_actor_output_filtered": gen_filtered > 0,
-                "generated_human_lane_rows_dropped": gen_filtered,
-            }
-            graph_state["human_input_attribution"] = human_att
-            event["human_input_attribution"] = human_att
-
         committed_record = {
+            "canonical_turn_id": event.get("canonical_turn_id"),
             "turn_number": commit_turn_number,
             "turn_kind": turn_kind or "player",
             "trace_id": trace_id or "",
@@ -6336,6 +6382,7 @@ class StoryRuntimeManager:
             "actor_turn_summary": actor_turn_summary,
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
+            "human_input_attribution": event.get("human_input_attribution"),
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
@@ -6554,7 +6601,6 @@ class StoryRuntimeManager:
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
             )
         except Exception as exc:
-            session.turn_counter -= 1
             log_story_runtime_failure(
                 trace_id=trace_id,
                 story_session_id=session_id,
@@ -6562,15 +6608,7 @@ class StoryRuntimeManager:
                 message=str(exc),
                 failure_class="graph_execution_exception",
             )
-            lang = str(session.session_output_language or "de").strip().lower()[:2] or "de"
-            try:
-                gmsg = resolve_string(
-                    session.module_id,
-                    "action_resolution.graph_failure",
-                    lang,
-                )
-            except Exception:
-                gmsg = "This turn could not be fully loaded. Please try again."
+            gmsg = _recoverable_turn_message(session=session, reason="graph_execution_exception")
             turn_aspect_ledger = _recoverable_runtime_aspect_ledger(
                 session_id=session.session_id,
                 module_id=session.module_id,
@@ -6582,8 +6620,9 @@ class StoryRuntimeManager:
                 validation_status="rejected",
                 visible_output_present=True,
             )
-            return {
+            event = {
                 "turn_number": commit_turn_number,
+                "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
                 "turn_kind": "player_graph_exception_playable",
                 "raw_input": player_input,
                 "trace_id": trace_id,
@@ -6633,11 +6672,38 @@ class StoryRuntimeManager:
                     "turn_aspect_ledger": turn_aspect_ledger,
                 },
             }
+            graph_state_recoverable = {
+                "session_id": session.session_id,
+                "module_id": session.module_id,
+                "turn_number": commit_turn_number,
+                "turn_kind": "player_graph_exception_playable",
+                "player_input": player_input,
+                "trace_id": trace_id,
+                "interpreted_input": {},
+                "generation": {
+                    "success": False,
+                    "error": str(exc),
+                    "metadata": {"error": str(exc), "exception_type": type(exc).__name__},
+                },
+                "graph_errors": ["graph_execution_exception"],
+                "validation_outcome": event["validation_outcome"],
+                "visible_output_bundle": event["visible_output_bundle"],
+                "turn_aspect_ledger": turn_aspect_ledger,
+            }
+            return self._persist_player_visible_turn_event(
+                session=session,
+                graph_state=graph_state_recoverable,
+                event=event,
+                trace_id=trace_id,
+                commit_turn_number=commit_turn_number,
+                player_input=player_input,
+                turn_outcome="recoverable_graph_exception",
+            )
 
         val = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
         if val.get("status") != "approved":
-            session.turn_counter -= 1
             if is_hard_boundary_failure(val):
+                session.turn_counter -= 1
                 raise RuntimeError(f"Hard narrative boundary: {val.get('reason') or 'rejected'}")
             return self._build_recoverable_rejection_turn(
                 session=session,
@@ -6663,6 +6729,87 @@ class StoryRuntimeManager:
             prior_ci=prior_ci,
         )
 
+    def _persist_player_visible_turn_event(
+        self,
+        *,
+        session: StorySession,
+        graph_state: dict[str, Any],
+        event: dict[str, Any],
+        trace_id: str | None,
+        commit_turn_number: int,
+        player_input: str,
+        turn_outcome: str,
+    ) -> dict[str, Any]:
+        """Persist a player-visible non-approved outcome as a canonical turn."""
+        event.setdefault("canonical_turn_id", _canonical_turn_id(session.session_id, commit_turn_number))
+        event.setdefault("http_status", 200)
+        event.setdefault("turn_status", "rejected_recoverable")
+        event.setdefault("trace_id", trace_id or "")
+        event.setdefault("raw_input", player_input)
+        interpreted_input = (
+            event.get("interpreted_input")
+            if isinstance(event.get("interpreted_input"), dict)
+            else graph_state.get("interpreted_input")
+            if isinstance(graph_state.get("interpreted_input"), dict)
+            else {}
+        )
+        selected_responder_set = (
+            event.get("selected_responder_set")
+            if isinstance(event.get("selected_responder_set"), list)
+            else graph_state.get("selected_responder_set")
+            if isinstance(graph_state.get("selected_responder_set"), list)
+            else []
+        )
+        human_att = _build_human_input_attribution_record(
+            session=session,
+            graph_state=graph_state,
+            interpreted_input=interpreted_input,
+            selected_responder_set=selected_responder_set,
+            commit_turn_number=commit_turn_number,
+            player_input=player_input,
+        )
+        graph_state["human_input_attribution"] = human_att
+        event["human_input_attribution"] = human_att
+        graph_state.setdefault("turn_aspect_ledger", event.get("turn_aspect_ledger"))
+        graph_state.setdefault("validation_outcome", event.get("validation_outcome"))
+        graph_state.setdefault("visible_output_bundle", event.get("visible_output_bundle"))
+        graph_state.setdefault("interpreted_input", interpreted_input)
+        path_summary = _build_langfuse_path_summary(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+        )
+        event["observability_path_summary"] = path_summary
+        _emit_langfuse_path_spans(path_summary)
+        _emit_langfuse_runtime_aspect_observability(path_summary)
+        _emit_langfuse_evidence_observations(
+            path_summary=path_summary,
+            graph_state=graph_state,
+            event=event,
+        )
+        canonical_record = {
+            "canonical_turn_id": event["canonical_turn_id"],
+            "turn_number": commit_turn_number,
+            "turn_kind": event.get("turn_kind") or "player_rejected_recoverable",
+            "trace_id": trace_id or "",
+            "turn_outcome": turn_outcome,
+            "narrative_commit": event.get("narrative_commit"),
+            "validation_outcome": event.get("validation_outcome"),
+            "turn_aspect_ledger": event.get("turn_aspect_ledger"),
+            "visible_output_bundle": event.get("visible_output_bundle"),
+            "human_input_attribution": human_att,
+            "recoverable_outcome": True,
+            "committed_state_after": {
+                "current_scene_id": session.current_scene_id,
+                "turn_counter": session.turn_counter,
+            },
+        }
+        session.history.append(canonical_record)
+        session.diagnostics.append(event)
+        session.updated_at = datetime.now(timezone.utc)
+        self._persist_session(session)
+        return event
+
     def _build_recoverable_rejection_turn(
         self,
         *,
@@ -6680,11 +6827,7 @@ class StoryRuntimeManager:
             if isinstance(graph_state.get("interpreted_input"), dict)
             else {}
         )
-        message = (
-            "Annette zoegert; diese Bewegung laesst sich im Moment nicht sauber aus der Szene heraus aufloesen."
-            if reason == "dramatic_effect_reject_continuity_pressure"
-            else "Diese Aktion laesst sich gerade nicht klar aus der Szene heraus aufloesen."
-        )
+        message = _recoverable_turn_message(session=session, reason=reason)
         turn_aspect_ledger = _recoverable_runtime_aspect_ledger(
             session_id=session.session_id,
             module_id=session.module_id,
@@ -6699,8 +6842,9 @@ class StoryRuntimeManager:
             else None,
             visible_output_present=True,
         )
-        return {
+        event = {
             "turn_number": attempted_turn_number,
+            "canonical_turn_id": _canonical_turn_id(session.session_id, attempted_turn_number),
             "turn_kind": "player_rejected_recoverable",
             "raw_input": player_input,
             "trace_id": trace_id,
@@ -6746,6 +6890,18 @@ class StoryRuntimeManager:
                 "turn_aspect_ledger": turn_aspect_ledger,
             },
         }
+        graph_state["turn_aspect_ledger"] = turn_aspect_ledger
+        graph_state["visible_output_bundle"] = event["visible_output_bundle"]
+        graph_state["validation_outcome"] = event["validation_outcome"]
+        return self._persist_player_visible_turn_event(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+            trace_id=trace_id,
+            commit_turn_number=attempted_turn_number,
+            player_input=player_input,
+            turn_outcome="recoverable_rejection",
+        )
 
     def get_session(self, session_id: str) -> StorySession:
         session = self.sessions.get(session_id)

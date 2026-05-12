@@ -67,6 +67,51 @@ def _union_player_shell_semantic_spans(a: dict[str, Any], b: dict[str, Any]) -> 
     return None
 
 
+_ORIGIN_METADATA_KEYS: tuple[str, ...] = (
+    "origin_aspect",
+    "origin_beat_id",
+    "origin_capability",
+    "authority_owner",
+)
+
+
+def _origin_metadata_from_block(block: dict[str, Any]) -> dict[str, Any] | None:
+    row = {key: block.get(key) for key in _ORIGIN_METADATA_KEYS if key in block}
+    return row or None
+
+
+def _merge_folded_origin_metadata(card: dict[str, Any], folded_blocks: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Carry origin/capability evidence from presentation-folded blocks."""
+    merged = dict(card)
+    records: list[dict[str, Any]] = []
+    existing = merged.get("player_shell_folded_origin_metadata")
+    if isinstance(existing, list):
+        records.extend([dict(item) for item in existing if isinstance(item, dict)])
+    for block in folded_blocks:
+        if not isinstance(block, dict):
+            continue
+        row = _origin_metadata_from_block(block)
+        if row is not None and row not in records:
+            records.append(row)
+    if records:
+        merged["player_shell_folded_origin_metadata"] = records
+        existing_caps = [
+            str(item).strip()
+            for item in (merged.get("origin_capabilities") or [])
+            if str(item).strip()
+        ]
+        primary = str(merged.get("origin_capability") or "").strip()
+        if primary and primary not in existing_caps:
+            existing_caps.append(primary)
+        for row in records:
+            cap = str(row.get("origin_capability") or "").strip()
+            if cap and cap not in existing_caps:
+                existing_caps.append(cap)
+        if existing_caps:
+            merged["origin_capabilities"] = existing_caps
+    return merged
+
+
 def _visible_display_for_story_redundancy(card: dict[str, Any]) -> str:
     return str(card.get("player_display_text") or card.get("text") or "")
 
@@ -218,6 +263,7 @@ def _collapse_consecutive_redundant_story_cards(
             if us is not None:
                 merged["player_shell_semantic_span"] = us
                 collapse_diag["consecutive_story_card_span_extended"] += 1
+            merged = _merge_folded_origin_metadata(merged, [curr])
             kept[-1] = merged
             collapse_diag["consecutive_story_card_removed"] += 1
             collapse_diag["consecutive_redundant_story_card_removed"] += 1
@@ -398,6 +444,7 @@ def build_player_facing_narrative_cards(
             nb["player_shell_semantic_span"] = (si, j - 1)
             if folded_idx:
                 nb["player_shell_folded_semantic_indices"] = list(folded_idx)
+                nb = _merge_folded_origin_metadata(nb, [sem[k] for k in folded_idx if 0 <= k < len(sem)])
             disp = str(nb.get("player_display_text") or "").strip()
             if _is_name_only_actor_block(
                 disp, speaker_label=lab, actor_id=aid, block_type="actor_line"
@@ -451,6 +498,7 @@ def build_player_facing_narrative_cards(
                         if not substring_subsumed:
                             diag["near_duplicate_actor_action_removed"] += 1
                         subsumed_after_gap = True
+                        out[idx] = _merge_folded_origin_metadata(prev, [b])
                     break
                 break
             if subsumed_after_gap:

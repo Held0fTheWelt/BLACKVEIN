@@ -582,6 +582,17 @@ def resolve_player_action(
                 resolution_confidence="high",
                 access_status=None,
             )
+        elif status in {"allowed", "allowed_offscreen", "partial"}:
+            status = "unknown_target"
+            policy = "needs_clarification"
+            aff = AffordanceResolutionContract(
+                status=status,
+                action_commit_policy=policy,
+                reason="source_query_unresolved",
+                resolved_target=rt,
+                target_resolution_source=src,
+                access_status=access,
+            )
     frame = PlayerActionFrameContract(
         raw_text=str(raw_text or "").strip(),
         input_kind=pik,

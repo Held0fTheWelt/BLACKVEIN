@@ -26,7 +26,7 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     EXECUTION_HEALTH_VALUES,
 )
-from ai_stack.runtime_aspect_ledger import ASPECT_ACTION_RESOLUTION
+from ai_stack.runtime_aspect_ledger import ASPECT_ACTION_RESOLUTION, ASPECT_BEAT
 
 
 class SuccessAdapter(BaseModelAdapter):
@@ -415,10 +415,15 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert repro.get("ldss_fallback") is False
     ledger = result.get("turn_aspect_ledger") or {}
     action_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_ACTION_RESOLUTION) or {}
+    beat_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_BEAT) or {}
     assert action_aspect.get("status") == "passed"
     assert action_aspect.get("actual", {}).get("raw_player_input") == "Gehe ins Bad"
     assert action_aspect.get("actual", {}).get("player_input_kind") == "action"
     assert action_aspect.get("actual", {}).get("action_commit_policy") == "commit_action"
+    assert beat_aspect.get("status") == "partial"
+    assert beat_aspect.get("selected", {}).get("selected_scene_function") == "deterministic_action_resolution"
+    assert beat_aspect.get("actual", {}).get("deterministic_action_resolution") is True
+    assert result.get("response_plan", {}).get("deterministic_action_resolution") is True
 
 
 def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:
@@ -450,6 +455,8 @@ def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledg
     assert actual.get("verb") == "move_to"
     assert actual.get("affordance_status") == "unknown_target"
     assert actual.get("action_commit_policy") == "needs_clarification"
+    beat_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_BEAT) or {}
+    assert beat_aspect.get("actual", {}).get("deterministic_action_resolution") is True
     interpreted = result.get("interpreted_input") or {}
     assert interpreted.get("player_speech_committed") is False
 

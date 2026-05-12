@@ -23,9 +23,18 @@ elif __name__ == "backend.app.services.game_service":
 
 
 class GameServiceError(RuntimeError):
-    def __init__(self, message: str, status_code: int = 502) -> None:
+    def __init__(
+        self,
+        message: str,
+        status_code: int = 502,
+        *,
+        code: str | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
+        self.code = code
+        self.payload = payload if isinstance(payload, dict) else {}
 
 
 class GameServiceConfigError(GameServiceError):
@@ -495,6 +504,45 @@ def create_story_session(
     return payload
 
 
+def _story_turn_has_visible_surface(turn: dict[str, Any]) -> bool:
+    bundle = turn.get("visible_output_bundle") if isinstance(turn.get("visible_output_bundle"), dict) else {}
+    scene_blocks = bundle.get("scene_blocks")
+    if isinstance(scene_blocks, list) and any(isinstance(block, dict) for block in scene_blocks):
+        return True
+    for key in ("gm_narration", "spoken_lines", "action_lines"):
+        value = bundle.get(key)
+        if isinstance(value, list) and value:
+            return True
+        if isinstance(value, str) and value.strip():
+            return True
+    visible_scene_output = turn.get("visible_scene_output") if isinstance(turn.get("visible_scene_output"), dict) else {}
+    blocks = visible_scene_output.get("blocks")
+    return isinstance(blocks, list) and any(isinstance(block, dict) for block in blocks)
+
+
+def _validate_story_turn_canonical_evidence(turn: dict[str, Any]) -> None:
+    missing: list[str] = []
+    ledger = turn.get("turn_aspect_ledger")
+    if not isinstance(ledger, dict) or not isinstance(ledger.get("turn_aspect_ledger"), dict):
+        missing.append("turn_aspect_ledger")
+    if not str(turn.get("canonical_turn_id") or "").strip():
+        missing.append("canonical_turn_id")
+    if not any(
+        isinstance(turn.get(key), dict)
+        for key in ("diagnostics", "diagnostics_envelope", "observability_path_summary", "runtime_governance_surface")
+    ):
+        missing.append("diagnostics")
+    if not _story_turn_has_visible_surface(turn):
+        missing.append("visible_output")
+    if missing:
+        raise GameServiceError(
+            "World-Engine story turn is missing canonical evidence.",
+            status_code=502,
+            code="missing_canonical_turn_evidence",
+            payload={"missing": missing},
+        )
+
+
 def execute_story_turn(
     *,
     session_id: str,
@@ -524,9 +572,11 @@ def execute_story_turn(
     )
     if not isinstance(payload, dict) or "turn" not in payload:
         raise GameServiceError("Play service returned an unexpected story-turn payload.")
+    turn = payload.get("turn") if isinstance(payload.get("turn"), dict) else {}
+    _validate_story_turn_canonical_evidence(turn)
     _ingest_runtime_turn_cost(
         session_id=session_id,
-        turn_payload=payload.get("turn") if isinstance(payload.get("turn"), dict) else {},
+        turn_payload=turn,
     )
     return payload
 

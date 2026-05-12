@@ -6,29 +6,25 @@ pytestmark = pytest.mark.observability
 
 
 @pytest.fixture
-def mock_session():
-    """Shared mock session with complete runtime state."""
+def mock_runtime_state():
+    """Shared canonical play runtime state."""
     return {
-        "payload": {
-            "runtime_state": {
-                "session_id": "test-session-123",
-                "trace_id": "trace-001",
-                "turn_number": 5,
-                "turn_timestamp_iso": "2026-04-24T10:00:00Z",
-                "current_scene_id": "scene_001",
-                "selected_scene_function": "establish_pressure",
-                "pacing_mode": "standard",
-                "quality_class": "healthy",
-                "degradation_signals": [],
-                "visibility_class_markers": [],
-                "vitality_telemetry_v1": {"response_present": True},
-                "selected_responder_set": [
-                    {"actor_id": "alice", "preferred_reaction_order": 0, "role": "primary_responder"},
-                    {"actor_id": "bob", "preferred_reaction_order": 1, "role": "secondary_reactor"},
-                ],
-                "graph_diagnostics": {"graph_name": "runtime_graph"},
-            }
-        }
+        "session_id": "world-engine-session-123",
+        "trace_id": "trace-001",
+        "turn_number": 5,
+        "turn_timestamp_iso": "2026-04-24T10:00:00Z",
+        "current_scene_id": "scene_001",
+        "selected_scene_function": "establish_pressure",
+        "pacing_mode": "standard",
+        "quality_class": "healthy",
+        "degradation_signals": [],
+        "visibility_class_markers": [],
+        "vitality_telemetry_v1": {"response_present": True},
+        "selected_responder_set": [
+            {"actor_id": "alice", "preferred_reaction_order": 0, "role": "primary_responder"},
+            {"actor_id": "bob", "preferred_reaction_order": 1, "role": "secondary_reactor"},
+        ],
+        "graph_diagnostics": {"graph_name": "runtime_graph"},
     }
 
 
@@ -57,14 +53,14 @@ class TestPlayQaDiagnosticsRoutes:
     def test_endpoint_returns_404_for_invalid_session(self, client, admin_headers, monkeypatch):
         """Endpoint returns 404 when session not found."""
 
-        def mock_get_session(self, session_id):
-            return None
-
         def mock_user_can_access(user, feature_id):
             return True
 
         monkeypatch.setattr("app.auth.feature_registry.user_can_access_feature", mock_user_can_access)
-        monkeypatch.setattr("app.services.session_service.SessionService.get_session", mock_get_session)
+        monkeypatch.setattr(
+            "app.api.v1.play_qa_diagnostics_routes._canonical_runtime_state_for_play_run",
+            lambda run_id: (None, None),
+        )
 
         response = client.get(
             "/api/v1/play/invalid-session/qa-diagnostics-canonical-turn",
@@ -72,17 +68,17 @@ class TestPlayQaDiagnosticsRoutes:
         )
         assert response.status_code == 404
 
-    def test_endpoint_returns_qa_projection(self, client, admin_headers, monkeypatch, mock_session):
+    def test_endpoint_returns_qa_projection(self, client, admin_headers, monkeypatch, mock_runtime_state):
         """Endpoint returns QA projection when authorized and session exists."""
-
-        def mock_get_session(self, session_id):
-            return mock_session
 
         def mock_user_can_access(user, feature_id):
             return True
 
         monkeypatch.setattr("app.auth.feature_registry.user_can_access_feature", mock_user_can_access)
-        monkeypatch.setattr("app.services.session_service.SessionService.get_session", mock_get_session)
+        monkeypatch.setattr(
+            "app.api.v1.play_qa_diagnostics_routes._canonical_runtime_state_for_play_run",
+            lambda run_id: (mock_runtime_state, "world-engine-session-123"),
+        )
 
         response = client.get(
             "/api/v1/play/test-session-123/qa-diagnostics-canonical-turn",
@@ -97,24 +93,26 @@ class TestPlayQaDiagnosticsRoutes:
         # Verify tier-A fields are present and have correct values
         assert "tier_a_primary" in projection
         tier_a = projection["tier_a_primary"]
-        assert tier_a["turn_metadata"]["session_id"] == "test-session-123"
+        assert tier_a["turn_metadata"]["session_id"] == "world-engine-session-123"
         assert tier_a["turn_metadata"]["turn_number"] == 5
         assert tier_a["quality_class"] == "healthy"
         assert tier_a["responder_selection"]["primary_responder_id"] == "alice"
+        assert projection["canonical_play_path"] is True
+        assert projection["play_run_id"] == "test-session-123"
 
         assert "tier_b_detailed" in projection
 
-    def test_endpoint_respects_include_raw_parameter(self, client, admin_headers, monkeypatch, mock_session):
+    def test_endpoint_respects_include_raw_parameter(self, client, admin_headers, monkeypatch, mock_runtime_state):
         """Endpoint includes raw canonical record when ?include_raw=1."""
-
-        def mock_get_session(self, session_id):
-            return mock_session
 
         def mock_user_can_access(user, feature_id):
             return True
 
         monkeypatch.setattr("app.auth.feature_registry.user_can_access_feature", mock_user_can_access)
-        monkeypatch.setattr("app.services.session_service.SessionService.get_session", mock_get_session)
+        monkeypatch.setattr(
+            "app.api.v1.play_qa_diagnostics_routes._canonical_runtime_state_for_play_run",
+            lambda run_id: (mock_runtime_state, "world-engine-session-123"),
+        )
 
         # Without include_raw
         response = client.get(
@@ -135,20 +133,20 @@ class TestPlayQaDiagnosticsRoutes:
         # Verify content structure
         assert isinstance(raw_record, dict)
         assert "turn_metadata" in raw_record
-        assert raw_record["turn_metadata"]["session_id"] == "test-session-123"
+        assert raw_record["turn_metadata"]["session_id"] == "world-engine-session-123"
         assert raw_record["turn_metadata"]["turn_number"] == 5
 
     def test_endpoint_rate_limited(self, client, admin_headers, monkeypatch):
         """Endpoint enforces rate limiting (30 per minute)."""
 
-        def mock_get_session(self, session_id):
-            return None
-
         def mock_user_can_access(user, feature_id):
             return True
 
         monkeypatch.setattr("app.auth.feature_registry.user_can_access_feature", mock_user_can_access)
-        monkeypatch.setattr("app.services.session_service.SessionService.get_session", mock_get_session)
+        monkeypatch.setattr(
+            "app.api.v1.play_qa_diagnostics_routes._canonical_runtime_state_for_play_run",
+            lambda run_id: (None, None),
+        )
 
         # This test verifies the endpoint has rate limiting configured
         # The actual rate limiting is enforced by Flask-Limiter in the route definition
@@ -163,17 +161,17 @@ class TestPlayQaDiagnosticsRoutes:
 class TestQaProjectionIntegrity:
     """Test QA projection schema and data integrity."""
 
-    def test_projection_schema_valid(self, client, admin_headers, monkeypatch, mock_session):
+    def test_projection_schema_valid(self, client, admin_headers, monkeypatch, mock_runtime_state):
         """QA projection has correct schema structure."""
-
-        def mock_get_session(self, session_id):
-            return mock_session
 
         def mock_user_can_access(user, feature_id):
             return True
 
         monkeypatch.setattr("app.auth.feature_registry.user_can_access_feature", mock_user_can_access)
-        monkeypatch.setattr("app.services.session_service.SessionService.get_session", mock_get_session)
+        monkeypatch.setattr(
+            "app.api.v1.play_qa_diagnostics_routes._canonical_runtime_state_for_play_run",
+            lambda run_id: (mock_runtime_state, "world-engine-session-123"),
+        )
 
         response = client.get(
             "/api/v1/play/test-session-123/qa-diagnostics-canonical-turn",
