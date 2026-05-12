@@ -251,6 +251,23 @@ describe('BlockRenderer', () => {
       expect(el.className).toContain('scene-block--player_input_outcome');
       expect(el.textContent).toBe('Annette says: "Hello Veronique."');
     });
+
+    test('should ignore backend origin metadata visually', () => {
+      const el = renderer.render({
+        id: 'turn-1-origin-metadata',
+        block_type: 'narrator',
+        text: 'Annette takes the beer.',
+        origin_aspect: 'narrator_authority',
+        origin_beat_id: 'domestic_disruption',
+        origin_capability: 'narrator.physical_consequence',
+        authority_owner: 'narrator',
+      });
+      expect(el.textContent).toBe('Annette takes the beer.');
+      expect(el.getAttribute('data-origin-aspect')).toBeNull();
+      expect(el.getAttribute('data-origin-capability')).toBeNull();
+      expect(el.getAttribute('data-authority-owner')).toBeNull();
+      expect(el.getAttribute('data-player-visible')).toBe('true');
+    });
   });
 
   describe('getBlockElement()', () => {

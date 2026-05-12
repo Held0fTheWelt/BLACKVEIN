@@ -281,6 +281,26 @@ def _infer_target_query(
     return None
 
 
+def _infer_source_query(raw_text: str, *, lang: str, verb: str) -> str | None:
+    """Extract a generic source/container phrase for transitive object actions."""
+    text = str(raw_text or "").strip()
+    if not text:
+        return None
+    lg = str(lang or "de").strip().lower()[:2] or "de"
+    if lg == "de" and verb in {"take", "open", "place"}:
+        m = re.search(rf"(?is)\baus\s+{_DE_ARTICLE}\s+([^\n.?!,;]+)", text)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+        m = re.search(rf"(?is)\bvon\s+{_DE_ARTICLE}\s+([^\n.?!,;]+)", text)
+        if m:
+            return collapse_ws(_strip_leading_german_article(m.group(1)))
+    if lg == "en" and verb in {"take", "open", "place"}:
+        m = re.search(r"(?is)\b(?:from|out of)\s+(?:the|a|an)?\s*([^\n.?!,;]+)", text)
+        if m:
+            return collapse_ws(m.group(1))
+    return None
+
+
 def _resolve_target(
     target_query: str | None,
     affordance_model: dict[str, Any],
@@ -393,6 +413,39 @@ def _resolve_target(
     return ("unknown_target", "needs_clarification", None, None, "no_target_match", None)
 
 
+def _resolve_entity_query(
+    query: str | None,
+    affordance_model: dict[str, Any],
+) -> tuple[str | None, str | None, str | None]:
+    """Resolve a non-authoritative source/container query without changing commit policy."""
+    nq = _normalize(str(query or ""))
+    if not nq:
+        return None, None, None
+    for cat, target_type in (("locations", "location"), ("objects", "object"), ("actors", "actor")):
+        for row in affordance_model.get(cat) or []:
+            if not isinstance(row, dict):
+                continue
+            aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
+            aliases.append(str(row.get("id") or "").strip())
+            if any(fold_match(nq, a) or fold_match(nq, _normalize(a)) for a in aliases if a):
+                return str(row.get("id") or "").strip() or None, target_type, f"scene_affordances.{target_type}_alias"
+    folded_q = fold_unicode(nq)
+    if len(folded_q) >= 2:
+        for cat, target_type in (("locations", "location"), ("objects", "object"), ("actors", "actor")):
+            for row in affordance_model.get(cat) or []:
+                if not isinstance(row, dict):
+                    continue
+                aliases = [str(a).strip() for a in row.get("aliases") or [] if str(a).strip()]
+                for alias in aliases:
+                    if fold_unicode(alias) in folded_q or folded_q in fold_unicode(alias):
+                        return (
+                            str(row.get("id") or "").strip() or None,
+                            target_type,
+                            f"scene_affordances.{target_type}_substring",
+                        )
+    return None, None, "no_source_match"
+
+
 def resolve_player_action(
     *,
     raw_text: str,
@@ -449,6 +502,7 @@ def resolve_player_action(
         affordance_model=affordance_model,
         content_modules_root=content_modules_root,
     )
+    source_query = _infer_source_query(raw_text, lang=lang, verb=verb)
 
     if pik in {"speech", "question", "meta"}:
         status, policy, tid, ttyp, src, access = (
@@ -516,6 +570,18 @@ def resolve_player_action(
     )
 
     rt_for_frame = None if pik in {"speech", "question", "meta"} else rt
+    resolved_source = None
+    source_resolution_source = None
+    if source_query and pik not in {"speech", "question", "meta"}:
+        src_id, src_type, source_resolution_source = _resolve_entity_query(source_query, affordance_model)
+        if src_id:
+            resolved_source = ResolvedTarget.from_outcome(
+                resolved_target_id=src_id,
+                resolved_target_type=src_type,
+                matched_alias=source_query,
+                resolution_confidence="high",
+                access_status=None,
+            )
     frame = PlayerActionFrameContract(
         raw_text=str(raw_text or "").strip(),
         input_kind=pik,
@@ -529,6 +595,9 @@ def resolve_player_action(
         npc_response_expected=npc_expected,
         actor_id=actor_id or None,
         selected_actor_id=selected_actor_id,
+        source_query=source_query,
+        resolved_source=resolved_source,
+        source_resolution_source=source_resolution_source,
         validation_surface=None,
         projection_rule_id=str(interpreted_input.get("deterministic_intent_rule") or "").strip() or None,
     )

@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -42,8 +43,22 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     RAW_FALLBACK_BYPASS_NOTE,
 )
+from ai_stack.runtime_aspect_ledger import (
+    ASPECT_ACTION_RESOLUTION,
+    ASPECT_BEAT,
+    ASPECT_CAPABILITY_SELECTION,
+    ASPECT_COMMIT,
+    ASPECT_INPUT,
+    ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NPC_AUTHORITY,
+    ASPECT_VALIDATION,
+    initialize_runtime_aspect_ledger,
+    make_aspect_record,
+    set_aspect_record,
+)
+from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
-from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
+from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
 from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
 from ai_stack.goc_roadmap_semantic_surface import ROUTING_LABELS
 from ai_stack.goc_yaml_authority import (
@@ -436,6 +451,219 @@ def _actor_lane_validation(
         "continuity_compatibility": continuity_compatibility,
         "checked_fields": checked_fields,
     }
+
+
+def _structured_output_from_generation(generation: dict[str, Any]) -> dict[str, Any]:
+    meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured = meta.get("structured_output")
+    return structured if isinstance(structured, dict) else {}
+
+
+def _row_text(row: dict[str, Any]) -> str:
+    return str(
+        row.get("text")
+        or row.get("line")
+        or row.get("body")
+        or row.get("description")
+        or ""
+    ).strip()
+
+
+def _actor_alias_scope(actor_id: str | None) -> set[str]:
+    aid = str(actor_id or "").strip()
+    if not aid:
+        return set()
+    out = set(expand_goc_actor_id_aliases(aid))
+    canon = canonicalize_goc_actor_id(aid)
+    if canon:
+        out.update(expand_goc_actor_id_aliases(canon))
+        out.add(canon)
+    out.add(aid)
+    return {x for x in out if x}
+
+
+def _actor_in_scope(actor_id: str | None, scope: set[str]) -> bool:
+    aid = str(actor_id or "").strip()
+    if not aid:
+        return False
+    return aid in scope or (canonicalize_goc_actor_id(aid) or aid) in scope
+
+
+def _normalized_word_set(text: str) -> set[str]:
+    return {
+        item
+        for item in re.split(r"[^a-zA-ZÀ-ÿ0-9_]+", str(text or "").lower())
+        if len(item) >= 3
+    }
+
+
+def _authority_text_matches_player_action(text: str, frame: dict[str, Any]) -> bool:
+    """Generic overlap check: action ontology verb/target, not fixture phrases."""
+    blob = str(text or "").strip().lower()
+    if not blob:
+        return False
+    target_query = str(frame.get("target_query") or "").strip()
+    target_id = str(frame.get("resolved_target_id") or "").strip()
+    target_hit = False
+    for candidate in (target_query, target_id):
+        if candidate and candidate.lower() in blob:
+            target_hit = True
+            break
+    verb = str(frame.get("verb") or "").strip().lower()
+    verb_markers = {
+        "move_to": {"go", "geht", "gehen", "tritt", "betritt", "moves", "walks"},
+        "look_at": {"look", "looks", "schau", "schaut", "blick", "blickt", "sieht"},
+        "listen_to": {"listen", "listens", "hoer", "hoert", "hört", "lauscht"},
+        "take": {"take", "takes", "nimmt", "nehme", "nimm"},
+        "activate": {"activate", "activates", "schaltet", "schalte", "macht"},
+        "deactivate": {"deactivate", "deactivates", "schaltet", "schalte", "macht"},
+        "open": {"open", "opens", "oeffnet", "öffnet", "oeffne", "öffne"},
+        "place": {"place", "places", "legt", "lege", "stellt", "stelle"},
+        "stand_up": {"stand", "stands", "steht"},
+    }.get(verb, {verb} if verb else set())
+    words = _normalized_word_set(blob)
+    verb_hit = bool(words.intersection(verb_markers))
+    if target_query or target_id:
+        return target_hit and (verb_hit or len(_normalized_word_set(target_query).intersection(words)) >= 1)
+    raw_words = _normalized_word_set(str(frame.get("source_text") or ""))
+    return verb_hit and len(raw_words.intersection(words)) >= 2
+
+
+def _build_authority_aspect_records(
+    *,
+    state: "RuntimeTurnState",
+    generation: dict[str, Any],
+    proposed_state_effects: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    structured = _structured_output_from_generation(generation)
+    interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+    frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
+    aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
+    turn_number = int(state.get("turn_number") or 0)
+    player_input_kind = str(frame.get("player_input_kind") or interp.get("player_input_kind") or "").strip().lower()
+    narrator_required = bool(frame.get("narrator_response_expected") or interp.get("narrator_response_expected"))
+    if player_input_kind in {"action", "perception", "mixed"}:
+        narrator_required = True
+    if str(aff.get("requires_narrator") or "").strip().lower() == "true":
+        narrator_required = True
+    narrative_text = "\n".join(
+        part
+        for part in (
+            narration_summary_to_plain_str(structured.get("narration_summary")),
+            str(structured.get("narrative_response") or "").strip(),
+            extract_proposed_narrative_text(proposed_state_effects),
+        )
+        if str(part or "").strip()
+    ).strip()
+    narrator_present = bool(narrative_text)
+    if turn_number <= 0 and narrator_present:
+        narrator_required = True
+    narrator_status = "passed"
+    narrator_failure_reason = None
+    if narrator_required and not narrator_present:
+        narrator_status = "failed"
+        narrator_failure_reason = "narrator_required_missing"
+    narrator_record = make_aspect_record(
+        applicable=bool(narrator_required or narrator_present),
+        status=narrator_status if (narrator_required or narrator_present) else "not_applicable",
+        expected={
+            "required": bool(narrator_required),
+            "expected_owner": "narrator" if narrator_required else None,
+            "reason": "movement_or_perception_consequence"
+            if player_input_kind in {"action", "perception", "mixed"}
+            else "opening_or_optional_narration"
+            if narrator_required
+            else None,
+        },
+        actual={
+            "actual_owner": "narrator" if narrator_present else None,
+            "narrator_block_present": narrator_present,
+            "consequence_realized": narrator_present if narrator_required else None,
+            "narrative_text_present": narrator_present,
+        },
+        reasons=[] if narrator_failure_reason is None else [narrator_failure_reason],
+        source="runtime",
+        failure_class=None if narrator_failure_reason is None else "hard_contract_failure",
+        failure_reason=narrator_failure_reason,
+        expected_owner="narrator" if narrator_required else None,
+        actual_owner="narrator" if narrator_present else None,
+        missing_field="narration_summary" if narrator_failure_reason else None,
+    )
+
+    actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+    human_scope = _actor_alias_scope(
+        str(actor_lane_ctx.get("human_actor_id") or actor_lane_ctx.get("selected_player_role") or "").strip()
+    )
+    npc_scope: set[str] = set()
+    for raw_actor_id in actor_lane_ctx.get("npc_actor_ids") or []:
+        npc_scope.update(_actor_alias_scope(str(raw_actor_id or "").strip()))
+    spoken_rows = [row for row in structured.get("spoken_lines") or [] if isinstance(row, dict)]
+    action_rows = [row for row in structured.get("action_lines") or [] if isinstance(row, dict)]
+    offending_actor_id = None
+    offending_block_id = None
+    failure_reason = None
+
+    for row in spoken_rows:
+        sid = str(row.get("speaker_id") or "").strip()
+        if _actor_in_scope(sid, human_scope):
+            offending_actor_id = sid
+            offending_block_id = str(row.get("id") or row.get("block_id") or "")
+            failure_reason = "ai_controlled_human_actor"
+            break
+        if player_input_kind == "perception" and not _actor_in_scope(sid, human_scope):
+            if _authority_text_matches_player_action(_row_text(row), frame):
+                offending_actor_id = sid or None
+                offending_block_id = str(row.get("id") or row.get("block_id") or "")
+                failure_reason = "npc_narrated_player_perception"
+                break
+    if failure_reason is None:
+        for row in action_rows:
+            aid = str(row.get("actor_id") or "").strip()
+            if _actor_in_scope(aid, human_scope):
+                offending_actor_id = aid
+                offending_block_id = str(row.get("id") or row.get("block_id") or "")
+                failure_reason = "ai_controlled_human_actor"
+                break
+            if _actor_in_scope(aid, npc_scope) and player_input_kind in {"action", "perception", "mixed"}:
+                if _authority_text_matches_player_action(_row_text(row), frame):
+                    offending_actor_id = aid
+                    offending_block_id = str(row.get("id") or row.get("block_id") or "")
+                    failure_reason = (
+                        "npc_narrated_player_perception"
+                        if player_input_kind == "perception"
+                        else "npc_executed_player_action"
+                    )
+                    break
+    npc_status = "failed" if failure_reason else "passed"
+    npc_record = make_aspect_record(
+        applicable=True,
+        status=npc_status,
+        expected={
+            "policy": "social_reaction_only",
+            "allowed_roles": ["dialogue", "gesture", "social_reaction"],
+            "forbidden_roles": [
+                "execute_player_action",
+                "narrate_player_perception",
+                "override_human_actor",
+            ],
+        },
+        actual={
+            "spoken_line_count": len(spoken_rows),
+            "action_line_count": len(action_rows),
+            "npc_takeover_detected": bool(failure_reason),
+            "offending_actor_id": offending_actor_id,
+            "offending_block_id": offending_block_id or None,
+        },
+        reasons=[] if failure_reason is None else [failure_reason],
+        source="runtime",
+        failure_class=None if failure_reason is None else "hard_contract_failure",
+        failure_reason=failure_reason,
+        offending_actor_id=offending_actor_id,
+        offending_block_id=offending_block_id or None,
+        expected_owner="narrator" if failure_reason == "npc_narrated_player_perception" else None,
+        actual_owner="npc" if failure_reason else None,
+    )
+    return narrator_record, npc_record
 
 
 def _has_usable_narrative_effect(proposed_effects: list[dict[str, Any]]) -> bool:
@@ -1245,6 +1473,12 @@ class RuntimeTurnGraphExecutor:
         if not ts:
             ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         tid = turn_id if turn_id is not None else (trace_id or "")
+        effective_turn_number = int(turn_number or 0)
+        effective_turn_kind = str(
+            turn_input_class
+            or ("opening" if effective_turn_number <= 0 else turn_initiator_type)
+            or "player"
+        ).strip() or "player"
         initial_state: RuntimeTurnState = {
             "session_id": session_id,
             "module_id": module_id,
@@ -1262,6 +1496,16 @@ class RuntimeTurnGraphExecutor:
             "turn_id": tid,
             "turn_initiator_type": turn_initiator_type or "player",
             "turn_execution_mode": turn_execution_mode or "langgraph_runtime_turn_graph",
+            "turn_aspect_ledger": initialize_runtime_aspect_ledger(
+                session_id=session_id,
+                module_id=module_id,
+                turn_number=effective_turn_number,
+                turn_kind=effective_turn_kind,
+                raw_player_input=player_input if effective_turn_number > 0 else None,
+                input_kind=turn_input_class,
+                turn_id=tid,
+                trace_id=trace_id,
+            ),
         }
         if turn_number is not None:
             initial_state["turn_number"] = int(turn_number)
@@ -1404,6 +1648,36 @@ class RuntimeTurnGraphExecutor:
             "npc_response_expected": bool(interp_dict.get("npc_response_expected")),
         }
         update["task_type"] = task_type
+        turn_number = int(state.get("turn_number") or 0)
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_INPUT,
+            make_aspect_record(
+                applicable=True,
+                status="passed" if raw_pi or turn_number <= 0 else "missing",
+                expected={
+                    "turn_number": turn_number,
+                    "turn_kind": state.get("turn_input_class") or move_class,
+                    "real_player_turn_evidence_lane": turn_number > 0,
+                },
+                actual={
+                    "raw_player_input": raw_pi,
+                    "input_kind": input_kind,
+                    "player_input_kind": interp_dict.get("player_input_kind"),
+                    "semantic_kind": interp_dict.get("kind"),
+                    "action_text": interp_dict.get("action_text"),
+                    "speech_text": interp_dict.get("speech_text"),
+                    "narrator_response_expected": bool(interp_dict.get("narrator_response_expected")),
+                    "npc_response_expected": bool(interp_dict.get("npc_response_expected")),
+                    "real_player_turn_evidence_lane": turn_number > 0,
+                },
+                reasons=[] if raw_pi or turn_number <= 0 else ["raw_player_input_missing"],
+                source="runtime",
+                failure_class=None if raw_pi or turn_number <= 0 else "observability_gap",
+                failure_reason=None if raw_pi or turn_number <= 0 else "raw_player_input_missing",
+                missing_field=None if raw_pi or turn_number <= 0 else "raw_player_input",
+            ),
+        )
         if "turn_input_class" not in state or not state.get("turn_input_class"):
             update["turn_input_class"] = move_class
         return update
@@ -1662,6 +1936,95 @@ class RuntimeTurnGraphExecutor:
                 "resolved_target_id": frame.get("resolved_target_id"),
                 "affordance_status": frame.get("affordance_status"),
             }
+        final_interp = (
+            update.get("interpreted_input")
+            if isinstance(update.get("interpreted_input"), dict)
+            else interp
+        )
+        turn_number = int(state.get("turn_number") or 0)
+        player_input_kind = str(
+            frame.get("player_input_kind")
+            or final_interp.get("player_input_kind")
+            or ""
+        ).strip().lower()
+        action_applicable = turn_number > 0 and player_input_kind in {"action", "perception", "mixed"}
+        affordance_status = str(aff.get("affordance_status") or "").strip()
+        action_commit_policy = str(aff.get("action_commit_policy") or "").strip()
+        resolution_present = bool(frame and aff)
+        if turn_number <= 0:
+            aspect_record = make_aspect_record(
+                applicable=False,
+                status="not_applicable",
+                expected={"real_player_turn_evidence_lane": False},
+                actual={"raw_player_input": None},
+                reasons=["opening_turn_not_player_action_evidence_lane"],
+                source="runtime",
+            )
+        elif not action_applicable:
+            aspect_record = make_aspect_record(
+                applicable=False,
+                status="not_applicable",
+                expected={"real_player_turn_evidence_lane": True},
+                actual={
+                    "raw_player_input": state.get("player_input"),
+                    "input_kind": final_interp.get("input_kind"),
+                    "player_input_kind": player_input_kind or None,
+                    "action_kind": frame.get("action_kind"),
+                    "action_commit_policy": action_commit_policy or None,
+                    "narrator_response_expected": bool(final_interp.get("narrator_response_expected")),
+                    "npc_response_expected": bool(final_interp.get("npc_response_expected")),
+                    "real_player_turn_evidence_lane": True,
+                },
+                reasons=["input_kind_not_action_resolution_applicable"],
+                source="runtime",
+            )
+        else:
+            missing_field = None
+            if not resolution_present:
+                missing_field = "player_action_frame"
+            elif not affordance_status:
+                missing_field = "affordance_status"
+            elif not action_commit_policy:
+                missing_field = "action_commit_policy"
+            ok = bool(resolution_present and affordance_status and action_commit_policy)
+            aspect_record = make_aspect_record(
+                applicable=True,
+                status="passed" if ok else "missing",
+                expected={
+                    "real_player_turn_evidence_lane": True,
+                    "deterministic_action_resolution": True,
+                },
+                actual={
+                    "raw_player_input": state.get("player_input"),
+                    "input_kind": final_interp.get("input_kind"),
+                    "player_input_kind": player_input_kind,
+                    "action_kind": frame.get("action_kind"),
+                    "verb": frame.get("verb"),
+                    "speech_text": frame.get("speech_text"),
+                    "action_text": frame.get("source_text") or state.get("player_input"),
+                    "target_query": frame.get("target_query"),
+                    "source_query": frame.get("source_query"),
+                    "resolved_target_status": affordance_status or None,
+                    "resolved_target_id": frame.get("resolved_target_id") or aff.get("resolved_target_id"),
+                    "resolved_target_type": frame.get("resolved_target_type") or aff.get("resolved_target_type"),
+                    "target_resolution_source": frame.get("target_resolution_source") or aff.get("target_resolution_source"),
+                    "affordance_status": affordance_status or None,
+                    "action_commit_policy": action_commit_policy or None,
+                    "narrator_response_expected": bool(frame.get("narrator_response_expected")),
+                    "npc_response_expected": bool(frame.get("npc_response_expected")),
+                    "real_player_turn_evidence_lane": True,
+                },
+                reasons=[] if ok else ["action_resolution_evidence_missing"],
+                source="runtime",
+                failure_class=None if ok else "observability_gap",
+                failure_reason=None if ok else "action_resolution_evidence_missing",
+                missing_field=missing_field,
+            )
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_ACTION_RESOLUTION,
+            aspect_record,
+        )
         return update
 
     def _route_after_resolve_player_action(self, state: RuntimeTurnState) -> str:
@@ -2077,6 +2440,51 @@ class RuntimeTurnGraphExecutor:
             selection_source=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
         )
         update["scene_plan_record"] = scene_plan.to_runtime_dict()
+        prior_sig = state.get("prior_dramatic_signature") if isinstance(state.get("prior_dramatic_signature"), dict) else {}
+        prior_beat_id = str(prior_sig.get("prior_beat_id") or "").strip() or None
+        scene_id = str(state.get("current_scene_id") or "").strip() or "unknown_scene"
+        candidate_functions = [
+            str(item).strip()
+            for item in (resolution.get("candidates") or [])
+            if str(item).strip()
+        ]
+        if scene_fn not in candidate_functions:
+            candidate_functions.append(scene_fn)
+        selected_beat_id = f"{scene_id}:{scene_fn}"
+        expected_realization: list[str] = []
+        interp_for_beat = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
+        if bool(interp_for_beat.get("narrator_response_expected")):
+            expected_realization.append("narrator_physical_consequence")
+        if bool(interp_for_beat.get("npc_response_expected")) or responders:
+            expected_realization.append("npc_social_reaction")
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_BEAT,
+            make_aspect_record(
+                applicable=True,
+                status="partial",
+                expected={
+                    "prior_beat_id": prior_beat_id,
+                    "candidate_beats": [f"{scene_id}:{fn}" for fn in candidate_functions],
+                    "expected_realization": expected_realization,
+                },
+                selected={
+                    "selected_beat_id": selected_beat_id,
+                    "selected_scene_function": scene_fn,
+                    "selection_reason": str(resolution.get("selection_source") or "semantic_pipeline_v1"),
+                    "transition_allowed": True,
+                },
+                actual={
+                    "realized": None,
+                    "committed": None,
+                    "lost_at_stage": None,
+                    "failure_classification": "observability_gap",
+                },
+                reasons=["beat_selected_not_yet_realized"],
+                source="runtime",
+                selected_beat=selected_beat_id,
+            ),
+        )
         return update
 
     def _assemble_model_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -3068,10 +3476,165 @@ class RuntimeTurnGraphExecutor:
                 "actor_lane_validation": actor_lane_validation,
             }
 
+        narrator_authority, npc_authority = _build_authority_aspect_records(
+            state=state,
+            generation=generation,
+            proposed_state_effects=proposed,
+        )
+        authority_ledger = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_NARRATOR_AUTHORITY,
+            narrator_authority,
+        )
+        authority_ledger = set_aspect_record(
+            authority_ledger,
+            ASPECT_NPC_AUTHORITY,
+            npc_authority,
+        )
+        capability_selection = build_capability_selection_record(
+            interpreted_input=state.get("interpreted_input")
+            if isinstance(state.get("interpreted_input"), dict)
+            else {},
+            player_action_frame=state.get("player_action_frame")
+            if isinstance(state.get("player_action_frame"), dict)
+            else {},
+            affordance_resolution=state.get("affordance_resolution")
+            if isinstance(state.get("affordance_resolution"), dict)
+            else {},
+            narrator_authority=narrator_authority,
+            npc_authority=npc_authority,
+        )
+        cap_violations = capability_selection.get("violations")
+        cap_violation = cap_violations[0] if isinstance(cap_violations, list) and cap_violations else {}
+        cap_missing = capability_selection.get("missing_required_capabilities")
+        cap_missing_first = cap_missing[0] if isinstance(cap_missing, list) and cap_missing else None
+        capability_status = str(capability_selection.get("status") or "missing").strip()
+        authority_ledger = set_aspect_record(
+            authority_ledger,
+            ASPECT_CAPABILITY_SELECTION,
+            make_aspect_record(
+                applicable=True,
+                status=capability_status if capability_status in {"passed", "failed", "partial"} else "missing",
+                expected={
+                    "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                    "selected_capabilities_must_be_realized_or_marked_missing": True,
+                },
+                selected={
+                    "requested_capabilities": capability_selection.get("requested_capabilities"),
+                    "selected_capabilities": capability_selection.get("selected_capabilities"),
+                    "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                },
+                actual={
+                    "realized_capabilities": capability_selection.get("realized_capabilities"),
+                    "violations": capability_selection.get("violations"),
+                    "missing_required_capabilities": capability_selection.get("missing_required_capabilities"),
+                    "forbidden_capability_realized": bool(cap_violation),
+                },
+                reasons=[
+                    str(cap_violation.get("reason") or cap_violation.get("capability"))
+                    if isinstance(cap_violation, dict) and cap_violation
+                    else f"missing_required_capability:{cap_missing_first}"
+                    if cap_missing_first
+                    else ""
+                ],
+                source="runtime",
+                failure_class="hard_contract_failure" if cap_violation else None,
+                failure_reason=(
+                    str(cap_violation.get("reason") or "forbidden_capability_realized")
+                    if isinstance(cap_violation, dict) and cap_violation
+                    else None
+                ),
+                offending_actor_id=cap_violation.get("offending_actor_id")
+                if isinstance(cap_violation, dict)
+                else None,
+                selected_capability=cap_missing_first,
+                realized_capability=cap_violation.get("capability")
+                if isinstance(cap_violation, dict)
+                else None,
+            ),
+        )
+        authority_failure = None
+        if npc_authority.get("status") == "failed":
+            authority_failure = npc_authority
+        elif narrator_authority.get("status") == "failed":
+            authority_failure = narrator_authority
+        if authority_failure is not None:
+            failure_reason = str(
+                authority_failure.get("failure_reason")
+                or (authority_failure.get("reasons") or ["authority_contract_violation"])[0]
+            )
+            outcome = {
+                **outcome,
+                "status": "rejected",
+                "reason": failure_reason,
+                "error_code": failure_reason,
+                "validator_lane": "runtime_aspect_ledger_authority_v1",
+                "authority_contract_violation": True,
+                "failure_class": "hard_contract_failure",
+                "hard_boundary_failure": False,
+                "recoverable_rejection": True,
+                "runtime_aspect_failure": {
+                    "aspect_status": authority_failure.get("status"),
+                    "failure_reason": failure_reason,
+                    "offending_actor_id": authority_failure.get("offending_actor_id"),
+                    "offending_block_id": authority_failure.get("offending_block_id"),
+                    "expected_owner": authority_failure.get("expected_owner"),
+                    "actual_owner": authority_failure.get("actual_owner"),
+                    "missing_field": authority_failure.get("missing_field"),
+                },
+            }
+        validation_failed = str(outcome.get("status") or "").strip().lower() != "approved"
+        authority_ledger = set_aspect_record(
+            authority_ledger,
+            ASPECT_VALIDATION,
+            make_aspect_record(
+                applicable=True,
+                status="failed" if validation_failed else "passed",
+                expected={"validation_consumes_runtime_aspect_ledger": True},
+                actual={
+                    "validation_status": outcome.get("status"),
+                    "reason": outcome.get("reason"),
+                    "validator_lane": outcome.get("validator_lane"),
+                    "authority_contract_violation": bool(outcome.get("authority_contract_violation")),
+                    "recoverable_rejection": bool(outcome.get("recoverable_rejection")),
+                    "hard_boundary_failure": bool(outcome.get("hard_boundary_failure")),
+                },
+                reasons=[str(outcome.get("reason"))] if validation_failed and outcome.get("reason") else [],
+                source="validator",
+                failure_class=outcome.get("failure_class") if validation_failed else None,
+                failure_reason=str(outcome.get("reason")) if validation_failed and outcome.get("reason") else None,
+                offending_actor_id=(
+                    authority_failure.get("offending_actor_id")
+                    if isinstance(authority_failure, dict)
+                    else None
+                ),
+                offending_block_id=(
+                    authority_failure.get("offending_block_id")
+                    if isinstance(authority_failure, dict)
+                    else None
+                ),
+                expected_owner=(
+                    authority_failure.get("expected_owner")
+                    if isinstance(authority_failure, dict)
+                    else None
+                ),
+                actual_owner=(
+                    authority_failure.get("actual_owner")
+                    if isinstance(authority_failure, dict)
+                    else None
+                ),
+                missing_field=(
+                    authority_failure.get("missing_field")
+                    if isinstance(authority_failure, dict)
+                    else None
+                ),
+            ),
+        )
         update["generation"] = generation
         update["proposed_state_effects"] = proposed
         update["validation_outcome"] = outcome
         update["actor_lane_validation"] = actor_lane_validation
+        update["turn_aspect_ledger"] = authority_ledger
         update["self_correction"] = {
             "attempt_count": len(self_correction_attempts),
             "attempts": self_correction_attempts,
@@ -3141,8 +3704,70 @@ class RuntimeTurnGraphExecutor:
                 emotional_shift=state.get("emotional_shift") if isinstance(state.get("emotional_shift"), dict) else None,
                 dramatic_direction=state.get("dramatic_direction"),
             )
+        action_authority = (
+            committed.get("player_action_authority")
+            if isinstance(committed.get("player_action_authority"), dict)
+            else {}
+        )
+        validation_status = str(validation.get("status") or "").strip().lower()
+        commit_applied = bool(committed.get("commit_applied"))
+        commit_status = "partial"
+        if (validation_status == "approved" and commit_applied) or (
+            validation_status != "approved" and not commit_applied
+        ):
+            commit_status = "passed"
+        commit_failure_reason = None
+        if validation_status == "approved" and not commit_applied:
+            commit_failure_reason = "approved_turn_without_committed_effects"
+        ledger_aspects = (
+            (state.get("turn_aspect_ledger") or {}).get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else {}
+        )
+        cap_aspect = (
+            ledger_aspects.get(ASPECT_CAPABILITY_SELECTION)
+            if isinstance(ledger_aspects, dict)
+            else {}
+        )
+        cap_selected = cap_aspect.get("selected") if isinstance(cap_aspect, dict) and isinstance(cap_aspect.get("selected"), dict) else {}
+        cap_actual = cap_aspect.get("actual") if isinstance(cap_aspect, dict) and isinstance(cap_aspect.get("actual"), dict) else {}
+        commit_ledger = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_COMMIT,
+            make_aspect_record(
+                applicable=True,
+                status=commit_status,
+                expected={
+                    "validation_status": validation.get("status"),
+                    "commit_applies_only_after_validation": True,
+                },
+                actual={
+                    "commit_applied": commit_applied,
+                    "commit_lane": committed.get("commit_lane"),
+                    "committed_effect_count": len(committed.get("committed_effects") or []),
+                    "player_action_committed": action_authority.get("player_action_committed"),
+                    "player_speech_committed": action_authority.get("player_speech_committed"),
+                    "affordance_status": action_authority.get("affordance_status"),
+                    "action_commit_status": action_authority.get("action_commit_status"),
+                    "validation_rejection_not_committed": (
+                        validation_status != "approved" and not commit_applied
+                    ),
+                    "deliberately_not_committed_failure": (
+                        validation.get("reason") if validation_status != "approved" else None
+                    ),
+                    "selected_capabilities": cap_selected.get("selected_capabilities"),
+                    "realized_capabilities": cap_actual.get("realized_capabilities"),
+                    "forbidden_capability_realized": cap_actual.get("forbidden_capability_realized"),
+                },
+                reasons=[commit_failure_reason] if commit_failure_reason else [],
+                source="runtime",
+                failure_class="observability_gap" if commit_failure_reason else None,
+                failure_reason=commit_failure_reason,
+            ),
+        )
         update["committed_result"] = committed
         update["continuity_impacts"] = continuity
+        update["turn_aspect_ledger"] = commit_ledger
         return update
 
     def _render_visible(self, state: RuntimeTurnState) -> RuntimeTurnState:

@@ -570,6 +570,174 @@ def _trace_summary(raw_trace: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
+    "session_id",
+    "trace_id",
+    "turn_number",
+    "raw_input",
+    "input_kind",
+    "action_kind",
+    "selected_beat",
+    "beat_realized",
+    "narrator_required",
+    "narrator_present",
+    "npc_policy",
+    "npc_takeover_detected",
+    "selected_capabilities",
+    "realized_capabilities",
+    "forbidden_capability_realized",
+    "visible_origin_present",
+    "turn_status",
+    "http_status",
+    "main_failure",
+    "recommended_repair",
+)
+
+
+def _extract_path_summary_from_trace(raw_trace: dict[str, Any]) -> dict[str, Any]:
+    trace_output = _coerce_dict_or_json(raw_trace.get("output"))
+    nested = _coerce_dict_or_json(trace_output.get("path_summary")) if trace_output else {}
+    if nested:
+        return nested
+    if trace_output.get("contract") == "story_runtime_path_observability.v1":
+        return trace_output
+    ps_obs = _find_observation_by_name(_get_observations(raw_trace), "story.graph.path_summary")
+    if ps_obs:
+        for block_key in ("output", "input", "metadata"):
+            block = _coerce_dict_or_json(ps_obs.get(block_key))
+            if block.get("contract") == "story_runtime_path_observability.v1" or block.get("turn_aspect_ledger"):
+                return block
+    return {}
+
+
+def _extract_runtime_aspect_ledger_from_trace(raw_trace: dict[str, Any]) -> dict[str, Any]:
+    path_summary = _extract_path_summary_from_trace(raw_trace)
+    ledger = path_summary.get("turn_aspect_ledger") if isinstance(path_summary, dict) else None
+    if isinstance(ledger, dict) and isinstance(ledger.get("turn_aspect_ledger"), dict):
+        return ledger
+    aspect_obs = _find_observation_by_name(_get_observations(raw_trace), "story.turn.aspect_summary")
+    if aspect_obs:
+        for block_key in ("output", "input", "metadata"):
+            block = _coerce_dict_or_json(aspect_obs.get(block_key))
+            ledger = block.get("turn_aspect_ledger") if isinstance(block, dict) else None
+            if isinstance(ledger, dict) and isinstance(ledger.get("turn_aspect_ledger"), dict):
+                return ledger
+    return {}
+
+
+def _aspect_record(ledger: dict[str, Any], aspect_name: str) -> dict[str, Any]:
+    aspects = ledger.get("turn_aspect_ledger") if isinstance(ledger.get("turn_aspect_ledger"), dict) else {}
+    row = aspects.get(aspect_name) if isinstance(aspects, dict) else {}
+    return row if isinstance(row, dict) else {}
+
+
+def _aspect_block(record: dict[str, Any], block_name: str) -> dict[str, Any]:
+    block = record.get(block_name) if isinstance(record, dict) else {}
+    return block if isinstance(block, dict) else {}
+
+
+def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
+    failure = str(main_failure or "").strip()
+    if not failure:
+        return None
+    if "npc_execut" in failure:
+        return "repair_npc_authority_prevent_execute_player_action"
+    if "npc_narrat" in failure:
+        return "repair_npc_authority_prevent_player_perception_narration"
+    if "narrator_required" in failure:
+        return "repair_narrator_authority_required_consequence"
+    if "forbidden_capability" in failure:
+        return "repair_capability_selection_block_forbidden_realization"
+    if "beat" in failure:
+        return "repair_beat_realization_or_contract_classification"
+    if "origin" in failure or "projection" in failure:
+        return "repair_visible_projection_origin_metadata"
+    return "inspect_runtime_aspect_ledger"
+
+
+def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
+    path_summary = _extract_path_summary_from_trace(raw_trace)
+    ledger = _extract_runtime_aspect_ledger_from_trace(raw_trace)
+    det_scores, _judge = _extract_scores_split(raw_trace)
+    input_rec = _aspect_record(ledger, "input")
+    action_rec = _aspect_record(ledger, "action_resolution")
+    beat_rec = _aspect_record(ledger, "beat")
+    narr_rec = _aspect_record(ledger, "narrator_authority")
+    npc_rec = _aspect_record(ledger, "npc_authority")
+    cap_rec = _aspect_record(ledger, "capability_selection")
+    vis_rec = _aspect_record(ledger, "visible_projection")
+
+    input_actual = _aspect_block(input_rec, "actual")
+    action_actual = _aspect_block(action_rec, "actual")
+    beat_selected = _aspect_block(beat_rec, "selected")
+    beat_actual = _aspect_block(beat_rec, "actual")
+    narr_expected = _aspect_block(narr_rec, "expected")
+    narr_actual = _aspect_block(narr_rec, "actual")
+    npc_expected = _aspect_block(npc_rec, "expected")
+    npc_actual = _aspect_block(npc_rec, "actual")
+    cap_selected = _aspect_block(cap_rec, "selected")
+    cap_actual = _aspect_block(cap_rec, "actual")
+    vis_actual = _aspect_block(vis_rec, "actual")
+    failed_records = [r for r in (narr_rec, npc_rec, cap_rec, beat_rec, vis_rec) if r.get("status") == "failed"]
+    partial_records = [r for r in (beat_rec, cap_rec, vis_rec) if r.get("status") == "partial"]
+    main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
+    reasons = main_record.get("reasons") if isinstance(main_record.get("reasons"), list) else []
+    main_failure = str(main_record.get("failure_reason") or (reasons[0] if reasons else "")).strip() or None
+    row = {
+        "session_id": ledger.get("session_id") or path_summary.get("session_id") or _extract_metadata(raw_trace).get("session_id"),
+        "trace_id": str(raw_trace.get("id") or raw_trace.get("trace_id") or "").strip(),
+        "turn_number": ledger.get("turn_number") if ledger else path_summary.get("turn_number"),
+        "raw_input": input_actual.get("raw_player_input") or action_actual.get("raw_player_input") or path_summary.get("raw_player_input"),
+        "input_kind": input_actual.get("player_input_kind") or input_actual.get("input_kind") or action_actual.get("input_kind") or path_summary.get("player_input_kind"),
+        "action_kind": action_actual.get("action_kind"),
+        "selected_beat": beat_selected.get("selected_beat_id") or beat_selected.get("selected_scene_function"),
+        "beat_realized": beat_actual.get("realized") if "realized" in beat_actual else det_scores.get("beat_realized"),
+        "narrator_required": narr_expected.get("required"),
+        "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),
+        "npc_policy": npc_expected.get("policy"),
+        "npc_takeover_detected": npc_actual.get("npc_takeover_detected"),
+        "selected_capabilities": cap_selected.get("selected_capabilities") or [],
+        "realized_capabilities": cap_actual.get("realized_capabilities") or [],
+        "forbidden_capability_realized": cap_actual.get("forbidden_capability_realized"),
+        "visible_origin_present": vis_actual.get("visible_block_origin_present") if "visible_block_origin_present" in vis_actual else det_scores.get("visible_block_origin_present"),
+        "turn_status": path_summary.get("turn_status"),
+        "http_status": path_summary.get("http_status"),
+        "main_failure": main_failure,
+        "recommended_repair": _runtime_aspect_recommended_repair(main_failure),
+    }
+    return {col: row.get(col) for col in _RUNTIME_ASPECT_MATRIX_COLUMNS}
+
+
+def _runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
+    trace_id = str(arguments.get("trace_id") or arguments.get("langfuse_trace_id") or "").strip()
+    if trace_id:
+        raw_rows = [_langfuse_get_trace(trace_id)]
+    else:
+        raw_rows = _langfuse_query_traces(
+            limit=int(arguments.get("limit") or 20),
+            trace_origin=arguments.get("trace_origin"),
+            canonical_player_flow=arguments.get("canonical_player_flow"),
+            execution_tier=arguments.get("execution_tier"),
+            trace_name=arguments.get("trace_name") or "world-engine.turn.execute",
+        )
+        raw_rows = [
+            _langfuse_get_trace(str(row.get("id") or row.get("trace_id") or "").strip())
+            if isinstance(row, dict) and not row.get("observations")
+            else row
+            for row in raw_rows
+            if isinstance(row, dict)
+        ]
+    rows = [_runtime_aspect_matrix_row(row) for row in raw_rows if isinstance(row, dict) and not row.get("error")]
+    errors = [row for row in raw_rows if isinstance(row, dict) and row.get("error")]
+    return {
+        "ok": not errors,
+        "columns": list(_RUNTIME_ASPECT_MATRIX_COLUMNS),
+        "count": len(rows),
+        "rows": rows,
+        "errors": errors,
+    }
+
+
 def _langfuse_public_get_json(
     *,
     endpoint: str,
@@ -1322,6 +1490,68 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "evidence": {"deterministic": enriched_det, "judges": evidence_judges},
         }
 
+    def summarize_runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
+        return _runtime_aspect_matrix(arguments)
+
+    def summarize_beat_realization_failures(arguments: dict[str, Any]) -> dict[str, Any]:
+        matrix = _runtime_aspect_matrix(arguments)
+        rows = [
+            row for row in matrix.get("rows", [])
+            if row.get("selected_beat") and row.get("beat_realized") not in {True, 1, 1.0}
+        ]
+        return {**matrix, "count": len(rows), "rows": rows, "summary_kind": "beat_realization_failures"}
+
+    def summarize_narrator_npc_authority(arguments: dict[str, Any]) -> dict[str, Any]:
+        matrix = _runtime_aspect_matrix(arguments)
+        rows = [
+            {
+                key: row.get(key)
+                for key in (
+                    "session_id",
+                    "trace_id",
+                    "turn_number",
+                    "raw_input",
+                    "narrator_required",
+                    "narrator_present",
+                    "npc_policy",
+                    "npc_takeover_detected",
+                    "main_failure",
+                    "recommended_repair",
+                )
+            }
+            for row in matrix.get("rows", [])
+        ]
+        return {**matrix, "count": len(rows), "rows": rows, "summary_kind": "narrator_npc_authority"}
+
+    def summarize_capability_realization(arguments: dict[str, Any]) -> dict[str, Any]:
+        matrix = _runtime_aspect_matrix(arguments)
+        rows = [
+            {
+                key: row.get(key)
+                for key in (
+                    "session_id",
+                    "trace_id",
+                    "turn_number",
+                    "raw_input",
+                    "selected_capabilities",
+                    "realized_capabilities",
+                    "forbidden_capability_realized",
+                    "main_failure",
+                    "recommended_repair",
+                )
+            }
+            for row in matrix.get("rows", [])
+        ]
+        return {**matrix, "count": len(rows), "rows": rows, "summary_kind": "capability_realization"}
+
+    def summarize_visible_projection_origin_loss(arguments: dict[str, Any]) -> dict[str, Any]:
+        matrix = _runtime_aspect_matrix(arguments)
+        rows = [
+            row for row in matrix.get("rows", [])
+            if row.get("visible_origin_present") not in {True, 1, 1.0}
+        ]
+        return {**matrix, "count": len(rows), "rows": rows, "summary_kind": "visible_projection_origin_loss"}
+
     return {
         "run_projection_tests": run_projection_tests,
         "fetch_langfuse_trace": fetch_langfuse_trace,
@@ -1331,5 +1561,10 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         "fetch_langfuse_trace_scores": fetch_langfuse_trace_scores,
         "summarize_opening_judge_scores": summarize_opening_judge_scores,
         "build_opening_quality_context": build_opening_quality_context,
+        "summarize_runtime_aspect_matrix": summarize_runtime_aspect_matrix,
+        "summarize_beat_realization_failures": summarize_beat_realization_failures,
+        "summarize_narrator_npc_authority": summarize_narrator_npc_authority,
+        "summarize_capability_realization": summarize_capability_realization,
+        "summarize_visible_projection_origin_loss": summarize_visible_projection_origin_loss,
     }
 

@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 _active_span_context: ContextVar[Optional[Any]] = ContextVar("active_span", default=None)
 _active_langfuse_client: ContextVar[Optional[Any]] = ContextVar("langfuse_client", default=None)
+_active_langfuse_session_id: ContextVar[Optional[str]] = ContextVar("langfuse_session_id", default=None)
 
 
 class LangfuseAdapter:
@@ -187,6 +188,7 @@ class LangfuseAdapter:
             else:
                 span = _create_root()
             _active_langfuse_client.set(client)
+            _active_langfuse_session_id.set(safe_sid)
             logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
         except Exception as e:
@@ -236,6 +238,7 @@ class LangfuseAdapter:
             else:
                 span = _create_joined()
             _active_langfuse_client.set(client)
+            _active_langfuse_session_id.set(safe_sid)
             logger.info(f"[LANGFUSE] span created in trace: name={name}, trace_id={trace_id}")
             return span
         except Exception as e:
@@ -293,13 +296,20 @@ class LangfuseAdapter:
                 yield
             return
 
+        token = _active_langfuse_session_id.set(safe_session_id)
         if otel_span is not None:
-            with otel_trace_api.use_span(otel_span, end_on_exit=False):
+            try:
+                with otel_trace_api.use_span(otel_span, end_on_exit=False):
+                    with propagate:
+                        yield
+            finally:
+                _active_langfuse_session_id.reset(token)
+        else:
+            try:
                 with propagate:
                     yield
-        else:
-            with propagate:
-                yield
+            finally:
+                _active_langfuse_session_id.reset(token)
 
     @property
     def config(self) -> SimpleNamespace:
@@ -316,10 +326,20 @@ class LangfuseAdapter:
         """Set the currently active span for child operations (thread-safe via ContextVar)."""
         if span is None:
             _active_langfuse_client.set(None)
+            _active_langfuse_session_id.set(None)
         span_name = getattr(span, 'name', 'unknown') if span else None
         span_id = getattr(span, 'span_id', 'unknown') if span else None
         logger.info(f"[LANGFUSE] set_active_span: name={span_name}, span_id={span_id}")
         _active_span_context.set(span)
+
+    def _metadata_with_active_session(self, metadata: Optional[dict[str, Any]]) -> dict[str, Any]:
+        """Attach the active Langfuse session id to observation metadata when absent."""
+        md = dict(metadata or {})
+        active_session_id = _active_langfuse_session_id.get()
+        if active_session_id:
+            md.setdefault("session_id", active_session_id)
+            md.setdefault("langfuse_session_id", active_session_id)
+        return md
 
     def create_child_span(
         self,
@@ -348,7 +368,7 @@ class LangfuseAdapter:
                 name=name,
                 input=input or {},
                 output=output or {},
-                metadata=metadata or {},
+                metadata=self._metadata_with_active_session(metadata),
                 level=level,  # type: ignore[arg-type]
                 status_message=status_message,
             )
@@ -389,6 +409,7 @@ class LangfuseAdapter:
                 "provider": provider,
                 "provided_model_name": (provided_model_name or model or "").strip() or None,
             }
+            gen_metadata = self._metadata_with_active_session(gen_metadata)
             if prompt_name:
                 gen_metadata["langfuse_prompt_name"] = prompt_name
             if latency_ms is not None:
@@ -447,10 +468,10 @@ class LangfuseAdapter:
                 as_type="retriever",
                 name=name,
                 input={"query": query} if query else {},
-                metadata={
+                metadata=self._metadata_with_active_session({
                     **(metadata or {}),
                     "document_count": len(documents or []),
-                },
+                }),
             )
             retrieval.update(output={"documents": documents or []})
             retrieval.end()
@@ -477,11 +498,12 @@ class LangfuseAdapter:
             return
         trace_id = getattr(parent_span, "trace_id", None)
         try:
+            score_metadata = self._metadata_with_active_session(metadata)
             parent_span.score(
                 name=name,
                 value=value,
                 comment=comment,
-                metadata=metadata or {},
+                metadata=score_metadata,
             )
         except Exception as e:
             logger.error(f"[LANGFUSE] Failed to add score '{name}': {str(e)}", exc_info=True)
@@ -491,7 +513,7 @@ class LangfuseAdapter:
         try:
             lf_client = _active_langfuse_client.get() or self.client
             if trace_id and lf_client:
-                meta = dict(metadata or {})
+                meta = dict(score_metadata)
                 meta.setdefault("score_attachment", "trace_duplicate")
                 score_session_id = self._safe_session_id(meta.get("session_id"))
                 create_kw: dict[str, Any] = {

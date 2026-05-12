@@ -20,6 +20,11 @@ def test_langfuse_verify_tools_registered():
     assert registry.get("query_langfuse_traces") is not None
     assert registry.get("assert_langfuse_opening_contract") is not None
     assert registry.get("summarize_live_opening_matrix") is not None
+    assert registry.get("summarize_runtime_aspect_matrix") is not None
+    assert registry.get("summarize_beat_realization_failures") is not None
+    assert registry.get("summarize_narrator_npc_authority") is not None
+    assert registry.get("summarize_capability_realization") is not None
+    assert registry.get("summarize_visible_projection_origin_loss") is not None
 
 
 def test_run_projection_tests_returns_structured_result():
@@ -628,3 +633,77 @@ def test_summarize_live_opening_matrix_enriches_from_score_metadata():
         assert r["quality_class"] == "healthy"
         assert r["live_opening_contract_pass"] == 1.0
 
+
+def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
+    registry = _registry()
+    tool = registry.get("summarize_runtime_aspect_matrix")
+    trace_payload = {
+        "id": "trace-aspect-matrix",
+        "name": "world-engine.turn.execute",
+        "output": {
+            "contract": "story_runtime_path_observability.v1",
+            "session_id": "session-aspect",
+            "turn_number": 1,
+            "raw_player_input": "Ich nehme ein Bier aus dem Kuehlschrank",
+            "turn_aspect_ledger": {
+                "session_id": "session-aspect",
+                "turn_number": 1,
+                "turn_aspect_ledger": {
+                    "input": {
+                        "status": "passed",
+                        "actual": {
+                            "raw_player_input": "Ich nehme ein Bier aus dem Kuehlschrank",
+                            "input_kind": "action",
+                        },
+                    },
+                    "action_resolution": {
+                        "status": "passed",
+                        "actual": {"action_kind": "object_interaction"},
+                    },
+                    "beat": {
+                        "status": "partial",
+                        "selected": {"selected_beat_id": "domestic_disruption"},
+                        "actual": {"realized": False},
+                        "failure_reason": "beat_realization_not_visible",
+                    },
+                    "narrator_authority": {
+                        "status": "passed",
+                        "expected": {"required": True},
+                        "actual": {"narrator_block_present": True},
+                    },
+                    "npc_authority": {
+                        "status": "passed",
+                        "expected": {"policy": "social_reaction_only"},
+                        "actual": {"npc_takeover_detected": False},
+                    },
+                    "capability_selection": {
+                        "status": "passed",
+                        "selected": {"selected_capabilities": ["player.object_interaction.attempt"]},
+                        "actual": {
+                            "realized_capabilities": ["player.object_interaction.attempt"],
+                            "forbidden_capability_realized": False,
+                        },
+                    },
+                    "visible_projection": {
+                        "status": "passed",
+                        "actual": {"visible_block_origin_present": True},
+                    },
+                },
+            },
+        },
+        "scores": [{"name": "beat_realized", "value": 0.0}],
+    }
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+        return_value=trace_payload,
+    ):
+        out = tool.handler({"trace_id": "trace-aspect-matrix"})
+
+    assert out["ok"] is True
+    row = out["rows"][0]
+    assert row["session_id"] == "session-aspect"
+    assert row["raw_input"].startswith("Ich nehme")
+    assert row["action_kind"] == "object_interaction"
+    assert row["selected_beat"] == "domestic_disruption"
+    assert row["beat_realized"] is False
+    assert row["main_failure"] == "beat_realization_not_visible"

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import sys
 import uuid
+from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -13,12 +15,27 @@ from app.story_runtime.manager import (
     _compute_opening_shape_subgates,
     _emit_langfuse_evidence_observations,
     _emit_langfuse_path_spans,
+    _emit_langfuse_runtime_aspect_observability,
     _finalize_visible_bundle_opening_gm_narration,
     _live_scene_blocks_from_visible_bundle,
     _maybe_split_goc_opening_into_two_movements,
     _opening_block_contract_satisfied,
 )
 from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
+from ai_stack.runtime_aspect_ledger import (
+    ASPECT_ACTION_RESOLUTION,
+    ASPECT_BEAT,
+    ASPECT_CAPABILITY_SELECTION,
+    ASPECT_COMMIT,
+    ASPECT_INPUT,
+    ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NPC_AUTHORITY,
+    ASPECT_VALIDATION,
+    ASPECT_VISIBLE_PROJECTION,
+    initialize_runtime_aspect_ledger,
+    make_aspect_record,
+    set_aspect_record,
+)
 
 
 def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
@@ -55,6 +72,228 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     assert cc_kw["trace_id"] == "trace-id-adr0033"
     assert cc_kw["value"] == 0.0
     assert cc_kw.get("session_id") == "s1"
+
+
+def test_langfuse_start_trace_sets_first_class_session_context(monkeypatch):
+    from app.observability import langfuse_adapter as lf_mod
+
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._base_url = "http://langfuse.test"
+    adapter._release = "test"
+    adapter._sample_rate = 1.0
+    adapter._config = SimpleNamespace(environment="development", release="test", sample_rate=1.0)
+    client = MagicMock()
+    span = MagicMock()
+    span.trace_id = "trace-session-hardening"
+    client.start_observation.return_value = span
+    adapter._clients = {"development": client, "live": client}
+    propagate_calls: list[dict[str, Any]] = []
+
+    @contextmanager
+    def _propagate_attributes(**kwargs: Any):
+        propagate_calls.append(kwargs)
+        yield
+
+    monkeypatch.setitem(
+        sys.modules,
+        "langfuse",
+        SimpleNamespace(propagate_attributes=_propagate_attributes),
+    )
+
+    out = lf_mod.LangfuseAdapter.start_trace(
+        adapter,
+        name="world-engine.turn.execute",
+        session_id="story-session-1",
+        metadata={"trace_origin": "live_ui", "execution_tier": "live"},
+    )
+
+    assert out is span
+    assert propagate_calls[-1]["session_id"] == "story-session-1"
+    assert lf_mod._active_langfuse_session_id.get() == "story-session-1"
+    client.start_observation.assert_called_once()
+
+
+def test_langfuse_child_observations_inherit_active_session_metadata():
+    from app.observability import langfuse_adapter as lf_mod
+
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    client = MagicMock()
+    adapter._clients = {"development": client}
+    parent_span = MagicMock()
+    parent_span.trace_id = "trace-child-session"
+    child_span = MagicMock()
+    parent_span.start_observation.return_value = child_span
+    token_span = lf_mod._active_span_context.set(parent_span)
+    token_session = lf_mod._active_langfuse_session_id.set("story-session-2")
+    token_client = lf_mod._active_langfuse_client.set(client)
+    try:
+        lf_mod.LangfuseAdapter.create_child_span(adapter, name="story.validation.contract")
+        lf_mod.LangfuseAdapter.record_generation(
+            adapter,
+            name="story.model.generation",
+            model="gpt-test",
+            provider="openai",
+        )
+        lf_mod.LangfuseAdapter.record_retrieval(adapter, name="story.rag.retrieval")
+        lf_mod.LangfuseAdapter.add_score(adapter, name="turn_aspect_ledger_present", value=1.0)
+    finally:
+        lf_mod._active_langfuse_client.reset(token_client)
+        lf_mod._active_langfuse_session_id.reset(token_session)
+        lf_mod._active_span_context.reset(token_span)
+
+    metadata_rows = [
+        call.kwargs.get("metadata") or {}
+        for call in parent_span.start_observation.call_args_list
+    ]
+    assert metadata_rows
+    assert all(row.get("session_id") == "story-session-2" for row in metadata_rows)
+    parent_span.score.assert_called_once()
+    assert parent_span.score.call_args.kwargs["metadata"]["session_id"] == "story-session-2"
+    client.create_score.assert_called_once()
+    assert client.create_score.call_args.kwargs["session_id"] == "story-session-2"
+
+
+def _aspect_test_ledger() -> dict[str, Any]:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="story-session-aspect",
+        module_id="god_of_carnage",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Ich nehme ein Bier aus dem Kuehlschrank",
+        trace_id="trace-aspect",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_INPUT,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            actual={"raw_player_input": "Ich nehme ein Bier aus dem Kuehlschrank", "input_kind": "action"},
+            source="runtime",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_ACTION_RESOLUTION,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            actual={"input_kind": "action", "affordance_status": "allowed", "action_commit_policy": "commit_action"},
+            source="runtime",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_BEAT,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            selected={"selected_beat_id": "domestic_disruption"},
+            actual={"realized": True, "visible": True},
+            source="projection",
+            selected_beat="domestic_disruption",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_CAPABILITY_SELECTION,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            selected={"selected_capabilities": ["player.object_interaction.attempt", "narrator.physical_consequence"]},
+            actual={"realized_capabilities": ["player.object_interaction.attempt", "narrator.physical_consequence"], "missing_required_capabilities": [], "forbidden_capability_realized": False},
+            source="runtime",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NARRATOR_AUTHORITY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={"required": True},
+            actual={"actual_owner": "narrator", "consequence_realized": True},
+            source="runtime",
+            expected_owner="narrator",
+            actual_owner="narrator",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_NPC_AUTHORITY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            actual={"npc_takeover_detected": False},
+            source="runtime",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_VALIDATION,
+        make_aspect_record(applicable=True, status="passed", actual={"recoverable_rejection": False}, source="validator"),
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_COMMIT,
+        make_aspect_record(applicable=True, status="passed", actual={"commit_applied": True}, source="commit"),
+    )
+    return set_aspect_record(
+        ledger,
+        ASPECT_VISIBLE_PROJECTION,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            actual={"visible_block_origin_present": True, "scene_block_count": 2},
+            source="projection",
+        ),
+    )
+
+
+def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    adapter.create_child_span.side_effect = lambda **kwargs: MagicMock()
+
+    monkeypatch.setattr(
+        "app.observability.langfuse_adapter.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    _emit_langfuse_runtime_aspect_observability(
+        {
+            "session_id": "story-session-aspect",
+            "module_id": "god_of_carnage",
+            "turn_number": 1,
+            "turn_kind": "player",
+            "raw_player_input": "Ich nehme ein Bier aus dem Kuehlschrank",
+            "turn_aspect_ledger_present": True,
+            "turn_aspect_ledger": _aspect_test_ledger(),
+            "trace_origin": "pytest",
+            "execution_tier": "test",
+            "canonical_player_flow": False,
+            "http_status": 200,
+        }
+    )
+
+    child_names = [call.kwargs["name"] for call in adapter.create_child_span.call_args_list]
+    assert "story.beat.select" in child_names
+    assert "story.beat.realize" in child_names
+    assert "story.authority.narrator" in child_names
+    assert "story.authority.npc" in child_names
+    assert "story.capability.select" in child_names
+    score_calls = {call.kwargs["name"]: call.kwargs for call in adapter.add_score.call_args_list}
+    assert score_calls["beat_realized"]["value"] == 1.0
+    assert score_calls["npc_takeover_absent"]["value"] == 1.0
+    assert score_calls["turn_aspect_ledger_present"]["metadata"]["status"] == "passed"
+    assert score_calls["beat_realized"]["metadata"]["selected_beat"] == "domestic_disruption"
 
 
 def _goc_projection():

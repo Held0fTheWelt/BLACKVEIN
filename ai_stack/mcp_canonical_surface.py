@@ -181,6 +181,11 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("fetch_langfuse_trace_scores", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("summarize_opening_judge_scores", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("build_opening_quality_context", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_runtime_aspect_matrix", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_beat_realization_failures", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_narrator_npc_authority", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_capability_realization", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("summarize_visible_projection_origin_loss", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
 )
 
 

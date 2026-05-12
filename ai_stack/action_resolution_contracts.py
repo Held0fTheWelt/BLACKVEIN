@@ -180,6 +180,9 @@ class PlayerActionFrameContract:
     actor_id: str | None = None
     # Human-lane actor executing the turn (from runtime projection / interpreter).
     selected_actor_id: str | None = None
+    source_query: str | None = None
+    resolved_source: ResolvedTarget | None = None
+    source_resolution_source: str | None = None
     validation_surface: str | None = None
     projection_rule_id: str | None = None
 
@@ -196,6 +199,11 @@ class PlayerActionFrameContract:
             "verb": self.verb,
             "speech_text": self.speech_text,
             "target_query": self.target_query,
+            "source_query": self.source_query,
+            "resolved_source": self.resolved_source.to_dict() if self.resolved_source else None,
+            "resolved_source_id": self.resolved_source.target_id if self.resolved_source else None,
+            "resolved_source_type": self.resolved_source.target_type if self.resolved_source else None,
+            "source_resolution_source": self.source_resolution_source,
             "resolved_target": self.resolved_target.to_dict() if self.resolved_target else None,
             "resolved_target_id": self.resolved_target.target_id if self.resolved_target else None,
             "resolved_target_type": self.resolved_target.target_type if self.resolved_target else None,

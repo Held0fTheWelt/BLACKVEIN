@@ -117,6 +117,10 @@ class RuntimeTurnState(TypedDict, total=False):
     story_runtime_experience: dict[str, Any]
     # HUMAN-INPUT-ATTRIBUTION-01: committed-turn diagnostics (host/world-engine may attach).
     human_input_attribution: dict[str, Any]
+    # RuntimeAspectLedger is backend/world-engine-owned authority evidence.
+    # Authority-relevant records are consumed by validation/commit before
+    # diagnostics or Langfuse emission.
+    turn_aspect_ledger: dict[str, Any]
 
 
 STORY_RUNTIME_ROUTING_POLICY_ID = "story_runtime_core.RoutingPolicy"

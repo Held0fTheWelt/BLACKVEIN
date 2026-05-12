@@ -26,6 +26,7 @@ from ai_stack.runtime_turn_contracts import (
     EXECUTION_HEALTH_MODEL_FALLBACK,
     EXECUTION_HEALTH_VALUES,
 )
+from ai_stack.runtime_aspect_ledger import ASPECT_ACTION_RESOLUTION
 
 
 class SuccessAdapter(BaseModelAdapter):
@@ -375,6 +376,7 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
         current_scene_id="living_room",
         player_input="Gehe ins Bad",
         trace_id="trace-action-surface-1",
+        turn_number=1,
         host_experience_template={
             "template_id": "god_of_carnage_solo",
             "title": "God of Carnage",
@@ -411,6 +413,45 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     assert repro.get("fallback_used") is False
     assert repro.get("mock_used") is False
     assert repro.get("ldss_fallback") is False
+    ledger = result.get("turn_aspect_ledger") or {}
+    action_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_ACTION_RESOLUTION) or {}
+    assert action_aspect.get("status") == "passed"
+    assert action_aspect.get("actual", {}).get("raw_player_input") == "Gehe ins Bad"
+    assert action_aspect.get("actual", {}).get("player_input_kind") == "action"
+    assert action_aspect.get("actual", {}).get("action_commit_policy") == "commit_action"
+
+
+def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledger(tmp_path: Path) -> None:
+    graph = _build_graph(tmp_path)
+    result = graph.run(
+        session_id="session-action-unknown",
+        module_id="god_of_carnage",
+        current_scene_id="living_room",
+        player_input="Gehe nach Mordor",
+        trace_id="trace-action-unknown-1",
+        turn_number=1,
+        actor_lane_context={
+            "human_actor_id": "annette_reille",
+            "selected_player_role": "annette_reille",
+            "npc_actor_ids": ["alain_reille", "veronique_vallon", "michel_longstreet"],
+            "actor_lanes": {
+                "annette_reille": "human",
+                "alain_reille": "npc",
+                "veronique_vallon": "npc",
+                "michel_longstreet": "npc",
+            },
+        },
+    )
+    ledger = result.get("turn_aspect_ledger") or {}
+    action_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_ACTION_RESOLUTION) or {}
+    actual = action_aspect.get("actual") or {}
+    assert action_aspect.get("status") == "passed"
+    assert actual.get("player_input_kind") == "action"
+    assert actual.get("verb") == "move_to"
+    assert actual.get("affordance_status") == "unknown_target"
+    assert actual.get("action_commit_policy") == "needs_clarification"
+    interpreted = result.get("interpreted_input") or {}
+    assert interpreted.get("player_speech_committed") is False
 
 
 def test_execution_health_constants_are_stable_set() -> None:
