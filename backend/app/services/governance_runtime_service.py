@@ -15,7 +15,7 @@ from flask import current_app
 from sqlalchemy import and_
 from sqlalchemy import inspect
 from sqlalchemy.exc import OperationalError
-from story_runtime_core.adapters import MockModelAdapter, OllamaAdapter, OpenAIChatAdapter
+from story_runtime_core.adapters import MockModelAdapter, OllamaAdapter, OpenAIChatAdapter, openai_http_error_excerpt
 
 from app.extensions import db
 from app.governance.errors import GovernanceError, governance_error
@@ -435,13 +435,14 @@ def _minimal_openai_probe(
 
             if provider_type == "openai" and OpenAIChatAdapter._uses_responses_api(model_name):
                 endpoint = f"{base_url}/responses"
+                # Minimal connectivity probe: plain-string input matches Responses API docs and
+                # avoids 400s from strict message-item validation on some gateways. Omit ``reasoning``
+                # here so the probe stays a shallow reachability check (full turns use the adapter).
                 payload: dict[str, object] = {
                     "model": model_name,
-                    "input": [{"role": "user", "content": "Reply with OK."}],
-                    "max_output_tokens": 8,
+                    "input": "Reply with OK.",
+                    "max_output_tokens": 64,
                 }
-                if OpenAIChatAdapter._uses_reasoning_controls(model_name):
-                    payload["reasoning"] = {"effort": "minimal"}
                 response = client.post(endpoint, headers=headers, json=payload)
                 metadata.update(
                     {
@@ -513,12 +514,18 @@ def _minimal_openai_probe(
         response = getattr(exc, "response", None)
         status = getattr(response, "status_code", None)
         metadata["http_status"] = status
+        excerpt = openai_http_error_excerpt(response)
+        if excerpt:
+            metadata["provider_error_excerpt"] = excerpt
+        msg = f"Provider responded with HTTP {status}." if status else str(exc)
+        if excerpt:
+            msg = f"{msg} {excerpt}"
         return {
             "success": False,
             "content": "",
             "metadata": metadata,
             "error_code": f"http_{status}" if status else "http_status_error",
-            "operator_message": f"Provider responded with HTTP {status}." if status else str(exc),
+            "operator_message": msg,
         }
     except httpx.HTTPError as exc:
         metadata["error_type"] = type(exc).__name__

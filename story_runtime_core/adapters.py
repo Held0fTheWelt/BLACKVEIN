@@ -12,6 +12,33 @@ import httpx
 
 _log = logging.getLogger(__name__)
 
+_OPENAI_ERROR_BODY_MAX = 2000
+
+
+def openai_http_error_excerpt(response: httpx.Response | None, *, limit: int = _OPENAI_ERROR_BODY_MAX) -> str:
+    """Return a short snippet from an OpenAI-compatible JSON error body (no secrets)."""
+    if response is None:
+        return ""
+    try:
+        data = response.json()
+        if isinstance(data, dict):
+            err = data.get("error")
+            if isinstance(err, dict) and err.get("message"):
+                msg = str(err.get("message", "")).strip()
+                et = str(err.get("type", "") or "").strip()
+                if et:
+                    return f"{et}: {msg}"[:limit]
+                return msg[:limit]
+            if isinstance(err, str):
+                return err.strip()[:limit]
+    except Exception:
+        pass
+    try:
+        text = (response.text or "").strip()
+    except Exception:
+        return ""
+    return text[:limit] if text else ""
+
 _DEBUG_LOG_ENV = "WOS_DEBUG_OPENAI_ADAPTER"
 _DEBUG_SESSION_ID = "a4ace1"
 
@@ -212,18 +239,26 @@ class OpenAIChatAdapter(BaseModelAdapter):
         chosen_model: str,
         request_timeout: float,
     ) -> ModelCallResult:
+        # Plain-string ``input`` matches OpenAI Responses migration examples and avoids
+        # strict message-item validation issues on some gateways (see governance probe).
         payload: dict[str, Any] = {
             "model": chosen_model,
-            "input": [{"role": "user", "content": prompt}],
+            "input": prompt,
         }
         if retrieval_context and retrieval_context.strip():
             payload["instructions"] = retrieval_context.strip()
         if self._supports_custom_temperature(chosen_model):
             payload["temperature"] = 0.3
-        if self._uses_reasoning_controls(chosen_model):
+        json_mode = self._json_mode_requested(prompt)
+        reasoning_model = self._uses_reasoning_controls(chosen_model)
+        # Some Responses deployments reject ``reasoning`` together with ``text.format``;
+        # JSON mode still works without explicit reasoning controls for the probe path.
+        if reasoning_model and not json_mode:
             payload["reasoning"] = {"effort": "minimal"}
             payload["max_output_tokens"] = 1200
-        if self._json_mode_requested(prompt):
+        elif reasoning_model and json_mode:
+            payload["max_output_tokens"] = 1200
+        if json_mode:
             payload["text"] = {"format": {"type": "json_object"}}
         response = client.post(
             f"{self.base_url}/responses",
@@ -368,6 +403,7 @@ class OpenAIChatAdapter(BaseModelAdapter):
                 success=False,
                 metadata={"error": "missing_openai_api_key", "model": chosen_model},
             )
+        force_chat = (os.getenv("OPENAI_GPT5_USE_CHAT_COMPLETIONS") or "").strip().lower() in {"1", "true", "yes"}
         try:
             with httpx.Client(timeout=request_timeout) as client:
                 call_kwargs = {
@@ -378,9 +414,34 @@ class OpenAIChatAdapter(BaseModelAdapter):
                     "chosen_model": chosen_model,
                     "request_timeout": request_timeout,
                 }
-                if self._uses_responses_api(chosen_model):
+                use_responses = self._uses_responses_api(chosen_model) and not force_chat
+                if use_responses:
                     return self._generate_with_responses_api(**call_kwargs)
                 return self._generate_with_chat_completions_api(**call_kwargs)
+        except httpx.HTTPStatusError as exc:
+            resp = exc.response
+            status = getattr(resp, "status_code", None)
+            excerpt = openai_http_error_excerpt(resp)
+            adapter_api = "responses" if self._uses_responses_api(chosen_model) and not force_chat else "chat_completions"
+            _log.error(
+                "OpenAI HTTP error: adapter=%s model=%s status=%s excerpt=%s",
+                self.adapter_name,
+                chosen_model,
+                status,
+                excerpt[:800] if excerpt else str(exc),
+            )
+            meta: dict[str, Any] = {
+                "adapter": self.adapter_name,
+                "model": chosen_model,
+                "base_url": self.base_url,
+                "timeout_seconds": request_timeout,
+                "error": str(exc),
+                "http_status": status,
+                "adapter_api": adapter_api,
+            }
+            if excerpt:
+                meta["provider_error_excerpt"] = excerpt
+            return ModelCallResult(content="", success=False, metadata=meta)
         except Exception as exc:
             error_str = str(exc)
             _log.error("Model adapter call failed: adapter=%s model=%s error=%s", self.adapter_name, chosen_model, error_str)

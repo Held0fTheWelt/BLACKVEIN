@@ -550,12 +550,15 @@ class LangfuseAdapter:
             return
 
         try:
-            # v4 API: use score method on the span
+            from langfuse.api import ScoreDataType
+
+            # v4 API: use score method on the span (explicit NUMERIC for strict Langfuse servers)
             target_trace.score(
                 name=name,
                 value=value,
                 comment=comment,
                 metadata=self._sanitize_metadata(metadata) if metadata else None,
+                data_type=ScoreDataType.NUMERIC,
             )
         except Exception as e:
             logger.warning(f"Failed to add score: {e}")

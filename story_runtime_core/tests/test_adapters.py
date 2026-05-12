@@ -1,7 +1,15 @@
+import httpx
 import pytest
 from unittest.mock import Mock, patch
 
-from story_runtime_core.adapters import MockModelAdapter, OpenAIChatAdapter, build_default_model_adapters
+from story_runtime_core.adapters import MockModelAdapter, OpenAIChatAdapter, build_default_model_adapters, openai_http_error_excerpt
+
+
+def test_openai_http_error_excerpt_parses_error_message():
+    resp = Mock()
+    resp.json.return_value = {"error": {"type": "invalid_request_error", "message": "bad param"}}
+    assert "invalid_request_error" in openai_http_error_excerpt(resp)
+    assert "bad param" in openai_http_error_excerpt(resp)
 
 
 def test_mock_adapter_returns_success():
@@ -44,10 +52,10 @@ def test_openai_adapter_omits_temperature_for_gpt5_models():
     assert client.post.call_args.args[0].endswith("/responses")
     payload = client.post.call_args.kwargs["json"]
     assert payload["model"] == "gpt-5.4-mini"
-    assert payload["input"] == [{"role": "user", "content": "Return valid JSON."}]
+    assert payload["input"] == "Return valid JSON."
     assert "instructions" not in payload
     assert "temperature" not in payload
-    assert payload["reasoning"] == {"effort": "minimal"}
+    assert "reasoning" not in payload
     assert payload["max_output_tokens"] == 1200
     assert payload["text"] == {"format": {"type": "json_object"}}
 
@@ -156,6 +164,67 @@ def test_openai_extract_responses_text_handles_documented_shapes(payload, expect
     assert OpenAIChatAdapter._extract_responses_text(payload) == expected
 
 
+def test_openai_adapter_non_json_gpt5_includes_reasoning_on_responses():
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"output_text": "ok"}
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        OpenAIChatAdapter(api_key="sk-test").generate("plain hello", model_name="gpt-5.5")
+
+    payload = client.post.call_args.kwargs["json"]
+    assert payload["input"] == "plain hello"
+    assert payload["reasoning"] == {"effort": "minimal"}
+    assert payload["max_output_tokens"] == 1200
+
+
+def test_openai_adapter_http_400_returns_provider_error_excerpt():
+    err_resp = Mock()
+    err_resp.status_code = 400
+    err_resp.json.return_value = {"error": {"type": "invalid_request_error", "message": "Unknown model xyz"}}
+    err_resp.text = '{"error":{"message":"Unknown model xyz"}}'
+
+    exc = httpx.HTTPStatusError("bad", request=Mock(), response=err_resp)
+
+    def _raise(*_a, **_k):
+        raise exc
+
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post = Mock(side_effect=_raise)
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        result = OpenAIChatAdapter(api_key="sk-test").generate("hi", model_name="gpt-5.4-mini")
+
+    assert result.success is False
+    assert result.metadata.get("http_status") == 400
+    assert "Unknown model xyz" in (result.metadata.get("provider_error_excerpt") or "")
+    assert result.metadata.get("adapter_api") == "responses"
+
+
+def test_openai_adapter_force_chat_completions_env(monkeypatch):
+    monkeypatch.setenv("OPENAI_GPT5_USE_CHAT_COMPLETIONS", "1")
+    response = Mock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+    client = Mock()
+    client.__enter__ = Mock(return_value=client)
+    client.__exit__ = Mock(return_value=None)
+    client.post.return_value = response
+
+    with patch("story_runtime_core.adapters.httpx.Client", return_value=client):
+        result = OpenAIChatAdapter(api_key="sk-test").generate("hello", model_name="gpt-5.4-mini")
+
+    assert result.success is True
+    assert result.metadata["adapter_api"] == "chat_completions"
+    assert client.post.call_args.args[0].endswith("/chat/completions")
+
+
 def test_openai_responses_request_includes_instructions_when_retrieval_present():
     response = Mock()
     response.raise_for_status.return_value = None
@@ -174,4 +243,4 @@ def test_openai_responses_request_includes_instructions_when_retrieval_present()
 
     payload = client.post.call_args.kwargs["json"]
     assert payload["instructions"] == "System context here."
-    assert payload["input"] == [{"role": "user", "content": "hello"}]
+    assert payload["input"] == "hello"

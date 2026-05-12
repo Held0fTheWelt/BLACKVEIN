@@ -67,9 +67,16 @@ def register_proxy_routes(app: Flask, app_module: ModuleType) -> None:
             for header in PROXY_DANGEROUS_HEADERS:
                 headers.pop(header, None)
 
+            def _headers_for_log(h: dict[str, str]) -> dict[str, str]:
+                out = dict(h)
+                auth = out.get("Authorization")
+                if auth and isinstance(auth, str) and auth.startswith("Bearer "):
+                    out["Authorization"] = "Bearer ***redacted***"
+                return out
+
             print(f"\n[PROXY DEBUG] {request.method} /_proxy/{subpath}")
             print(f"[PROXY DEBUG] Target: {target}")
-            print(f"[PROXY DEBUG] Headers: {dict(headers)}")
+            print(f"[PROXY DEBUG] Headers: {_headers_for_log(headers)}")
             print(f"[PROXY DEBUG] Body length: {len(body) if body else 0}")
             if body:
                 try:

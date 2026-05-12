@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
@@ -12,6 +13,171 @@ from typing import Any, Iterator, Optional
 from story_runtime_core.langfuse_tracing_environment import resolve_langfuse_environment
 
 logger = logging.getLogger(__name__)
+
+_LANGFUSE_DEBUG_APPLIED = False
+_LANGFUSE_DEBUG_HANDLER_ATTR = "_wos_langfuse_debug_handler"
+
+
+def _langfuse_debug_handler_installed(lg: logging.Logger) -> bool:
+    return any(getattr(h, _LANGFUSE_DEBUG_HANDLER_ATTR, False) for h in lg.handlers)
+
+
+def _install_langfuse_sdk_debug_stream_handlers() -> None:
+    """Attach DEBUG handlers so SDK `logger.debug(exception)` is visible under uvicorn (root INFO drops DEBUG)."""
+    fmt = logging.Formatter("%(asctime)s %(levelname)s [langfuse-sdk] %(name)s %(message)s")
+    for name in ("langfuse", "langfuse.api"):
+        lg = logging.getLogger(name)
+        lg.setLevel(logging.DEBUG)
+        if _langfuse_debug_handler_installed(lg):
+            continue
+        h = logging.StreamHandler()
+        setattr(h, _LANGFUSE_DEBUG_HANDLER_ATTR, True)
+        h.setLevel(logging.DEBUG)
+        h.setFormatter(fmt)
+        lg.addHandler(h)
+        # Otherwise DEBUG records propagate to root and are filtered when root/uwicorn is INFO.
+        lg.propagate = False
+
+
+_LANGFUSE_INGESTION_ERROR_BRIDGE = False
+
+
+def _align_langfuse_otel_resource_environment(backend_environment: str) -> bool:
+    """Align process ``LANGFUSE_TRACING_ENVIRONMENT`` with live traces when backend uses ``staging``.
+
+    The Langfuse Python SDK keeps one ``LangfuseResourceManager`` per ``public_key``; the **first**
+    ``Langfuse(environment=...)`` call pins the OTEL resource attribute ``langfuse.environment`` for
+    that process. Backend credentials often use ``environment=staging`` while ``resolve_langfuse_environment``
+    maps ``live_ui`` + ``live`` to ``live`` for trace metadata and scores — that mismatch can yield
+    ingestion 400/207 on score batches. If the operator has not set ``LANGFUSE_TRACING_ENVIRONMENT``,
+    force it to ``live`` in the common staging-credentials + live-UI case.
+
+    OTEL / SDK source: ``langfuse/_client/client.py`` (``LANGFUSE_TRACING_ENVIRONMENT``) and
+    ``langfuse/_client/resource_manager.py`` (singleton ``_instances`` keyed by ``public_key``).
+
+    Returns:
+        True if this function set ``LANGFUSE_TRACING_ENVIRONMENT`` in the process environment.
+    """
+    if (os.getenv("LANGFUSE_TRACING_ENVIRONMENT") or "").strip():
+        return False
+    be = (backend_environment or "").strip().lower()
+    if be != "staging":
+        return False
+    live_slug = resolve_langfuse_environment("live_ui", "live", default=backend_environment)
+    if live_slug != "live":
+        return False
+    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = live_slug
+    logger.warning(
+        "[LANGFUSE] Backend credential environment is %r but live_ui+live maps to %r. "
+        "LANGFUSE_TRACING_ENVIRONMENT was unset; set process env to %r so OTEL "
+        "``langfuse.environment`` matches live session traces (Langfuse SDK singleton per public_key). "
+        "To keep a different OTEL environment, set LANGFUSE_TRACING_ENVIRONMENT before starting play-service.",
+        be,
+        live_slug,
+        live_slug,
+    )
+    return True
+
+
+def _install_langfuse_ingestion_error_bridge() -> None:
+    """Log Langfuse SDK score/API batch exceptions at WARNING with full ``APIError`` / ``APIErrors`` text.
+
+    The SDK's ``handle_exception`` only logs generic messages at ERROR; details are on DEBUG. When
+    ``WOS_LANGFUSE_INGESTION_ERROR_DETAIL`` is truthy, wrap ``parse_error.handle_exception`` once.
+
+    ``score_ingestion_consumer`` does ``from ... import handle_exception`` (bound at import time), so we
+    must also replace ``langfuse._task_manager.score_ingestion_consumer.handle_exception`` or the
+    bridge would never run for score batches.
+    """
+    global _LANGFUSE_INGESTION_ERROR_BRIDGE
+    if _LANGFUSE_INGESTION_ERROR_BRIDGE:
+        return
+    raw = (os.getenv("WOS_LANGFUSE_INGESTION_ERROR_DETAIL") or "").strip().lower()
+    if raw not in {"1", "true", "yes"}:
+        return
+    try:
+        from langfuse._task_manager import score_ingestion_consumer as _lf_score_consumer
+        from langfuse._utils import parse_error as _lf_parse_error
+        from langfuse._utils.request import APIError, APIErrors
+
+        _orig = _lf_parse_error.handle_exception
+
+        def _wos_handle_exception(exc: BaseException) -> None:
+            _orig(exc)
+            if isinstance(exc, APIErrors):
+                logger.warning("[LANGFUSE] SDK batch/APIErrors detail: %s", exc)
+            elif isinstance(exc, APIError):
+                logger.warning("[LANGFUSE] SDK APIError detail: %s", exc)
+
+        _lf_parse_error.handle_exception = _wos_handle_exception  # type: ignore[assignment]
+        _lf_score_consumer.handle_exception = _wos_handle_exception  # type: ignore[assignment]
+        _LANGFUSE_INGESTION_ERROR_BRIDGE = True
+        logger.info("[LANGFUSE] Ingestion error detail bridge installed (WOS_LANGFUSE_INGESTION_ERROR_DETAIL)")
+    except Exception as e:
+        logger.debug("[LANGFUSE] Failed to install ingestion error bridge: %s", e, exc_info=True)
+
+
+def _apply_langfuse_debug_env() -> None:
+    """Raise Langfuse SDK log level when WOS_LANGFUSE_DEBUG or LANGFUSE_DEBUG is truthy."""
+    global _LANGFUSE_DEBUG_APPLIED
+    if _LANGFUSE_DEBUG_APPLIED:
+        return
+    raw = (os.getenv("WOS_LANGFUSE_DEBUG") or os.getenv("LANGFUSE_DEBUG") or "").strip().lower()
+    if raw not in {"1", "true", "yes", "debug"}:
+        return
+    _LANGFUSE_DEBUG_APPLIED = True
+    _install_langfuse_sdk_debug_stream_handlers()
+    logger.info(
+        "[LANGFUSE] Debug logging enabled for langfuse SDK loggers "
+        "(WOS_LANGFUSE_DEBUG/LANGFUSE_DEBUG); DEBUG lines include batch/API exception details"
+    )
+
+
+def _langfuse_sdk_exc_detail(exc: BaseException) -> str:
+    parts: list[str] = [f"{type(exc).__name__}: {exc}"]
+    resp = getattr(exc, "response", None)
+    if resp is not None:
+        try:
+            body = (resp.text or "").strip()
+            if body:
+                parts.append(f"http_body={body[:1200]}")
+        except Exception:
+            parts.append("http_body=<unreadable>")
+    return " | ".join(parts)[:2000]
+
+
+def _langfuse_sanitize_value(
+    val: Any,
+    *,
+    max_str: int = 12000,
+    max_list: int = 80,
+    max_dict: int = 80,
+    depth: int = 0,
+) -> Any:
+    """Bound size/depth for Langfuse observation payloads (avoid 400 from oversized JSON)."""
+    if depth > 8:
+        return "<max_depth>"
+    if val is None or isinstance(val, (bool, int, float)):
+        if isinstance(val, float) and not math.isfinite(val):
+            return None
+        return val
+    if isinstance(val, str):
+        if len(val) > max_str:
+            return val[:max_str] + "…"
+        return val
+    if isinstance(val, dict):
+        out: dict[str, Any] = {}
+        for i, (k, v) in enumerate(val.items()):
+            if i >= max_dict:
+                out["_truncated_keys"] = len(val) - max_dict
+                break
+            key = str(k)[:256]
+            out[key] = _langfuse_sanitize_value(v, max_str=max_str, max_list=max_list, max_dict=max_dict, depth=depth + 1)
+        return out
+    if isinstance(val, (list, tuple)):
+        seq = list(val)[:max_list]
+        return [_langfuse_sanitize_value(v, max_str=max_str, max_list=max_list, max_dict=max_dict, depth=depth + 1) for v in seq]
+    return str(val)[:max_str]
 
 _active_span_context: ContextVar[Optional[Any]] = ContextVar("active_span", default=None)
 _active_langfuse_client: ContextVar[Optional[Any]] = ContextVar("langfuse_client", default=None)
@@ -25,6 +191,7 @@ class LangfuseAdapter:
     _instance: Optional[LangfuseAdapter] = None
 
     def __init__(self):
+        _apply_langfuse_debug_env()
         self.is_ready = False
         self._clients: dict[str, Any] = {}
         self._public_key = ""
@@ -69,6 +236,16 @@ class LangfuseAdapter:
             self._sample_rate = sample_rate
             self.is_ready = True
             logger.info("[LANGFUSE] ✓ Credentials loaded; Langfuse clients are created per trace environment")
+            aligned = _align_langfuse_otel_resource_environment(str(self._config.environment))
+            _install_langfuse_ingestion_error_bridge()
+            if aligned:
+                try:
+                    # First Langfuse() for this public_key pins OTEL resource; prefer live client first.
+                    self._get_client(
+                        resolve_langfuse_environment("live_ui", "live", default=str(self._config.environment))
+                    )
+                except Exception:
+                    logger.debug("[LANGFUSE] Eager Langfuse client init failed", exc_info=True)
         except ImportError as e:
             logger.warning(f"[LANGFUSE] SDK not available: {e}")
         except Exception as e:
@@ -194,7 +371,7 @@ class LangfuseAdapter:
             logger.info(f"[LANGFUSE] root span created: name={name}, session_id={session_id}, span_id={getattr(span, 'span_id', 'unknown')}, trace_id={getattr(span, 'trace_id', 'unknown')}")
             return span
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to start trace: {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to start trace: %s", _langfuse_sdk_exc_detail(e), exc_info=True)
             return None
 
     def start_span_in_trace(
@@ -245,7 +422,7 @@ class LangfuseAdapter:
             logger.info(f"[LANGFUSE] span created in trace: name={name}, trace_id={trace_id}")
             return span
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to create span in trace {trace_id}: {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to create span in trace %r: %s", trace_id, _langfuse_sdk_exc_detail(e), exc_info=True)
             return None
 
     @staticmethod
@@ -373,11 +550,13 @@ class LangfuseAdapter:
 
         try:
             # Langfuse SDK v4: use start_observation to create child spans
+            safe_in = _langfuse_sanitize_value(input or {})
+            safe_out = _langfuse_sanitize_value(output or {})
             child_span = parent_span.start_observation(
                 as_type=as_type,
                 name=name,
-                input=input or {},
-                output=output or {},
+                input=safe_in,
+                output=safe_out,
                 metadata=self._metadata_with_active_session(metadata),
                 level=level,  # type: ignore[arg-type]
                 status_message=status_message,
@@ -389,7 +568,7 @@ class LangfuseAdapter:
             logger.info(f"[LANGFUSE] child span created: name={name}, span_id={getattr(child_span, 'span_id', 'unknown')}, parent_span_id={getattr(parent_span, 'span_id', 'unknown')}")
             return child_span
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to create child span '{name}': {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to create child span %r: %s", name, _langfuse_sdk_exc_detail(e), exc_info=True)
             return None
 
     def record_generation(
@@ -432,15 +611,16 @@ class LangfuseAdapter:
                 gen_metadata["time_to_first_token_ms"] = time_to_first_token_ms
             if tokens_per_second is not None:
                 gen_metadata["tokens_per_second_output"] = tokens_per_second
+            safe_prompt = _langfuse_sanitize_value({"prompt": prompt} if prompt else {})
             generation = parent_span.start_observation(
                 as_type="generation",
                 name=name,
                 model=resolved_model,
-                input={"prompt": prompt} if prompt else {},
+                input=safe_prompt,
                 metadata=gen_metadata,
             )
             update_kwargs: dict[str, Any] = {
-                "output": {"completion": completion} if completion else {},
+                "output": _langfuse_sanitize_value({"completion": completion} if completion else {}),
                 "model": resolved_model,
             }
             if isinstance(usage_details, dict) and usage_details:
@@ -459,7 +639,7 @@ class LangfuseAdapter:
             logger.info(f"[LANGFUSE] generation observation recorded: name={name}, model={resolved_model}")
             return generation
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to record generation '{name}': {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to record generation %r: %s", name, _langfuse_sdk_exc_detail(e), exc_info=True)
             return None
 
     def record_retrieval(
@@ -481,19 +661,48 @@ class LangfuseAdapter:
             retrieval = parent_span.start_observation(
                 as_type="retriever",
                 name=name,
-                input={"query": query} if query else {},
+                input=_langfuse_sanitize_value({"query": query} if query else {}),
                 metadata=self._metadata_with_active_session({
                     **(metadata or {}),
                     "document_count": len(documents or []),
                 }),
             )
-            retrieval.update(output={"documents": documents or []})
+            retrieval.update(output=_langfuse_sanitize_value({"documents": documents or []}))
             retrieval.end()
             logger.info(f"[LANGFUSE] retriever observation recorded: name={name}, documents={len(documents or [])}")
             return retrieval
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to record retrieval '{name}': {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to record retrieval %r: %s", name, _langfuse_sdk_exc_detail(e), exc_info=True)
             return None
+
+    @staticmethod
+    def _normalize_trace_id_for_score_api(trace_id: object) -> str | None:
+        """Return W3C-style 32-char lowercase hex trace id, or None if ``trace_id`` is unusable for Langfuse APIs.
+
+        Langfuse ingestion and ``create_score`` reject arbitrary strings; invalid ids produced
+        HTTP 207/400 score batches (generic Bad request at ERROR, details on DEBUG).
+        """
+        raw = str(trace_id or "").strip()
+        if not raw:
+            return None
+        if len(raw) == 32 and all(c in "0123456789abcdefABCDEF" for c in raw):
+            return raw.lower()
+        if len(raw) == 36 and raw.count("-") == 4:
+            collapsed = raw.replace("-", "").lower()
+            if len(collapsed) == 32 and all(c in "0123456789abcdef" for c in collapsed):
+                return collapsed
+            return None
+        return None
+
+    @staticmethod
+    def _coerce_score_value(value: float) -> float | None:
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(v):
+            return None
+        return v
 
     def add_score(
         self,
@@ -511,38 +720,72 @@ class LangfuseAdapter:
             logger.warning(f"[LANGFUSE] No active parent span to add score '{name}'")
             return
         trace_id = getattr(parent_span, "trace_id", None)
+        coerced = self._coerce_score_value(value)
+        if coerced is None:
+            logger.warning("[LANGFUSE] Skipping score %r: non-finite or invalid value %r", name, value)
+            return
+        try:
+            from langfuse.api import ScoreDataType
+        except Exception as e:
+            logger.error("[LANGFUSE] Langfuse ScoreDataType import failed: %s", e, exc_info=True)
+            return
         try:
             score_metadata = self._metadata_with_active_session(metadata)
+            safe_score_metadata = _langfuse_sanitize_value(
+                score_metadata,
+                max_str=4000,
+                max_list=40,
+                max_dict=40,
+            )
             parent_span.score(
                 name=name,
-                value=value,
+                value=coerced,
                 comment=comment,
-                metadata=score_metadata,
+                metadata=safe_score_metadata,
+                data_type=ScoreDataType.NUMERIC,
             )
         except Exception as e:
-            logger.error(f"[LANGFUSE] Failed to add score '{name}': {str(e)}", exc_info=True)
+            logger.error("[LANGFUSE] Failed to add score %r: %s", name, _langfuse_sdk_exc_detail(e), exc_info=True)
             return
         # Trace-level duplicate: Langfuse UI / trace JSON export `trace.scores` list trace-level
         # scores; `span.score()` attaches to the observation only (see ADR-0033 §13.5).
+        if (os.getenv("LANGFUSE_SKIP_TRACE_LEVEL_CREATE_SCORE") or "").strip().lower() in {"1", "true", "yes"}:
+            return
         try:
             lf_client = _active_langfuse_client.get() or self.client
-            if trace_id and lf_client:
-                meta = dict(score_metadata)
+            tid = self._normalize_trace_id_for_score_api(trace_id)
+            if tid and lf_client:
+                meta = dict(safe_score_metadata) if isinstance(safe_score_metadata, dict) else {}
                 meta.setdefault("score_attachment", "trace_duplicate")
+                safe_trace_meta = _langfuse_sanitize_value(
+                    meta,
+                    max_str=4000,
+                    max_list=40,
+                    max_dict=40,
+                )
                 score_session_id = self._safe_session_id(meta.get("session_id"))
                 create_kw: dict[str, Any] = {
                     "name": name,
-                    "value": value,
-                    "trace_id": str(trace_id),
+                    "value": coerced,
+                    "trace_id": tid,
                     "comment": comment,
-                    "metadata": meta,
+                    "metadata": safe_trace_meta,
+                    "data_type": ScoreDataType.NUMERIC,
                 }
                 if score_session_id:
                     create_kw["session_id"] = score_session_id
                 lf_client.create_score(**create_kw)
+            elif lf_client and not tid:
+                logger.warning(
+                    "[LANGFUSE] Skipping trace-level create_score for %r: invalid or non-W3C trace_id %r",
+                    name,
+                    trace_id,
+                )
         except Exception as e:
             logger.warning(
-                f"[LANGFUSE] Trace-level create_score failed for '{name}': {str(e)}",
+                "[LANGFUSE] Trace-level create_score failed for %r: %s",
+                name,
+                _langfuse_sdk_exc_detail(e),
                 exc_info=True,
             )
 

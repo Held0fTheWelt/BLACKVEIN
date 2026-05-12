@@ -42,6 +42,7 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     """ADR-0033: observation span.score() alone does not populate Langfuse trace.scores / UI trace tab."""
     from app.observability import langfuse_adapter as lf_mod
 
+    trace_hex = "a9f119969f6f4dd9b116645221d4f504"
     adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
     adapter.is_ready = True
     adapter._public_key = "pk-test"
@@ -50,7 +51,7 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     client = MagicMock()
     adapter._clients = {"development": client}
     span = MagicMock()
-    span.trace_id = "trace-id-adr0033"
+    span.trace_id = trace_hex
     span.span_id = "obs-id-span"
     span.name = "world-engine.session.create"
     token = lf_mod._active_span_context.set(span)
@@ -66,11 +67,15 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
         lf_mod._active_span_context.reset(token)
 
     span.score.assert_called_once()
+    sc_kw = span.score.call_args.kwargs
+    assert sc_kw.get("data_type") is not None
+    assert str(sc_kw.get("data_type")) == "NUMERIC"
     client.create_score.assert_called_once()
     cc_kw = client.create_score.call_args.kwargs
     assert cc_kw["name"] == "live_runtime_contract_pass"
-    assert cc_kw["trace_id"] == "trace-id-adr0033"
+    assert cc_kw["trace_id"] == trace_hex
     assert cc_kw["value"] == 0.0
+    assert str(cc_kw.get("data_type")) == "NUMERIC"
     assert cc_kw.get("session_id") == "s1"
 
 
@@ -127,7 +132,7 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     client = MagicMock()
     adapter._clients = {"development": client}
     parent_span = MagicMock()
-    parent_span.trace_id = "trace-child-session"
+    parent_span.trace_id = "b116645221d4f504a9f119969f6f4dd9"
     child_span = MagicMock()
     parent_span.start_observation.return_value = child_span
     token_span = lf_mod._active_span_context.set(parent_span)
@@ -155,8 +160,10 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     assert metadata_rows
     assert all(row.get("session_id") == "story-session-2" for row in metadata_rows)
     parent_span.score.assert_called_once()
+    assert str(parent_span.score.call_args.kwargs.get("data_type")) == "NUMERIC"
     assert parent_span.score.call_args.kwargs["metadata"]["session_id"] == "story-session-2"
     client.create_score.assert_called_once()
+    assert str(client.create_score.call_args.kwargs.get("data_type")) == "NUMERIC"
     assert client.create_score.call_args.kwargs["session_id"] == "story-session-2"
 
 

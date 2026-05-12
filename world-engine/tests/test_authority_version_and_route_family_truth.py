@@ -291,6 +291,9 @@ def test_provider_model_name_preserves_current_openai_api_ids() -> None:
     assert normalize_provider_model_name("gpt-5.4-mini") == "gpt-5.4-mini"
     assert normalize_provider_model_name("gpt-5.4-nano") == "gpt-5.4-nano"
     assert normalize_provider_model_name("gpt-5.5") == "gpt-5.5"
+    assert normalize_provider_model_name("gpt_5_4_mini") == "gpt-5.4-mini"
+    assert normalize_provider_model_name("gpt_5_4_nano") == "gpt-5.4-nano"
+    assert normalize_provider_model_name("gpt_5_5") == "gpt-5.5"
 
 
 def test_build_governed_components_skips_embedding_role_models() -> None:

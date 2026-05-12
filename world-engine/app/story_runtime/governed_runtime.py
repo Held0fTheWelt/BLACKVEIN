@@ -22,6 +22,14 @@ _MODEL_NAME_ALIASES: dict[str, str] = {
     "gpt 5 nano": "gpt-5.4-nano",
 }
 
+_PROVIDER_MODEL_UNDERSCORE_ALIASES: dict[str, str] = {
+    "gpt_5_4": "gpt-5.4",
+    "gpt_5_4_mini": "gpt-5.4-mini",
+    "gpt_5_4_nano": "gpt-5.4-nano",
+    "gpt_5_5": "gpt-5.5",
+    "gpt_5_5_mini": "gpt-5.5-mini",
+}
+
 
 def normalize_provider_model_name(value: str | None) -> str:
     raw = (value or "").strip()
@@ -33,6 +41,8 @@ def normalize_provider_model_name(value: str | None) -> str:
     normalized = normalized.replace(" ", "-")
     while "--" in normalized:
         normalized = normalized.replace("--", "-")
+    if normalized in _PROVIDER_MODEL_UNDERSCORE_ALIASES:
+        return _PROVIDER_MODEL_UNDERSCORE_ALIASES[normalized]
     return normalized
 
 
