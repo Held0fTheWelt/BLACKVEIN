@@ -311,7 +311,7 @@ def build_governed_story_runtime_components(config: dict[str, Any] | None):
         if not provider_id or provider_id not in provider_ids or not model_id:
             continue
         role = str(row.get("model_role") or "llm").strip().lower()
-        if role in {"embedding", "embeddings", "embedding_role"}:
+        if role in {"embedding", "embeddings", "embedding_role", "text_embedding", "text_embeddings"}:
             continue
         provider_model_name = normalize_provider_model_name(str(row.get("model_name") or ""))
         registry.register(

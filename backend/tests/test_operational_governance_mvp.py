@@ -493,6 +493,70 @@ def test_embedding_role_models_are_not_valid_generation_route_models(client, adm
     assert payload["error"]["code"] == "route_invalid_model_role"
 
 
+def test_text_embedding_alias_and_retrieval_embedding_route_accept_embedding_role(client, admin_headers, monkeypatch):
+    provider_id = _ensure_openai_provider_with_credential(
+        client,
+        admin_headers,
+        monkeypatch,
+        provider_id="openai_text_embedding_route",
+    )
+    model_response = client.post(
+        "/api/v1/admin/ai/models",
+        headers=admin_headers,
+        json={
+            "provider_id": provider_id,
+            "model_id": "text_embedding_route_model",
+            "model_name": "text-embedding-3-large",
+            "display_name": "Text Embedding 3 Large",
+            "model_role": "text_embedding",
+            "is_enabled": True,
+            "timeout_seconds": 30,
+        },
+    )
+    assert model_response.status_code == 200
+
+    models_response = client.get("/api/v1/admin/ai/models", headers=admin_headers)
+    assert models_response.status_code == 200
+    model_row = next(row for row in models_response.get_json()["data"]["models"] if row["model_id"] == "text_embedding_route_model")
+    assert model_row["model_role"] == "embedding_role"
+    assert model_row["embedding_runtime_eligible"] is True
+    assert model_row["generation_runtime_eligible"] is False
+
+    _ProbeHTTPClient.calls = []
+    _ProbeHTTPClient.response_payload = {"data": [{"embedding": [0.1, 0.2]}]}
+    monkeypatch.setattr(governance_runtime_service.httpx, "Client", _ProbeHTTPClient)
+    test_response = client.post("/api/v1/admin/ai/models/text_embedding_route_model/test", headers=admin_headers, json={})
+    assert test_response.status_code == 200
+    test_payload = test_response.get_json()["data"]
+    assert test_payload["success"] is True
+    assert test_payload["metadata"]["adapter_api"] == "embeddings"
+    assert _ProbeHTTPClient.calls[0]["url"] == "https://api.openai.com/v1/embeddings"
+
+    route_response = client.post(
+        "/api/v1/admin/ai/routes",
+        headers=admin_headers,
+        json={
+            "route_id": "retrieval_embedding_generation_global",
+            "task_kind": "retrieval_embedding_generation",
+            "workflow_scope": "global",
+            "preferred_model_id": "text_embedding_route_model",
+            "fallback_model_id": "text_embedding_route_model",
+            "is_enabled": True,
+            "use_mock_when_provider_unavailable": False,
+        },
+    )
+    assert route_response.status_code == 200
+
+    routes_response = client.get("/api/v1/admin/ai/routes", headers=admin_headers)
+    assert routes_response.status_code == 200
+    route = next(row for row in routes_response.get_json()["data"]["routes"] if row["route_id"] == "retrieval_embedding_generation_global")
+    assert route["route_model_role"] == "embedding_role"
+    assert route["ai_path_ready"] is True
+    assert route["runtime_eligible"] is True
+    assert "preferred_model_role_not_generation" not in route["readiness_blockers"]
+    assert "fallback_model_role_not_generation" not in route["readiness_blockers"]
+
+
 def test_model_delete_repairs_routes_to_mock_fallback(client, admin_headers, monkeypatch):
     _with_kek(monkeypatch)
     provider_response = client.post(

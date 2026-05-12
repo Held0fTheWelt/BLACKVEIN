@@ -295,18 +295,27 @@ def test_provider_model_name_preserves_current_openai_api_ids() -> None:
 
 def test_build_governed_components_skips_embedding_role_models() -> None:
     cfg = _governed_config()
-    cfg["models"].append(
-        {
-            "provider_id": "mock_provider",
-            "model_id": "embed_model",
-            "model_role": "embedding_role",
-            "model_name": "text-embedding-3-small",
-        }
+    cfg["models"].extend(
+        [
+            {
+                "provider_id": "mock_provider",
+                "model_id": "embed_model",
+                "model_role": "embedding_role",
+                "model_name": "text-embedding-3-small",
+            },
+            {
+                "provider_id": "mock_provider",
+                "model_id": "text_embed_alias_model",
+                "model_role": "text_embedding",
+                "model_name": "text-embedding-3-large",
+            },
+        ]
     )
     components = build_governed_story_runtime_components(cfg)
     assert components is not None
     registry, _, _ = components
     assert registry.get("embed_model") is None
+    assert registry.get("text_embed_alias_model") is None
 
 
 def test_governed_routing_prefers_rich_model_for_high_complexity_turns() -> None:

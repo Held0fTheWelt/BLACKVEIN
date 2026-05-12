@@ -299,11 +299,14 @@ def _normalize_provider_url(base_url: str | None, contract: dict) -> str:
 
 _GENERATION_MODEL_ROLES = frozenset({"llm", "slm"})
 _EMBEDDING_MODEL_ROLE = "embedding_role"
+_EMBEDDING_ROUTE_TASK_KINDS = frozenset({"retrieval_embedding_generation"})
 _MODEL_ROLE_ALIASES = {
     "embedding": _EMBEDDING_MODEL_ROLE,
     "embeddings": _EMBEDDING_MODEL_ROLE,
     "embedding_model": _EMBEDDING_MODEL_ROLE,
     "embedding_role": _EMBEDDING_MODEL_ROLE,
+    "text_embedding": _EMBEDDING_MODEL_ROLE,
+    "text_embeddings": _EMBEDDING_MODEL_ROLE,
 }
 
 
@@ -320,7 +323,7 @@ def _normalize_model_role(raw_role: str | None, *, model_name: str | None = None
     if role not in {*_GENERATION_MODEL_ROLES, "mock", _EMBEDDING_MODEL_ROLE}:
         raise governance_error(
             "model_role_invalid",
-            "model_role must be one of llm, slm, mock, or embedding_role.",
+            "model_role must be one of llm, slm, mock, embedding_role, or text_embedding.",
             400,
             {"model_role": raw_role},
         )
@@ -336,6 +339,16 @@ def _is_generation_model(model: AIModelConfig) -> bool:
 def _is_embedding_model(model: AIModelConfig) -> bool:
     role = _normalize_model_role(model.model_role, model_name=model.model_name)
     return role == _EMBEDDING_MODEL_ROLE or _looks_like_embedding_model_name(model.model_name)
+
+
+def _route_expects_embedding_model(*, task_kind: str | None, route_id: str | None = None) -> bool:
+    task = (task_kind or "").strip().lower()
+    rid = (route_id or "").strip().lower()
+    return task in _EMBEDDING_ROUTE_TASK_KINDS or rid == "retrieval_embedding_generation_global"
+
+
+def _route_model_role_kind(*, task_kind: str | None, route_id: str | None = None) -> str:
+    return _EMBEDDING_MODEL_ROLE if _route_expects_embedding_model(task_kind=task_kind, route_id=route_id) else "generation"
 
 
 def _derive_model_id(provider_id: str, model_name: str) -> str:
@@ -1479,7 +1492,13 @@ def list_routes() -> list[dict]:
     model_rows = {m.model_id: m for m in AIModelConfig.query.all()}
     provider_rows = {p.provider_id: p for p in AIProviderConfig.query.all()}
 
-    def _model_runtime_eligible(model_id: str | None, *, route_field: str) -> tuple[bool, str | None]:
+    def _model_runtime_eligible(
+        model_id: str | None,
+        *,
+        route_field: str,
+        task_kind: str | None,
+        route_id: str | None,
+    ) -> tuple[bool, str | None]:
         if not model_id:
             return False, "model_reference_missing"
         model = model_rows.get(model_id)
@@ -1487,8 +1506,12 @@ def list_routes() -> list[dict]:
             return False, "model_reference_not_found"
         if not model.is_enabled:
             return False, "model_disabled"
-        if route_field in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
-            return False, "model_role_not_generation"
+        if route_field in {"preferred_model_id", "fallback_model_id"}:
+            if _route_expects_embedding_model(task_kind=task_kind, route_id=route_id):
+                if not _is_embedding_model(model):
+                    return False, "model_role_not_embedding"
+            elif not _is_generation_model(model):
+                return False, "model_role_not_generation"
         if route_field == "mock_model_id" and (model.model_role or "").strip().lower() != "mock":
             return False, "model_role_not_mock"
         provider = provider_rows.get(model.provider_id)
@@ -1508,9 +1531,25 @@ def list_routes() -> list[dict]:
     out: list[dict] = []
     for row in rows:
         blockers: list[str] = []
-        pref_ok, pref_blocker = _model_runtime_eligible(row.preferred_model_id, route_field="preferred_model_id")
-        fb_ok, fb_blocker = _model_runtime_eligible(row.fallback_model_id, route_field="fallback_model_id")
-        mock_ok, mock_blocker = _model_runtime_eligible(row.mock_model_id, route_field="mock_model_id")
+        route_model_role = _route_model_role_kind(task_kind=row.task_kind, route_id=row.route_id)
+        pref_ok, pref_blocker = _model_runtime_eligible(
+            row.preferred_model_id,
+            route_field="preferred_model_id",
+            task_kind=row.task_kind,
+            route_id=row.route_id,
+        )
+        fb_ok, fb_blocker = _model_runtime_eligible(
+            row.fallback_model_id,
+            route_field="fallback_model_id",
+            task_kind=row.task_kind,
+            route_id=row.route_id,
+        )
+        mock_ok, mock_blocker = _model_runtime_eligible(
+            row.mock_model_id,
+            route_field="mock_model_id",
+            task_kind=row.task_kind,
+            route_id=row.route_id,
+        )
         if pref_blocker and row.preferred_model_id:
             blockers.append(f"preferred_{pref_blocker}")
         if fb_blocker and row.fallback_model_id:
@@ -1520,7 +1559,7 @@ def list_routes() -> list[dict]:
         if not row.is_enabled:
             blockers.append("route_disabled")
         if not (pref_ok or fb_ok):
-            blockers.append("no_eligible_ai_model_reference")
+            blockers.append("no_eligible_embedding_model_reference" if route_model_role == _EMBEDDING_MODEL_ROLE else "no_eligible_ai_model_reference")
         if row.use_mock_when_provider_unavailable and not mock_ok:
             blockers.append("mock_fallback_missing_or_invalid")
         out.append(
@@ -1531,6 +1570,7 @@ def list_routes() -> list[dict]:
                 "preferred_model_id": row.preferred_model_id,
                 "fallback_model_id": row.fallback_model_id,
                 "mock_model_id": row.mock_model_id,
+                "route_model_role": route_model_role,
                 "is_enabled": row.is_enabled,
                 "use_mock_when_provider_unavailable": row.use_mock_when_provider_unavailable,
                 "ai_path_ready": row.is_enabled and (pref_ok or fb_ok),
@@ -1593,7 +1633,7 @@ def evaluate_runtime_readiness() -> dict:
         and (next((p for p in provider_rows if p["provider_id"] == m["provider_id"]), {}).get("provider_type") != "mock")
         for m in model_rows
     )
-    enabled_ai_route = any(r["ai_path_ready"] for r in route_rows)
+    enabled_ai_route = any(r["ai_path_ready"] and r.get("route_model_role") != _EMBEDDING_MODEL_ROLE for r in route_rows)
 
     blockers: list[dict] = []
     if not enabled_non_mock_provider:
@@ -1791,19 +1831,34 @@ def evaluate_runtime_readiness() -> dict:
     }
 
 
-def _ensure_model_exists(model_id: str | None, *, route_field: str | None = None) -> None:
+def _ensure_model_exists(
+    model_id: str | None,
+    *,
+    route_field: str | None = None,
+    task_kind: str | None = None,
+    route_id: str | None = None,
+) -> None:
     if model_id is None:
         return
     model = db.session.get(AIModelConfig, model_id)
     if model is None or not model.is_enabled:
         raise governance_error("route_invalid_model_reference", "Route references missing or disabled model.", 409, {"model_id": model_id})
-    if route_field in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
-        raise governance_error(
-            "route_invalid_model_role",
-            "Preferred and fallback route models must be generation models (llm/slm), not mock or embedding_role.",
-            409,
-            {"model_id": model_id, "route_field": route_field, "model_role": model.model_role},
-        )
+    if route_field in {"preferred_model_id", "fallback_model_id"}:
+        if _route_expects_embedding_model(task_kind=task_kind, route_id=route_id):
+            if not _is_embedding_model(model):
+                raise governance_error(
+                    "route_invalid_model_role",
+                    "Retrieval embedding route preferred/fallback models must use model_role embedding_role.",
+                    409,
+                    {"model_id": model_id, "route_field": route_field, "model_role": model.model_role, "task_kind": task_kind, "route_id": route_id},
+                )
+        elif not _is_generation_model(model):
+            raise governance_error(
+                "route_invalid_model_role",
+                "Preferred and fallback route models must be generation models (llm/slm), not mock or embedding_role.",
+                409,
+                {"model_id": model_id, "route_field": route_field, "model_role": model.model_role, "task_kind": task_kind, "route_id": route_id},
+            )
     if route_field == "mock_model_id" and model.model_role != "mock":
         raise governance_error(
             "route_invalid_model_role",
@@ -1815,8 +1870,9 @@ def _ensure_model_exists(model_id: str | None, *, route_field: str | None = None
 
 def create_route(payload: dict, actor: str) -> AITaskRoute:
     route_id = _slug(payload.get("route_id") or f"{payload.get('task_kind','task')}_{payload.get('workflow_scope','global')}")
+    task_kind = (payload.get("task_kind") or "").strip()
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
-        _ensure_model_exists(payload.get(field), route_field=field)
+        _ensure_model_exists(payload.get(field), route_field=field, task_kind=task_kind, route_id=route_id)
     route = db.session.get(AITaskRoute, route_id)
     if route:
         return route
@@ -1840,9 +1896,12 @@ def update_route(route_id: str, payload: dict, actor: str) -> AITaskRoute:
     route = db.session.get(AITaskRoute, route_id)
     if route is None:
         raise governance_error("route_not_found", f"Route '{route_id}' not found.", 404, {"route_id": route_id})
+    task_kind = (payload.get("task_kind", route.task_kind) or "").strip()
+    for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
+        model_id = payload.get(field, getattr(route, field))
+        _ensure_model_exists(model_id, route_field=field, task_kind=task_kind, route_id=route_id)
     for field in ("preferred_model_id", "fallback_model_id", "mock_model_id"):
         if field in payload:
-            _ensure_model_exists(payload.get(field), route_field=field)
             setattr(route, field, payload.get(field))
     for field in ("task_kind", "workflow_scope", "is_enabled", "use_mock_when_provider_unavailable"):
         if field in payload:
@@ -1963,6 +2022,7 @@ def _validate_and_resolve_routes(*, routes: list[AITaskRoute], models_by_id: dic
     resolved_routes: list[dict] = []
     for route in routes:
         missing_required_tasks.discard(route.task_kind)
+        route_model_role = _route_model_role_kind(task_kind=route.task_kind, route_id=route.route_id)
 
         # Validate all model references exist, and check if route has at least one selectable model
         has_selectable_model = False
@@ -1973,13 +2033,25 @@ def _validate_and_resolve_routes(*, routes: list[AITaskRoute], models_by_id: dic
             model = models_by_id.get(ref_id)
             if model is None:
                 raise governance_error("resolved_config_generation_failed", "Route references missing model.", 500, {"route_id": route.route_id, "model_id": ref_id})
-            if ref_name in {"preferred_model_id", "fallback_model_id"} and not _is_generation_model(model):
-                raise governance_error(
-                    "resolved_config_generation_failed",
-                    "Route preferred/fallback reference is not a generation model.",
-                    500,
-                    {"route_id": route.route_id, "model_id": ref_id, "model_role": model.model_role},
-                )
+            if ref_name in {"preferred_model_id", "fallback_model_id"}:
+                model_role = (model.model_role or "").strip().lower()
+                if model_role == "mock" and generation_execution_mode == "mock_only":
+                    pass
+                elif route_model_role == _EMBEDDING_MODEL_ROLE:
+                    if not _is_embedding_model(model):
+                        raise governance_error(
+                            "resolved_config_generation_failed",
+                            "Retrieval embedding route preferred/fallback reference is not an embedding model.",
+                            500,
+                            {"route_id": route.route_id, "model_id": ref_id, "model_role": model.model_role},
+                        )
+                elif not _is_generation_model(model):
+                    raise governance_error(
+                        "resolved_config_generation_failed",
+                        "Route preferred/fallback reference is not a generation model.",
+                        500,
+                        {"route_id": route.route_id, "model_id": ref_id, "model_role": model.model_role},
+                    )
             if ref_name == "mock_model_id" and (model.model_role or "").strip().lower() != "mock":
                 raise governance_error(
                     "resolved_config_generation_failed",
@@ -2010,6 +2082,7 @@ def _validate_and_resolve_routes(*, routes: list[AITaskRoute], models_by_id: dic
                 "preferred_model_id": route.preferred_model_id,
                 "fallback_model_id": route.fallback_model_id,
                 "mock_model_id": route.mock_model_id,
+                "route_model_role": route_model_role,
                 "effective_strategy": "hybrid" if route.use_mock_when_provider_unavailable else "strict",
             }
         )

@@ -46,5 +46,6 @@ def test_manage_ai_runtime_governance_renders_readiness_overview(client):
     assert "Technical audit: full readiness JSON" in html
     assert "Runtime readiness" in html
     assert "manage-og-model-id" in html
+    assert 'value="embedding_role">text_embedding (embedding_role)</option>' in html
     assert "manage-og-model-test" in html
     assert "manage-og-model-delete" in html
