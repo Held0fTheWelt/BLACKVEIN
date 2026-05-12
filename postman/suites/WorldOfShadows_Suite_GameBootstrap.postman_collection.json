@@ -250,6 +250,36 @@
           "response": []
         },
         {
+          "name": "POST /game/player-sessions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions",
+            "description": "POST /game/player-sessions"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /game/player-sessions/{run_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions/{run_id}",
+            "description": "GET /game/player-sessions/{run_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /game/player-sessions/{run_id}/turns",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions/{run_id}/turns",
+            "description": "POST /game/player-sessions/{run_id}/turns"
+          },
+          "response": []
+        },
+        {
           "name": "GET /game/runs",
           "request": {
             "method": "GET",
@@ -316,6 +346,56 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/tickets",
             "description": "POST /game/tickets"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /play/{session_id}/qa-diagnostics-canonical-turn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/play/{session_id}/qa-diagnostics-canonical-turn",
+            "description": "GET /play/{session_id}/qa-diagnostics-canonical-turn"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /player/execute_action",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/execute_action",
+            "description": "POST /player/execute_action"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /player/history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/history",
+            "description": "GET /player/history"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /player/join_game",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/join_game",
+            "description": "POST /player/join_game"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /player/state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/state",
+            "description": "GET /player/state"
           },
           "response": []
         }

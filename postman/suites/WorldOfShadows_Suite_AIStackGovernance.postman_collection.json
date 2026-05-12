@@ -90,6 +90,66 @@
           "response": []
         },
         {
+          "name": "GET /admin/ai-stack/release-readiness/gates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates",
+            "description": "GET /admin/ai-stack/release-readiness/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai-stack/release-readiness/gates",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates",
+            "description": "POST /admin/ai-stack/release-readiness/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/ai-stack/release-readiness/gates/{gate_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}",
+            "description": "DELETE /admin/ai-stack/release-readiness/gates/{gate_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai-stack/release-readiness/gates/{gate_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}",
+            "description": "GET /admin/ai-stack/release-readiness/gates/{gate_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/ai-stack/release-readiness/gates/{gate_id}/status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}/status",
+            "description": "PATCH /admin/ai-stack/release-readiness/gates/{gate_id}/status"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai-stack/release-readiness/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/summary",
+            "description": "GET /admin/ai-stack/release-readiness/summary"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/ai-stack/session-evidence/{session_id}",
           "request": {
             "method": "GET",

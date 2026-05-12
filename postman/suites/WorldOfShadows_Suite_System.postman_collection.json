@@ -20,6 +20,26 @@
           "response": []
         },
         {
+          "name": "GET /admin/system-diagnosis/gates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/system-diagnosis/gates",
+            "description": "GET /admin/system-diagnosis/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/system-diagnosis/gates/{gate_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/system-diagnosis/gates/{gate_id}",
+            "description": "GET /admin/system-diagnosis/gates/{gate_id}"
+          },
+          "response": []
+        },
+        {
           "name": "GET /health",
           "request": {
             "method": "GET",

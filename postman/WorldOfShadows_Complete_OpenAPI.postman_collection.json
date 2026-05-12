@@ -10,6 +10,26 @@
       "description": "Generated requests grouped by OpenAPI tag **Admin**.",
       "item": [
         {
+          "name": "GET /admin/frontend-config/typewriter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/frontend-config/typewriter",
+            "description": "GET /admin/frontend-config/typewriter"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/frontend-config/typewriter",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/frontend-config/typewriter",
+            "description": "PATCH /admin/frontend-config/typewriter"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/logs",
           "request": {
             "method": "GET",
@@ -76,6 +96,226 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/moderator-assignments/{assignment_id}",
             "description": "DELETE /admin/moderator-assignments/{assignment_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/costs/daily",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/costs/daily",
+            "description": "GET /admin/mvp4/costs/daily"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/costs/weekly",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/costs/weekly",
+            "description": "GET /admin/mvp4/costs/weekly"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/evaluation/baseline",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/baseline",
+            "description": "GET /admin/mvp4/evaluation/baseline"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/evaluation/baseline/turns",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/baseline/turns",
+            "description": "POST /admin/mvp4/evaluation/baseline/turns"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/evaluation/rubric",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/rubric",
+            "description": "GET /admin/mvp4/evaluation/rubric"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/evaluation/session/{session_id}/recent-turns",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/session/{session_id}/recent-turns",
+            "description": "GET /admin/mvp4/evaluation/session/{session_id}/recent-turns"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/evaluation/session/{session_id}/regression",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/session/{session_id}/regression",
+            "description": "GET /admin/mvp4/evaluation/session/{session_id}/regression"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/evaluation/session/{session_id}/turn-score",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/session/{session_id}/turn-score",
+            "description": "POST /admin/mvp4/evaluation/session/{session_id}/turn-score"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/evaluation/weights/{session_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/weights/{session_id}",
+            "description": "GET /admin/mvp4/evaluation/weights/{session_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/evaluation/weights/{session_id}/manual-tune",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/evaluation/weights/{session_id}/manual-tune",
+            "description": "POST /admin/mvp4/evaluation/weights/{session_id}/manual-tune"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/game/session/{session_id}/langfuse-toggle",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/game/session/{session_id}/langfuse-toggle",
+            "description": "POST /admin/mvp4/game/session/{session_id}/langfuse-toggle"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/game/session/{session_id}/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/game/session/{session_id}/summary",
+            "description": "GET /admin/mvp4/game/session/{session_id}/summary"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/game/session/{session_id}/token-budget",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/game/session/{session_id}/token-budget",
+            "description": "GET /admin/mvp4/game/session/{session_id}/token-budget"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/game/session/{session_id}/token-budget/override",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/game/session/{session_id}/token-budget/override",
+            "description": "POST /admin/mvp4/game/session/{session_id}/token-budget/override"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/overrides/audit-config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/audit-config",
+            "description": "GET /admin/mvp4/overrides/audit-config"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/mvp4/overrides/audit-config/{override_type}",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/audit-config/{override_type}",
+            "description": "PATCH /admin/mvp4/overrides/audit-config/{override_type}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/overrides/object-admission",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/object-admission",
+            "description": "GET /admin/mvp4/overrides/object-admission"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/overrides/object-admission",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/object-admission",
+            "description": "POST /admin/mvp4/overrides/object-admission"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/mvp4/overrides/object-admission/{override_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/object-admission/{override_id}",
+            "description": "DELETE /admin/mvp4/overrides/object-admission/{override_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/mvp4/overrides/state-delta-boundary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/state-delta-boundary",
+            "description": "GET /admin/mvp4/overrides/state-delta-boundary"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/mvp4/overrides/state-delta-boundary",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/state-delta-boundary",
+            "description": "POST /admin/mvp4/overrides/state-delta-boundary"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/mvp4/overrides/state-delta-boundary/{override_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/mvp4/overrides/state-delta-boundary/{override_id}",
+            "description": "DELETE /admin/mvp4/overrides/state-delta-boundary/{override_id}"
           },
           "response": []
         },
@@ -450,6 +690,56 @@
           "response": []
         },
         {
+          "name": "POST /admin/observability/credential",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/observability/credential",
+            "description": "POST /admin/observability/credential"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/observability/disable",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/observability/disable",
+            "description": "DELETE /admin/observability/disable"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/observability/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/observability/status",
+            "description": "GET /admin/observability/status"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/observability/test-connection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/observability/test-connection",
+            "description": "POST /admin/observability/test-connection"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/observability/update",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/observability/update",
+            "description": "POST /admin/observability/update"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/research-domain/layer/{layer_id}",
           "request": {
             "method": "GET",
@@ -466,6 +756,26 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/research-domain/overview",
             "description": "GET /admin/research-domain/overview"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/story-runtime-experience",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/story-runtime-experience",
+            "description": "GET /admin/story-runtime-experience"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /admin/story-runtime-experience",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/story-runtime-experience",
+            "description": "PUT /admin/story-runtime-experience"
           },
           "response": []
         },
@@ -592,6 +902,66 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness",
             "description": "GET /admin/ai-stack/release-readiness"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai-stack/release-readiness/gates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates",
+            "description": "GET /admin/ai-stack/release-readiness/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai-stack/release-readiness/gates",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates",
+            "description": "POST /admin/ai-stack/release-readiness/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /admin/ai-stack/release-readiness/gates/{gate_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}",
+            "description": "DELETE /admin/ai-stack/release-readiness/gates/{gate_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai-stack/release-readiness/gates/{gate_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}",
+            "description": "GET /admin/ai-stack/release-readiness/gates/{gate_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH /admin/ai-stack/release-readiness/gates/{gate_id}/status",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/gates/{gate_id}/status",
+            "description": "PATCH /admin/ai-stack/release-readiness/gates/{gate_id}/status"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai-stack/release-readiness/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai-stack/release-readiness/summary",
+            "description": "GET /admin/ai-stack/release-readiness/summary"
           },
           "response": []
         },
@@ -1872,6 +2242,36 @@
           "response": []
         },
         {
+          "name": "POST /game/player-sessions",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions",
+            "description": "POST /game/player-sessions"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /game/player-sessions/{run_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions/{run_id}",
+            "description": "GET /game/player-sessions/{run_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /game/player-sessions/{run_id}/turns",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/player-sessions/{run_id}/turns",
+            "description": "POST /game/player-sessions/{run_id}/turns"
+          },
+          "response": []
+        },
+        {
           "name": "GET /game/runs",
           "request": {
             "method": "GET",
@@ -1938,6 +2338,56 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/game/tickets",
             "description": "POST /game/tickets"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /play/{session_id}/qa-diagnostics-canonical-turn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/play/{session_id}/qa-diagnostics-canonical-turn",
+            "description": "GET /play/{session_id}/qa-diagnostics-canonical-turn"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /player/execute_action",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/execute_action",
+            "description": "POST /player/execute_action"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /player/history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/history",
+            "description": "GET /player/history"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /player/join_game",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/join_game",
+            "description": "POST /player/join_game"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /player/state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/player/state",
+            "description": "GET /player/state"
           },
           "response": []
         }
@@ -2150,6 +2600,46 @@
           "response": []
         },
         {
+          "name": "DELETE /admin/ai/hf-hub/credential",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/credential",
+            "description": "DELETE /admin/ai/hf-hub/credential"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/hf-hub/credential",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/credential",
+            "description": "POST /admin/ai/hf-hub/credential"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai/hf-hub/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/status",
+            "description": "GET /admin/ai/hf-hub/status"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/hf-hub/test-connection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/test-connection",
+            "description": "POST /admin/ai/hf-hub/test-connection"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/ai/models",
           "request": {
             "method": "GET",
@@ -2170,12 +2660,32 @@
           "response": []
         },
         {
+          "name": "DELETE /admin/ai/models/{model_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}",
+            "description": "DELETE /admin/ai/models/{model_id}"
+          },
+          "response": []
+        },
+        {
           "name": "PATCH /admin/ai/models/{model_id}",
           "request": {
             "method": "PATCH",
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}",
             "description": "PATCH /admin/ai/models/{model_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/models/{model_id}/test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}/test",
+            "description": "POST /admin/ai/models/{model_id}/test"
           },
           "response": []
         },
@@ -2520,6 +3030,16 @@
           "response": []
         },
         {
+          "name": "GET /admin/runtime/config-truth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/runtime/config-truth",
+            "description": "GET /admin/runtime/config-truth"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/runtime/modes",
           "request": {
             "method": "GET",
@@ -2670,6 +3190,66 @@
           "response": []
         },
         {
+          "name": "POST /internal/bootstrap/admin-user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/bootstrap/admin-user",
+            "description": "POST /internal/bootstrap/admin-user"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/hf-hub/token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/hf-hub/token",
+            "description": "GET /internal/hf-hub/token"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /internal/observability/initialize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/initialize",
+            "description": "POST /internal/observability/initialize"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/observability/langfuse-credentials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/langfuse-credentials",
+            "description": "GET /internal/observability/langfuse-credentials"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /internal/observability/langfuse-verify-tool",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/langfuse-verify-tool",
+            "description": "POST /internal/observability/langfuse-verify-tool"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/provider-credential/{provider_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/provider-credential/{provider_id}",
+            "description": "GET /internal/provider-credential/{provider_id}"
+          },
+          "response": []
+        },
+        {
           "name": "GET /internal/runtime-config",
           "request": {
             "method": "GET",
@@ -2686,6 +3266,26 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/runtime-config/reload",
             "description": "POST /internal/runtime-config/reload"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operator/diagnostics/session/{session_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/operator/diagnostics/session/{session_id}",
+            "description": "GET /operator/diagnostics/session/{session_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operator/diagnostics/session/{session_id}/turn-history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/operator/diagnostics/session/{session_id}/turn-history",
+            "description": "GET /operator/diagnostics/session/{session_id}/turn-history"
           },
           "response": []
         }
@@ -3370,6 +3970,26 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/system-diagnosis",
             "description": "GET /admin/system-diagnosis"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/system-diagnosis/gates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/system-diagnosis/gates",
+            "description": "GET /admin/system-diagnosis/gates"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/system-diagnosis/gates/{gate_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/system-diagnosis/gates/{gate_id}",
+            "description": "GET /admin/system-diagnosis/gates/{gate_id}"
           },
           "response": []
         },

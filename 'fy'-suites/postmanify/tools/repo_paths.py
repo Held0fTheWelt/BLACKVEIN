@@ -35,15 +35,25 @@ def _current_or_legacy_suite_dir(repo: Path, suite: str) -> Path:
 def repo_root(*, start: Path | None = None) -> Path:
     """Resolve the current workspace root with shared project resolution.
 
-    Args:
-        start: Primary start used by this step.
-
-    Returns:
-        Path:
-            Filesystem path produced or resolved by this
-            callable.
+    When Postmanify is loaded from the monorehub layout (``'fy'-suites/postmanify/…``),
+    ``resolve_project_root`` can stop at ``'fy'-suites/`` because that directory has its
+    own ``pyproject.toml``. Prefer the nearest ancestor that contains
+    ``docs/api/openapi.yaml`` (the canonical WoS spec).
     """
-    return resolve_project_root(start=start, marker_text=None)
+    r = resolve_project_root(
+        start=start or Path(__file__),
+        env_var="FY_PLATFORM_PROJECT_ROOT",
+        marker_text=None,
+    )
+    cand = r.resolve()
+    for _ in range(6):
+        if (cand / "docs" / "api" / "openapi.yaml").is_file():
+            return cand
+        parent = cand.parent
+        if parent == cand:
+            break
+        cand = parent
+    return r.resolve()
 
 
 def postmanify_hub_dir(repo: Path | None = None) -> Path:

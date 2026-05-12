@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-04-17T00:41:15.912651+00:00",
-  "openapi_path": "docs/api/openapi.yaml",
-  "openapi_sha256": "f85a06cbb516427ef8a58813b72dbd6443eb841ffa453bd0ea7ebe2b27111341",
+  "generated_at": "2026-05-12T23:34:20.486878+00:00",
+  "openapi_path": "docs\\api\\openapi.yaml",
+  "openapi_sha256": "00ff09fdb27b1dd6da0b618510bcb579a1e305271bc1eb1938d4fff0a4d384fc",
   "backend_api_prefix": "/api/v1",
-  "master_collection": "postman/WorldOfShadows_Complete_OpenAPI.postman_collection.json",
-  "suites_dir": "postman/suites",
+  "master_collection": "postman\\WorldOfShadows_Complete_OpenAPI.postman_collection.json",
+  "suites_dir": "postman\\suites",
   "sub_suite_files": [
     "WorldOfShadows_Suite_AIStackGovernance.postman_collection.json",
     "WorldOfShadows_Suite_Admin.postman_collection.json",

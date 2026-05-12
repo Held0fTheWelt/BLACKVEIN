@@ -50,6 +50,46 @@
           "response": []
         },
         {
+          "name": "DELETE /admin/ai/hf-hub/credential",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/credential",
+            "description": "DELETE /admin/ai/hf-hub/credential"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/hf-hub/credential",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/credential",
+            "description": "POST /admin/ai/hf-hub/credential"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/ai/hf-hub/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/status",
+            "description": "GET /admin/ai/hf-hub/status"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/hf-hub/test-connection",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/hf-hub/test-connection",
+            "description": "POST /admin/ai/hf-hub/test-connection"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/ai/models",
           "request": {
             "method": "GET",
@@ -70,12 +110,32 @@
           "response": []
         },
         {
+          "name": "DELETE /admin/ai/models/{model_id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}",
+            "description": "DELETE /admin/ai/models/{model_id}"
+          },
+          "response": []
+        },
+        {
           "name": "PATCH /admin/ai/models/{model_id}",
           "request": {
             "method": "PATCH",
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}",
             "description": "PATCH /admin/ai/models/{model_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /admin/ai/models/{model_id}/test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/ai/models/{model_id}/test",
+            "description": "POST /admin/ai/models/{model_id}/test"
           },
           "response": []
         },
@@ -420,6 +480,16 @@
           "response": []
         },
         {
+          "name": "GET /admin/runtime/config-truth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/admin/runtime/config-truth",
+            "description": "GET /admin/runtime/config-truth"
+          },
+          "response": []
+        },
+        {
           "name": "GET /admin/runtime/modes",
           "request": {
             "method": "GET",
@@ -570,6 +640,66 @@
           "response": []
         },
         {
+          "name": "POST /internal/bootstrap/admin-user",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/bootstrap/admin-user",
+            "description": "POST /internal/bootstrap/admin-user"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/hf-hub/token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/hf-hub/token",
+            "description": "GET /internal/hf-hub/token"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /internal/observability/initialize",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/initialize",
+            "description": "POST /internal/observability/initialize"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/observability/langfuse-credentials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/langfuse-credentials",
+            "description": "GET /internal/observability/langfuse-credentials"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /internal/observability/langfuse-verify-tool",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/observability/langfuse-verify-tool",
+            "description": "POST /internal/observability/langfuse-verify-tool"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /internal/provider-credential/{provider_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/provider-credential/{provider_id}",
+            "description": "GET /internal/provider-credential/{provider_id}"
+          },
+          "response": []
+        },
+        {
           "name": "GET /internal/runtime-config",
           "request": {
             "method": "GET",
@@ -586,6 +716,26 @@
             "header": [],
             "url": "{{backendBaseUrl}}{{backendApiPrefix}}/internal/runtime-config/reload",
             "description": "POST /internal/runtime-config/reload"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operator/diagnostics/session/{session_id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/operator/diagnostics/session/{session_id}",
+            "description": "GET /operator/diagnostics/session/{session_id}"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /operator/diagnostics/session/{session_id}/turn-history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{backendBaseUrl}}{{backendApiPrefix}}/operator/diagnostics/session/{session_id}/turn-history",
+            "description": "GET /operator/diagnostics/session/{session_id}/turn-history"
           },
           "response": []
         }
