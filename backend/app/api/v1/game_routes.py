@@ -340,19 +340,66 @@ def _shell_committed_turn_display_counter(state: dict[str, Any]) -> int:
     committed to ``session.history`` without incrementing ``turn_counter``, which produced
     ``committed turns 0`` in the shell while ``story_window`` already showed opening content.
 
-    Prefer ``committed_canonical_turn_count`` (explicit) or ``history_count`` (same source:
-    ``len(session.history)``), then fall back to ``turn_counter`` for older play-service payloads.
+    Prefer ``history_count`` (``len(session.history)``) when present — it is the row-count truth
+    surface for canonical commits. Then ``total_canonical_turns`` / ``committed_canonical_turn_count``,
+    then ``turn_counter`` for older play-service payloads.
     """
-    raw = state.get("committed_canonical_turn_count")
-    if isinstance(raw, int) and raw >= 0:
-        return raw
     hc = state.get("history_count")
     if isinstance(hc, int) and hc >= 0:
         return hc
+    total = state.get("total_canonical_turns")
+    if isinstance(total, int) and total >= 0:
+        return total
+    raw = state.get("committed_canonical_turn_count")
+    if isinstance(raw, int) and raw >= 0:
+        return raw
     tc = state.get("turn_counter")
     if isinstance(tc, int) and tc >= 0:
         return tc
     return 0
+
+
+def _shell_turn_counter_projection(state: dict[str, Any]) -> dict[str, Any]:
+    """Project opening vs player canonical counts for shell / API parity (TURN-COUNTER-STATE-PROJECTION-01).
+
+    World-Engine is authoritative when it emits explicit fields; otherwise derive a conservative
+    estimate from ``history_count`` for older payloads (assume at most one opening row).
+    """
+    opening = state.get("opening_committed")
+    if not isinstance(opening, bool):
+        opening = bool(
+            isinstance(state.get("history_count"), int) and int(state["history_count"]) >= 1
+        )
+    player_turns = state.get("player_committed_turns")
+    if not isinstance(player_turns, int) or player_turns < 0:
+        hc = state.get("history_count")
+        if isinstance(hc, int) and hc >= 0:
+            player_turns = max(0, hc - 1)
+        else:
+            player_turns = 0
+    total = state.get("total_canonical_turns")
+    if not isinstance(total, int) or total < 0:
+        hc = state.get("history_count")
+        if isinstance(hc, int) and hc >= 0:
+            total = hc
+        else:
+            cc = state.get("committed_canonical_turn_count")
+            total = int(cc) if isinstance(cc, int) and cc >= 0 else _shell_committed_turn_display_counter(state)
+    latest = state.get("latest_canonical_turn_id")
+    if latest is not None and not isinstance(latest, str):
+        latest = str(latest).strip() or None
+    elif isinstance(latest, str):
+        latest = latest.strip() or None
+    last_turn = state.get("last_committed_turn")
+    if not latest and isinstance(last_turn, dict):
+        lid = str(last_turn.get("canonical_turn_id") or "").strip()
+        latest = lid or None
+    return {
+        "opening_committed": opening,
+        "player_committed_turns": player_turns,
+        "total_canonical_turns": total,
+        "latest_canonical_turn_id": latest,
+    }
 
 
 def _player_shell_state_view(
@@ -370,12 +417,17 @@ def _player_shell_state_view(
     module_scope_truth = committed.get("module_scope_truth")
     if not isinstance(module_scope_truth, dict):
         module_scope_truth = state.get("module_scope_truth") if isinstance(state.get("module_scope_truth"), dict) else {}
+    counter_proj = _shell_turn_counter_projection(state)
     return {
         "run_id": run_id,
         "template_id": template_id,
         "module_id": module_id,
         "runtime_session_id": runtime_session_id,
         "turn_counter": _shell_committed_turn_display_counter(state),
+        "opening_committed": counter_proj["opening_committed"],
+        "player_committed_turns": counter_proj["player_committed_turns"],
+        "total_canonical_turns": counter_proj["total_canonical_turns"],
+        "latest_canonical_turn_id": counter_proj["latest_canonical_turn_id"],
         "player_graph_turn_counter": state.get("turn_counter"),
         "current_scene_id": state.get("current_scene_id"),
         "history_count": state.get("history_count"),

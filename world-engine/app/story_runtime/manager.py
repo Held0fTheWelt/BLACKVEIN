@@ -2163,6 +2163,8 @@ def _build_langfuse_path_summary(
         committed_result=committed,
     )
     summary["generation_mode"] = _infer_generation_mode(summary)
+    tn = event.get("turn_number")
+    summary["canonical_turn_id"] = _canonical_turn_id(session.session_id, int(tn or 0))
     return summary
 
 
@@ -2287,12 +2289,14 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "generation_mode": path_summary.get("generation_mode"),
         "player_input_kind": path_summary.get("player_input_kind"),
         "semantic_move_kind": path_summary.get("semantic_move_kind"),
+        "canonical_turn_id": path_summary.get("canonical_turn_id"),
     }
 
     span_specs = [
         (
             "story.graph.path_summary",
             {
+                "canonical_turn_id": path_summary.get("canonical_turn_id"),
                 "nodes_executed": path_summary.get("nodes_executed"),
                 "route_model_called": path_summary.get("route_model_called"),
                 "invoke_model_called": path_summary.get("invoke_model_called"),
@@ -2520,6 +2524,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                     "phase": name.rsplit(".", 1)[-1],
                     "turn_number": path_summary.get("turn_number"),
                     "session_id": path_summary.get("session_id"),
+                    "canonical_turn_id": path_summary.get("canonical_turn_id"),
                     "called": bool(output.get("called", True)),
                     "quality_class": path_summary.get("quality_class"),
                     "degradation_summary": path_summary.get("degradation_summary"),
@@ -2567,6 +2572,15 @@ def _runtime_aspect_score_metadata(
             "score_value": value,
             "session_id": meta.get("session_id") or path_summary.get("session_id"),
             "turn_number": meta.get("turn_number") or path_summary.get("turn_number"),
+            "canonical_turn_id": path_summary.get("canonical_turn_id")
+            or (
+                _canonical_turn_id(
+                    str(path_summary.get("session_id") or ledger.get("session_id") or ""),
+                    int(path_summary.get("turn_number") or ledger.get("turn_number") or 0),
+                )
+                if (path_summary.get("session_id") or ledger.get("session_id"))
+                else None
+            ),
             "raw_player_input": path_summary.get("raw_player_input"),
             "turn_kind": path_summary.get("turn_kind"),
         }
@@ -2639,6 +2653,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         "turn_number": path_summary.get("turn_number"),
         "turn_kind": path_summary.get("turn_kind"),
         "raw_player_input": path_summary.get("raw_player_input"),
+        "canonical_turn_id": path_summary.get("canonical_turn_id"),
     }
     beat = _rec(ASPECT_BEAT)
     beat_selected = _selected(ASPECT_BEAT)
@@ -2678,6 +2693,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             ASPECT_INPUT,
             {
                 "turn_aspect_ledger_present": ledger_present,
+                "canonical_turn_id": path_summary.get("canonical_turn_id"),
                 "aspect_statuses": {
                     aspect_name: (_rec(aspect_name).get("status") or "missing")
                     for aspect_name in (
@@ -2709,6 +2725,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                     "runtime_aspect": aspect,
                     "turn_number": path_summary.get("turn_number"),
                     "session_id": path_summary.get("session_id"),
+                    "canonical_turn_id": path_summary.get("canonical_turn_id"),
                     "trace_origin": path_summary.get("trace_origin"),
                     "execution_tier": path_summary.get("execution_tier"),
                     "canonical_player_flow": path_summary.get("canonical_player_flow"),
@@ -3007,6 +3024,7 @@ def _emit_langfuse_evidence_observations(
                     "session_id": path_summary.get("session_id"),
                     "module_id": path_summary.get("module_id"),
                     "turn_number": path_summary.get("turn_number"),
+                    "canonical_turn_id": path_summary.get("canonical_turn_id"),
                     "opening_turn": int(path_summary.get("turn_number") or 0) == 0,
                     "turn_kind": path_summary.get("turn_kind"),
                     "adapter": adapter_name,
@@ -3066,6 +3084,7 @@ def _emit_langfuse_evidence_observations(
                     "session_id": path_summary.get("session_id"),
                     "module_id": path_summary.get("module_id"),
                     "turn_number": path_summary.get("turn_number"),
+                    "canonical_turn_id": path_summary.get("canonical_turn_id"),
                     "status": path_summary.get("retrieval_status"),
                     "retrieval_route": path_summary.get("retrieval_route"),
                     "hit_count": path_summary.get("retrieval_hit_count"),
@@ -3292,6 +3311,7 @@ def _emit_langfuse_evidence_observations(
     score_metadata_base = {
         "session_id": path_summary.get("session_id"),
         "turn_number": path_summary.get("turn_number"),
+        "canonical_turn_id": path_summary.get("canonical_turn_id"),
         "selected_player_role": path_summary.get("selected_player_role"),
         "human_actor_id": path_summary.get("human_actor_id"),
         "quality_class": path_summary.get("quality_class"),
@@ -7066,17 +7086,37 @@ class StoryRuntimeManager:
             last_dramatic_context_summary,
             session=session,
         )
-        committed_canonical_turn_count = len(session.history)
+        history_rows = session.history or []
+        committed_canonical_turn_count = len(history_rows)
+        opening_committed = any(
+            isinstance(h, dict) and str(h.get("turn_kind") or "") == "opening" for h in history_rows
+        )
+        player_committed_turns = sum(
+            1
+            for h in history_rows
+            if isinstance(h, dict) and str(h.get("turn_kind") or "") != "opening"
+        )
+        total_canonical_turns = committed_canonical_turn_count
+        last_hist = history_rows[-1] if history_rows else None
+        latest_canonical_turn_id: str | None = None
+        if isinstance(last_hist, dict):
+            lid = str(last_hist.get("canonical_turn_id") or "").strip()
+            latest_canonical_turn_id = lid or None
 
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
             "turn_counter": session.turn_counter,
             "committed_canonical_turn_count": committed_canonical_turn_count,
+            "opening_committed": opening_committed,
+            "player_committed_turns": player_committed_turns,
+            "total_canonical_turns": total_canonical_turns,
+            "canonical_turn_count": total_canonical_turns,
+            "latest_canonical_turn_id": latest_canonical_turn_id,
             "current_scene_id": session.current_scene_id,
             "content_provenance": session.content_provenance,
             "runtime_projection": session.runtime_projection,
-            "history_count": len(session.history),
+            "history_count": len(history_rows),
             "committed_state": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,

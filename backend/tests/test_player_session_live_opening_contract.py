@@ -48,13 +48,14 @@ def test_live_session_without_opening_is_not_ready_for_play():
     assert bundle["opening_generation_status"] in {"blocked_missing_opening", "failed_opening_generation"}
 
 
-def test_shell_committed_turn_display_counter_prefers_history_over_player_graph_counter():
+def test_shell_committed_turn_display_counter_prefers_history_count_authority():
     assert _shell_committed_turn_display_counter({"turn_counter": 0, "history_count": 1}) == 1
+    # history_count wins over a mismatched explicit counter (stale client payloads).
     assert (
         _shell_committed_turn_display_counter(
             {"turn_counter": 0, "history_count": 1, "committed_canonical_turn_count": 2}
         )
-        == 2
+        == 1
     )
     assert _shell_committed_turn_display_counter({"turn_counter": 5}) == 5
 
@@ -70,6 +71,9 @@ def test_player_shell_state_view_turn_counter_matches_committed_rows():
     assert view["turn_counter"] == 1
     assert view["player_graph_turn_counter"] == 0
     assert view["history_count"] == 1
+    assert view["opening_committed"] is True
+    assert view["player_committed_turns"] == 0
+    assert view["total_canonical_turns"] == 1
 
 
 def test_player_session_bundle_shell_shows_committed_count_when_we_turn_counter_zero():
@@ -120,3 +124,6 @@ def test_player_session_bundle_shell_shows_committed_count_when_we_turn_counter_
     )
     assert bundle["shell_state_view"]["turn_counter"] == 1
     assert bundle["shell_state_view"]["player_graph_turn_counter"] == 0
+    assert bundle["shell_state_view"]["opening_committed"] is True
+    assert bundle["shell_state_view"]["player_committed_turns"] == 0
+    assert bundle["shell_state_view"]["total_canonical_turns"] == 1

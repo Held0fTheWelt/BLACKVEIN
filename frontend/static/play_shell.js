@@ -54,6 +54,27 @@
     }
   }
 
+  function applyShellStateView(shell) {
+    if (!shell || typeof shell !== "object") return;
+    var openingEl = document.getElementById("play-shell-opening-label");
+    if (openingEl) {
+      openingEl.textContent = shell.opening_committed ? "committed" : "pending";
+    }
+    var pt = document.getElementById("play-shell-player-turns");
+    if (pt && shell.player_committed_turns != null) {
+      pt.textContent = String(shell.player_committed_turns);
+    }
+    var tt = document.getElementById("play-shell-total-canonical-turns");
+    if (tt && shell.total_canonical_turns != null) {
+      tt.textContent = String(shell.total_canonical_turns);
+    }
+    var lid = document.getElementById("play-shell-latest-canonical-turn-id");
+    if (lid) {
+      var v = shell.latest_canonical_turn_id;
+      lid.textContent = v != null && String(v).trim() ? String(v).trim() : "—";
+    }
+  }
+
   function renderRuntimeStatus(status) {
     const s = status || {};
     const responderEl = document.getElementById("runtime-selected-responder");
@@ -156,6 +177,9 @@
     const payload = parsePayload(rawPayload);
     if (!payload) return false;
     applyShowDiagnosticsFromPayload(payload);
+    if (payload.shell_state_view) {
+      applyShellStateView(payload.shell_state_view);
+    }
 
     const runtimeStatus = extractRuntimeStatusFromPayload(payload);
     const blocks = extractBlocksFromPayload(payload);
@@ -194,10 +218,7 @@
   const bootstrapEl = document.getElementById("play-shell-bootstrap");
   if (bootstrapEl) {
     const bootstrapPayload = parsePayload(bootstrapEl.textContent || "{}") || {};
-    applyShowDiagnosticsFromPayload(bootstrapPayload);
-    if (extractShowDiagnosticsFromPayload(bootstrapPayload) === null && shell) {
-      showPlayDiagnostics = shell.getAttribute("data-show-play-diagnostics") === "true";
-    }
+    applyRuntimePayload(bootstrapPayload);
     const blocks = extractBlocksFromPayload(bootstrapPayload);
     const initialStatus = extractRuntimeStatusFromPayload(bootstrapPayload);
     if (blocks && blocks.length) {
@@ -209,6 +230,9 @@
       }
     }
     renderRuntimeStatus(initialStatus || undefined);
+    if (extractShowDiagnosticsFromPayload(bootstrapPayload) === null && shell) {
+      showPlayDiagnostics = shell.getAttribute("data-show-play-diagnostics") === "true";
+    }
   }
 
   const form = document.getElementById("play-execute-form");

@@ -161,10 +161,17 @@
     <h2>Runtime Boundary</h2>
     <p class="runtime-meta">The WebSocket/ticket live-room simulator is not part of this canonical player path. Operator diagnostics remain separate from the story surface.</p>
     {% if shell_state_view %}
-      <p class="runtime-meta">
+      <p class="runtime-meta" id="play-shell-runtime-boundary-meta">
         Module <code>{{ shell_state_view.module_id }}</code>
         · scene <code>{{ shell_state_view.current_scene_id }}</code>
-        · committed turns <code>{{ shell_state_view.turn_counter }}</code>
+        · opening <span id="play-shell-opening-label">{% if shell_state_view.opening_committed %}committed{% else %}pending{% endif %}</span>
+        · player turns <code id="play-shell-player-turns">{{ shell_state_view.player_committed_turns }}</code>
+        · total <code id="play-shell-total-canonical-turns">{{ shell_state_view.total_canonical_turns }}</code>
+        {% if shell_state_view.latest_canonical_turn_id %}
+          · latest <code id="play-shell-latest-canonical-turn-id">{{ shell_state_view.latest_canonical_turn_id }}</code>
+        {% else %}
+          · latest <code id="play-shell-latest-canonical-turn-id">—</code>
+        {% endif %}
       </p>
     {% endif %}
   </section>

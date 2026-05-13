@@ -78,8 +78,42 @@ def test_state_after_create_includes_committed_canonical_turn_count(client, inte
     cc = state_body.get("committed_canonical_turn_count")
     assert isinstance(hc, int) and hc >= 1
     assert cc == hc
+    assert state_body.get("opening_committed") is True
+    assert state_body.get("player_committed_turns") == 0
+    assert state_body.get("total_canonical_turns") == hc
+    assert state_body.get("canonical_turn_count") == hc
+    assert isinstance(state_body.get("latest_canonical_turn_id"), str) and state_body["latest_canonical_turn_id"]
     # Player-graph counter may still be 0 until first execute_turn after opening.
     assert state_body.get("turn_counter", 0) >= 0
+
+
+def test_state_counter_projection_after_opening_and_first_player_turn(client, internal_api_key):
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
+    )
+    assert create_response.status_code == 200
+    session_id = create_response.json()["session_id"]
+    st0 = client.get(f"/api/story/sessions/{session_id}/state", headers=_headers(internal_api_key)).json()
+    assert st0["opening_committed"] is True
+    assert st0["player_committed_turns"] == 0
+    assert st0["total_canonical_turns"] == 1
+    opening_tid = st0.get("latest_canonical_turn_id")
+
+    tr = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers=_headers(internal_api_key),
+        json={"player_input": "I take a breath and say we should leave."},
+    )
+    assert tr.status_code == 200
+    st1 = client.get(f"/api/story/sessions/{session_id}/state", headers=_headers(internal_api_key)).json()
+    assert st1["opening_committed"] is True
+    assert st1["player_committed_turns"] == 1
+    assert st1["total_canonical_turns"] == 2
+    assert st1["history_count"] == 2
+    assert st1.get("latest_canonical_turn_id")
+    assert st1["latest_canonical_turn_id"] != opening_tid
 
 
 def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key):
@@ -135,6 +169,9 @@ def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key)
     assert state_body["turn_counter"] == 2
     assert state_body.get("last_committed_turn", {}).get("turn_number") == 2
     assert state_body.get("history_count") == 3
+    assert state_body.get("player_committed_turns") == 2
+    assert state_body.get("total_canonical_turns") == 3
+    assert state_body.get("opening_committed") is True
     assert "graph" not in (state_body.get("last_committed_turn") or {})
     story_window = state_body.get("story_window") or {}
     assert story_window.get("contract") == "authoritative_story_window_v1"
