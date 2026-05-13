@@ -6,7 +6,7 @@ import pytest
 from ai_stack.live_dramatic_scene_simulator import LDSSInput, build_deterministic_ldss_output
 
 
-def _ldss_input(human: str, turn: int = 0) -> LDSSInput:
+def _ldss_input(human: str, turn: int = 0, session_output_language: str = "en") -> LDSSInput:
     npc_ids = ["alain", "veronique", "michel"] if human == "annette" else ["annette", "veronique", "michel"]
     return LDSSInput(
         story_session_state={
@@ -34,6 +34,7 @@ def _ldss_input(human: str, turn: int = 0) -> LDSSInput:
         },
         player_input="",
         admitted_objects=[],
+        session_output_language=session_output_language,
     )
 
 
@@ -84,3 +85,44 @@ def test_regular_turn_keeps_single_narrator_structure() -> None:
     )
     assert blocks[0].block_type == "narrator", "First block of regular turn must be narrator"
     assert any(b.block_type == "actor_line" for b in blocks), "Regular turn must include an actor_line"
+
+
+# ---------------------------------------------------------------------------
+# STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: locale enforcement
+# ---------------------------------------------------------------------------
+
+
+def test_ldss_opening_fallback_respects_german_session_output_language() -> None:
+    """P1: when session_output_language='de', the deterministic LDSS opening must produce
+    German narrator text — not the English fallback that the staging audit observed."""
+    out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="de"))
+    blocks = out.visible_scene_output.blocks
+    narrator_texts = [b.text for b in blocks if b.block_type == "narrator"]
+    assert narrator_texts, "Opening must emit narrator blocks"
+    combined = " ".join(narrator_texts)
+    # German runtime locale must use German orthography / common German articles.
+    assert any(ch in combined for ch in "äöüÄÖÜß"), (
+        f"German session must include German-specific characters; got: {combined!r}"
+    )
+    # And must NOT use the English summary-only template that was committed in staging.
+    assert "Two couples meet in a Paris apartment" not in combined
+    assert "You are Annette Reille" not in combined
+
+
+def test_ldss_opening_fallback_does_not_emit_english_role_anchor_for_german_session() -> None:
+    """P1: the role anchor block (block index 1) must be German for a German session and
+    must include the player role name without the English 'You are <Name>' phrase."""
+    out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="de"))
+    blocks = out.visible_scene_output.blocks
+    assert len(blocks) >= 3, f"Need ≥ 3 narrator blocks; got {len(blocks)}"
+    role_anchor_text = blocks[1].text
+    assert "Du bist Annette" in role_anchor_text or "Annette Reille" in role_anchor_text
+    assert "You are Annette" not in role_anchor_text
+
+
+def test_ldss_opening_fallback_english_session_still_works() -> None:
+    """P1: regression guard — English sessions must still receive the English opening text."""
+    out = build_deterministic_ldss_output(_ldss_input("annette", turn=0, session_output_language="en"))
+    blocks = out.visible_scene_output.blocks
+    role_anchor_text = blocks[1].text
+    assert "You are Annette" in role_anchor_text

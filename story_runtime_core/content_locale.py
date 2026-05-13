@@ -504,5 +504,12 @@ def classify_player_input_from_rules(
             else:
                 d = _intent_defaults_from_kind(pik)
                 out[fld] = d[fld]
+        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P5: pass-through
+        # for movement_return_intent and other rule-level metadata flags that downstream
+        # affordance resolvers consume. Keep the surface explicit, not wildcard, so the
+        # contract is auditable.
+        for optional_flag in ("movement_return_intent",):
+            if optional_flag in then:
+                out[optional_flag] = bool(then.get(optional_flag))
         return out
     return _no_rule_result("no_rule_match")

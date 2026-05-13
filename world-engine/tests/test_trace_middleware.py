@@ -1384,6 +1384,147 @@ def _healthy_path_summary_turn(turn_number: int) -> dict:
     }
 
 
+def test_action_context_diagnostics_are_present_on_degraded_turn_payload(monkeypatch):
+    """STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P4: even when the route
+    fell back / authoritative action surface is absent, action-context diagnostics must
+    be present on path_summary + scores with status='evaluated_degraded' (or not_applicable)
+    and numeric values."""
+    from app.story_runtime.manager import _compute_action_consequence_diagnostics
+
+    # Action turn without authoritative surface (LDSS fallback) → evaluated_degraded with real values.
+    diag = _compute_action_consequence_diagnostics({
+        "turn_number": 1,
+        "player_input_kind": "action",
+        "player_action_frame_present": False,
+        "authoritative_action_surface": False,
+        "generation_fallback_used": True,
+        "quality_class": "degraded",
+        "local_context_transition": None,
+        "narrator_consequence_plan": None,
+    })
+    assert diag["status"] == "evaluated_degraded"
+    for k in (
+        "local_context_transition_present",
+        "narrator_consequence_present",
+        "new_location_established",
+        "perception_result_present",
+        "action_consequence_contract_pass",
+        "npc_consequence_takeover_absent",
+    ):
+        assert isinstance(diag[k], float), f"{k} must be numeric"
+
+    # Speech turn → not_applicable with vacuous 1.0 values.
+    diag_speech = _compute_action_consequence_diagnostics({
+        "turn_number": 2,
+        "player_input_kind": "speech",
+    })
+    assert diag_speech["status"] == "not_applicable"
+    assert diag_speech["action_consequence_contract_pass"] == 1.0
+    assert diag_speech["local_context_transition_present"] == 1.0
+
+    # Opening turn → not_applicable.
+    diag_opening = _compute_action_consequence_diagnostics({"turn_number": 0})
+    assert diag_opening["status"] == "not_applicable"
+    assert diag_opening["reason"] == "opening_turn"
+
+
+def test_action_context_diagnostics_emit_scores_on_every_player_turn(monkeypatch):
+    """P4: scores must fire on every player turn (turn_number > 0), not only the
+    authoritative-action short-path. This guards against silent gaps in trace history."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    # Speech turn with fallback — scores must still emit (vacuous 1.0).
+    path_summary = _healthy_path_summary_turn(1)
+    path_summary.update({
+        "player_input_kind": "speech",
+        "player_action_frame_present": False,
+        "authoritative_action_surface": False,
+        "generation_fallback_used": True,
+        "quality_class": "degraded",
+    })
+    blocks = [{"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hello."}]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    scores = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    for k in (
+        "local_context_transition_present",
+        "narrator_consequence_present",
+        "new_location_established",
+        "perception_result_present",
+        "action_consequence_contract_pass",
+        "npc_consequence_takeover_absent",
+    ):
+        assert k in scores, f"score {k} missing from degraded-speech-turn emission"
+        assert isinstance(scores[k], float)
+
+
+def test_action_context_diagnostics_reflect_real_perception_failure(monkeypatch):
+    """P4: a perception turn that produced no narrator consequence_text must produce
+    narrator_consequence_present=0, perception_result_present=0,
+    action_consequence_contract_pass=0."""
+    from app.story_runtime.manager import _compute_action_consequence_diagnostics
+
+    diag = _compute_action_consequence_diagnostics({
+        "turn_number": 3,
+        "player_input_kind": "perception",
+        "authoritative_action_surface": True,
+        "local_context_transition": {"transition_type": "perception", "object_found": True},
+        "narrator_consequence_plan": {"consequence_text": None, "consequence_type": "generic"},
+    })
+    assert diag["status"] == "evaluated"
+    assert diag["narrator_consequence_present"] == 0.0
+    assert diag["perception_result_present"] == 0.0
+    assert diag["action_consequence_contract_pass"] == 0.0
+
+
+def test_opening_role_anchor_pass_score_is_emitted(monkeypatch):
+    """STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P6: opening_role_anchor_pass
+    must exist as its own top-level numeric score (0.0/1.0) on the opening, derived from
+    opening_shape_subgates.role_anchor_present. Non-opening turns must report 1.0."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    # Canonical opening with role anchor — score must be 1.0
+    blocks_ok = _canonical_opening_blocks()
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks_ok),
+    )
+    scores_ok = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores_ok.get("opening_role_anchor_pass") == 1.0
+
+    # Failing opening — actor at index 1 (no narrator role anchor) → score must be 0.0
+    adapter.reset_mock()
+    blocks_fail = [
+        {"block_type": "narrator", "text": "Two couples meet on the schoolyard premise."},
+        {"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hello."},
+        {"block_type": "narrator", "text": "The salon."},
+        {"block_type": "narrator", "text": "Coffee cools."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(0),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks_fail),
+    )
+    scores_fail = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores_fail.get("opening_role_anchor_pass") == 0.0
+
+    # Non-opening turn — score must be 1.0 (vacuous true)
+    adapter.reset_mock()
+    _emit_langfuse_evidence_observations(
+        path_summary=_healthy_path_summary_turn(2),
+        graph_state={"model_prompt": "x"},
+        event=_openai_event([{"block_type": "actor_line", "actor_id": "alain_reille", "text": "Hi."}]),
+    )
+    scores_player = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores_player.get("opening_role_anchor_pass") == 1.0
+
+
 def test_knowledge_runtime_absent_scores_emit_numeric_on_clean_turn(monkeypatch):
     """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P0.3/P0.4: absent-scores must emit deterministic 1.0
     when hard_forbidden_detection.detected is empty."""

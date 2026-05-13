@@ -58,6 +58,22 @@ classification_rules:
       player_speech_committed: true
       narrator_response_expected: true
       npc_response_expected: true
+  # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P5: explicit "zurueck/wieder"
+  # movement idiom. Resolves to previous_location_id at affordance time when target_room
+  # is "zurück" / "wieder" without a destination noun phrase.
+  - id: de_movement_gehe_zurueck
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?gehe\\s+(?:zur(?:ü|ue)ck|wieder)\\b(?:\\s+(.+?))?[\\s.!?]*$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.action_toward_room
+      capture_groups:
+        room: 1
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+      movement_return_intent: true
   - id: de_movement_gehe
     when_lang: de
     pattern: "(?is)^(?:ich\\s+)?gehe\\s+(.+)$"
@@ -66,6 +82,19 @@ classification_rules:
       projection_key: player_outcome.action_toward_room
       capture_groups:
         room: 1
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P5: German "sich umsehen" /
+  # "sich umschauen" / "sich umblicken" — generic look-around perception. Must precede
+  # de_perception_schau_generic which would otherwise miss "ich sehe ... um" patterns.
+  - id: de_perception_look_around
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:sehe?|schau(?:e)?|blick(?:e)?)\\s+(?:mich|mir)\\s+(?:im\\s+\\S+\\s+)?um\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_generic
       player_action_committed: true
       player_speech_committed: false
       narrator_response_expected: true

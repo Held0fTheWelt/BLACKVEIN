@@ -2286,6 +2286,87 @@ def _finish_langfuse_span(
         logger.debug("Langfuse span end failed", exc_info=True)
 
 
+def _compute_action_consequence_diagnostics(path_summary: dict[str, Any]) -> dict[str, Any]:
+    """Build the public action_consequence_diagnostics payload.
+
+    STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P4: every player turn must
+    expose deterministic numeric values for the action/local-context contract. Opening
+    turns and pure-speech turns use ``not_applicable``; degraded/fallback paths use
+    ``evaluated_degraded`` but still emit real numeric values.
+    """
+    turn_number = int(path_summary.get("turn_number") or 0)
+    if turn_number == 0:
+        return {
+            "status": "not_applicable",
+            "reason": "opening_turn",
+            "local_context_transition_present": 1.0,
+            "narrator_consequence_present": 1.0,
+            "new_location_established": 1.0,
+            "perception_result_present": 1.0,
+            "action_consequence_contract_pass": 1.0,
+            "npc_consequence_takeover_absent": 1.0,
+        }
+    intent_kind = str(path_summary.get("player_input_kind") or "").strip().lower()
+    action_intents = {"action", "perception", "object_interaction", "physical_action", "movement_action", "perception_action"}
+    is_action_resolution = intent_kind in action_intents and bool(
+        path_summary.get("authoritative_action_surface") or path_summary.get("player_action_frame_present")
+    )
+    lct = path_summary.get("local_context_transition") if isinstance(path_summary.get("local_context_transition"), dict) else None
+    ncp = path_summary.get("narrator_consequence_plan") if isinstance(path_summary.get("narrator_consequence_plan"), dict) else None
+    quality_class = str(path_summary.get("quality_class") or "").strip().lower()
+    fallback_used = bool(path_summary.get("generation_fallback_used")) or quality_class in {"degraded", "failed"}
+    if intent_kind not in action_intents:
+        return {
+            "status": "not_applicable",
+            "reason": f"intent_kind:{intent_kind or 'unknown'}",
+            "local_context_transition_present": 1.0,
+            "narrator_consequence_present": 1.0,
+            "new_location_established": 1.0,
+            "perception_result_present": 1.0,
+            "action_consequence_contract_pass": 1.0,
+            "npc_consequence_takeover_absent": 1.0,
+        }
+    local_context_transition_present = 1.0 if lct else 0.0
+    narrator_consequence_present = 1.0 if (ncp and ncp.get("consequence_text")) else 0.0
+    new_area_established = bool(lct and lct.get("new_area_established")) if lct else False
+    movement_turn = bool(lct and str(lct.get("transition_type") or "").startswith("move")) if lct else False
+    new_location_established = 1.0 if (new_area_established or not movement_turn) else 0.0
+    perception_turn = bool(lct and str(lct.get("transition_type") or "") == "perception") if lct else False
+    perception_result_present = 1.0 if (not perception_turn or (ncp and ncp.get("consequence_text"))) else 0.0
+    consequence_contract_pass = bool(
+        lct
+        and ncp
+        and (
+            ncp.get("consequence_text")
+            or ncp.get("consequence_type") not in {None, "generic"}
+        )
+    )
+    action_consequence_contract_pass = 1.0 if consequence_contract_pass else 0.0
+    # npc_consequence_takeover_absent: on action/perception turns, if responder set contains a
+    # non-narrator actor and the visible bundle includes an NPC line that conveys the perception
+    # result instead of the narrator, the score drops to 0. Heuristic: if visible NPC lines exist
+    # on a perception or movement turn AND no narrator consequence_text was produced, NPC took over.
+    npc_lines = int(path_summary.get("npc_visible_line_count") or 0)
+    if npc_lines == 0:
+        npc_takeover_absent = 1.0
+    else:
+        npc_takeover_absent = 0.0 if (movement_turn or perception_turn) and narrator_consequence_present == 0.0 else 1.0
+    status = "evaluated"
+    if not is_action_resolution:
+        status = "evaluated_degraded"
+    elif fallback_used:
+        status = "evaluated_degraded"
+    return {
+        "status": status,
+        "local_context_transition_present": local_context_transition_present,
+        "narrator_consequence_present": narrator_consequence_present,
+        "new_location_established": new_location_established,
+        "perception_result_present": perception_result_present,
+        "action_consequence_contract_pass": action_consequence_contract_pass,
+        "npc_consequence_takeover_absent": npc_takeover_absent,
+    }
+
+
 def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
     try:
         adapter = LangfuseAdapter.get_instance()
@@ -3260,6 +3341,14 @@ def _emit_langfuse_evidence_observations(
         opening_shape_pass = 1.0
     deterministic_scores["opening_shape_contract_pass"] = opening_shape_pass
     deterministic_scores["opening_contract_pass"] = opening_shape_pass
+    # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P6: promote role_anchor_present
+    # to its own top-level numeric score so dashboards can filter without nested metadata joins.
+    if _turn_number == 0:
+        deterministic_scores["opening_role_anchor_pass"] = (
+            1.0 if _opening_shape_subgates.get("role_anchor_present") else 0.0
+        )
+    else:
+        deterministic_scores["opening_role_anchor_pass"] = 1.0
     deterministic_scores["hard_forbidden_absent"] = (
         1.0 if path_summary.get("hard_forbidden_absent", True) else 0.0
     )
@@ -3350,33 +3439,21 @@ def _emit_langfuse_evidence_observations(
         _is_action_resolution_turn = _authoritative_action_surface and _intent_kind_for_consequence in {
             "action", "perception", "object_interaction", "physical_action",
         }
-        if _is_action_resolution_turn:
-            deterministic_scores["local_context_transition_present"] = 1.0 if _lct else 0.0
-            deterministic_scores["narrator_consequence_present"] = (
-                1.0 if (_ncp and _ncp.get("consequence_text")) else 0.0
-            )
-            _new_location = bool(_lct and _lct.get("new_area_established")) if _lct else False
-            _movement_turn = _lct and str(_lct.get("transition_type") or "").startswith("move") if _lct else False
-            deterministic_scores["new_location_established"] = (
-                1.0 if (_new_location or not _movement_turn) else 0.0
-            )
-            _perception_turn = _lct and str(_lct.get("transition_type") or "") == "perception" if _lct else False
-            deterministic_scores["perception_result_present"] = (
-                1.0
-                if (not _perception_turn or (_ncp and _ncp.get("consequence_text")))
-                else 0.0
-            )
-            _consequence_contract_pass = bool(
-                _lct
-                and _ncp
-                and (
-                    _ncp.get("consequence_text")
-                    or _ncp.get("consequence_type") not in {None, "generic"}
-                )
-            )
-            deterministic_scores["action_consequence_contract_pass"] = (
-                1.0 if _consequence_contract_pass else 0.0
-            )
+        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P4: emit deterministic
+        # action-context scores on every player turn — not only the authoritative action
+        # short-path — so dashboards observe degraded/fallback behaviour rather than gaps.
+        _action_diag = _compute_action_consequence_diagnostics(path_summary)
+        for _name in (
+            "local_context_transition_present",
+            "narrator_consequence_present",
+            "new_location_established",
+            "perception_result_present",
+            "action_consequence_contract_pass",
+            "npc_consequence_takeover_absent",
+        ):
+            _value = _action_diag.get(_name)
+            if isinstance(_value, (int, float)):
+                deterministic_scores[_name] = float(_value)
     # live_opening_contract_pass is only meaningful on the opening turn (turn 0).
     # Writing it on subsequent turns would produce false negatives that pollute
     # the trace score history and make passing openings appear to have failed.
@@ -5032,6 +5109,9 @@ def _build_ldss_scene_envelope(
         current_scene_id=session.current_scene_id,
         runtime_profile_id=str(proj.get("runtime_profile_id") or "god_of_carnage_solo"),
         content_module_id=session.module_id,
+        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
+        # language so the deterministic fallback renders locale-correct opening text.
+        session_output_language=getattr(session, "session_output_language", "de") or "de",
     )
 
     ldss_output = run_ldss(ldss_input)
@@ -5904,7 +5984,13 @@ class StoryRuntimeManager:
             graph_state=graph_state,
             event=event,
         )
+        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P4: build public
+        # action/local-context diagnostics so degraded/fallback paths still expose numeric
+        # values rather than silent None.
+        diag = _compute_action_consequence_diagnostics(path_summary)
+        path_summary["action_consequence_diagnostics"] = diag
         event["observability_path_summary"] = path_summary
+        event["action_consequence_diagnostics"] = diag
         event["knowledge_runtime_gates"] = {
             "contract": path_summary.get("knowledge_runtime_gates_contract"),
             "opening_scene_sequence_id": path_summary.get("opening_scene_sequence_id"),

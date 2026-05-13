@@ -350,6 +350,66 @@ def test_no_rule_match_unrecognized_german():
 
 
 # ---------------------------------------------------------------------------
+# STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P5:
+# German look-around and return-movement idiom support.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "Ich sehe mich um.",
+        "Ich schaue mich um.",
+        "Ich blicke mich um.",
+        "Ich sehe mich im Raum um.",
+        "Ich schaue mich im Salon um.",
+    ],
+)
+def test_german_look_around_idiom_classifies_as_perception_action(raw: str) -> None:
+    """P5: 'sich umsehen' / 'sich umschauen' / 'sich umblicken' must be perception,
+    not speech. The audit found 'Ich sehe mich um.' classified as speech which is a bug."""
+    hit = _classify(raw)
+    assert hit["player_input_kind"] == "perception", f"{raw!r} -> {hit['player_input_kind']!r}"
+    assert hit["speech_projection_allowed"] is False
+    assert hit["deterministic_intent_rule"] == "de_perception_look_around"
+    # Visible projection must not wrap as quoted speech.
+    line = _project(raw, hit)
+    _assert_no_speech_wrapping(line, raw)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "Ich gehe zurück.",
+        "Ich gehe zurück ins Wohnzimmer.",
+        "Ich gehe zurueck ins Wohnzimmer.",
+        "Ich gehe wieder ins Wohnzimmer.",
+        "Ich gehe wieder in den Salon.",
+    ],
+)
+def test_german_return_movement_idiom_classifies_as_action(raw: str) -> None:
+    """P5: 'gehe zurück' / 'gehe wieder' must be action with movement_return_intent so
+    downstream affordance resolution can use previous_location_id when target is implicit
+    or use the captured destination noun when present."""
+    hit = _classify(raw)
+    assert hit["player_input_kind"] == "action", f"{raw!r} -> {hit['player_input_kind']!r}"
+    assert hit["deterministic_intent_rule"] == "de_movement_gehe_zurueck"
+    assert hit["speech_projection_allowed"] is False
+    # The rule should be marked as a return-movement so affordance resolution can fall
+    # back to previous_location_id when the captured room is missing.
+    assert hit.get("movement_return_intent") is True
+
+
+def test_german_plain_gehe_still_matches_after_return_idiom_rule() -> None:
+    """P5: precedence — 'Ich gehe ins Badezimmer.' must still match the plain de_movement_gehe
+    rule (not de_movement_gehe_zurueck) so existing movement flows are not regressed."""
+    hit = _classify("Ich gehe ins Badezimmer.")
+    assert hit["deterministic_intent_rule"] == "de_movement_gehe"
+    assert hit["player_input_kind"] == "action"
+    assert hit.get("movement_return_intent") in (None, False)
+
+
+# ---------------------------------------------------------------------------
 # speech_projection_allowed gate: non-speech inputs never produce sagt/fragt
 # ---------------------------------------------------------------------------
 

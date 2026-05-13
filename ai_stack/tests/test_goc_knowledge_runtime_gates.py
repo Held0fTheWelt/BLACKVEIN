@@ -174,6 +174,139 @@ def test_opening_handover_mismatch_blocks_commit() -> None:
     assert outcome["opening_event_coverage"]["handover_to_scene_phase_actual"] == "phase_2"
 
 
+def test_turn0_ldss_fallback_rejects_mid_conflict_npc_line() -> None:
+    """STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P2: a Turn-0 NPC line that
+    jumps into prosecutorial / mid-conflict framing must trigger the recover_on
+    npc_phase_one_premature_escalation detection."""
+    outcome = _validate_opening(
+        {
+            **_full_opening_structured(),
+            "spoken_lines": [
+                {
+                    "speaker_id": "veronique_vallon",
+                    "text": "You keep turning this into a legal question. It is not a legal question.",
+                }
+            ],
+        }
+    )
+    assert outcome["status"] == "rejected"
+    detection = outcome["hard_forbidden_detection"]
+    keys = [hit.get("detection_key") for hit in (detection.get("detected") or [])]
+    assert "npc_phase_one_premature_escalation" in keys
+    # Recover_on detections must not commit as healthy.
+    assert outcome["hard_forbidden_absent"] is False
+
+
+def test_turn0_opening_npc_lines_follow_phase_one_policy() -> None:
+    """P2: a polite phase-1 NPC line (ritual greeting / hospitality fiction) must NOT
+    trigger npc_phase_one_premature_escalation."""
+    outcome = _validate_opening(
+        {
+            **_full_opening_structured(),
+            "spoken_lines": [
+                {"speaker_id": "michel_longstreet", "text": "Vielleicht beginnen wir ruhig."}
+            ],
+        }
+    )
+    detection = outcome["hard_forbidden_detection"]
+    keys = [hit.get("detection_key") for hit in (detection.get("detected") or [])]
+    assert "npc_phase_one_premature_escalation" not in keys
+
+
+def test_turn0_opening_npc_line_in_german_also_triggers_phase_one_constraint() -> None:
+    """P2: detector must catch German runtime locale variants too (e.g. 'Wie könnt ihr'),
+    not only English markers, since runtime locale may be German."""
+    outcome = _validate_opening(
+        {
+            **_full_opening_structured(),
+            "spoken_lines": [
+                {
+                    "speaker_id": "veronique_vallon",
+                    "text": "Wie könnt ihr behaupten, das sei juristisch — es ist eine Frechheit.",
+                }
+            ],
+        }
+    )
+    detection = outcome["hard_forbidden_detection"]
+    keys = [hit.get("detection_key") for hit in (detection.get("detected") or [])]
+    assert "npc_phase_one_premature_escalation" in keys
+
+
+def test_opening_summary_only_detector_ignores_actor_lane_escape() -> None:
+    """STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P3: actor lane presence
+    must not suppress summary-only detection when narrator realization is thin."""
+    outcome = _validate_opening(
+        {
+            "narration_summary": [
+                "Zwei Familien treffen sich in einer Wohnung wegen eines Vorfalls auf dem Schulhof.",
+                "Du bist Annette Reille; die Wohnung gehört dir und das Treffen war deine Idee.",
+                "Im Salon stehen Tulpen und Kunstbände; vier Stühle warten um einen Tisch.",
+            ],
+            "spoken_lines": [
+                {"speaker_id": "michel_longstreet", "text": "Vielleicht beginnen wir ruhig."}
+            ],
+            "action_lines": [],
+        }
+    )
+    # Detector must still flag summary-only because narrator realization is abstract and
+    # narrative_events were not covered, even though an actor lane exists.
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] == "summary_only_opening"
+    assert outcome["opening_summary_only_absent"] is False
+    detection = outcome["hard_forbidden_detection"]
+    detected_keys = [hit.get("detection_key") for hit in (detection.get("detected") or [])]
+    assert "summary_only_opening" in detected_keys
+
+
+def test_opening_summary_only_detector_requires_scenic_narrator_realization() -> None:
+    """P3: summary-only detector must flag missing scenic event realization."""
+    outcome = _validate_opening(
+        {
+            "narration_summary": [
+                "Eine Wohnung. Ein Vorfall. Ein höfliches Gespräch ist geplant.",
+            ],
+            "spoken_lines": [],
+            "action_lines": [],
+        }
+    )
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] == "summary_only_opening"
+    detection = outcome["hard_forbidden_detection"]
+    detected_hits = [hit for hit in (detection.get("detected") or []) if hit.get("detection_key") == "summary_only_opening"]
+    assert detected_hits
+    reasons = detected_hits[0].get("summary_only_reasons") or []
+    # At least one of the new structural reasons must surface.
+    assert any(r in reasons for r in {
+        "too_few_visible_blocks_for_opening_policy",
+        "too_few_narrator_blocks_for_opening_policy",
+        "missing_scenic_event_realization",
+        "narrator_blocks_are_abstract_summary",
+    })
+
+
+def test_opening_summary_only_absent_drops_to_zero_for_three_summary_blocks_plus_actor_line() -> None:
+    """P3: the exact failure shape observed in staging (3 abstract narrator blocks + 1 actor
+    line, no event coverage) must produce opening_summary_only_absent = False."""
+    outcome = _validate_opening(
+        {
+            "narration_summary": [
+                "Two couples meet in a Paris apartment on behalf of their children.",
+                "You are Annette Reille; the apartment is yours.",
+                "The salon: four chairs arranged around a low table.",
+            ],
+            "spoken_lines": [
+                {"speaker_id": "veronique_vallon", "text": "You keep turning this into a legal question."}
+            ],
+            "action_lines": [
+                {"speaker_id": "alain_reille", "text": "Alain glances at his phone but does not pick it up."}
+            ],
+        }
+    )
+    assert outcome["opening_summary_only_absent"] is False
+    assert outcome["status"] == "rejected"
+    assert outcome["reason"] == "summary_only_opening"
+
+
 def test_path_summary_exposes_runtime_gate_diagnostics() -> None:
     opening, hard = _knowledge()
     structured = _full_opening_structured()

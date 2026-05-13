@@ -180,6 +180,9 @@ class LDSSInput:
     player_input: str
     admitted_objects: list[dict[str, Any]] = field(default_factory=list)
     contract: str = "ldss_input.v1"
+    # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: explicit session
+    # output language so deterministic LDSS fallback projects locale-correct visible text.
+    session_output_language: str = "de"
 
     @property
     def human_actor_id(self) -> str:
@@ -482,47 +485,137 @@ _GOC_DISPLAY_NAMES: dict[str, str] = {
     "michel": "Michel",
 }
 
-_GOC_NPC_LINES: dict[str, list[str]] = {
-    "veronique": [
-        "You keep turning this into a legal question. It is not a legal question.",
-        "I think we all need to be honest about what happened today.",
-    ],
-    "alain": [
-        "I understand your position. I just don't share it.",
-        "Let's try to approach this calmly.",
-    ],
-    "michel": [
-        "Perhaps we should all take a breath.",
-        "There's no need for this to become a confrontation.",
-    ],
+_GOC_NPC_LINES_BY_LANG: dict[str, dict[str, list[str]]] = {
+    "en": {
+        # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P2: phase-1 opening
+        # NPC lines must be ritual greeting / hospitality fiction — no prosecutorial
+        # framing, no mid-conflict accusation. Existing English lines were rewritten.
+        "veronique": [
+            "Perhaps we should sit before we begin.",
+            "Thank you for coming. We thought it best to talk in person.",
+        ],
+        "alain": [
+            "Let us hear what happened, calmly.",
+            "We appreciate the invitation; it is the right setting for this.",
+        ],
+        "michel": [
+            "Coffee? It is still warm.",
+            "It is good of you both to come on a Saturday.",
+        ],
+    },
+    "de": {
+        "veronique": [
+            "Vielleicht setzen wir uns, bevor wir beginnen.",
+            "Danke, dass ihr gekommen seid. Wir hielten es für besser, persönlich zu reden.",
+        ],
+        "alain": [
+            "Lasst uns hören, was passiert ist — ruhig.",
+            "Wir schätzen die Einladung; das ist der richtige Rahmen dafür.",
+        ],
+        "michel": [
+            "Kaffee? Er ist noch warm.",
+            "Schön, dass ihr beide an einem Samstag gekommen seid.",
+        ],
+    },
 }
 
-_GOC_NPC_ACTIONS: dict[str, str] = {
-    "alain": "glances at his phone but does not pick it up yet.",
-    "michel": "shifts the coffee table book aside.",
-    "veronique": "straightens in her chair, meeting the others' eyes directly.",
-    "annette": "",  # human actor — never used as action
+_GOC_NPC_ACTIONS_BY_LANG: dict[str, dict[str, str]] = {
+    "en": {
+        "alain": "glances at his phone but does not pick it up yet.",
+        "michel": "shifts the coffee table book aside.",
+        "veronique": "gestures to the empty chairs around the low table.",
+        "annette": "",
+    },
+    "de": {
+        "alain": "wirft einen Blick auf sein Handy, nimmt es aber noch nicht in die Hand.",
+        "michel": "schiebt den Kunstband auf dem Couchtisch beiseite.",
+        "veronique": "weist mit einer kleinen Handbewegung auf die freien Stühle.",
+        "annette": "",
+    },
 }
+
+
+def _goc_npc_line_for(lang: str, actor_id: str, turn: int) -> tuple[str, str]:
+    by_actor = _GOC_NPC_LINES_BY_LANG.get(lang) or _GOC_NPC_LINES_BY_LANG["en"]
+    lines = by_actor.get(actor_id) or []
+    if not lines:
+        label = _GOC_DISPLAY_NAMES.get(actor_id, actor_id.capitalize())
+        return label, f"{label} considers the situation."
+    return _GOC_DISPLAY_NAMES.get(actor_id, actor_id.capitalize()), lines[turn % len(lines)]
+
+
+def _goc_npc_action_for(lang: str, actor_id: str) -> str:
+    by_actor = _GOC_NPC_ACTIONS_BY_LANG.get(lang) or _GOC_NPC_ACTIONS_BY_LANG["en"]
+    return by_actor.get(actor_id, "")
+
+
+# Legacy aliases kept for back-compat with any external callers that imported the
+# original dicts; they expose the English variants used historically by tests.
+_GOC_NPC_LINES = _GOC_NPC_LINES_BY_LANG["en"]
+_GOC_NPC_ACTIONS = _GOC_NPC_ACTIONS_BY_LANG["en"]
 
 # Opening narrator contract (OPEN-00-01): narrator_intro → role_anchor → scene_setup → actor_line
-_OPENING_NARRATOR_INTRO = (
-    "Two couples meet in a Paris apartment on behalf of their children. "
-    "The incident happened in the schoolyard; what happens here will be settled in a salon."
-)
-_OPENING_ROLE_ANCHORS: dict[str, str] = {
-    "annette": (
-        "You are Annette Reille. The apartment is yours, and with it the expectation "
-        "that this will be handled with civility — the meeting was your idea."
+_OPENING_NARRATOR_INTRO_BY_LANG: dict[str, str] = {
+    "en": (
+        "Two couples meet in a Paris apartment on behalf of their children. "
+        "The incident happened in the schoolyard; what happens here will be settled in a salon."
     ),
-    "alain": (
-        "You are Alain Reille. You would rather be elsewhere. "
-        "You came because your wife insisted, and you are already calculating the fastest polite exit."
+    "de": (
+        "Zwei Paare treffen sich in einer Pariser Wohnung wegen ihrer Kinder. "
+        "Der Vorfall geschah auf dem Schulhof; was hier geschieht, soll im Salon entschieden werden."
     ),
 }
-_OPENING_SCENE_SETUP = (
-    "The salon: four chairs arranged around a low table. Art books and tulips signal considered taste. "
-    "A tray holds espresso cups no one has touched yet. Nobody has sat down."
-)
+_OPENING_ROLE_ANCHORS_BY_LANG: dict[str, dict[str, str]] = {
+    "en": {
+        "annette": (
+            "You are Annette Reille. The apartment is yours, and with it the expectation "
+            "that this will be handled with civility — the meeting was your idea."
+        ),
+        "alain": (
+            "You are Alain Reille. You would rather be elsewhere. "
+            "You came because your wife insisted, and you are already calculating the fastest polite exit."
+        ),
+    },
+    "de": {
+        "annette": (
+            "Du bist Annette Reille. Die Wohnung gehört dir, und mit ihr die Erwartung, "
+            "dass dieser Abend zivilisiert verläuft — das Treffen war deine Idee."
+        ),
+        "alain": (
+            "Du bist Alain Reille. Du wärst lieber woanders. "
+            "Du bist gekommen, weil deine Frau darauf bestanden hat, und kalkulierst schon den schnellsten höflichen Ausweg."
+        ),
+    },
+}
+_OPENING_SCENE_SETUP_BY_LANG: dict[str, str] = {
+    "en": (
+        "The salon: four chairs arranged around a low table. Art books and tulips signal considered taste. "
+        "A tray holds espresso cups no one has touched yet. Nobody has sat down."
+    ),
+    "de": (
+        "Der Salon: vier Stühle um einen niedrigen Tisch. Kunstbände und Tulpen signalisieren überlegten Geschmack. "
+        "Auf einem Tablett stehen Espressotassen, die niemand bisher berührt hat. Niemand hat sich gesetzt."
+    ),
+}
+_OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG: dict[str, str] = {
+    "en": "You take your place in the room.",
+    "de": "Du nimmst deinen Platz im Raum ein.",
+}
+
+
+def _opening_narrator_intro_for(lang: str) -> str:
+    return _OPENING_NARRATOR_INTRO_BY_LANG.get(lang) or _OPENING_NARRATOR_INTRO_BY_LANG["en"]
+
+
+def _opening_role_anchor_for(lang: str, role: str) -> str:
+    by_role = _OPENING_ROLE_ANCHORS_BY_LANG.get(lang) or _OPENING_ROLE_ANCHORS_BY_LANG["en"]
+    if role in by_role:
+        return by_role[role]
+    return _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG.get(lang) or _OPENING_FALLBACK_ROLE_ANCHOR_BY_LANG["en"]
+
+
+def _opening_scene_setup_for(lang: str) -> str:
+    return _OPENING_SCENE_SETUP_BY_LANG.get(lang) or _OPENING_SCENE_SETUP_BY_LANG["en"]
 
 
 def _select_primary_responder(npc_ids: list[str], human_actor_id: str) -> str:
@@ -542,10 +635,14 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
     Turn 0 (opening): narrator_intro → role_anchor → scene_setup → actor_line → [actor_action]
     Turn > 0: narrator → actor_line → [actor_action]
     No human actor control in any block.
+
+    STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: visible text follows
+    ``ldss_input.session_output_language`` so German sessions do not commit English fallback.
     """
     npc_ids = ldss_input.ai_allowed_actor_ids
     human_id = ldss_input.human_actor_id
     turn = ldss_input.turn_number
+    lang = (str(ldss_input.session_output_language or "de").strip().lower()[:2]) or "de"
 
     primary = _select_primary_responder(npc_ids, human_id)
     effective_primary = primary if primary else (npc_ids[0] if npc_ids else "")
@@ -563,12 +660,12 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
             speaker_label=None,
             actor_id=None,
             target_actor_id=None,
-            text=_OPENING_NARRATOR_INTRO,
+            text=_opening_narrator_intro_for(lang),
         ))
         block_idx += 1
 
         # role_anchor: player's character placement (role-specific)
-        role_anchor_text = _OPENING_ROLE_ANCHORS.get(human_id, "You take your place in the room.")
+        role_anchor_text = _opening_role_anchor_for(lang, human_id)
         blocks.append(SceneBlock(
             id=f"turn-{turn}-block-{block_idx}",
             block_type="narrator",
@@ -586,7 +683,7 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
             speaker_label=None,
             actor_id=None,
             target_actor_id=None,
-            text=_OPENING_SCENE_SETUP,
+            text=_opening_scene_setup_for(lang),
         ))
         block_idx += 1
     else:
@@ -604,11 +701,9 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
         ))
         block_idx += 1
 
-    # Primary NPC actor_line
+    # Primary NPC actor_line — locale-aware (P1) + phase-1-polite (P2)
     if effective_primary:
-        label = _GOC_DISPLAY_NAMES.get(effective_primary, effective_primary.capitalize())
-        lines = _GOC_NPC_LINES.get(effective_primary, [f"{label} considers the situation."])
-        line_text = lines[turn % len(lines)]
+        label, line_text = _goc_npc_line_for(lang, effective_primary, turn)
         target = human_id if human_id else (secondary or None)
         blocks.append(SceneBlock(
             id=f"turn-{turn}-block-{block_idx}",
@@ -620,10 +715,10 @@ def build_deterministic_ldss_output(ldss_input: LDSSInput) -> LDSSOutput:
         ))
         block_idx += 1
 
-    # Secondary NPC actor_action
+    # Secondary NPC actor_action — locale-aware
     if secondary:
         label2 = _GOC_DISPLAY_NAMES.get(secondary, secondary.capitalize())
-        action_text = _GOC_NPC_ACTIONS.get(secondary, f"{label2} shifts uncomfortably.")
+        action_text = _goc_npc_action_for(lang, secondary)
         if action_text:
             blocks.append(SceneBlock(
                 id=f"turn-{turn}-block-{block_idx}",
@@ -937,6 +1032,7 @@ def build_ldss_input_from_session(
     runtime_profile_id: str = "god_of_carnage_solo",
     content_module_id: str = "god_of_carnage",
     admitted_objects: list[dict[str, Any]] | None = None,
+    session_output_language: str = "de",
 ) -> LDSSInput:
     """Build LDSSInput from story session state fields."""
     story_session_state = {
@@ -970,4 +1066,5 @@ def build_ldss_input_from_session(
         actor_lane_context=actor_lane_context,
         player_input=player_input,
         admitted_objects=admitted_objects or [],
+        session_output_language=session_output_language,
     )

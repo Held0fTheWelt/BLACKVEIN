@@ -203,12 +203,26 @@ def health() -> dict[str, str]:
 
 @router.get("/health/ready")
 def ready(request: Request, manager: RuntimeManager = Depends(get_manager)) -> dict[str, Any]:
+    # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 readiness diagnostic:
+    # surface OpenAI key + Langfuse env explicitness so operators see staging gaps
+    # without log-diving. Does not change overall status to keep local tests stable.
+    import os as _os
+    openai_key_present = bool((_os.environ.get("OPENAI_API_KEY") or "").strip())
+    lf_env_raw = (_os.environ.get("LANGFUSE_TRACING_ENVIRONMENT") or "").strip()
+    lf_env_explicit = bool(lf_env_raw)
+    resolved_env = lf_env_raw or "staging"  # matches resolve_langfuse_environment default fallback
     return {
         "status": "ready",
         "app": request.app.title,
         "store": manager.store.describe(),
         "template_count": len(manager.list_templates()),
         "run_count": len(manager.list_runs()),
+        "operator_readiness": {
+            "openai_api_key_present": openai_key_present,
+            "langfuse_tracing_environment_explicit": lf_env_explicit,
+            "resolved_langfuse_environment": resolved_env,
+            "model_path_can_run_live": openai_key_present,
+        },
     }
 
 

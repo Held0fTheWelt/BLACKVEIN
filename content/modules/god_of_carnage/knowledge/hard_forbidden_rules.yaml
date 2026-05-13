@@ -141,3 +141,4 @@ hard_forbidden_rules:
       - abstract_theme_dump
       - stage_direction_labels
       - summary_only_opening
+      - npc_phase_one_premature_escalation

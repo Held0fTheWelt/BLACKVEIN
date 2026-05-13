@@ -523,6 +523,52 @@ def _actor_lane_count(structured_output: dict[str, Any], visible_blocks: list[di
     return count
 
 
+def _narrator_block_count(
+    structured_output: dict[str, Any],
+    visible_blocks: list[dict[str, Any]] | None = None,
+) -> int:
+    count = 0
+    if visible_blocks:
+        for block in visible_blocks:
+            if isinstance(block, dict):
+                block_type = str(block.get("block_type") or block.get("type") or "").strip().lower()
+                if block_type in {"narrator", "gm_narration"} and str(block.get("text") or "").strip():
+                    count += 1
+        if count:
+            return count
+    ns = _as_dict(structured_output).get("narration_summary")
+    if isinstance(ns, list):
+        count += len([item for item in ns if str(item or "").strip()])
+    elif isinstance(ns, str) and ns.strip():
+        count += 1
+    if not count and str(_as_dict(structured_output).get("narrative_response") or "").strip():
+        count += 1
+    return count
+
+
+def _opening_scenic_event_realization(
+    *,
+    structured_output: dict[str, Any],
+    opening_scene_sequence: dict[str, Any] | None,
+    visible_blocks: list[dict[str, Any]] | None = None,
+) -> tuple[int, int, list[str]]:
+    """Return (covered_event_count, expected_event_count, missing_event_ids).
+
+    Coverage evidence comes from both structured_output (opening_event_ids field) and
+    visible_blocks (per-block opening_event_id metadata). Either surface satisfies the
+    realization requirement.
+    """
+    expected_ids = [
+        str(event.get("id") or "").strip()
+        for event in _event_rows(opening_scene_sequence)
+        if isinstance(event, dict) and event.get("id")
+    ]
+    expected_ids = [eid for eid in expected_ids if eid]
+    covered = set(_collect_opening_event_ids(structured_output=structured_output, visible_blocks=visible_blocks))
+    missing = [eid for eid in expected_ids if eid not in covered]
+    return len(expected_ids) - len(missing), len(expected_ids), missing
+
+
 def _detect_opening_render_policy_markers(
     *,
     structured_output: dict[str, Any],
@@ -545,8 +591,10 @@ def _detect_opening_render_policy_markers(
         if bool(render_policy.get("summary_allowed")):
             continue
         explicit = _as_dict(structured_output).get("opening_render_policy_evidence")
+        reasons: list[str] = []
         if isinstance(explicit, dict) and explicit.get("summary_only") is True:
             summary_only = True
+            reasons.append("explicit_opening_render_policy_evidence")
         else:
             min_visible_blocks = render_policy.get("min_visible_blocks")
             try:
@@ -554,7 +602,34 @@ def _detect_opening_render_policy_markers(
             except (TypeError, ValueError):
                 min_blocks = 0
             block_count = _visible_block_count(structured_output, visible_blocks=visible_blocks)
-            summary_only = bool(min_blocks and block_count < min_blocks and _actor_lane_count(structured_output, visible_blocks) == 0)
+            narrator_count = _narrator_block_count(structured_output, visible_blocks=visible_blocks)
+            actor_count = _actor_lane_count(structured_output, visible_blocks)
+            # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P3: semantic
+            # summary-only detection. The previous rule required actor_lane_count == 0,
+            # which let summary-like openings escape whenever any NPC line was emitted.
+            # The new rule judges narrator realization quality independently of NPC presence.
+            required_narrator = max(3, min_blocks - 1) if min_blocks else 3
+            if min_blocks and block_count < min_blocks:
+                reasons.append("too_few_visible_blocks_for_opening_policy")
+            if narrator_count < required_narrator:
+                reasons.append("too_few_narrator_blocks_for_opening_policy")
+            covered_events, expected_events, missing_events = _opening_scenic_event_realization(
+                structured_output=structured_output,
+                opening_scene_sequence=opening,
+                visible_blocks=visible_blocks,
+            )
+            if expected_events and covered_events == 0:
+                reasons.append("missing_scenic_event_realization")
+            elif expected_events and len(missing_events) > expected_events // 2:
+                reasons.append("missing_scenic_event_realization")
+            # If the only visible-block mass comes from actor lanes and narrator is sparse, the
+            # narrator did not satisfy the opening scenic contract — even if actor lanes exist.
+            if actor_count > 0 and narrator_count <= 1:
+                reasons.append("actor_lane_does_not_satisfy_opening_scenic_requirement")
+            # Pure abstract-summary fallback: small-block narrator-only without event coverage.
+            if narrator_count > 0 and narrator_count <= 3 and not covered_events and expected_events:
+                reasons.append("narrator_blocks_are_abstract_summary")
+            summary_only = bool(reasons)
         if summary_only:
             markers.append(
                 {
@@ -562,8 +637,88 @@ def _detect_opening_render_policy_markers(
                     "rule_id": _rule_id_for_detection(policy, detection_key, str(check.get("rule_id") or "")),
                     "action": _action_for_detection(policy, detection_key, str(check.get("action") or "")),
                     "source": "opening_render_policy",
+                    "summary_only_reasons": reasons,
                 }
             )
+    return markers
+
+
+_PHASE_ONE_PREMATURE_NPC_MARKERS: tuple[tuple[str, ...], ...] = (
+    # English markers — bourgeois prosecutorial frame, accusation, escalation.
+    ("legal question",),
+    ("you keep",),
+    ("a question of law",),
+    ("we agreed",),
+    ("i refuse",),
+    ("how dare you",),
+    ("ridiculous",),
+    ("monstrous",),
+    # German markers — same dramatic functions in runtime locale.
+    ("rechtlich",),
+    ("juristisch",),
+    ("rechtsfrage",),
+    ("ich weigere mich",),
+    ("wie könnt ihr",),
+    ("wie konnt ihr",),
+    ("eine frechheit",),
+    ("unverschämt",),
+    ("unverschaemt",),
+    # Multi-token escalation patterns (all must appear).
+    ("schuld", "ihr"),
+    ("blame", "your"),
+)
+
+
+def _phase_one_npc_line_violates(text: str) -> bool:
+    if not text:
+        return False
+    low = text.lower()
+    for pattern in _PHASE_ONE_PREMATURE_NPC_MARKERS:
+        if all(token in low for token in pattern):
+            return True
+    return False
+
+
+def _detect_phase_one_premature_npc_escalation_markers(
+    *,
+    structured_output: dict[str, Any],
+    visible_blocks: list[dict[str, Any]] | None,
+    turn_input_class: str | None,
+    policy: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P2: Turn-0 NPC lines that
+    skip directly into mid-conflict / prosecutorial framing violate phase-1 polite-opening
+    policy. Detection is heuristic on visible actor lines + spoken_lines structured output.
+    """
+    if str(turn_input_class or "").strip().lower() != "opening":
+        return []
+    detection_key = "npc_phase_one_premature_escalation"
+    rule_id = _rule_id_for_detection(policy, detection_key, "no_immediate_full_escalation")
+    action = _action_for_detection(policy, detection_key, "recover")
+    markers: list[dict[str, Any]] = []
+    candidates: list[str] = []
+    for row in _as_list(_as_dict(structured_output).get("spoken_lines")):
+        if isinstance(row, dict):
+            candidates.append(str(row.get("text") or row.get("line") or ""))
+        else:
+            candidates.append(str(row or ""))
+    for block in visible_blocks or []:
+        if not isinstance(block, dict):
+            continue
+        block_type = str(block.get("block_type") or block.get("type") or "").strip().lower()
+        if block_type in {"actor_line", "spoken_line"}:
+            candidates.append(str(block.get("text") or ""))
+    for text in candidates:
+        if _phase_one_npc_line_violates(text):
+            markers.append(
+                {
+                    "detection_key": detection_key,
+                    "rule_id": rule_id,
+                    "action": action,
+                    "source": "phase_one_premature_npc_escalation",
+                }
+            )
+            break  # single hit suffices to gate the turn
     return markers
 
 
@@ -604,6 +759,14 @@ def detect_hard_forbidden_runtime(
             policy=policy,
         )
     )
+    detected.extend(
+        _detect_phase_one_premature_npc_escalation_markers(
+            structured_output=structured,
+            visible_blocks=visible_blocks,
+            turn_input_class=turn_input_class,
+            policy=policy,
+        )
+    )
 
     deduped: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
@@ -619,6 +782,10 @@ def detect_hard_forbidden_runtime(
             "action": _action_for_detection(policy, key, action_hint),
             "source": str(hit.get("source") or "").strip() or "runtime_evidence",
         }
+        # P3: preserve diagnostic reasons (e.g. summary_only_reasons) for dashboards.
+        reasons = hit.get("summary_only_reasons")
+        if isinstance(reasons, list) and reasons:
+            normalized["summary_only_reasons"] = list(reasons)
         marker_id = (
             normalized["detection_key"],
             normalized["rule_id"],

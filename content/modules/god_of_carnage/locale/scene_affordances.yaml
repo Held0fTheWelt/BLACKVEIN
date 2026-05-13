@@ -2,6 +2,18 @@ scene_affordances:
   current_area: vallon_living_room
   inferred_area_policy: residential_apartment
   locations:
+    - id: vallon_living_room
+      aliases: ["Wohnzimmer", "Salon", "Wohnsalon", "living_room", "salon", "vallon_living_room"]
+      access: present
+      narrator_detail_policy: establish_return
+      privacy: semiprivate
+      entry_sensory_detail:
+        de: "Der Salon empfängt die Anspannung zurück; Tulpen, Kunstbände und vier Stühle warten."
+        en: "The salon receives the tension back; tulips, art books, and four chairs are waiting."
+      available_affordances:
+        - look_at
+        - listen_to
+        - sit_down
     - id: hallway
       aliases: ["Flur", "Gang", "hallway"]
       access: adjacent_or_implied
