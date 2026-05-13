@@ -103,6 +103,8 @@ def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
         relationship_axes=relationship_axes,
         relationships=relationships,
         escalation_axes=dict(module.escalation_axes),
+        opening_scene_sequence=dict(module.opening_scene_sequence),
+        hard_forbidden_rules=dict(module.hard_forbidden_rules),
         character_ids=sorted(module.characters.keys()),
         characters=characters,
         transition_hints=[

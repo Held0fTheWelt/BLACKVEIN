@@ -1,0 +1,87 @@
+# Structured apartment topology — English module truth for resolution, director, RAG.
+# Operational affordances (aliases, localized entry detail) remain in locale/scene_affordances.yaml.
+
+apartment_layout:
+  authoring_language: en
+  setting_id: vallon_paris_evening_apartment
+  narrative_anchor_area_id: vallon_living_room
+  summary: >-
+    A bourgeois Paris apartment where the salon hosts the confrontation; the hallway links entry
+    to the social space; kitchen and bathroom are plausible offscreen refuges with distinct privacy.
+
+  global_rules:
+    offscreen_move_requires_narrator_consequence: true
+    line_of_sight_default: interior_partitioned
+    audio_bleed_between_adjacent_rooms: moderate
+
+  rooms:
+    - id: vallon_living_room
+      dramatic_role: primary_stage
+      privacy: semipublic_within_visit
+      aliases_policy: inherits_from_scene_affordances_current_area
+      adjacent_room_ids:
+        - hallway
+        - kitchen
+      visibility_from_room:
+        can_directly_perceive_room_ids:
+          - hallway
+        cannot_directly_perceive_room_ids:
+          - bathroom
+      offscreen_presence_policy: guests_and_hosts_audible_when_present
+
+    - id: hallway
+      dramatic_role: threshold_and_buffer
+      privacy: semiprivate
+      adjacent_room_ids:
+        - vallon_living_room
+      visibility_from_room:
+        can_directly_perceive_room_ids:
+          - vallon_living_room
+        cannot_directly_perceive_room_ids:
+          - bathroom
+          - kitchen
+      offscreen_presence_policy: footsteps_and_door_cues_ok
+
+    - id: kitchen
+      dramatic_role: service_and_cooling_off
+      privacy: semiprivate
+      access_pattern: inferred_offscreen_from_salon
+      adjacent_room_ids:
+        - vallon_living_room
+      visibility_from_room:
+        can_directly_perceive_room_ids: []
+        cannot_directly_perceive_room_ids:
+          - vallon_living_room
+          - hallway
+          - bathroom
+      offscreen_presence_policy: domestic_soundscape_only_no_dialogue_truth
+
+    - id: bathroom
+      dramatic_role: private_regroup
+      privacy: private
+      access_pattern: inferred_offscreen_from_any_gathering_room
+      adjacent_room_ids:
+        - hallway
+      visibility_from_room:
+        can_directly_perceive_room_ids: []
+        cannot_directly_perceive_room_ids:
+          - vallon_living_room
+          - kitchen
+      offscreen_presence_policy: no_unauthorized_audience_knowledge
+
+  transitions:
+    - from_area_id: vallon_living_room
+      to_area_id: hallway
+      kind: adjacent_visible
+    - from_area_id: hallway
+      to_area_id: vallon_living_room
+      kind: adjacent_visible
+    - from_area_id: vallon_living_room
+      to_area_id: kitchen
+      kind: offscreen_service_corridor
+    - from_area_id: vallon_living_room
+      to_area_id: bathroom
+      kind: offscreen_private
+    - from_area_id: hallway
+      to_area_id: bathroom
+      kind: offscreen_private

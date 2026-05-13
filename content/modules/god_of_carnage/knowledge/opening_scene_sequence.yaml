@@ -1,0 +1,116 @@
+# Opening scene sequence — English module blueprint (dramatic functions, contracts, events).
+# Complements direction/opening_sequence.yaml (ADR-0035 two-part handover and narrator bar).
+
+opening_scene_sequence:
+  id: goc_opening_sequence_v1
+  authority: module_authorial_blueprint
+  references:
+    - direction/opening_sequence.yaml
+    - docs/ADR/adr-0035-story-opening-economy-and-warmup.md
+
+  narration_mode:
+    type: scenic_dramatization
+    summary_allowed: false
+    min_visible_blocks: 6
+    preferred_visible_blocks: 8
+    max_visible_blocks: 12
+
+  opening_contract:
+    must_establish:
+      - triggering_incident
+      - adult_consequence
+      - reason_for_meeting
+      - apartment_as_social_stage
+      - selected_player_role_presence
+      - first_playable_moment
+    must_not:
+      - summarize_the_backstory_in_two_sentences
+      - start_with_direct_accusation
+      - start_with_npc_monologue
+      - let_npcs_explain_the_opening_premise
+      - force_the_player_character_to_speak
+      - force_the_player_character_to_feel_or_decide
+
+  narrative_events:
+    - id: event_01_triggering_incident
+      title: "The triggering incident"
+      narrative_function: show_cause
+      narrator_task: >-
+        Dramatize the event that makes the meeting necessary. Show it as a concrete remembered or
+        prologue scene, not as legal exposition.
+      must_show:
+        - the child-level conflict
+        - the physical consequence
+        - the moment when play or argument turns serious
+        - why adults can no longer ignore it
+      must_not:
+        - assign final moral blame
+        - over-explain motives
+        - turn the scene into courtroom summary
+
+    - id: event_02_adult_consequence
+      title: "The incident reaches the adults"
+      narrative_function: consequence_bridge
+      narrator_task: >-
+        Show how the incident moves from the children's world into the adult world.
+      must_show:
+        - the need for an adult meeting
+        - the attempt to remain civilized
+        - the first pressure beneath politeness
+
+    - id: event_03_arrival_threshold
+      title: "Arrival and threshold"
+      narrative_function: move_to_stage
+      narrator_task: >-
+        Bring the guests into the apartment and make the social threshold visible.
+      must_show:
+        - doorway or entry transition
+        - politeness as performance
+        - the discomfort of becoming guests in a conflict
+
+    - id: event_04_apartment_as_stage
+      title: "The apartment as social stage"
+      narrative_function: establish_play_space
+      location_id: vallon_living_room
+      narrator_task: >-
+        Make the room playable: spatially clear, socially charged, and full of usable details.
+      must_show:
+        - seating arrangement
+        - important objects
+        - the host/guest power relation
+        - the controlled surface of the room
+
+    - id: event_05_role_anchor
+      title: "Selected player role anchor"
+      narrative_function: player_anchor
+      narrator_task: >-
+        Place the selected human player character inside the room without speaking or deciding
+        for them.
+      role_variants:
+        annette_reille:
+          must_show:
+            - Annette is present as a guest
+            - Annette has room to act, speak, observe, or withdraw
+          must_not:
+            - make Annette speak
+            - make Annette confess, apologize, accuse, or decide
+        alain_reille:
+          must_show:
+            - Alain is present as a guest
+            - Alain has room to act, speak, observe, or deflect
+          must_not:
+            - make Alain speak
+            - reduce Alain to an NPC responder
+
+    - id: event_06_first_playable_moment
+      title: "First playable moment"
+      narrative_function: handover_to_play
+      narrator_task: >-
+        End the opening at a concrete playable moment, with the social room established and the
+        player free to choose the first action.
+      must_show:
+        - who is present
+        - where the player character is
+        - what the immediate social pressure is
+        - what kind of actions are possible
+      handover_to_scene_phase: phase_1

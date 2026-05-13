@@ -25,6 +25,12 @@ from ai_stack.goc_frozen_vocab import (
 )
 from ai_stack.goc_npc_transcript_projection import goc_spoken_lines_multi_speaker_row_markers
 from ai_stack.goc_yaml_authority import thin_edge_staging_line_from_guidance
+from ai_stack.goc_knowledge_runtime_gates import (
+    detect_hard_forbidden_runtime,
+    evaluate_opening_event_coverage,
+    hard_forbidden_detection_for_actor_lane_violation,
+    text_from_generation_and_effects,
+)
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 
 _GOC_ACTOR_DISPLAY_NAMES = {
@@ -432,6 +438,11 @@ def run_validation_seam(
     raw_player_input: str | None = None,
     player_action_frame: dict[str, Any] | None = None,
     affordance_resolution: dict[str, Any] | None = None,
+    opening_scene_sequence: dict[str, Any] | None = None,
+    hard_forbidden_rules: dict[str, Any] | None = None,
+    turn_input_class: str | None = None,
+    scene_plan_record: dict[str, Any] | None = None,
+    current_scene_id: str | None = None,
 ) -> dict[str, Any]:
     """Emit validation_outcome — no player text
     (CANONICAL_TURN_CONTRACT_GOC.md §2.1).
@@ -456,7 +467,17 @@ def run_validation_seam(
             structured_check = gen_meta.get("structured_output") if isinstance(gen_meta.get("structured_output"), dict) else {}
             violation = _check_human_actor_violations(structured_check, ai_forbidden, human_actor_id)
             if violation is not None:
-                return violation
+                detection = hard_forbidden_detection_for_actor_lane_violation(
+                    reason=str(violation.get("reason") or ""),
+                    hard_forbidden_rules=hard_forbidden_rules,
+                )
+                return {
+                    **violation,
+                    "hard_forbidden_detection": detection,
+                    "hard_forbidden_absent": False,
+                    "opening_summary_only_absent": True,
+                    "hard_boundary_failure": True,
+                }
 
     _paf_early = player_action_frame if isinstance(player_action_frame, dict) else {}
     if (
@@ -514,6 +535,34 @@ def run_validation_seam(
         shell_violation = _check_npc_spoken_action_lane_blob_cap(structured_pre, npc_char_cap=npc_cap)
         if shell_violation is not None:
             return {**shell_violation, "intent_surface_diagnostics": intent_surface_diagnostics}
+    knowledge_text = text_from_generation_and_effects(
+        generation=generation if isinstance(generation, dict) else {},
+        proposed_state_effects=proposed_state_effects,
+    )
+    hard_detection = detect_hard_forbidden_runtime(
+        hard_forbidden_rules=hard_forbidden_rules,
+        opening_scene_sequence=opening_scene_sequence,
+        text=knowledge_text,
+        structured_output=structured_pre,
+        actor_lane_context=actor_lane_context if isinstance(actor_lane_context, dict) else None,
+        turn_input_class=turn_input_class,
+    )
+    if hard_detection.get("action") in {"reject", "recover"}:
+        recoverable = hard_detection.get("action") == "recover"
+        reason = str(hard_detection.get("reason") or "hard_forbidden_runtime_gate")
+        return {
+            "status": "rejected",
+            "reason": reason,
+            "error_code": reason,
+            "validator_lane": "goc_knowledge_runtime_gates_v1",
+            "hard_forbidden_detection": hard_detection,
+            "hard_forbidden_absent": bool(hard_detection.get("hard_forbidden_absent")),
+            "opening_summary_only_absent": bool(hard_detection.get("opening_summary_only_absent")),
+            "hard_boundary_failure": not recoverable,
+            "recoverable_rejection": recoverable,
+            "failure_class": "hard_forbidden_runtime_gate" if not recoverable else "recoverable_opening_contract",
+            "intent_surface_diagnostics": intent_surface_diagnostics,
+        }
     for eff in proposed_state_effects:
         if not isinstance(eff, dict):
             return {
@@ -529,6 +578,37 @@ def run_validation_seam(
             }
 
     narr = extract_proposed_narrative_text(proposed_state_effects)
+    opening_coverage: dict[str, Any] = {
+        "opening_event_coverage_pass": True,
+        "applicable": False,
+    }
+    if str(turn_input_class or "").strip().lower() == "opening":
+        opening_coverage = evaluate_opening_event_coverage(
+            opening_scene_sequence=opening_scene_sequence,
+            text=knowledge_text or narr,
+            actor_lane_context=actor_lane_context if isinstance(actor_lane_context, dict) else None,
+            scene_plan_record=scene_plan_record if isinstance(scene_plan_record, dict) else None,
+            current_scene_id=current_scene_id,
+        )
+        if not opening_coverage.get("opening_event_coverage_pass", True):
+            reason = "opening_event_coverage_failed"
+            if not opening_coverage.get("handover_to_scene_phase_pass", True):
+                reason = "opening_handover_to_scene_phase_mismatch"
+            return {
+                "status": "rejected",
+                "reason": reason,
+                "error_code": reason,
+                "validator_lane": "goc_knowledge_runtime_gates_v1",
+                "opening_event_coverage": opening_coverage,
+                "opening_event_coverage_pass": False,
+                "hard_forbidden_detection": hard_detection,
+                "hard_forbidden_absent": bool(hard_detection.get("hard_forbidden_absent", True)),
+                "opening_summary_only_absent": bool(hard_detection.get("opening_summary_only_absent", True)),
+                "recoverable_rejection": True,
+                "hard_boundary_failure": False,
+                "failure_class": "opening_event_coverage",
+                "intent_surface_diagnostics": intent_surface_diagnostics,
+            }
     ctx = evaluation_context
     if ctx is None:
         ctx = DramaticEffectEvaluationContext(
@@ -548,6 +628,11 @@ def run_validation_seam(
         "dramatic_effect_gate_outcome": gate_dict,
         "validator_lane": "goc_rule_engine_v1",
         "intent_surface_diagnostics": intent_surface_diagnostics,
+        "hard_forbidden_detection": hard_detection,
+        "hard_forbidden_absent": bool(hard_detection.get("hard_forbidden_absent", True)),
+        "opening_summary_only_absent": bool(hard_detection.get("opening_summary_only_absent", True)),
+        "opening_event_coverage": opening_coverage,
+        "opening_event_coverage_pass": bool(opening_coverage.get("opening_event_coverage_pass", True)),
         "player_action_frame": player_action_frame if isinstance(player_action_frame, dict) else None,
         "affordance_resolution": affordance_resolution if isinstance(affordance_resolution, dict) else None,
     }

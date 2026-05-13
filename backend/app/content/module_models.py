@@ -171,7 +171,8 @@ class ContentModule(BaseModel):
     """Aggregated content module structure.
 
     Contains all components of a content module including metadata, characters,
-    relationships, triggers, scene phases, phase transitions, and ending conditions.
+    relationships, triggers, scene phases, phase transitions, ending conditions,
+    and optional structured setting layers (layout, objects, premise, pressure, pacing, palette).
 
     Attributes:
         metadata: Module metadata
@@ -182,6 +183,14 @@ class ContentModule(BaseModel):
         phase_transitions: Dictionary of phase transitions keyed by transition ID
         ending_conditions: Dictionary of ending conditions keyed by ending ID
         escalation_axes: Escalation axes data structure
+        apartment_layout: Room topology, adjacency, visibility, and offscreen rules
+        apartment_objects: Object placement and materiality keyed by object id
+        premise_and_backstory: English-authored canonical facts and subtext (localized strings live under locale/)
+        actor_pressure_profiles: Per-character dramatic pressure profiles
+        phase_beat_policy: Beat allowances and forbidden early escalations per phase
+        narrator_sensory_palette: English-authored sensory and mood scaffolding (runtime localization separate)
+        opening_scene_sequence: Opening narrative blueprint (contracts, events, handover)
+        hard_forbidden_rules: Machine-oriented hard prohibitions and detection hooks
     """
 
     metadata: ModuleMetadata = Field(..., description="Module metadata")
@@ -196,6 +205,38 @@ class ContentModule(BaseModel):
     phase_transitions: dict[str, PhaseTransition] = Field(default_factory=dict, description="Phase transitions")
     ending_conditions: dict[str, EndingCondition] = Field(default_factory=dict, description="Ending conditions by ID")
     escalation_axes: dict[str, Any] = Field(default_factory=dict, description="Escalation axes data structure")
+    apartment_layout: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured apartment topology (rooms, transitions, visibility, offscreen rules)",
+    )
+    apartment_objects: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Structured object knowledge keyed by canonical object ids",
+    )
+    premise_and_backstory: dict[str, Any] = Field(
+        default_factory=dict,
+        description="English-authored premise facts, subtext, and authority/visibility tags",
+    )
+    actor_pressure_profiles: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Per-character dramatic pressure (wishes, fears, triggers, reaction policy)",
+    )
+    phase_beat_policy: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Pacing and allowed/forbidden beats per scene phase",
+    )
+    narrator_sensory_palette: dict[str, Any] = Field(
+        default_factory=dict,
+        description="English-authored sensory and mood scaffolding (runtime localization is separate)",
+    )
+    opening_scene_sequence: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Opening narrative blueprint: narration mode, contract, events, scene-phase handover",
+    )
+    hard_forbidden_rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Hard runtime prohibitions, severities, and optional detection hooks",
+    )
 
     def character_map(self) -> dict[str, CharacterDefinition]:
         """Return the character definitions dictionary."""

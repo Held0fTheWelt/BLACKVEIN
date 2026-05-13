@@ -16,6 +16,8 @@ def test_compile_god_of_carnage_produces_deterministic_projection():
     assert output.runtime_projection.relationship_axes
     assert output.runtime_projection.relationships
     assert output.runtime_projection.escalation_axes
+    assert output.runtime_projection.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
+    assert "hard_forbidden_detection" in output.runtime_projection.hard_forbidden_rules
     assert output.runtime_projection.characters
     assert any(row.get("engine_tasks") for row in output.runtime_projection.scenes)
     assert any(row.get("active_triggers") for row in output.runtime_projection.scenes)

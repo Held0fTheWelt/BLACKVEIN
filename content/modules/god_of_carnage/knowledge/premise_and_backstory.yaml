@@ -1,0 +1,35 @@
+# Canonical premise and backstory — English-authored module truth.
+# Localized player/runtime prose belongs under locale/ and session_output_language.
+
+premise_and_backstory:
+  authoring_language: en
+
+  module_premise: >-
+    Two couples meet to resolve, with civility, a playground injury between their sons;
+    politeness decays into moral accusation and relational collapse.
+
+  canonical_facts:
+    - id: playground_incident
+      fact: "A child was injured; versions of negligence differ between families."
+      authority: canonical_module
+      player_visibility: public_diegetic
+      subtext: "Each family protects its self-image as competent parents."
+
+    - id: host_guest_asymmetry
+      fact: >-
+        Hosts control hospitality resources; guests carry an obligation to restraint — until they
+        do not.
+      authority: canonical_module
+      player_visibility: public_diegetic
+      subtext: "Power oscillates with shame, debt, and who claims the moral high ground."
+
+    - id: marriage_pressure_cooker
+      fact: "Each marriage is on display; alliances can invert within minutes."
+      authority: canonical_module
+      player_visibility: implied
+      subtext: >-
+        Spouses may punish each other for humiliation suffered in front of the other couple.
+
+  non_canonical_player_invention_policy: >-
+    Players may propose new micro-details; the engine must not treat them as backstory truth
+    until committed under governance.

@@ -26,6 +26,11 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "actor_lane_invalid_initiative_type",
         "actor_lane_scene_function_mismatch",
         "actor_lane_text_exceeds_transcript_beat",
+        "summary_only_opening",
+        "stage_direction_labels",
+        "abstract_theme_dump",
+        "opening_event_coverage_failed",
+        "opening_handover_to_scene_phase_mismatch",
     }
 )
 
@@ -36,6 +41,7 @@ HARD_BOUNDARY_REASON_PREFIXES = (
     "boundary_",
     "illegal_",
     "canonical_",
+    "hard_forbidden",
 )
 
 # Explicit degraded-commit policy table:
@@ -62,6 +68,11 @@ DEGRADED_COMMIT_BLOCK_REASONS = frozenset(
         "malformed_proposed_effect",
         "incomplete_proposed_effect",
         "model_generation_failed",
+        "forced_player_speech",
+        "npc_world_explanation",
+        "meta_runtime_language",
+        "source_text_reproduction",
+        "player_agency_violation",
     }
 )
 
@@ -89,6 +100,8 @@ def _reason(outcome: dict[str, Any] | None) -> str:
 
 
 def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
+    if isinstance(outcome, dict) and bool(outcome.get("hard_boundary_failure")):
+        return True
     reason = _reason(outcome)
     if not reason:
         return False

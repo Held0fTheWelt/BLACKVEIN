@@ -51,6 +51,14 @@ files:
   - locale/player_input_rules.yaml       # Data-only player-input patterns (greeting imperative, future rules)
   - locale/model_directives/session_output_language_de.md
   - locale/model_directives/session_output_language_en.md
+  - apartment_layout.yaml              # Rooms, adjacency, visibility, privacy, offscreen rules (English)
+  - apartment_objects.yaml             # Object placement and materiality (English; ids align with locale affordances)
+  - actor_pressure_profiles.yaml       # Per-character pressure (English)
+  - phase_beat_policy.yaml             # Allowed beats and forbidden early escalations (English)
+  - knowledge/premise_and_backstory.yaml
+  - knowledge/narrator_sensory_palette.yaml
+  - knowledge/opening_scene_sequence.yaml
+  - knowledge/hard_forbidden_rules.yaml
 
 # Quality principles
 quality_principles:

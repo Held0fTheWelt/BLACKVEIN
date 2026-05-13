@@ -73,6 +73,7 @@ class NarrativeRuntimeAgentInput:
     turn_number: int
     trace_id: Optional[str] = None
     enable_langfuse_tracing: bool = False
+    narrator_packet: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

@@ -48,6 +48,9 @@ class RuntimeTurnState(TypedDict, total=False):
     goc_slice_active: bool
     goc_canonical_yaml: dict[str, Any]
     goc_yaml_slice: dict[str, Any]
+    opening_scene_sequence: dict[str, Any]
+    hard_forbidden_rules: dict[str, Any]
+    goc_runtime_knowledge_contract: dict[str, Any]
     prior_continuity_impacts: list[dict[str, Any]]
     prior_dramatic_signature: dict[str, str]
     prior_social_state_record: dict[str, Any]

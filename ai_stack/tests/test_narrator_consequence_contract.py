@@ -8,13 +8,15 @@ Verifies that the narrator consequence pipeline produces:
   - multi-turn context persistence (player_local_context carries forward)
 
 All test inputs and assertions are in English. German content appears only as runtime data
-(scene_affordances.yaml authored text verified via German locale arg).
+loaded from ``content/modules/god_of_carnage/locale/scene_affordances.yaml`` via
+``load_goc_scene_affordances_block()`` (no duplicated hardcoded affordance tables in tests).
 """
 
 from __future__ import annotations
 
 import pytest
 
+from ai_stack.goc_yaml_authority import load_goc_scene_affordances_block
 from ai_stack.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
@@ -30,72 +32,7 @@ from story_runtime_core.content_locale import (
 
 MODULE = "god_of_carnage"
 
-_SCENE_AFFORDANCE_MODEL = {
-    "scene_affordances": {
-        "current_area": "vallon_living_room",
-        "inferred_area_policy": "residential_apartment",
-        "locations": [
-            {
-                "id": "hallway",
-                "aliases": ["Flur", "Gang", "hallway"],
-                "access": "adjacent_or_implied",
-                "narrator_detail_policy": "establish_entry",
-                "privacy": "semiprivate",
-                "entry_sensory_detail": {
-                    "de": "Der Flur ist still; das gedämpfte Stimmengewirr aus dem Salon ist noch zu hören.",
-                    "en": "The hallway is quiet; the muffled voices from the salon still carry through.",
-                },
-                "available_affordances": ["look_at", "listen_to"],
-            },
-            {
-                "id": "bathroom",
-                "aliases": ["Bad", "Badezimmer", "Toilette", "bathroom"],
-                "access": "inferred_offscreen",
-                "narrator_detail_policy": "offscreen_consequence",
-                "privacy": "private",
-                "entry_sensory_detail": {
-                    "de": "Ein kurzer Moment der Stille — das Badezimmer bietet Abstand vom Geschehen.",
-                    "en": "A brief moment of quiet — the bathroom offers distance from the unfolding scene.",
-                },
-                "available_affordances": ["look_at"],
-            },
-            {
-                "id": "kitchen",
-                "aliases": ["Küche", "Kueche", "kitchen"],
-                "access": "inferred_offscreen",
-                "narrator_detail_policy": "offscreen_consequence",
-                "privacy": "semiprivate",
-                "entry_sensory_detail": {
-                    "de": "Aus der Küche klingt das leise Klirren von Gläsern; der Abstand zum Salon ist spürbar.",
-                    "en": "From the kitchen comes the faint clink of glasses; the distance from the salon is palpable.",
-                },
-                "available_affordances": ["look_at", "take"],
-            },
-        ],
-        "objects": [
-            {
-                "id": "window",
-                "aliases": ["Fenster", "window"],
-                "affordances": ["look_at"],
-                "perception_detail": {
-                    "de": "Durch das Fenster fällt das Abendlicht auf die Straße; die Stadt geht ihren gewohnten Lauf.",
-                    "en": "Through the window, evening light falls on the street; the city moves at its usual pace.",
-                },
-                "consequence_policy": "perception_result",
-            },
-            {
-                "id": "television",
-                "aliases": ["Fernseher", "TV", "Fernsehgerät", "Fernsehapparat", "television"],
-                "affordances": ["activate", "deactivate", "look_at"],
-                "perception_detail": {
-                    "de": "Der Fernseher steht unbeachtet in der Ecke; sein schwarzer Bildschirm spiegelt den Raum.",
-                    "en": "The television stands unnoticed in the corner; its dark screen reflects the room.",
-                },
-                "consequence_policy": "object_state_change",
-            },
-        ],
-    }
-}
+_SCENE_AFFORDANCE_MODEL = load_goc_scene_affordances_block()
 
 
 def setup_module(_m: object) -> None:

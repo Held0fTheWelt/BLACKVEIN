@@ -149,10 +149,24 @@ class ModuleFileLoader:
                 errors=[str(e)],
             )
 
-        result = {}
+        result: dict[str, Any] = {}
         for yaml_file in yaml_files:
             filename = yaml_file.stem  # filename without .yaml extension
             result[filename] = self.load_file(yaml_file)
+
+        knowledge_dir = module_root / "knowledge"
+        if knowledge_dir.is_dir():
+            try:
+                knowledge_files = sorted(knowledge_dir.glob("*.yaml"))
+            except (PermissionError, OSError) as e:
+                raise ModuleFileReadError(
+                    message="Failed to read module knowledge directory",
+                    module_id="unknown",
+                    file_path=str(knowledge_dir),
+                    errors=[str(e)],
+                )
+            for yaml_file in knowledge_files:
+                result[yaml_file.stem] = self.load_file(yaml_file)
 
         # Unwrap nested dictionaries where YAML files wrap content under a root key.
         #
@@ -189,6 +203,14 @@ class ModuleFileLoader:
             "endings": "ending_types",
             "transitions": "phase_transitions",
             "escalation_axes": "escalation_axes",
+            "apartment_layout": "apartment_layout",
+            "apartment_objects": "apartment_objects",
+            "premise_and_backstory": "premise_and_backstory",
+            "actor_pressure_profiles": "actor_pressure_profiles",
+            "phase_beat_policy": "phase_beat_policy",
+            "narrator_sensory_palette": "narrator_sensory_palette",
+            "opening_scene_sequence": "opening_scene_sequence",
+            "hard_forbidden_rules": "hard_forbidden_rules",
         }
 
         # Iterate over a copy of items to avoid "dictionary keys changed during iteration" error

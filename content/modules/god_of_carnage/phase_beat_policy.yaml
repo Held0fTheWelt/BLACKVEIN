@@ -1,0 +1,62 @@
+# Pacing and beat policy — English module truth; phase ids align with scenes.yaml.
+
+phase_beat_policy:
+  authoring_language: en
+  linked_scene_phases_source: scenes.yaml
+  phases:
+    phase_1:
+      allowed_narrator_beats:
+        - ritual_greeting
+        - hospitality_fiction
+        - small_talk_buffer
+        - premise_setup_without_accusation
+      forbidden_early_escalations:
+        - physical_violence
+        - explicit_marriage_collapse
+        - total_civility_abandonment
+      max_escalation_hint: low
+      pacing_note: >-
+        Hold the social contract visible; disagreements stay abstract and polite.
+
+    phase_2:
+      allowed_narrator_beats:
+        - first_moral_friction
+        - parenting_frame_clash
+        - politeness_strain
+      forbidden_early_escalations:
+        - physical_violence
+        - property_destruction
+      max_escalation_hint: low_medium
+      pacing_note: >-
+        Disagreement sharpens; insults remain deniable.
+
+    phase_3:
+      allowed_narrator_beats:
+        - coalition_shift
+        - spousal_crossfire
+        - status_challenge
+      forbidden_early_escalations:
+        - lethal_or_irreversible_harm
+      max_escalation_hint: medium
+      pacing_note: >-
+        Alliances wobble; the room's moral map redraws.
+
+    phase_4:
+      allowed_narrator_beats:
+        - direct_personal_attack
+        - tears_or_rage
+        - civility_break
+      forbidden_early_escalations: []
+      max_escalation_hint: high
+      pacing_note: >-
+        Civility may fail; consequences are interpersonal, not cinematic gore.
+
+    phase_5:
+      allowed_narrator_beats:
+        - terminal_confrontation
+        - collapse_or_retreat
+        - forced_closure
+      forbidden_early_escalations: []
+      max_escalation_hint: maximum
+      pacing_note: >-
+        Endgame: closure pressure; avoid inventing new canonical facts.

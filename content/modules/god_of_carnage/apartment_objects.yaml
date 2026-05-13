@@ -1,0 +1,28 @@
+# Object-level structured knowledge — English module truth; ids align with scene affordances.
+
+apartment_objects:
+  authoring_language: en
+  default_placement_room_id: vallon_living_room
+  objects:
+    - id: window
+      placement_room_id: vallon_living_room
+      materiality: "Large sash window onto the street; cool glass, city hum beyond."
+      interaction_notes:
+        look_at: "Perception-only; does not change social geometry."
+      risk_tags: []
+
+    - id: television
+      placement_room_id: vallon_living_room
+      materiality: "Flat panel in a corner; reflective black when off."
+      interaction_notes:
+        activate: "State change object; may redirect attention from dialogue."
+        deactivate: "Restores quiet domestic baseline."
+      risk_tags:
+        - attention_diversion
+
+    - id: dining_table
+      placement_room_id: vallon_living_room
+      materiality: "Central furniture; plates, glasses, moral geography of seating."
+      interaction_notes: {}
+      risk_tags:
+        - territorial_anchor

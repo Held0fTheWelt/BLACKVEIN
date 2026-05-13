@@ -68,6 +68,11 @@ from ai_stack.goc_yaml_authority import (
     load_goc_yaml_slice_bundle,
     scene_guidance_snippets,
 )
+from ai_stack.goc_knowledge_runtime_gates import (
+    build_opening_scene_plan_metadata,
+    build_runtime_knowledge_contract,
+    knowledge_contract_prompt_lines,
+)
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.scene_director_goc import (
@@ -1258,6 +1263,31 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "narrative_scope": scene_assessment.get("narrative_scope"),
         },
     }
+    knowledge_contract = (
+        state.get("goc_runtime_knowledge_contract")
+        if isinstance(state.get("goc_runtime_knowledge_contract"), dict)
+        else {}
+    )
+    if knowledge_contract:
+        packet["knowledge_runtime_contract"] = {
+            "contract": knowledge_contract.get("contract"),
+            "opening_scene_sequence_id": knowledge_contract.get("opening_scene_sequence_id"),
+            "hard_forbidden_detection_policy": knowledge_contract.get("hard_forbidden_detection_policy"),
+            "hard_forbidden_rule_ids": knowledge_contract.get("hard_forbidden_rule_ids"),
+        }
+        packet["hard_forbidden_rules"] = {
+            "negative_constraints": knowledge_contract.get("hard_forbidden_negative_constraints") or [],
+            "detection_policy": knowledge_contract.get("hard_forbidden_detection_policy") or {},
+        }
+        if str(state.get("turn_input_class") or "").strip().lower() == "opening":
+            packet["opening_scene_sequence"] = {
+                "id": knowledge_contract.get("opening_scene_sequence_id"),
+                "must_establish": knowledge_contract.get("opening_must_establish") or [],
+                "event_tasks": knowledge_contract.get("opening_event_tasks") or [],
+                "handover_to_scene_phase": knowledge_contract.get("opening_handover_to_scene_phase"),
+                "role_variant": knowledge_contract.get("selected_role_variant") or {},
+            }
+            packet["opening_render_policy"] = knowledge_contract.get("opening_render_policy") or {}
     # Add prior_initiative_truth if any initiative fields are present
     prior_planner = state.get("prior_planner_truth") if isinstance(state.get("prior_planner_truth"), dict) else {}
     _pit = {
@@ -2230,8 +2260,34 @@ class RuntimeTurnGraphExecutor:
         if module_id == GOC_MODULE_ID:
             try:
                 yaml_mod = load_goc_canonical_module_yaml()
+                yaml_slice = load_goc_yaml_slice_bundle()
+                opening_scene_sequence = (
+                    yaml_slice.get("opening_scene_sequence")
+                    if isinstance(yaml_slice.get("opening_scene_sequence"), dict)
+                    else {}
+                )
+                hard_forbidden_rules = (
+                    yaml_slice.get("hard_forbidden_rules")
+                    if isinstance(yaml_slice.get("hard_forbidden_rules"), dict)
+                    else {}
+                )
                 update["goc_canonical_yaml"] = yaml_mod
-                update["goc_yaml_slice"] = load_goc_yaml_slice_bundle()
+                update["goc_yaml_slice"] = yaml_slice
+                update["opening_scene_sequence"] = opening_scene_sequence
+                update["hard_forbidden_rules"] = hard_forbidden_rules
+                update["goc_runtime_knowledge_contract"] = build_runtime_knowledge_contract(
+                    opening_scene_sequence=opening_scene_sequence,
+                    hard_forbidden_rules=hard_forbidden_rules,
+                    actor_lane_context=state.get("actor_lane_context")
+                    if isinstance(state.get("actor_lane_context"), dict)
+                    else None,
+                    session_output_language=state.get("session_output_language")
+                    if isinstance(state.get("session_output_language"), str)
+                    else None,
+                    story_runtime_experience=state.get("story_runtime_experience")
+                    if isinstance(state.get("story_runtime_experience"), dict)
+                    else None,
+                )
                 update["goc_slice_active"] = True
                 host = state.get("host_experience_template")
                 if isinstance(host, dict):
@@ -2537,7 +2593,31 @@ class RuntimeTurnGraphExecutor:
             social_state_fingerprint=soc_fp,
             selection_source=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
         )
-        update["scene_plan_record"] = scene_plan.to_runtime_dict()
+        scene_plan_dict = scene_plan.to_runtime_dict()
+        if str(state.get("turn_input_class") or "").strip().lower() == "opening":
+            opening_meta = build_opening_scene_plan_metadata(
+                opening_scene_sequence=state.get("opening_scene_sequence")
+                if isinstance(state.get("opening_scene_sequence"), dict)
+                else (yslice.get("opening_scene_sequence") if isinstance(yslice, dict) else {}),
+                hard_forbidden_rules=state.get("hard_forbidden_rules")
+                if isinstance(state.get("hard_forbidden_rules"), dict)
+                else (yslice.get("hard_forbidden_rules") if isinstance(yslice, dict) else {}),
+                actor_lane_context=state.get("actor_lane_context")
+                if isinstance(state.get("actor_lane_context"), dict)
+                else None,
+            )
+            scene_plan_dict.update(opening_meta)
+            rationale_codes.append("opening_scene_sequence_runtime_contract")
+            if opening_meta.get("opening_scene_sequence_id"):
+                rationale_codes.append(f"opening_scene_sequence:{opening_meta['opening_scene_sequence_id']}")
+            scene_plan_dict["planner_rationale_codes"] = rationale_codes
+            update["scene_assessment"] = {
+                **(update.get("scene_assessment") if isinstance(update.get("scene_assessment"), dict) else merged_sa),
+                "opening_scene_sequence_id": opening_meta.get("opening_scene_sequence_id"),
+                "opening_handover_to_scene_phase": opening_meta.get("opening_handover_to_scene_phase"),
+                "hard_forbidden_constraints_active": bool(opening_meta.get("hard_forbidden_rule_ids")),
+            }
+        update["scene_plan_record"] = scene_plan_dict
         prior_sig = state.get("prior_dramatic_signature") if isinstance(state.get("prior_dramatic_signature"), dict) else {}
         prior_beat_id = str(prior_sig.get("prior_beat_id") or "").strip() or None
         scene_id = str(state.get("current_scene_id") or "").strip() or "unknown_scene"
@@ -2790,6 +2870,19 @@ class RuntimeTurnGraphExecutor:
                         names.append(f"{axis_id}:{axis.get('name') or ''}")
                 if names:
                     lines.append(f"Canonical Escalation Axes: {', '.join(names)}")
+
+            knowledge_contract = (
+                state.get("goc_runtime_knowledge_contract")
+                if isinstance(state.get("goc_runtime_knowledge_contract"), dict)
+                else {}
+            )
+            if knowledge_contract:
+                lines.extend(
+                    knowledge_contract_prompt_lines(
+                        knowledge_contract,
+                        opening_turn=turn_ic == "opening",
+                    )
+                )
 
         lines.append("Dramatic Generation Packet (authoritative JSON):")
         lines.append(json.dumps(dramatic_packet, sort_keys=True))
@@ -3514,6 +3607,21 @@ class RuntimeTurnGraphExecutor:
                 else None,
                 affordance_resolution=state.get("affordance_resolution")
                 if isinstance(state.get("affordance_resolution"), dict)
+                else None,
+                opening_scene_sequence=state.get("opening_scene_sequence")
+                if isinstance(state.get("opening_scene_sequence"), dict)
+                else None,
+                hard_forbidden_rules=state.get("hard_forbidden_rules")
+                if isinstance(state.get("hard_forbidden_rules"), dict)
+                else None,
+                turn_input_class=state.get("turn_input_class")
+                if isinstance(state.get("turn_input_class"), str)
+                else None,
+                scene_plan_record=state.get("scene_plan_record")
+                if isinstance(state.get("scene_plan_record"), dict)
+                else None,
+                current_scene_id=state.get("current_scene_id")
+                if isinstance(state.get("current_scene_id"), str)
                 else None,
             )
 

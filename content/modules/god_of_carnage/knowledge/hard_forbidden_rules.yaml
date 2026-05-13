@@ -1,0 +1,104 @@
+# Runtime-hard rules (not style preferences). English-authored; gates may consume these ids.
+
+hard_forbidden_rules:
+  authoring_language: en
+
+  rule_severity:
+    hard_forbidden:
+      meaning: "Must never appear. If detected, reject or recover before commit."
+    strongly_discouraged:
+      meaning: "Allowed only with explicit runtime reason."
+    style_preference:
+      meaning: "Soft guidance for better prose."
+
+  hard_forbidden:
+    player_agency_violations:
+      - id: no_forced_player_speech
+        rule: >-
+          The selected human player character must not speak during the opening unless the
+          player provided explicit input.
+        applies_to:
+          - annette_reille
+          - alain_reille
+      - id: no_forced_player_decision
+        rule: >-
+          The narrator must not decide what the selected player character wants, chooses,
+          believes, or intends.
+      - id: no_forced_inner_emotion
+        rule: >-
+          The narrator may describe sensory impressions and visible tension, but must not assign
+          deep internal emotions to the selected player character unless already established by
+          player input.
+
+    narrator_authority_violations:
+      - id: no_npc_world_explanation
+        rule: >-
+          NPCs must not explain spatial, perceptual, or environmental facts that belong to the
+          narrator.
+      - id: no_npc_opening_exposition
+        rule: >-
+          NPC dialogue must not be used to dump the premise, summarize the incident, or explain
+          the apartment.
+      - id: no_dialogue_as_narration_substitute
+        rule: "Do not replace required narrator blocks with NPC lines."
+
+    canon_violations:
+      - id: no_contradicting_triggering_incident
+        rule: >-
+          Do not contradict the configured triggering incident or its stated social consequence.
+      - id: no_invented_major_backstory
+        rule: >-
+          Do not invent major past events, affairs, crimes, medical events, or family history
+          beyond the provided module facts.
+      - id: no_unapproved_character_reassignment
+        rule: >-
+          Do not swap parent roles, family relationships, host/guest status, or playable-role
+          ownership.
+
+    pacing_violations:
+      - id: no_immediate_full_escalation
+        rule: >-
+          The opening must not jump directly into maximum conflict, shouting, breakdown, or
+          physical aggression.
+      - id: no_resolution_in_opening
+        rule: >-
+          The opening must not resolve the dispute, assign final blame, or close the dramatic
+          question.
+      - id: no_future_plot_summary
+        rule: "The narrator must not summarize the entire future arc of the scene."
+
+    style_violations:
+      - id: no_abstract_theme_dump
+        rule: >-
+          Do not replace concrete scenic narration with abstract statements about civility,
+          violence, morality, or bourgeois hypocrisy.
+      - id: no_stage_direction_labels
+        rule: >-
+          Do not output labels such as narrator_intro:, role_anchor:, scene_setup:, beat_1:, or
+          camera directions.
+      - id: no_meta_runtime_language
+        rule: >-
+          Do not mention prompts, modules, runtime, player role, scene phase, evaluator, or
+          narrative system.
+
+    legal_and_source_boundaries:
+      - id: no_long_original_dialogue
+        rule: >-
+          Do not reproduce long or recognizably verbatim passages from copyrighted source
+          material.
+      - id: no_script_reenactment
+        rule: >-
+          Do not turn the opening into a direct script reproduction. Use transformed, original
+          narration based on structured facts and dramatic functions.
+
+  hard_forbidden_detection:
+    reject_on:
+      - forced_player_speech
+      - npc_world_explanation
+      - meta_runtime_language
+      - source_text_reproduction
+      - player_agency_violation
+    recover_on:
+      - abstract_theme_dump
+      - stage_direction_labels
+      - summary_only_opening

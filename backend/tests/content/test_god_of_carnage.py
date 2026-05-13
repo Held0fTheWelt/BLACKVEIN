@@ -66,20 +66,28 @@ class TestW1ContentFilesLoadable:
         if not god_of_carnage_module_root.exists():
             pytest.skip("God of Carnage module not found")
 
-        required_files = [
-            "module.yaml",
-            "characters.yaml",
-            "relationships.yaml",
-            "scenes.yaml",
-            "transitions.yaml",
-            "triggers.yaml",
-            "endings.yaml",
-            "escalation_axes.yaml",
+        root = god_of_carnage_module_root
+        required_paths = [
+            root / "module.yaml",
+            root / "characters.yaml",
+            root / "relationships.yaml",
+            root / "scenes.yaml",
+            root / "transitions.yaml",
+            root / "triggers.yaml",
+            root / "endings.yaml",
+            root / "escalation_axes.yaml",
+            root / "apartment_layout.yaml",
+            root / "apartment_objects.yaml",
+            root / "actor_pressure_profiles.yaml",
+            root / "phase_beat_policy.yaml",
+            root / "knowledge" / "premise_and_backstory.yaml",
+            root / "knowledge" / "narrator_sensory_palette.yaml",
+            root / "knowledge" / "opening_scene_sequence.yaml",
+            root / "knowledge" / "hard_forbidden_rules.yaml",
         ]
 
-        for filename in required_files:
-            filepath = god_of_carnage_module_root / filename
-            assert filepath.exists(), f"Missing required file: {filename}"
+        for filepath in required_paths:
+            assert filepath.is_file(), f"Missing required file: {filepath.relative_to(root)}"
 
     def test_module_loads_successfully(self):
         """God of Carnage module loads without errors."""
@@ -90,6 +98,12 @@ class TestW1ContentFilesLoadable:
 
         assert module is not None
         assert module.metadata.module_id == "god_of_carnage"
+        assert module.apartment_layout.get("setting_id") == "vallon_paris_evening_apartment"
+        assert isinstance(module.actor_pressure_profiles.get("profiles"), dict)
+        assert "phase_1" in (module.phase_beat_policy.get("phases") or {})
+        assert module.opening_scene_sequence.get("id") == "goc_opening_sequence_v1"
+        assert "hard_forbidden" in (module.hard_forbidden_rules or {})
+        assert module.premise_and_backstory.get("authoring_language") == "en"
 
     def test_all_yaml_files_parse(self, god_of_carnage_module_root):
         """All YAML files parse correctly."""
@@ -99,6 +113,9 @@ class TestW1ContentFilesLoadable:
         import yaml
 
         yaml_files = list(god_of_carnage_module_root.glob("*.yaml"))
+        knowledge_dir = god_of_carnage_module_root / "knowledge"
+        if knowledge_dir.is_dir():
+            yaml_files.extend(sorted(knowledge_dir.glob("*.yaml")))
         assert len(yaml_files) >= 8, "Should have at least 8 YAML files"
 
         for yaml_file in yaml_files:

@@ -83,6 +83,10 @@ from ai_stack.goc_opening_handover import (
     polish_first_opening_actor_block,
     role_display_name as _role_display_name,
 )
+from ai_stack.goc_knowledge_runtime_gates import (
+    build_knowledge_path_summary,
+    build_narrator_packet,
+)
 from ai_stack.opening_shape_normalizer import normalize_opening_narration_beats
 from ai_stack.visible_narrative_contract import (
     _goc_visible_lane_text_fold,
@@ -2164,6 +2168,14 @@ def _build_langfuse_path_summary(
     if isinstance(oh_diag, dict):
         for key, val in oh_diag.items():
             summary[key] = val
+    if session.module_id == GOD_OF_CARNAGE_MODULE_ID:
+        actor_lane_context = StoryRuntimeManager._extract_actor_lane_context(session)
+        knowledge_summary = build_knowledge_path_summary(
+            graph_state=graph_state,
+            event=event,
+            actor_lane_context=actor_lane_context,
+        )
+        summary.update(knowledge_summary)
     summary["p0_action_resolution_evidence"] = _build_p0_action_resolution_evidence(
         event=event,
         graph_state=graph_state,
@@ -2339,6 +2351,9 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "npc_action_narration_boundary_pass": path_summary.get(
                     "npc_action_narration_boundary_pass"
                 ),
+                "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
+                "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
+                "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
                 "p0_player_action_evidence_applicable": (
                     (path_summary.get("p0_action_resolution_evidence") or {}).get(
                         "p0_player_action_evidence_applicable"
@@ -2497,6 +2512,18 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                     "npc_narrated_player_action_violation"
                 ),
                 "intent_surface_diagnostics": path_summary.get("intent_surface_diagnostics"),
+                "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
+                "opening_missing_event_ids": path_summary.get("opening_missing_event_ids"),
+                "opening_missing_must_establish": path_summary.get("opening_missing_must_establish"),
+                "opening_handover_to_scene_phase_expected": path_summary.get(
+                    "opening_handover_to_scene_phase_expected"
+                ),
+                "opening_handover_to_scene_phase_actual": path_summary.get(
+                    "opening_handover_to_scene_phase_actual"
+                ),
+                "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
+                "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
+                "hard_forbidden_detection": path_summary.get("hard_forbidden_detection"),
             },
         ),
         (
@@ -3233,6 +3260,15 @@ def _emit_langfuse_evidence_observations(
         opening_shape_pass = 1.0
     deterministic_scores["opening_shape_contract_pass"] = opening_shape_pass
     deterministic_scores["opening_contract_pass"] = opening_shape_pass
+    deterministic_scores["hard_forbidden_absent"] = (
+        1.0 if path_summary.get("hard_forbidden_absent", True) else 0.0
+    )
+    deterministic_scores["opening_summary_only_absent"] = (
+        1.0 if path_summary.get("opening_summary_only_absent", True) else 0.0
+    )
+    deterministic_scores["opening_event_coverage_pass"] = (
+        1.0 if (_turn_number > 0 or path_summary.get("opening_event_coverage_pass", True)) else 0.0
+    )
     if _turn_number == 0:
         _handover_diag_for_scores = compute_opening_handover_from_scene_blocks(
             _opening_blocks,
@@ -3394,6 +3430,18 @@ def _emit_langfuse_evidence_observations(
         "first_actor_block_index": first_actor_block_index_val,
         "narrator_block_count": narrator_block_count_val,
         "structured_narration_summary_kind": structured_narration_summary_kind,
+        "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
+        "opening_missing_event_ids": path_summary.get("opening_missing_event_ids"),
+        "opening_missing_must_establish": path_summary.get("opening_missing_must_establish"),
+        "opening_handover_to_scene_phase_expected": path_summary.get(
+            "opening_handover_to_scene_phase_expected"
+        ),
+        "opening_handover_to_scene_phase_actual": path_summary.get(
+            "opening_handover_to_scene_phase_actual"
+        ),
+        "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
+        "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
+        "hard_forbidden_detection": path_summary.get("hard_forbidden_detection"),
         # ADR-0033 §13.10 primary-vs-final clarity (metadata only; no gate semantics).
         "primary_attempt_adapter": path_summary.get("primary_attempt_adapter"),
         "primary_attempt_model": path_summary.get("primary_attempt_model"),
@@ -4988,6 +5036,7 @@ def _orchestrate_narrative_agent(
     narrative_threads: list[dict[str, Any]],
     turn_number: int,
     trace_id: str | None = None,
+    narrator_packet: dict[str, Any] | None = None,
 ) -> bool:
     """
     Start NarrativeRuntimeAgent streaming narrator blocks (Phase 3).
@@ -5010,6 +5059,7 @@ def _orchestrate_narrative_agent(
         turn_number=turn_number,
         trace_id=trace_id,
         enable_langfuse_tracing=manager._get_tracing_config(session_id),
+        narrator_packet=dict(narrator_packet) if isinstance(narrator_packet, dict) else {},
     )
 
     # Create and store agent with input for streaming endpoint to access
@@ -5593,13 +5643,48 @@ class StoryRuntimeManager:
             return base
         anchor = "Paris apartment, evening — hosts and guests meet after their children's incident"
         handover = "phase_1"
+        opening_scene_sequence_id = ""
+        opening_event_ids: list[str] = []
+        opening_must_establish: list[str] = []
+        hard_forbidden_reject_on: list[str] = []
+        hard_forbidden_recover_on: list[str] = []
         try:
-            from ai_stack.goc_yaml_authority import load_goc_opening_sequence_yaml
+            from ai_stack.goc_yaml_authority import (
+                load_goc_hard_forbidden_rules_yaml,
+                load_goc_opening_scene_sequence_yaml,
+                load_goc_opening_sequence_yaml,
+            )
 
             osq = load_goc_opening_sequence_yaml()
             if isinstance(osq, dict):
                 anchor = str(osq.get("setting_anchor") or anchor).strip() or anchor
                 handover = str(osq.get("handover_to_scene_phase") or handover).strip() or handover
+            oss = load_goc_opening_scene_sequence_yaml()
+            if isinstance(oss, dict):
+                opening_scene_sequence_id = str(oss.get("id") or "").strip()
+                contract = oss.get("opening_contract") if isinstance(oss.get("opening_contract"), dict) else {}
+                opening_must_establish = [
+                    str(item).strip()
+                    for item in (contract.get("must_establish") or [])
+                    if str(item).strip()
+                ]
+                opening_event_ids = [
+                    str(row.get("id") or "").strip()
+                    for row in (oss.get("narrative_events") or [])
+                    if isinstance(row, dict) and str(row.get("id") or "").strip()
+                ]
+                for row in (oss.get("narrative_events") or []):
+                    if isinstance(row, dict) and row.get("handover_to_scene_phase"):
+                        handover = str(row.get("handover_to_scene_phase") or handover).strip() or handover
+                        break
+            hfr = load_goc_hard_forbidden_rules_yaml()
+            detection = hfr.get("hard_forbidden_detection") if isinstance(hfr.get("hard_forbidden_detection"), dict) else {}
+            hard_forbidden_reject_on = [
+                str(item).strip() for item in (detection.get("reject_on") or []) if str(item).strip()
+            ]
+            hard_forbidden_recover_on = [
+                str(item).strip() for item in (detection.get("recover_on") or []) if str(item).strip()
+            ]
         except Exception:
             pass
         human_actor_id = str(projection.get("human_actor_id") or "").strip()
@@ -5615,7 +5700,12 @@ class StoryRuntimeManager:
             "Use three narrator paragraphs (blank line between each) or three gm_narration strings. "
             'Prefer JSON field narration_summary as a list of exactly three strings, e.g. '
             '"narration_summary": ["narrator_intro: …", "role_anchor: …", "scene_setup: …"]. '
-            f"After all three beats, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines."
+            f"After all three beats, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines. "
+            f"Opening knowledge contract {opening_scene_sequence_id or 'opening_scene_sequence'} requires events "
+            f"{opening_event_ids or ['event_01_triggering_incident', 'event_06_first_playable_moment']} "
+            f"and must_establish {opening_must_establish or ['triggering_incident', 'first_playable_moment']}. "
+            f"Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}. "
+            "Do not use NPC dialogue to dump premise or explain the room; narrator owns spatial/premise establishment."
         )
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:
@@ -5793,6 +5883,16 @@ class StoryRuntimeManager:
             event=event,
         )
         event["observability_path_summary"] = path_summary
+        event["knowledge_runtime_gates"] = {
+            "contract": path_summary.get("knowledge_runtime_gates_contract"),
+            "opening_scene_sequence_id": path_summary.get("opening_scene_sequence_id"),
+            "opening_event_coverage_pass": path_summary.get("opening_event_coverage_pass"),
+            "opening_missing_event_ids": path_summary.get("opening_missing_event_ids"),
+            "opening_missing_must_establish": path_summary.get("opening_missing_must_establish"),
+            "hard_forbidden_absent": path_summary.get("hard_forbidden_absent"),
+            "opening_summary_only_absent": path_summary.get("opening_summary_only_absent"),
+            "hard_forbidden_detection": path_summary.get("hard_forbidden_detection"),
+        }
         _emit_langfuse_path_spans(path_summary)
         _emit_langfuse_runtime_aspect_observability(path_summary)
         _emit_langfuse_evidence_observations(
@@ -6366,6 +6466,18 @@ class StoryRuntimeManager:
                 if isinstance(graph_state.get("dramatic_context_summary"), dict)
                 else {}
             )
+            narrator_packet = build_narrator_packet(
+                opening_scene_sequence=graph_state.get("opening_scene_sequence")
+                if isinstance(graph_state.get("opening_scene_sequence"), dict)
+                else None,
+                hard_forbidden_rules=graph_state.get("hard_forbidden_rules")
+                if isinstance(graph_state.get("hard_forbidden_rules"), dict)
+                else None,
+                actor_lane_context=self._extract_actor_lane_context(session),
+                session_output_language=session.session_output_language,
+                story_runtime_experience=experience_policy.effective,
+            )
+            runtime_state["narrator_packet"] = narrator_packet
             narrative_threads_list = [t.model_dump() if hasattr(t, 'model_dump') else t
                                      for t in (session.narrative_threads.active if hasattr(session.narrative_threads, 'active') else [])]
 
@@ -6384,6 +6496,7 @@ class StoryRuntimeManager:
                             "session_id": session.session_id,
                             "turn_number": commit_turn_number,
                             "npc_agency_plan": scene_turn_envelope.get("npc_agency_plan") if isinstance(scene_turn_envelope, dict) else None,
+                            "narrator_packet": narrator_packet,
                         },
                         metadata={
                             "phase": "narrator",
@@ -6411,6 +6524,7 @@ class StoryRuntimeManager:
                     narrative_threads=narrative_threads_list,
                     turn_number=commit_turn_number,
                     trace_id=trace_id,
+                    narrator_packet=narrator_packet,
                 )
 
                 if streaming_started:

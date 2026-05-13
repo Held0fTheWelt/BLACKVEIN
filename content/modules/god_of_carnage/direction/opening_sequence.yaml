@@ -2,6 +2,9 @@
 # Normative story material for how the FIRST session narrative should be composed.
 # Product contract: docs/ADR/adr-0035-story-opening-economy-and-warmup.md
 # Dramaturgic reference (licensed where applicable): resources/carnage-2011.pdf
+#
+# Machine-oriented opening blueprint (narration_mode, hard prohibitions, narrative_events) lives in
+# knowledge/opening_scene_sequence.yaml and knowledge/hard_forbidden_rules.yaml (English module truth).
 
 opening_sequence_version: "1.0.0"
 module_id: god_of_carnage

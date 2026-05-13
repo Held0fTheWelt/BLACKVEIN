@@ -47,6 +47,11 @@ def goc_module_yaml_dir() -> Path:
     return _repo_root() / "content" / "modules" / GOC_MODULE_ID
 
 
+def goc_knowledge_yaml_dir() -> Path:
+    """Directory for English-authored structured knowledge YAML (``knowledge/*.yaml``)."""
+    return goc_module_yaml_dir() / "knowledge"
+
+
 def load_goc_canonical_module_yaml() -> dict[str, Any]:
     """Load authoritative module.yaml for god_of_carnage from the
     repository tree.
@@ -243,6 +248,65 @@ def load_goc_system_prompt_text() -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _unwrap_top_level_mapping(data: dict[str, Any], key: str) -> dict[str, Any]:
+    inner = data.get(key)
+    return inner if isinstance(inner, dict) else {}
+
+
+def load_goc_scene_affordances_yaml_inner() -> dict[str, Any]:
+    """Return the ``scene_affordances`` mapping from locale/scene_affordances.yaml."""
+    path = goc_module_yaml_dir() / "locale" / "scene_affordances.yaml"
+    data = _safe_load_yaml_mapping(path)
+    inner = data.get("scene_affordances")
+    return inner if isinstance(inner, dict) else {}
+
+
+def load_goc_scene_affordances_block() -> dict[str, Any]:
+    """Wrap scene affordances for narrator consequence contracts (expects ``scene_affordances`` key)."""
+    inner = load_goc_scene_affordances_yaml_inner()
+    return {"scene_affordances": inner} if inner else {}
+
+
+def load_goc_apartment_layout_yaml() -> dict[str, Any]:
+    path = goc_module_yaml_dir() / "apartment_layout.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "apartment_layout")
+
+
+def load_goc_apartment_objects_yaml() -> dict[str, Any]:
+    path = goc_module_yaml_dir() / "apartment_objects.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "apartment_objects")
+
+
+def load_goc_premise_and_backstory_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "premise_and_backstory.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "premise_and_backstory")
+
+
+def load_goc_actor_pressure_profiles_yaml() -> dict[str, Any]:
+    path = goc_module_yaml_dir() / "actor_pressure_profiles.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "actor_pressure_profiles")
+
+
+def load_goc_phase_beat_policy_yaml() -> dict[str, Any]:
+    path = goc_module_yaml_dir() / "phase_beat_policy.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "phase_beat_policy")
+
+
+def load_goc_narrator_sensory_palette_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "narrator_sensory_palette.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "narrator_sensory_palette")
+
+
+def load_goc_opening_scene_sequence_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "opening_scene_sequence.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "opening_scene_sequence")
+
+
+def load_goc_hard_forbidden_rules_yaml() -> dict[str, Any]:
+    path = goc_knowledge_yaml_dir() / "hard_forbidden_rules.yaml"
+    return _unwrap_top_level_mapping(_safe_load_yaml_mapping(path), "hard_forbidden_rules")
+
+
 @lru_cache(maxsize=1)
 def load_goc_yaml_slice_bundle() -> dict[str, Any]:
     """Bundle of YAML-backed slice surfaces used by the director
@@ -258,6 +322,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
     triggers = load_goc_triggers_yaml()
     transitions = load_goc_transitions_yaml()
     escalation = load_goc_escalation_axes_yaml()
+    scene_aff = load_goc_scene_affordances_yaml_inner()
     return {
         "characters": load_goc_characters_yaml(),
         "character_voice": load_goc_character_voice_yaml(),
@@ -278,6 +343,15 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
         "escalation_axes": escalation["escalation_axes"],
         "escalation_interaction_model": escalation["interaction_model"],
         "system_prompt_excerpt": load_goc_system_prompt_text()[:2400],
+        "scene_affordances": scene_aff,
+        "apartment_layout": load_goc_apartment_layout_yaml(),
+        "apartment_objects": load_goc_apartment_objects_yaml(),
+        "premise_and_backstory": load_goc_premise_and_backstory_yaml(),
+        "actor_pressure_profiles": load_goc_actor_pressure_profiles_yaml(),
+        "phase_beat_policy": load_goc_phase_beat_policy_yaml(),
+        "narrator_sensory_palette": load_goc_narrator_sensory_palette_yaml(),
+        "opening_scene_sequence": load_goc_opening_scene_sequence_yaml(),
+        "hard_forbidden_rules": load_goc_hard_forbidden_rules_yaml(),
     }
 
 
