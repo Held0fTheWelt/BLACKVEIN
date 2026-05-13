@@ -821,7 +821,7 @@ def build_responder_and_function(
         scene_fn = "scene_pivot"
         heuristic_trace.append("thread:progression_blocked_override->scene_pivot")
     if (
-        player_input_kind in {"action", "perception"}
+        player_input_kind in {"action", "perception", "movement_action", "perception_action"}
         and narrator_expected
         and not npc_expected
         and scene_fn == "probe_motive"
@@ -899,7 +899,7 @@ def build_responder_and_function(
         thread_feedback=thread_feedback,
     )
     resolution["responder_set_resolution"] = responder_set_resolution
-    if player_input_kind in {"action", "perception"} and narrator_expected and not npc_expected:
+    if player_input_kind in {"action", "perception", "movement_action", "perception_action"} and narrator_expected and not npc_expected:
         resolution["selection_source"] = "advisory_npc_reaction_after_player_action"
         resolution["npc_response_policy"] = "optional_social_only"
         if responders and isinstance(responders[0], dict):

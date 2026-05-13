@@ -16,6 +16,7 @@ from ai_stack.narrator_consequence_contracts import (
     build_local_context_transition,
     build_narrator_consequence_plan,
     build_updated_player_local_context,
+    normalize_scene_affordance_model_for_contracts,
 )
 
 
@@ -38,7 +39,11 @@ def build_synthetic_generation_for_action_resolution(
     action_kind = str(player_action_frame.get("action_kind") or "").strip().lower()
 
     # Compute local context transition and narrator consequence plan when scene data is available.
-    sam = scene_affordance_model if isinstance(scene_affordance_model, dict) else {}
+    # Flat ``scene_affordance_model`` from ``resolve_player_action`` must be wrapped for
+    # narrator consequence contracts (nested ``scene_affordances``).
+    sam = normalize_scene_affordance_model_for_contracts(
+        scene_affordance_model if isinstance(scene_affordance_model, dict) else {},
+    )
     local_context_transition: dict[str, Any] = {}
     narrator_consequence_plan: dict[str, Any] = {}
     updated_player_local_context: dict[str, Any] = {}

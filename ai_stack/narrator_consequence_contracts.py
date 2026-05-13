@@ -13,6 +13,28 @@ from __future__ import annotations
 from typing import Any
 
 
+def normalize_scene_affordance_model_for_contracts(model: dict[str, Any] | None) -> dict[str, Any]:
+    """Wrap flat resolver models so contracts see ``scene_affordances.{locations,objects}``."""
+    sam = model if isinstance(model, dict) else {}
+    inner = sam.get("scene_affordances")
+    if isinstance(inner, dict) and inner:
+        return sam
+    locs = sam.get("locations")
+    objs = sam.get("objects")
+    if isinstance(locs, list) or isinstance(objs, list):
+        inner_out: dict[str, Any] = {}
+        if sam.get("current_area") is not None:
+            inner_out["current_area"] = sam.get("current_area")
+        if sam.get("inferred_area_policy") is not None:
+            inner_out["inferred_area_policy"] = sam.get("inferred_area_policy")
+        if isinstance(locs, list):
+            inner_out["locations"] = locs
+        if isinstance(objs, list):
+            inner_out["objects"] = objs
+        return {"scene_affordances": inner_out}
+    return sam
+
+
 def _find_location(
     scene_affordance_model: dict[str, Any],
     target_id: str,
@@ -67,11 +89,15 @@ def build_local_context_transition(
     target_alias = str(rt.get("matched_alias") or rt.get("canonical_name") or "").strip()
 
     scene_af = (scene_affordance_model.get("scene_affordances") or {}) if isinstance(scene_affordance_model, dict) else {}
-    current_area = str(
-        (current_player_local_context or {}).get("current_area")
+    current_loc = str(
+        (current_player_local_context or {}).get("current_location_id")
+        or (current_player_local_context or {}).get("current_area")
         or scene_af.get("current_area")
         or ""
     ).strip()
+    current_area = current_loc
+
+    is_movement = verb in {"move_to", "stand_up"} or action_kind == "movement"
 
     is_movement = verb in {"move_to", "stand_up"} or action_kind == "movement"
     is_perception = verb in {"look_at", "listen_to"} or action_kind == "perception"
@@ -84,6 +110,8 @@ def build_local_context_transition(
     transition: dict[str, Any] = {
         "from_area": current_area or None,
         "to_area": None,
+        "from_location_id": current_loc or None,
+        "to_location_id": None,
         "transition_type": None,
         "transition_allowed": transition_allowed,
         "new_area_established": False,
@@ -96,11 +124,13 @@ def build_local_context_transition(
     if is_movement and transition_allowed and verb != "stand_up":
         loc = _find_location(scene_affordance_model, target_id, target_alias)
         if loc:
-            transition["to_area"] = loc["id"]
+            to_id = str(loc.get("id") or "").strip()
+            transition["to_area"] = to_id
+            transition["to_location_id"] = to_id or None
             transition["location_found"] = True
             transition["new_area_established"] = affordance_status in {"allowed", "allowed_offscreen"}
         transition["transition_type"] = (
-            "move_offscreen" if affordance_status == "allowed_offscreen" else "move_local"
+            "move_offscreen" if affordance_status == "allowed_offscreen" else "movement"
         )
     elif is_movement and verb == "stand_up":
         transition["transition_type"] = "posture_change"
@@ -140,7 +170,7 @@ def build_narrator_consequence_plan(
     source: str = "template_fallback"
     affordances_available: list[str] = []
 
-    if transition_type in {"move_offscreen", "move_local"} and local_context_transition.get("location_found"):
+    if transition_type in {"move_offscreen", "move_local", "movement"} and local_context_transition.get("location_found"):
         loc = _find_location(scene_affordance_model, target_id, target_alias)
         if loc:
             detail_map = loc.get("entry_sensory_detail") or {}
@@ -183,7 +213,17 @@ def build_updated_player_local_context(
     base = dict(current_player_local_context or {})
 
     if local_context_transition.get("new_area_established") and local_context_transition.get("to_area"):
-        base["current_area"] = local_context_transition["to_area"]
+        new_loc = str(local_context_transition["to_area"]).strip()
+        prior_loc = str(
+            (current_player_local_context or {}).get("current_location_id")
+            or (current_player_local_context or {}).get("current_area")
+            or ""
+        ).strip()
+        base["current_area"] = new_loc
+        base["current_location_id"] = new_loc
+        if prior_loc:
+            base["previous_location_id"] = prior_loc
+            base["previous_area"] = prior_loc
         base["available_affordances"] = narrator_consequence_plan.get("affordances_available") or []
         base["last_transition_type"] = local_context_transition.get("transition_type")
         base["last_perception_result"] = None
@@ -194,6 +234,8 @@ def build_updated_player_local_context(
 
     if not base.get("current_area"):
         scene_af = (scene_affordance_model.get("scene_affordances") or {}) if isinstance(scene_affordance_model, dict) else {}
-        base.setdefault("current_area", scene_af.get("current_area") or "vallon_living_room")
+        ca = scene_af.get("current_area") or "vallon_living_room"
+        base.setdefault("current_area", ca)
+        base.setdefault("current_location_id", ca)
 
     return base

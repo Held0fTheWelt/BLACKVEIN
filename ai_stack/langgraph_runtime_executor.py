@@ -1948,6 +1948,7 @@ class RuntimeTurnGraphExecutor:
             module_id=str(state.get("module_id") or ""),
             runtime_projection=runtime_projection,
             content_modules_root=None,
+            player_local_context=state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None,
         )
         frame = resolution.get("player_action_frame") if isinstance(resolution.get("player_action_frame"), dict) else {}
         aff = resolution.get("affordance_resolution") if isinstance(resolution.get("affordance_resolution"), dict) else {}
@@ -1972,6 +1973,7 @@ class RuntimeTurnGraphExecutor:
                 "npc_response_expected": bool(frame.get("npc_response_expected")),
                 "player_action_committed": pol == "commit_action",
                 "player_speech_committed": pol == "commit_speech" or bool(str(frame.get("speech_text") or "").strip()),
+                "movement_return_intent": bool(interp.get("movement_return_intent")),
             }
             update["interpreted_input"] = merged_interp
             move = state.get("interpreted_move") if isinstance(state.get("interpreted_move"), dict) else {}
@@ -1982,6 +1984,7 @@ class RuntimeTurnGraphExecutor:
                 "resolved_target_type": frame.get("resolved_target_type"),
                 "resolved_target_id": frame.get("resolved_target_id"),
                 "affordance_status": frame.get("affordance_status"),
+                "movement_return_intent": bool(interp.get("movement_return_intent")),
             }
         final_interp = (
             update.get("interpreted_input")
@@ -1994,7 +1997,13 @@ class RuntimeTurnGraphExecutor:
             or final_interp.get("player_input_kind")
             or ""
         ).strip().lower()
-        action_applicable = turn_number > 0 and player_input_kind in {"action", "perception", "mixed"}
+        action_applicable = turn_number > 0 and player_input_kind in {
+            "action",
+            "perception",
+            "mixed",
+            "movement_action",
+            "perception_action",
+        }
         affordance_status = str(aff.get("affordance_status") or "").strip()
         action_commit_policy = str(aff.get("action_commit_policy") or "").strip()
         resolution_present = bool(frame and aff)

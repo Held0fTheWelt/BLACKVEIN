@@ -49,7 +49,7 @@ def test_gehe_ins_bad_resolves_movement_offscreen() -> None:
         content_modules_root=_content_root(),
     )
     frame = out["player_action_frame"]
-    assert frame["player_input_kind"] == "action"
+    assert frame["player_input_kind"] == "movement_action"
     assert frame["verb"] == "move_to"
     assert frame["target_query"] == "Bad"
     assert frame["resolved_target_type"] == "location"

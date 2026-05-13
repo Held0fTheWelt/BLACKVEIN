@@ -2102,6 +2102,25 @@ def test_build_responder_and_function_marks_advisory_mode_for_perception() -> No
     assert responders and responders[0]["role"] == "advisory_reaction"
 
 
+def test_build_responder_and_function_marks_advisory_mode_for_movement_action() -> None:
+    responders, scene_fn, _implied, resolution = build_responder_and_function(
+        player_input="Gehe ins Bad",
+        interpreted_move={"move_class": "action", "player_intent": "move"},
+        interpreted_input={
+            "player_input_kind": "movement_action",
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        },
+        pacing_mode="standard",
+        semantic_move_record={"move_type": "establish_situational_pressure"},
+    )
+    assert scene_fn in {"establish_pressure", "repair_or_stabilize", "withhold_or_evade", "scene_pivot", "probe_motive"}
+    assert resolution["selection_source"] == "advisory_npc_reaction_after_player_action"
+    assert resolution["npc_response_policy"] == "optional_social_only"
+    assert resolution["player_input_kind"] == "movement_action"
+    assert responders and responders[0]["role"] == "advisory_reaction"
+
+
 def test_build_responder_and_function_marks_legacy_fallback_usage() -> None:
     _responders, _scene_fn, _implied, resolution = build_responder_and_function(
         player_input="continue",

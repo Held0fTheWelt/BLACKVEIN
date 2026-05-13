@@ -1890,7 +1890,7 @@ def _build_langfuse_path_summary(
     _semantic_move_alignment_pass = True
     if _semantic_move_kind:
         _semantic_move_alignment_pass = True
-    if _player_input_kind in {"action", "perception"} and _semantic_move_kind:
+    if _player_input_kind in {"action", "perception", "movement_action", "perception_action"} and _semantic_move_kind:
         _semantic_move_alignment_pass = _semantic_move_alignment_pass and _semantic_move_kind not in {
             "probe_inquiry",
             "provoke",
@@ -2176,6 +2176,29 @@ def _build_langfuse_path_summary(
             actor_lane_context=actor_lane_context,
         )
         summary.update(knowledge_summary)
+    _plc_gs = graph_state.get("player_local_context")
+    summary["player_local_context"] = _plc_gs if isinstance(_plc_gs, dict) else None
+    _lct_gs = graph_state.get("local_context_transition")
+    summary["local_context_transition"] = _lct_gs if isinstance(_lct_gs, dict) else None
+    _ncp_gs = graph_state.get("narrator_consequence_plan")
+    summary["narrator_consequence_plan"] = _ncp_gs if isinstance(_ncp_gs, dict) else None
+    summary["movement_return_intent"] = bool(interpreted_input.get("movement_return_intent"))
+    if "speech_projection_allowed" in interpreted_input:
+        summary["speech_projection_allowed"] = bool(interpreted_input.get("speech_projection_allowed"))
+    _aff_gs = graph_state.get("affordance_resolution") if isinstance(graph_state.get("affordance_resolution"), dict) else {}
+    summary["resolved_target_id"] = _aff_gs.get("resolved_target_id")
+    summary["target_resolution_source"] = _aff_gs.get("target_resolution_source")
+    summary["authoritative_action_surface"] = bool(
+        gen_meta.get("authoritative_action_resolution") is True
+        or str(gen_meta.get("adapter") or "").strip().lower() == "action_resolution_authoritative"
+    )
+    if (
+        bool(interpreted_input.get("movement_return_intent"))
+        and str(summary.get("affordance_status") or "").strip().lower() == "ambiguous"
+        and str(summary.get("action_commit_policy") or "").strip().lower() == "needs_clarification"
+    ):
+        summary["turn_status"] = "needs_clarification"
+
     summary["p0_action_resolution_evidence"] = _build_p0_action_resolution_evidence(
         event=event,
         graph_state=graph_state,
@@ -2356,7 +2379,23 @@ def _compute_action_consequence_diagnostics(path_summary: dict[str, Any]) -> dic
         status = "evaluated_degraded"
     elif fallback_used:
         status = "evaluated_degraded"
-    return {
+
+    movement_return_intent = bool(path_summary.get("movement_return_intent"))
+    aff_pol = str(path_summary.get("action_commit_policy") or "").strip().lower()
+    aff_st = str(path_summary.get("affordance_status") or "").strip().lower()
+    if movement_return_intent and aff_pol == "needs_clarification" and aff_st == "ambiguous":
+        status = "needs_clarification"
+        local_context_transition_present = 0.0
+        narrator_consequence_present = 0.0
+        new_location_established = 0.0
+        action_consequence_contract_pass = 0.0
+
+    tgt_src = path_summary.get("target_resolution_source")
+    res_tgt = path_summary.get("resolved_target_id")
+    if movement_return_intent and status == "needs_clarification" and not res_tgt:
+        tgt_src = tgt_src or "missing_previous_location_id"
+
+    out: dict[str, Any] = {
         "status": status,
         "local_context_transition_present": local_context_transition_present,
         "narrator_consequence_present": narrator_consequence_present,
@@ -2365,6 +2404,15 @@ def _compute_action_consequence_diagnostics(path_summary: dict[str, Any]) -> dic
         "action_consequence_contract_pass": action_consequence_contract_pass,
         "npc_consequence_takeover_absent": npc_takeover_absent,
     }
+    if movement_return_intent:
+        out["movement_return_intent"] = True
+    if res_tgt:
+        out["resolved_target_id"] = res_tgt
+    if tgt_src:
+        out["target_resolution_source"] = str(tgt_src)
+    if "speech_projection_allowed" in path_summary:
+        out["speech_projection_allowed"] = bool(path_summary.get("speech_projection_allowed"))
+    return out
 
 
 def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
@@ -2870,7 +2918,13 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         or input_actual.get("input_kind")
         or ""
     ).strip().lower()
-    action_requires_narrator = turn_number > 0 and input_kind in {"action", "perception", "mixed"}
+    action_requires_narrator = turn_number > 0 and input_kind in {
+        "action",
+        "perception",
+        "mixed",
+        "movement_action",
+        "perception_action",
+    }
     narrator_required = bool(narrator_expected.get("required"))
     missing_required_capabilities = cap_actual.get("missing_required_capabilities") or []
     if not isinstance(missing_required_capabilities, list):
@@ -3437,7 +3491,12 @@ def _emit_langfuse_evidence_observations(
         _ncp = path_summary.get("narrator_consequence_plan") if isinstance(path_summary.get("narrator_consequence_plan"), dict) else None
         _intent_kind_for_consequence = str(path_summary.get("player_input_kind") or "").strip().lower()
         _is_action_resolution_turn = _authoritative_action_surface and _intent_kind_for_consequence in {
-            "action", "perception", "object_interaction", "physical_action",
+            "action",
+            "perception",
+            "object_interaction",
+            "physical_action",
+            "movement_action",
+            "perception_action",
         }
         # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P4: emit deterministic
         # action-context scores on every player turn — not only the authoritative action

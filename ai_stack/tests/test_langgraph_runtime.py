@@ -396,7 +396,7 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     frame = result.get("player_action_frame") or {}
     aff = result.get("affordance_resolution") or {}
     assert frame.get("verb") == "move_to"
-    assert frame.get("player_input_kind") == "action"
+    assert frame.get("player_input_kind") == "movement_action"
     assert frame.get("resolved_target_id") == "bathroom"
     assert aff.get("affordance_status") in {"allowed_offscreen", "allowed", "partial"}
     nodes = result.get("graph_diagnostics", {}).get("nodes_executed") or result.get("nodes_executed") or []
@@ -418,7 +418,7 @@ def test_runtime_turn_graph_emits_player_action_resolution_surface(tmp_path: Pat
     beat_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_BEAT) or {}
     assert action_aspect.get("status") == "passed"
     assert action_aspect.get("actual", {}).get("raw_player_input") == "Gehe ins Bad"
-    assert action_aspect.get("actual", {}).get("player_input_kind") == "action"
+    assert action_aspect.get("actual", {}).get("player_input_kind") == "movement_action"
     assert action_aspect.get("actual", {}).get("action_commit_policy") == "commit_action"
     assert beat_aspect.get("status") == "partial"
     assert beat_aspect.get("selected", {}).get("selected_scene_function") == "deterministic_action_resolution"
@@ -451,7 +451,7 @@ def test_runtime_turn_graph_unknown_target_remains_action_outcome_in_aspect_ledg
     action_aspect = (ledger.get("turn_aspect_ledger") or {}).get(ASPECT_ACTION_RESOLUTION) or {}
     actual = action_aspect.get("actual") or {}
     assert action_aspect.get("status") == "passed"
-    assert actual.get("player_input_kind") == "action"
+    assert actual.get("player_input_kind") == "movement_action"
     assert actual.get("verb") == "move_to"
     assert actual.get("affordance_status") == "unknown_target"
     assert actual.get("action_commit_policy") == "needs_clarification"

@@ -281,6 +281,55 @@ def _infer_target_query(
     return None
 
 
+def _merge_player_local_context(
+    base: dict[str, Any] | None,
+    overlay: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Merge persistent runtime context with per-turn overlay (overlay wins on key clashes)."""
+    out = dict(base or {})
+    if isinstance(overlay, dict):
+        out.update(overlay)
+    return out
+
+
+def _extract_previous_location_id(plc: dict[str, Any] | None) -> str | None:
+    if not isinstance(plc, dict):
+        return None
+    pid = str(plc.get("previous_location_id") or "").strip()
+    if pid:
+        return pid
+    prev_area = str(plc.get("previous_area") or "").strip()
+    return prev_area or None
+
+
+def _resolve_movement_to_location_id(
+    location_id: str,
+    affordance_model: dict[str, Any],
+) -> tuple[str, str, str | None, str | None, str | None, str | None]:
+    """Resolve a canonical location id against the affordance model (strict id / fold match)."""
+    lid = str(location_id or "").strip()
+    if not lid:
+        return ("ambiguous", "needs_clarification", None, None, "missing_previous_location_id", None)
+    for row in affordance_model.get("locations") or []:
+        if not isinstance(row, dict):
+            continue
+        rid = str(row.get("id") or "").strip()
+        if not rid:
+            continue
+        if fold_match(lid, rid) or lid.lower() == rid.lower():
+            access = str(row.get("access") or "").strip() or None
+            status = "allowed_offscreen" if access and ("offscreen" in access or "implied" in access) else "allowed"
+            return (
+                status,
+                "commit_action",
+                rid,
+                "location",
+                "player_local_context.previous_location_id",
+                access,
+            )
+    return ("ambiguous", "needs_clarification", None, None, "missing_previous_location_id", None)
+
+
 def _infer_source_query(raw_text: str, *, lang: str, verb: str) -> str | None:
     """Extract a generic source/container phrase for transitive object actions."""
     text = str(raw_text or "").strip()
@@ -352,7 +401,7 @@ def _resolve_target(
                 "commit_action",
                 tid,
                 "location",
-                "scene_affordances.location_alias",
+                "scene_affordance_alias",
                 access,
             )
 
@@ -453,6 +502,7 @@ def resolve_player_action(
     module_id: str,
     runtime_projection: dict[str, Any],
     content_modules_root: Path | None = None,
+    player_local_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pik = str(interpreted_input.get("player_input_kind") or "speech").strip().lower() or "speech"
     lang = str(interpreted_input.get("lang") or interpreted_input.get("session_output_language") or "de").strip().lower()[:2] or "de"
@@ -504,6 +554,14 @@ def resolve_player_action(
     )
     source_query = _infer_source_query(raw_text, lang=lang, verb=verb)
 
+    merged_plc = _merge_player_local_context(
+        player_local_context,
+        interpreted_input.get("player_local_context") if isinstance(interpreted_input.get("player_local_context"), dict) else None,
+    )
+    movement_return_intent = bool(interpreted_input.get("movement_return_intent"))
+    implicit_return = False
+    aff_reason: str | None = None
+
     if pik in {"speech", "question", "meta"}:
         status, policy, tid, ttyp, src, access = (
             "allowed",
@@ -514,11 +572,51 @@ def resolve_player_action(
             None,
         )
     else:
-        status, policy, tid, ttyp, src, access = _resolve_target(
-            target_query,
-            affordance_model,
-            verb=verb,
-        )
+        tq_stripped = str(target_query or "").strip()
+        implicit_return = movement_return_intent and verb == "move_to" and not tq_stripped
+        if implicit_return:
+            prev_id = _extract_previous_location_id(merged_plc)
+            if prev_id:
+                status, policy, tid, ttyp, src, access = _resolve_movement_to_location_id(
+                    prev_id,
+                    affordance_model,
+                )
+                if not tid:
+                    aff_reason = "missing_previous_location_id"
+            else:
+                status, policy, tid, ttyp, src, access = (
+                    "ambiguous",
+                    "needs_clarification",
+                    None,
+                    None,
+                    "missing_previous_location_id",
+                    None,
+                )
+                aff_reason = "missing_previous_location_id"
+        else:
+            status, policy, tid, ttyp, src, access = _resolve_target(
+                target_query,
+                affordance_model,
+                verb=verb,
+            )
+            if (
+                movement_return_intent
+                and verb == "move_to"
+                and tid
+                and ttyp == "location"
+                and isinstance(src, str)
+                and "location_alias" in src
+            ):
+                src = "scene_affordance_alias"
+            if (
+                movement_return_intent
+                and verb == "move_to"
+                and tid
+                and ttyp == "location"
+                and isinstance(src, str)
+                and "location_substring" in src
+            ):
+                src = "scene_affordance_substring"
         if verb in {"look_at", "listen_to"} and status == "unknown_target":
             status, policy = "partial", "commit_action"
 
@@ -549,8 +647,11 @@ def resolve_player_action(
         npc_expected = bool(interpreted_input.get("npc_response_expected", True))
 
     matched_alias = None
-    if target_query and tid:
-        matched_alias = target_query.strip()
+    if tid:
+        if str(target_query or "").strip():
+            matched_alias = str(target_query).strip()
+        elif implicit_return:
+            matched_alias = str(_extract_previous_location_id(merged_plc) or "").strip() or None
 
     res_conf = "high" if tid else ("medium" if status == "partial" else "low")
     rt = ResolvedTarget.from_outcome(
@@ -560,10 +661,12 @@ def resolve_player_action(
         resolution_confidence=res_conf,
         access_status=access,
     )
+    if aff_reason is None and status == "ambiguous" and policy == "needs_clarification":
+        aff_reason = str(src) if src == "missing_previous_location_id" else None
     aff = AffordanceResolutionContract(
         status=status,
         action_commit_policy=policy,
-        reason=None,
+        reason=aff_reason,
         resolved_target=rt,
         target_resolution_source=src,
         access_status=access,
@@ -593,9 +696,13 @@ def resolve_player_action(
                 target_resolution_source=src,
                 access_status=access,
             )
+    frame_input_kind = pik
+    if verb == "move_to" and frame_input_kind in {"action", "mixed"}:
+        frame_input_kind = "movement_action"
+
     frame = PlayerActionFrameContract(
         raw_text=str(raw_text or "").strip(),
-        input_kind=pik,
+        input_kind=frame_input_kind,
         action_kind=action_kind,
         verb=verb,
         speech_text=speech_text,

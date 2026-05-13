@@ -87,7 +87,7 @@ def test_move_to_hallway_adjacent_transition_type():
         scene_affordance_model=_SCENE_AFFORDANCE_MODEL,
         current_player_local_context=None,
     )
-    assert lct["transition_type"] == "move_local"
+    assert lct["transition_type"] == "movement"
     assert lct["to_area"] == "hallway"
     assert lct["new_area_established"] is True
     assert lct["location_found"] is True
