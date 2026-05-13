@@ -1,0 +1,24 @@
+# Versioned prose oracles for MVP3 narrator voice + affordance gate tests.
+# Assertions remain on status / error_code; text is data-only (ADR-0039 wave 01).
+version: 1
+
+narrator_voice:
+  negative:
+    dialogue_recap:
+      text: "Véronique and Alain argue about responsibility while Michel becomes uncomfortable."
+    forces_player_state:
+      text: "You decide that Alain is right and feel ashamed."
+    reveals_hidden_intent:
+      text: "You can see through Alain's composure; he secretly wants this to end quickly."
+  positive:
+    inner_perception:
+      text: "You notice the pause before Alain answers; it feels less like uncertainty than calculation."
+
+environment_interaction:
+  similar_allowed_phone:
+    block_text: "Alain turns his phone face down."
+    similarity_reason: "A phone that can be held can plausibly be turned face down."
+  knife_unadmitted:
+    block_text: "Véronique places a knife on the table."
+  phone_canonical:
+    block_text: "Alain glances at his phone."

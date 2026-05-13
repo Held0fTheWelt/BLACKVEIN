@@ -28,3 +28,8 @@ if BACKEND_DIR.exists() and _backend_str not in sys.path:
 _world_engine_str = str(WORLD_ENGINE_DIR)
 if WORLD_ENGINE_DIR.exists() and _world_engine_str not in sys.path:
     sys.path.insert(1, _world_engine_str)
+
+# Allow ``from gate_fixtures import ...`` in gate tests (versioned YAML oracle sources).
+_gates_tests_dir = str(Path(__file__).resolve().parent)
+if _gates_tests_dir not in sys.path:
+    sys.path.append(_gates_tests_dir)

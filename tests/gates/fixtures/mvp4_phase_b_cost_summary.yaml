@@ -1,0 +1,44 @@
+# Cost summary shapes for MVP4 phase B diagnostics gate tests (structure oracle, not inline Python literals).
+version: 1
+
+with_breakdown:
+  input_tokens: 2000
+  output_tokens: 1000
+  cost_usd: 0.045
+  cost_breakdown:
+    ldss: 0.020
+    narrator: 0.025
+  phase_costs:
+    ldss:
+      phase: ldss
+      billing_mode: provider_usage
+      token_source: provider_usage
+      billable: true
+      input_tokens: 1000
+      output_tokens: 500
+      cost_usd: 0.020
+      provider: openai
+      model: gpt-4
+    narrator:
+      phase: narrator
+      billing_mode: provider_usage
+      token_source: provider_usage
+      billable: true
+      input_tokens: 1000
+      output_tokens: 500
+      cost_usd: 0.025
+      provider: openai
+      model: gpt-4
+
+langfuse_display:
+  input_tokens: 5000
+  output_tokens: 2000
+  cost_usd: 0.095
+  cost_breakdown:
+    ldss: 0.050
+    narrator: 0.045
+
+operator_redacted:
+  input_tokens: 5000
+  output_tokens: 2000
+  cost_usd: 0.095

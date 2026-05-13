@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from gate_fixtures import load_yaml as _load_gate_fixture_yaml
+
 from ai_stack.live_runtime_commit_semantics import evaluate_live_turn_success_gate
+
+_SNIP = _load_gate_fixture_yaml("adr0033_live_turn_claim_snippet.yaml")
 
 
 def _live_turn_claim(**overrides):
+    # Synthetic narration text: tests/gates/fixtures/adr0033_live_turn_claim_snippet.yaml (one source).
+    narration = _SNIP["visible_narration_sample"]
     payload = {
         "operation": "turn.execute",
         "runtime_profile_id": "goc_live_profile",
@@ -27,7 +33,7 @@ def _live_turn_claim(**overrides):
         "validation_status": "approved",
         "commit_applied": True,
         "visible_scene_output": {
-            "blocks": [{"block_type": "narrator", "text": "The room tightens around the accusation."}]
+            "blocks": [{"block_type": "narrator", "text": narration}]
         },
         "story_entries": [],
         "quality_class": "healthy",
@@ -40,7 +46,7 @@ def _live_turn_claim(**overrides):
                     "provider_id": "openai",
                     "model_id": "gpt-live",
                     "generated_output_present": True,
-                    "output": {"narration": "The room tightens around the accusation."},
+                    "output": {"narration": narration},
                 }
             ],
         },

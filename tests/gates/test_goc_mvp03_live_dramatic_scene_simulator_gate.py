@@ -21,6 +21,9 @@ in the test environment.
 
 from __future__ import annotations
 
+import copy
+from pathlib import Path
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -28,6 +31,21 @@ from unittest.mock import MagicMock, patch
 # ---------------------------------------------------------------------------
 # Imports from LDSS module (ai_stack)
 # ---------------------------------------------------------------------------
+
+from gate_fixtures import load_yaml as _load_gate_fixture_yaml
+
+from gate_contract_constants import (
+    FORBIDDEN_RUNTIME_ACTOR_ID,
+    GOD_OF_CARNAGE_CONTENT_MODULE_ID,
+    GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
+)
+
+from we_contract_helpers import (
+    assert_finalize_committed_turn_calls_ldss_builder,
+    assert_goc_module_gate_in_finalize,
+    assert_ldss_import_and_module_wiring,
+    assert_scene_turn_envelope_committed_to_event,
+)
 
 from ai_stack.live_dramatic_scene_simulator import (
     SceneBlock,
@@ -52,6 +70,11 @@ from ai_stack.live_dramatic_scene_simulator import (
     VISIBLE_NPC_BLOCK_TYPES,
 )
 
+# Narrator / affordance prose: tests/gates/fixtures/mvp3_narrator_and_affordance_examples.yaml
+_MVP3_TEXT = copy.deepcopy(_load_gate_fixture_yaml("mvp3_narrator_and_affordance_examples.yaml"))
+# LDSS player_input stimuli: tests/gates/fixtures/mvp3_ldss_player_inputs.yaml (wave 03; same strings as before).
+_MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
+
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -60,24 +83,24 @@ from ai_stack.live_dramatic_scene_simulator import (
 def _annette_ldss_input(turn: int = 1) -> LDSSInput:
     return build_ldss_input_from_session(
         session_id="test-session-annette",
-        module_id="god_of_carnage",
+        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=turn,
         selected_player_role="annette",
         human_actor_id="annette",
         npc_actor_ids=["alain", "veronique", "michel"],
-        player_input="Alain, are you even listening to us?",
+        player_input=_MVP3_LDSS_INPUTS["annette_ldss_input"],
     )
 
 
 def _alain_ldss_input(turn: int = 1) -> LDSSInput:
     return build_ldss_input_from_session(
         session_id="test-session-alain",
-        module_id="god_of_carnage",
+        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=turn,
         selected_player_role="alain",
         human_actor_id="alain",
         npc_actor_ids=["annette", "veronique", "michel"],
-        player_input="I understand your position. I just don't share it.",
+        player_input=_MVP3_LDSS_INPUTS["alain_ldss_input"],
     )
 
 
@@ -99,8 +122,8 @@ def test_mvp3_gate_start_annette_live_scene_turn():
 
     assert isinstance(envelope, SceneTurnEnvelopeV2)
     assert envelope.contract == "scene_turn_envelope.v2"
-    assert envelope.content_module_id == "god_of_carnage"
-    assert envelope.runtime_profile_id == "god_of_carnage_solo"
+    assert envelope.content_module_id == GOD_OF_CARNAGE_CONTENT_MODULE_ID
+    assert envelope.runtime_profile_id == GOD_OF_CARNAGE_RUNTIME_PROFILE_ID
     assert envelope.selected_player_role == "annette"
     assert envelope.human_actor_id == "annette"
     assert "alain" in envelope.npc_actor_ids
@@ -144,12 +167,12 @@ def test_mvp3_gate_npcs_act_without_direct_address():
     """NPCs produce speech/action without player directly addressing them."""
     ldss_input = build_ldss_input_from_session(
         session_id="test-session",
-        module_id="god_of_carnage",
+        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=2,
         selected_player_role="annette",
         human_actor_id="annette",
         npc_actor_ids=["alain", "veronique", "michel"],
-        player_input="I just want to understand what happened.",
+        player_input=_MVP3_LDSS_INPUTS["npc_autonomous_scene_turn"],
     )
     ldss_output = run_ldss(ldss_input)
 
@@ -164,7 +187,7 @@ def test_mvp3_gate_npcs_act_without_direct_address():
     # NPC actors must be in allowed set
     for b in actor_blocks:
         assert b.actor_id != "annette", "Human actor must not appear as AI-controlled speaker/actor"
-        assert b.actor_id != "visitor", "visitor must not appear in live turn blocks"
+        assert b.actor_id != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear in live turn blocks"
 
 
 @pytest.mark.mvp3
@@ -236,8 +259,8 @@ def test_mvp3_gate_visitor_absent_from_live_turn():
     ldss_output = run_ldss(ldss_input)
 
     for block in ldss_output.visible_scene_output.blocks:
-        assert block.actor_id != "visitor", "visitor must not appear as actor in live turn"
-        assert block.target_actor_id != "visitor", "visitor must not appear as target in live turn"
+        assert block.actor_id != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear as actor in live turn"
+        assert block.target_actor_id != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear as target in live turn"
 
 
 # ---------------------------------------------------------------------------
@@ -389,7 +412,7 @@ def test_mvp3_gate_response_packaged_from_committed_state():
     blocks = d["visible_scene_output"]["blocks"]
     for block in blocks:
         assert block["actor_id"] != "annette", "Human actor must not appear in packaged response"
-        assert block["actor_id"] != "visitor", "visitor must not appear in packaged response"
+        assert block["actor_id"] != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear in packaged response"
 
 
 # ---------------------------------------------------------------------------
@@ -525,7 +548,7 @@ def test_mvp3_gate_trace_header_preserved_on_story_turn():
 @pytest.mark.mvp3
 def test_narrator_rejects_dialogue_recap():
     """Narrator cannot summarize dialogue between characters."""
-    bad_text = "Véronique and Alain argue about responsibility while Michel becomes uncomfortable."
+    bad_text = _MVP3_TEXT["narrator_voice"]["negative"]["dialogue_recap"]["text"]
     result = validate_narrator_voice(bad_text)
     assert result.status == "rejected"
     assert result.error_code == "narrator_dialogue_summary_rejected"
@@ -534,7 +557,7 @@ def test_narrator_rejects_dialogue_recap():
 @pytest.mark.mvp3
 def test_narrator_modal_language_does_not_force_player_state():
     """Narrator cannot tell the player how they feel or what they decide."""
-    bad_text = "You decide that Alain is right and feel ashamed."
+    bad_text = _MVP3_TEXT["narrator_voice"]["negative"]["forces_player_state"]["text"]
     result = validate_narrator_voice(bad_text)
     assert result.status == "rejected"
     assert result.error_code == "narrator_forces_player_state"
@@ -543,7 +566,7 @@ def test_narrator_modal_language_does_not_force_player_state():
 @pytest.mark.mvp3
 def test_narrator_cannot_reveal_hidden_npc_intent():
     """Narrator cannot reveal undisclosed NPC motivations."""
-    bad_text = "You can see through Alain's composure; he secretly wants this to end quickly."
+    bad_text = _MVP3_TEXT["narrator_voice"]["negative"]["reveals_hidden_intent"]["text"]
     result = validate_narrator_voice(bad_text)
     assert result.status == "rejected"
     assert result.error_code == "narrator_reveals_hidden_intent"
@@ -552,7 +575,7 @@ def test_narrator_cannot_reveal_hidden_npc_intent():
 @pytest.mark.mvp3
 def test_valid_narrator_inner_perception():
     """Valid narrator block: inner perception and orientation only."""
-    good_text = "You notice the pause before Alain answers; it feels less like uncertainty than calculation."
+    good_text = _MVP3_TEXT["narrator_voice"]["positive"]["inner_perception"]["text"]
     result = validate_narrator_voice(good_text)
     assert result.status == "approved"
 
@@ -564,13 +587,14 @@ def test_valid_narrator_inner_perception():
 @pytest.mark.mvp3
 def test_similar_allowed_requires_similarity_reason():
     """similar_allowed affordance without reason is rejected."""
+    _env = _MVP3_TEXT["environment_interaction"]["similar_allowed_phone"]
     env_block = SceneBlock(
         id="test-env",
         block_type="environment_interaction",
         actor_id="alain",
         object_id="mobile_phone",
         affordance_tier="similar_allowed",
-        text="Alain turns his phone face down.",
+        text=_env["block_text"],
     )
     # Without reason: rejected
     result_no_reason = validate_similar_allowed_requires_reason(env_block, similarity_reason=None)
@@ -580,7 +604,7 @@ def test_similar_allowed_requires_similarity_reason():
     # With reason: approved
     result_with_reason = validate_similar_allowed_requires_reason(
         env_block,
-        similarity_reason="A phone that can be held can plausibly be turned face down.",
+        similarity_reason=_env["similarity_reason"],
     )
     assert result_with_reason.status == "approved"
 
@@ -588,13 +612,14 @@ def test_similar_allowed_requires_similarity_reason():
 @pytest.mark.mvp3
 def test_rejects_unadmitted_plausible_object():
     """Unadmitted object (e.g. knife) is rejected with environment_object_not_admitted."""
+    _knife = _MVP3_TEXT["environment_interaction"]["knife_unadmitted"]
     knife_block = SceneBlock(
         id="test-knife",
         block_type="environment_interaction",
         actor_id="veronique",
         object_id="knife",
         affordance_tier="canonical",
-        text="Véronique places a knife on the table.",
+        text=_knife["block_text"],
     )
     # knife is not in admitted objects
     result = validate_affordance(knife_block, admitted_objects=[])
@@ -605,13 +630,14 @@ def test_rejects_unadmitted_plausible_object():
 @pytest.mark.mvp3
 def test_canonical_object_affordance_approved():
     """Canonical admitted object passes affordance validation."""
+    _phone = _MVP3_TEXT["environment_interaction"]["phone_canonical"]
     phone_block = SceneBlock(
         id="test-phone",
         block_type="environment_interaction",
         actor_id="alain",
         object_id="mobile_phone",
         affordance_tier="canonical",
-        text="Alain glances at his phone.",
+        text=_phone["block_text"],
     )
     result = validate_affordance(
         phone_block,
@@ -626,51 +652,22 @@ def test_canonical_object_affordance_approved():
 
 @pytest.mark.mvp3
 def test_mvp3_gate_ldss_invoked_through_finalize_committed_turn():
-    """Proves LDSS is wired into _finalize_committed_turn via structural inspection.
+    """LDSS is wired for GoC: import boundary + AST proof (no fragile source substring matching).
 
-    Full execution is proven in world-engine/tests/test_mvp3_ldss_integration.py
-    which runs in the world-engine test context where `app.*` is available.
-    This gate test proves the integration seam exists and the module is correctly wired.
+    Full execution remains in world-engine/tests/test_mvp3_ldss_integration.py; this gate proves
+    ``_build_ldss_scene_envelope`` calls ``run_ldss`` / ``build_scene_turn_envelope_v2`` and that
+    ``_finalize_committed_turn`` commits ``scene_turn_envelope`` under GoC gating.
     """
-    from pathlib import Path
-
     repo_root = Path(__file__).resolve().parent.parent.parent
-
-    # Structural proof: _build_ldss_scene_envelope is called in _finalize_committed_turn
     manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager.py"
-    assert manager_path.exists(), f"world-engine/app/story_runtime/manager.py must exist at {manager_path}"
-
-    source = manager_path.read_text()
-
-    # Prove LDSS is imported
-    assert "from ai_stack.live_dramatic_scene_simulator import" in source, (
-        "manager.py must import from ai_stack.live_dramatic_scene_simulator"
-    )
-    assert "run_ldss" in source, "run_ldss must be imported in manager.py"
-    assert "build_scene_turn_envelope_v2" in source, (
-        "build_scene_turn_envelope_v2 must be imported in manager.py"
-    )
-
-    # Prove LDSS is called in _finalize_committed_turn
-    assert "_build_ldss_scene_envelope" in source, (
-        "_build_ldss_scene_envelope must be defined in manager.py"
-    )
-    assert "scene_turn_envelope" in source, (
-        "scene_turn_envelope must be added to event in manager.py"
-    )
-
-    # Prove LDSS is called for GOD_OF_CARNAGE module
-    assert "GOD_OF_CARNAGE_MODULE_ID" in source, (
-        "LDSS must be gated on GOD_OF_CARNAGE_MODULE_ID in manager.py"
-    )
-
-    # Prove the LDSS module itself is valid
     ldss_path = repo_root / "ai_stack" / "live_dramatic_scene_simulator.py"
+    assert manager_path.exists(), f"world-engine/app/story_runtime/manager.py must exist at {manager_path}"
     assert ldss_path.exists(), f"ai_stack/live_dramatic_scene_simulator.py must exist at {ldss_path}"
 
-    ldss_source = ldss_path.read_text()
-    for required in ("SceneTurnEnvelopeV2", "LDSSInput", "LDSSOutput", "NPCAgencyPlan", "run_ldss"):
-        assert required in ldss_source, f"{required} must be defined in live_dramatic_scene_simulator.py"
+    assert_ldss_import_and_module_wiring(manager_path, ldss_path)
+    assert_finalize_committed_turn_calls_ldss_builder(manager_path)
+    assert_scene_turn_envelope_committed_to_event(manager_path)
+    assert_goc_module_gate_in_finalize(manager_path)
 
 
 @pytest.mark.mvp3

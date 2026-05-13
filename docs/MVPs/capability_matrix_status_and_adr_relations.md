@@ -13,6 +13,8 @@ Legacy Π symbols are **not** active feature names in source. Content is distrib
 
 Promotion and validation are meaningless if gate tests **encode accidental output** instead of declared contracts. **[ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md)** forbids hardcoded literals as the **primary** oracle for gate and promotion-style regression tests; expectations must trace to schema, OpenAPI, canonical authored content ([ADR-0025](../ADR/adr-0025-canonical-authored-content-model.md)), or reviewable baselines. This tightens how we read **[ADR-0008](../ADR/adr-0008-validation-strategy-explicit-configurable.md)** (strategy-specific tests must still be honest) and **[ADR-0009](../ADR/adr-0009-evaluation-is-a-promotion-gate.md)** (evaluation evidence must not be “string-matched theatre”).
 
+**Operational inventory:** [`docs/governance/gate_oracle_tightness_inventory.md`](../governance/gate_oracle_tightness_inventory.md) tracks gate oracle quality (strict vs brittle) and refactor waves. **Wave 1** (rows 1, 5–11, 16, 21, 22): YAML fixtures, canonical title loader, CI YAML oracle, ADR-0033 snippet dedup, MVP4 mock payloads. **Wave 2** (rows 12, 13, 14, 17): LDSS wiring via import + AST; FastAPI route AST + manager surface; narrative gov admin template via `data-testid`, derived proxy URL, and panel JSON keys; `execute_turn` diagnostics via AST + subprocess integration test. See §9 in that document for commands and status.
+
 ### Observability authority (non-negotiable split)
 
 ```text

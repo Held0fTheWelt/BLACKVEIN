@@ -1,0 +1,3 @@
+# Single narration sample for synthetic ADR-0033 gate payloads (avoid duplicate literals in Python).
+version: 1
+visible_narration_sample: "The room tightens around the accusation."

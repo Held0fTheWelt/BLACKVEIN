@@ -1,0 +1,46 @@
+# TokenBudgetService storage.get payloads + evaluation history for MVP4 phase C gate tests.
+version: 1
+
+token_budget:
+  fresh_session:
+    session_id: test-session
+    total_budget: 1000
+    used_tokens: 0
+    warning_threshold: 0.80
+    ceiling_threshold: 1.0
+  near_ceiling_before_consume:
+    session_id: test-session
+    total_budget: 1000
+    used_tokens: 900
+    warning_threshold: 0.80
+    ceiling_threshold: 1.0
+  ldss_shorter_strategy:
+    session_id: test-session
+    total_budget: 1000
+    used_tokens: 800
+    degradation_strategy: ldss_shorter
+    warning_threshold: 0.80
+    ceiling_threshold: 1.0
+  fallback_cheaper_strategy:
+    session_id: test-session
+    total_budget: 1000
+    used_tokens: 1000
+    degradation_strategy: fallback_cheaper
+    warning_threshold: 0.80
+    ceiling_threshold: 1.0
+
+evaluation_auto_tune_failures:
+  - turn_id: turn_1
+    passed: false
+    scores:
+      coherence: 2.0
+      authenticity: 3.0
+      player_agency: 2.5
+      immersion: 3.0
+  - turn_id: turn_2
+    passed: false
+    scores:
+      coherence: 1.5
+      authenticity: 2.0
+      player_agency: 2.0
+      immersion: 2.5

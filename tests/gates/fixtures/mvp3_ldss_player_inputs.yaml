@@ -1,0 +1,9 @@
+# Versioned LDSS player_input stimuli for gate tests (wave 03). Semantics unchanged from prior literals.
+version: 1
+annette_ldss_input: "Alain, are you even listening to us?"
+alain_ldss_input: "I understand your position. I just don't share it."
+npc_autonomous_scene_turn: "I just want to understand what happened."
+# MVP04 diagnostics envelope construction (same strings as prior gate literals).
+diagnostics_gate_test_player_input: "Let's talk about what happened."
+# MVP04 phase B LDSS span instrumentation (deterministic cost path).
+ldss_span_test_player_input: "I listen."

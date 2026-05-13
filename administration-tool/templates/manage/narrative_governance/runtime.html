@@ -6,7 +6,7 @@
     <p class="manage-muted">MVP4 — Operator evidence from the live God of Carnage runtime path.</p>
 
     <!-- MVP4: Narrative Gov Summary Panels (sourced from play-service live diagnostics) -->
-    <div id="mvp4-narrative-gov-summary" class="narrative-grid">
+    <div id="mvp4-narrative-gov-summary" class="narrative-grid" data-testid="narrative-gov-summary">
         <div id="mvp4-loading" class="manage-muted">Loading runtime evidence…</div>
     </div>
 
@@ -58,6 +58,11 @@
         html += '<div class="manage-card mvp4-panel"><h3>Runtime Profile Health</h3>';
         html += '<p>Profile: <strong>' + esc(rp.runtime_profile_id || d.runtime_profile_id) + '</strong> ' + statusBadge(rp.status) + '</p>';
         html += '<p>Story truth present: <strong>' + esc(rp.story_truth_present) + '</strong></p></div>';
+
+        // Runtime module health
+        var rm = d.runtime_module_health || {};
+        html += '<div class="manage-card mvp4-panel"><h3>Runtime Module Health</h3>';
+        html += '<p>Module: <strong>' + esc(rm.runtime_module_id || d.runtime_module_id) + '</strong> ' + statusBadge(rm.status) + '</p></div>';
 
         // LDSS health
         var ldss = d.ldss_health || {};

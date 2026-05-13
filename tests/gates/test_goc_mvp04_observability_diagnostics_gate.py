@@ -26,12 +26,35 @@ Tests are organized in three layers:
 
 from __future__ import annotations
 
+import copy
 import json
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
+
+from gate_fixtures import load_yaml as _load_gate_fixture_yaml
+
+from gate_contract_constants import (
+    FORBIDDEN_RUNTIME_ACTOR_ID,
+    GOD_OF_CARNAGE_CONTENT_MODULE_ID,
+    GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
+    LDSS_DETERMINISTIC_MODEL_ID,
+    NARRATIVE_RUNTIME_AGENT_DETERMINISTIC_MODEL_ID,
+)
+
+from we_contract_helpers import (
+    NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS,
+    assert_diagnostics_and_narrative_gov_routes_registered,
+    assert_finalize_committed_turn_assigns_diagnostics_envelope,
+    assert_goc_module_gate_in_finalize,
+    assert_manager_get_narrative_gov_summary_calls_builder,
+    assert_mvp4_execute_turn_diagnostics_integration_passes,
+    assert_narrative_gov_template_renders_panel_contract,
+    assert_story_runtime_manager_exposes_diagnostics_api,
+)
 
 from ai_stack.diagnostics_envelope import (
     DegradationEvent,
@@ -59,20 +82,26 @@ from ai_stack.live_dramatic_scene_simulator import (
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
+# Phase B/C mock payloads: tests/gates/fixtures/mvp4_phase_*.yaml (versioned structure oracles).
+_MVP4_PHASE_C = _load_gate_fixture_yaml("mvp4_phase_c_mock_payloads.yaml")
+_MVP4_COST_B = _load_gate_fixture_yaml("mvp4_phase_b_cost_summary.yaml")
+# LDSS player_input strings shared with MVP03 gate: tests/gates/fixtures/mvp3_ldss_player_inputs.yaml
+_MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
+
 
 def _goc_projection(human: str = "annette") -> dict:
     npc_map = {"annette": ["alain", "veronique", "michel"], "alain": ["annette", "veronique", "michel"]}
     npcs = npc_map.get(human, ["alain", "veronique", "michel"])
     return {
-        "module_id": "god_of_carnage",
+        "module_id": GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         "start_scene_id": "phase_1",
         "selected_player_role": human,
         "human_actor_id": human,
         "npc_actor_ids": npcs,
         "actor_lanes": {human: "human", **{n: "npc" for n in npcs}},
-        "runtime_profile_id": "god_of_carnage_solo",
+        "runtime_profile_id": GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
         "runtime_module_id": "solo_story_runtime",
-        "content_module_id": "god_of_carnage",
+        "content_module_id": GOD_OF_CARNAGE_CONTENT_MODULE_ID,
     }
 
 
@@ -110,14 +139,15 @@ def _mock_graph_state(
 
 def _build_test_envelope(human: str = "annette", turn: int = 1) -> DiagnosticsEnvelope:
     """Build a DiagnosticsEnvelope for testing."""
+    _diag_player = _MVP3_LDSS_INPUTS["diagnostics_gate_test_player_input"]
     ldss_input = build_ldss_input_from_session(
         session_id="test-session-diag",
-        module_id="god_of_carnage",
+        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=turn,
         selected_player_role=human,
         human_actor_id=human,
         npc_actor_ids=["alain", "veronique", "michel"] if human == "annette" else ["annette", "veronique", "michel"],
-        player_input="Let's talk about what happened.",
+        player_input=_diag_player,
     )
     ldss_output = run_ldss(ldss_input)
     scene_env = build_scene_turn_envelope_v2(
@@ -130,7 +160,7 @@ def _build_test_envelope(human: str = "annette", turn: int = 1) -> DiagnosticsEn
         session_id="test-session-diag",
         turn_number=turn,
         trace_id=f"trace-test-{human}-{turn}",
-        player_input="Let's talk about what happened.",
+        player_input=_diag_player,
         runtime_projection=_goc_projection(human),
         graph_state=_mock_graph_state(),
         scene_turn_envelope=scene_env.to_dict(),
@@ -150,8 +180,8 @@ def test_mvp04_annette_turn_produces_diagnostics_envelope():
     assert env.contract == "diagnostics_envelope.v1"
     assert env.human_actor_id == "annette"
     assert env.selected_player_role == "annette"
-    assert env.content_module_id == "god_of_carnage"
-    assert env.runtime_profile_id == "god_of_carnage_solo"
+    assert env.content_module_id == GOD_OF_CARNAGE_CONTENT_MODULE_ID
+    assert env.runtime_profile_id == GOD_OF_CARNAGE_RUNTIME_PROFILE_ID
     assert env.story_session_id == "test-session-diag"
     d = env.to_dict()
     assert d["contract"] == "diagnostics_envelope.v1"
@@ -185,8 +215,8 @@ def test_mvp04_diagnostics_include_actor_ownership():
     assert "annette" not in env.npc_actor_ids
     assert "annette" in env.ai_forbidden_actor_ids
     assert "alain" in env.ai_allowed_actor_ids
-    assert "visitor" not in env.npc_actor_ids
-    assert "visitor" not in env.ai_allowed_actor_ids
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.npc_actor_ids
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.ai_allowed_actor_ids
 
 
 @pytest.mark.mvp4
@@ -250,12 +280,13 @@ def test_mvp04_diagnostics_exclude_visitor():
     env = _build_test_envelope("annette")
     d = env.to_dict()
     d_str = json.dumps(d)
-    assert '"visitor"' not in d_str, "visitor must not appear in diagnostics envelope"
-    assert "visitor" not in env.npc_actor_ids
-    assert "visitor" not in env.ai_allowed_actor_ids
-    assert "visitor" not in env.ai_forbidden_actor_ids
+    forbidden_json = json.dumps(FORBIDDEN_RUNTIME_ACTOR_ID)  # contract ID as JSON string token
+    assert forbidden_json not in d_str, "visitor must not appear in diagnostics envelope"
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.npc_actor_ids
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.ai_allowed_actor_ids
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.ai_forbidden_actor_ids
     npc_agency = env.npc_agency
-    assert "visitor" not in str(npc_agency.get("active_npc_ids", []))
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in str(npc_agency.get("active_npc_ids", []))
 
 
 # ---------------------------------------------------------------------------
@@ -423,25 +454,17 @@ def test_mvp04_secrets_are_redacted_from_diagnostics_and_traces():
 
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_endpoint_returns_last_turn_evidence():
-    """DiagnosticsEnvelope endpoint and narrative-gov-summary are wired in world-engine http.py."""
-    http_path = REPO_ROOT / "world-engine" / "app" / "api" / "http.py"
-    source = http_path.read_text()
-    assert "story/sessions/{session_id}/diagnostics-envelope" in source, (
-        "diagnostics-envelope endpoint must be in http.py"
-    )
-    assert "get_last_diagnostics_envelope" in source, (
-        "get_last_diagnostics_envelope must be wired in http.py"
-    )
-    assert "story/runtime/narrative-gov-summary" in source, (
-        "narrative-gov-summary endpoint must be in http.py"
-    )
+    """World-engine registers MVP4 diagnostics + narrative-gov HTTP routes (AST), not source substrings.
 
-    # Manager has the methods
+    Canonical internal routes (API key gated): ``GET /api/story/sessions/{session_id}/diagnostics-envelope`` and
+    ``GET /api/story/runtime/narrative-gov-summary`` — paths are parsed from ``http.py`` decorators.
+    """
+    http_path = REPO_ROOT / "world-engine" / "app" / "api" / "http.py"
     manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    m_source = manager_path.read_text()
-    assert "get_last_diagnostics_envelope" in m_source
-    assert "get_narrative_gov_summary" in m_source
-    assert "diagnostics_envelope" in m_source
+    assert http_path.exists(), f"Expected world-engine HTTP router at {http_path}"
+    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    assert_diagnostics_and_narrative_gov_routes_registered(http_path)
+    assert_story_runtime_manager_exposes_diagnostics_api(manager_path)
 
 
 # ---------------------------------------------------------------------------
@@ -480,18 +503,12 @@ def test_mvp04_narrative_gov_surface_returns_runtime_evidence():
     assert d["ldss_health"]["status"] == "evidenced_live_path"
     assert d["ldss_health"]["last_trace_id"] == "trace-nav-abc"
     assert d["actor_lane_health"]["human_actor_id"] == "annette"
-    assert "visitor" not in (d["actor_lane_health"].get("npc_actor_ids") or [])
+    assert FORBIDDEN_RUNTIME_ACTOR_ID not in (d["actor_lane_health"].get("npc_actor_ids") or [])
     assert d["actor_lane_health"]["visitor_present"] is False
 
-    # Narrative Gov template is updated
+    # Operator UI: stable data-testid + machine JSON keys + proxy URL derived from router AST (wave 02).
     template_path = REPO_ROOT / "administration-tool" / "templates" / "manage" / "narrative_governance" / "runtime.html"
-    template = template_path.read_text()
-    assert "narrative-gov-summary" in template, "runtime.html must have mvp4 narrative gov section"
-    assert "/_proxy/api/story/runtime/narrative-gov-summary" in template, (
-        "runtime.html must fetch narrative-gov-summary via proxy"
-    )
-    assert "ldss_health" in template
-    assert "actor_lane_health" in template
+    assert_narrative_gov_template_renders_panel_contract(template_path)
 
 
 # ---------------------------------------------------------------------------
@@ -564,13 +581,20 @@ def test_mvp04_runner_registration_exists():
 
 @pytest.mark.mvp4
 def test_mvp04_workflow_registration_exists():
-    """At least one GitHub workflow must cover the engine or MVP4 tests."""
+    """GitHub workflow must run architecture gates against tests/gates (parsed YAML oracle)."""
     workflows_dir = REPO_ROOT / ".github" / "workflows"
     engine_workflow = workflows_dir / "engine-tests.yml"
     assert engine_workflow.exists(), ".github/workflows/engine-tests.yml must exist"
-    content = engine_workflow.read_text()
-    # Engine workflow covers world-engine tests which include MVP4
-    assert "world-engine" in content
+    workflow = yaml.safe_load(engine_workflow.read_text(encoding="utf-8"))
+    arch = (workflow.get("jobs") or {}).get("architecture-gates")
+    assert arch is not None, "engine-tests.yml must define job id architecture-gates"
+    found = False
+    for step in arch.get("steps") or []:
+        run = step.get("run")
+        if isinstance(run, str) and "pytest" in run and "tests/gates" in run:
+            found = True
+            break
+    assert found, "architecture-gates job must invoke pytest on tests/gates/"
 
 
 @pytest.mark.mvp4
@@ -593,41 +617,33 @@ def test_mvp04_toml_or_pytest_marker_registration_exists():
 
 @pytest.mark.mvp4
 def test_mvp04_execute_turn_includes_diagnostics_envelope():
-    """Structural proof: execute_turn wires diagnostics_envelope for GoC sessions.
+    """execute_turn emits diagnostics_envelope for GoC: AST assigns + integration behavioral proof (wave 02).
 
-    Full execution proven in world-engine/tests/test_mvp4_diagnostics_integration.py.
+    Subprocess runs world-engine ``test_execute_turn_produces_diagnostics_envelope_annette`` so the gate
+    validates the real response contract, not ``event['diagnostics_envelope']`` quote-style source matches.
     """
     manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    source = manager_path.read_text()
+    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    assert_finalize_committed_turn_assigns_diagnostics_envelope(manager_path)
+    assert_goc_module_gate_in_finalize(manager_path)
 
-    assert "from ai_stack.diagnostics_envelope import" in source
-    assert "build_diagnostics_envelope" in source
-    assert "diagnostics_envelope" in source
-    # LDSS and diagnostics are both built in _finalize_committed_turn for GoC
-    assert "GOD_OF_CARNAGE_MODULE_ID" in source
-    assert "event[\"diagnostics_envelope\"]" in source or "event['diagnostics_envelope']" in source
-
-    # Integration test file proves real execution
     integration_path = REPO_ROOT / "world-engine" / "tests" / "test_mvp4_diagnostics_integration.py"
     assert integration_path.exists(), "test_mvp4_diagnostics_integration.py must exist"
-    integration_source = integration_path.read_text()
-    assert "diagnostics_envelope" in integration_source
-    assert "execute_turn" in integration_source
+    assert_mvp4_execute_turn_diagnostics_integration_passes(REPO_ROOT)
 
 
 @pytest.mark.mvp4
 def test_mvp04_narrative_gov_summary_from_manager():
-    """Structural proof: manager has get_narrative_gov_summary and it returns health panels.
+    """Narrative Gov: manager exposes summary API; builder wiring (AST); ``to_dict`` operator contract.
 
     Full execution proven in world-engine/tests/test_mvp4_diagnostics_integration.py.
     """
     manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
-    source = manager_path.read_text()
-    assert "get_narrative_gov_summary" in source
-    assert "build_narrative_gov_summary" in source
+    assert manager_path.exists(), f"Expected StoryRuntimeManager at {manager_path}"
+    # AST oracles: method presence + delegation to build_narrative_gov_summary (no raw source substring checks).
+    assert_story_runtime_manager_exposes_diagnostics_api(manager_path)
+    assert_manager_get_narrative_gov_summary_calls_builder(manager_path)
 
-    # Test the function directly with the ai_stack module (no world-engine app needed)
-    from ai_stack.diagnostics_envelope import build_narrative_gov_summary
     summary = build_narrative_gov_summary(
         last_story_session_id="gate-test-session",
         last_turn_number=2,
@@ -638,6 +654,9 @@ def test_mvp04_narrative_gov_summary_from_manager():
         npc_actor_ids=["alain", "veronique", "michel"],
     )
     d = summary.to_dict()
+    assert set(d.keys()) == set(NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS), (
+        "NarrativeGovSummary.to_dict keys must match operator contract (see ai_stack/diagnostics_envelope.py)"
+    )
     assert d["contract"] == "narrative_gov_summary.v1"
     assert d["last_story_session_id"] == "gate-test-session"
     assert d["actor_lane_health"]["visitor_present"] is False
@@ -876,7 +895,7 @@ def test_mvp04_phase_b_narrator_block_span_instrumentation():
     assert narrator_cost["billing_mode"] == "deterministic"
     assert narrator_cost["token_source"] == "deterministic_no_model_call"
     assert narrator_cost["billable"] is False
-    assert narrator_cost["model"] == "narrative_runtime_agent_deterministic"
+    assert narrator_cost["model"] == NARRATIVE_RUNTIME_AGENT_DETERMINISTIC_MODEL_ID
 
 
 @pytest.mark.mvp4
@@ -886,12 +905,12 @@ def test_mvp04_phase_b_ldss_span_instrumentation():
 
     ldss_input = build_ldss_input_from_session(
         session_id="test_session",
-        module_id="god_of_carnage",
+        module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=0,
         selected_player_role="annette",
         human_actor_id="annette",
         npc_actor_ids=["alain", "veronique", "michel"],
-        player_input="I listen.",
+        player_input=_MVP3_LDSS_INPUTS["ldss_span_test_player_input"],
     )
 
     result = run_ldss(ldss_input)
@@ -902,7 +921,7 @@ def test_mvp04_phase_b_ldss_span_instrumentation():
     assert cost["input_tokens"] == 0
     assert cost["output_tokens"] == 0
     assert cost["cost_usd"] == 0.0
-    assert cost["model"] == "ldss_deterministic"
+    assert cost["model"] == LDSS_DETERMINISTIC_MODEL_ID
 
 
 @pytest.mark.mvp4
@@ -910,20 +929,8 @@ def test_mvp04_phase_b_cost_summary_supports_cost_breakdown():
     """cost_summary includes per-phase cost breakdown and detailed phase costs."""
     env = _build_test_envelope("annette")
 
-    # Manually set cost breakdown
-    env.cost_summary = {
-        "input_tokens": 2000,
-        "output_tokens": 1000,
-        "cost_usd": 0.045,
-        "cost_breakdown": {
-            "ldss": 0.020,
-            "narrator": 0.025,
-        },
-        "phase_costs": {
-            "ldss": {"phase": "ldss", "billing_mode": "provider_usage", "token_source": "provider_usage", "billable": True, "input_tokens": 1000, "output_tokens": 500, "cost_usd": 0.020, "provider": "openai", "model": "gpt-4"},
-            "narrator": {"phase": "narrator", "billing_mode": "provider_usage", "token_source": "provider_usage", "billable": True, "input_tokens": 1000, "output_tokens": 500, "cost_usd": 0.025, "provider": "openai", "model": "gpt-4"},
-        },
-    }
+    # Cost shape from tests/gates/fixtures/mvp4_phase_b_cost_summary.yaml (not inline literals).
+    env.cost_summary = copy.deepcopy(_MVP4_COST_B["with_breakdown"])
 
     d = env.to_dict()
     cost = d.get("cost_summary", {})
@@ -942,16 +949,8 @@ def test_mvp04_phase_b_langfuse_response_shows_real_costs():
     """to_response('langfuse') includes real cost values (not redacted)."""
     env = _build_test_envelope("annette")
 
-    # Set real costs (Phase B scenario)
-    env.cost_summary = {
-        "input_tokens": 5000,
-        "output_tokens": 2000,
-        "cost_usd": 0.095,
-        "cost_breakdown": {
-            "ldss": 0.050,
-            "narrator": 0.045,
-        },
-    }
+    # Fixture: tests/gates/fixtures/mvp4_phase_b_cost_summary.yaml
+    env.cost_summary = copy.deepcopy(_MVP4_COST_B["langfuse_display"])
 
     lf = env.to_response(context="langfuse")
 
@@ -967,11 +966,7 @@ def test_mvp04_phase_b_operator_response_redacts_costs():
     """to_response('operator') redacts cost_summary."""
     env = _build_test_envelope("annette")
 
-    env.cost_summary = {
-        "input_tokens": 5000,
-        "output_tokens": 2000,
-        "cost_usd": 0.095,
-    }
+    env.cost_summary = copy.deepcopy(_MVP4_COST_B["operator_redacted"])
 
     op = env.to_response(context="operator")
 
@@ -1015,14 +1010,8 @@ def test_mvp04_phase_c_token_budget_warning_level():
     storage = MagicMock()
     service = TokenBudgetService(storage)
 
-    # Set up budget mock
-    storage.get.return_value = {
-        "session_id": "test-session",
-        "total_budget": 1000,
-        "used_tokens": 0,
-        "warning_threshold": 0.80,
-        "ceiling_threshold": 1.0,
-    }
+    # Storage payload: tests/gates/fixtures/mvp4_phase_c_mock_payloads.yaml
+    storage.get.return_value = copy.deepcopy(_MVP4_PHASE_C["token_budget"]["fresh_session"])
 
     # Consume 800 tokens (80%)
     level = service.consume_tokens("test-session", 800)
@@ -1038,13 +1027,7 @@ def test_mvp04_phase_c_token_budget_critical_level():
     storage = MagicMock()
     service = TokenBudgetService(storage)
 
-    storage.get.return_value = {
-        "session_id": "test-session",
-        "total_budget": 1000,
-        "used_tokens": 900,
-        "warning_threshold": 0.80,
-        "ceiling_threshold": 1.0,
-    }
+    storage.get.return_value = copy.deepcopy(_MVP4_PHASE_C["token_budget"]["near_ceiling_before_consume"])
 
     # Consume 100 more tokens (100% total)
     level = service.consume_tokens("test-session", 100)
@@ -1060,14 +1043,7 @@ def test_mvp04_phase_c_cost_aware_degradation_ldss_shorter():
     storage = MagicMock()
     service = TokenBudgetService(storage)
 
-    storage.get.return_value = {
-        "session_id": "test-session",
-        "total_budget": 1000,
-        "used_tokens": 800,
-        "degradation_strategy": "ldss_shorter",
-        "warning_threshold": 0.80,
-        "ceiling_threshold": 1.0,
-    }
+    storage.get.return_value = copy.deepcopy(_MVP4_PHASE_C["token_budget"]["ldss_shorter_strategy"])
 
     graph_state = {"ldss_config": {"max_narration_length": 300}}
     degraded = service.apply_cost_aware_degradation("test-session", DegradationLevel.WARNING, graph_state)
@@ -1085,14 +1061,7 @@ def test_mvp04_phase_c_cost_aware_degradation_fallback_cheaper():
     storage = MagicMock()
     service = TokenBudgetService(storage)
 
-    storage.get.return_value = {
-        "session_id": "test-session",
-        "total_budget": 1000,
-        "used_tokens": 1000,
-        "degradation_strategy": "fallback_cheaper",
-        "warning_threshold": 0.80,
-        "ceiling_threshold": 1.0,
-    }
+    storage.get.return_value = copy.deepcopy(_MVP4_PHASE_C["token_budget"]["fallback_cheaper_strategy"])
 
     graph_state = {}
     degraded = service.apply_cost_aware_degradation("test-session", DegradationLevel.CRITICAL, graph_state)
@@ -1201,18 +1170,7 @@ def test_mvp04_phase_c_rubric_weights_auto_tuning():
     from unittest.mock import MagicMock
 
     storage = MagicMock()
-    storage.get.return_value = [
-        {
-            "turn_id": "turn_1",
-            "passed": False,
-            "scores": {"coherence": 2.0, "authenticity": 3.0, "player_agency": 2.5, "immersion": 3.0},
-        },
-        {
-            "turn_id": "turn_2",
-            "passed": False,
-            "scores": {"coherence": 1.5, "authenticity": 2.0, "player_agency": 2.0, "immersion": 2.5},
-        },
-    ]
+    storage.get.return_value = copy.deepcopy(_MVP4_PHASE_C["evaluation_auto_tune_failures"])
 
     pipeline = EvaluationPipeline(storage)
     weights = pipeline.auto_tune_weights("session_001")
