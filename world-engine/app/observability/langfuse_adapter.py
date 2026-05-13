@@ -868,6 +868,201 @@ class LangfuseAdapter:
             emitted_scope,
         )
 
+    @staticmethod
+    def _extract_trace_metadata_from_payload(payload: Any) -> dict[str, Any]:
+        """Best-effort extraction of trace metadata from SDK/API payload objects."""
+        if isinstance(payload, dict):
+            md = payload.get("metadata")
+            return dict(md) if isinstance(md, dict) else {}
+        md = getattr(payload, "metadata", None)
+        if isinstance(md, dict):
+            return dict(md)
+        return {}
+
+    @staticmethod
+    def _supports_trace_metadata_backfill_client(client: Any) -> bool:
+        """Return whether ``client`` exposes any known trace update surface."""
+        if callable(getattr(client, "update_trace", None)):
+            return True
+        if callable(getattr(client, "trace", None)):
+            return True
+        api = getattr(client, "api", None)
+        trace_api = getattr(api, "trace", None) if api is not None else None
+        if trace_api is not None and callable(getattr(trace_api, "update", None)):
+            return True
+        return False
+
+    def _fetch_existing_trace_metadata(self, client: Any, trace_id: str) -> dict[str, Any]:
+        """Read current trace metadata when the SDK/API exposes a getter."""
+        # Prefer first-class client helpers if available.
+        get_trace = getattr(client, "get_trace", None)
+        if callable(get_trace):
+            for kwargs in ({"trace_id": trace_id}, {"id": trace_id}):
+                try:
+                    payload = get_trace(**kwargs)
+                    return self._extract_trace_metadata_from_payload(payload)
+                except TypeError:
+                    continue
+                except Exception:
+                    break
+            try:
+                payload = get_trace(trace_id)
+                return self._extract_trace_metadata_from_payload(payload)
+            except Exception:
+                pass
+
+        # Fallback: Langfuse generated API client.
+        api = getattr(client, "api", None)
+        trace_api = getattr(api, "trace", None) if api is not None else None
+        get_fn = getattr(trace_api, "get", None) if trace_api is not None else None
+        if callable(get_fn):
+            for kwargs in ({"trace_id": trace_id}, {"id": trace_id}):
+                try:
+                    payload = get_fn(**kwargs)
+                    return self._extract_trace_metadata_from_payload(payload)
+                except TypeError:
+                    continue
+                except Exception:
+                    break
+            try:
+                payload = get_fn(trace_id)
+                return self._extract_trace_metadata_from_payload(payload)
+            except Exception:
+                pass
+        return {}
+
+    def backfill_trace_metadata(
+        self,
+        trace_id: str,
+        metadata: dict[str, Any],
+        *,
+        environment: str | None = None,
+    ) -> bool:
+        """Best-effort trace metadata merge/update by ``trace_id``.
+
+        Returns ``False`` when update surfaces are unavailable or an SDK call fails.
+        This method is intentionally non-raising for runtime safety.
+        """
+        if not self.is_enabled():
+            return False
+        tid = self._normalize_trace_id_for_score_api(trace_id)
+        if not tid:
+            logger.info("[LANGFUSE] Trace metadata backfill skipped: invalid trace_id %r", trace_id)
+            return False
+        client = self._get_client(environment or self._config.environment) or self.client
+        if client is None:
+            logger.info("[LANGFUSE] Trace metadata backfill skipped: no client for environment %r", environment)
+            return False
+        if not self._supports_trace_metadata_backfill_client(client):
+            return False
+
+        safe_patch = _langfuse_sanitize_value(metadata, max_str=4000, max_list=40, max_dict=40)
+        if not isinstance(safe_patch, dict):
+            safe_patch = {}
+
+        try:
+            existing = self._fetch_existing_trace_metadata(client, tid)
+            merged = {**existing, **safe_patch}
+
+            update_trace = getattr(client, "update_trace", None)
+            if callable(update_trace):
+                for kwargs in ({"trace_id": tid, "metadata": merged}, {"id": tid, "metadata": merged}):
+                    try:
+                        update_trace(**kwargs)
+                        return True
+                    except TypeError:
+                        continue
+                update_trace(tid, merged)
+                return True
+
+            trace_accessor = getattr(client, "trace", None)
+            if callable(trace_accessor):
+                try:
+                    trace_obj = trace_accessor(id=tid)
+                except TypeError:
+                    trace_obj = trace_accessor(tid)
+                update_fn = getattr(trace_obj, "update", None)
+                if callable(update_fn):
+                    update_fn(metadata=merged)
+                    return True
+
+            api = getattr(client, "api", None)
+            trace_api = getattr(api, "trace", None) if api is not None else None
+            trace_update = getattr(trace_api, "update", None) if trace_api is not None else None
+            if callable(trace_update):
+                for kwargs in ({"trace_id": tid, "metadata": merged}, {"id": tid, "metadata": merged}):
+                    try:
+                        trace_update(**kwargs)
+                        return True
+                    except TypeError:
+                        continue
+                trace_update(tid, metadata=merged)
+                return True
+        except Exception as e:
+            logger.warning(
+                "[LANGFUSE] Trace metadata backfill failed for trace_id=%r: %s",
+                tid,
+                _langfuse_sdk_exc_detail(e),
+                exc_info=True,
+            )
+            return False
+        return False
+
+    def backfill_trace_metadata_after_commit(
+        self,
+        *,
+        trace_id: str | None,
+        canonical_turn_id: str | None,
+        story_session_id: str | None,
+        turn_number: int | None,
+        environment: str | None,
+    ) -> dict[str, Any]:
+        """Attempt post-commit trace metadata backfill with explicit diagnostics."""
+        diag: dict[str, Any] = {
+            "attempted": True,
+            "supported": False,
+            "success": False,
+            "trace_id": str(trace_id or "").strip() or None,
+            "metadata_keys": [],
+            "reason": None,
+        }
+        if not self.is_enabled():
+            diag["reason"] = "adapter_not_enabled"
+            return diag
+        tid = self._normalize_trace_id_for_score_api(trace_id)
+        if not tid:
+            diag["reason"] = "missing_or_invalid_trace_id"
+            return diag
+        if not canonical_turn_id:
+            diag["reason"] = "missing_canonical_turn_id"
+            return diag
+
+        metadata: dict[str, Any] = {
+            "canonical_turn_id": str(canonical_turn_id),
+            "story_session_id": str(story_session_id or ""),
+            "turn_number": int(turn_number) if turn_number is not None else None,
+        }
+        if environment:
+            metadata["environment"] = str(environment)
+        metadata = {k: v for k, v in metadata.items() if v is not None and str(v).strip() != ""}
+        diag["metadata_keys"] = sorted(metadata.keys())
+
+        client = self._get_client(environment or self._config.environment) or self.client
+        if client is None:
+            diag["reason"] = "client_unavailable"
+            return diag
+        if not self._supports_trace_metadata_backfill_client(client):
+            diag["reason"] = "sdk_method_unavailable"
+            return diag
+
+        diag["supported"] = True
+        ok = self.backfill_trace_metadata(tid, metadata, environment=environment)
+        diag["success"] = bool(ok)
+        diag["trace_id"] = tid
+        if not ok:
+            diag["reason"] = "backfill_failed"
+        return diag
+
     def add_score(
         self,
         *,

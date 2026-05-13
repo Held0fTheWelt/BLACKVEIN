@@ -1064,6 +1064,79 @@ def test_world_engine_turn_execute_langfuse_correlates_player_input_hash(
     )
 
 
+def test_trace_metadata_can_be_updated_with_canonical_turn_id_after_commit(
+    client, internal_api_key, monkeypatch
+):
+    adapter = MagicMock()
+    adapter.is_ready = True
+    adapter.is_enabled.return_value = True
+    adapter.config = SimpleNamespace(environment="test")
+    adapter.get_active_span.return_value = None
+
+    create_root = MagicMock()
+    create_root.trace_id = "fedcba9876543210fedcba9876543210"
+    turn_root = MagicMock()
+    turn_root.trace_id = "fedcba9876543210fedcba9876543210"
+    adapter.start_span_in_trace.side_effect = [create_root, turn_root]
+    adapter.create_child_span.side_effect = lambda **kwargs: MagicMock()
+
+    backfill_calls: list[dict[str, Any]] = []
+
+    def _backfill(**kwargs: Any) -> dict[str, Any]:
+        backfill_calls.append(kwargs)
+        assert kwargs.get("canonical_turn_id"), "canonical_turn_id must exist before backfill"
+        return {
+            "attempted": True,
+            "supported": False,
+            "success": False,
+            "reason": "sdk_method_unavailable",
+        }
+
+    adapter.backfill_trace_metadata_after_commit.side_effect = _backfill
+
+    monkeypatch.setattr(
+        "app.observability.langfuse_adapter.LangfuseAdapter.get_instance",
+        lambda: adapter,
+    )
+
+    langfuse_trace_id = "fedcba9876543210fedcba9876543210"
+    response = client.post(
+        "/api/story/sessions",
+        headers={
+            "X-Play-Service-Key": internal_api_key,
+            "X-Langfuse-Trace-Id": langfuse_trace_id,
+        },
+        json={"module_id": "god_of_carnage", "runtime_projection": _goc_projection()},
+    )
+    assert response.status_code == 200
+    session_id = response.json()["session_id"]
+
+    turn_resp = client.post(
+        f"/api/story/sessions/{session_id}/turns",
+        headers={
+            "X-Play-Service-Key": internal_api_key,
+            "X-Langfuse-Trace-Id": langfuse_trace_id,
+        },
+        json={"player_input": "I stay calm and listen."},
+    )
+    assert turn_resp.status_code == 200
+    turn = turn_resp.json()["turn"]
+
+    matched = [
+        c
+        for c in backfill_calls
+        if c.get("story_session_id") == session_id
+        and c.get("turn_number") == turn.get("turn_number")
+    ]
+    assert matched, "expected a post-commit backfill attempt for the committed player turn"
+    call = matched[-1]
+    assert call["trace_id"] == langfuse_trace_id
+    assert call["canonical_turn_id"] == turn.get("canonical_turn_id")
+    assert call["story_session_id"] == session_id
+    assert call["turn_number"] == turn.get("turn_number")
+    assert adapter.add_score.called, "deterministic score emission must continue even if backfill fails"
+
+
 def test_ldss_opening_fallback_state_captures_primary_attempt_and_final_adapter():
     """ADR-0033 §13.10: LDSS fallback state preserves primary attempt evidence.
 

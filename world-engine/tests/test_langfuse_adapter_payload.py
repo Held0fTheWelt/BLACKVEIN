@@ -145,6 +145,147 @@ def test_add_score_create_score_emits_trace_and_observation_not_session() -> Non
     assert "session_id" not in cc_kw
 
 
+def test_trace_metadata_backfill_reports_unsupported_when_sdk_method_missing() -> None:
+    from types import SimpleNamespace
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    # No update surfaces exposed.
+    adapter._clients = {"development": object()}
+
+    diag = LangfuseAdapter.backfill_trace_metadata_after_commit(
+        adapter,
+        trace_id="0123456789abcdef0123456789abcdef",
+        canonical_turn_id="story-1:turn:1",
+        story_session_id="story-1",
+        turn_number=1,
+        environment="development",
+    )
+
+    assert diag["attempted"] is True
+    assert diag["supported"] is False
+    assert diag["success"] is False
+    assert diag["reason"] == "sdk_method_unavailable"
+
+
+def test_trace_metadata_backfill_merges_canonical_turn_metadata_when_supported() -> None:
+    from types import SimpleNamespace
+
+    class _FakeClient:
+        def __init__(self) -> None:
+            self.updated: dict[str, object] | None = None
+
+        def get_trace(self, **kwargs):
+            assert kwargs["trace_id"] == "0123456789abcdef0123456789abcdef"
+            return {"id": kwargs["trace_id"], "metadata": {"existing_key": "existing_value"}}
+
+        def update_trace(self, **kwargs):
+            self.updated = kwargs
+            return {"ok": True}
+
+    client = _FakeClient()
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    adapter._clients = {"development": client}
+
+    diag = LangfuseAdapter.backfill_trace_metadata_after_commit(
+        adapter,
+        trace_id="0123456789abcdef0123456789abcdef",
+        canonical_turn_id="story-1:turn:1",
+        story_session_id="story-1",
+        turn_number=1,
+        environment="development",
+    )
+
+    assert diag["supported"] is True
+    assert diag["success"] is True
+    assert client.updated is not None
+    merged_md = client.updated["metadata"]
+    assert isinstance(merged_md, dict)
+    assert merged_md["existing_key"] == "existing_value"
+    assert merged_md["canonical_turn_id"] == "story-1:turn:1"
+    assert merged_md["story_session_id"] == "story-1"
+    assert merged_md["turn_number"] == 1
+
+
+def test_trace_metadata_backfill_does_not_raise_on_langfuse_error() -> None:
+    from types import SimpleNamespace
+
+    class _ExplodingClient:
+        def update_trace(self, **kwargs):
+            raise RuntimeError("simulated_update_failure")
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    adapter._clients = {"development": _ExplodingClient()}
+
+    diag = LangfuseAdapter.backfill_trace_metadata_after_commit(
+        adapter,
+        trace_id="0123456789abcdef0123456789abcdef",
+        canonical_turn_id="story-1:turn:2",
+        story_session_id="story-1",
+        turn_number=2,
+        environment="development",
+    )
+
+    assert diag["attempted"] is True
+    assert diag["supported"] is True
+    assert diag["success"] is False
+    assert diag["reason"] == "backfill_failed"
+
+
+def test_trace_metadata_backfill_does_not_change_score_scope_normalization() -> None:
+    from types import SimpleNamespace
+
+    baseline, baseline_scope = LangfuseAdapter._normalize_langfuse_create_score_scope_kwargs(
+        {
+            "name": "gate_score",
+            "value": 1.0,
+            "trace_id": "a" * 32,
+            "observation_id": "obs-1",
+            "session_id": "sess-1",
+        }
+    )
+
+    adapter = LangfuseAdapter.__new__(LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    adapter._clients = {"development": object()}
+    _ = LangfuseAdapter.backfill_trace_metadata_after_commit(
+        adapter,
+        trace_id="a" * 32,
+        canonical_turn_id="story-1:turn:3",
+        story_session_id="story-1",
+        turn_number=3,
+        environment="development",
+    )
+
+    after, after_scope = LangfuseAdapter._normalize_langfuse_create_score_scope_kwargs(
+        {
+            "name": "gate_score",
+            "value": 1.0,
+            "trace_id": "a" * 32,
+            "observation_id": "obs-1",
+            "session_id": "sess-1",
+        }
+    )
+
+    assert baseline_scope == "observation"
+    assert after_scope == baseline_scope
+    assert after == baseline
+
+
 def test_wos_langfuse_score_scope_debug_emits_info_line(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     monkeypatch.setenv("WOS_LANGFUSE_SCORE_DEBUG", "1")
     caplog.set_level(logging.INFO, logger="app.observability.langfuse_adapter")

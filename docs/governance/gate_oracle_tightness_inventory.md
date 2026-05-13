@@ -201,4 +201,60 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 
 ---
 
-*Inventory living document: matrix rows §4 reflect latest gate oracles; refactor waves documented in §9.*
+## 10. Staging provider readiness and credential discipline (repair / audit prompts)
+
+Use this section for **staging verification**, **live Langfuse gates**, and **repair/audit prompts** when a real provider call is required. It replaces ad-hoc instructions such as “set `OPENAI_API_KEY` manually” in chat or runbooks.
+
+### Required behavior
+
+1. **Fetch** provider/runtime credentials only through the **approved backend path** (Operational Governance provider store, internal runtime credential handoff). Runtime code resolves secrets via backend (`GET /api/v1/internal/provider-credential/<provider_id>` with internal auth), not via ad-hoc `.env` assumptions in agent instructions. Where tooling exposes the same contract, use the **repo MCP → backend** credential path instead of asking operators to paste keys.
+2. **Verify** OpenAI (or selected provider) readiness using **boolean / fingerprint / health** signals only — never print, log, summarize, or embed secret material in reports, fixtures, docs, test output, Langfuse metadata, or screenshots.
+3. **Run** the staging session with **real** model credentials **only when** the readiness check confirms they are available; otherwise classify as `provider_credential_missing` and keep LDSS / fallback posture **degraded** (do not assert live success).
+4. If credentials are **missing or invalid**, the audit must keep **`non_mock_generation_pass=0`**, **`fallback_absent=0`**, and **`live_opening_contract_pass=0`**. **`non_mock_generation_pass` may only become `1.0` when a real upstream provider call succeeds** (not when a mock path or oracle bypass would pass).
+
+### Operator and agent constraints
+
+- **Do not** ask users to paste API keys into chat or tickets.
+- **Do not** write secrets into fixtures, documentation, test output, or Langfuse fields.
+- **Only** report non-secret readiness fields (see below).
+
+### Allowed report fields (example)
+
+```json
+{
+  "openai_api_key_present": true,
+  "credential_source": "backend_internal_credentials",
+  "provider_ready": true,
+  "selected_provider": "openai",
+  "selected_model": "gpt-4.1-mini",
+  "secret_exposed": false
+}
+```
+
+(`selected_model` should name the configured model id string; omit or redact if your surface does not expose it safely.)
+
+### Forbidden report fields (non-exhaustive)
+
+```json
+{
+  "api_key": "...",
+  "authorization_header": "...",
+  "secret_value": "..."
+}
+```
+
+### Prompt line to use in repair / audit checklists
+
+Replace:
+
+```text
+Set OPENAI_API_KEY manually
+```
+
+With:
+
+```text
+Use MCP/backend credential retrieval. Do not expose secrets.
+```
+
+*Inventory living document: matrix rows §4 reflect latest gate oracles; refactor waves documented in §9; staging credential rules in §10.*

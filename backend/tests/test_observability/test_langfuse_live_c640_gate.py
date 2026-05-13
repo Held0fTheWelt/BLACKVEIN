@@ -11,8 +11,10 @@ Required environment (in addition to ``RUN_LANGFUSE_LIVE=1``):
 - ``LANGFUSE_BASE_URL`` (optional; default ``https://cloud.langfuse.com``)
 - ``LANGFUSE_LIVE_BACKEND_URL`` (optional; default ``http://127.0.0.1:8000``)
 
-The stack must expose a working World-Engine-backed turn path and real model
-credentials (e.g. ``OPENAI_API_KEY`` in compose) so gates stay green.
+The stack must expose a working World-Engine-backed turn path and **backend-resolved**
+provider credentials (Operational Governance store / internal provider-credential
+handoff to the engine). Do not rely on ad-hoc manual key pastes in agent prompts;
+see ``docs/governance/gate_oracle_tightness_inventory.md`` §10.
 """
 
 from __future__ import annotations
@@ -301,7 +303,8 @@ def test_langfuse_live_c640_trace_evidence_gate():
 
     assert turn.status_code == 200, (
         f"Expected 200 from live turn; got {turn.status_code}: {turn.text}. "
-        "Check World-Engine, OPENAI_API_KEY, and Langfuse wiring."
+        "Check World-Engine, backend provider credential readiness (no secrets in logs), "
+        "and Langfuse wiring."
     )
     payload = turn.json()
     lf_trace_id = payload.get("langfuse_trace_id") or payload.get("trace_id")

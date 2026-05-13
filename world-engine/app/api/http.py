@@ -660,6 +660,28 @@ def create_story_session(
                     level=level,
                     status_message=status_message,
                 )
+            if adapter and adapter.is_enabled() and hasattr(adapter, "backfill_trace_metadata_after_commit"):
+                opening_turn_number = (
+                    opening_turn.get("turn_number")
+                    if isinstance(opening_turn, dict)
+                    else session.turn_counter
+                )
+                opening_trace_ref = (
+                    getattr(root_span, "trace_id", None)
+                    or langfuse_trace_id
+                )
+                backfill_diag = adapter.backfill_trace_metadata_after_commit(
+                    trace_id=opening_trace_ref,
+                    canonical_turn_id=(
+                        opening_turn.get("canonical_turn_id")
+                        if isinstance(opening_turn, dict)
+                        else None
+                    ),
+                    story_session_id=session.session_id,
+                    turn_number=int(opening_turn_number) if opening_turn_number is not None else None,
+                    environment=lf_tracing_env,
+                )
+                logger.info("[HTTP] Langfuse trace metadata backfill (opening): %s", backfill_diag)
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
@@ -851,6 +873,19 @@ def execute_story_turn(
                     status_message=status_message,
                 )
                 logger.info(f"[HTTP] Root span updated")
+            if adapter and adapter.is_enabled() and hasattr(adapter, "backfill_trace_metadata_after_commit"):
+                turn_trace_ref = (
+                    getattr(root_span, "trace_id", None)
+                    or langfuse_trace_id
+                )
+                backfill_diag = adapter.backfill_trace_metadata_after_commit(
+                    trace_id=turn_trace_ref,
+                    canonical_turn_id=turn.get("canonical_turn_id") if isinstance(turn, dict) else None,
+                    story_session_id=session_id,
+                    turn_number=turn_number,
+                    environment=lf_tracing_env,
+                )
+                logger.info("[HTTP] Langfuse trace metadata backfill (turn): %s", backfill_diag)
 
         return {"session_id": session_id, "turn": turn}
 
