@@ -24,11 +24,11 @@ strings:
     de: "{name} sagt: \u201e{raw}\u201c"
     en: '{name} says: "{raw}"'
   player_outcome.action_display:
-    de: "{name} f\u00fchrt aus: \u201e{raw}\u201c"
-    en: '{name} acts: "{raw}"'
+    de: "{name} \u2014 {raw}"
+    en: "{name} \u2014 {raw}"
   player_outcome.mixed_display:
-    de: "{name} meint: \u201e{raw}\u201c"
-    en: '{name} says: "{raw}"'
+    de: "{name} \u2014 {raw}"
+    en: "{name} \u2014 {raw}"
   player_outcome.mixed_stand_speech:
     de: "{name} steht auf und sagt: \u201e{speech}\u201c"
     en: '{name} stands up and says: "{speech}"'
@@ -76,6 +76,53 @@ strings:
   action_resolution.blocked.generic:
     de: "Das geht hier gerade nicht."
     en: "That is not possible here right now."
+  # Movement outcome surfaces (PLAYER-INPUT-ACTION-SEMANTICS-ALGORITHM-01)
+  player_outcome.movement_sit_down:
+    de: "{name} setzt sich."
+    en: "{name} sits down."
+  player_outcome.movement_stand_up:
+    de: "{name} steht auf."
+    en: "{name} stands up."
+  # Social gesture surfaces
+  player_outcome.social_action_greet:
+    de: "{name} begrüßt."
+    en: "{name} offers a greeting."
+  player_outcome.social_action_apologize:
+    de: "{name} entschuldigt sich."
+    en: "{name} offers an apology."
+  player_outcome.social_action_thank:
+    de: "{name} bedankt sich."
+    en: "{name} expresses thanks."
+  # Object interaction surfaces
+  player_outcome.object_take:
+    de: "{name} greift nach etwas."
+    en: "{name} reaches for something."
+  player_outcome.object_open:
+    de: "{name} öffnet etwas."
+    en: "{name} opens something."
+  player_outcome.object_put:
+    de: "{name} stellt etwas ab."
+    en: "{name} sets something down."
+  # Physical action surface
+  player_outcome.physical_action_attempt:
+    de: "{name} versucht eine körperliche Handlung."
+    en: "{name} attempts a physical action."
+  # Ambiguous / unresolved
+  player_outcome.ambiguous_action:
+    de: "{name} macht eine unklare Geste."
+    en: "{name} makes an uncertain gesture."
+  # Mixed action + speech
+  player_outcome.mixed_action_ask:
+    de: "{name} geht und fragt nach."
+    en: "{name} moves and inquires."
+  # Perception surfaces
+  player_outcome.perception_listen:
+    de: "{name} lauscht aufmerksam."
+    en: "{name} listens carefully."
+  # Wait / observe
+  player_outcome.wait_or_observe:
+    de: "{name} wartet und beobachtet."
+    en: "{name} waits and observes."
   action_resolution.graph_failure:
     de: "Der Zug konnte technisch nicht vollständig geladen werden. Bitte versuche es erneut."
     en: "This turn could not be fully loaded. Please try again."

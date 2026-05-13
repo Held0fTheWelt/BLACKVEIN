@@ -1589,7 +1589,9 @@ def _goc_player_attributed_visible_text(
     lang = str(session_output_language or "de").strip().lower()[:2] or "de"
     name = _goc_shell_actor_firstname(human_actor_id)
     interp = interpreted_input if isinstance(interpreted_input, dict) else {}
-    ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
+    # Prefer fine-grained player_input_kind (set by classification rules) over coarse input_kind.
+    pik_fine = str(interp.get("player_input_kind") or "").strip().lower()
+    ik = pik_fine or str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
     pk = str(interp.get("projection_key") or "").strip() or None
     pc = interp.get("projection_captures") if isinstance(interp.get("projection_captures"), dict) else {}
     line = build_player_attributed_visible_line(
@@ -1858,7 +1860,14 @@ def _build_langfuse_path_summary(
         else ""
     )
     _player_input_kind = str(interpreted_input.get("player_input_kind") or "").strip().lower()
-    _allowed_player_input_kinds = {"action", "perception", "speech", "question", "mixed", "unclear", "meta"}
+    _allowed_player_input_kinds = {
+        "action", "perception", "speech", "question", "mixed", "unclear", "meta",
+        # Extended taxonomy (PLAYER-INPUT-ACTION-SEMANTICS-ALGORITHM-01)
+        "movement_action", "perception_action", "object_interaction",
+        "social_nonverbal_action", "social_speech_action",
+        "physical_action", "hostile_action", "environment_interaction",
+        "wait_or_observe", "mixed_action_speech", "ambiguous",
+    }
     _semantic_move_kind = str(semantic_move_record.get("move_type") or "").strip()
     _intent_surface_contract_pass = True
     if _player_input_kind:
@@ -4199,13 +4208,16 @@ def _player_input_scene_blocks_for_story_window(
         canon = str(canonicalize_goc_actor_id(hid) or hid).strip()
         name = _goc_shell_actor_firstname(canon)
         interp = interpreted_input if isinstance(interpreted_input, dict) else {}
-        ik = str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
-        if ik in ("intent_only", "ambiguous", "reaction"):
+        # Prefer fine-grained player_input_kind (from rules) over coarse input_kind.
+        pik_fine = str(interp.get("player_input_kind") or "").strip().lower()
+        ik = pik_fine or str(interp.get("input_kind") or interp.get("kind") or "speech").strip().lower()
+        # intent_only / reaction are verbal — keep as speech. ambiguous must NOT become speech.
+        if ik in ("intent_only", "reaction"):
             ik = "speech"
         verbatim_line = text
         outcome_line: str
         pair = _goc_greeting_imperative_visible_pair(raw=text, player_shell_name=name, lang=exp_lang)
-        if pair and ik in {"speech", "action"}:
+        if pair and ik in {"speech", "action", "social_nonverbal_action"}:
             verbatim_line, outcome_line = pair[0], pair[1]
         else:
             _, outcome_line = _goc_player_attributed_visible_text(

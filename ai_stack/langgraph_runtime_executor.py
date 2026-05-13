@@ -1570,9 +1570,10 @@ class RuntimeTurnGraphExecutor:
             "mixed": "mixed",
             "reaction": "speech",
             "intent_only": "speech",
-            "ambiguous": "speech",
+            "ambiguous": "action",   # ambiguous inputs route through action path, not speech
             "explicit_command": "speech",
             "meta": "speech",
+            "unclear": "action",
         }
         intent_fields: dict[str, Any] = {
             "source": "player_input",
@@ -1607,14 +1608,27 @@ class RuntimeTurnGraphExecutor:
                 intent_fields["player_speech_committed"] = bool(hit.get("player_speech_committed"))
                 intent_fields["narrator_response_expected"] = bool(hit.get("narrator_response_expected"))
                 intent_fields["npc_response_expected"] = bool(hit.get("npc_response_expected"))
-                if pik == "speech":
-                    json_kind = "speech"
-                elif pik == "mixed":
-                    json_kind = "mixed"
-                elif pik in ("action", "perception"):
-                    json_kind = "action"
-                else:
-                    json_kind = kind_raw
+                # Map fine-grained semantic kinds → coarse LangGraph kind.
+                _PIK_TO_JSON_KIND: dict[str, str] = {
+                    "speech": "speech",
+                    "question": "speech",
+                    "social_speech_action": "speech",
+                    "mixed": "mixed",
+                    "mixed_action_speech": "mixed",
+                    "action": "action",
+                    "perception": "action",
+                    "movement_action": "action",
+                    "perception_action": "action",
+                    "object_interaction": "action",
+                    "social_nonverbal_action": "action",
+                    "physical_action": "action",
+                    "hostile_action": "action",
+                    "wait_or_observe": "action",
+                }
+                json_kind = _PIK_TO_JSON_KIND.get(pik, kind_raw)
+                # Also propagate semantic fields from rules hit
+                intent_fields["semantic_category"] = hit.get("semantic_category") or pik
+                intent_fields["speech_projection_allowed"] = bool(hit.get("speech_projection_allowed"))
                 interp_dict["kind"] = json_kind
                 kind_raw = json_kind
             else:
@@ -1624,10 +1638,13 @@ class RuntimeTurnGraphExecutor:
                     "mixed": "mixed",
                     "reaction": "speech",
                     "intent_only": "speech",
+                    # ambiguous social inputs (e.g. "I press someone") stay on full pipeline — keep as speech
                     "ambiguous": "speech",
                 }
                 pik = imap.get(kind_raw, "speech")
                 intent_fields["player_input_kind"] = pik
+                intent_fields["semantic_category"] = pik
+                intent_fields["speech_projection_allowed"] = pik in ("speech", "question", "social_speech_action")
                 intent_fields["projection_key"] = None
                 intent_fields["projection_captures"] = {}
                 flags = default_player_intent_commit_flags(pik)

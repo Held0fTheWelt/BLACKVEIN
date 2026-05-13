@@ -248,6 +248,12 @@ def _normalize_room_direction_fragment(phrase: str, *, lang: str) -> str:
     return p[0].upper() + p[1:] if len(p) > 1 else p.upper()
 
 
+# Kinds for which rendering raw input as quoted speech is permitted.
+_SPEECH_PROJECTION_KINDS: frozenset[str] = frozenset(
+    {"speech", "question", "social_speech_action"}
+)
+
+
 def build_player_attributed_visible_line(
     *,
     name: str,
@@ -281,17 +287,30 @@ def build_player_attributed_visible_line(
             **merged,
         )
     ik = str(input_kind or "speech").strip().lower()
-    if ik in ("intent_only", "ambiguous", "reaction"):
+    # intent_only / reaction are verbal-intent kinds — keep as speech.
+    # ambiguous must NOT collapse to speech; it needs its own non-dialogue surface.
+    if ik in ("intent_only", "reaction"):
         ik = "speech"
     is_question = raw_s.rstrip().endswith("?")
-    if ik == "action":
+    if ik in _SPEECH_PROJECTION_KINDS:
+        key = "player_outcome.speech_question" if (is_question or ik == "question") else "player_outcome.speech_statement"
+    elif ik in ("action", "perception", "movement_action", "perception_action"):
         key = "player_outcome.action_display"
     elif ik == "mixed":
         key = "player_outcome.mixed_display"
-    elif is_question:
-        key = "player_outcome.speech_question"
+    elif ik == "object_interaction":
+        key = "player_outcome.object_take"
+    elif ik in ("social_nonverbal_action",):
+        key = "player_outcome.action_display"
+    elif ik in ("physical_action", "hostile_action"):
+        key = "player_outcome.physical_action_attempt"
+    elif ik in ("wait_or_observe",):
+        key = "player_outcome.wait_or_observe"
+    elif ik == "ambiguous":
+        key = "player_outcome.ambiguous_action"
     else:
-        key = "player_outcome.speech_statement"
+        # unclear / unknown / meta — use action_display (no dialogue quotes)
+        key = "player_outcome.action_display"
     return resolve_string(module_id, key, lang, content_modules_root=content_modules_root, name=name, raw=raw_s)
 
 
@@ -323,39 +342,93 @@ def default_player_intent_commit_flags(player_input_kind: str) -> dict[str, bool
 
 def _intent_defaults_from_kind(player_input_kind: str) -> dict[str, Any]:
     k = (player_input_kind or "").strip().lower()
-    if k == "action":
+    if k in ("action", "movement_action"):
         return {
             "player_action_committed": True,
             "player_speech_committed": False,
             "narrator_response_expected": True,
             "npc_response_expected": False,
         }
-    if k == "perception":
+    if k in ("perception", "perception_action"):
         return {
             "player_action_committed": True,
             "player_speech_committed": False,
             "narrator_response_expected": True,
             "npc_response_expected": False,
         }
-    if k == "mixed":
+    if k in ("mixed", "mixed_action_speech"):
         return {
             "player_action_committed": True,
             "player_speech_committed": True,
             "narrator_response_expected": True,
             "npc_response_expected": True,
         }
-    if k in ("speech", "meta"):
+    if k in ("speech", "question", "meta"):
         return {
             "player_action_committed": False,
             "player_speech_committed": True,
             "narrator_response_expected": False,
             "npc_response_expected": True,
         }
+    if k == "social_speech_action":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": True,
+            "narrator_response_expected": False,
+            "npc_response_expected": True,
+        }
+    if k == "social_nonverbal_action":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": False,
+            "npc_response_expected": True,
+        }
+    if k == "object_interaction":
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
+    if k in ("physical_action", "hostile_action"):
+        return {
+            "player_action_committed": True,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
+    if k == "wait_or_observe":
+        return {
+            "player_action_committed": False,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
+    if k == "ambiguous":
+        return {
+            "player_action_committed": False,
+            "player_speech_committed": False,
+            "narrator_response_expected": True,
+            "npc_response_expected": False,
+        }
     return {
         "player_action_committed": False,
         "player_speech_committed": False,
         "narrator_response_expected": True,
         "npc_response_expected": True,
+    }
+
+
+def _no_rule_result(rule_id: str) -> dict[str, Any]:
+    return {
+        "player_input_kind": "unclear",
+        "semantic_category": "unclear",
+        "speech_projection_allowed": False,
+        "deterministic_intent_rule": rule_id,
+        "projection_key": None,
+        "captures": {},
+        **_intent_defaults_from_kind("unclear"),
     }
 
 
@@ -371,23 +444,11 @@ def classify_player_input_from_rules(
     rules = _load_player_rules_cached(str(_player_rules_path(module_id, root)))
     cls = rules.get("classification_rules")
     if not isinstance(cls, list) or not cls:
-        return {
-            "player_input_kind": "unclear",
-            "deterministic_intent_rule": "no_rules",
-            "projection_key": None,
-            "captures": {},
-            **_intent_defaults_from_kind("unclear"),
-        }
+        return _no_rule_result("no_rules")
     lg = (lang_hint or "de").strip().lower()[:2] or "de"
     text = str(raw_text or "").strip()
     if not text:
-        return {
-            "player_input_kind": "unclear",
-            "deterministic_intent_rule": "no_rule_match",
-            "projection_key": None,
-            "captures": {},
-            **_intent_defaults_from_kind("unclear"),
-        }
+        return _no_rule_result("no_rule_match")
     for row in cls:
         if not isinstance(row, dict):
             continue
@@ -424,8 +485,10 @@ def classify_player_input_from_rules(
         rid = str(row.get("id") or "matched_rule")
         pik = str(then.get("player_input_kind") or "unclear").strip().lower()
         pk = str(then.get("projection_key") or "").strip() or None
-        out = {
+        out: dict[str, Any] = {
             "player_input_kind": pik,
+            "semantic_category": pik,
+            "speech_projection_allowed": pik in _SPEECH_PROJECTION_KINDS,
             "deterministic_intent_rule": rid,
             "projection_key": pk,
             "captures": captures,
@@ -442,10 +505,4 @@ def classify_player_input_from_rules(
                 d = _intent_defaults_from_kind(pik)
                 out[fld] = d[fld]
         return out
-    return {
-        "player_input_kind": "unclear",
-        "deterministic_intent_rule": "no_rule_match",
-        "projection_key": None,
-        "captures": {},
-        **_intent_defaults_from_kind("unclear"),
-    }
+    return _no_rule_result("no_rule_match")

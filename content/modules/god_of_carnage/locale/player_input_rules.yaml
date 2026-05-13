@@ -34,6 +34,30 @@ classification_rules:
       player_speech_committed: true
       narrator_response_expected: false
       npc_response_expected: true
+  # German: mixed — go + ask/call (must precede de_movement_gehe)
+  - id: de_mixed_gehe_und_frage
+    when_lang: de
+    pattern: "(?is)^ich\\s+gehe\\b.*?\\s+und\\s+(?:frage|rufe)\\b.*$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_action_ask
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
+      npc_response_expected: true
+  # German: mixed — generic action + say: (must precede specific action rules)
+  - id: de_mixed_action_und_sage
+    when_lang: de
+    pattern: "(?is)^ich\\s+\\w+\\b.*?\\s+und\\s+sage:\\s*(.+)$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_display
+      capture_groups:
+        speech: 1
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
+      npc_response_expected: true
   - id: de_movement_gehe
     when_lang: de
     pattern: "(?is)^(?:ich\\s+)?gehe\\s+(.+)$"
@@ -66,6 +90,181 @@ classification_rules:
       player_speech_committed: false
       narrator_response_expected: true
       npc_response_expected: false
+  # German: sit down (imperative or first-person)
+  - id: de_movement_setz_dich
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?setz(?:e)?\\s+(?:dich|mich)\\b.*$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.movement_sit_down
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: stand up — negative lookahead prevents matching "stehe auf und sage:"
+  - id: de_movement_steh_auf_action
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?stehe?\\s+auf\\b(?!\\s+und\\s+sage).*$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.movement_stand_up
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: perception — listen at a surface
+  - id: de_perception_horche
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:hör(?:che?|e)?|lausch(?:e|t|en)?)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_listen
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: perception — examine/observe something
+  - id: de_perception_betrachte
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:betracht(?:e|et|en)?|beobacht(?:e|et|en)?|untersuch(?:e|t|en)?)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_generic
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: object interaction — take/grab
+  - id: de_object_nimm
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:nehm(?:e|t)?|nimm)\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_take
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: object interaction — open
+  - id: de_object_oeffne
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:öffn(?:e|est|et|en)?|mach(?:e|t|en)?\\s+auf)\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_open
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: object interaction — place / put down / lay
+  - id: de_object_stell_ab
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?stell(?:e)?\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_put
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: de_object_lege
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?leg(?:e|t|en)?\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_put
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: social gestures — apologize
+  - id: de_social_entschuldige
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?entschuldig(?:e|t|en)?(?:\\s+(?:mich|dich|uns))?\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_apologize
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # German: social gestures — express thanks
+  - id: de_social_bedanke
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?bedank(?:e|t|en)?(?:\\s+(?:mich|dich|uns))?\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_thank
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # German: social gestures — greet (imperative and first-person; must not be in classification_rules duplicate of greeting_imperative)
+  - id: de_social_begrüsse
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:begr[üu](?:ss|\\u00df)e?|gr[üu](?:ss|\\u00df)e?)\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_greet
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # German: physical actions — push/shove
+  - id: de_physical_schubse
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?schubs(?:e|t|en)?\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: physical actions — hit/strike
+  - id: de_physical_schlage
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?schlag(?:e|st|t|en)?\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: physical actions — grab/attack
+  - id: de_physical_greife
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?greif(?:e|st|t|en)?\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: physical actions — throw
+  - id: de_physical_wirf
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:wirf(?:st|t)?|werf(?:e|en)?)\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # German: wait / observe without acting
+  - id: de_wait_or_observe
+    when_lang: de
+    pattern: "(?is)^(?:ich\\s+)?(?:warte?|beobacht(?:e|et|en)?)\\b(?!\\s+\\w+\\s+und).*$"
+    then:
+      player_input_kind: wait_or_observe
+      projection_key: player_outcome.wait_or_observe
+      player_action_committed: false
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
   - id: en_mixed_stand_and_say
     when_lang: en
     pattern: "(?is)^i\\s+stand\\s+up\\s+and\\s+say:\\s*(.+)$"
@@ -89,6 +288,30 @@ classification_rules:
       player_action_committed: false
       player_speech_committed: true
       narrator_response_expected: false
+      npc_response_expected: true
+  # English: mixed — go somewhere and ask (must precede en_movement_go which is a superset)
+  - id: en_mixed_go_and_ask
+    when_lang: en
+    pattern: "(?is)^i\\s+go\\b.*?\\s+and\\s+ask\\b.*$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_action_ask
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
+      npc_response_expected: true
+  # English: mixed — generic action + say: (must precede specific action rules)
+  - id: en_mixed_action_and_say
+    when_lang: en
+    pattern: "(?is)^i\\s+\\w+\\b.*?\\s+and\\s+say:\\s*(.+)$"
+    then:
+      player_input_kind: mixed
+      projection_key: player_outcome.mixed_display
+      capture_groups:
+        speech: 1
+      player_action_committed: true
+      player_speech_committed: true
+      narrator_response_expected: true
       npc_response_expected: true
   - id: en_movement_go
     when_lang: en
@@ -122,6 +345,169 @@ classification_rules:
       player_speech_committed: false
       narrator_response_expected: true
       npc_response_expected: false
+  # English: listen/observe
+  - id: en_perception_listen
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?listen\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_listen
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_perception_examine
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:examine|inspect|study|observe)\\b.*$"
+    then:
+      player_input_kind: perception
+      projection_key: player_outcome.perception_generic
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: stand up / sit down — before en_movement_go to avoid swallowing "go sit down"
+  - id: en_movement_stand_up
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:stand\\s+up|get\\s+up)\\b.*$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.movement_stand_up
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  - id: en_movement_sit_down
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:sit\\s+down|sit\\b).*$"
+    then:
+      player_input_kind: action
+      projection_key: player_outcome.movement_sit_down
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: object interaction — take/grab
+  - id: en_object_take
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:take|grab|pick\\s+up)\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_take
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: object interaction — open
+  - id: en_object_open
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?open\\b.*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_open
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: object interaction — place/put/set down
+  - id: en_object_put
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:put\\b|place\\b|set\\b).*$"
+    then:
+      player_input_kind: object_interaction
+      projection_key: player_outcome.object_put
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: social gestures — greet
+  - id: en_social_greet
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?greet\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_greet
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # English: social gestures — apologize
+  - id: en_social_apologize
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:apologize|apologise)\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_apologize
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # English: social gestures — express thanks
+  - id: en_social_thank
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?thank\\b.*$"
+    then:
+      player_input_kind: social_nonverbal_action
+      projection_key: player_outcome.social_action_thank
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: false
+      npc_response_expected: true
+  # English: physical actions — push/shove
+  - id: en_physical_push
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:push|shove)\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: physical actions — hit/punch/strike
+  - id: en_physical_hit
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:hit|punch|strike|slap)\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: physical actions — attack/assault
+  - id: en_physical_attack
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:attack|assault)\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: physical actions — throw
+  - id: en_physical_throw
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?throw\\b.*$"
+    then:
+      player_input_kind: physical_action
+      projection_key: player_outcome.physical_action_attempt
+      player_action_committed: true
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
+  # English: wait / observe without acting
+  - id: en_wait_or_observe
+    when_lang: en
+    pattern: "(?is)^(?:i\\s+)?(?:wait|watch\\s+and\\s+wait|hold\\s+back|stand\\s+back)\\b.*$"
+    then:
+      player_input_kind: wait_or_observe
+      projection_key: player_outcome.wait_or_observe
+      player_action_committed: false
+      player_speech_committed: false
+      narrator_response_expected: true
+      npc_response_expected: false
   # Questions about *seeing* at/through the window are perception intent, not in-scene quoted dialogue.
   - id: de_perception_question_window
     when_lang: de
@@ -143,6 +529,16 @@ classification_rules:
       player_speech_committed: false
       narrator_response_expected: true
       npc_response_expected: false
+  # Text wrapped in literal ASCII double quotes is direct speech regardless of language.
+  - id: any_lang_literal_quoted_speech
+    pattern: "(?s)^\".*\"\\s*$"
+    then:
+      player_input_kind: speech
+      projection_key: player_outcome.speech_statement
+      player_action_committed: false
+      player_speech_committed: true
+      narrator_response_expected: false
+      npc_response_expected: true
   - id: any_lang_question_speech
     pattern: "(?s).+\\?\\s*$"
     then:
