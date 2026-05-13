@@ -804,6 +804,7 @@ def _langfuse_query_traces(
     execution_tier: str | None = None,
     trace_name: str | None = None,
     trace_names: tuple[str, ...] | None = None,
+    environment: str | None = None,
 ) -> list[dict[str, Any]]:
     payload = _langfuse_public_get_json(
         endpoint="/api/public/traces",
@@ -815,6 +816,7 @@ def _langfuse_query_traces(
     if not isinstance(rows, list):
         return []
     filtered: list[dict[str, Any]] = []
+    env_target = str(environment or "").strip().lower() or None
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -837,7 +839,19 @@ def _langfuse_query_traces(
         elif trace_names:
             allowed_names = {str(name).strip() for name in trace_names if str(name).strip()}
             name_ok = str(row.get("name") or "").strip() in allowed_names
-        if origin_ok and canonical_ok and tier_ok and name_ok:
+        env_ok = True
+        if env_target is not None:
+            # GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.4: staging environment filter so MCP
+            # discovery does not silently drop staging traces. Match either the top-level
+            # ``environment`` field Langfuse exposes or the metadata mirror written by
+            # ``_align_langfuse_otel_resource_environment`` / world-engine adapter.
+            candidates = (
+                str(row.get("environment") or "").strip().lower(),
+                str(meta.get("environment") or "").strip().lower(),
+                str(meta.get("langfuse_environment") or "").strip().lower(),
+            )
+            env_ok = any(value == env_target for value in candidates if value)
+        if origin_ok and canonical_ok and tier_ok and name_ok and env_ok:
             filtered.append(row)
     return filtered
 
@@ -1059,6 +1073,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
         )
         exec_tier = arguments.get("execution_tier")
         trace_nm = arguments.get("trace_name")
+        env_arg = arguments.get("environment")
         rows = _langfuse_query_traces(
             limit=limit,
             trace_origin=str(trace_origin) if isinstance(trace_origin, str) else None,
@@ -1068,6 +1083,9 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             else None,
             trace_name=str(trace_nm).strip()
             if isinstance(trace_nm, str) and str(trace_nm).strip()
+            else None,
+            environment=str(env_arg).strip()
+            if isinstance(env_arg, str) and str(env_arg).strip()
             else None,
         )
         if rows and isinstance(rows[0], dict) and rows[0].get("error"):

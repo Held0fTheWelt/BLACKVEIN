@@ -150,6 +150,58 @@ def test_query_langfuse_traces_filters_canonical_player_flow_false():
     assert out["traces"][0]["metadata"]["canonical_player_flow"] is False
 
 
+def test_langfuse_query_traces_filters_by_staging_environment():
+    """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.4: MCP discovery must accept ``environment``
+    so staging traces are findable when runtime is no longer ``live``."""
+    from tools.mcp_server import tools_registry_handlers_langfuse_verify as mod
+
+    rows = {
+        "data": [
+            {
+                "id": "lf-staging-be",
+                "name": "backend.turn.execute",
+                "environment": "staging",
+                "metadata": {"trace_origin": "live_ui", "execution_tier": "staging", "canonical_turn_id": "ct-1"},
+            },
+            {
+                "id": "lf-prod-be",
+                "name": "backend.turn.execute",
+                "environment": "production",
+                "metadata": {"trace_origin": "live_ui", "execution_tier": "live", "canonical_turn_id": "ct-2"},
+            },
+            {
+                "id": "lf-staging-we",
+                "name": "world-engine.turn.execute",
+                "metadata": {"environment": "staging", "trace_origin": "live_ui", "canonical_turn_id": "ct-3"},
+            },
+        ]
+    }
+    with patch.object(mod, "_langfuse_public_get_json", return_value=rows):
+        filtered = mod._langfuse_query_traces(
+            limit=10,
+            trace_origin=None,
+            canonical_player_flow=None,
+            environment="staging",
+        )
+    ids = sorted(row.get("id") for row in filtered)
+    assert ids == ["lf-staging-be", "lf-staging-we"], (
+        f"expected only staging traces, got: {ids}"
+    )
+
+
+def test_query_langfuse_traces_handler_forwards_environment_argument():
+    """The MCP-exposed query_langfuse_traces handler must forward ``environment`` to
+    the underlying query so staging is discoverable via tool args."""
+    from tools.mcp_server import tools_registry_handlers_langfuse_verify as mod
+
+    registry = _registry()
+    tool = registry.get("query_langfuse_traces")
+    with patch.object(mod, "_langfuse_query_traces", return_value=[]) as qm:
+        tool.handler({"environment": "staging", "limit": 5})
+    qm.assert_called_once()
+    assert qm.call_args.kwargs.get("environment") == "staging"
+
+
 # ---------------------------------------------------------------------------
 # New tools registered
 # ---------------------------------------------------------------------------

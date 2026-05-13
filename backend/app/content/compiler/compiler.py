@@ -120,8 +120,106 @@ def _build_runtime_projection(module: ContentModule) -> RuntimeProjection:
     )
 
 
+_KNOWLEDGE_CHUNK_PROFILES: tuple[dict[str, object], ...] = (
+    {
+        "field": "opening_scene_sequence",
+        "source_path": "content/modules/{module_id}/knowledge/opening_scene_sequence.yaml",
+        "content_kind": "opening_scene_sequence",
+        "authority": "module_canonical",
+        "use_for": ("opening_realization", "narrator_packet", "opening_event_coverage_gate"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "hard_forbidden_rules",
+        "source_path": "content/modules/{module_id}/knowledge/hard_forbidden_rules.yaml",
+        "content_kind": "hard_forbidden_rules",
+        "authority": "module_canonical",
+        "use_for": ("hard_forbidden_gate", "narrator_packet", "validation_seam"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "premise_and_backstory",
+        "source_path": "content/modules/{module_id}/knowledge/premise_and_backstory.yaml",
+        "content_kind": "premise_and_backstory",
+        "authority": "module_canonical",
+        "use_for": ("opening_realization", "narrator_packet"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "narrator_sensory_palette",
+        "source_path": "content/modules/{module_id}/knowledge/narrator_sensory_palette.yaml",
+        "content_kind": "narrator_sensory_palette",
+        "authority": "module_canonical",
+        "use_for": ("narrator_packet", "scene_director_dramatic_parameters"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "apartment_layout",
+        "source_path": "content/modules/{module_id}/apartment_layout.yaml",
+        "content_kind": "apartment_layout",
+        "authority": "module_canonical",
+        "use_for": ("affordance_resolution", "player_local_context"),
+        "language": "en",
+        "runtime_locale_available": True,
+    },
+    {
+        "field": "apartment_objects",
+        "source_path": "content/modules/{module_id}/apartment_objects.yaml",
+        "content_kind": "apartment_objects",
+        "authority": "module_canonical",
+        "use_for": ("affordance_resolution", "narrator_packet"),
+        "language": "en",
+        "runtime_locale_available": True,
+    },
+    {
+        "field": "actor_pressure_profiles",
+        "source_path": "content/modules/{module_id}/actor_pressure_profiles.yaml",
+        "content_kind": "actor_pressure_profiles",
+        "authority": "module_canonical",
+        "use_for": ("scene_director_responder_selection", "narrator_packet"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+    {
+        "field": "phase_beat_policy",
+        "source_path": "content/modules/{module_id}/phase_beat_policy.yaml",
+        "content_kind": "phase_beat_policy",
+        "authority": "module_canonical",
+        "use_for": ("scene_director_dramatic_parameters", "pacing_gate"),
+        "language": "en",
+        "runtime_locale_available": False,
+    },
+)
+
+
+def _knowledge_text_excerpt(field: str, payload: dict) -> str:
+    """Produce a deterministic, bounded text excerpt for RAG indexing.
+
+    The excerpt favours top-level mapping keys so retrieval can match by
+    structural label without leaking full YAML into prompts.
+    """
+    if not isinstance(payload, dict) or not payload:
+        return ""
+    head_lines: list[str] = [f"{field}: structured runtime knowledge."]
+    for key in list(payload.keys())[:12]:
+        value = payload.get(key)
+        if isinstance(value, (str, int, float, bool)):
+            head_lines.append(f"- {key}: {str(value)[:160]}")
+        elif isinstance(value, list):
+            head_lines.append(f"- {key}: list[{len(value)}]")
+        elif isinstance(value, dict):
+            inner_keys = ", ".join(list(value.keys())[:8])
+            head_lines.append(f"- {key}: keys[{inner_keys}]")
+    return "\n".join(head_lines)[:1200]
+
+
 def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
     chunks: list[RetrievalChunk] = []
+    module_id = module.metadata.module_id
     for scene_id, phase in sorted(module.scene_phases.items(), key=lambda item: item[1].sequence):
         chunks.append(
             RetrievalChunk(
@@ -147,6 +245,33 @@ def _build_retrieval_seed(module: ContentModule) -> RetrievalCorpusSeed:
                 kind="ending",
                 text=f"{ending.name}: {ending.description}",
                 metadata={"ending_id": ending_id},
+            )
+        )
+    # GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.3: index authored structured knowledge so
+    # runtime, writers-room, and improvement retrievers can cite the canonical
+    # source rather than rediscovering it through ad-hoc text matches.
+    for profile in _KNOWLEDGE_CHUNK_PROFILES:
+        field = str(profile["field"])
+        payload = getattr(module, field, None)
+        if not isinstance(payload, dict) or not payload:
+            continue
+        text = _knowledge_text_excerpt(field, payload)
+        if not text:
+            continue
+        chunks.append(
+            RetrievalChunk(
+                chunk_id=f"knowledge:{field}",
+                kind="knowledge",
+                text=text,
+                metadata={
+                    "source_path": str(profile["source_path"]).format(module_id=module_id),
+                    "content_kind": profile["content_kind"],
+                    "authority": profile["authority"],
+                    "use_for": list(profile["use_for"]),
+                    "module_id": module_id,
+                    "language": profile["language"],
+                    "runtime_locale_available": bool(profile["runtime_locale_available"]),
+                },
             )
         )
     return RetrievalCorpusSeed(

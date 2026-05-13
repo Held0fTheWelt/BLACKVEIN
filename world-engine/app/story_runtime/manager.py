@@ -3269,6 +3269,26 @@ def _emit_langfuse_evidence_observations(
     deterministic_scores["opening_event_coverage_pass"] = (
         1.0 if (_turn_number > 0 or path_summary.get("opening_event_coverage_pass", True)) else 0.0
     )
+    # GOC-KNOWLEDGE-RUNTIME-INTEGRATION P0.3/P0.4: per-category absent-scores derived
+    # from hard_forbidden_detection.detected detection_keys. Deterministic 1.0 / 0.0.
+    _hfd_for_scores = path_summary.get("hard_forbidden_detection") if isinstance(path_summary.get("hard_forbidden_detection"), dict) else {}
+    _detected_keys: set[str] = set()
+    for _hit in (_hfd_for_scores.get("detected") or []):
+        if isinstance(_hit, dict):
+            _key = str(_hit.get("detection_key") or "").strip()
+            if _key:
+                _detected_keys.add(_key)
+    _absent_score_map = {
+        "opening_player_speech_absent": "forced_player_speech",
+        "opening_npc_exposition_absent": "npc_world_explanation",
+        "npc_exposition_absent": "npc_world_explanation",
+        "player_agency_violation_absent": "player_agency_violation",
+        "meta_runtime_language_absent": "meta_runtime_language",
+        "stage_direction_labels_absent": "stage_direction_labels",
+        "source_reproduction_absent": "source_text_reproduction",
+    }
+    for _score_name, _detection_key in _absent_score_map.items():
+        deterministic_scores[_score_name] = 0.0 if _detection_key in _detected_keys else 1.0
     if _turn_number == 0:
         _handover_diag_for_scores = compute_opening_handover_from_scene_blocks(
             _opening_blocks,

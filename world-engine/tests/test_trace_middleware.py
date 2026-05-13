@@ -1384,6 +1384,73 @@ def _healthy_path_summary_turn(turn_number: int) -> dict:
     }
 
 
+def test_knowledge_runtime_absent_scores_emit_numeric_on_clean_turn(monkeypatch):
+    """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P0.3/P0.4: absent-scores must emit deterministic 1.0
+    when hard_forbidden_detection.detected is empty."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    path_summary = _healthy_path_summary_turn(0)
+    path_summary["hard_forbidden_detection"] = {"status": "passed", "detected": []}
+    path_summary["hard_forbidden_absent"] = True
+    path_summary["opening_summary_only_absent"] = True
+    blocks = [
+        {"block_type": "narrator", "text": "Opening beat one with role anchor for Annette."},
+        {"block_type": "narrator", "text": "Opening beat two."},
+        {"block_type": "narrator", "text": "Opening beat three with handover to phase_1."},
+        {"block_type": "actor_line", "actor_id": "michel_longstreet", "text": "Vielleicht beginnen wir ruhig."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    scores = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    for name in (
+        "opening_player_speech_absent",
+        "opening_npc_exposition_absent",
+        "npc_exposition_absent",
+        "player_agency_violation_absent",
+        "meta_runtime_language_absent",
+        "stage_direction_labels_absent",
+        "source_reproduction_absent",
+    ):
+        assert scores.get(name) == 1.0, f"score {name} missing or not 1.0 on clean turn"
+
+
+def test_knowledge_runtime_absent_scores_drop_to_zero_on_detection(monkeypatch):
+    """GOC-KNOWLEDGE-RUNTIME-INTEGRATION P0.3/P0.4: absent-score must drop to 0.0 when
+    matching detection_key is present in hard_forbidden_detection.detected."""
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+    path_summary = _healthy_path_summary_turn(0)
+    path_summary["hard_forbidden_detection"] = {
+        "status": "rejected",
+        "detected": [
+            {"detection_key": "forced_player_speech", "rule_id": "no_forced_player_speech", "action": "reject", "source": "structural"},
+            {"detection_key": "meta_runtime_language", "rule_id": "no_meta_runtime_language", "action": "reject", "source": "marker"},
+        ],
+    }
+    path_summary["hard_forbidden_absent"] = False
+    blocks = [
+        {"block_type": "narrator", "text": "Opening beat with forbidden mention of evaluator pipeline."},
+        {"block_type": "actor_line", "actor_id": "annette_reille", "text": "Ich rede jetzt selbst."},
+    ]
+    _emit_langfuse_evidence_observations(
+        path_summary=path_summary,
+        graph_state={"model_prompt": "x"},
+        event=_openai_event(blocks),
+    )
+    scores = {c.kwargs["name"]: c.kwargs["value"] for c in adapter.add_score.call_args_list}
+    assert scores.get("opening_player_speech_absent") == 0.0
+    assert scores.get("meta_runtime_language_absent") == 0.0
+    assert scores.get("hard_forbidden_absent") == 0.0
+    # Non-detected categories must still report 1.0 (independence).
+    assert scores.get("source_reproduction_absent") == 1.0
+    assert scores.get("stage_direction_labels_absent") == 1.0
+
+
 def _openai_event(scene_blocks: list) -> dict:
     return {
         "model_route": {

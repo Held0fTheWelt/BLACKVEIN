@@ -2275,6 +2275,30 @@ class RuntimeTurnGraphExecutor:
                 update["goc_yaml_slice"] = yaml_slice
                 update["opening_scene_sequence"] = opening_scene_sequence
                 update["hard_forbidden_rules"] = hard_forbidden_rules
+                _structured_knowledge_keys = (
+                    "apartment_layout",
+                    "apartment_objects",
+                    "premise_and_backstory",
+                    "actor_pressure_profiles",
+                    "phase_beat_policy",
+                    "narrator_sensory_palette",
+                    "scene_affordances",
+                )
+                for _knowledge_key in _structured_knowledge_keys:
+                    _value = yaml_slice.get(_knowledge_key)
+                    if isinstance(_value, dict):
+                        update[_knowledge_key] = _value
+                update["knowledge_runtime_loaded"] = {
+                    "opening_scene_sequence_loaded": bool(opening_scene_sequence),
+                    "hard_forbidden_rules_loaded": bool(hard_forbidden_rules),
+                    "apartment_layout_loaded": bool(isinstance(yaml_slice.get("apartment_layout"), dict) and yaml_slice.get("apartment_layout")),
+                    "apartment_objects_loaded": bool(isinstance(yaml_slice.get("apartment_objects"), dict) and yaml_slice.get("apartment_objects")),
+                    "premise_and_backstory_loaded": bool(isinstance(yaml_slice.get("premise_and_backstory"), dict) and yaml_slice.get("premise_and_backstory")),
+                    "actor_pressure_profiles_loaded": bool(isinstance(yaml_slice.get("actor_pressure_profiles"), dict) and yaml_slice.get("actor_pressure_profiles")),
+                    "phase_beat_policy_loaded": bool(isinstance(yaml_slice.get("phase_beat_policy"), dict) and yaml_slice.get("phase_beat_policy")),
+                    "narrator_sensory_palette_loaded": bool(isinstance(yaml_slice.get("narrator_sensory_palette"), dict) and yaml_slice.get("narrator_sensory_palette")),
+                    "scene_affordances_loaded": bool(isinstance(yaml_slice.get("scene_affordances"), dict) and yaml_slice.get("scene_affordances")),
+                }
                 update["goc_runtime_knowledge_contract"] = build_runtime_knowledge_contract(
                     opening_scene_sequence=opening_scene_sequence,
                     hard_forbidden_rules=hard_forbidden_rules,
@@ -2594,6 +2618,51 @@ class RuntimeTurnGraphExecutor:
             selection_source=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
         )
         scene_plan_dict = scene_plan.to_runtime_dict()
+        # GOC-KNOWLEDGE-RUNTIME-INTEGRATION P1.1: record which structured knowledge surfaces the
+        # planner had available so dashboards/diagnostics can answer "did the director see X?".
+        knowledge_loaded = state.get("knowledge_runtime_loaded") if isinstance(state.get("knowledge_runtime_loaded"), dict) else {}
+        _content_sources: list[str] = []
+        for _src_key, _src_flag in (
+            ("actor_pressure_profiles", "actor_pressure_profiles_loaded"),
+            ("phase_beat_policy", "phase_beat_policy_loaded"),
+            ("hard_forbidden_rules", "hard_forbidden_rules_loaded"),
+            ("opening_scene_sequence", "opening_scene_sequence_loaded"),
+            ("apartment_layout", "apartment_layout_loaded"),
+            ("apartment_objects", "apartment_objects_loaded"),
+            ("scene_affordances", "scene_affordances_loaded"),
+            ("narrator_sensory_palette", "narrator_sensory_palette_loaded"),
+            ("premise_and_backstory", "premise_and_backstory_loaded"),
+        ):
+            if knowledge_loaded.get(_src_flag):
+                _content_sources.append(_src_key)
+        scene_plan_dict["scene_director_content_sources"] = _content_sources
+        _pbp = state.get("phase_beat_policy") if isinstance(state.get("phase_beat_policy"), dict) else {}
+        _phase_id_for_policy = str(state.get("current_scene_id") or "").strip().lower()
+        _phase_block = _pbp.get("phases", {}).get(_phase_id_for_policy) if isinstance(_pbp.get("phases"), dict) else None
+        if isinstance(_phase_block, dict):
+            scene_plan_dict["phase_policy_applied"] = {
+                "phase_id": _phase_id_for_policy,
+                "allowed_beats": list(_phase_block.get("allowed_beats") or []) if isinstance(_phase_block.get("allowed_beats"), list) else [],
+                "forbidden_beats": list(_phase_block.get("forbidden_beats") or []) if isinstance(_phase_block.get("forbidden_beats"), list) else [],
+            }
+        _actor_profiles_block = state.get("actor_pressure_profiles") if isinstance(state.get("actor_pressure_profiles"), dict) else {}
+        _responder_actor_id = str(scene_plan_dict.get("responder_actor_id") or "").strip()
+        if _responder_actor_id and isinstance(_actor_profiles_block.get(_responder_actor_id), dict):
+            scene_plan_dict["actor_pressure_profile_used"] = {
+                "actor_id": _responder_actor_id,
+                "profile_keys": sorted(list(_actor_profiles_block[_responder_actor_id].keys())),
+            }
+        # NPC participation policy: respect actor_lane forbidden ids; record human exclusion.
+        _alc = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
+        scene_plan_dict["npc_participation_policy"] = {
+            "human_actor_id": _alc.get("human_actor_id"),
+            "ai_forbidden_actor_ids": list(_alc.get("ai_forbidden_actor_ids") or []) if isinstance(_alc.get("ai_forbidden_actor_ids"), list) else [],
+            "selected_responder_set": [
+                str(_row.get("actor_id") or "").strip()
+                for _row in (state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else [])
+                if isinstance(_row, dict) and str(_row.get("actor_id") or "").strip()
+            ],
+        }
         if str(state.get("turn_input_class") or "").strip().lower() == "opening":
             opening_meta = build_opening_scene_plan_metadata(
                 opening_scene_sequence=state.get("opening_scene_sequence")
