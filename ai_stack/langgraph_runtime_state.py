@@ -112,6 +112,10 @@ class RuntimeTurnState(TypedDict, total=False):
     # PRIMARY-PARSER-EVIDENCE-01: captured by invoke_model node before any self-correction
     # or LDSS overwrite can erase the primary attempt's parser error and raw output.
     primary_attempt_evidence: dict[str, Any]
+    # PLAYER-LOCAL-CONTEXT-AND-NARRATOR-CONSEQUENCE-01: spatial context after committed action.
+    player_local_context: dict[str, Any]
+    local_context_transition: dict[str, Any]
+    narrator_consequence_plan: dict[str, Any]
     # ADR-0036: normative language for all model-visible turn text (host-injected).
     session_output_language: str
     # Effective ``story_runtime_experience`` slice from governed runtime config (operator/admin).

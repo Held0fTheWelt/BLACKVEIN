@@ -3287,6 +3287,40 @@ def _emit_langfuse_evidence_observations(
         deterministic_scores["action_commit_policy_present"] = (
             1.0 if str(path_summary.get("action_commit_policy") or "").strip() else 0.0
         )
+        # PLAYER-LOCAL-CONTEXT-AND-NARRATOR-CONSEQUENCE-01 scores (action-resolution short-path only).
+        _lct = path_summary.get("local_context_transition") if isinstance(path_summary.get("local_context_transition"), dict) else None
+        _ncp = path_summary.get("narrator_consequence_plan") if isinstance(path_summary.get("narrator_consequence_plan"), dict) else None
+        _intent_kind_for_consequence = str(path_summary.get("player_input_kind") or "").strip().lower()
+        _is_action_resolution_turn = _authoritative_action_surface and _intent_kind_for_consequence in {
+            "action", "perception", "object_interaction", "physical_action",
+        }
+        if _is_action_resolution_turn:
+            deterministic_scores["local_context_transition_present"] = 1.0 if _lct else 0.0
+            deterministic_scores["narrator_consequence_present"] = (
+                1.0 if (_ncp and _ncp.get("consequence_text")) else 0.0
+            )
+            _new_location = bool(_lct and _lct.get("new_area_established")) if _lct else False
+            _movement_turn = _lct and str(_lct.get("transition_type") or "").startswith("move") if _lct else False
+            deterministic_scores["new_location_established"] = (
+                1.0 if (_new_location or not _movement_turn) else 0.0
+            )
+            _perception_turn = _lct and str(_lct.get("transition_type") or "") == "perception" if _lct else False
+            deterministic_scores["perception_result_present"] = (
+                1.0
+                if (not _perception_turn or (_ncp and _ncp.get("consequence_text")))
+                else 0.0
+            )
+            _consequence_contract_pass = bool(
+                _lct
+                and _ncp
+                and (
+                    _ncp.get("consequence_text")
+                    or _ncp.get("consequence_type") not in {None, "generic"}
+                )
+            )
+            deterministic_scores["action_consequence_contract_pass"] = (
+                1.0 if _consequence_contract_pass else 0.0
+            )
     # live_opening_contract_pass is only meaningful on the opening turn (turn 0).
     # Writing it on subsequent turns would produce false negatives that pollute
     # the trace score history and make passing openings appear to have failed.

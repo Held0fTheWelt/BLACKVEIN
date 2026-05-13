@@ -2104,6 +2104,8 @@ class RuntimeTurnGraphExecutor:
             player_action_frame=frame,
             affordance_resolution=aff,
             content_modules_root=None,
+            scene_affordance_model=state.get("scene_affordance_model") if isinstance(state.get("scene_affordance_model"), dict) else None,
+            current_player_local_context=state.get("player_local_context") if isinstance(state.get("player_local_context"), dict) else None,
         )
         routing = dict(state.get("routing") or {})
         routing["action_resolution_branch"] = "authoritative_deterministic"
@@ -2160,6 +2162,16 @@ class RuntimeTurnGraphExecutor:
         update["generation"] = gen
         update["routing"] = routing
         update["response_plan"] = response_plan
+        _gen_meta = gen.get("metadata") if isinstance(gen.get("metadata"), dict) else {}
+        _lct = _gen_meta.get("local_context_transition")
+        _ncp = _gen_meta.get("narrator_consequence_plan")
+        _uplc = _gen_meta.get("updated_player_local_context")
+        if _lct:
+            update["local_context_transition"] = _lct
+        if _ncp:
+            update["narrator_consequence_plan"] = _ncp
+        if _uplc:
+            update["player_local_context"] = _uplc
         update["turn_aspect_ledger"] = set_aspect_record(
             state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
             ASPECT_BEAT,

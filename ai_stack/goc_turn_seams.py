@@ -1310,6 +1310,15 @@ def build_operator_canonical_turn_record(state: dict[str, Any]) -> dict[str, Any
         "scene_affordance_model": state.get("scene_affordance_model")
         if isinstance(state.get("scene_affordance_model"), dict)
         else None,
+        "player_local_context": state.get("player_local_context")
+        if isinstance(state.get("player_local_context"), dict)
+        else None,
+        "local_context_transition": state.get("local_context_transition")
+        if isinstance(state.get("local_context_transition"), dict)
+        else None,
+        "narrator_consequence_plan": state.get("narrator_consequence_plan")
+        if isinstance(state.get("narrator_consequence_plan"), dict)
+        else None,
         "player_input_kind": interpreted_input.get("player_input_kind") if interpreted_input else None,
         "player_action_committed": bool(interpreted_input.get("player_action_committed")) if interpreted_input else False,
         "player_speech_committed": bool(interpreted_input.get("player_speech_committed")) if interpreted_input else False,
