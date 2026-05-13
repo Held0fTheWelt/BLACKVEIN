@@ -39,6 +39,7 @@ def test_path_summary_exposes_opening_and_forbidden_gate_scores() -> None:
     blocks = [
         {
             "block_type": "narrator",
+            "opening_event_id": "event_01_triggering_incident",
             "text": (
                 "Auf dem Schulhof ist der Streit zwischen den Jungen ernst geworden: "
                 "ein Stock, ein verletzter Zahn, ein Moment, den Erwachsene nicht ignorieren koennen."
@@ -46,22 +47,27 @@ def test_path_summary_exposes_opening_and_forbidden_gate_scores() -> None:
         },
         {
             "block_type": "narrator",
+            "opening_event_id": "event_02_adult_consequence",
             "text": "Darum treffen sich die Eltern in der Wohnung der Vallons und halten die Hoeflichkeit fest.",
         },
         {
             "block_type": "narrator",
+            "opening_event_id": "event_03_arrival_threshold",
             "text": "An der Tuer wird aus Besuch eine Pflicht; Gaeste und Gastgeber treten ueber dieselbe Schwelle.",
         },
         {
             "block_type": "narrator",
+            "opening_event_id": "event_04_apartment_as_stage",
             "text": "Im Wohnzimmer ordnen Stuehle, Couchtisch, Kunstbaende und Tulpen die Spannung wie eine Buehne.",
         },
         {
             "block_type": "narrator",
+            "opening_event_id": "event_05_role_anchor",
             "text": "Annette Reille ist als Gast im Raum, mit Platz zu sprechen oder zu beobachten.",
         },
         {
             "block_type": "narrator",
+            "opening_event_id": "event_06_first_playable_moment",
             "text": "Jetzt wartet ein erster spielbarer Moment, und die naechste Handlung bleibt offen.",
         },
         {

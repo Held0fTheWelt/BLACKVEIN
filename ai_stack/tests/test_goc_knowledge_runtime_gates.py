@@ -53,6 +53,14 @@ def _validate_opening(structured: dict, *, scene_phase: str = "phase_1") -> dict
 
 def _full_opening_structured() -> dict:
     return {
+        "opening_event_ids": [
+            "event_01_triggering_incident",
+            "event_02_adult_consequence",
+            "event_03_arrival_threshold",
+            "event_04_apartment_as_stage",
+            "event_05_role_anchor",
+            "event_06_first_playable_moment",
+        ],
         "narration_summary": [
             (
                 "Auf dem Schulhof ist der Streit zwischen den Jungen ernst geworden: "
@@ -122,6 +130,9 @@ def test_npc_exposition_of_room_is_rejected() -> None:
     outcome = _validate_opening(
         {
             "narration_summary": ["Die Eltern stehen im Wohnzimmer."],
+            "runtime_gate_detections": [
+                {"detection_key": "npc_world_explanation", "source": "semantic_runtime_marker"}
+            ],
             "spoken_lines": [
                 {
                     "speaker_id": "michel_longstreet",
@@ -167,8 +178,8 @@ def test_path_summary_exposes_runtime_gate_diagnostics() -> None:
     opening, hard = _knowledge()
     structured = _full_opening_structured()
     blocks = [
-        {"block_type": "narrator", "text": text}
-        for text in structured["narration_summary"]
+        {"block_type": "narrator", "text": text, "opening_event_id": event_id}
+        for text, event_id in zip(structured["narration_summary"], structured["opening_event_ids"], strict=False)
     ] + [
         {
             "block_type": "actor_line",

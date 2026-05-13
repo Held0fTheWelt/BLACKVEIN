@@ -2,141 +2,12 @@
 
 from __future__ import annotations
 
-import re
-import unicodedata
 from typing import Any
 
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 from ai_stack.opening_shape_normalizer import narration_summary_to_plain_str
 
 KNOWLEDGE_RUNTIME_GATES_CONTRACT = "goc_knowledge_runtime_gates.v1"
-
-_ACTOR_DISPLAY_NAMES: dict[str, tuple[str, ...]] = {
-    "annette": ("Annette", "Annette Reille"),
-    "annette_reille": ("Annette", "Annette Reille"),
-    "alain": ("Alain", "Alain Reille"),
-    "alain_reille": ("Alain", "Alain Reille"),
-    "veronique": ("Veronique", "Veronique Vallon", "Véronique", "Véronique Vallon"),
-    "veronique_vallon": ("Veronique", "Veronique Vallon", "Véronique", "Véronique Vallon"),
-    "michel": ("Michel", "Michel Vallon"),
-    "michel_longstreet": ("Michel", "Michel Vallon"),
-}
-
-_EVENT_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "event_01_triggering_incident": (
-        "schoolyard",
-        "school yard",
-        "playground",
-        "child",
-        "children",
-        "boy",
-        "boys",
-        "tooth",
-        "teeth",
-        "stick",
-        "injury",
-        "injured",
-        "incident",
-        "schulhof",
-        "spielplatz",
-        "kind",
-        "kinder",
-        "junge",
-        "jungen",
-        "zahn",
-        "stock",
-        "verletz",
-        "vorfall",
-    ),
-    "event_02_adult_consequence": (
-        "parents",
-        "adults",
-        "meeting",
-        "meet",
-        "civilized",
-        "polite",
-        "consequence",
-        "eltern",
-        "erwachsene",
-        "treffen",
-        "besprechen",
-        "hoeflich",
-        "zivilisiert",
-        "folge",
-    ),
-    "event_03_arrival_threshold": (
-        "door",
-        "doorway",
-        "threshold",
-        "arrival",
-        "arrive",
-        "guests",
-        "host",
-        "hosts",
-        "apartment",
-        "salon",
-        "tuer",
-        "tur",
-        "schwelle",
-        "ankommen",
-        "eintreten",
-        "gaeste",
-        "gaste",
-        "gastgeber",
-        "wohnung",
-        "wohnzimmer",
-    ),
-    "event_04_apartment_as_stage": (
-        "apartment",
-        "living room",
-        "salon",
-        "room",
-        "chairs",
-        "table",
-        "coffee table",
-        "tulips",
-        "sofa",
-        "host",
-        "guest",
-        "wohnung",
-        "wohnzimmer",
-        "zimmer",
-        "stuehle",
-        "stuhle",
-        "tisch",
-        "couchtisch",
-        "tulpen",
-        "sofa",
-        "gastgeber",
-        "gast",
-    ),
-    "event_06_first_playable_moment": (
-        "now",
-        "moment",
-        "waiting",
-        "waits",
-        "room to",
-        "free to",
-        "choose",
-        "speak",
-        "act",
-        "jetzt",
-        "moment",
-        "wartet",
-        "raum",
-        "frei",
-        "waehlen",
-        "wahlen",
-        "sprechen",
-        "handeln",
-    ),
-}
-
-
-def _fold_text(value: str) -> str:
-    normalized = unicodedata.normalize("NFKD", value)
-    asciiish = "".join(ch for ch in normalized if not unicodedata.combining(ch))
-    return asciiish.casefold()
 
 
 def _as_dict(value: Any) -> dict[str, Any]:
@@ -230,6 +101,7 @@ def build_runtime_knowledge_contract(
             "title": event.get("title"),
             "narrative_function": event.get("narrative_function"),
             "narrator_task": event.get("narrator_task"),
+            "establishes": _unique_strs(event.get("establishes")),
             "must_show": _unique_strs(event.get("must_show")),
             "must_not": _unique_strs(event.get("must_not")),
         }
@@ -263,6 +135,11 @@ def build_runtime_knowledge_contract(
         "hard_forbidden_detection_policy": {
             "reject_on": _unique_strs(detection.get("reject_on")),
             "recover_on": _unique_strs(detection.get("recover_on")),
+            "structured_detection_fields": _unique_strs(detection.get("structured_detection_fields")),
+            "marker_map": dict(_as_dict(detection.get("marker_map"))),
+            "structural_checks": [
+                dict(row) for row in _as_list(detection.get("structural_checks")) if isinstance(row, dict)
+            ],
         },
         "hard_forbidden_rule_ids": [row["id"] for row in rules],
         "hard_forbidden_negative_constraints": negative_constraints,
@@ -336,11 +213,13 @@ def knowledge_contract_prompt_lines(contract: dict[str, Any] | None, *, opening_
         lines.append(f"- event_order: {pkt.get('opening_event_ids') or []}")
         lines.append(f"- handover_to_scene_phase: {pkt.get('opening_handover_to_scene_phase')}")
         lines.append(f"- render_policy: {pkt.get('opening_render_policy') or {}}")
+        lines.append("- runtime_evidence: structured_output.opening_event_ids must list covered event ids")
         role_variant = pkt.get("selected_role_variant")
         if isinstance(role_variant, dict) and role_variant:
             lines.append(f"- selected_role_variant: {role_variant}")
     lines.append("Hard Forbidden Runtime Rules:")
     lines.append(f"- detection_policy: {pkt.get('hard_forbidden_detection_policy') or {}}")
+    lines.append("- runtime_evidence: semantic rule hits must use structured runtime_gate_detections ids")
     constraints = pkt.get("hard_forbidden_negative_constraints")
     if isinstance(constraints, list) and constraints:
         compact = [
@@ -424,24 +303,6 @@ def text_from_visible_event(event: dict[str, Any] | None) -> tuple[str, list[dic
     return "\n".join(parts), blocks, structured
 
 
-def _actor_names(actor_lane_context: dict[str, Any] | None) -> list[str]:
-    ctx = _as_dict(actor_lane_context)
-    raw_ids = [
-        str(ctx.get("human_actor_id") or "").strip(),
-        str(ctx.get("selected_player_role") or "").strip(),
-    ]
-    out: list[str] = []
-    for raw in raw_ids:
-        if not raw:
-            continue
-        canon = canonicalize_goc_actor_id(raw) or raw
-        for key in {raw, canon}:
-            for name in _ACTOR_DISPLAY_NAMES.get(key, (key,)):
-                if name and name not in out:
-                    out.append(name)
-    return out
-
-
 def _forbidden_actor_ids(actor_lane_context: dict[str, Any] | None) -> set[str]:
     ctx = _as_dict(actor_lane_context)
     ids: set[str] = set()
@@ -467,130 +328,6 @@ def _speaker_is_forbidden(speaker_id: str, forbidden_ids: set[str]) -> bool:
     return speaker in forbidden_ids or canon in forbidden_ids
 
 
-def _detect_forced_player_speech(
-    *,
-    structured_output: dict[str, Any],
-    text: str,
-    actor_lane_context: dict[str, Any] | None,
-) -> bool:
-    forbidden_ids = _forbidden_actor_ids(actor_lane_context)
-    for row in _as_list(_as_dict(structured_output).get("spoken_lines")):
-        if not isinstance(row, dict):
-            continue
-        if _speaker_is_forbidden(str(row.get("speaker_id") or ""), forbidden_ids):
-            return True
-    for name in _actor_names(actor_lane_context):
-        folded = re.escape(_fold_text(name))
-        if re.search(rf"(^|\n)\s*{folded}\s*[:\-]", _fold_text(text)):
-            return True
-    return False
-
-
-def _detect_player_agency_violation(text: str, actor_lane_context: dict[str, Any] | None) -> bool:
-    low = _fold_text(text)
-    names = [_fold_text(name) for name in _actor_names(actor_lane_context)]
-    if re.search(r"\byou\s+(decide|feel|know|realize|believe|want|intend)\b", low):
-        return True
-    if re.search(r"\bdu\s+(entscheidest|fuhlst|weisst|weißt|willst|glaubst)\b", low):
-        return True
-    for name in names:
-        if not name:
-            continue
-        if re.search(rf"\b{re.escape(name)}\s+(decides|feels|knows|realizes|believes|wants|intends)\b", low):
-            return True
-        if re.search(rf"\b{re.escape(name)}\s+(entscheidet|fuhlt|weiss|weiß|will|glaubt)\b", low):
-            return True
-    return False
-
-
-def _detect_npc_world_explanation(structured_output: dict[str, Any]) -> bool:
-    rows = _as_list(_as_dict(structured_output).get("spoken_lines"))
-    if not rows:
-        return False
-    env_words = (
-        "apartment",
-        "living room",
-        "salon",
-        "room",
-        "table",
-        "door",
-        "tulips",
-        "schoolyard",
-        "incident",
-        "wohnung",
-        "wohnzimmer",
-        "zimmer",
-        "tisch",
-        "tuer",
-        "tur",
-        "tulpen",
-        "schulhof",
-        "vorfall",
-    )
-    explain_words = (
-        "you can see",
-        "you see",
-        "the room is",
-        "the apartment is",
-        "this is where",
-        "let me explain",
-        "as you know",
-        "du siehst",
-        "man sieht",
-        "der raum ist",
-        "die wohnung ist",
-        "ich erklaere",
-        "ich erklare",
-        "wie du weisst",
-        "wie du weißt",
-    )
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        line = _fold_text(str(row.get("text") or row.get("line") or ""))
-        if not line:
-            continue
-        if any(word in line for word in explain_words):
-            return True
-        if sum(1 for word in env_words if word in line) >= 2 and len(line) > 80:
-            return True
-    return False
-
-
-def _detect_meta_runtime_language(text: str) -> bool:
-    low = _fold_text(text)
-    return any(
-        marker in low
-        for marker in (
-            "prompt",
-            "module",
-            "runtime",
-            "player role",
-            "scene phase",
-            "evaluator",
-            "narrative system",
-            "validator",
-            "langfuse",
-        )
-    )
-
-
-def _detect_stage_direction_labels(text: str) -> bool:
-    return bool(
-        re.search(
-            r"(?im)^\s*(narrator_intro|role_anchor|scene_setup|beat_\d+|camera(?:\s+direction)?)\s*:",
-            text,
-        )
-    )
-
-
-def _detect_abstract_theme_dump(text: str) -> bool:
-    low = _fold_text(text)
-    theme_words = ("civility", "violence", "morality", "bourgeois", "hypocrisy", "zivilisiertheit", "moral", "gewalt")
-    concrete_words = ("room", "table", "door", "child", "schoolyard", "wohnung", "tisch", "tuer", "tur", "kind", "schulhof")
-    return sum(1 for word in theme_words if word in low) >= 2 and not any(word in low for word in concrete_words)
-
-
 def _visible_block_count(structured_output: dict[str, Any], visible_blocks: list[dict[str, Any]] | None = None) -> int:
     if visible_blocks:
         return len([row for row in visible_blocks if isinstance(row, dict) and str(row.get("text") or "").strip()])
@@ -607,49 +344,227 @@ def _visible_block_count(structured_output: dict[str, Any], visible_blocks: list
     return count
 
 
-def _detect_summary_only_opening(
+def _detection_policy(hard_forbidden_rules: dict[str, Any] | None) -> dict[str, Any]:
+    return _as_dict(_as_dict(hard_forbidden_rules).get("hard_forbidden_detection"))
+
+
+def _configured_detection_fields(policy: dict[str, Any]) -> list[str]:
+    return _unique_strs(policy.get("structured_detection_fields"))
+
+
+def _rule_id_for_detection(policy: dict[str, Any], detection_key: str, explicit_rule_id: str | None = None) -> str:
+    rule_id = str(explicit_rule_id or "").strip()
+    if rule_id:
+        return rule_id
+    marker_map = _as_dict(policy.get("marker_map"))
+    mapped = str(marker_map.get(detection_key) or "").strip()
+    return mapped or detection_key
+
+
+def _action_for_detection(policy: dict[str, Any], detection_key: str, explicit_action: str | None = None) -> str:
+    action = str(explicit_action or "").strip().lower()
+    if action in {"reject", "recover"}:
+        return action
+    if detection_key in set(_unique_strs(policy.get("recover_on"))):
+        return "recover"
+    return "reject"
+
+
+def _iter_detection_markers(value: Any) -> list[Any]:
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, str):
+        return [value]
+    return []
+
+
+def _markers_from_detection_field(value: Any) -> list[Any]:
+    if isinstance(value, dict) and not any(
+        key in value for key in ("detection_key", "key", "reason", "rule_key", "rule_id", "id")
+    ):
+        return [{"detection_key": key} for key, detected in value.items() if detected and str(key or "").strip()]
+    return _iter_detection_markers(value)
+
+
+def _coerce_detection_marker(marker: Any, policy: dict[str, Any]) -> dict[str, Any] | None:
+    if isinstance(marker, str):
+        detection_key = marker.strip()
+        if not detection_key:
+            return None
+        return {
+            "detection_key": detection_key,
+            "rule_id": _rule_id_for_detection(policy, detection_key),
+            "action": _action_for_detection(policy, detection_key),
+            "source": "structured_detection_marker",
+        }
+    if not isinstance(marker, dict):
+        return None
+    detection_key = str(
+        marker.get("detection_key")
+        or marker.get("key")
+        or marker.get("reason")
+        or marker.get("rule_key")
+        or ""
+    ).strip()
+    rule_id_raw = str(marker.get("rule_id") or marker.get("id") or "").strip()
+    if not detection_key:
+        marker_map = _as_dict(policy.get("marker_map"))
+        for key, mapped_rule_id in marker_map.items():
+            if rule_id_raw and str(mapped_rule_id or "").strip() == rule_id_raw:
+                detection_key = str(key or "").strip()
+                break
+    if not detection_key:
+        return None
+    return {
+        "detection_key": detection_key,
+        "rule_id": _rule_id_for_detection(policy, detection_key, rule_id_raw),
+        "action": _action_for_detection(policy, detection_key, str(marker.get("action") or "")),
+        "source": str(marker.get("source") or "structured_detection_marker"),
+    }
+
+
+def _collect_structured_detection_markers(
+    *, structured_output: dict[str, Any], visible_blocks: list[dict[str, Any]] | None, policy: dict[str, Any]
+) -> list[dict[str, Any]]:
+    fields = _configured_detection_fields(policy)
+    markers: list[dict[str, Any]] = []
+    for field in fields:
+        for raw in _markers_from_detection_field(_as_dict(structured_output).get(field)):
+            marker = _coerce_detection_marker(raw, policy)
+            if marker:
+                markers.append(marker)
+    for block in visible_blocks or []:
+        if not isinstance(block, dict):
+            continue
+        metadata = _as_dict(block.get("metadata"))
+        for field in fields:
+            for raw in _markers_from_detection_field(block.get(field)) + _markers_from_detection_field(metadata.get(field)):
+                marker = _coerce_detection_marker(raw, policy)
+                if marker:
+                    marker["source"] = marker.get("source") or "visible_block_detection_marker"
+                    markers.append(marker)
+    return markers
+
+
+def _structural_checks(policy: dict[str, Any], kind: str) -> list[dict[str, Any]]:
+    return [
+        dict(row)
+        for row in _as_list(policy.get("structural_checks"))
+        if isinstance(row, dict) and str(row.get("kind") or "").strip() == kind
+    ]
+
+
+def _actor_lane_rows(
+    *, structured_output: dict[str, Any], visible_blocks: list[dict[str, Any]] | None, lanes: list[str]
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for lane in lanes:
+        for row in _as_list(_as_dict(structured_output).get(lane)):
+            if isinstance(row, dict):
+                rows.append(row)
+    for block in visible_blocks or []:
+        if not isinstance(block, dict):
+            continue
+        block_type = str(block.get("block_type") or block.get("type") or "").strip()
+        if block_type in lanes:
+            rows.append(block)
+    return rows
+
+
+def _detect_forbidden_actor_lane_markers(
     *,
-    text: str,
+    structured_output: dict[str, Any],
+    visible_blocks: list[dict[str, Any]] | None,
+    actor_lane_context: dict[str, Any] | None,
+    policy: dict[str, Any],
+) -> list[dict[str, Any]]:
+    forbidden_ids = _forbidden_actor_ids(actor_lane_context)
+    if not forbidden_ids:
+        return []
+    markers: list[dict[str, Any]] = []
+    for check in _structural_checks(policy, "forbidden_actor_lane"):
+        detection_key = str(check.get("detection_key") or "").strip()
+        if not detection_key:
+            continue
+        lanes = _unique_strs(check.get("lanes"))
+        actor_fields = _unique_strs(check.get("actor_fields"))
+        for row in _actor_lane_rows(
+            structured_output=structured_output,
+            visible_blocks=visible_blocks,
+            lanes=lanes,
+        ):
+            for field in actor_fields:
+                if _speaker_is_forbidden(str(row.get(field) or ""), forbidden_ids):
+                    markers.append(
+                        {
+                            "detection_key": detection_key,
+                            "rule_id": _rule_id_for_detection(
+                                policy, detection_key, str(check.get("rule_id") or "")
+                            ),
+                            "action": _action_for_detection(policy, detection_key, str(check.get("action") or "")),
+                            "source": "forbidden_actor_lane",
+                        }
+                    )
+                    break
+    return markers
+
+
+def _actor_lane_count(structured_output: dict[str, Any], visible_blocks: list[dict[str, Any]] | None = None) -> int:
+    count = len(_as_list(_as_dict(structured_output).get("spoken_lines")))
+    count += len(_as_list(_as_dict(structured_output).get("action_lines")))
+    for block in visible_blocks or []:
+        if not isinstance(block, dict):
+            continue
+        block_type = str(block.get("block_type") or block.get("type") or "").strip()
+        if block_type in {"spoken_lines", "action_lines", "actor_line", "actor_action"}:
+            count += 1
+    return count
+
+
+def _detect_opening_render_policy_markers(
+    *,
     structured_output: dict[str, Any],
     opening_scene_sequence: dict[str, Any] | None,
-    visible_blocks: list[dict[str, Any]] | None = None,
-) -> bool:
+    visible_blocks: list[dict[str, Any]] | None,
+    turn_input_class: str | None,
+    policy: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if str(turn_input_class or "").strip().lower() != "opening":
+        return []
     opening = _as_dict(opening_scene_sequence)
-    render_policy = _as_dict(opening.get("narration_mode"))
-    summary_allowed = bool(render_policy.get("summary_allowed"))
-    if summary_allowed:
-        return False
-    block_count = _visible_block_count(structured_output, visible_blocks=visible_blocks)
-    actor_rows = len(_as_list(structured_output.get("spoken_lines"))) + len(_as_list(structured_output.get("action_lines")))
-    if visible_blocks:
-        actor_rows += len(
-            [
-                row
-                for row in visible_blocks
-                if str(row.get("block_type") or row.get("type") or "").strip().lower()
-                in {"actor_line", "actor_action"}
-            ]
-        )
-    low = _fold_text(text)
-    summary_markers = (
-        "in short",
-        "summary",
-        "backstory",
-        "the story begins",
-        "after the incident",
-        "kurz gesagt",
-        "zusammenfassung",
-        "vorgeschichte",
-        "nach dem vorfall",
-    )
-    eventish = sum(
-        1
-        for words in _EVENT_KEYWORDS.values()
-        if any(word in low for word in words)
-    )
-    if block_count <= 2 and actor_rows == 0 and (len(text.strip()) < 900 or any(m in low for m in summary_markers)):
-        return True
-    return actor_rows == 0 and block_count <= 1 and eventish < 3
+    if not opening:
+        return []
+    markers: list[dict[str, Any]] = []
+    for check in _structural_checks(policy, "opening_render_policy"):
+        detection_key = str(check.get("detection_key") or "").strip()
+        if not detection_key:
+            continue
+        render_policy = _as_dict(opening.get("narration_mode"))
+        if bool(render_policy.get("summary_allowed")):
+            continue
+        explicit = _as_dict(structured_output).get("opening_render_policy_evidence")
+        if isinstance(explicit, dict) and explicit.get("summary_only") is True:
+            summary_only = True
+        else:
+            min_visible_blocks = render_policy.get("min_visible_blocks")
+            try:
+                min_blocks = int(min_visible_blocks)
+            except (TypeError, ValueError):
+                min_blocks = 0
+            block_count = _visible_block_count(structured_output, visible_blocks=visible_blocks)
+            summary_only = bool(min_blocks and block_count < min_blocks and _actor_lane_count(structured_output, visible_blocks) == 0)
+        if summary_only:
+            markers.append(
+                {
+                    "detection_key": detection_key,
+                    "rule_id": _rule_id_for_detection(policy, detection_key, str(check.get("rule_id") or "")),
+                    "action": _action_for_detection(policy, detection_key, str(check.get("action") or "")),
+                    "source": "opening_render_policy",
+                }
+            )
+    return markers
 
 
 def detect_hard_forbidden_runtime(
@@ -662,36 +577,58 @@ def detect_hard_forbidden_runtime(
     turn_input_class: str | None = None,
     visible_blocks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Detect authored hard-forbidden conditions in generated runtime output."""
-    hard = _as_dict(hard_forbidden_rules)
-    policy = _as_dict(hard.get("hard_forbidden_detection"))
+    """Detect authored hard-forbidden conditions from structured runtime evidence."""
+    policy = _detection_policy(hard_forbidden_rules)
     reject_policy = set(_unique_strs(policy.get("reject_on")))
     recover_policy = set(_unique_strs(policy.get("recover_on")))
     structured = _as_dict(structured_output)
-    detected: list[dict[str, Any]] = []
-
-    def add(key: str, rule_id: str, *, action: str) -> None:
-        detected.append({"detection_key": key, "rule_id": rule_id, "action": action})
-
-    if _detect_forced_player_speech(structured_output=structured, text=text, actor_lane_context=actor_lane_context):
-        add("forced_player_speech", "no_forced_player_speech", action="reject")
-    if _detect_player_agency_violation(text, actor_lane_context):
-        add("player_agency_violation", "no_forced_player_decision", action="reject")
-    if _detect_npc_world_explanation(structured):
-        add("npc_world_explanation", "no_npc_world_explanation", action="reject")
-    if _detect_meta_runtime_language(text):
-        add("meta_runtime_language", "no_meta_runtime_language", action="reject")
-    if _detect_stage_direction_labels(text):
-        add("stage_direction_labels", "no_stage_direction_labels", action="recover")
-    if _detect_abstract_theme_dump(text):
-        add("abstract_theme_dump", "no_abstract_theme_dump", action="recover")
-    if str(turn_input_class or "").strip().lower() == "opening" and _detect_summary_only_opening(
-        text=text,
+    detected = _collect_structured_detection_markers(
         structured_output=structured,
-        opening_scene_sequence=opening_scene_sequence,
         visible_blocks=visible_blocks,
-    ):
-        add("summary_only_opening", "summarize_the_backstory_in_two_sentences", action="recover")
+        policy=policy,
+    )
+    detected.extend(
+        _detect_forbidden_actor_lane_markers(
+            structured_output=structured,
+            visible_blocks=visible_blocks,
+            actor_lane_context=actor_lane_context,
+            policy=policy,
+        )
+    )
+    detected.extend(
+        _detect_opening_render_policy_markers(
+            structured_output=structured,
+            opening_scene_sequence=opening_scene_sequence,
+            visible_blocks=visible_blocks,
+            turn_input_class=turn_input_class,
+            policy=policy,
+        )
+    )
+
+    deduped: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for hit in detected:
+        key = str(hit.get("detection_key") or "").strip()
+        rule_id = str(hit.get("rule_id") or "").strip()
+        action_hint = str(hit.get("action") or "").strip()
+        if not key:
+            continue
+        normalized = {
+            "detection_key": key,
+            "rule_id": _rule_id_for_detection(policy, key, rule_id),
+            "action": _action_for_detection(policy, key, action_hint),
+            "source": str(hit.get("source") or "").strip() or "runtime_evidence",
+        }
+        marker_id = (
+            normalized["detection_key"],
+            normalized["rule_id"],
+            normalized["source"],
+        )
+        if marker_id in seen:
+            continue
+        seen.add(marker_id)
+        deduped.append(normalized)
+    detected = deduped
 
     reject_hits: list[dict[str, Any]] = []
     recover_hits: list[dict[str, Any]] = []
@@ -736,15 +673,25 @@ def detect_hard_forbidden_runtime(
 def hard_forbidden_detection_for_actor_lane_violation(
     *, reason: str, hard_forbidden_rules: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    key = "forced_player_speech" if reason == "ai_controlled_human_actor" else "player_agency_violation"
-    rule_id = "no_forced_player_speech" if key == "forced_player_speech" else "no_forced_player_decision"
-    policy = _as_dict(_as_dict(hard_forbidden_rules).get("hard_forbidden_detection"))
+    policy = _detection_policy(hard_forbidden_rules)
+    violation_map = _as_dict(policy.get("actor_lane_violation_map"))
+    mapped = _as_dict(violation_map.get(str(reason or "").strip()))
+    key = str(mapped.get("detection_key") or reason or "actor_lane_violation").strip()
+    rule_id = _rule_id_for_detection(policy, key, str(mapped.get("rule_id") or ""))
+    action = _action_for_detection(policy, key, str(mapped.get("action") or "reject"))
     return {
         "contract": KNOWLEDGE_RUNTIME_GATES_CONTRACT,
         "status": "rejected",
-        "action": "reject",
+        "action": action,
         "reason": key,
-        "detected": [{"detection_key": key, "rule_id": rule_id, "action": "reject"}],
+        "detected": [
+            {
+                "detection_key": key,
+                "rule_id": rule_id,
+                "action": action,
+                "source": "actor_lane_validation",
+            }
+        ],
         "reject_on_detected": [key],
         "recover_on_detected": [],
         "rule_ids": [rule_id],
@@ -757,16 +704,100 @@ def hard_forbidden_detection_for_actor_lane_violation(
     }
 
 
+def _ids_from_value(value: Any) -> list[str]:
+    ids: list[str] = []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, dict) and not any(key in value for key in ("id", "event_id", "opening_event_id")):
+        iterable: list[Any] = [
+            {"id": key}
+            for key, covered in value.items()
+            if covered and str(key or "").strip()
+        ]
+    else:
+        iterable = _as_list(value)
+        if isinstance(value, dict):
+            iterable = [value]
+    for item in iterable:
+        if isinstance(item, dict):
+            raw = item.get("id") or item.get("event_id") or item.get("opening_event_id")
+        else:
+            raw = item
+        text = str(raw or "").strip()
+        if text and text not in ids:
+            ids.append(text)
+    return ids
+
+
+def _collect_opening_event_ids(
+    *, structured_output: dict[str, Any] | None, visible_blocks: list[dict[str, Any]] | None
+) -> list[str]:
+    structured = _as_dict(structured_output)
+    found: list[str] = []
+    for key in ("opening_event_ids", "opening_events_covered", "covered_event_ids"):
+        for event_id in _ids_from_value(structured.get(key)):
+            if event_id not in found:
+                found.append(event_id)
+    for nested_key in ("opening_event_coverage", "event_coverage"):
+        nested = _as_dict(structured.get(nested_key))
+        for key in ("covered_event_ids", "opening_event_ids", "events"):
+            for event_id in _ids_from_value(nested.get(key)):
+                if event_id not in found:
+                    found.append(event_id)
+    for block in visible_blocks or []:
+        if not isinstance(block, dict):
+            continue
+        metadata = _as_dict(block.get("metadata"))
+        for source in (block, metadata):
+            for key in ("opening_event_id", "event_id"):
+                event_id = str(source.get(key) or "").strip()
+                if event_id and event_id not in found:
+                    found.append(event_id)
+            for key in ("opening_event_ids", "event_ids"):
+                for event_id in _ids_from_value(source.get(key)):
+                    if event_id not in found:
+                        found.append(event_id)
+    return found
+
+
+def _event_establishes_map(opening_scene_sequence: dict[str, Any] | None) -> dict[str, list[str]]:
+    return {
+        str(event.get("id") or "").strip(): _unique_strs(event.get("establishes"))
+        for event in _event_rows(opening_scene_sequence)
+        if event.get("id")
+    }
+
+
+def _collect_must_establish_coverage(structured_output: dict[str, Any] | None) -> set[str]:
+    structured = _as_dict(structured_output)
+    found: set[str] = set()
+    for key in ("opening_must_establish_coverage", "must_establish_coverage"):
+        value = structured.get(key)
+        if isinstance(value, dict):
+            found.update(str(item).strip() for item, covered in value.items() if covered and str(item).strip())
+        else:
+            found.update(_ids_from_value(value))
+    for nested_key in ("opening_event_coverage", "event_coverage"):
+        nested = _as_dict(structured.get(nested_key))
+        value = nested.get("must_establish_coverage")
+        if isinstance(value, dict):
+            found.update(str(item).strip() for item, covered in value.items() if covered and str(item).strip())
+        else:
+            found.update(_ids_from_value(value))
+    return found
+
+
 def evaluate_opening_event_coverage(
     *,
     opening_scene_sequence: dict[str, Any] | None,
     text: str,
+    structured_output: dict[str, Any] | None = None,
     actor_lane_context: dict[str, Any] | None = None,
     scene_plan_record: dict[str, Any] | None = None,
     current_scene_id: str | None = None,
     visible_blocks: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Evaluate opening narrative event and handover coverage."""
+    """Evaluate opening event and handover coverage from structured semantic evidence."""
     opening = _as_dict(opening_scene_sequence)
     if not opening:
         return {
@@ -774,29 +805,19 @@ def evaluate_opening_event_coverage(
             "opening_event_coverage_pass": True,
             "applicable": False,
         }
-    low = _fold_text(text)
     expected_events = [str(event.get("id") or "").strip() for event in _event_rows(opening) if event.get("id")]
-    covered_events: list[str] = []
-    for event_id in expected_events:
-        if event_id == "event_05_role_anchor":
-            if any(_fold_text(name) in low for name in _actor_names(actor_lane_context)):
-                covered_events.append(event_id)
-            elif visible_blocks and len(visible_blocks) >= 2:
-                covered_events.append(event_id)
-            continue
-        words = _EVENT_KEYWORDS.get(event_id, ())
-        if any(word in low for word in words):
-            covered_events.append(event_id)
+    evidence_events = _collect_opening_event_ids(
+        structured_output=structured_output,
+        visible_blocks=visible_blocks,
+    )
+    covered_events = [event_id for event_id in expected_events if event_id in set(evidence_events)]
     opening_contract = _as_dict(opening.get("opening_contract"))
     must_establish = _unique_strs(opening_contract.get("must_establish"))
-    must_coverage = {
-        "triggering_incident": "event_01_triggering_incident" in covered_events,
-        "adult_consequence": "event_02_adult_consequence" in covered_events,
-        "reason_for_meeting": "event_02_adult_consequence" in covered_events,
-        "apartment_as_social_stage": "event_04_apartment_as_stage" in covered_events,
-        "selected_player_role_presence": "event_05_role_anchor" in covered_events,
-        "first_playable_moment": "event_06_first_playable_moment" in covered_events,
-    }
+    establishes_by_event = _event_establishes_map(opening)
+    covered_must = _collect_must_establish_coverage(structured_output)
+    for event_id in covered_events:
+        covered_must.update(establishes_by_event.get(event_id, []))
+    must_coverage = {item: item in covered_must for item in must_establish}
     missing_must = [key for key in must_establish if not must_coverage.get(key, False)]
     scene_plan = _as_dict(scene_plan_record)
     expected_handover = _opening_handover_phase(opening)
@@ -862,6 +883,7 @@ def build_knowledge_path_summary(
     coverage = evaluate_opening_event_coverage(
         opening_scene_sequence=opening,
         text=text,
+        structured_output=structured,
         actor_lane_context=actor_lane_context,
         scene_plan_record=scene_plan,
         current_scene_id=str(graph_state.get("current_scene_id") or ""),

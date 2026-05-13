@@ -26,11 +26,6 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "actor_lane_invalid_initiative_type",
         "actor_lane_scene_function_mismatch",
         "actor_lane_text_exceeds_transcript_beat",
-        "summary_only_opening",
-        "stage_direction_labels",
-        "abstract_theme_dump",
-        "opening_event_coverage_failed",
-        "opening_handover_to_scene_phase_mismatch",
     }
 )
 
@@ -68,11 +63,6 @@ DEGRADED_COMMIT_BLOCK_REASONS = frozenset(
         "malformed_proposed_effect",
         "incomplete_proposed_effect",
         "model_generation_failed",
-        "forced_player_speech",
-        "npc_world_explanation",
-        "meta_runtime_language",
-        "source_text_reproduction",
-        "player_agency_violation",
     }
 )
 
@@ -194,8 +184,11 @@ def decide_playability_recovery(
     reason = _reason(outcome)
     rewriteable = False
     if status == "rejected" and not hard_boundary:
+        failure_class = str((outcome or {}).get("failure_class") or "").strip()
         rewriteable = (
-            reason in REWRITEABLE_VALIDATION_REASONS
+            bool((outcome or {}).get("recoverable_rejection"))
+            or failure_class in {"opening_event_coverage", "recoverable_opening_contract"}
+            or reason in REWRITEABLE_VALIDATION_REASONS
             or "parser_error" in feedback
             or "mock_fallback_output" in feedback
             or "narration_too_short" in feedback

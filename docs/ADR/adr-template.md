@@ -50,6 +50,8 @@ Diagrams explaining the ADRs Context and Consequences
 
 How we **verify** this decision: CI gates, contract tests, manual checks, or explicit **“not yet automated”**. Note **failure modes** that should trigger an ADR review (e.g. drift in dual surfaces, missing enforcement).
 
+Gate and promotion-style tests must comply with **[ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md)** (no hardcoded primary oracles).
+
 ## References
 
 - …

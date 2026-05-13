@@ -5641,7 +5641,7 @@ class StoryRuntimeManager:
         )
         if session.module_id != GOD_OF_CARNAGE_MODULE_ID:
             return base
-        anchor = "Paris apartment, evening — hosts and guests meet after their children's incident"
+        anchor = "configured opening location and social premise"
         handover = "phase_1"
         opening_scene_sequence_id = ""
         opening_event_ids: list[str] = []
@@ -5693,19 +5693,21 @@ class StoryRuntimeManager:
             f"{base}\n\n"
             f"Session opening (canonical direction/opening_sequence.yaml; ADR-0035). Anchor: {anchor}. "
             "Deliver THREE narrator beats in order before any NPC speech: "
-            "(1) narrator_intro — background/premise: the schoolyard incident and why these adults meet; "
+            "(1) narrator_intro — background/premise: the configured triggering incident and why these adults meet; "
             f"(2) role_anchor — inner-perception narrator that places {role_label} in the scene "
             "(who they are, their place in this room, their disposition at the start); "
             "(3) scene_setup — the Paris salon: physical space, ritual objects, social temperature. "
             "Use three narrator paragraphs (blank line between each) or three gm_narration strings. "
             'Prefer JSON field narration_summary as a list of exactly three strings, e.g. '
             '"narration_summary": ["narrator_intro: …", "role_anchor: …", "scene_setup: …"]. '
-            f"After all three beats, scene targets {handover}. Phase-1 civility — polite, non-accusatory NPC lines. "
+            f"After all three beats, scene targets {handover}; keep NPC lines aligned with that phase. "
             f"Opening knowledge contract {opening_scene_sequence_id or 'opening_scene_sequence'} requires events "
-            f"{opening_event_ids or ['event_01_triggering_incident', 'event_06_first_playable_moment']} "
-            f"and must_establish {opening_must_establish or ['triggering_incident', 'first_playable_moment']}. "
+            f"{opening_event_ids} "
+            f"and must_establish {opening_must_establish}. "
+            'Emit structured coverage evidence as "opening_event_ids" with the covered event ids; '
+            'semantic rule hits, when present, must use "runtime_gate_detections" ids. '
             f"Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}. "
-            "Do not use NPC dialogue to dump premise or explain the room; narrator owns spatial/premise establishment."
+            "Apply hard-forbidden rules by their authored ids; narrator owns spatial/premise establishment."
         )
 
     def _opening_commit_acceptable(self, graph_state: dict[str, Any]) -> bool:

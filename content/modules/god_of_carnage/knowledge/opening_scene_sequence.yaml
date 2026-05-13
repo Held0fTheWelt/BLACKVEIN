@@ -35,6 +35,8 @@ opening_scene_sequence:
     - id: event_01_triggering_incident
       title: "The triggering incident"
       narrative_function: show_cause
+      establishes:
+        - triggering_incident
       narrator_task: >-
         Dramatize the event that makes the meeting necessary. Show it as a concrete remembered or
         prologue scene, not as legal exposition.
@@ -51,6 +53,9 @@ opening_scene_sequence:
     - id: event_02_adult_consequence
       title: "The incident reaches the adults"
       narrative_function: consequence_bridge
+      establishes:
+        - adult_consequence
+        - reason_for_meeting
       narrator_task: >-
         Show how the incident moves from the children's world into the adult world.
       must_show:
@@ -61,6 +66,7 @@ opening_scene_sequence:
     - id: event_03_arrival_threshold
       title: "Arrival and threshold"
       narrative_function: move_to_stage
+      establishes: []
       narrator_task: >-
         Bring the guests into the apartment and make the social threshold visible.
       must_show:
@@ -72,6 +78,8 @@ opening_scene_sequence:
       title: "The apartment as social stage"
       narrative_function: establish_play_space
       location_id: vallon_living_room
+      establishes:
+        - apartment_as_social_stage
       narrator_task: >-
         Make the room playable: spatially clear, socially charged, and full of usable details.
       must_show:
@@ -83,6 +91,8 @@ opening_scene_sequence:
     - id: event_05_role_anchor
       title: "Selected player role anchor"
       narrative_function: player_anchor
+      establishes:
+        - selected_player_role_presence
       narrator_task: >-
         Place the selected human player character inside the room without speaking or deciding
         for them.
@@ -105,6 +115,8 @@ opening_scene_sequence:
     - id: event_06_first_playable_moment
       title: "First playable moment"
       narrative_function: handover_to_play
+      establishes:
+        - first_playable_moment
       narrator_task: >-
         End the opening at a concrete playable moment, with the social room established and the
         player free to choose the first action.

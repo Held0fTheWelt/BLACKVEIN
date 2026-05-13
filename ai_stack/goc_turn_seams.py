@@ -586,6 +586,7 @@ def run_validation_seam(
         opening_coverage = evaluate_opening_event_coverage(
             opening_scene_sequence=opening_scene_sequence,
             text=knowledge_text or narr,
+            structured_output=structured_pre,
             actor_lane_context=actor_lane_context if isinstance(actor_lane_context, dict) else None,
             scene_plan_record=scene_plan_record if isinstance(scene_plan_record, dict) else None,
             current_scene_id=current_scene_id,

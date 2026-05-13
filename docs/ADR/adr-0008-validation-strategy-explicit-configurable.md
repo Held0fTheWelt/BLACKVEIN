@@ -25,10 +25,13 @@ This ADR contains no personal data. Implementers must follow the repository priv
 
 ## Related ADRs
 
-- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+- [ADR-0009](adr-0009-evaluation-is-a-promotion-gate.md) — promotion and evaluation evidence (orthogonal axis: *when* something may ship).
+- [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — tests that assert validation outcomes must not use hardcoded literals as the primary oracle; oracles must trace to contract, schema, or canonical content so the configured strategy stays **meaningful**, not cosmetic.
+- [README.md](README.md) — ADR index.
 
 ## Context
 
+Output validation intensity and cost vary by environment (local dev vs. staging vs. gate CI). Without an **explicit, named strategy**, teams cannot align runtime behavior, observability, and automated tests: the same code path might be “strict” in one place and “schema-only” in another without documentation. That ambiguity invites silent drift and brittle tests that pin accidental behavior instead of declared invariants.
 
 ## Decision
 Output validation must expose a strategy: `schema_only`, `schema_plus_semantic`, or `strict_rule_engine`.
@@ -36,7 +39,7 @@ Output validation must expose a strategy: `schema_only`, `schema_plus_semantic`,
 ## Consequences
 - runtime behavior becomes transparent
 - environments can trade latency for scrutiny
-- test suites can target strategy-specific expectations
+- test suites can target strategy-specific expectations **without** inventing a second truth surface: expectations must still satisfy [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) (derive assertions from schema, contracts, or canonical authored content—not from copy-pasted example output)
 
 ## Diagrams
 
@@ -53,6 +56,11 @@ flowchart TD
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
+
+**Gate and regression tests** that exist to prove validation behavior must:
+
+- assert **invariants** and **strategy wiring** (e.g. which branch runs for a given `VALIDATION_MODE`, presence of corrective feedback fields, rejection classes) rather than long literal model outputs; and
+- comply with [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md): hardcoded strings as the primary pass/fail oracle are forbidden when they only encode a one-off symptom fix.
 
 ## References
 docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md

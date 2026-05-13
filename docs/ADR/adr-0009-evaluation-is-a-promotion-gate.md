@@ -24,10 +24,13 @@ This ADR contains no personal data. Implementers must follow the repository priv
 
 ## Related ADRs
 
-- [README.md](README.md) — ADR index *(no tightly coupled ADR beyond references below)*.
+- [ADR-0008](adr-0008-validation-strategy-explicit-configurable.md) — runtime output validation strategy (orthogonal axis: *how* proposals are checked before commit).
+- [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) — evaluation and promotion **gate tests** must not “go green” by hardcoding expected scores, labels, or narrative snippets; evidence must trace to baselines, schemas, or documented scoring rules.
+- [README.md](README.md) — ADR index.
 
 ## Context
 
+Preview and staging packages can exist indefinitely without proving narrative or governance quality. If promotion is informal, operators carry unwritten rules and regressions slip through. Formal **evaluation gates** and **approval** make “promotable” a defined state: measurable, comparable to baseline, and reviewable—once enforcement is complete (see **Implementation Status**).
 
 ## Decision
 A preview package is not promotable only because it exists. Promotion requires passing evaluation gates and manual approval.
@@ -36,6 +39,7 @@ A preview package is not promotable only because it exists. Promotion requires p
 - quality becomes measurable
 - package changes can be compared to active baseline
 - regression risk is materially reduced
+- when evaluation gate tests are added or tightened, they are subject to [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md): scoring and pass/fail oracles must not be reduced to hardcoded literals that only mirror a single failing ticket’s wording
 
 ## Diagrams
 
@@ -51,6 +55,8 @@ flowchart LR
 ## Testing
 
 Contract / unit coverage as cited in **References**; extend this section when a dedicated gate exists. Revisit this ADR if enforcement drifts or the decision is bypassed in code review.
+
+**Promotion / evaluation gate tests** (when implemented) must prove that failed scores or failed regression checks **block** promotion—or that approved overrides are explicit—not that a magic string in the test file matches last week’s output. Follow [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md): derive expected evaluation artifacts from versioned baselines, published scoring contracts, or fixture generators tied to the same pipeline as production evaluation.
 
 ## References
 docs/MVPs/MVP_Narrative_Governance_And_Revision_Foundation/02_architecture_decisions.md

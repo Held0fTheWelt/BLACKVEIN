@@ -92,6 +92,45 @@ hard_forbidden_rules:
           narration based on structured facts and dramatic functions.
 
   hard_forbidden_detection:
+    structured_detection_fields:
+      - runtime_gate_detections
+      - hard_forbidden_detections
+      - forbidden_rule_hits
+    marker_map:
+      forced_player_speech: no_forced_player_speech
+      npc_world_explanation: no_npc_world_explanation
+      meta_runtime_language: no_meta_runtime_language
+      source_text_reproduction: no_long_original_dialogue
+      player_agency_violation: no_forced_player_decision
+      abstract_theme_dump: no_abstract_theme_dump
+      stage_direction_labels: no_stage_direction_labels
+      summary_only_opening: summarize_the_backstory_in_two_sentences
+    actor_lane_violation_map:
+      ai_controlled_human_actor:
+        detection_key: forced_player_speech
+        rule_id: no_forced_player_speech
+        action: reject
+      human_actor_selected_as_responder:
+        detection_key: player_agency_violation
+        rule_id: no_forced_player_decision
+        action: reject
+    structural_checks:
+      - detection_key: forced_player_speech
+        rule_id: no_forced_player_speech
+        action: reject
+        kind: forbidden_actor_lane
+        lanes:
+          - spoken_lines
+          - actor_line
+        actor_fields:
+          - speaker_id
+          - actor_id
+      - detection_key: summary_only_opening
+        rule_id: summarize_the_backstory_in_two_sentences
+        action: recover
+        kind: opening_render_policy
+        min_visible_blocks_from: narration_mode.min_visible_blocks
+        summary_allowed_from: narration_mode.summary_allowed
     reject_on:
       - forced_player_speech
       - npc_world_explanation
