@@ -109,6 +109,7 @@ from app.story_runtime.commit_models import (
     BeatProgression,
     resolve_narrative_commit,
 )
+from app.story_runtime.canonical_turn_lifecycle import TurnLifecycleChain
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
@@ -280,6 +281,67 @@ def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
     if reason == "graph_execution_exception":
         return "Dieser Zug konnte nicht vollstaendig geladen werden. Bitte versuche es erneut."
     return "Dieser Zug laesst sich im Moment nicht sauber aus der Szene heraus aufloesen."
+
+
+def _recoverable_narrator_visible_output_bundle(*, message: str) -> dict[str, Any]:
+    """Single writer for narrator-led recoverable player surface (ADR-0038 Phase C)."""
+    block: dict[str, Any] = {
+        "block_type": "narrator",
+        "text": message,
+        "player_display_text": message,
+        "origin_aspect": "validation",
+        "origin_beat_id": None,
+        "origin_capability": "narrator.recoverable_failure",
+        "authority_owner": "narrator",
+    }
+    return {
+        "gm_narration": [message],
+        "spoken_lines": [],
+        "action_lines": [],
+        "scene_blocks": [block],
+    }
+
+
+def _recoverable_playable_turn_envelope(
+    *,
+    session: "StorySession",
+    commit_turn_number: int,
+    player_input: str,
+    trace_id: str | None,
+    turn_kind: str,
+    interpreted_input: dict[str, Any],
+    narrative_commit: dict[str, Any],
+    validation_outcome: dict[str, Any],
+    message: str,
+    turn_aspect_ledger: dict[str, Any],
+    reason: str,
+    diagnostics_extras: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Shared transport envelope for recoverable / graph-rescue short paths (ADR-0038 Phase C)."""
+    diag: dict[str, Any] = {
+        "recoverable_rejection": True,
+        "hard_boundary_failure": False,
+        "turn_aspect_ledger": turn_aspect_ledger,
+    }
+    if diagnostics_extras:
+        diag.update(diagnostics_extras)
+    return {
+        "turn_number": commit_turn_number,
+        "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
+        "turn_kind": turn_kind,
+        "raw_input": player_input,
+        "trace_id": trace_id,
+        "turn_aspect_ledger": turn_aspect_ledger,
+        "interpreted_input": interpreted_input,
+        "narrative_commit": narrative_commit,
+        "validation_outcome": validation_outcome,
+        "visible_output_bundle": _recoverable_narrator_visible_output_bundle(message=message),
+        "ok": False,
+        "turn_status": "rejected_recoverable",
+        "reason": reason,
+        "player_visible_message": message,
+        "diagnostics": diag,
+    }
 
 
 def _build_human_input_attribution_record(
@@ -5651,6 +5713,28 @@ class StoryRuntimeManager:
         fallback["degradation_summary"] = reason
         return fallback
 
+    def _emit_observability_path_for_event(
+        self,
+        *,
+        session: StorySession,
+        graph_state: dict[str, Any],
+        event: dict[str, Any],
+    ) -> None:
+        """Langfuse path summary and evidence hooks for any turn-shaped event (ADR-0038 Phase C)."""
+        path_summary = _build_langfuse_path_summary(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+        )
+        event["observability_path_summary"] = path_summary
+        _emit_langfuse_path_spans(path_summary)
+        _emit_langfuse_runtime_aspect_observability(path_summary)
+        _emit_langfuse_evidence_observations(
+            path_summary=path_summary,
+            graph_state=graph_state,
+            event=event,
+        )
+
     def _finalize_committed_turn(
         self,
         *,
@@ -5674,6 +5758,12 @@ class StoryRuntimeManager:
         interpreted_input = graph_state.get("interpreted_input", {})
         if not isinstance(interpreted_input, dict):
             interpreted_input = {}
+        validation_outcome = (
+            graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
+        )
+        turn_lc = TurnLifecycleChain()
+        turn_lc.advance("received")
+        turn_lc.advance("interpreted")
         prior_beat = _prior_beat_from_session(session)
         narrative_commit = resolve_narrative_commit(
             turn_number=commit_turn_number,
@@ -5685,6 +5775,9 @@ class StoryRuntimeManager:
             graph_state=graph_state,
             prior_beat_progression=prior_beat,
         )
+        model_ok = gen.get("success") is True
+        turn_lc.advance("generated_or_resolved")
+        turn_lc.advance("validated")
         session.current_scene_id = narrative_commit.committed_scene_id
         session.narrative_threads, session.last_thread_update_trace = update_narrative_threads(
             prior=session.narrative_threads,
@@ -5693,7 +5786,7 @@ class StoryRuntimeManager:
             committed_scene_id=narrative_commit.committed_scene_id,
             turn_number=commit_turn_number,
         )
-        model_ok = gen.get("success") is True
+        turn_lc.advance("committed")
         outcome = "ok" if model_ok and not errors else "degraded"
         actor_survival_telemetry = (
             graph_state.get("actor_survival_telemetry")
@@ -5729,7 +5822,6 @@ class StoryRuntimeManager:
         }
 
         # Build validation details
-        validation_outcome = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
         validation_details = {
             "status": validation_outcome.get("status"),
             "reason": validation_outcome.get("reason"),
@@ -5871,7 +5963,7 @@ class StoryRuntimeManager:
         gov["api_model"] = gen_meta.get("model")
         self_correction = graph_state.get("self_correction") if isinstance(graph_state.get("self_correction"), dict) else {}
         gov["self_correction_attempt_count"] = self_correction.get("attempt_count")
-        val = graph_state.get("validation_outcome") if isinstance(graph_state.get("validation_outcome"), dict) else {}
+        val = validation_outcome
         gov["validation_reason"] = val.get("reason")
         gov["mock_output_flag"] = bool(str(gen.get("content") or "").strip().startswith("[mock]"))
         gov["transition_pattern"] = graph_state.get("transition_pattern")
@@ -6356,19 +6448,9 @@ class StoryRuntimeManager:
             graph_state["human_input_attribution"] = human_att
             event["human_input_attribution"] = human_att
         _reconcile_governance_passivity_with_final_projection(event)
-        path_summary = _build_langfuse_path_summary(
-            session=session,
-            graph_state=graph_state,
-            event=event,
-        )
-        event["observability_path_summary"] = path_summary
-        _emit_langfuse_path_spans(path_summary)
-        _emit_langfuse_runtime_aspect_observability(path_summary)
-        _emit_langfuse_evidence_observations(
-            path_summary=path_summary,
-            graph_state=graph_state,
-            event=event,
-        )
+        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
+
+        turn_lc.advance("projected")
 
         committed_record = {
             "canonical_turn_id": event.get("canonical_turn_id"),
@@ -6390,8 +6472,12 @@ class StoryRuntimeManager:
         }
         if isinstance(event.get("narrator_streaming"), dict):
             committed_record["narrator_streaming"] = event["narrator_streaming"]
+        turn_lc.advance("persisted")
+        committed_record["lifecycle_state"] = "observed"
+        event["lifecycle_state"] = "observed"
         session.history.append(committed_record)
         session.diagnostics.append(event)
+        turn_lc.advance("observed")
         self._persist_session(session)
         return event
 
@@ -6620,15 +6706,21 @@ class StoryRuntimeManager:
                 validation_status="rejected",
                 visible_output_present=True,
             )
-            event = {
-                "turn_number": commit_turn_number,
-                "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
-                "turn_kind": "player_graph_exception_playable",
-                "raw_input": player_input,
-                "trace_id": trace_id,
-                "turn_aspect_ledger": turn_aspect_ledger,
-                "interpreted_input": {},
-                "narrative_commit": {
+            val_graph_exc: dict[str, Any] = {
+                "status": "rejected",
+                "reason": "graph_execution_exception",
+                "recoverable_rejection": True,
+                "hard_boundary_failure": False,
+                "parser_or_model_failure": True,
+            }
+            event = _recoverable_playable_turn_envelope(
+                session=session,
+                commit_turn_number=commit_turn_number,
+                player_input=player_input,
+                trace_id=trace_id,
+                turn_kind="player_graph_exception_playable",
+                interpreted_input={},
+                narrative_commit={
                     "situation_status": "continue",
                     "allowed": False,
                     "commit_reason_code": "graph_execution_exception",
@@ -6637,41 +6729,15 @@ class StoryRuntimeManager:
                     "selected_candidate_source": "runtime_exception_gate",
                     "is_terminal": False,
                 },
-                "validation_outcome": {
-                    "status": "rejected",
-                    "reason": "graph_execution_exception",
-                    "recoverable_rejection": True,
-                    "hard_boundary_failure": False,
-                    "parser_or_model_failure": True,
-                },
-                "visible_output_bundle": {
-                    "gm_narration": [gmsg],
-                    "spoken_lines": [],
-                    "action_lines": [],
-                    "scene_blocks": [
-                        {
-                            "block_type": "narrator",
-                            "text": gmsg,
-                            "player_display_text": gmsg,
-                            "origin_aspect": "validation",
-                            "origin_beat_id": None,
-                            "origin_capability": "narrator.recoverable_failure",
-                            "authority_owner": "narrator",
-                        }
-                    ],
-                },
-                "ok": False,
-                "turn_status": "rejected_recoverable",
-                "reason": "graph_execution_exception",
-                "player_visible_message": gmsg,
-                "diagnostics": {
-                    "recoverable_rejection": True,
-                    "hard_boundary_failure": False,
+                validation_outcome=val_graph_exc,
+                message=gmsg,
+                turn_aspect_ledger=turn_aspect_ledger,
+                reason="graph_execution_exception",
+                diagnostics_extras={
                     "failure_class": "graph_execution_exception",
                     "exception_type": type(exc).__name__,
-                    "turn_aspect_ledger": turn_aspect_ledger,
                 },
-            }
+            )
             graph_state_recoverable = {
                 "session_id": session.session_id,
                 "module_id": session.module_id,
@@ -6686,7 +6752,7 @@ class StoryRuntimeManager:
                     "metadata": {"error": str(exc), "exception_type": type(exc).__name__},
                 },
                 "graph_errors": ["graph_execution_exception"],
-                "validation_outcome": event["validation_outcome"],
+                "validation_outcome": val_graph_exc,
                 "visible_output_bundle": event["visible_output_bundle"],
                 "turn_aspect_ledger": turn_aspect_ledger,
             }
@@ -6774,19 +6840,15 @@ class StoryRuntimeManager:
         graph_state.setdefault("validation_outcome", event.get("validation_outcome"))
         graph_state.setdefault("visible_output_bundle", event.get("visible_output_bundle"))
         graph_state.setdefault("interpreted_input", interpreted_input)
-        path_summary = _build_langfuse_path_summary(
-            session=session,
-            graph_state=graph_state,
-            event=event,
-        )
-        event["observability_path_summary"] = path_summary
-        _emit_langfuse_path_spans(path_summary)
-        _emit_langfuse_runtime_aspect_observability(path_summary)
-        _emit_langfuse_evidence_observations(
-            path_summary=path_summary,
-            graph_state=graph_state,
-            event=event,
-        )
+        turn_lc = TurnLifecycleChain()
+        turn_lc.advance("received")
+        turn_lc.advance("interpreted")
+        turn_lc.advance("generated_or_resolved")
+        turn_lc.advance("validated")
+        turn_lc.advance("committed")
+        self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
+        turn_lc.advance("projected")
+
         canonical_record = {
             "canonical_turn_id": event["canonical_turn_id"],
             "turn_number": commit_turn_number,
@@ -6804,8 +6866,12 @@ class StoryRuntimeManager:
                 "turn_counter": session.turn_counter,
             },
         }
+        turn_lc.advance("persisted")
+        canonical_record["lifecycle_state"] = "observed"
+        event["lifecycle_state"] = "observed"
         session.history.append(canonical_record)
         session.diagnostics.append(event)
+        turn_lc.advance("observed")
         session.updated_at = datetime.now(timezone.utc)
         self._persist_session(session)
         return event
@@ -6842,15 +6908,19 @@ class StoryRuntimeManager:
             else None,
             visible_output_present=True,
         )
-        event = {
-            "turn_number": attempted_turn_number,
-            "canonical_turn_id": _canonical_turn_id(session.session_id, attempted_turn_number),
-            "turn_kind": "player_rejected_recoverable",
-            "raw_input": player_input,
-            "trace_id": trace_id,
-            "turn_aspect_ledger": turn_aspect_ledger,
-            "interpreted_input": interpreted_input,
-            "narrative_commit": {
+        val_merged: dict[str, Any] = {
+            **validation_outcome,
+            "recoverable_rejection": True,
+            "hard_boundary_failure": False,
+        }
+        event = _recoverable_playable_turn_envelope(
+            session=session,
+            commit_turn_number=attempted_turn_number,
+            player_input=player_input,
+            trace_id=trace_id,
+            turn_kind="player_rejected_recoverable",
+            interpreted_input=interpreted_input,
+            narrative_commit={
                 "situation_status": "continue",
                 "allowed": False,
                 "commit_reason_code": "recoverable_rejection",
@@ -6859,37 +6929,11 @@ class StoryRuntimeManager:
                 "selected_candidate_source": "validation_gate",
                 "is_terminal": False,
             },
-            "validation_outcome": {
-                **validation_outcome,
-                "recoverable_rejection": True,
-                "hard_boundary_failure": False,
-            },
-            "visible_output_bundle": {
-                "gm_narration": [message],
-                "spoken_lines": [],
-                "action_lines": [],
-                "scene_blocks": [
-                    {
-                        "block_type": "narrator",
-                        "text": message,
-                        "player_display_text": message,
-                        "origin_aspect": "validation",
-                        "origin_beat_id": None,
-                        "origin_capability": "narrator.recoverable_failure",
-                        "authority_owner": "narrator",
-                    }
-                ],
-            },
-            "ok": False,
-            "turn_status": "rejected_recoverable",
-            "reason": reason,
-            "player_visible_message": message,
-            "diagnostics": {
-                "recoverable_rejection": True,
-                "hard_boundary_failure": False,
-                "turn_aspect_ledger": turn_aspect_ledger,
-            },
-        }
+            validation_outcome=val_merged,
+            message=message,
+            turn_aspect_ledger=turn_aspect_ledger,
+            reason=reason,
+        )
         graph_state["turn_aspect_ledger"] = turn_aspect_ledger
         graph_state["visible_output_bundle"] = event["visible_output_bundle"]
         graph_state["validation_outcome"] = event["validation_outcome"]
@@ -7022,11 +7066,13 @@ class StoryRuntimeManager:
             last_dramatic_context_summary,
             session=session,
         )
+        committed_canonical_turn_count = len(session.history)
 
         return {
             "session_id": session.session_id,
             "module_id": session.module_id,
             "turn_counter": session.turn_counter,
+            "committed_canonical_turn_count": committed_canonical_turn_count,
             "current_scene_id": session.current_scene_id,
             "content_provenance": session.content_provenance,
             "runtime_projection": session.runtime_projection,

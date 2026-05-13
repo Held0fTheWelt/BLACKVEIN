@@ -257,6 +257,7 @@ def test_recoverable_validation_rejection_returns_structured_turn(manager: Story
     state = manager.get_state(session.session_id)
     assert state["history_count"] == 2
     assert state["story_window"]["latest_entry"]["text"] == turn["player_visible_message"]
+    assert manager.get_session(session.session_id).history[-1].get("lifecycle_state") == "observed"
 
 
 def test_hard_boundary_rejection_still_raises(manager: StoryRuntimeManager) -> None:
@@ -350,6 +351,7 @@ def test_history_holds_authoritative_commit_diagnostics_hold_envelope(manager: S
     diag = manager.get_session(session.session_id).diagnostics[-1]
     assert "narrative_commit" in hist
     assert "committed_turn_authority" in hist
+    assert hist.get("lifecycle_state") == "observed"
     assert "graph" not in hist
     assert "interpreted_input" not in hist
     assert "narrative_commit" in diag
@@ -357,6 +359,7 @@ def test_history_holds_authoritative_commit_diagnostics_hold_envelope(manager: S
     assert "graph" in diag
     assert "retrieval" in diag
     assert "interpreted_input" in diag
+    assert diag.get("lifecycle_state") == "observed"
     authority = hist["committed_turn_authority"]
     assert authority["authority_record_version"] == "committed_turn_authority.v1"
     assert authority["narrative_commit"] == hist["narrative_commit"]

@@ -185,13 +185,13 @@ def test_wos_langfuse_score_scope_debug_off_when_zero(monkeypatch: pytest.Monkey
     assert not any("score_scope" in r.message for r in caplog.records)
 
 
-def test_align_langfuse_otel_sets_live_when_backend_staging(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_align_langfuse_otel_sets_backend_environment_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
     from app.observability import langfuse_adapter as lf_mod
 
     monkeypatch.delenv("LANGFUSE_TRACING_ENVIRONMENT", raising=False)
     try:
         assert lf_mod._align_langfuse_otel_resource_environment("staging") is True
-        assert os.environ.get("LANGFUSE_TRACING_ENVIRONMENT") == "live"
+        assert os.environ.get("LANGFUSE_TRACING_ENVIRONMENT") == "staging"
     finally:
         monkeypatch.delenv("LANGFUSE_TRACING_ENVIRONMENT", raising=False)
 

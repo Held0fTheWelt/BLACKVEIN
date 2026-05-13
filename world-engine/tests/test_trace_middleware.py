@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import logging
 import sys
 import uuid
 from contextlib import contextmanager
@@ -91,12 +93,12 @@ def test_langfuse_start_trace_sets_first_class_session_context(monkeypatch):
     adapter._base_url = "http://langfuse.test"
     adapter._release = "test"
     adapter._sample_rate = 1.0
-    adapter._config = SimpleNamespace(environment="development", release="test", sample_rate=1.0)
+    adapter._config = SimpleNamespace(environment="tests", release="test", sample_rate=1.0)
     client = MagicMock()
     span = MagicMock()
     span.trace_id = "trace-session-hardening"
     client.start_observation.return_value = span
-    adapter._clients = {"development": client, "live": client}
+    adapter._clients = {"tests": client}
     propagate_calls: list[dict[str, Any]] = []
 
     @contextmanager
@@ -3241,3 +3243,93 @@ def test_langfuse_scores_include_intent_surface_contract_evidence(monkeypatch):
     assert metadata["semantic_move_kind"] == "observe"
     assert metadata["scene_director_selection_source"] == "semantic_move"
     assert metadata["planner_rationale_codes"] == ["player_perception_requires_environmental_feedback"]
+
+
+def test_langfuse_child_span_log_placeholder_when_sdk_ids_absent(caplog):
+    """SDK handles often lack public ids before flush; logs must not read as span creation failure."""
+    from app.observability import langfuse_adapter as lf_mod
+
+    caplog.set_level(logging.INFO, logger="app.observability.langfuse_adapter")
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+    adapter.is_ready = True
+    adapter._public_key = "pk-test"
+    adapter._secret_key = "sk-test"
+    adapter._config = SimpleNamespace(environment="development")
+    client = MagicMock()
+    adapter._clients = {"development": client}
+    parent_span = MagicMock()
+    parent_span.trace_id = "a1b2c3d4e5f6789012345678901234ab"
+    child_span = MagicMock()
+    parent_span.start_observation.return_value = child_span
+    token_span = lf_mod._active_span_context.set(parent_span)
+    token_session = lf_mod._active_langfuse_session_id.set("sess-log-test")
+    token_client = lf_mod._active_langfuse_client.set(client)
+    try:
+        lf_mod.LangfuseAdapter.create_child_span(
+            adapter,
+            name="story.phase.validation",
+            metadata={"canonical_turn_id": "c1:turn:0"},
+        )
+    finally:
+        lf_mod._active_langfuse_client.reset(token_client)
+        lf_mod._active_langfuse_session_id.reset(token_session)
+        lf_mod._active_span_context.reset(token_span)
+
+    assert parent_span.start_observation.called
+
+    def _parse_json_from_record(rec: logging.LogRecord) -> dict[str, Any] | None:
+        msg = rec.getMessage()
+        if "langfuse_child_span_created" not in msg:
+            return None
+        brace = msg.index("{")
+        return json.loads(msg[brace:])
+
+    row = next(
+        parsed
+        for r in caplog.records
+        if r.levelno == logging.INFO and (parsed := _parse_json_from_record(r)) is not None
+    )
+    assert row["event"] == "langfuse_child_span_created"
+    assert row["name"] == "story.phase.validation"
+    assert row["langfuse_span_id"] == lf_mod._LANGFUSE_ID_UNAVAILABLE
+    assert row["langfuse_parent_span_id"] == lf_mod._LANGFUSE_ID_UNAVAILABLE
+    assert row["span_successfully_created"] is True
+    assert row["trace_ref"] == "a1b2c3d4e5f6789012345678901234ab"
+    assert row["story_session_id"] == "sess-log-test"
+    assert row["canonical_turn_id"] == "c1:turn:0"
+    assert "story.phase.validation:py" in row["local_span_ref"]
+
+
+def test_langfuse_set_active_span_clear_logs_without_imploding(caplog):
+    from app.observability import langfuse_adapter as lf_mod
+
+    caplog.set_level(logging.INFO, logger="app.observability.langfuse_adapter")
+    adapter = lf_mod.LangfuseAdapter.__new__(lf_mod.LangfuseAdapter)
+    adapter.is_ready = True
+    prev = MagicMock()
+    prev.trace_id = "trace-clear-test-1234567890abcd"
+    token_span = lf_mod._active_span_context.set(prev)
+    token_sid = lf_mod._active_langfuse_session_id.set("sid-before-clear")
+    token_client = lf_mod._active_langfuse_client.set(MagicMock())
+    try:
+        lf_mod.LangfuseAdapter.set_active_span(adapter, None)
+        assert lf_mod._active_span_context.get() is None
+    finally:
+        lf_mod._active_langfuse_client.reset(token_client)
+        lf_mod._active_langfuse_session_id.reset(token_sid)
+        lf_mod._active_span_context.reset(token_span)
+
+    row = None
+    for r in caplog.records:
+        if r.levelno != logging.INFO:
+            continue
+        msg = r.getMessage()
+        if "cleared_active_span" not in msg:
+            continue
+        brace = msg.index("{")
+        row = json.loads(msg[brace:])
+        break
+    assert row is not None
+    assert row["event"] == "langfuse_set_active_span"
+    assert row["cleared_active_span"] is True
+    assert row["previous_story_session_id"] == "sid-before-clear"

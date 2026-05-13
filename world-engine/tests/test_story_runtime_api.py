@@ -56,6 +56,32 @@ def test_story_sessions_list_empty_then_populated(client, internal_api_key):
     assert "created_at" in row
 
 
+def test_state_after_create_includes_committed_canonical_turn_count(client, internal_api_key):
+    """Opening commits to session.history; shell parity uses committed_canonical_turn_count (ADR-0038 Phase A)."""
+    create_response = client.post(
+        "/api/story/sessions",
+        headers=_headers(internal_api_key),
+        json={
+            "module_id": "god_of_carnage",
+            "runtime_projection": _goc_projection(),
+        },
+    )
+    assert create_response.status_code == 200
+    session_id = create_response.json()["session_id"]
+    state_response = client.get(
+        f"/api/story/sessions/{session_id}/state",
+        headers=_headers(internal_api_key),
+    )
+    assert state_response.status_code == 200
+    state_body = state_response.json()
+    hc = state_body.get("history_count")
+    cc = state_body.get("committed_canonical_turn_count")
+    assert isinstance(hc, int) and hc >= 1
+    assert cc == hc
+    # Player-graph counter may still be 0 until first execute_turn after opening.
+    assert state_body.get("turn_counter", 0) >= 0
+
+
 def test_story_session_lifecycle_and_nl_interpretation(client, internal_api_key):
     create_response = client.post(
         "/api/story/sessions",

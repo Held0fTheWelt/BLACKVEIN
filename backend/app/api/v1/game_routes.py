@@ -333,6 +333,28 @@ def _typewriter_slice_start_index_for_bundle(
     return min(prior, len(scene_blocks))
 
 
+def _shell_committed_turn_display_counter(state: dict[str, Any]) -> int:
+    """Return the count of **committed canonical turns** for the play shell (ADR-0038 Phase A).
+
+    World-Engine ``turn_counter`` advances only on ``execute_turn`` (player path); Turn 0 opening is
+    committed to ``session.history`` without incrementing ``turn_counter``, which produced
+    ``committed turns 0`` in the shell while ``story_window`` already showed opening content.
+
+    Prefer ``committed_canonical_turn_count`` (explicit) or ``history_count`` (same source:
+    ``len(session.history)``), then fall back to ``turn_counter`` for older play-service payloads.
+    """
+    raw = state.get("committed_canonical_turn_count")
+    if isinstance(raw, int) and raw >= 0:
+        return raw
+    hc = state.get("history_count")
+    if isinstance(hc, int) and hc >= 0:
+        return hc
+    tc = state.get("turn_counter")
+    if isinstance(tc, int) and tc >= 0:
+        return tc
+    return 0
+
+
 def _player_shell_state_view(
     *,
     state: dict[str, Any],
@@ -353,7 +375,8 @@ def _player_shell_state_view(
         "template_id": template_id,
         "module_id": module_id,
         "runtime_session_id": runtime_session_id,
-        "turn_counter": state.get("turn_counter"),
+        "turn_counter": _shell_committed_turn_display_counter(state),
+        "player_graph_turn_counter": state.get("turn_counter"),
         "current_scene_id": state.get("current_scene_id"),
         "history_count": state.get("history_count"),
         "last_narrative_commit_summary": committed.get("last_narrative_commit_summary"),

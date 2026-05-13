@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 import os
@@ -60,38 +61,27 @@ _LANGFUSE_INGESTION_ERROR_BRIDGE = False
 
 
 def _align_langfuse_otel_resource_environment(backend_environment: str) -> bool:
-    """Align process ``LANGFUSE_TRACING_ENVIRONMENT`` with live traces when backend uses ``staging``.
+    """If ``LANGFUSE_TRACING_ENVIRONMENT`` is unset, pin OTEL to backend observability ``environment``.
 
     The Langfuse Python SDK keeps one ``LangfuseResourceManager`` per ``public_key``; the **first**
     ``Langfuse(environment=...)`` call pins the OTEL resource attribute ``langfuse.environment`` for
-    that process. Backend credentials often use ``environment=staging`` while ``resolve_langfuse_environment``
-    maps ``live_ui`` + ``live`` to ``live`` for trace metadata and scores — that mismatch can yield
-    ingestion 400/207 on score batches. If the operator has not set ``LANGFUSE_TRACING_ENVIRONMENT``,
-    force it to ``live`` in the common staging-credentials + live-UI case.
-
-    OTEL / SDK source: ``langfuse/_client/client.py`` (``LANGFUSE_TRACING_ENVIRONMENT``) and
-    ``langfuse/_client/resource_manager.py`` (singleton ``_instances`` keyed by ``public_key``).
+    that process. We align the process env with the same string the backend stores for observability
+    so ingestion and the SDK stay consistent.
 
     Returns:
         True if this function set ``LANGFUSE_TRACING_ENVIRONMENT`` in the process environment.
     """
     if (os.getenv("LANGFUSE_TRACING_ENVIRONMENT") or "").strip():
         return False
-    be = (backend_environment or "").strip().lower()
-    if be != "staging":
+    be = (backend_environment or "").strip()
+    if not be:
         return False
-    live_slug = resolve_langfuse_environment("live_ui", "live", default=backend_environment)
-    if live_slug != "live":
-        return False
-    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = live_slug
-    logger.warning(
-        "[LANGFUSE] Backend credential environment is %r but live_ui+live maps to %r. "
-        "LANGFUSE_TRACING_ENVIRONMENT was unset; set process env to %r so OTEL "
-        "``langfuse.environment`` matches live session traces (Langfuse SDK singleton per public_key). "
-        "To keep a different OTEL environment, set LANGFUSE_TRACING_ENVIRONMENT before starting play-service.",
+    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = be
+    logger.info(
+        "[LANGFUSE] LANGFUSE_TRACING_ENVIRONMENT was unset; set to backend observability environment %r "
+        "so OTEL ``langfuse.environment`` matches the Langfuse client (SDK singleton per public_key). "
+        "Override anytime by setting LANGFUSE_TRACING_ENVIRONMENT before starting play-service.",
         be,
-        live_slug,
-        live_slug,
     )
     return True
 
@@ -200,6 +190,41 @@ _active_langfuse_client: ContextVar[Optional[Any]] = ContextVar("langfuse_client
 _active_langfuse_session_id: ContextVar[Optional[str]] = ContextVar("langfuse_session_id", default=None)
 _span_context_registry: dict[int, tuple[Optional[Any], Optional[str]]] = {}
 
+# Langfuse Python SDK v4 often does not populate public ``span_id`` on in-memory observation handles
+# until after flush; ``id`` / ``observation_id`` may also be absent pre-export. Logs must not imply failure.
+_LANGFUSE_ID_UNAVAILABLE = "unavailable_from_sdk_object"
+
+
+def _lf_sdk_public_observation_id(span: object) -> Optional[str]:
+    """Return a non-empty Langfuse observation id string when exposed by the SDK object."""
+    for attr in ("id", "observation_id", "span_id"):
+        val = getattr(span, attr, None)
+        if val is None:
+            continue
+        try:
+            from unittest.mock import MagicMock, NonCallableMagicMock
+
+            if isinstance(val, (MagicMock, NonCallableMagicMock)):
+                continue
+        except Exception:
+            pass
+        if isinstance(val, str):
+            s = val.strip()
+            if s:
+                return s
+    return None
+
+
+def _lf_trace_ref_for_log(span: Optional[object]) -> str:
+    tid = getattr(span, "trace_id", None) if span is not None else None
+    if isinstance(tid, str) and tid.strip():
+        return tid.strip()
+    return _LANGFUSE_ID_UNAVAILABLE
+
+
+def _lf_json_log_line(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, default=str, separators=(",", ":"))
+
 
 class LangfuseAdapter:
     """Singleton Langfuse adapter for world-engine story execution tracing."""
@@ -252,16 +277,13 @@ class LangfuseAdapter:
             self._sample_rate = sample_rate
             self.is_ready = True
             logger.info("[LANGFUSE] ✓ Credentials loaded; Langfuse clients are created per trace environment")
-            aligned = _align_langfuse_otel_resource_environment(str(self._config.environment))
+            _align_langfuse_otel_resource_environment(str(self._config.environment))
             _install_langfuse_ingestion_error_bridge()
-            if aligned:
-                try:
-                    # First Langfuse() for this public_key pins OTEL resource; prefer live client first.
-                    self._get_client(
-                        resolve_langfuse_environment("live_ui", "live", default=str(self._config.environment))
-                    )
-                except Exception:
-                    logger.debug("[LANGFUSE] Eager Langfuse client init failed", exc_info=True)
+            try:
+                # First Langfuse() for this public_key pins OTEL resource; use backend observability env only.
+                self._get_client(str(self._config.environment).strip() or "development")
+            except Exception:
+                logger.debug("[LANGFUSE] Eager Langfuse client init failed", exc_info=True)
         except ImportError as e:
             logger.warning(f"[LANGFUSE] SDK not available: {e}")
         except Exception as e:
@@ -521,18 +543,50 @@ class LangfuseAdapter:
     def set_active_span(self, span: Optional[Any]) -> None:
         """Set the currently active span for child operations (thread-safe via ContextVar)."""
         if span is None:
+            prev_span = _active_span_context.get()
+            prev_sid = _active_langfuse_session_id.get()
+            clear_payload = {
+                "event": "langfuse_set_active_span",
+                "cleared_active_span": True,
+                "previous_local_span_ref": (f"active:py{id(prev_span):x}" if prev_span is not None else None),
+                "previous_langfuse_span_id": (
+                    _lf_sdk_public_observation_id(prev_span) if prev_span is not None else _LANGFUSE_ID_UNAVAILABLE
+                ),
+                "previous_trace_ref": _lf_trace_ref_for_log(prev_span),
+                "previous_story_session_id": (prev_sid if prev_sid else _LANGFUSE_ID_UNAVAILABLE),
+                "note": (
+                    "active_span_cleared; langfuse_client_and_session_contextvars_also_cleared "
+                    "(SDK observation ids may still be unavailable_from_sdk_object before flush)"
+                ),
+            }
             _active_langfuse_client.set(None)
             _active_langfuse_session_id.set(None)
-        else:
-            client, session_id = _span_context_registry.get(
-                id(span),
-                (_active_langfuse_client.get(), _active_langfuse_session_id.get()),
-            )
-            _active_langfuse_client.set(client)
-            _active_langfuse_session_id.set(session_id)
-        span_name = getattr(span, 'name', 'unknown') if span else None
-        span_id = getattr(span, 'span_id', 'unknown') if span else None
-        logger.info(f"[LANGFUSE] set_active_span: name={span_name}, span_id={span_id}")
+            logger.info("[LANGFUSE] %s", _lf_json_log_line(clear_payload))
+            _active_span_context.set(span)
+            return
+
+        client, session_id = _span_context_registry.get(
+            id(span),
+            (_active_langfuse_client.get(), _active_langfuse_session_id.get()),
+        )
+        _active_langfuse_client.set(client)
+        _active_langfuse_session_id.set(session_id)
+        lf_sid = _lf_sdk_public_observation_id(span)
+        activate_payload = {
+            "event": "langfuse_set_active_span",
+            "cleared_active_span": False,
+            "name": getattr(span, "name", None),
+            "local_span_ref": f"active:py{id(span):x}",
+            "langfuse_span_id": lf_sid or _LANGFUSE_ID_UNAVAILABLE,
+            "langfuse_parent_span_id": (
+                _lf_sdk_public_observation_id(getattr(span, "parent", None))
+                or _LANGFUSE_ID_UNAVAILABLE
+            ),
+            "trace_ref": _lf_trace_ref_for_log(span),
+            "story_session_id": (_active_langfuse_session_id.get() or _LANGFUSE_ID_UNAVAILABLE),
+            "span_successfully_activated": True,
+        }
+        logger.info("[LANGFUSE] %s", _lf_json_log_line(activate_payload))
         _active_span_context.set(span)
 
     def _metadata_with_active_session(self, metadata: Optional[dict[str, Any]]) -> dict[str, Any]:
@@ -581,7 +635,22 @@ class LangfuseAdapter:
                 _active_langfuse_client.get(),
                 _active_langfuse_session_id.get(),
             )
-            logger.info(f"[LANGFUSE] child span created: name={name}, span_id={getattr(child_span, 'span_id', 'unknown')}, parent_span_id={getattr(parent_span, 'span_id', 'unknown')}")
+            md = metadata or {}
+            child_lf = _lf_sdk_public_observation_id(child_span)
+            parent_lf = _lf_sdk_public_observation_id(parent_span)
+            created_payload = {
+                "event": "langfuse_child_span_created",
+                "name": name,
+                "local_span_ref": f"{name}:py{id(child_span):x}",
+                "parent_local_span_ref": f"parent:py{id(parent_span):x}",
+                "langfuse_span_id": child_lf or _LANGFUSE_ID_UNAVAILABLE,
+                "langfuse_parent_span_id": parent_lf or _LANGFUSE_ID_UNAVAILABLE,
+                "trace_ref": _lf_trace_ref_for_log(parent_span),
+                "story_session_id": (_active_langfuse_session_id.get() or _LANGFUSE_ID_UNAVAILABLE),
+                "canonical_turn_id": md.get("canonical_turn_id"),
+                "span_successfully_created": True,
+            }
+            logger.info("[LANGFUSE] %s", _lf_json_log_line(created_payload))
             return child_span
         except Exception as e:
             logger.error("[LANGFUSE] Failed to create child span %r: %s", name, _langfuse_sdk_exc_detail(e), exc_info=True)

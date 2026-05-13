@@ -22,6 +22,7 @@
 - **Decision owner:** Runtime / AI / Observability maintainers
 - **Related areas:** World-Engine, Backend, AI Stack, LangGraph/LangChain, Langfuse, Frontend Player Shell, Narrative Governance
 - **Related ADR:** [ADR-0034](adr-0034-player-facing-narrative-shell-contract.md) — player shell / MVP5 presentation contract (orthogonal to commit semantics)
+- **Related ADR (proposed):** [ADR-0038](adr-0038-canonical-turn-lifecycle-single-commit-path.md) — single canonical turn lifecycle and commit/persist/project path (must not weaken §5–§7 semantics here)
 - **Supersedes:** None
 - **Superseded by:** None
 
