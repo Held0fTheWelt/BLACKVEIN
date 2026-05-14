@@ -840,6 +840,13 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
     )
     marker_policy_present = "character_voice.voice_consistency.forbidden_language_markers" in policy_sources
     semantic_policy_present = "character_voice.voice_consistency.semantic_classification" in policy_sources
+    drift_counts: dict[str, int] = {}
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        drift_class = str(finding.get("drift_class") or "").strip()
+        if drift_class:
+            drift_counts[drift_class] = drift_counts.get(drift_class, 0) + 1
     applicable = status != "not_applicable"
     aspect_status = "not_applicable"
     if status == "rejected":
@@ -868,9 +875,22 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
             "spoken_line_count": int(result.get("spoken_line_count") or 0),
             "finding_count": len(findings),
             "blocking_finding_count": len(blocking),
+            "drift_class_counts": drift_counts,
             "findings": findings[:6],
             "semantic_classification_count": len(semantic_classifications),
             "semantic_classifications": semantic_classifications[:4],
+            "semantic_cross_actor_confusion_count": drift_counts.get(
+                "cross_actor_voice_confusion", 0
+            ),
+            "semantic_mixed_signature_count": drift_counts.get(
+                "mixed_voice_signature", 0
+            ),
+            "semantic_ambiguous_signature_count": drift_counts.get(
+                "ambiguous_voice_signature", 0
+            ),
+            "semantic_weak_alignment_count": drift_counts.get(
+                "weak_profile_alignment", 0
+            ),
         },
         reasons=[failure_reason] if failure_reason else [],
         source="validator",

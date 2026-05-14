@@ -200,9 +200,9 @@ The Engine's guard layer validates every AI proposal:
 - ✅ Scene_interpretation is coherent with proposed deltas
 - ✅ Dialogue output receives character voice profile guidance from `character_voice.yaml`
 - ✅ Policy-declared forbidden voice markers are rejected before commit via `voice_consistency_validation.v1`
-- ✅ Strict-mode semantic voice confusion is rejected before commit via canonical profile dimensions in `voice_consistency_validation.v1`
+- ✅ Full deterministic semantic voice classification ranks spoken lines against all active canonical voice profiles; strict-mode semantic voice confusion is rejected before commit via canonical profile dimensions in `voice_consistency_validation.v1`
 
-`dialogue_examples` in `character_voice.yaml` are authoring references only. They are not runtime validation oracles and should not be copied into gate tests as expected prose; semantic voice tests derive their terms from the same canonical profile fields the runtime classifier consumes.
+`dialogue_examples` in `character_voice.yaml` are authoring references only. They are not runtime validation oracles and should not be copied into gate tests as expected prose; semantic voice tests derive positive and drift fixtures from the same canonical profile fields the runtime classifier consumes.
 
 ### Coherence Validation
 - ✅ `conflict_vector` matches emotional trajectory of proposed deltas

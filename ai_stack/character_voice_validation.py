@@ -189,7 +189,9 @@ def validate_voice_consistency(
         for finding_code in classification.finding_codes:
             severity = (
                 "failure"
-                if strict and finding_code == "cross_actor_voice_confusion"
+                if strict
+                and finding_code
+                in {"cross_actor_voice_confusion", "mixed_voice_signature"}
                 else "warning"
             )
             evidence = dict(classification.evidence)

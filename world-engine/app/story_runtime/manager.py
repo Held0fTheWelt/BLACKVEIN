@@ -6,6 +6,7 @@ import re
 import threading
 import copy
 import hashlib
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,12 +23,24 @@ from story_runtime_core.content_locale import (
     resolve_string,
 )
 from story_runtime_core.branching import (
+    BRANCHING_TREE_STATUS_COMMITTED,
+    BRANCHING_TREE_STATUS_EXPIRED,
+    BRANCHING_TREE_STATUS_NOT_APPLICABLE,
+    BRANCHING_TREE_STATUS_SIMULATED,
+    BRANCHING_TREE_STATUS_STALE,
     append_simulation_node,
+    branch_tree_is_fresh,
+    branch_tree_path_nodes,
     clamp_simulation_limits,
+    find_branch_tree_node,
     finalize_simulation_tree,
     forecast_has_options,
+    make_branch_tree_record,
     make_simulated_turn_node,
     make_simulation_tree,
+    mark_branch_tree_committed,
+    mark_branch_tree_expired,
+    mark_branch_tree_stale,
     simulated_input_for_branch_option,
     build_branching_forecast,
 )
@@ -52,6 +65,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
+    ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
     aspect_score_metadata,
     ensure_runtime_aspect_ledger,
@@ -161,6 +175,7 @@ from app.story_runtime.commit_models import (
     resolve_narrative_commit,
 )
 from app.story_runtime.canonical_turn_lifecycle import TurnLifecycleChain
+from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
@@ -3503,6 +3518,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     narrative_actual = _actual(ASPECT_NARRATIVE_ASPECT)
     memory_selected = _selected(ASPECT_HIERARCHICAL_MEMORY)
     memory_actual = _actual(ASPECT_HIERARCHICAL_MEMORY)
+    voice_expected = _expected(ASPECT_VOICE_CONSISTENCY)
+    voice_actual = _actual(ASPECT_VOICE_CONSISTENCY)
     span_specs: list[tuple[str, str, dict[str, Any]]] = [
         ("story.aspect.input", ASPECT_INPUT, _rec(ASPECT_INPUT)),
         ("story.action.resolve", ASPECT_ACTION_RESOLUTION, _rec(ASPECT_ACTION_RESOLUTION)),
@@ -3567,6 +3584,24 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             {"actual": narrative_actual, "aspect_record": _rec(ASPECT_NARRATIVE_ASPECT)},
         ),
         (
+            "story.voice.classify",
+            ASPECT_VOICE_CONSISTENCY,
+            {
+                "expected": voice_expected,
+                "actual": voice_actual,
+                "aspect_record": _rec(ASPECT_VOICE_CONSISTENCY),
+            },
+        ),
+        (
+            "story.voice.validate",
+            ASPECT_VOICE_CONSISTENCY,
+            {
+                "findings": voice_actual.get("findings") or [],
+                "semantic_classifications": voice_actual.get("semantic_classifications") or [],
+                "aspect_record": _rec(ASPECT_VOICE_CONSISTENCY),
+            },
+        ),
+        (
             "story.memory.write",
             ASPECT_HIERARCHICAL_MEMORY,
             {"selected": memory_selected, "actual": memory_actual, "aspect_record": _rec(ASPECT_HIERARCHICAL_MEMORY)},
@@ -3596,6 +3631,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_NPC_AUTHORITY,
                         ASPECT_NPC_AGENCY,
                         ASPECT_NARRATIVE_ASPECT,
+                        ASPECT_VOICE_CONSISTENCY,
                         ASPECT_HIERARCHICAL_MEMORY,
                         ASPECT_VALIDATION,
                         ASPECT_COMMIT,
@@ -3649,6 +3685,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     visible_actual = _actual(ASPECT_VISIBLE_PROJECTION)
     narrative_expected = _expected(ASPECT_NARRATIVE_ASPECT)
     memory_expected = _expected(ASPECT_HIERARCHICAL_MEMORY)
+    voice_expected = _expected(ASPECT_VOICE_CONSISTENCY)
+    voice_actual = _actual(ASPECT_VOICE_CONSISTENCY)
     validation_actual = _actual(ASPECT_VALIDATION)
     beat_transition_allowed = _selected(ASPECT_BEAT).get("transition_allowed")
     npc_failure_reason = str(_rec(ASPECT_NPC_AUTHORITY).get("failure_reason") or "")
@@ -3673,6 +3711,23 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     missing_required_capabilities = cap_actual.get("missing_required_capabilities") or []
     if not isinstance(missing_required_capabilities, list):
         missing_required_capabilities = []
+    voice_spoken_line_count = int(voice_actual.get("spoken_line_count") or 0)
+    voice_semantic_classification_count = int(
+        voice_actual.get("semantic_classification_count") or 0
+    )
+    voice_drift_counts = (
+        voice_actual.get("drift_class_counts")
+        if isinstance(voice_actual.get("drift_class_counts"), dict)
+        else {}
+    )
+    voice_forbidden_marker_count = int(
+        voice_drift_counts.get("forbidden_language_marker") or 0
+    )
+    voice_cross_actor_count = int(
+        voice_actual.get("semantic_cross_actor_confusion_count")
+        or voice_drift_counts.get("cross_actor_voice_confusion")
+        or 0
+    )
     recoverable_turn = bool(validation_actual.get("recoverable_rejection")) or str(
         path_summary.get("turn_status") or ""
     ).strip().lower() in {"rejected_recoverable", "player_rejected_recoverable"}
@@ -3865,6 +3920,40 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "narrative_aspect_contract_pass",
             ASPECT_NARRATIVE_ASPECT,
             _runtime_aspect_score_value(_rec(ASPECT_NARRATIVE_ASPECT).get("status") in {"passed", "not_applicable"}),
+        ),
+        (
+            "voice_consistency_policy_present",
+            ASPECT_VOICE_CONSISTENCY,
+            _runtime_aspect_score_value(bool(voice_expected.get("policy_present"))),
+        ),
+        (
+            "voice_semantic_classification_present",
+            ASPECT_VOICE_CONSISTENCY,
+            _runtime_aspect_score_value(
+                (
+                    not bool(voice_expected.get("semantic_classification_enabled"))
+                    or voice_spoken_line_count <= 0
+                    or voice_semantic_classification_count >= voice_spoken_line_count
+                )
+            ),
+        ),
+        (
+            "voice_cross_actor_confusion_absent",
+            ASPECT_VOICE_CONSISTENCY,
+            _runtime_aspect_score_value(voice_cross_actor_count == 0),
+        ),
+        (
+            "voice_forbidden_markers_absent",
+            ASPECT_VOICE_CONSISTENCY,
+            _runtime_aspect_score_value(voice_forbidden_marker_count == 0),
+        ),
+        (
+            "voice_consistency_contract_pass",
+            ASPECT_VOICE_CONSISTENCY,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_VOICE_CONSISTENCY).get("status")
+                in {"passed", "not_applicable"}
+            ),
         ),
         (
             "hierarchical_memory_present",
@@ -6266,11 +6355,14 @@ class StoryRuntimeManager:
         retriever: Any | None = None,
         context_assembler: Any | None = None,
         session_store: JsonStorySessionStore | None = None,
+        branching_tree_store: JsonBranchingTreeStore | None = None,
         governed_runtime_config: dict[str, Any] | None = None,
         metrics: StoryRuntimeMetrics | None = None,
     ) -> None:
         self.sessions: dict[str, StorySession] = {}
         self._session_store = session_store
+        self._branching_tree_store = branching_tree_store
+        self._branching_trees: dict[str, dict[str, Any]] = {}
         self._branching_simulation_session_ids: set[str] = set()
         self._session_turn_locks: dict[str, threading.Lock] = {}
         self._session_locks_guard = threading.Lock()
@@ -6393,6 +6485,10 @@ class StoryRuntimeManager:
                         self._session_turn_locks.setdefault(loaded.session_id, threading.Lock())
                 except Exception:
                     continue
+        if self._branching_tree_store is not None:
+            for tree_id, raw in self._branching_tree_store.load_all_raw().items():
+                if isinstance(raw, dict):
+                    self._branching_trees[tree_id] = raw
 
     def _session_turn_lock(self, session_id: str) -> threading.Lock:
         with self._session_locks_guard:
@@ -6404,6 +6500,15 @@ class StoryRuntimeManager:
         if self._session_store is None:
             return
         self._session_store.save(session.session_id, story_session_to_payload(session))
+
+    def _persist_branching_tree_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        tree_id = str(record.get("tree_id") or "").strip()
+        if not tree_id:
+            raise ValueError("branching_tree_missing_id")
+        self._branching_trees[tree_id] = copy.deepcopy(record)
+        if self._branching_tree_store is not None:
+            self._branching_tree_store.save(tree_id, record)
+        return copy.deepcopy(record)
 
     # MVP3: Narrative agent configuration and input queue management
     def _get_tracing_config(self, session_id: str) -> bool:
@@ -8352,6 +8457,7 @@ class StoryRuntimeManager:
             active_session = self.get_session(session_id)
             root_snapshot = story_session_from_payload(story_session_to_payload(active_session))
 
+        root_session_fingerprint = self._branching_session_fingerprint(root_snapshot)
         root_forecast = self._latest_branching_forecast_from_session(root_snapshot)
         root_turn = root_snapshot.history[-1] if root_snapshot.history else {}
         root_canonical_turn_id = (
@@ -8378,6 +8484,8 @@ class StoryRuntimeManager:
             max_nodes=node_limit,
             trace_id=sim_trace_id,
         )
+        tree["root_session_fingerprint"] = root_session_fingerprint
+        tree["scope"] = "active"
         if depth_limit <= 0 or branching_limit <= 0 or not forecast_has_options(root_forecast):
             return finalize_simulation_tree(tree)
 
@@ -8441,6 +8549,292 @@ class StoryRuntimeManager:
                 if stop_reason is None and simulated_snapshot is not None:
                     queue.append((simulated_snapshot, child_forecast, str(node.get("node_id")), depth + 1, next_path))
         return finalize_simulation_tree(tree)
+
+    def create_branching_tree(
+        self,
+        *,
+        session_id: str,
+        max_depth: int | None = None,
+        max_branching: int | None = None,
+        trace_id: str | None = None,
+        scope: str = "active",
+        preview: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create and persist a selectable bounded branch tree record."""
+
+        if scope != "active":
+            raise ValueError("branching_preview_scope_not_implemented")
+        simulation_tree = self.build_branching_simulation_tree(
+            session_id=session_id,
+            max_depth=max_depth,
+            max_branching=max_branching,
+            trace_id=trace_id,
+        )
+        with self._session_turn_lock(session_id):
+            session = self.get_session(session_id)
+            current_fingerprint = self._branching_session_fingerprint(session)
+        root_fingerprint = (
+            simulation_tree.get("root_session_fingerprint")
+            if isinstance(simulation_tree.get("root_session_fingerprint"), dict)
+            else current_fingerprint
+        )
+        record = make_branch_tree_record(
+            simulation_tree=simulation_tree,
+            root_session_fingerprint=root_fingerprint,
+            current_session_fingerprint=current_fingerprint,
+            trace_id=trace_id,
+            scope=scope,
+            preview=preview,
+        )
+        if not branch_tree_is_fresh(record, current_fingerprint):
+            record = mark_branch_tree_stale(
+                record,
+                reason="session_changed_during_simulation",
+                current_session_fingerprint=current_fingerprint,
+            )
+        return self._persist_branching_tree_record(record)
+
+    def list_branching_trees(self, *, session_id: str) -> list[dict[str, Any]]:
+        self.get_session(session_id)
+        rows = [
+            self._refresh_branching_tree_freshness(record)
+            for record in self._branching_trees.values()
+            if record.get("story_session_id") == session_id
+        ]
+        rows.sort(key=lambda row: str(row.get("updated_at") or row.get("created_at") or ""), reverse=True)
+        return [copy.deepcopy(row) for row in rows]
+
+    def get_branching_tree(self, *, session_id: str, tree_id: str) -> dict[str, Any]:
+        self.get_session(session_id)
+        record = self._branching_trees.get(tree_id)
+        if not isinstance(record, dict) or record.get("story_session_id") != session_id:
+            raise KeyError(tree_id)
+        return copy.deepcopy(self._refresh_branching_tree_freshness(record))
+
+    def expire_branching_tree(
+        self,
+        *,
+        session_id: str,
+        tree_id: str,
+        reason: str = "operator_expired",
+    ) -> dict[str, Any]:
+        self.get_session(session_id)
+        record = self._branching_trees.get(tree_id)
+        if not isinstance(record, dict) or record.get("story_session_id") != session_id:
+            raise KeyError(tree_id)
+        expired = mark_branch_tree_expired(record, reason=reason)
+        return self._persist_branching_tree_record(expired)
+
+    def select_branching_tree_node(
+        self,
+        *,
+        session_id: str,
+        tree_id: str,
+        node_id: str,
+        trace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Replay a selected simulated path through the authoritative commit path."""
+
+        with self._session_turn_lock(session_id):
+            session = self.get_session(session_id)
+            record = self._branching_trees.get(tree_id)
+            if not isinstance(record, dict) or record.get("story_session_id") != session_id:
+                raise KeyError(tree_id)
+            status = str(record.get("status") or "")
+            if status in {BRANCHING_TREE_STATUS_EXPIRED, BRANCHING_TREE_STATUS_COMMITTED}:
+                raise ValueError(f"branching_tree_not_selectable:{status}")
+            current_fingerprint = self._branching_session_fingerprint(session)
+            if not branch_tree_is_fresh(record, current_fingerprint):
+                stale = mark_branch_tree_stale(
+                    record,
+                    reason="session_changed_since_tree_creation",
+                    current_session_fingerprint=current_fingerprint,
+                )
+                self._persist_branching_tree_record(stale)
+                raise ValueError("branching_tree_stale")
+            if status not in {BRANCHING_TREE_STATUS_SIMULATED, BRANCHING_TREE_STATUS_NOT_APPLICABLE}:
+                raise ValueError(f"branching_tree_not_selectable:{status}")
+            node = find_branch_tree_node(record, node_id)
+            if not isinstance(node, dict):
+                raise KeyError(node_id)
+            selectable = set(str(item) for item in (record.get("selectable_node_ids") or []))
+            if node_id not in selectable:
+                raise ValueError("branching_node_not_selectable")
+            path_nodes = branch_tree_path_nodes(record, node_id)
+            if not path_nodes:
+                raise ValueError("branching_node_path_empty")
+
+            selection_trace_id = trace_id or f"branching-tree-select-{uuid4().hex}"
+            replayed_turns: list[dict[str, Any]] = []
+            committed_events: list[dict[str, Any]] = []
+            replay_conflicts: list[dict[str, Any]] = []
+            for path_node in path_nodes:
+                simulated_input = str(path_node.get("simulated_input") or "").strip()
+                if not simulated_input:
+                    raise ValueError("branching_node_missing_simulated_input")
+                event = self._execute_turn_locked(
+                    session_id=session_id,
+                    player_input=simulated_input,
+                    trace_id=selection_trace_id,
+                )
+                committed_events.append(copy.deepcopy(event))
+                matched, mismatch_fields = self._branching_replay_matches_node(
+                    event=event,
+                    simulation_node=path_node,
+                )
+                replay_row = {
+                    "node_id": path_node.get("node_id"),
+                    "path_option_ids": list(path_node.get("path_option_ids") or []),
+                    "simulated_turn_id": path_node.get("simulated_turn_id"),
+                    "committed_canonical_turn_id": event.get("canonical_turn_id"),
+                    "committed_turn_number": event.get("turn_number"),
+                    "simulated_input": simulated_input,
+                    "matched_simulation_preview": matched,
+                    "mismatch_fields": mismatch_fields,
+                }
+                replayed_turns.append(replay_row)
+                if not matched:
+                    replay_conflicts.append(replay_row)
+                    break
+
+            after_fingerprint = self._branching_session_fingerprint(session)
+            selection_status = "branch_replay_conflict" if replay_conflicts else "committed"
+            selection = {
+                "schema_version": "branching_tree_selection.v1",
+                "status": selection_status,
+                "tree_id": tree_id,
+                "selected_node_id": node_id,
+                "selected_path_node_ids": [str(item.get("node_id")) for item in path_nodes if item.get("node_id")],
+                "selected_path_option_ids": list(node.get("path_option_ids") or []),
+                "trace_id": selection_trace_id,
+                "replayed_turn_count": len(replayed_turns),
+                "replayed_turns": replayed_turns,
+                "replay_conflicts": replay_conflicts,
+                "uses_normal_commit_path": True,
+                "adopts_simulated_snapshot": False,
+            }
+            committed_record = mark_branch_tree_committed(
+                record,
+                node_id=node_id,
+                selection=selection,
+                current_session_fingerprint=after_fingerprint,
+            )
+            self._persist_branching_tree_record(committed_record)
+            self._mark_branching_trees_stale_for_session(
+                session_id=session_id,
+                except_tree_id=tree_id,
+                current_session_fingerprint=after_fingerprint,
+                reason="session_advanced_by_branch_selection",
+            )
+            return {
+                "session_id": session_id,
+                "tree_id": tree_id,
+                "selection": selection,
+                "committed_events": committed_events,
+                "branching_tree": copy.deepcopy(committed_record),
+            }
+
+    def _branching_session_fingerprint(self, session: StorySession) -> dict[str, Any]:
+        last_turn = session.history[-1] if session.history else {}
+        last_canonical_turn_id = (
+            last_turn.get("canonical_turn_id") if isinstance(last_turn, dict) else None
+        )
+        runtime_profile_id = _runtime_profile_id_from_projection(
+            session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+        )
+        payload = {
+            "session_id": session.session_id,
+            "module_id": session.module_id,
+            "runtime_profile_id": runtime_profile_id,
+            "turn_counter": session.turn_counter,
+            "history_count": len(session.history or []),
+            "current_scene_id": session.current_scene_id,
+            "last_canonical_turn_id": last_canonical_turn_id,
+            "content_provenance": session.content_provenance,
+            "runtime_projection": session.runtime_projection,
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()[:24]
+        return {
+            **payload,
+            "fingerprint": fingerprint,
+            "content_provenance_hash": hashlib.sha256(
+                json.dumps(session.content_provenance, sort_keys=True, default=str).encode("utf-8")
+            ).hexdigest()[:16],
+            "runtime_projection_hash": hashlib.sha256(
+                json.dumps(session.runtime_projection, sort_keys=True, default=str).encode("utf-8")
+            ).hexdigest()[:16],
+        }
+
+    def _refresh_branching_tree_freshness(self, record: dict[str, Any]) -> dict[str, Any]:
+        status = str(record.get("status") or "")
+        if status in {
+            BRANCHING_TREE_STATUS_STALE,
+            BRANCHING_TREE_STATUS_EXPIRED,
+            BRANCHING_TREE_STATUS_COMMITTED,
+        }:
+            return record
+        session_id = str(record.get("story_session_id") or "")
+        try:
+            current_fingerprint = self._branching_session_fingerprint(self.get_session(session_id))
+        except KeyError:
+            return record
+        if branch_tree_is_fresh(record, current_fingerprint):
+            return record
+        stale = mark_branch_tree_stale(
+            record,
+            reason="session_changed_since_tree_creation",
+            current_session_fingerprint=current_fingerprint,
+        )
+        return self._persist_branching_tree_record(stale)
+
+    def _mark_branching_trees_stale_for_session(
+        self,
+        *,
+        session_id: str,
+        except_tree_id: str | None,
+        current_session_fingerprint: dict[str, Any],
+        reason: str,
+    ) -> None:
+        for tree_id, record in list(self._branching_trees.items()):
+            if tree_id == except_tree_id:
+                continue
+            if record.get("story_session_id") != session_id:
+                continue
+            if str(record.get("status") or "") not in {
+                BRANCHING_TREE_STATUS_SIMULATED,
+                BRANCHING_TREE_STATUS_NOT_APPLICABLE,
+            }:
+                continue
+            stale = mark_branch_tree_stale(
+                record,
+                reason=reason,
+                current_session_fingerprint=current_session_fingerprint,
+            )
+            self._persist_branching_tree_record(stale)
+
+    def _branching_replay_matches_node(
+        self,
+        *,
+        event: dict[str, Any],
+        simulation_node: dict[str, Any],
+    ) -> tuple[bool, list[str]]:
+        preview_commit = (
+            simulation_node.get("narrative_commit_preview")
+            if isinstance(simulation_node.get("narrative_commit_preview"), dict)
+            else {}
+        )
+        actual_commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
+        mismatch_fields: list[str] = []
+        for field_name in ("committed_scene_id", "situation_status", "commit_reason_code"):
+            if preview_commit.get(field_name) != actual_commit.get(field_name):
+                mismatch_fields.append(f"narrative_commit.{field_name}")
+        preview_validation_status = simulation_node.get("validation_status")
+        actual_validation = event.get("validation_outcome") if isinstance(event.get("validation_outcome"), dict) else {}
+        if preview_validation_status and preview_validation_status != actual_validation.get("status"):
+            mismatch_fields.append("validation_outcome.status")
+        return not mismatch_fields, mismatch_fields
 
     def _latest_branching_forecast_from_session(self, session: StorySession) -> dict[str, Any]:
         for row in reversed(session.history or []):

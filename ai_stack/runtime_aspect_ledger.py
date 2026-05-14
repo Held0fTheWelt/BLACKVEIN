@@ -497,6 +497,18 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "semantic_classification_count": int(
                     voice_actual.get("semantic_classification_count") or 0
                 ),
+                "semantic_cross_actor_confusion_count": int(
+                    voice_actual.get("semantic_cross_actor_confusion_count") or 0
+                ),
+                "semantic_mixed_signature_count": int(
+                    voice_actual.get("semantic_mixed_signature_count") or 0
+                ),
+                "semantic_ambiguous_signature_count": int(
+                    voice_actual.get("semantic_ambiguous_signature_count") or 0
+                ),
+                "semantic_weak_alignment_count": int(
+                    voice_actual.get("semantic_weak_alignment_count") or 0
+                ),
                 "semantic_classifications": voice_actual.get("semantic_classifications")
                 or [],
                 "failure_reason": voice_rec.get("failure_reason")

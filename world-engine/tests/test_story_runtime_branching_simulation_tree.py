@@ -3,9 +3,13 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
-from story_runtime_core.branching import BRANCHING_SIMULATION_TREE_SCHEMA_VERSION
+from story_runtime_core.branching import (
+    BRANCHING_SIMULATION_TREE_SCHEMA_VERSION,
+    BRANCHING_TREE_RECORD_SCHEMA_VERSION,
+)
 
 from app.story_runtime import StoryRuntimeManager
+from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 
 
 def _disable_langfuse(monkeypatch: Any) -> None:
@@ -124,3 +128,92 @@ def test_branching_simulation_tree_is_not_applicable_without_expandable_forecast
     assert tree["status"] == "not_applicable"
     assert tree["simulated_turn_count"] == 0
     assert tree["nodes"][0]["stop_reason"] == "no_expandable_root_forecast"
+
+
+def test_branching_tree_record_is_durable_and_restored(monkeypatch: Any, tmp_path) -> None:
+    _disable_langfuse(monkeypatch)
+    store = JsonBranchingTreeStore(tmp_path / "branching_trees")
+    manager = StoryRuntimeManager(branching_tree_store=store)
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "profile-branching-tree",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(_envelope())  # type: ignore[assignment]
+    manager.execute_turn(session_id=session.session_id, player_input="Build a forecast.")
+
+    record = manager.create_branching_tree(
+        session_id=session.session_id,
+        max_depth=1,
+        max_branching=1,
+        trace_id="trace-branching-tree",
+    )
+    restored = StoryRuntimeManager(branching_tree_store=store)
+    restored.sessions[session.session_id] = manager.get_session(session.session_id)
+
+    loaded = restored.get_branching_tree(session_id=session.session_id, tree_id=record["tree_id"])
+
+    assert loaded["schema_version"] == BRANCHING_TREE_RECORD_SCHEMA_VERSION
+    assert loaded["tree_id"] == record["tree_id"]
+    assert loaded["status"] == "simulated"
+    assert loaded["selectable_node_ids"]
+    assert loaded["selection_replays_normal_commit_path"] is True
+    assert loaded["adopts_simulated_snapshot"] is False
+
+
+def test_branching_tree_becomes_stale_when_session_advances(monkeypatch: Any) -> None:
+    _disable_langfuse(monkeypatch)
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+    )
+    manager.turn_graph = _FakeTurnGraph(_envelope())  # type: ignore[assignment]
+    manager.execute_turn(session_id=session.session_id, player_input="Build a forecast.")
+    record = manager.create_branching_tree(session_id=session.session_id, max_depth=1, max_branching=1)
+
+    manager.execute_turn(session_id=session.session_id, player_input="Advance the real session.")
+    stale = manager.get_branching_tree(session_id=session.session_id, tree_id=record["tree_id"])
+
+    assert stale["status"] == "stale"
+    assert stale["stale_reason"] == "session_changed_since_tree_creation"
+
+
+def test_selecting_branching_tree_node_replays_normal_commit_path(monkeypatch: Any) -> None:
+    _disable_langfuse(monkeypatch)
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "profile-branching-select",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(_envelope())  # type: ignore[assignment]
+    manager.execute_turn(session_id=session.session_id, player_input="Build a forecast.")
+    record = manager.create_branching_tree(session_id=session.session_id, max_depth=1, max_branching=1)
+    before = manager.get_state(session.session_id)
+    selected_node_id = record["selectable_node_ids"][0]
+
+    result = manager.select_branching_tree_node(
+        session_id=session.session_id,
+        tree_id=record["tree_id"],
+        node_id=selected_node_id,
+        trace_id="trace-select-branch",
+    )
+    after = manager.get_state(session.session_id)
+
+    assert result["selection"]["status"] == "committed"
+    assert result["selection"]["uses_normal_commit_path"] is True
+    assert result["selection"]["adopts_simulated_snapshot"] is False
+    assert result["branching_tree"]["status"] == "committed"
+    assert after["turn_counter"] == before["turn_counter"] + 1
+    assert after["history_count"] == before["history_count"] + 1
+    assert ":branch-sim:" not in manager.get_session(session.session_id).history[-1]["canonical_turn_id"]

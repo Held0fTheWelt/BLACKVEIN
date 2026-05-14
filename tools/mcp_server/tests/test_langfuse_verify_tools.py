@@ -784,6 +784,21 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "visible_when_required": True,
                         },
                     },
+                    "voice_consistency": {
+                        "status": "passed",
+                        "expected": {
+                            "policy_present": True,
+                            "semantic_classification_enabled": True,
+                        },
+                        "actual": {
+                            "spoken_line_count": 1,
+                            "finding_count": 0,
+                            "blocking_finding_count": 0,
+                            "drift_class_counts": {},
+                            "semantic_classification_count": 1,
+                            "semantic_cross_actor_confusion_count": 0,
+                        },
+                    },
                     "hierarchical_memory": {
                         "status": "passed",
                         "expected": {"policy_present": True, "policy_enabled": True},
@@ -809,6 +824,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
             {"name": "npc_required_initiatives_realized", "value": 1.0},
             {"name": "npc_carry_forward_closed", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
+            {"name": "voice_semantic_classification_present", "value": 1.0},
+            {"name": "voice_cross_actor_confusion_absent", "value": 1.0},
+            {"name": "voice_forbidden_markers_absent", "value": 1.0},
+            {"name": "voice_consistency_contract_pass", "value": 1.0},
             {"name": "hierarchical_memory_contract_pass", "value": 1.0},
             {"name": "memory_write_from_committed_turn", "value": 1.0},
         ],
@@ -839,6 +858,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]
     assert row["narrative_aspect_contract_pass"] == 1.0
+    assert row["voice_consistency_policy_present"] is True
+    assert row["voice_semantic_classification_enabled"] is True
+    assert row["voice_semantic_classification_count"] == 1
+    assert row["voice_cross_actor_confusion_absent"] is True
+    assert row["voice_consistency_contract_pass"] == 1.0
     assert row["hierarchical_memory_present"] is True
     assert row["selected_memory_tiers"] == ["turn", "session"]
     assert row["memory_written_item_count"] == 2

@@ -36,6 +36,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
+    ASPECT_VOICE_CONSISTENCY,
     ASPECT_VISIBLE_PROJECTION,
     initialize_runtime_aspect_ledger,
     make_aspect_record,
@@ -281,6 +282,27 @@ def _aspect_test_ledger() -> dict[str, Any]:
     )
     ledger = set_aspect_record(
         ledger,
+        ASPECT_VOICE_CONSISTENCY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={
+                "policy_present": True,
+                "semantic_classification_enabled": True,
+            },
+            actual={
+                "spoken_line_count": 1,
+                "finding_count": 0,
+                "blocking_finding_count": 0,
+                "drift_class_counts": {},
+                "semantic_classification_count": 1,
+                "semantic_cross_actor_confusion_count": 0,
+            },
+            source="validator",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
         ASPECT_VALIDATION,
         make_aspect_record(applicable=True, status="passed", actual={"recoverable_rejection": False}, source="validator"),
     )
@@ -345,6 +367,8 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert "story.authority.npc" in child_names
     assert "story.npc_agency.plan" in child_names
     assert "story.npc_agency.realize" in child_names
+    assert "story.voice.classify" in child_names
+    assert "story.voice.validate" in child_names
     assert "story.capability.select" in child_names
     score_calls = {call.kwargs["name"]: call.kwargs for call in adapter.add_score.call_args_list}
     assert score_calls["beat_realized"]["value"] == 1.0
@@ -360,6 +384,9 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert score_calls["branch_options_count"]["value"] == 2.0
     assert score_calls["inactive_branches_non_authoritative"]["value"] == 1.0
     assert score_calls["branching_forecast_present"]["metadata"]["status"] == "forecasted"
+    assert score_calls["voice_semantic_classification_present"]["value"] == 1.0
+    assert score_calls["voice_cross_actor_confusion_absent"]["value"] == 1.0
+    assert score_calls["voice_consistency_contract_pass"]["value"] == 1.0
 
 
 def _goc_projection():

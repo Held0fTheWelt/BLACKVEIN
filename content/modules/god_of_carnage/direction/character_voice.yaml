@@ -233,6 +233,9 @@ voice_consistency:
       min_profile_alignment: 0.45
       max_cross_actor_confusion: 0.20
       min_confidence_to_block: 0.65
+      max_ambiguous_margin: 0.08
+      min_dimension_alignment: 0.35
+      min_mixed_dimensions: 2
     dimensions:
       worldview: 0.30
       register: 0.20

@@ -428,6 +428,20 @@ class BranchingSimulationTreeRequest(BaseModel):
     max_branching: int = Field(default=2, ge=0, le=3)
 
 
+class BranchingTreeCreateRequest(BaseModel):
+    max_depth: int = Field(default=2, ge=0, le=3)
+    max_branching: int = Field(default=2, ge=0, le=3)
+    scope: str = "active"
+
+
+class BranchingTreeSelectRequest(BaseModel):
+    node_id: str = Field(min_length=1)
+
+
+class BranchingTreeExpireRequest(BaseModel):
+    reason: str = "operator_expired"
+
+
 class NarrativeReloadRequest(BaseModel):
     module_id: str
     expected_active_version: str
@@ -968,6 +982,95 @@ def build_story_branching_simulation_tree(
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Story session not found") from exc
     return {"session_id": session_id, "branching_simulation_tree": tree}
+
+
+@router.post("/story/sessions/{session_id}/branching/trees", dependencies=[Depends(_require_internal_api_key)])
+def create_story_branching_tree(
+    session_id: str,
+    payload: BranchingTreeCreateRequest,
+    request: Request,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    """Create and persist a selectable bounded branch tree."""
+    trace_id = getattr(request.state, "trace_id", None)
+    try:
+        tree = manager.create_branching_tree(
+            session_id=session_id,
+            max_depth=payload.max_depth,
+            max_branching=payload.max_branching,
+            trace_id=trace_id if isinstance(trace_id, str) else None,
+            scope=payload.scope,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"session_id": session_id, "branching_tree": tree}
+
+
+@router.get("/story/sessions/{session_id}/branching/trees", dependencies=[Depends(_require_internal_api_key)])
+def list_story_branching_trees(
+    session_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        rows = manager.list_branching_trees(session_id=session_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branching_trees": rows}
+
+
+@router.get("/story/sessions/{session_id}/branching/trees/{tree_id}", dependencies=[Depends(_require_internal_api_key)])
+def get_story_branching_tree(
+    session_id: str,
+    tree_id: str,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        tree = manager.get_branching_tree(session_id=session_id, tree_id=tree_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Branching tree not found") from exc
+    return {"session_id": session_id, "branching_tree": tree}
+
+
+@router.post("/story/sessions/{session_id}/branching/trees/{tree_id}/select", dependencies=[Depends(_require_internal_api_key)])
+def select_story_branching_tree_node(
+    session_id: str,
+    tree_id: str,
+    payload: BranchingTreeSelectRequest,
+    request: Request,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    trace_id = getattr(request.state, "trace_id", None)
+    try:
+        return manager.select_branching_tree_node(
+            session_id=session_id,
+            tree_id=tree_id,
+            node_id=payload.node_id,
+            trace_id=trace_id if isinstance(trace_id, str) else None,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Branching tree or node not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/story/sessions/{session_id}/branching/trees/{tree_id}/expire", dependencies=[Depends(_require_internal_api_key)])
+def expire_story_branching_tree(
+    session_id: str,
+    tree_id: str,
+    payload: BranchingTreeExpireRequest,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    try:
+        tree = manager.expire_branching_tree(
+            session_id=session_id,
+            tree_id=tree_id,
+            reason=payload.reason,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Branching tree not found") from exc
+    return {"session_id": session_id, "branching_tree": tree}
 
 
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])

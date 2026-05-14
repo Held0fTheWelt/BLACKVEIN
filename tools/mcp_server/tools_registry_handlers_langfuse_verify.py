@@ -503,6 +503,11 @@ def _extract_normalized_wos_evidence(
         "narrative_aspect_selected",
         "narrative_aspect_visible_when_required",
         "narrative_aspect_contract_pass",
+        "voice_consistency_policy_present",
+        "voice_semantic_classification_present",
+        "voice_cross_actor_confusion_absent",
+        "voice_forbidden_markers_absent",
+        "voice_consistency_contract_pass",
         "hierarchical_memory_present",
         "memory_policy_applied",
         "memory_write_from_committed_turn",
@@ -577,6 +582,15 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "realized_narrative_aspects",
     "narrative_aspect_visible_when_required",
     "narrative_aspect_contract_pass",
+    "voice_consistency_policy_present",
+    "voice_semantic_classification_enabled",
+    "voice_semantic_classification_present",
+    "voice_semantic_classification_count",
+    "voice_spoken_line_count",
+    "voice_cross_actor_confusion_absent",
+    "voice_cross_actor_confusion_count",
+    "voice_forbidden_markers_absent",
+    "voice_consistency_contract_pass",
     "hierarchical_memory_present",
     "memory_policy_applied",
     "selected_memory_tiers",
@@ -646,6 +660,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_narrator_authority_required_consequence"
     if "forbidden_capability" in failure:
         return "repair_capability_selection_block_forbidden_realization"
+    if "voice" in failure or "cross_actor_voice" in failure:
+        return "repair_voice_consistency_follow_character_profiles"
     if "beat" in failure:
         return "repair_beat_realization_or_contract_classification"
     if "origin" in failure or "projection" in failure:
@@ -666,6 +682,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     cap_rec = _aspect_record(ledger, "capability_selection")
     vis_rec = _aspect_record(ledger, "visible_projection")
     narrative_rec = _aspect_record(ledger, "narrative_aspect")
+    voice_rec = _aspect_record(ledger, "voice_consistency")
     memory_rec = _aspect_record(ledger, "hierarchical_memory")
 
     input_actual = _aspect_block(input_rec, "actual")
@@ -683,6 +700,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     narrative_expected = _aspect_block(narrative_rec, "expected")
     narrative_selected = _aspect_block(narrative_rec, "selected")
     narrative_actual = _aspect_block(narrative_rec, "actual")
+    voice_expected = _aspect_block(voice_rec, "expected")
+    voice_actual = _aspect_block(voice_rec, "actual")
     memory_selected = _aspect_block(memory_rec, "selected")
     memory_actual = _aspect_block(memory_rec, "actual")
     claim_readiness = assess_npc_agency_claim_readiness(
@@ -709,8 +728,21 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         },
         mcp_evidence={"runtime_aspect_matrix_present": True},
     )
-    failed_records = [r for r in (narr_rec, npc_rec, npc_agency_rec, cap_rec, beat_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "failed"]
-    partial_records = [r for r in (beat_rec, npc_agency_rec, cap_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "partial"]
+    voice_drift_counts = (
+        voice_actual.get("drift_class_counts")
+        if isinstance(voice_actual.get("drift_class_counts"), dict)
+        else {}
+    )
+    voice_cross_actor_count = int(
+        voice_actual.get("semantic_cross_actor_confusion_count")
+        or voice_drift_counts.get("cross_actor_voice_confusion")
+        or 0
+    )
+    voice_forbidden_marker_count = int(
+        voice_drift_counts.get("forbidden_language_marker") or 0
+    )
+    failed_records = [r for r in (narr_rec, npc_rec, npc_agency_rec, cap_rec, beat_rec, vis_rec, narrative_rec, voice_rec, memory_rec) if r.get("status") == "failed"]
+    partial_records = [r for r in (beat_rec, npc_agency_rec, cap_rec, vis_rec, narrative_rec, voice_rec, memory_rec) if r.get("status") == "partial"]
     main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
     reasons = main_record.get("reasons") if isinstance(main_record.get("reasons"), list) else []
     main_failure = str(main_record.get("failure_reason") or (reasons[0] if reasons else "")).strip() or None
@@ -782,6 +814,23 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "realized_narrative_aspects": narrative_actual.get("realized_aspects") or [],
         "narrative_aspect_visible_when_required": narrative_actual.get("visible_when_required") if "visible_when_required" in narrative_actual else det_scores.get("narrative_aspect_visible_when_required"),
         "narrative_aspect_contract_pass": det_scores.get("narrative_aspect_contract_pass"),
+        "voice_consistency_policy_present": voice_expected.get("policy_present") if "policy_present" in voice_expected else det_scores.get("voice_consistency_policy_present"),
+        "voice_semantic_classification_enabled": voice_expected.get("semantic_classification_enabled"),
+        "voice_semantic_classification_present": det_scores.get("voice_semantic_classification_present"),
+        "voice_semantic_classification_count": voice_actual.get("semantic_classification_count"),
+        "voice_spoken_line_count": voice_actual.get("spoken_line_count"),
+        "voice_cross_actor_confusion_absent": (
+            voice_cross_actor_count == 0
+            if voice_actual
+            else det_scores.get("voice_cross_actor_confusion_absent")
+        ),
+        "voice_cross_actor_confusion_count": voice_cross_actor_count,
+        "voice_forbidden_markers_absent": (
+            voice_forbidden_marker_count == 0
+            if voice_actual
+            else det_scores.get("voice_forbidden_markers_absent")
+        ),
+        "voice_consistency_contract_pass": det_scores.get("voice_consistency_contract_pass"),
         "hierarchical_memory_present": memory_actual.get("memory_present") if "memory_present" in memory_actual else det_scores.get("hierarchical_memory_present"),
         "memory_policy_applied": det_scores.get("memory_policy_applied"),
         "selected_memory_tiers": memory_selected.get("selected_tiers") or [],

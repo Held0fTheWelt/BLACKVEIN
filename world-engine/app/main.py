@@ -31,6 +31,7 @@ from app.config import (
     APP_TITLE,
     APP_VERSION,
     BACKEND_RUNTIME_CONFIG_URL,
+    BRANCHING_TREE_STORE_DIR,
     INTERNAL_RUNTIME_CONFIG_TOKEN,
     RUN_STORE_DIR,
     RUNTIME_CONFIG_FETCH_TIMEOUT_SECONDS,
@@ -47,6 +48,7 @@ from app.runtime.runtime_config_client import (
     fetch_resolved_runtime_config,
 )
 from app.story_runtime import StoryRuntimeManager
+from app.story_runtime.branching_tree_store import JsonBranchingTreeStore
 from app.story_runtime.story_session_store import JsonStorySessionStore
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -86,6 +88,7 @@ async def lifespan(app: FastAPI):
     app.state.manager = RuntimeManager(store_root=RUN_STORE_DIR, governed_runtime_config=resolved_runtime_config)
     app.state.story_manager = StoryRuntimeManager(
         session_store=JsonStorySessionStore(STORY_SESSION_STORE_DIR),
+        branching_tree_store=JsonBranchingTreeStore(BRANCHING_TREE_STORE_DIR),
         governed_runtime_config=resolved_runtime_config,
     )
     app.state.ticket_manager = TicketManager()

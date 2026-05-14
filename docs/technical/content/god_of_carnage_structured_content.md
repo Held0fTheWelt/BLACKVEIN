@@ -114,11 +114,13 @@ Runtime enforcement is deliberately split:
   `voice_consistency_validation.v1`, marks the `voice_consistency` aspect as
   failed, and rejects through `runtime_voice_consistency_v1` before commit.
 - `semantic_classification` is machine-readable policy for the deterministic
-  profile classifier. It compares each spoken line against canonical profile
-  dimensions (worldview, register, syntax/rhythm, rhetorical strategy, and phase
-  alignment). `schema_plus_semantic` records high-confidence cross-actor voice
-  confusion as a warning; `strict_rule_engine` rejects it through
-  `runtime_voice_consistency_v2` before commit.
+  profile classifier. It compares each spoken line against every active
+  canonical profile across profile dimensions (worldview, register,
+  syntax/rhythm, rhetorical strategy, and phase alignment), then emits profile
+  rankings, runner-up confidence, dimension winners, ambiguity/mixed-signature
+  evidence, and structured findings. `schema_plus_semantic` records
+  high-confidence cross-actor voice confusion as a warning; `strict_rule_engine`
+  rejects it through `runtime_voice_consistency_v2` before commit.
 
 ADR-0039 applies here with extra force: `dialogue_examples` are authoring
 examples, not correctness oracles. They must not be copied into tests as the

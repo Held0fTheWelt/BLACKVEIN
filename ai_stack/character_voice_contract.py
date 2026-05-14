@@ -22,12 +22,17 @@ class VoiceSemanticLineClassification(BaseModel):
     speaker_id: str
     expected_profile_actor_id: str | None = None
     best_matching_actor_id: str | None = None
+    runner_up_actor_id: str | None = None
     expected_profile_alignment: float = 0.0
     best_profile_alignment: float = 0.0
+    runner_up_profile_alignment: float = 0.0
     cross_actor_confusion_margin: float = 0.0
     confidence: float = 0.0
     dimension_scores: dict[str, float] = Field(default_factory=dict)
     best_dimension_scores: dict[str, float] = Field(default_factory=dict)
+    profile_alignments: dict[str, float] = Field(default_factory=dict)
+    dimension_best_matching_actor_ids: dict[str, str] = Field(default_factory=dict)
+    classification_status: str = "pass"
     finding_codes: list[str] = Field(default_factory=list)
     policy_sources: list[str] = Field(default_factory=list)
     evidence: dict[str, Any] = Field(default_factory=dict)
