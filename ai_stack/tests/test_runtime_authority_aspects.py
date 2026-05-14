@@ -193,7 +193,7 @@ def test_authority_violation_written_to_aspect_ledger() -> None:
     assert npc["failure_reason"] == "npc_executed_player_action"
     assert cap["status"] == "failed"
     assert cap["actual"]["forbidden_capability_realized"] is True
-    assert "npc.execute_player_action" in cap["actual"]["realized_capabilities"]
+    assert "npc.execute_player_action.forbidden" in cap["actual"]["realized_capabilities"]
     assert update["validation_outcome"]["status"] == "rejected"
     assert update["validation_outcome"]["reason"] == "npc_executed_player_action"
     assert update["validation_outcome"]["authority_contract_violation"] is True
@@ -232,9 +232,9 @@ def test_player_object_interaction_selects_player_and_narrator_capabilities() ->
         npc_authority={"actual": {"spoken_line_count": 0, "action_line_count": 0}},
     )
 
-    assert "player.object_interaction.attempt" in record["selected_capabilities"]
-    assert "narrator.physical_consequence" in record["selected_capabilities"]
-    assert "narrator.physical_consequence" in record["realized_capabilities"]
+    assert "player.object_interaction.request" in record["selected_capabilities"]
+    assert "narrator.object_state.describe" in record["selected_capabilities"]
+    assert "narrator.object_state.describe" in record["realized_capabilities"]
     assert record["status"] == "passed"
 
 
@@ -254,9 +254,9 @@ def test_npc_execute_player_action_is_blocked_capability() -> None:
         },
     )
 
-    assert "npc.execute_player_action" in record["blocked_capabilities"]
-    assert "npc.execute_player_action" in record["realized_capabilities"]
-    assert record["violations"][0]["capability"] == "npc.execute_player_action"
+    assert "npc.execute_player_action.forbidden" in record["blocked_capabilities"]
+    assert "npc.execute_player_action.forbidden" in record["realized_capabilities"]
+    assert record["violations"][0]["capability"] == "npc.execute_player_action.forbidden"
     assert record["status"] == "failed"
 
 
@@ -272,9 +272,28 @@ def test_selected_capability_must_be_realized_or_marked_missing() -> None:
         npc_authority={"actual": {"spoken_line_count": 0, "action_line_count": 0}},
     )
 
-    assert "narrator.transition" in record["selected_capabilities"]
-    assert "narrator.transition" in record["missing_required_capabilities"]
+    assert "narrator.location_transition.describe" in record["selected_capabilities"]
+    assert "narrator.location_transition.describe" in record["missing_required_capabilities"]
     assert record["status"] == "partial"
+
+
+def test_pure_speech_selects_speech_and_direct_answer_without_narrator_requirement() -> None:
+    record = build_capability_selection_record(
+        interpreted_input={"player_input_kind": "speech", "npc_response_expected": True},
+        player_action_frame={"player_input_kind": "speech", "speech_text": "What happened?"},
+        affordance_resolution={"action_commit_policy": "commit_speech"},
+        narrator_authority={
+            "expected": {"required": False},
+            "actual": {"narrator_block_present": False},
+        },
+        npc_authority={"actual": {"spoken_line_count": 1, "action_line_count": 0}},
+    )
+
+    assert "player.speech.request" in record["selected_capabilities"]
+    assert "npc.direct_answer.allowed" in record["selected_capabilities"]
+    assert "npc.direct_answer.allowed" in record["realized_capabilities"]
+    assert not any(cap.startswith("narrator.") for cap in record["required_capabilities"])
+    assert record["status"] == "passed"
 
 
 def test_commit_records_player_action_outcome() -> None:

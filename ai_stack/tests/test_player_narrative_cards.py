@@ -44,7 +44,7 @@ def test_actor_action_fold_preserves_origin_capability_metadata() -> None:
             "text": 'Actor A: "Hello."',
             "origin_aspect": "npc_authority",
             "origin_beat_id": "beat-1",
-            "origin_capability": "npc.dialogue",
+            "origin_capability": "npc.social_reaction.optional",
             "authority_owner": "npc",
         },
         {
@@ -55,16 +55,16 @@ def test_actor_action_fold_preserves_origin_capability_metadata() -> None:
             "text": "Actor A nods politely.",
             "origin_aspect": "npc_authority",
             "origin_beat_id": "beat-1",
-            "origin_capability": "npc.gesture",
+            "origin_capability": "npc.action_gesture.optional",
             "authority_owner": "npc",
         },
     ]
     out, _diag = build_player_facing_narrative_cards(blocks)
     assert len(out) == 1
-    assert out[0]["origin_capability"] == "npc.dialogue"
-    assert "npc.gesture" in out[0]["origin_capabilities"]
+    assert out[0]["origin_capability"] == "npc.social_reaction.optional"
+    assert "npc.action_gesture.optional" in out[0]["origin_capabilities"]
     folded = out[0]["player_shell_folded_origin_metadata"]
-    assert folded[0]["origin_capability"] == "npc.gesture"
+    assert folded[0]["origin_capability"] == "npc.action_gesture.optional"
 
 
 def test_standalone_actor_action_is_npc_story_card() -> None:

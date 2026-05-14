@@ -14,6 +14,7 @@ from ai_stack.mcp_canonical_surface import (
     AUTH_BACKEND_HTTP,
     AUTH_FILESYSTEM_REPO,
     AUTH_AI_STACK_CAPABILITY_CATALOG,
+    AUTH_LANGFUSE_EVALUATOR_CATALOG,
     AUTH_MCP_SURFACE_META,
     CANONICAL_MCP_TOOL_DESCRIPTORS,
     MCP_CATALOG_CAPABILITY_NAMES,
@@ -385,6 +386,11 @@ def test_derive_governance_risk_token_state_in_name():
 def test_derive_governance_risk_token_other_names():
     token = _derive_governance_risk_token("wos.something.other", "GENERATION")
     assert token == "medium_standard"
+
+
+def test_derive_governance_risk_token_wos_evaluators_tools():
+    assert _derive_governance_risk_token("wos.evaluators.catalog", "GENERATION") == "none_observation_only"
+    assert _derive_governance_risk_token("wos.evaluators.get", "GENERATION") == "none_observation_only"
 
 
 # ============================================================================
@@ -910,6 +916,7 @@ def test_auth_constants_are_strings():
     assert isinstance(AUTH_BACKEND_HTTP, str)
     assert isinstance(AUTH_FILESYSTEM_REPO, str)
     assert isinstance(AUTH_AI_STACK_CAPABILITY_CATALOG, str)
+    assert isinstance(AUTH_LANGFUSE_EVALUATOR_CATALOG, str)
     assert isinstance(AUTH_MCP_SURFACE_META, str)
 
 

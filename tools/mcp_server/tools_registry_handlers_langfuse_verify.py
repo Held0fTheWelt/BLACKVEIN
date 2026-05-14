@@ -13,6 +13,17 @@ from typing import Any, Callable
 
 import requests
 
+from ai_stack.langfuse_evaluator_catalog import (
+    JUDGE_DISPLAY_SHORT as _JUDGE_DISPLAY_SHORT,
+    JUDGE_TO_REPAIR_CARD as _JUDGE_TO_REPAIR_CARD,
+    LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE,
+    LEGACY_JUDGE_ISSUE_TOKENS as _LEGACY_JUDGE_ISSUE_TOKENS,
+    MATRIX_JUDGE_COLUMN_KEYS as _MATRIX_JUDGE_COLUMN_KEYS,
+    OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
+    TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
+    WOS_CATEGORICAL_JUDGES_ORDER,
+    WOS_JUDGE_ISSUE_CATEGORIES as _WOS_JUDGE_ISSUE_CATEGORIES,
+)
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
 
@@ -58,120 +69,6 @@ def _extract_scores(raw_trace: dict[str, Any]) -> dict[str, Any]:
 
 def _is_judge_score(name: str) -> bool:
     return name.endswith("_judge")
-
-
-# Canonical WoS Langfuse categorical evaluators (allow_multiple_matches=false; one category / observation).
-WOS_CATEGORICAL_JUDGES_ORDER: tuple[str, ...] = (
-    "opening_experience_judge",
-    "role_anchor_quality_judge",
-    "theatrical_style_judge",
-    "actor_lane_narrative_violation_judge",
-    "rag_context_usefulness_judge",
-    "player_action_intent_judge",
-    "narrator_npc_boundary_judge",
-    "visible_card_cleanliness_judge",
-    "turn_relevance_judge",
-    "language_consistency_judge",
-    "dramatic_pacing_judge",
-    "goc_tone_fidelity_judge",
-    "player_action_resolution_judge",
-    "blocked_action_playability_judge",
-    "affordance_plausibility_judge",
-    "npc_reaction_appropriateness_judge",
-)
-
-# Categories that trigger "needs improvement" routing (matrix main_issue, repair cards).
-# Middle tiers (e.g. acceptable, minor_blur) are not issues.
-_WOS_JUDGE_ISSUE_CATEGORIES: dict[str, frozenset[str]] = {
-    "opening_experience_judge": frozenset({"weak", "invalid"}),
-    "role_anchor_quality_judge": frozenset({"weak_anchor", "missing_anchor"}),
-    "theatrical_style_judge": frozenset({"flat", "broken_style"}),
-    "actor_lane_narrative_violation_judge": frozenset({"possible_violation", "clear_violation"}),
-    "rag_context_usefulness_judge": frozenset({"weak_use", "no_or_bad_use"}),
-    "player_action_intent_judge": frozenset({"wrong_intent", "invalid_takeover"}),
-    "narrator_npc_boundary_judge": frozenset({"npc_narrates_action", "severe_boundary_violation"}),
-    "visible_card_cleanliness_judge": frozenset({"messy", "broken_cards"}),
-    "turn_relevance_judge": frozenset({"weakly_related", "irrelevant_or_wrong"}),
-    "language_consistency_judge": frozenset({"mixed_language", "wrong_language"}),
-    "dramatic_pacing_judge": frozenset({"weak_pacing", "broken_pacing"}),
-    "goc_tone_fidelity_judge": frozenset({"generic_tone", "wrong_tone"}),
-    "player_action_resolution_judge": frozenset({"partially_resolved", "misresolved", "not_resolved"}),
-    "blocked_action_playability_judge": frozenset({"unclear_block", "technical_failure"}),
-    "affordance_plausibility_judge": frozenset({"questionable", "implausible"}),
-    "npc_reaction_appropriateness_judge": frozenset({"unnecessary_commentary", "npc_takes_over"}),
-}
-
-# Unknown *_judge scores: conservative fallback if category is not in the per-judge map.
-_LEGACY_JUDGE_ISSUE_TOKENS: frozenset[str] = frozenset().union(
-    *_WOS_JUDGE_ISSUE_CATEGORIES.values(),
-    frozenset(
-        {
-            "bad",
-            "missing",
-            "wrong_role",
-            "unused",
-            "misused",
-            "partial",
-        }
-    ),
-)
-
-_JUDGE_TO_REPAIR_CARD: dict[str, str] = {
-    "opening_experience_judge": "OPEN-EXP-01",
-    "role_anchor_quality_judge": "OPEN-ROLE-01",
-    "theatrical_style_judge": "OPEN-STYLE-01",
-    "actor_lane_narrative_violation_judge": "OPEN-ACTORLANE-01",
-    "rag_context_usefulness_judge": "OPEN-RAG-01",
-    "player_action_intent_judge": "TURN-INTENT-01",
-    "narrator_npc_boundary_judge": "TURN-NPCBOUNDARY-01",
-    "visible_card_cleanliness_judge": "TURN-CARD-01",
-    "turn_relevance_judge": "TURN-RELEVANCE-01",
-    "language_consistency_judge": "TURN-LANG-01",
-    "dramatic_pacing_judge": "TURN-PACING-01",
-    "goc_tone_fidelity_judge": "TURN-GOC-TONE-01",
-    "player_action_resolution_judge": "TURN-ACTION-RESOLUTION-01",
-    "blocked_action_playability_judge": "TURN-BLOCKED-PLAY-01",
-    "affordance_plausibility_judge": "TURN-AFFORDANCE-01",
-    "npc_reaction_appropriateness_judge": "TURN-NPC-REACTION-01",
-}
-
-_MATRIX_JUDGE_COLUMN_KEYS: dict[str, str] = {
-    "opening_experience_judge": "opening_judge_category",
-    "role_anchor_quality_judge": "role_anchor_category",
-    "theatrical_style_judge": "style_category",
-    "actor_lane_narrative_violation_judge": "actor_lane_judge_category",
-    "rag_context_usefulness_judge": "rag_use_category",
-    "player_action_intent_judge": "player_action_intent_category",
-    "narrator_npc_boundary_judge": "narrator_npc_boundary_category",
-    "visible_card_cleanliness_judge": "visible_card_cleanliness_category",
-    "turn_relevance_judge": "turn_relevance_category",
-    "language_consistency_judge": "language_consistency_category",
-    "dramatic_pacing_judge": "dramatic_pacing_category",
-    "goc_tone_fidelity_judge": "goc_tone_fidelity_category",
-    "player_action_resolution_judge": "player_action_resolution_category",
-    "blocked_action_playability_judge": "blocked_action_playability_category",
-    "affordance_plausibility_judge": "affordance_plausibility_category",
-    "npc_reaction_appropriateness_judge": "npc_reaction_appropriateness_category",
-}
-
-_JUDGE_DISPLAY_SHORT: dict[str, str] = {
-    "opening_experience_judge": "opening experience",
-    "role_anchor_quality_judge": "role anchor",
-    "theatrical_style_judge": "theatrical style",
-    "actor_lane_narrative_violation_judge": "actor-lane judge",
-    "rag_context_usefulness_judge": "RAG use",
-    "player_action_intent_judge": "player action intent",
-    "narrator_npc_boundary_judge": "narrator/NPC boundary",
-    "visible_card_cleanliness_judge": "visible card cleanliness",
-    "turn_relevance_judge": "turn relevance",
-    "language_consistency_judge": "language consistency",
-    "dramatic_pacing_judge": "dramatic pacing",
-    "goc_tone_fidelity_judge": "GoC tone fidelity",
-    "player_action_resolution_judge": "player action resolution",
-    "blocked_action_playability_judge": "blocked action playability",
-    "affordance_plausibility_judge": "affordance plausibility",
-    "npc_reaction_appropriateness_judge": "NPC reaction appropriateness",
-}
 
 
 def _extract_judge_category_from_row(row: dict[str, Any]) -> str | None:
@@ -437,6 +334,7 @@ def _extract_normalized_wos_evidence(
 
     _PS_FIELDS = {
         "session_id", "selected_player_role", "human_actor_id", "npc_actor_ids",
+        "canonical_turn_id", "runtime_profile_id", "turn_aspect_ledger_present",
         "trace_origin", "execution_tier", "canonical_player_flow",
         "final_adapter", "quality_class", "fallback_reason",
         "first_actor_block_index",
@@ -543,6 +441,14 @@ def _extract_normalized_wos_evidence(
         "usage_present",
         "rag_context_attached",
         "actor_lane_safety_pass",
+        "turn_aspect_ledger_present",
+        "beat_selected",
+        "beat_realized",
+        "narrator_required_when_expected",
+        "npc_takeover_absent",
+        "capability_selection_present",
+        "selected_capabilities_realized",
+        "visible_block_origin_present",
     ):
         ev[gate] = det_scores.get(gate)
 
@@ -573,19 +479,28 @@ def _trace_summary(raw_trace: dict[str, Any]) -> dict[str, Any]:
 _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "session_id",
     "trace_id",
+    "canonical_turn_id",
+    "environment",
     "turn_number",
     "raw_input",
     "input_kind",
     "action_kind",
+    "turn_aspect_ledger_present",
+    "beat_selected",
     "selected_beat",
     "beat_realized",
+    "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
     "npc_policy",
+    "npc_takeover_absent",
     "npc_takeover_detected",
+    "capability_selection_present",
     "selected_capabilities",
     "realized_capabilities",
+    "selected_capabilities_realized",
     "forbidden_capability_realized",
+    "visible_block_origin_present",
     "visible_origin_present",
     "turn_status",
     "http_status",
@@ -686,19 +601,32 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     row = {
         "session_id": ledger.get("session_id") or path_summary.get("session_id") or _extract_metadata(raw_trace).get("session_id"),
         "trace_id": str(raw_trace.get("id") or raw_trace.get("trace_id") or "").strip(),
+        "canonical_turn_id": ledger.get("canonical_turn_id") or path_summary.get("canonical_turn_id") or _extract_metadata(raw_trace).get("canonical_turn_id"),
+        "environment": raw_trace.get("environment") or _extract_metadata(raw_trace).get("environment") or path_summary.get("environment"),
         "turn_number": ledger.get("turn_number") if ledger else path_summary.get("turn_number"),
         "raw_input": input_actual.get("raw_player_input") or action_actual.get("raw_player_input") or path_summary.get("raw_player_input"),
         "input_kind": input_actual.get("player_input_kind") or input_actual.get("input_kind") or action_actual.get("input_kind") or path_summary.get("player_input_kind"),
         "action_kind": action_actual.get("action_kind"),
+        "turn_aspect_ledger_present": bool(ledger.get("turn_aspect_ledger")) if ledger else bool(path_summary.get("turn_aspect_ledger_present") or det_scores.get("turn_aspect_ledger_present")),
+        "beat_selected": bool(beat_selected.get("selected_beat_id") or beat_selected.get("selected_scene_function")) if beat_selected else det_scores.get("beat_selected"),
         "selected_beat": beat_selected.get("selected_beat_id") or beat_selected.get("selected_scene_function"),
         "beat_realized": beat_actual.get("realized") if "realized" in beat_actual else det_scores.get("beat_realized"),
+        "narrator_required_when_expected": det_scores.get("narrator_required_when_expected"),
         "narrator_required": narr_expected.get("required"),
         "narrator_present": narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized"),
         "npc_policy": npc_expected.get("policy"),
+        "npc_takeover_absent": (not bool(npc_actual.get("npc_takeover_detected"))) if "npc_takeover_detected" in npc_actual else det_scores.get("npc_takeover_absent"),
         "npc_takeover_detected": npc_actual.get("npc_takeover_detected"),
+        "capability_selection_present": bool(cap_rec) if cap_rec else det_scores.get("capability_selection_present"),
         "selected_capabilities": cap_selected.get("selected_capabilities") or [],
         "realized_capabilities": cap_actual.get("realized_capabilities") or [],
+        "selected_capabilities_realized": (
+            not bool(cap_actual.get("missing_required_capabilities"))
+            if "missing_required_capabilities" in cap_actual
+            else det_scores.get("selected_capabilities_realized")
+        ),
         "forbidden_capability_realized": cap_actual.get("forbidden_capability_realized"),
+        "visible_block_origin_present": vis_actual.get("visible_block_origin_present") if "visible_block_origin_present" in vis_actual else det_scores.get("visible_block_origin_present"),
         "visible_origin_present": vis_actual.get("visible_block_origin_present") if "visible_block_origin_present" in vis_actual else det_scores.get("visible_block_origin_present"),
         "turn_status": path_summary.get("turn_status"),
         "http_status": path_summary.get("http_status"),
@@ -718,6 +646,7 @@ def _runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
             trace_origin=arguments.get("trace_origin"),
             canonical_player_flow=arguments.get("canonical_player_flow"),
             execution_tier=arguments.get("execution_tier"),
+            environment=arguments.get("environment"),
             trace_name=arguments.get("trace_name"),
             trace_names=("backend.turn.execute", "world-engine.turn.execute"),
         )
@@ -1281,9 +1210,27 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "canonical_live_langfuse_filters": {
                 "opening_evaluators": {
                     "trace.name": "world-engine.session.create",
+                    "world_engine_generation_observation.name": "story.model.generation",
                     "trace_origin": "live_ui",
                     "execution_tier": "live",
                     "canonical_player_flow": True,
+                    "observation_filters": dict(OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
+                    "legacy_trace_names_for_search_only": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
+                        "legacy_trace_names_for_search_only"
+                    ],
+                    "trace_metadata_when_available": dict(
+                        LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE["metadata"]
+                    ),
+                },
+                "opening_generation_categorical_evaluators": {
+                    "judges": list(WOS_CATEGORICAL_JUDGES_ORDER[:5]),
+                    "observation_filters": dict(OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
+                    "legacy_trace_names_for_search_only": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
+                        "legacy_trace_names_for_search_only"
+                    ],
+                    "trace_metadata_when_available": dict(
+                        LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE["metadata"]
+                    ),
                 },
                 "turn_evaluators": {
                     "trace.name": "backend.turn.execute",
@@ -1301,17 +1248,13 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                         "affordance_plausibility_judge",
                         "npc_reaction_appropriateness_judge",
                     ],
-                    "observation_filters": {
-                        "Type": ["GENERATION"],
-                        "Name": ["story.model.generation"],
-                        "Trace Name": ["backend.turn.execute"],
-                        "Environment": ["live"],
-                    },
+                    "observation_filters": dict(TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
                     "legacy_trace_names": ["world-engine.turn.execute"],
                     "trace_metadata_when_available": {
                         "trace_origin": "live_ui",
                         "execution_tier": "live",
                         "canonical_player_flow": True,
+                        "opening_turn": False,
                     },
                 },
             },

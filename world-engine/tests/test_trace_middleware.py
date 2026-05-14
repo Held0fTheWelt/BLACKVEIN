@@ -72,13 +72,13 @@ def test_langfuse_add_score_duplicates_at_trace_level_for_adr0033_visibility():
     span.score.assert_called_once()
     sc_kw = span.score.call_args.kwargs
     assert sc_kw.get("data_type") is not None
-    assert str(sc_kw.get("data_type")) == "NUMERIC"
+    assert str(sc_kw.get("data_type")).endswith("NUMERIC")
     client.create_score.assert_called_once()
     cc_kw = client.create_score.call_args.kwargs
     assert cc_kw["name"] == "live_runtime_contract_pass"
     assert cc_kw["trace_id"] == trace_hex
     assert cc_kw["value"] == 0.0
-    assert str(cc_kw.get("data_type")) == "NUMERIC"
+    assert str(cc_kw.get("data_type")).endswith("NUMERIC")
     assert cc_kw.get("observation_id") == "0f0e0d0c0b0a0908"
     assert "session_id" not in cc_kw
 
@@ -165,11 +165,11 @@ def test_langfuse_child_observations_inherit_active_session_metadata():
     assert metadata_rows
     assert all(row.get("session_id") == "story-session-2" for row in metadata_rows)
     parent_span.score.assert_called_once()
-    assert str(parent_span.score.call_args.kwargs.get("data_type")) == "NUMERIC"
+    assert str(parent_span.score.call_args.kwargs.get("data_type")).endswith("NUMERIC")
     assert parent_span.score.call_args.kwargs["metadata"]["session_id"] == "story-session-2"
     client.create_score.assert_called_once()
     cc_kw = client.create_score.call_args.kwargs
-    assert str(cc_kw.get("data_type")) == "NUMERIC"
+    assert str(cc_kw.get("data_type")).endswith("NUMERIC")
     assert cc_kw["trace_id"] == "b116645221d4f504a9f119969f6f4dd9"
     assert cc_kw.get("observation_id") == "deadbeefcafebabe"
     assert "session_id" not in cc_kw
@@ -222,8 +222,8 @@ def _aspect_test_ledger() -> dict[str, Any]:
         make_aspect_record(
             applicable=True,
             status="passed",
-            selected={"selected_capabilities": ["player.object_interaction.attempt", "narrator.physical_consequence"]},
-            actual={"realized_capabilities": ["player.object_interaction.attempt", "narrator.physical_consequence"], "missing_required_capabilities": [], "forbidden_capability_realized": False},
+            selected={"selected_capabilities": ["player.object_interaction.request", "narrator.object_state.describe"]},
+            actual={"realized_capabilities": ["player.object_interaction.request", "narrator.object_state.describe"], "missing_required_capabilities": [], "forbidden_capability_realized": False},
             source="runtime",
         ),
     )

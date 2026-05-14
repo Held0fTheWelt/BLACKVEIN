@@ -19,6 +19,7 @@ except ImportError:
 AUTH_BACKEND_HTTP = "backend_http_authority"
 AUTH_FILESYSTEM_REPO = "filesystem_repo_authority"
 AUTH_AI_STACK_CAPABILITY_CATALOG = "ai_stack_capability_catalog"
+AUTH_LANGFUSE_EVALUATOR_CATALOG = "langfuse_evaluator_catalog"
 AUTH_MCP_SURFACE_META = "mcp_surface_meta"
 MCP_OPERATOR_TRUTH_GRAMMAR_VERSION = "mcp_operator_truth_v1"
 
@@ -93,6 +94,8 @@ def _derive_reviewable_posture(tool_class: McpToolClass, name: str) -> str:
 
 
 def _derive_governance_risk_token(name: str, capability_kind: str) -> str:
+    if name.startswith("wos.evaluators."):
+        return "none_observation_only"
     low_names = ("diag", "logs", "state")
     if capability_kind == "retrieval":
         return "none_read_only"
@@ -186,6 +189,9 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("summarize_narrator_npc_authority", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("summarize_capability_realization", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
     ("summarize_visible_projection_origin_loss", McpToolClass.read_only, McpSuite.wos_ai, AUTH_BACKEND_HTTP),
+    ("wos.evaluators.catalog", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
+    ("wos.evaluators.get", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
+    ("wos.evaluators.langfuse_sync_preview", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
 )
 
 

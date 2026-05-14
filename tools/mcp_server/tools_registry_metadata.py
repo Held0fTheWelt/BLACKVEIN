@@ -39,6 +39,9 @@ MCP_DEFAULT_TOOL_DESCRIPTIONS: dict[str, str] = {
     "summarize_narrator_npc_authority": "Summarize narrator/NPC authority contracts and violations from runtime aspect evidence",
     "summarize_capability_realization": "Summarize selected, realized, missing, and forbidden dramatic runtime capabilities",
     "summarize_visible_projection_origin_loss": "Summarize visible block origin metadata loss from backend runtime aspects",
+    "wos.evaluators.catalog": "List canonical WoS Langfuse categorical LLM-as-a-Judge evaluator specs (prompts optional)",
+    "wos.evaluators.get": "Return one full evaluator spec from the canonical Langfuse evaluator catalog",
+    "wos.evaluators.langfuse_sync_preview": "Deterministic Langfuse categorical evaluator preview (no API calls, no credential material)",
 }
 
 MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
@@ -296,5 +299,20 @@ MCP_DEFAULT_TOOL_INPUT_SCHEMAS: dict[str, dict[str, Any]] = {
             "trace_name": {"type": "string"},
         },
         "required": [],
+    },
+    "wos.evaluators.catalog": {
+        "type": "object",
+        "properties": {"include_prompts": {"type": "boolean"}},
+        "required": [],
+    },
+    "wos.evaluators.get": {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
+    },
+    "wos.evaluators.langfuse_sync_preview": {
+        "type": "object",
+        "properties": {"name": {"type": "string"}},
+        "required": ["name"],
     },
 }

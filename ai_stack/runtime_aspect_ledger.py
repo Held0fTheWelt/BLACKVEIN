@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import copy
 import json
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
 RUNTIME_ASPECT_LEDGER_VERSION = "runtime_aspect_ledger.v1"
+TURN_ASPECT_LEDGER_SCHEMA_VERSION = "turn_aspect_ledger.v1"
 RUNTIME_ASPECT_RECORD_VERSION = "runtime_aspect_record.v1"
 
 ASPECT_INPUT = "input"
@@ -50,6 +52,24 @@ ASPECT_FAILURE_CLASSES: frozenset[str] = frozenset(
         "projection_failure",
     }
 )
+
+
+@dataclass(frozen=True)
+class RuntimeAspectLedger:
+    """JSON-safe canonical per-turn runtime intelligence envelope."""
+
+    schema_version: str = TURN_ASPECT_LEDGER_SCHEMA_VERSION
+    record_version: str = RUNTIME_ASPECT_LEDGER_VERSION
+    module_id: str | None = None
+    runtime_profile_id: str | None = None
+    canonical_turn_id: str | None = None
+    story_session_id: str | None = None
+    turn_number: int = 0
+    turn_kind: str = "player"
+    turn_aspect_ledger: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return _json_safe(asdict(self))
 
 
 def _json_safe(value: Any) -> Any:
@@ -136,6 +156,7 @@ def initialize_runtime_aspect_ledger(
     input_kind: str | None = None,
     turn_id: str | None = None,
     trace_id: str | None = None,
+    runtime_profile_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a full ledger with every required aspect key present."""
     tn = int(turn_number or 0)
@@ -155,11 +176,15 @@ def initialize_runtime_aspect_ledger(
         source="runtime",
     )
     ledger = {
+        "schema_version": TURN_ASPECT_LEDGER_SCHEMA_VERSION,
         "contract": RUNTIME_ASPECT_LEDGER_VERSION,
         "record_version": RUNTIME_ASPECT_LEDGER_VERSION,
         "session_id": session_id,
+        "story_session_id": session_id,
         "module_id": module_id,
+        "runtime_profile_id": runtime_profile_id,
         "turn_id": turn_id,
+        "canonical_turn_id": turn_id,
         "trace_id": trace_id,
         "turn_number": tn,
         "turn_kind": kind,
@@ -198,6 +223,11 @@ def normalize_runtime_aspect_ledger(ledger: dict[str, Any] | None) -> dict[str, 
         )
     src["contract"] = str(src.get("contract") or RUNTIME_ASPECT_LEDGER_VERSION)
     src["record_version"] = str(src.get("record_version") or RUNTIME_ASPECT_LEDGER_VERSION)
+    src["schema_version"] = str(src.get("schema_version") or TURN_ASPECT_LEDGER_SCHEMA_VERSION)
+    if not src.get("story_session_id") and src.get("session_id"):
+        src["story_session_id"] = src.get("session_id")
+    if not src.get("canonical_turn_id") and src.get("turn_id"):
+        src["canonical_turn_id"] = src.get("turn_id")
     src["turn_aspect_ledger"] = ordered_aspects
     return _json_safe(src)
 
@@ -213,6 +243,7 @@ def ensure_runtime_aspect_ledger(
     input_kind: str | None = None,
     turn_id: str | None = None,
     trace_id: str | None = None,
+    runtime_profile_id: str | None = None,
 ) -> dict[str, Any]:
     if isinstance(ledger, dict) and ledger.get("turn_aspect_ledger"):
         return normalize_runtime_aspect_ledger(ledger)
@@ -225,6 +256,7 @@ def ensure_runtime_aspect_ledger(
         input_kind=input_kind,
         turn_id=turn_id,
         trace_id=trace_id,
+        runtime_profile_id=runtime_profile_id,
     )
 
 

@@ -87,6 +87,7 @@ def test_turn_emits_runtime_aspect_ledger() -> None:
     ledger = state["turn_aspect_ledger"]
     assert ledger["session_id"] == "session-1"
     assert ledger["turn_number"] == 1
+    assert state["module_runtime_policy"]["module_id"] == "m"
     assert ledger["turn_aspect_ledger"]["input"]["actual"]["raw_player_input"].startswith("Ich nehme")
     assert ledger["turn_aspect_ledger"]["action_resolution"]["applicable"] is True
 
@@ -120,6 +121,29 @@ def test_recoverable_turn_emits_runtime_aspect_ledger() -> None:
     )
     assert ledger["turn_aspect_ledger"][ASPECT_VISIBLE_PROJECTION]["status"] == "passed"
     assert turn["diagnostics"]["turn_aspect_ledger"] == ledger
+    assert ledger["canonical_turn_id"] == turn["canonical_turn_id"]
+
+
+def test_committed_turn_ledger_uses_canonical_turn_id() -> None:
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+    )
+    manager.turn_graph = _FakeTurnGraph(
+        _envelope(
+            interpreted_input={"kind": "action", "player_input_kind": "action", "confidence": 0.81},
+            generation={"success": True, "metadata": {}},
+        )
+    )  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Gehe ins Bad")
+
+    ledger = turn["turn_aspect_ledger"]
+    assert ledger["canonical_turn_id"] == turn["canonical_turn_id"]
+    assert ledger["story_session_id"] == session.session_id
+    assert session.history[-1]["turn_aspect_ledger"]["canonical_turn_id"] == turn["canonical_turn_id"]
 
 
 def _projection() -> dict[str, Any]:
@@ -165,7 +189,7 @@ def _ledger_with_required_beat(*, contractually_required: bool = False) -> dict[
             expected={
                 "prior_beat_id": "civilized_negotiation",
                 "candidate_beats": ["courtesy_pressure", "domestic_disruption"],
-                "expected_realization": ["narrator_physical_consequence"],
+                "expected_realization": ["narrator.action_consequence.describe"],
                 "contractually_required": contractually_required,
             },
             selected={
@@ -196,7 +220,7 @@ def test_visible_narrator_block_has_origin_aspect() -> None:
 
     narrator = next(block for block in blocks if block["block_type"] == "narrator")
     assert narrator["origin_aspect"] == "narrator_authority"
-    assert narrator["origin_capability"] == "narrator.physical_consequence"
+    assert narrator["origin_capability"] == "narrator.action_consequence.describe"
     assert narrator["authority_owner"] == "narrator"
 
 
@@ -210,7 +234,7 @@ def test_visible_npc_block_has_origin_capability() -> None:
 
     actor = next(block for block in blocks if block["block_type"] == "actor_line")
     assert actor["origin_aspect"] == "npc_authority"
-    assert actor["origin_capability"] == "npc.dialogue"
+    assert actor["origin_capability"] == "npc.social_reaction.optional"
     assert actor["authority_owner"] == "npc"
 
 
@@ -254,7 +278,7 @@ def test_beat_realized_when_visible_block_matches_expected_origin() -> None:
             "text": "Annette's movement breaks the polite frame.",
             "origin_aspect": "narrator_authority",
             "origin_beat_id": "domestic_disruption",
-            "origin_capability": "narrator.physical_consequence",
+            "origin_capability": "narrator.action_consequence.describe",
             "authority_owner": "narrator",
         }
     ]
@@ -285,7 +309,7 @@ def test_beat_not_realized_when_lost_in_visible_projection() -> None:
             "text": "Annette, wait.",
             "origin_aspect": "npc_authority",
             "origin_beat_id": "domestic_disruption",
-            "origin_capability": "npc.dialogue",
+            "origin_capability": "npc.social_reaction.optional",
             "authority_owner": "npc",
         }
     ]
@@ -333,6 +357,69 @@ def test_required_beat_lost_is_classified_as_hard_contract_failure() -> None:
     assert commit["failure_reason"] == "selected_required_beat_lost"
 
 
+def test_block_folding_preserves_required_origin_evidence_for_beat() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-visible-origin",
+        module_id="example_module",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="I wait.",
+    )
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_BEAT,
+        make_aspect_record(
+            applicable=True,
+            status="partial",
+            expected={
+                "candidate_beats": ["beat-1"],
+                "expected_realization": ["npc.action_gesture.optional"],
+            },
+            selected={"selected_beat_id": "beat-1", "selection_source": "module_policy"},
+            actual={"realized": None},
+            source="runtime",
+            selected_beat="beat-1",
+        ),
+    )
+    blocks = [
+        {
+            "id": "folded-survivor",
+            "block_type": "actor_line",
+            "actor_id": "actor_a",
+            "text": "Actor A answers while nodding.",
+            "origin_aspect": "npc_authority",
+            "origin_beat_id": "beat-1",
+            "origin_capability": "npc.social_reaction.optional",
+            "authority_owner": "npc",
+            "folded_origin_evidence": [
+                {
+                    "origin_aspect": "npc_authority",
+                    "origin_beat_id": "beat-1",
+                    "origin_capability": "npc.action_gesture.optional",
+                    "authority_owner": "npc",
+                    "evidence_role": "required",
+                }
+            ],
+        }
+    ]
+
+    ledger = _record_visible_projection_aspect(
+        ledger=ledger,
+        session_id="s-visible-origin",
+        module_id="example_module",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="I wait.",
+        trace_id="trace-visible-origin",
+        scene_blocks=blocks,
+    )
+
+    visible = ledger["turn_aspect_ledger"][ASPECT_VISIBLE_PROJECTION]
+    beat = ledger["turn_aspect_ledger"][ASPECT_BEAT]
+    assert visible["actual"]["required_visible_origin_preserved"] is True
+    assert beat["actual"]["realized"] is True
+
+
 def test_required_narrator_block_not_lost_in_projection_classifies_validation_and_commit() -> None:
     blocks = [
         {
@@ -342,7 +429,7 @@ def test_required_narrator_block_not_lost_in_projection_classifies_validation_an
             "text": "Annette, wait.",
             "origin_aspect": "npc_authority",
             "origin_beat_id": "domestic_disruption",
-            "origin_capability": "npc.dialogue",
+            "origin_capability": "npc.social_reaction.optional",
             "authority_owner": "npc",
         }
     ]

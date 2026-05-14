@@ -28,6 +28,7 @@ def test_runtime_aspect_ledger_serializes_stably() -> None:
 
     assert first == second
     parsed = json.loads(first)
+    assert parsed["schema_version"] == "turn_aspect_ledger.v1"
     assert parsed["record_version"] == "runtime_aspect_ledger.v1"
     assert list(parsed["turn_aspect_ledger"].keys()) == sorted(ASPECT_KEYS)
     assert parsed["turn_aspect_ledger"][ASPECT_INPUT]["status"] == "passed"

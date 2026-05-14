@@ -1,0 +1,265 @@
+"""Generic module runtime policy loader.
+
+This loader assembles module-specific runtime intelligence data into a neutral
+``ModuleRuntimePolicy`` shape. The engine consumes the shape, not concrete
+module names, actor names, locations, beats, or prose.
+"""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from ai_stack.authority_contracts import default_authority_policy
+from ai_stack.dramatic_capability_contracts import default_capability_policy
+
+
+MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _read_yaml(path: Path) -> dict[str, Any]:
+    if not path.exists() or not path.is_file():
+        return {}
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _unwrap(payload: dict[str, Any], key: str) -> dict[str, Any]:
+    nested = payload.get(key)
+    return nested if isinstance(nested, dict) else payload
+
+
+def _actors_from_characters(characters_payload: dict[str, Any]) -> dict[str, Any]:
+    chars = characters_payload.get("characters")
+    if not isinstance(chars, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key, value in chars.items():
+        if not isinstance(value, dict):
+            continue
+        actor_id = str(value.get("id") or key).strip()
+        if not actor_id:
+            continue
+        out[actor_id] = {
+            "id": actor_id,
+            "display_name": value.get("name") or value.get("display_name") or actor_id,
+            "role": value.get("role"),
+            "profile": _json_safe(value),
+        }
+    return out
+
+
+def _playable_roles_from_opening(opening_policy: dict[str, Any]) -> list[str]:
+    events = opening_policy.get("narrative_events")
+    if not isinstance(events, list):
+        return []
+    roles: list[str] = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        variants = event.get("role_variants")
+        if not isinstance(variants, dict):
+            continue
+        for role_id in variants:
+            rid = str(role_id or "").strip()
+            if rid and rid not in roles:
+                roles.append(rid)
+    return roles
+
+
+def _location_model(
+    *,
+    layout_payload: dict[str, Any],
+    locale_payload: dict[str, Any],
+) -> dict[str, Any]:
+    layout = _unwrap(layout_payload, "apartment_layout")
+    locale = _unwrap(locale_payload, "scene_affordances")
+    rooms = layout.get("rooms") if isinstance(layout.get("rooms"), list) else []
+    locations = locale.get("locations") if isinstance(locale.get("locations"), list) else []
+    by_id: dict[str, Any] = {}
+    for row in rooms + locations:
+        if not isinstance(row, dict):
+            continue
+        rid = str(row.get("id") or "").strip()
+        if not rid:
+            continue
+        by_id.setdefault(rid, {}).update(_json_safe(row))
+    return {
+        "setting_id": layout.get("setting_id"),
+        "narrative_anchor_area_id": layout.get("narrative_anchor_area_id") or locale.get("current_area"),
+        "global_rules": layout.get("global_rules") if isinstance(layout.get("global_rules"), dict) else {},
+        "locations": by_id,
+        "transitions": layout.get("transitions") if isinstance(layout.get("transitions"), list) else [],
+    }
+
+
+def _object_model(
+    *,
+    objects_payload: dict[str, Any],
+    locale_payload: dict[str, Any],
+) -> dict[str, Any]:
+    objects_doc = _unwrap(objects_payload, "apartment_objects")
+    locale = _unwrap(locale_payload, "scene_affordances")
+    by_id: dict[str, Any] = {}
+    for source in (
+        objects_doc.get("objects") if isinstance(objects_doc.get("objects"), list) else [],
+        locale.get("objects") if isinstance(locale.get("objects"), list) else [],
+    ):
+        for row in source:
+            if not isinstance(row, dict):
+                continue
+            oid = str(row.get("id") or "").strip()
+            if not oid:
+                continue
+            by_id.setdefault(oid, {}).update(_json_safe(row))
+    return {
+        "default_placement_room_id": objects_doc.get("default_placement_room_id"),
+        "objects": by_id,
+    }
+
+
+def _authority_policy(hard_forbidden_policy: dict[str, Any]) -> dict[str, Any]:
+    policy = default_authority_policy()
+    policy["hard_forbidden_policy"] = _json_safe(hard_forbidden_policy)
+    structural = (
+        hard_forbidden_policy.get("hard_forbidden_detection", {}).get("structural_checks")
+        if isinstance(hard_forbidden_policy.get("hard_forbidden_detection"), dict)
+        else []
+    )
+    if isinstance(structural, list):
+        policy["structural_checks"] = _json_safe(structural)
+    return policy
+
+
+def _capability_policy(hard_forbidden_policy: dict[str, Any]) -> dict[str, Any]:
+    policy = default_capability_policy()
+    marker_map = (
+        hard_forbidden_policy.get("hard_forbidden_detection", {}).get("marker_map")
+        if isinstance(hard_forbidden_policy.get("hard_forbidden_detection"), dict)
+        else {}
+    )
+    if isinstance(marker_map, dict):
+        policy["hard_forbidden_marker_map"] = _json_safe(marker_map)
+    return policy
+
+
+@dataclass(frozen=True)
+class ModuleRuntimePolicy:
+    module_id: str
+    runtime_profile_id: str | None = None
+    schema_version: str = MODULE_RUNTIME_POLICY_SCHEMA_VERSION
+    actor_roster: dict[str, Any] = field(default_factory=dict)
+    playable_roles: list[str] = field(default_factory=list)
+    location_model: dict[str, Any] = field(default_factory=dict)
+    object_model: dict[str, Any] = field(default_factory=dict)
+    phase_policy: dict[str, Any] = field(default_factory=dict)
+    beat_policy: dict[str, Any] = field(default_factory=dict)
+    authority_policy: dict[str, Any] = field(default_factory=dict)
+    capability_policy: dict[str, Any] = field(default_factory=dict)
+    hard_forbidden_policy: dict[str, Any] = field(default_factory=dict)
+    opening_policy: dict[str, Any] = field(default_factory=dict)
+    locale_policy: dict[str, Any] = field(default_factory=dict)
+    content_sources: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return _json_safe(asdict(self))
+
+
+def load_module_runtime_policy(
+    module_id: str,
+    runtime_profile_id: str | None = None,
+    *,
+    content_modules_root: Path | str | None = None,
+) -> ModuleRuntimePolicy:
+    """Load neutral runtime intelligence policy for a content module."""
+    mid = str(module_id or "").strip()
+    root = Path(content_modules_root) if content_modules_root else _repo_root() / "content" / "modules"
+    module_dir = root / mid
+    module_yaml = _read_yaml(module_dir / "module.yaml")
+    characters = _read_yaml(module_dir / "characters.yaml")
+    layout = _read_yaml(module_dir / "apartment_layout.yaml")
+    objects = _read_yaml(module_dir / "apartment_objects.yaml")
+    actor_pressure = _read_yaml(module_dir / "actor_pressure_profiles.yaml")
+    phase_policy_raw = _read_yaml(module_dir / "phase_beat_policy.yaml")
+    phase_policy = _unwrap(phase_policy_raw, "phase_beat_policy")
+    opening_policy = _unwrap(
+        _read_yaml(module_dir / "knowledge" / "opening_scene_sequence.yaml"),
+        "opening_scene_sequence",
+    )
+    hard_forbidden = _unwrap(
+        _read_yaml(module_dir / "knowledge" / "hard_forbidden_rules.yaml"),
+        "hard_forbidden_rules",
+    )
+    scene_affordances = _unwrap(
+        _read_yaml(module_dir / "locale" / "scene_affordances.yaml"),
+        "scene_affordances",
+    )
+    player_input_rules = _read_yaml(module_dir / "locale" / "player_input_rules.yaml")
+    module_strings = _read_yaml(module_dir / "locale" / "module_strings.yaml")
+
+    sources = []
+    for label, payload in (
+        ("module", module_yaml),
+        ("characters", characters),
+        ("apartment_layout", layout),
+        ("apartment_objects", objects),
+        ("actor_pressure_profiles", actor_pressure),
+        ("phase_beat_policy", phase_policy),
+        ("opening_scene_sequence", opening_policy),
+        ("hard_forbidden_rules", hard_forbidden),
+        ("scene_affordances", scene_affordances),
+        ("player_input_rules", player_input_rules),
+        ("module_strings", module_strings),
+    ):
+        if payload:
+            sources.append(label)
+
+    actor_roster = _actors_from_characters(characters)
+    playable_roles = _playable_roles_from_opening(opening_policy)
+    locale_policy = {
+        "scene_affordances": scene_affordances,
+        "player_input_rules": player_input_rules,
+        "module_strings": {
+            "available": bool(module_strings),
+            "top_level_keys": sorted(module_strings.keys()) if isinstance(module_strings, dict) else [],
+        },
+    }
+
+    return ModuleRuntimePolicy(
+        module_id=mid,
+        runtime_profile_id=str(runtime_profile_id).strip() if runtime_profile_id else None,
+        actor_roster=actor_roster,
+        playable_roles=playable_roles,
+        location_model=_location_model(layout_payload=layout, locale_payload=scene_affordances),
+        object_model=_object_model(objects_payload=objects, locale_payload=scene_affordances),
+        phase_policy=phase_policy,
+        beat_policy={
+            "phase_policy": phase_policy,
+            "opening_events": opening_policy.get("narrative_events")
+            if isinstance(opening_policy.get("narrative_events"), list)
+            else [],
+        },
+        authority_policy=_authority_policy(hard_forbidden),
+        capability_policy=_capability_policy(hard_forbidden),
+        hard_forbidden_policy=hard_forbidden,
+        opening_policy=opening_policy,
+        locale_policy=locale_policy,
+        content_sources=sources,
+    )

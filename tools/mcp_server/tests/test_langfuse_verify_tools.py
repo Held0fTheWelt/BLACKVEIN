@@ -25,6 +25,9 @@ def test_langfuse_verify_tools_registered():
     assert registry.get("summarize_narrator_npc_authority") is not None
     assert registry.get("summarize_capability_realization") is not None
     assert registry.get("summarize_visible_projection_origin_loss") is not None
+    assert registry.get("wos.evaluators.catalog") is not None
+    assert registry.get("wos.evaluators.get") is not None
+    assert registry.get("wos.evaluators.langfuse_sync_preview") is not None
 
 
 def test_run_projection_tests_returns_structured_result():
@@ -371,6 +374,12 @@ def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
     assert tge["observation_filters"]["Name"] == ["story.model.generation"]
     assert tge["observation_filters"]["Trace Name"] == ["backend.turn.execute"]
     assert tge["legacy_trace_names"] == ["world-engine.turn.execute"]
+    assert tge["trace_metadata_when_available"]["opening_turn"] is False
+    og = out["canonical_live_langfuse_filters"]["opening_generation_categorical_evaluators"]
+    assert og["judges"][0] == "opening_experience_judge"
+    assert og["observation_filters"]["Trace Name"] == ["world-engine.session.create"]
+    assert og["trace_metadata_when_available"]["opening_turn"] is True
+    assert og["trace_metadata_when_available"]["turn_number"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -694,13 +703,16 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     trace_payload = {
         "id": "trace-aspect-matrix",
         "name": "world-engine.turn.execute",
+        "environment": "staging",
         "output": {
             "contract": "story_runtime_path_observability.v1",
             "session_id": "session-aspect",
+            "canonical_turn_id": "session-aspect:turn:1",
             "turn_number": 1,
             "raw_player_input": "Ich nehme ein Bier aus dem Kuehlschrank",
             "turn_aspect_ledger": {
                 "session_id": "session-aspect",
+                "canonical_turn_id": "session-aspect:turn:1",
                 "turn_number": 1,
                 "turn_aspect_ledger": {
                     "input": {
@@ -732,9 +744,9 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                     },
                     "capability_selection": {
                         "status": "passed",
-                        "selected": {"selected_capabilities": ["player.object_interaction.attempt"]},
+                        "selected": {"selected_capabilities": ["player.object_interaction.request"]},
                         "actual": {
-                            "realized_capabilities": ["player.object_interaction.attempt"],
+                            "realized_capabilities": ["player.object_interaction.request"],
                             "forbidden_capability_realized": False,
                         },
                     },
@@ -756,6 +768,9 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert out["ok"] is True
     row = out["rows"][0]
     assert row["session_id"] == "session-aspect"
+    assert row["canonical_turn_id"] == "session-aspect:turn:1"
+    assert row["environment"] == "staging"
+    assert row["turn_aspect_ledger_present"] is True
     assert row["raw_input"].startswith("Ich nehme")
     assert row["action_kind"] == "object_interaction"
     assert row["selected_beat"] == "domestic_disruption"
@@ -770,9 +785,10 @@ def test_summarize_runtime_aspect_matrix_defaults_to_backend_and_world_engine_tu
         "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
         return_value=[{"id": "backend-turn", "name": "backend.turn.execute", "observations": [{}]}],
     ) as query:
-        out = tool.handler({"limit": 1})
+        out = tool.handler({"limit": 1, "environment": "staging"})
 
     assert out["ok"] is True
     kwargs = query.call_args.kwargs
     assert kwargs["trace_name"] is None
     assert kwargs["trace_names"] == ("backend.turn.execute", "world-engine.turn.execute")
+    assert kwargs["environment"] == "staging"

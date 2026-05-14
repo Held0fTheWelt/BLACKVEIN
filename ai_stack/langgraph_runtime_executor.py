@@ -56,6 +56,18 @@ from ai_stack.runtime_aspect_ledger import (
     make_aspect_record,
     set_aspect_record,
 )
+from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat_candidate
+from ai_stack.dramatic_capability_contracts import (
+    NPC_ACTION_GESTURE_OPTIONAL,
+    NPC_DIRECT_ANSWER_ALLOWED,
+    NPC_SOCIAL_REACTION_OPTIONAL,
+    NARRATOR_ACTION_CONSEQUENCE_DESCRIBE,
+    NARRATOR_LOCATION_TRANSITION_DESCRIBE,
+    NARRATOR_OBJECT_STATE_DESCRIBE,
+    NARRATOR_OPENING_EVENT_REALIZE,
+    NARRATOR_PERCEPTION_RESULT_DESCRIBE,
+)
+from ai_stack.module_runtime_policy import load_module_runtime_policy
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.version import AI_STACK_SEMANTIC_VERSION, RUNTIME_TURN_GRAPH_VERSION
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID, canonicalize_goc_actor_id
@@ -544,6 +556,17 @@ def _build_authority_aspect_records(
     interp = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
     frame = state.get("player_action_frame") if isinstance(state.get("player_action_frame"), dict) else {}
     aff = state.get("affordance_resolution") if isinstance(state.get("affordance_resolution"), dict) else {}
+    module_policy = state.get("module_runtime_policy") if isinstance(state.get("module_runtime_policy"), dict) else {}
+    authority_policy = (
+        module_policy.get("authority_policy")
+        if isinstance(module_policy.get("authority_policy"), dict)
+        else {}
+    )
+    capability_policy = (
+        module_policy.get("capability_policy")
+        if isinstance(module_policy.get("capability_policy"), dict)
+        else {}
+    )
     turn_number = int(state.get("turn_number") or 0)
     player_input_kind = str(frame.get("player_input_kind") or interp.get("player_input_kind") or "").strip().lower()
     narrator_required = bool(frame.get("narrator_response_expected") or interp.get("narrator_response_expected"))
@@ -574,11 +597,25 @@ def _build_authority_aspect_records(
         expected={
             "required": bool(narrator_required),
             "expected_owner": "narrator" if narrator_required else None,
-            "reason": "movement_or_perception_consequence"
+            "reason": "player_action_or_perception_consequence"
             if player_input_kind in {"action", "perception", "mixed"}
             else "opening_or_optional_narration"
             if narrator_required
             else None,
+            "required_capabilities": [
+                NARRATOR_PERCEPTION_RESULT_DESCRIBE
+                if player_input_kind == "perception"
+                else NARRATOR_LOCATION_TRANSITION_DESCRIBE
+                if str(frame.get("action_kind") or "").strip().lower() == "movement"
+                else NARRATOR_OBJECT_STATE_DESCRIBE
+                if str(frame.get("action_kind") or "").strip().lower() == "object_interaction"
+                else NARRATOR_ACTION_CONSEQUENCE_DESCRIBE
+            ]
+            if narrator_required
+            else [],
+            "authority_policy_source": "module_runtime_policy"
+            if authority_policy
+            else "runtime_default",
         },
         actual={
             "actual_owner": "narrator" if narrator_present else None,
@@ -640,21 +677,43 @@ def _build_authority_aspect_records(
                     )
                     break
     npc_status = "failed" if failure_reason else "passed"
+    actual_npc_actors: list[str] = []
+    for row in spoken_rows:
+        sid = str(row.get("speaker_id") or "").strip()
+        if sid and sid not in actual_npc_actors:
+            actual_npc_actors.append(sid)
+    for row in action_rows:
+        aid = str(row.get("actor_id") or "").strip()
+        if aid and aid not in actual_npc_actors:
+            actual_npc_actors.append(aid)
+    policy_name = "direct_response" if player_input_kind in {"speech", "question"} else "optional_social_reaction"
+    if not spoken_rows and not action_rows and not bool(interp.get("npc_response_expected")):
+        policy_name = "none"
+    forbidden_caps = [
+        str(item).strip()
+        for item in (capability_policy.get("forbidden") if isinstance(capability_policy.get("forbidden"), list) else [])
+        if str(item).strip()
+    ]
     npc_record = make_aspect_record(
         applicable=True,
         status=npc_status,
         expected={
-            "policy": "social_reaction_only",
-            "allowed_roles": ["dialogue", "gesture", "social_reaction"],
-            "forbidden_roles": [
-                "execute_player_action",
-                "narrate_player_perception",
-                "override_human_actor",
+            "policy": policy_name,
+            "allowed_actors": sorted(npc_scope),
+            "allowed_capabilities": [
+                NPC_SOCIAL_REACTION_OPTIONAL,
+                NPC_DIRECT_ANSWER_ALLOWED,
+                NPC_ACTION_GESTURE_OPTIONAL,
             ],
+            "forbidden_capabilities": forbidden_caps,
+            "authority_policy_source": "module_runtime_policy"
+            if authority_policy
+            else "runtime_default",
         },
         actual={
             "spoken_line_count": len(spoken_rows),
             "action_line_count": len(action_rows),
+            "actual_actors": actual_npc_actors,
             "npc_takeover_detected": bool(failure_reason),
             "offending_actor_id": offending_actor_id,
             "offending_block_id": offending_block_id or None,
@@ -1535,8 +1594,33 @@ class RuntimeTurnGraphExecutor:
                 input_kind=turn_input_class,
                 turn_id=tid,
                 trace_id=trace_id,
+                runtime_profile_id=(
+                    str(host_experience_template.get("template_id") or "").strip()
+                    if isinstance(host_experience_template, dict)
+                    else None
+                ),
             ),
         }
+        runtime_profile_id = None
+        if isinstance(host_experience_template, dict):
+            runtime_profile_id = (
+                str(host_experience_template.get("template_id") or "").strip()
+                or str(host_experience_template.get("runtime_profile_id") or "").strip()
+                or None
+            )
+        try:
+            initial_state["module_runtime_policy"] = load_module_runtime_policy(
+                module_id=module_id,
+                runtime_profile_id=runtime_profile_id,
+            ).to_dict()
+        except Exception as exc:
+            initial_state["module_runtime_policy"] = {
+                "schema_version": "module_runtime_policy.v1",
+                "module_id": module_id,
+                "runtime_profile_id": runtime_profile_id,
+                "policy_load_status": "failed",
+                "failure_reason": str(exc),
+            }
         if turn_number is not None:
             initial_state["turn_number"] = int(turn_number)
         if turn_input_class is not None:
@@ -2172,13 +2256,32 @@ class RuntimeTurnGraphExecutor:
         expected_realization: list[str] = []
         if response_plan["narrator_response_expected"]:
             expected_realization.append(
-                "narrator_perception_result"
+                NARRATOR_PERCEPTION_RESULT_DESCRIBE
                 if player_input_kind == "perception" or verb in {"look_at", "listen_to"}
-                else "narrator_physical_consequence"
+                else NARRATOR_LOCATION_TRANSITION_DESCRIBE
+                if action_kind == "movement" or verb == "move_to"
+                else NARRATOR_OBJECT_STATE_DESCRIBE
+                if action_kind == "object_interaction"
+                else NARRATOR_ACTION_CONSEQUENCE_DESCRIBE
             )
         if response_plan["npc_response_expected"]:
-            expected_realization.append("npc_social_reaction")
-        selected_beat_id = f"{scene_id}:deterministic_action_resolution:{action_kind or player_input_kind or 'input'}"
+            expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
+        deterministic_beat_id = f"{scene_id}:deterministic_action_resolution:{action_kind or player_input_kind or 'input'}"
+        beat_candidates = phase_beat_candidates(
+            module_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            phase_id=scene_id,
+            fallback_candidate_ids=[deterministic_beat_id],
+            expected_visible_functions=expected_realization,
+        )
+        beat_selection = select_beat_candidate(
+            beat_candidates,
+            deterministic_fallback_id=deterministic_beat_id,
+            selection_source="module_policy",
+            selection_reason="authoritative_action_resolution_short_path",
+        )
+        selected_beat_id = beat_selection.selected_beat_id or deterministic_beat_id
         rc = self.retrieval_config or RuntimeRetrievalConfig()
         skip_retrieval: dict[str, Any] = {
             "domain": RetrievalDomain.RUNTIME.value,
@@ -2223,14 +2326,16 @@ class RuntimeTurnGraphExecutor:
                         if isinstance(state.get("prior_dramatic_signature"), dict)
                         else None
                     ),
-                    "candidate_beats": [selected_beat_id],
+                    "candidate_beats": [candidate.id for candidate in beat_candidates] or [selected_beat_id],
                     "expected_realization": expected_realization,
+                    "expected_visible_functions": expected_realization,
                     "deterministic_action_resolution_marker": True,
                 },
                 selected={
                     "selected_beat_id": selected_beat_id,
                     "selected_scene_function": "deterministic_action_resolution",
-                    "selection_reason": "authoritative_action_resolution_short_path",
+                    "selection_reason": beat_selection.selection_reason,
+                    "selection_source": beat_selection.selection_source,
                     "transition_allowed": affordance_status not in {"unsafe"},
                 },
                 actual={
@@ -2282,6 +2387,15 @@ class RuntimeTurnGraphExecutor:
                 )
                 update["goc_canonical_yaml"] = yaml_mod
                 update["goc_yaml_slice"] = yaml_slice
+                if not isinstance(state.get("module_runtime_policy"), dict) or not state.get("module_runtime_policy"):
+                    update["module_runtime_policy"] = load_module_runtime_policy(
+                        module_id=str(module_id),
+                        runtime_profile_id=(
+                            str((state.get("host_experience_template") or {}).get("template_id") or "").strip()
+                            if isinstance(state.get("host_experience_template"), dict)
+                            else None
+                        ),
+                    ).to_dict()
                 update["opening_scene_sequence"] = opening_scene_sequence
                 update["hard_forbidden_rules"] = hard_forbidden_rules
                 _structured_knowledge_keys = (
@@ -2651,8 +2765,12 @@ class RuntimeTurnGraphExecutor:
         if isinstance(_phase_block, dict):
             scene_plan_dict["phase_policy_applied"] = {
                 "phase_id": _phase_id_for_policy,
-                "allowed_beats": list(_phase_block.get("allowed_beats") or []) if isinstance(_phase_block.get("allowed_beats"), list) else [],
-                "forbidden_beats": list(_phase_block.get("forbidden_beats") or []) if isinstance(_phase_block.get("forbidden_beats"), list) else [],
+                "allowed_beats": list(_phase_block.get("allowed_beats") or _phase_block.get("allowed_narrator_beats") or [])
+                if isinstance(_phase_block.get("allowed_beats") or _phase_block.get("allowed_narrator_beats"), list)
+                else [],
+                "forbidden_beats": list(_phase_block.get("forbidden_beats") or _phase_block.get("forbidden_early_escalations") or [])
+                if isinstance(_phase_block.get("forbidden_beats") or _phase_block.get("forbidden_early_escalations"), list)
+                else [],
             }
         _actor_profiles_block = state.get("actor_pressure_profiles") if isinstance(state.get("actor_pressure_profiles"), dict) else {}
         _responder_actor_id = str(scene_plan_dict.get("responder_actor_id") or "").strip()
@@ -2706,13 +2824,43 @@ class RuntimeTurnGraphExecutor:
         ]
         if scene_fn not in candidate_functions:
             candidate_functions.append(scene_fn)
-        selected_beat_id = f"{scene_id}:{scene_fn}"
+        deterministic_beat_id = f"{scene_id}:{scene_fn}"
         expected_realization: list[str] = []
         interp_for_beat = state.get("interpreted_input") if isinstance(state.get("interpreted_input"), dict) else {}
         if bool(interp_for_beat.get("narrator_response_expected")):
-            expected_realization.append("narrator_physical_consequence")
+            expected_realization.append(NARRATOR_ACTION_CONSEQUENCE_DESCRIBE)
         if bool(interp_for_beat.get("npc_response_expected")) or responders:
-            expected_realization.append("npc_social_reaction")
+            expected_realization.append(NPC_SOCIAL_REACTION_OPTIONAL)
+        beat_candidates = phase_beat_candidates(
+            module_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+            phase_id=scene_id,
+            fallback_candidate_ids=[f"{scene_id}:{fn}" for fn in candidate_functions] or [deterministic_beat_id],
+            expected_visible_functions=expected_realization,
+        )
+        beat_selection = select_beat_candidate(
+            beat_candidates,
+            deterministic_fallback_id=deterministic_beat_id,
+            selection_source=str(resolution.get("selection_source") or "scene_director"),
+            selection_reason=str(resolution.get("selection_source") or "semantic_pipeline_v1"),
+        )
+        selected_beat_id = beat_selection.selected_beat_id or deterministic_beat_id
+        scene_plan_dict.setdefault(
+            "selection_source",
+            str(resolution.get("selection_source") or "scene_director"),
+        )
+        scene_plan_dict["beat_selection_source"] = beat_selection.selection_source
+        scene_plan_dict["selected_beat"] = {
+            "id": selected_beat_id,
+            "candidate_count": beat_selection.candidate_count,
+        }
+        scene_plan_dict["selected_capabilities"] = list(expected_realization)
+        scene_plan_dict["authority_expectations"] = {
+            "narrator_required": bool(interp_for_beat.get("narrator_response_expected")),
+            "npc_policy": "optional_social_reaction" if responders or bool(interp_for_beat.get("npc_response_expected")) else "none",
+        }
+        update["scene_plan_record"] = scene_plan_dict
         update["turn_aspect_ledger"] = set_aspect_record(
             state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
             ASPECT_BEAT,
@@ -2721,13 +2869,15 @@ class RuntimeTurnGraphExecutor:
                 status="partial",
                 expected={
                     "prior_beat_id": prior_beat_id,
-                    "candidate_beats": [f"{scene_id}:{fn}" for fn in candidate_functions],
+                    "candidate_beats": [candidate.id for candidate in beat_candidates],
                     "expected_realization": expected_realization,
+                    "expected_visible_functions": expected_realization,
                 },
                 selected={
                     "selected_beat_id": selected_beat_id,
                     "selected_scene_function": scene_fn,
-                    "selection_reason": str(resolution.get("selection_source") or "semantic_pipeline_v1"),
+                    "selection_reason": beat_selection.selection_reason,
+                    "selection_source": beat_selection.selection_source,
                     "transition_allowed": True,
                 },
                 actual={
@@ -3787,6 +3937,9 @@ class RuntimeTurnGraphExecutor:
             else {},
             narrator_authority=narrator_authority,
             npc_authority=npc_authority,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
         )
         cap_violations = capability_selection.get("violations")
         cap_violation = cap_violations[0] if isinstance(cap_violations, list) and cap_violations else {}
@@ -3801,15 +3954,18 @@ class RuntimeTurnGraphExecutor:
                 status=capability_status if capability_status in {"passed", "failed", "partial"} else "missing",
                 expected={
                     "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                    "required_capabilities": capability_selection.get("required_capabilities"),
                     "selected_capabilities_must_be_realized_or_marked_missing": True,
                 },
                 selected={
                     "requested_capabilities": capability_selection.get("requested_capabilities"),
                     "selected_capabilities": capability_selection.get("selected_capabilities"),
                     "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                    "required_capabilities": capability_selection.get("required_capabilities"),
                 },
                 actual={
                     "realized_capabilities": capability_selection.get("realized_capabilities"),
+                    "violated_capabilities": capability_selection.get("violated_capabilities"),
                     "violations": capability_selection.get("violations"),
                     "missing_required_capabilities": capability_selection.get("missing_required_capabilities"),
                     "forbidden_capability_realized": bool(cap_violation),

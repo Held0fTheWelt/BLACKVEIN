@@ -45,6 +45,29 @@ from ai_stack.runtime_aspect_ledger import (
     normalize_runtime_aspect_ledger,
     set_aspect_record,
 )
+from ai_stack.dramatic_capability_contracts import (
+    NPC_ACTION_GESTURE_OPTIONAL,
+    NPC_DIRECT_ANSWER_ALLOWED,
+    NPC_SOCIAL_REACTION_OPTIONAL,
+    NARRATOR_ACTION_CONSEQUENCE_DESCRIBE,
+    NARRATOR_LOCATION_TRANSITION_DESCRIBE,
+    NARRATOR_OBJECT_STATE_DESCRIBE,
+    NARRATOR_OPENING_EVENT_REALIZE,
+    NARRATOR_PERCEPTION_RESULT_DESCRIBE,
+    PLAYER_ACTION_REQUEST,
+    PLAYER_MOVEMENT_REQUEST,
+    PLAYER_OBJECT_INTERACTION_REQUEST,
+    PLAYER_PERCEPTION_REQUEST,
+    PLAYER_SPEECH_REQUEST,
+)
+from ai_stack.visible_origin_contracts import (
+    EVIDENCE_REQUIRED,
+    EVIDENCE_SUPPORTING,
+    REQUIRED_VISIBLE_ORIGIN_KEYS,
+    block_has_required_origin,
+    preserve_folded_origin_metadata,
+    visible_origin_from_block,
+)
 from ai_stack.runtime_turn_contracts import (
     DEGRADATION_SIGNAL_ACTOR_LANES_VALIDATION_GATED,
     DEGRADATION_SIGNAL_DEGRADED_COMMIT,
@@ -276,6 +299,26 @@ def _canonical_turn_id(session_id: str, turn_number: int) -> str:
     return f"{sid}:turn:{int(turn_number or 0)}"
 
 
+def _stamp_turn_aspect_ledger_identity(
+    ledger: dict[str, Any] | None,
+    *,
+    session: "StorySession",
+    commit_turn_number: int,
+    turn_kind: str | None = None,
+) -> dict[str, Any] | None:
+    if not isinstance(ledger, dict):
+        return None
+    stamped = normalize_runtime_aspect_ledger(ledger)
+    stamped["session_id"] = session.session_id
+    stamped["story_session_id"] = session.session_id
+    stamped["canonical_turn_id"] = _canonical_turn_id(session.session_id, commit_turn_number)
+    stamped["turn_number"] = int(commit_turn_number or 0)
+    if turn_kind:
+        stamped["turn_kind"] = str(turn_kind)
+    stamped.setdefault("module_id", session.module_id)
+    return normalize_runtime_aspect_ledger(stamped)
+
+
 def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
     lang = str(getattr(session, "session_output_language", "de") or "de").strip().lower()[:2] or "de"
     if lang == "en":
@@ -322,6 +365,12 @@ def _recoverable_playable_turn_envelope(
     diagnostics_extras: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Shared transport envelope for recoverable / graph-rescue short paths (ADR-0038 Phase C)."""
+    turn_aspect_ledger = _stamp_turn_aspect_ledger_identity(
+        turn_aspect_ledger,
+        session=session,
+        commit_turn_number=commit_turn_number,
+        turn_kind=turn_kind,
+    ) or turn_aspect_ledger
     diag: dict[str, Any] = {
         "recoverable_rejection": True,
         "hard_boundary_failure": False,
@@ -434,9 +483,9 @@ def _record_visible_projection_aspect(
         raw_player_input=raw_player_input,
         trace_id=trace_id,
     )
-    required_keys = ("origin_aspect", "origin_beat_id", "origin_capability", "authority_owner")
+    required_keys = REQUIRED_VISIBLE_ORIGIN_KEYS
     origin_present = bool(scene_blocks) and all(
-        isinstance(block, dict) and all(key in block for key in required_keys)
+        isinstance(block, dict) and block_has_required_origin(block)
         for block in scene_blocks
     )
     aspects = out.get("turn_aspect_ledger") if isinstance(out.get("turn_aspect_ledger"), dict) else {}
@@ -470,12 +519,21 @@ def _record_visible_projection_aspect(
                 "visible_block_origin_metadata": True,
                 "required_narrator_block_preserved": narrator_required,
             },
-            actual={
-                "scene_block_count": len(scene_blocks),
-                "visible_block_origin_present": origin_present,
-                "required_narrator_block_present": narrator_present,
-                "narrator_required": narrator_required,
-            },
+        actual={
+            "scene_block_count": len(scene_blocks),
+            "visible_block_origin_present": origin_present,
+            "blocks_have_origin_aspect": origin_present,
+            "required_narrator_block_present": narrator_present,
+            "required_blocks_present": (not narrator_required) or narrator_present,
+            "lost_required_narrator_block": narrator_required and not narrator_present,
+            "required_visible_origin_preserved": origin_present,
+            "narrator_required": narrator_required,
+            "visible_block_origins": [
+                visible_origin_from_block(block)
+                for block in scene_blocks
+                if isinstance(block, dict) and visible_origin_from_block(block)
+            ],
+        },
             reasons=[] if failure_reason is None else [failure_reason],
             source="projection",
             failure_class=None if failure_reason is None else "projection_failure",
@@ -580,11 +638,28 @@ def _record_visible_projection_aspect(
             for block in scene_blocks
             if isinstance(block, dict)
         )
+        realized_capabilities = {
+            str(block.get("origin_capability") or "").strip()
+            for block in scene_blocks
+            if isinstance(block, dict) and str(block.get("origin_capability") or "").strip()
+        }
+        for block in scene_blocks:
+            if not isinstance(block, dict):
+                continue
+            folded = block.get("folded_origin_evidence")
+            if isinstance(folded, list):
+                for origin in folded:
+                    if isinstance(origin, dict) and str(origin.get("origin_capability") or "").strip():
+                        realized_capabilities.add(str(origin.get("origin_capability")).strip())
         missing_expected: list[str] = []
         for expected_item in expected_realization:
-            if expected_item.startswith("narrator_") and not narrator_realized:
+            if expected_item in realized_capabilities:
+                continue
+            if (expected_item.startswith("narrator_") or expected_item.startswith("narrator.")) and not narrator_realized:
                 missing_expected.append(expected_item)
-            if expected_item.startswith("npc_") and not npc_realized:
+            if (expected_item.startswith("npc_") or expected_item.startswith("npc.")) and not npc_realized:
+                missing_expected.append(expected_item)
+            if not expected_item.startswith(("narrator_", "narrator.", "npc_", "npc.")):
                 missing_expected.append(expected_item)
         beat_realized = origin_present and not missing_expected
         beat_contractually_required = bool(
@@ -626,6 +701,16 @@ def _record_visible_projection_aspect(
                         else None
                     ),
                     "missing_expected_realization": missing_expected,
+                    "realization_evidence": [
+                        visible_origin_from_block(block)
+                        for block in scene_blocks
+                        if isinstance(block, dict)
+                        and (
+                            str(block.get("origin_beat_id") or "").strip()
+                            == str(selected.get("selected_beat_id") or "").strip()
+                            or str(block.get("origin_capability") or "").strip() in set(expected_realization)
+                        )
+                    ],
                     "failure_classification": beat_failure_class,
                 },
                 reasons=[] if beat_realized else [beat_failure_reason],
@@ -1903,10 +1988,19 @@ def _build_langfuse_path_summary(
             else {}
         ).get("npc_narrated_player_action_violation")
     )
+    _runtime_profile_id = (
+        projection.get("runtime_profile_id")
+        or (
+            turn_aspect_ledger.get("runtime_profile_id")
+            if isinstance(turn_aspect_ledger, dict)
+            else None
+        )
+    )
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
         "module_id": session.module_id,
+        "runtime_profile_id": _runtime_profile_id,
         "turn_number": event.get("turn_number"),
         "turn_kind": event.get("turn_kind"),
         "raw_player_input": str(event.get("raw_input") or graph_state.get("player_input") or "").strip() or None,
@@ -2748,6 +2842,8 @@ def _runtime_aspect_score_metadata(
             ),
             "raw_player_input": path_summary.get("raw_player_input"),
             "turn_kind": path_summary.get("turn_kind"),
+            "module_id": path_summary.get("module_id") or ledger.get("module_id"),
+            "runtime_profile_id": path_summary.get("runtime_profile_id") or ledger.get("runtime_profile_id"),
         }
     )
     if value < 1.0 and not meta.get("failure_reason"):
@@ -2815,6 +2911,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     base_input = {
         "session_id": path_summary.get("session_id"),
         "module_id": path_summary.get("module_id"),
+        "runtime_profile_id": ledger.get("runtime_profile_id") or path_summary.get("runtime_profile_id"),
         "turn_number": path_summary.get("turn_number"),
         "turn_kind": path_summary.get("turn_kind"),
         "raw_player_input": path_summary.get("raw_player_input"),
@@ -2823,6 +2920,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     beat = _rec(ASPECT_BEAT)
     beat_selected = _selected(ASPECT_BEAT)
     beat_actual = _actual(ASPECT_BEAT)
+    cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
     span_specs: list[tuple[str, str, dict[str, Any]]] = [
         ("story.aspect.input", ASPECT_INPUT, _rec(ASPECT_INPUT)),
         ("story.action.resolve", ASPECT_ACTION_RESOLUTION, _rec(ASPECT_ACTION_RESOLUTION)),
@@ -2837,6 +2935,15 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             },
         ),
         ("story.capability.select", ASPECT_CAPABILITY_SELECTION, _rec(ASPECT_CAPABILITY_SELECTION)),
+        (
+            "story.capability.realize",
+            ASPECT_CAPABILITY_SELECTION,
+            {
+                "selected": cap_selected,
+                "actual": _actual(ASPECT_CAPABILITY_SELECTION),
+                "aspect_record": _rec(ASPECT_CAPABILITY_SELECTION),
+            },
+        ),
         (
             "story.beat.state",
             ASPECT_BEAT,
@@ -2888,9 +2995,16 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                 metadata={
                     "phase": "runtime_aspect",
                     "runtime_aspect": aspect,
+                    "module_id": path_summary.get("module_id"),
+                    "runtime_profile_id": ledger.get("runtime_profile_id") or path_summary.get("runtime_profile_id"),
                     "turn_number": path_summary.get("turn_number"),
                     "session_id": path_summary.get("session_id"),
                     "canonical_turn_id": path_summary.get("canonical_turn_id"),
+                    "selected_beat_id": beat_selected.get("selected_beat_id"),
+                    "selected_capabilities": cap_selected.get("selected_capabilities") or [],
+                    "authority_policy": _expected(ASPECT_NPC_AUTHORITY).get("policy"),
+                    "status": record.get("status"),
+                    "failure_reason": record.get("failure_reason"),
                     "trace_origin": path_summary.get("trace_origin"),
                     "execution_tier": path_summary.get("execution_tier"),
                     "canonical_player_flow": path_summary.get("canonical_player_flow"),
@@ -2911,6 +3025,11 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     cap_actual = _actual(ASPECT_CAPABILITY_SELECTION)
     visible_actual = _actual(ASPECT_VISIBLE_PROJECTION)
     validation_actual = _actual(ASPECT_VALIDATION)
+    beat_transition_allowed = _selected(ASPECT_BEAT).get("transition_allowed")
+    npc_failure_reason = str(_rec(ASPECT_NPC_AUTHORITY).get("failure_reason") or "")
+    violated_capabilities = cap_actual.get("violated_capabilities") or []
+    if not isinstance(violated_capabilities, list):
+        violated_capabilities = []
     turn_number = int(path_summary.get("turn_number") or ledger.get("turn_number") or 0)
     input_kind = str(
         action_actual.get("input_kind")
@@ -2952,6 +3071,16 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(beat_actual.get("realized") is True and beat_actual.get("visible") is True),
         ),
         (
+            "beat_transition_valid",
+            ASPECT_BEAT,
+            _runtime_aspect_score_value(beat_transition_allowed is not False),
+        ),
+        (
+            "beat_contract_pass",
+            ASPECT_BEAT,
+            _runtime_aspect_score_value(_rec(ASPECT_BEAT).get("status") == "passed"),
+        ),
+        (
             "narrator_authority_contract_present",
             ASPECT_NARRATOR_AUTHORITY,
             _runtime_aspect_score_value(_known(ASPECT_NARRATOR_AUTHORITY)),
@@ -2974,6 +3103,16 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             ),
         ),
         (
+            "narrator_consequence_present",
+            ASPECT_NARRATOR_AUTHORITY,
+            _runtime_aspect_score_value((not narrator_required) or narrator_actual.get("consequence_realized") is True),
+        ),
+        (
+            "narrator_authority_contract_pass",
+            ASPECT_NARRATOR_AUTHORITY,
+            _runtime_aspect_score_value(_rec(ASPECT_NARRATOR_AUTHORITY).get("status") == "passed"),
+        ),
+        (
             "npc_authority_contract_present",
             ASPECT_NPC_AUTHORITY,
             _runtime_aspect_score_value(_known(ASPECT_NPC_AUTHORITY)),
@@ -2987,6 +3126,24 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "npc_policy_realized",
             ASPECT_NPC_AUTHORITY,
             _runtime_aspect_score_value(_rec(ASPECT_NPC_AUTHORITY).get("status") == "passed"),
+        ),
+        (
+            "npc_consequence_takeover_absent",
+            ASPECT_NPC_AUTHORITY,
+            _runtime_aspect_score_value(not bool(npc_actual.get("npc_takeover_detected"))),
+        ),
+        (
+            "npc_exposition_absent",
+            ASPECT_NPC_AUTHORITY,
+            _runtime_aspect_score_value("narrated_player_perception" not in npc_failure_reason and "explained_environment" not in npc_failure_reason),
+        ),
+        (
+            "player_agency_violation_absent",
+            ASPECT_NPC_AUTHORITY,
+            _runtime_aspect_score_value(
+                "ai_controlled_human_actor" not in npc_failure_reason
+                and "npc.force_player_speech.forbidden" not in violated_capabilities
+            ),
         ),
         (
             "capability_selection_present",
@@ -3009,9 +3166,24 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(not missing_required_capabilities),
         ),
         (
+            "dramatic_capability_contract_pass",
+            ASPECT_CAPABILITY_SELECTION,
+            _runtime_aspect_score_value(_rec(ASPECT_CAPABILITY_SELECTION).get("status") == "passed"),
+        ),
+        (
             "visible_block_origin_present",
             ASPECT_VISIBLE_PROJECTION,
             _runtime_aspect_score_value(bool(visible_actual.get("visible_block_origin_present"))),
+        ),
+        (
+            "required_visible_origin_preserved",
+            ASPECT_VISIBLE_PROJECTION,
+            _runtime_aspect_score_value(bool(visible_actual.get("required_visible_origin_preserved"))),
+        ),
+        (
+            "visible_projection_contract_pass",
+            ASPECT_VISIBLE_PROJECTION,
+            _runtime_aspect_score_value(_rec(ASPECT_VISIBLE_PROJECTION).get("status") == "passed"),
         ),
         (
             "recoverable_turn_http_200",
@@ -3961,6 +4133,7 @@ def _live_scene_blocks_from_visible_bundle(
         else {}
     )
     selected_beat_id = None
+    canonical_turn_id = None
     if isinstance(beat_record, dict):
         selected_beat_id = (
             (beat_record.get("selected") or {}).get("selected_beat_id")
@@ -3971,42 +4144,73 @@ def _live_scene_blocks_from_visible_bundle(
             if isinstance(beat_record.get("actual"), dict)
             else None
         )
+    if isinstance(ledger, dict):
+        canonical_turn_id = (
+            ledger.get("canonical_turn_id")
+            or ledger.get("turn_id")
+            or ledger.get("turn_record_id")
+        )
 
     def origin_metadata(block_type: str, actor_id: str | None = None) -> dict[str, Any]:
         bt = str(block_type or "").strip().lower()
         if bt == "narrator":
             frame = graph_state.get("player_action_frame") if isinstance(graph_state, dict) and isinstance(graph_state.get("player_action_frame"), dict) else {}
             pik = str(frame.get("player_input_kind") or "").strip().lower()
-            capability = "narrator.physical_consequence"
+            action_kind = str(frame.get("action_kind") or "").strip().lower()
+            capability = NARRATOR_ACTION_CONSEQUENCE_DESCRIBE
             if pik == "perception":
-                capability = "narrator.perception_result"
+                capability = NARRATOR_PERCEPTION_RESULT_DESCRIBE
+            elif action_kind == "movement":
+                capability = NARRATOR_LOCATION_TRANSITION_DESCRIBE
+            elif action_kind == "object_interaction":
+                capability = NARRATOR_OBJECT_STATE_DESCRIBE
             elif turn_number == 0:
-                capability = "narrator.environmental_description"
+                capability = NARRATOR_OPENING_EVENT_REALIZE
             return {
                 "origin_aspect": "narrator_authority",
                 "origin_beat_id": selected_beat_id,
                 "origin_capability": capability,
                 "authority_owner": "narrator",
+                "expected_owner": "narrator",
+                "actual_owner": "narrator",
+                "canonical_turn_id": canonical_turn_id,
+                "evidence_role": EVIDENCE_REQUIRED,
             }
         if bt == "actor_line":
+            interp = graph_state.get("interpreted_input") if isinstance(graph_state, dict) and isinstance(graph_state.get("interpreted_input"), dict) else {}
+            pik = str(interp.get("player_input_kind") or "").strip().lower()
             return {
                 "origin_aspect": "npc_authority",
                 "origin_beat_id": selected_beat_id,
-                "origin_capability": "npc.dialogue",
+                "origin_capability": NPC_DIRECT_ANSWER_ALLOWED
+                if pik in {"speech", "question"}
+                else NPC_SOCIAL_REACTION_OPTIONAL,
                 "authority_owner": "npc" if actor_id else "runtime",
+                "expected_owner": "npc" if actor_id else "system",
+                "actual_owner": "npc" if actor_id else "system",
+                "canonical_turn_id": canonical_turn_id,
+                "evidence_role": EVIDENCE_SUPPORTING,
             }
         if bt == "actor_action":
             return {
                 "origin_aspect": "npc_authority",
                 "origin_beat_id": selected_beat_id,
-                "origin_capability": "npc.gesture",
+                "origin_capability": NPC_ACTION_GESTURE_OPTIONAL,
                 "authority_owner": "npc" if actor_id else "runtime",
+                "expected_owner": "npc" if actor_id else "system",
+                "actual_owner": "npc" if actor_id else "system",
+                "canonical_turn_id": canonical_turn_id,
+                "evidence_role": EVIDENCE_SUPPORTING,
             }
         return {
             "origin_aspect": "visible_projection",
             "origin_beat_id": selected_beat_id,
             "origin_capability": None,
             "authority_owner": "runtime",
+            "expected_owner": "system",
+            "actual_owner": "system",
+            "canonical_turn_id": canonical_turn_id,
+            "evidence_role": EVIDENCE_SUPPORTING,
         }
 
     def with_origin(block: dict[str, Any]) -> dict[str, Any]:
@@ -4474,11 +4678,14 @@ def _player_input_scene_blocks_for_story_window(
         pik_lane = str(interp.get("player_input_kind") or interp.get("kind") or "speech").strip().lower()
         render_hints = {"player_input_kind": pik_lane}
         player_capability = {
-            "action": "player.action.attempt",
-            "perception": "player.perception.request",
-            "mixed": "player.social_action.perform",
-            "question": "player.social_action.perform",
-            "speech": "player.social_action.perform",
+            "action": PLAYER_ACTION_REQUEST,
+            "movement_action": PLAYER_MOVEMENT_REQUEST,
+            "object_interaction": PLAYER_OBJECT_INTERACTION_REQUEST,
+            "perception": PLAYER_PERCEPTION_REQUEST,
+            "perception_action": PLAYER_PERCEPTION_REQUEST,
+            "mixed": PLAYER_ACTION_REQUEST,
+            "question": PLAYER_SPEECH_REQUEST,
+            "speech": PLAYER_SPEECH_REQUEST,
         }.get(pik_lane, "player.input")
         out_blocks: list[dict[str, Any]] = []
         for suffix, line, bt in (
@@ -4508,6 +4715,10 @@ def _player_input_scene_blocks_for_story_window(
                         "origin_beat_id": None,
                         "origin_capability": player_capability,
                         "authority_owner": "player",
+                        "expected_owner": "player",
+                        "actual_owner": "player",
+                        "canonical_turn_id": f"{session_id}:turn:{turn_token}",
+                        "evidence_role": EVIDENCE_SUPPORTING,
                     }
                 )
         if out_blocks:
@@ -4533,6 +4744,10 @@ def _player_input_scene_blocks_for_story_window(
             "origin_beat_id": None,
             "origin_capability": "player.input",
             "authority_owner": "player",
+            "expected_owner": "player",
+            "actual_owner": "player",
+            "canonical_turn_id": f"{session_id}:turn:{turn_token}",
+            "evidence_role": EVIDENCE_SUPPORTING,
         }
     ]
 
@@ -6418,6 +6633,22 @@ class StoryRuntimeManager:
             if isinstance(graph_state.get("turn_aspect_ledger"), dict)
             else None
         )
+        turn_aspect_ledger = ensure_runtime_aspect_ledger(
+            turn_aspect_ledger,
+            session_id=session.session_id,
+            module_id=session.module_id,
+            turn_number=commit_turn_number,
+            turn_kind=turn_kind or "player",
+            raw_player_input=player_input,
+            input_kind=interpreted_input.get("player_input_kind") or interpreted_input.get("kind"),
+            trace_id=trace_id,
+        )
+        turn_aspect_ledger = _stamp_turn_aspect_ledger_identity(
+            turn_aspect_ledger,
+            session=session,
+            commit_turn_number=commit_turn_number,
+            turn_kind=turn_kind or "player",
+        )
         event: dict[str, Any] = {
             "turn_number": commit_turn_number,
             "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
@@ -7159,6 +7390,13 @@ class StoryRuntimeManager:
         event.setdefault("turn_status", "rejected_recoverable")
         event.setdefault("trace_id", trace_id or "")
         event.setdefault("raw_input", player_input)
+        if isinstance(event.get("turn_aspect_ledger"), dict):
+            event["turn_aspect_ledger"] = _stamp_turn_aspect_ledger_identity(
+                event.get("turn_aspect_ledger"),
+                session=session,
+                commit_turn_number=commit_turn_number,
+                turn_kind=str(event.get("turn_kind") or "player_rejected_recoverable"),
+            )
         interpreted_input = (
             event.get("interpreted_input")
             if isinstance(event.get("interpreted_input"), dict)
