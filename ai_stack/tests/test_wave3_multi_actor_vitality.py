@@ -115,14 +115,15 @@ class TestW31ResponderSetStrengthening:
         }
 
         packet = _build_dramatic_generation_packet(state)
+        expected_order = [row["actor_id"] for row in state["selected_responder_set"]]
 
         # When 2+ responders, directive should be present
         assert "secondary_responder_directive" in packet
         assert packet["secondary_responder_directive"] is not None
         assert "at least one" in packet["secondary_responder_directive"].lower()
-        assert packet.get("preferred_reaction_order_ids") == ["veronique_vallon", "michel_longstreet"]
+        assert packet.get("preferred_reaction_order_ids") == expected_order
         assert packet.get("preferred_reaction_order_instruction")
-        assert "veronique_vallon" in packet["preferred_reaction_order_instruction"]
+        assert expected_order[0] in packet["preferred_reaction_order_instruction"]
 
     def test_dramatic_packet_includes_partial_npc_agency_plan_projection(self):
         """Verify the first Pi7 slice emits a partial NPC agency plan, not a full simulation claim."""
@@ -357,8 +358,6 @@ class TestW33InitiativeFieldExtraction:
 
     def test_initiative_seizer_id_extracted_from_seize_event(self):
         """Verify seize event populates initiative_seizer_id."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -370,12 +369,10 @@ class TestW33InitiativeFieldExtraction:
         }
 
         planner = self._planner_from_state(state)
-        assert planner.initiative_seizer_id == "veronique_vallon"
+        assert planner.initiative_seizer_id == state["structured_output"]["initiative_events"][0]["actor_id"]
 
     def test_initiative_seizer_id_extracted_from_counter_event(self):
         """Verify counter event populates initiative_seizer_id."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -387,12 +384,10 @@ class TestW33InitiativeFieldExtraction:
         }
 
         planner = self._planner_from_state(state)
-        assert planner.initiative_seizer_id == "michel_longstreet"
+        assert planner.initiative_seizer_id == state["structured_output"]["initiative_events"][0]["actor_id"]
 
     def test_initiative_seizer_id_none_when_no_seize_events(self):
         """Verify None when no seize/counter/escalate events."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {"initiative_events": []},
             "primary_responder_id": "veronique_vallon",
@@ -404,8 +399,6 @@ class TestW33InitiativeFieldExtraction:
 
     def test_initiative_loser_id_falls_back_to_primary_when_no_target(self):
         """Verify initiative_loser_id falls back to primary_responder_id when no target_id."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -418,12 +411,10 @@ class TestW33InitiativeFieldExtraction:
 
         planner = self._planner_from_state(state)
         # Should fall back to primary responder
-        assert planner.initiative_loser_id == "veronique_vallon"
+        assert planner.initiative_loser_id == state["primary_responder_id"]
 
     def test_initiative_loser_id_none_when_no_interrupt_or_counter(self):
         """Verify initiative_loser_id is None when floor not contested."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -439,8 +430,6 @@ class TestW33InitiativeFieldExtraction:
 
     def test_initiative_pressure_label_contested_on_interrupt(self):
         """Verify label is 'contested' when interrupt event present."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -456,8 +445,6 @@ class TestW33InitiativeFieldExtraction:
 
     def test_initiative_pressure_label_floor_claimed_on_seize(self):
         """Verify label is 'floor_claimed' when seize present (no interrupt)."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {
                 "initiative_events": [
@@ -473,8 +460,6 @@ class TestW33InitiativeFieldExtraction:
 
     def test_initiative_pressure_label_none_when_no_events(self):
         """Verify label is None when no initiative_events."""
-        from app.story_runtime.commit_models import _planner_truth_from_graph_state
-
         state = {
             "structured_output": {"initiative_events": []},
             "primary_responder_id": "veronique_vallon",
@@ -489,15 +474,16 @@ class TestW33InitiativeFieldExtraction:
         from app.story_runtime.commit_models import PlannerTruth
 
         # Should be able to instantiate with new fields
-        planner = PlannerTruth(
-            initiative_seizer_id="test_actor",
-            initiative_loser_id="other_actor",
-            initiative_pressure_label="contested",
-        )
+        values = {
+            "initiative_seizer_id": "test_actor",
+            "initiative_loser_id": "other_actor",
+            "initiative_pressure_label": "contested",
+        }
+        planner = PlannerTruth(**values)
 
-        assert planner.initiative_seizer_id == "test_actor"
-        assert planner.initiative_loser_id == "other_actor"
-        assert planner.initiative_pressure_label == "contested"
+        assert planner.initiative_seizer_id == values["initiative_seizer_id"]
+        assert planner.initiative_loser_id == values["initiative_loser_id"]
+        assert planner.initiative_pressure_label == values["initiative_pressure_label"]
 
 
 # W3.3 Tests: Whitelist and Session Carry-Forward
@@ -521,31 +507,26 @@ class TestW33InitiativeWhitelist:
         """Verify whitelist has initiative_seizer_id."""
         from app.story_runtime.manager import _prior_planner_truth_from_session
 
-        session = self._session_with_planner_truth(
-            {
-                "initiative_seizer_id": "veronique_vallon",
-            }
-        )
+        planner_truth = {"initiative_seizer_id": "veronique_vallon"}
+        session = self._session_with_planner_truth(planner_truth)
 
         prior = _prior_planner_truth_from_session(session)
-        assert prior.get("initiative_seizer_id") == "veronique_vallon"
+        assert prior.get("initiative_seizer_id") == planner_truth["initiative_seizer_id"]
 
     def test_snapshot_includes_populated_initiative_fields(self):
         """Verify snapshot includes populated initiative fields."""
         from app.story_runtime.manager import _prior_planner_truth_from_session
 
-        session = self._session_with_planner_truth(
-            {
-                "initiative_seizer_id": "test",
-                "initiative_loser_id": "other",
-                "initiative_pressure_label": "contested",
-            }
-        )
+        planner_truth = {
+            "initiative_seizer_id": "test",
+            "initiative_loser_id": "other",
+            "initiative_pressure_label": "contested",
+        }
+        session = self._session_with_planner_truth(planner_truth)
 
         prior = _prior_planner_truth_from_session(session)
-        assert prior.get("initiative_seizer_id") == "test"
-        assert prior.get("initiative_loser_id") == "other"
-        assert prior.get("initiative_pressure_label") == "contested"
+        for key, expected in planner_truth.items():
+            assert prior.get(key) == expected
 
 
 # W3.1 Tests: Multi-Actor Rendering

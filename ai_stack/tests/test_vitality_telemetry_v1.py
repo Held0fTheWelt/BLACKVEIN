@@ -60,15 +60,18 @@ def test_vitality_telemetry_v1_contains_required_fields():
 
 def test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_realized():
     state = _base_state()
+    selected_actor_ids = [row["actor_id"] for row in state["selected_responder_set"]]
+    primary_actor_id = selected_actor_ids[0]
+    secondary_actor_ids = selected_actor_ids[1:]
     # Make secondary appear only in initiative; it should not be counted as realized actor.
     state["generation"]["metadata"]["structured_output"]["spoken_lines"] = [
-        {"speaker_id": "veronique_vallon", "text": "No."}
+        {"speaker_id": primary_actor_id, "text": "No."}
     ]
     state["generation"]["metadata"]["structured_output"]["action_lines"] = [
-        {"actor_id": "veronique_vallon", "text": "leans forward"}
+        {"actor_id": primary_actor_id, "text": "leans forward"}
     ]
-    state["visible_output_bundle"]["spoken_lines"] = [{"speaker_id": "veronique_vallon", "text": "No."}]
-    state["visible_output_bundle"]["action_lines"] = [{"actor_id": "veronique_vallon", "text": "leans forward"}]
+    state["visible_output_bundle"]["spoken_lines"] = [{"speaker_id": primary_actor_id, "text": "No."}]
+    state["visible_output_bundle"]["action_lines"] = [{"actor_id": primary_actor_id, "text": "leans forward"}]
 
     telemetry = build_actor_survival_telemetry(
         state,
@@ -79,11 +82,12 @@ def test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_r
     )
     vitality = telemetry["vitality_telemetry_v1"]
 
-    assert vitality["selected_secondary_responder_ids"] == ["michel_longstreet"]
-    assert "michel_longstreet" not in vitality["realized_actor_ids"]
+    assert vitality["selected_secondary_responder_ids"] == secondary_actor_ids
+    for actor_id in secondary_actor_ids:
+        assert actor_id not in vitality["realized_actor_ids"]
     assert vitality["realized_secondary_responder_ids"] == []
-    assert vitality["rendered_actor_ids"] == ["veronique_vallon"]
-    assert vitality["preferred_reaction_order_ids"] == ["veronique_vallon", "michel_longstreet"]
+    assert vitality["rendered_actor_ids"] == [primary_actor_id]
+    assert vitality["preferred_reaction_order_ids"] == selected_actor_ids
     assert vitality["reaction_order_divergence"] == "secondary_responder_nominated_not_realized_in_output"
 
 
