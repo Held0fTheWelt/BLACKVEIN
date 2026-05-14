@@ -39,14 +39,26 @@ def test_decide_playability_retry_then_degraded_window() -> None:
         proposed_state_effects=[{"type": "narrative", "text": "y"}],
         allow_degraded_commit_after_retries=True,
     )
-    assert d2.should_retry is False
-    assert d2.allow_degraded_commit is True
+    assert d2.should_retry is True
+    assert d2.allow_degraded_commit is False
+
+    exhausted = decide_playability_recovery(
+        turn_number=1,
+        attempt_index=3,
+        max_attempts=2,
+        outcome={"status": "rejected", "reason": "dramatic_alignment_narrative_too_short"},
+        generation={"success": True, "content": "x" * 120, "metadata": {}},
+        proposed_state_effects=[{"type": "narrative", "text": "y"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    assert exhausted.should_retry is False
+    assert exhausted.allow_degraded_commit is True
 
 
 def test_degraded_commit_blocked_for_actor_lane_illegal_reason() -> None:
     decision = decide_playability_recovery(
         turn_number=2,
-        attempt_index=2,
+        attempt_index=3,
         max_attempts=2,
         outcome={"status": "rejected", "reason": "actor_lane_illegal_actor"},
         generation={"success": True, "content": "x" * 140, "metadata": {}},
@@ -75,7 +87,7 @@ def test_transcript_shell_npc_lane_rejection_triggers_retry() -> None:
 def test_degraded_commit_blocked_for_parser_failure_feedback() -> None:
     decision = decide_playability_recovery(
         turn_number=2,
-        attempt_index=2,
+        attempt_index=3,
         max_attempts=2,
         outcome={"status": "rejected", "reason": "dramatic_alignment_narrative_too_short"},
         generation={"success": True, "content": "x" * 120, "metadata": {"langchain_parser_error": "boom"}},
@@ -84,3 +96,43 @@ def test_degraded_commit_blocked_for_parser_failure_feedback() -> None:
     )
     assert decision.should_retry is False
     assert decision.allow_degraded_commit is False
+
+
+def test_runtime_aspect_failures_are_retryable_but_not_degradable() -> None:
+    retry = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=1,
+        max_attempts=2,
+        outcome={
+            "status": "rejected",
+            "reason": "narrator_required_missing",
+            "recoverable_rejection": True,
+            "runtime_aspect_failure": {
+                "failure_reason": "narrator_required_missing",
+                "expected_owner": "narrator",
+            },
+        },
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[],
+        allow_degraded_commit_after_retries=True,
+    )
+    assert retry.should_retry is True
+    assert "narrator_required_missing" in retry.feedback_codes
+    assert "expected_owner:narrator" in retry.feedback_codes
+
+    exhausted = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=3,
+        max_attempts=2,
+        outcome={
+            "status": "rejected",
+            "reason": "narrator_required_missing",
+            "recoverable_rejection": True,
+            "runtime_aspect_failure": {"failure_reason": "narrator_required_missing"},
+        },
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[],
+        allow_degraded_commit_after_retries=True,
+    )
+    assert exhausted.should_retry is False
+    assert exhausted.allow_degraded_commit is False

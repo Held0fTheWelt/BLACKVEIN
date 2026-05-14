@@ -13,6 +13,7 @@ from unittest.mock import MagicMock
 from app.story_runtime.manager import (
     StorySession,
     _annotate_goc_opening_narration_beats,
+    _build_langfuse_path_summary,
     _compact_scene_block_summary,
     _compute_opening_shape_subgates,
     _emit_langfuse_evidence_observations,
@@ -361,6 +362,10 @@ def _minimal_goc_live_scene_blocks(*, turn_number: int) -> list[dict[str, Any]]:
             "text": "The salon waits in strained silence.",
             "delivery": delivery,
             "source": "live_runtime_graph",
+            "origin_aspect": "narrator_authority",
+            "origin_beat_id": None,
+            "origin_capability": "narrator.opening_event.realize",
+            "authority_owner": "narrator",
         },
         {
             "id": f"turn-{turn_number}-live-block-2",
@@ -371,6 +376,10 @@ def _minimal_goc_live_scene_blocks(*, turn_number: int) -> list[dict[str, Any]]:
             "text": "We should speak calmly.",
             "delivery": delivery,
             "source": "live_runtime_graph",
+            "origin_aspect": "npc_authority",
+            "origin_beat_id": None,
+            "origin_capability": "npc.social_reaction.optional",
+            "authority_owner": "npc",
         },
     ]
 
@@ -1206,6 +1215,54 @@ def test_ldss_opening_fallback_state_does_not_invent_primary_when_already_fallba
     assert "primary_attempt_adapter" not in meta
     assert "primary_attempt_model" not in meta
     assert "primary_attempt_invocation_mode" not in meta
+
+
+def test_ldss_opening_fallback_state_resets_failed_primary_aspect_ledger():
+    """LDSS fallback is a new approved opening path, not a commit of the failed primary ledger."""
+    from app.story_runtime.manager import StoryRuntimeManager
+    from story_runtime_core.model_registry import ModelRegistry
+
+    primary_ledger = initialize_runtime_aspect_ledger(
+        session_id="session-ldss-reset",
+        module_id="god_of_carnage",
+        turn_number=0,
+        turn_kind="opening",
+        raw_player_input=None,
+    )
+    primary_ledger = set_aspect_record(
+        primary_ledger,
+        ASPECT_VALIDATION,
+        make_aspect_record(
+            applicable=True,
+            status="failed",
+            actual={"projection_failure_detected": True},
+            reasons=["visible_block_origin_missing"],
+            source="validator",
+            failure_class="projection_failure",
+            failure_reason="visible_block_origin_missing",
+        ),
+    )
+    mgr = StoryRuntimeManager(registry=ModelRegistry(), adapters={})
+    out = mgr._ldss_opening_fallback_state(
+        {
+            "session_id": "session-ldss-reset",
+            "module_id": "god_of_carnage",
+            "turn_number": 0,
+            "turn_input_class": "opening",
+            "turn_aspect_ledger": primary_ledger,
+            "validation_outcome": {
+                "status": "rejected",
+                "reason": "visible_block_origin_missing",
+            },
+            "generation": {"metadata": {"adapter": "openai"}},
+        },
+        reason="dramatic_effect_reject_empty_fluency",
+    )
+
+    fallback_aspects = out["turn_aspect_ledger"]["turn_aspect_ledger"]
+    assert fallback_aspects[ASPECT_VALIDATION]["status"] == "passed"
+    assert fallback_aspects[ASPECT_VALIDATION]["failure_reason"] is None
+    assert fallback_aspects[ASPECT_COMMIT]["status"] == "passed"
 
 
 def _last_span_output_for(adapter, span_name: str) -> dict:
@@ -2593,6 +2650,58 @@ def test_parser_evidence_C_successful_primary_parse_sets_structured_output_prese
     assert invoke_output.get("self_correction_attempted") is False
 
 
+def test_self_correction_evidence_derived_from_graph_state():
+    session = StorySession(
+        session_id="session-sc-graph",
+        module_id="god_of_carnage",
+        runtime_projection={
+            "module_id": "god_of_carnage",
+            "human_actor_id": "annette",
+            "selected_player_role": "annette",
+            "npc_actor_ids": ["alain_reille"],
+        },
+    )
+    failure = {
+        "failure_reason": "npc_executed_player_action",
+        "expected_owner": "narrator",
+    }
+    graph_state = {
+        "nodes_executed": ["invoke_model", "validate_seam"],
+        "generation": {
+            "attempted": True,
+            "success": True,
+            "metadata": {"adapter": "openai", "model": "gpt-4.1-mini"},
+        },
+        "validation_outcome": {"status": "approved", "reason": "seam_ok"},
+        "self_correction": {
+            "attempt_count": 1,
+            "attempts": [
+                {
+                    "candidate_model": "gpt-4.1-mini",
+                    "success": True,
+                    "parser_error": None,
+                    "trigger_source": "runtime_aspect",
+                    "runtime_aspect_failure_before_retry": failure,
+                    "resolved_failure": True,
+                }
+            ],
+        },
+    }
+    summary = _build_langfuse_path_summary(
+        session=session,
+        graph_state=graph_state,
+        event={"turn_number": 2, "turn_kind": "scene", "visible_output_bundle": {}},
+    )
+
+    assert summary["self_correction_attempted"] is True
+    assert summary["self_correction_attempt_count"] == 1
+    assert summary["self_correction_success"] is True
+    assert summary["self_correction_model"] == "gpt-4.1-mini"
+    assert summary["self_correction_trigger_source"] == "runtime_aspect"
+    assert summary["runtime_aspect_failure_before_retry"] == failure
+    assert summary["self_correction_resolved_failure"] is True
+
+
 def test_parser_evidence_D_self_correction_attempt_surfaces_in_score_metadata(monkeypatch):
     """PPE-D: self_correction_attempted=True and model must appear in score metadata.
 
@@ -2624,8 +2733,16 @@ def test_parser_evidence_D_self_correction_attempt_surfaces_in_score_metadata(mo
         "primary_attempt_parser_error": "output is not valid JSON",
         "primary_attempt_structured_output_present": False,
         "self_correction_attempted": True,
+        "self_correction_attempt_count": 1,
         "self_correction_success": False,
         "self_correction_model": "gpt-4.1-nano",
+        "self_correction_trigger_source": "runtime_aspect",
+        "runtime_aspect_failure_before_retry": {
+            "failure_reason": "narrator_required_missing",
+            "expected_owner": "narrator",
+        },
+        "capability_failure_before_retry": None,
+        "self_correction_resolved_failure": False,
     }
     event = {
         "model_route": {"generation": {"metadata": {"adapter": "ldss_fallback"}}},
@@ -2639,7 +2756,45 @@ def test_parser_evidence_D_self_correction_attempt_surfaces_in_score_metadata(mo
 
     meta = _last_score_metadata_for(adapter, "live_runtime_contract_pass")
     assert meta["self_correction_attempted"] is True
+    assert meta["self_correction_attempt_count"] == 1
     assert meta["self_correction_success"] is False
+    assert meta["self_correction_model"] == "gpt-4.1-nano"
+    assert meta["self_correction_trigger_source"] == "runtime_aspect"
+    assert meta["runtime_aspect_failure_before_retry"]["failure_reason"] == "narrator_required_missing"
+    assert meta["capability_failure_before_retry"] is None
+    assert meta["self_correction_resolved_failure"] is False
+
+
+def test_self_correction_evidence_surfaces_in_model_invoke_span(monkeypatch):
+    adapter = MagicMock()
+    adapter.is_enabled.return_value = True
+    monkeypatch.setattr("app.story_runtime.manager.LangfuseAdapter.get_instance", lambda: adapter)
+
+    path_summary = {
+        **_live_openai_path_summary_turn_0(),
+        "invoke_model_called": True,
+        "generation_attempted": True,
+        "generation_success": True,
+        "self_correction_attempted": True,
+        "self_correction_attempt_count": 1,
+        "self_correction_success": True,
+        "self_correction_model": "gpt-4.1-mini",
+        "self_correction_trigger_source": "capability",
+        "runtime_aspect_failure_before_retry": None,
+        "capability_failure_before_retry": {
+            "failure_reason": "capability_missing_required",
+            "missing_required_capability": "narrate_consequence",
+        },
+        "self_correction_resolved_failure": True,
+    }
+    _emit_langfuse_path_spans(path_summary)
+
+    invoke_output = _last_span_output_for(adapter, "story.phase.model_invoke")
+    assert invoke_output["self_correction_attempt_count"] == 1
+    assert invoke_output["self_correction_trigger_source"] == "capability"
+    assert invoke_output["runtime_aspect_failure_before_retry"] is None
+    assert invoke_output["capability_failure_before_retry"]["failure_reason"] == "capability_missing_required"
+    assert invoke_output["self_correction_resolved_failure"] is True
 
 
 def test_parser_evidence_E_ldss_gate_scores_stay_red_with_evidence_fields_present(monkeypatch):

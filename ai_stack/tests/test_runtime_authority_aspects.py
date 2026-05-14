@@ -386,3 +386,118 @@ def test_recoverable_commit_records_failed_aspects() -> None:
     assert commit["status"] == "passed"
     assert commit["actual"]["validation_rejection_not_committed"] is True
     assert commit["actual"]["deliberately_not_committed_failure"] == "narrator_required_missing"
+
+
+def test_runtime_aspect_failure_triggers_self_correction_before_final_validation() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 3
+    executor.allow_degraded_commit_after_retries = False
+    state = _state()
+    state["generation"] = _generation(
+        {
+            "narration_summary": "The movement lands in the room.",
+            "action_lines": [
+                {"actor_id": "michel_longstreet", "text": "Michel geht ins Bad."}
+            ],
+        }
+    )
+    state["proposed_state_effects"] = [
+        {"effect_type": "narrative_projection", "description": "The movement lands in the room."}
+    ]
+
+    def _fake_self_correct(
+        _current_state,
+        _current_generation,
+        _current_proposed,
+        feedback_codes,
+        attempt_index,
+        preserve_actor_lanes=False,
+    ):
+        return (
+            _generation(
+                {
+                    "narration_summary": "Annette reaches the bathroom door; the room notices the movement.",
+                    "action_lines": [],
+                    "spoken_lines": [],
+                }
+            ),
+            [
+                {
+                    "effect_type": "narrative_projection",
+                    "description": "Annette reaches the bathroom door; the room notices the movement.",
+                }
+            ],
+            {
+                "attempt_index": attempt_index,
+                "candidate_model": "test-model",
+                "feedback_codes": list(feedback_codes),
+                "success": True,
+                "parser_error": None,
+                "preserve_actor_lanes": preserve_actor_lanes,
+            },
+        )
+
+    executor._self_correct_generation = _fake_self_correct
+
+    update = executor._validate_seam(state)
+
+    assert update["validation_outcome"]["status"] == "approved"
+    assert update["self_correction"]["attempt_count"] == 1
+    attempt = update["self_correction"]["attempts"][0]
+    assert attempt["trigger_source"] == "runtime_aspect"
+    assert attempt["failure_reason_before_retry"] == "npc_executed_player_action"
+    assert attempt["runtime_aspect_failure_before_retry"]["failure_reason"] == "npc_executed_player_action"
+    assert "npc_executed_player_action" in attempt["feedback_codes"]
+    assert attempt["resolved_failure"] is True
+
+
+def test_missing_narrator_authority_triggers_self_correction() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.max_self_correction_attempts = 1
+    executor.allow_degraded_commit_after_retries = False
+    state = _state()
+    state["generation"] = _generation({"spoken_lines": []})
+    state["proposed_state_effects"] = []
+
+    def _fake_self_correct(
+        _current_state,
+        _current_generation,
+        _current_proposed,
+        feedback_codes,
+        attempt_index,
+        preserve_actor_lanes=False,
+    ):
+        return (
+            _generation(
+                {
+                    "narration_summary": "Annette stops at the bathroom threshold.",
+                    "spoken_lines": [],
+                    "action_lines": [],
+                }
+            ),
+            [
+                {
+                    "effect_type": "narrative_projection",
+                    "description": "Annette stops at the bathroom threshold.",
+                }
+            ],
+            {
+                "attempt_index": attempt_index,
+                "candidate_model": "test-model",
+                "feedback_codes": list(feedback_codes),
+                "success": True,
+                "parser_error": None,
+                "preserve_actor_lanes": preserve_actor_lanes,
+            },
+        )
+
+    executor._self_correct_generation = _fake_self_correct
+
+    update = executor._validate_seam(state)
+
+    assert update["validation_outcome"]["status"] == "approved"
+    assert update["self_correction"]["attempt_count"] == 1
+    attempt = update["self_correction"]["attempts"][0]
+    assert attempt["trigger_source"] == "runtime_aspect"
+    assert attempt["failure_reason_before_retry"] == "narrator_required_missing"
+    assert "narrator_required_missing" in attempt["feedback_codes"]

@@ -2448,6 +2448,49 @@ def _build_langfuse_path_summary(
         turn_aspect_ledger = dict(turn_aspect_ledger)
         turn_aspect_ledger["runtime_profile_id"] = _runtime_profile_id
         turn_aspect_ledger = normalize_runtime_aspect_ledger(turn_aspect_ledger)
+    self_correction = (
+        graph_state.get("self_correction")
+        if isinstance(graph_state.get("self_correction"), dict)
+        else {}
+    )
+    _sc_attempts_raw = (
+        self_correction.get("attempts")
+        if isinstance(self_correction.get("attempts"), list)
+        else []
+    )
+    _sc_attempts = [item for item in _sc_attempts_raw if isinstance(item, dict)]
+    _first_sc = _sc_attempts[0] if _sc_attempts else {}
+    _last_sc = _sc_attempts[-1] if _sc_attempts else {}
+    _sc_attempted = gen_meta.get("self_correction_attempted")
+    if _sc_attempted is None and self_correction:
+        _sc_attempted = bool(_sc_attempts)
+    _sc_attempt_count = gen_meta.get("self_correction_attempt_count")
+    if _sc_attempt_count is None and self_correction:
+        _sc_attempt_count = self_correction.get("attempt_count")
+        if _sc_attempt_count is None:
+            _sc_attempt_count = len(_sc_attempts)
+    _sc_success = gen_meta.get("self_correction_success")
+    if _sc_success is None and self_correction:
+        _sc_success = (
+            bool(_last_sc.get("success")) and not _last_sc.get("parser_error")
+            if _last_sc
+            else False
+        )
+    _sc_model = gen_meta.get("self_correction_model")
+    if _sc_model is None and _last_sc:
+        _sc_model = _last_sc.get("candidate_model")
+    _sc_trigger_source = gen_meta.get("self_correction_trigger_source")
+    if _sc_trigger_source is None and _first_sc:
+        _sc_trigger_source = _first_sc.get("trigger_source")
+    _runtime_aspect_failure_before_retry = gen_meta.get("runtime_aspect_failure_before_retry")
+    if _runtime_aspect_failure_before_retry is None and _first_sc:
+        _runtime_aspect_failure_before_retry = _first_sc.get("runtime_aspect_failure_before_retry")
+    _capability_failure_before_retry = gen_meta.get("capability_failure_before_retry")
+    if _capability_failure_before_retry is None and _first_sc:
+        _capability_failure_before_retry = _first_sc.get("capability_failure_before_retry")
+    _sc_resolved_failure = gen_meta.get("self_correction_resolved_failure")
+    if _sc_resolved_failure is None and self_correction:
+        _sc_resolved_failure = any(bool(item.get("resolved_failure")) for item in _sc_attempts)
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
@@ -2525,9 +2568,14 @@ def _build_langfuse_path_summary(
         "primary_attempt_structured_output_present": gen_meta.get("primary_attempt_structured_output_present"),
         "primary_attempt_raw_output_sha256": gen_meta.get("primary_attempt_raw_output_sha256"),
         "primary_attempt_raw_output_excerpt": gen_meta.get("primary_attempt_raw_output_excerpt"),
-        "self_correction_attempted": gen_meta.get("self_correction_attempted"),
-        "self_correction_success": gen_meta.get("self_correction_success"),
-        "self_correction_model": gen_meta.get("self_correction_model"),
+        "self_correction_attempted": _sc_attempted,
+        "self_correction_attempt_count": _sc_attempt_count,
+        "self_correction_success": _sc_success,
+        "self_correction_model": _sc_model,
+        "self_correction_trigger_source": _sc_trigger_source,
+        "runtime_aspect_failure_before_retry": _runtime_aspect_failure_before_retry,
+        "capability_failure_before_retry": _capability_failure_before_retry,
+        "self_correction_resolved_failure": _sc_resolved_failure,
         "usage_available": bool(gen_meta.get("usage_available")) or usage_total > 0,
         "usage_source": gen_meta.get("usage_source"),
         "usage_details": {
@@ -3102,8 +3150,17 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "primary_attempt_raw_output_sha256": path_summary.get("primary_attempt_raw_output_sha256"),
                 "primary_attempt_raw_output_excerpt": path_summary.get("primary_attempt_raw_output_excerpt"),
                 "self_correction_attempted": path_summary.get("self_correction_attempted"),
+                "self_correction_attempt_count": path_summary.get("self_correction_attempt_count"),
                 "self_correction_success": path_summary.get("self_correction_success"),
                 "self_correction_model": path_summary.get("self_correction_model"),
+                "self_correction_trigger_source": path_summary.get("self_correction_trigger_source"),
+                "runtime_aspect_failure_before_retry": path_summary.get(
+                    "runtime_aspect_failure_before_retry"
+                ),
+                "capability_failure_before_retry": path_summary.get("capability_failure_before_retry"),
+                "self_correction_resolved_failure": path_summary.get(
+                    "self_correction_resolved_failure"
+                ),
             },
         ),
         (
@@ -4325,7 +4382,15 @@ def _emit_langfuse_evidence_observations(
         "primary_attempt_api_success": path_summary.get("primary_attempt_api_success"),
         "primary_attempt_parser_error_present": path_summary.get("primary_attempt_parser_error_present"),
         "self_correction_attempted": path_summary.get("self_correction_attempted"),
+        "self_correction_attempt_count": path_summary.get("self_correction_attempt_count"),
         "self_correction_success": path_summary.get("self_correction_success"),
+        "self_correction_model": path_summary.get("self_correction_model"),
+        "self_correction_trigger_source": path_summary.get("self_correction_trigger_source"),
+        "runtime_aspect_failure_before_retry": path_summary.get(
+            "runtime_aspect_failure_before_retry"
+        ),
+        "capability_failure_before_retry": path_summary.get("capability_failure_before_retry"),
+        "self_correction_resolved_failure": path_summary.get("self_correction_resolved_failure"),
         # OPEN-ACTOR-BLOCK-PROJECTION-01: structured lane → scene_blocks audit fields.
         "actor_block_source": path_summary.get("actor_block_source"),
         "actor_block_filtered_reason": path_summary.get("actor_block_filtered_reason"),
@@ -6735,13 +6800,28 @@ class StoryRuntimeManager:
         if isinstance(sc, dict):
             sc_attempts = sc.get("attempts") or []
             primary_metadata["self_correction_attempted"] = bool(sc_attempts)
+            primary_metadata["self_correction_attempt_count"] = len(sc_attempts)
             if sc_attempts:
+                first_sc = sc_attempts[0] if isinstance(sc_attempts[0], dict) else {}
                 last_sc = sc_attempts[-1] if isinstance(sc_attempts[-1], dict) else {}
+                primary_metadata["self_correction_trigger_source"] = first_sc.get("trigger_source")
+                primary_metadata["runtime_aspect_failure_before_retry"] = first_sc.get(
+                    "runtime_aspect_failure_before_retry"
+                )
+                primary_metadata["capability_failure_before_retry"] = first_sc.get(
+                    "capability_failure_before_retry"
+                )
+                primary_metadata["self_correction_resolved_failure"] = any(
+                    bool(item.get("resolved_failure"))
+                    for item in sc_attempts
+                    if isinstance(item, dict)
+                )
                 primary_metadata["self_correction_model"] = last_sc.get("candidate_model")
                 primary_metadata["self_correction_success"] = (
                     bool(last_sc.get("success")) and not last_sc.get("parser_error")
                 )
             else:
+                primary_metadata["self_correction_resolved_failure"] = False
                 primary_metadata["self_correction_success"] = False
         fallback["force_ldss_scene_fallback"] = True
         fallback["generation"] = {
@@ -6797,6 +6877,48 @@ class StoryRuntimeManager:
             ],
             "reason": "ldss_fallback_after_live_opening_failure",
         }
+        fallback_ledger = initialize_runtime_aspect_ledger(
+            session_id=str(graph_state.get("session_id") or ""),
+            module_id=str(graph_state.get("module_id") or GOD_OF_CARNAGE_MODULE_ID),
+            turn_number=int(graph_state.get("turn_number") or 0),
+            turn_kind=str(graph_state.get("turn_input_class") or "opening"),
+            raw_player_input=None,
+            input_kind="opening_fallback",
+            trace_id=str(graph_state.get("trace_id") or "") or None,
+            runtime_profile_id=str(graph_state.get("runtime_profile_id") or "") or None,
+        )
+        fallback_ledger = set_aspect_record(
+            fallback_ledger,
+            ASPECT_VALIDATION,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"ldss_opening_fallback_policy": True},
+                actual={
+                    "validation_status": "approved",
+                    "reason": "ldss_fallback_after_live_opening_failure",
+                    "live_opening_failure_reason": reason,
+                },
+                reasons=["ldss_fallback_after_live_opening_failure"],
+                source="opening_fallback_policy",
+            ),
+        )
+        fallback_ledger = set_aspect_record(
+            fallback_ledger,
+            ASPECT_COMMIT,
+            make_aspect_record(
+                applicable=True,
+                status="passed",
+                expected={"commit_allowed_after_opening_fallback": True},
+                actual={
+                    "commit_applied": True,
+                    "reason": "ldss_fallback_after_live_opening_failure",
+                },
+                reasons=["ldss_fallback_after_live_opening_failure"],
+                source="opening_fallback_policy",
+            ),
+        )
+        fallback["turn_aspect_ledger"] = fallback_ledger
         fallback["visible_output_bundle"] = {}
         fallback["quality_class"] = QUALITY_CLASS_DEGRADED
         signals = list(fallback.get("degradation_signals") or [])
@@ -7506,6 +7628,24 @@ class StoryRuntimeManager:
                 )
                 blocks = visible_scene_output.get("blocks")
                 if isinstance(blocks, list) and blocks:
+                    raw_scene_blocks = [dict(block) for block in blocks if isinstance(block, dict)]
+                    projected_scene_blocks = _live_scene_blocks_from_visible_bundle(
+                        {"scene_blocks": raw_scene_blocks},
+                        turn_number=commit_turn_number,
+                        structured_output=None,
+                        runtime_projection=session.runtime_projection
+                        if isinstance(session.runtime_projection, dict)
+                        else None,
+                        graph_state=graph_state,
+                        session_output_language=session.session_output_language,
+                        player_input=player_input,
+                        story_runtime_experience=experience_policy.effective,
+                    )
+                    if not projected_scene_blocks:
+                        projected_scene_blocks = raw_scene_blocks
+                    visible_scene_output["blocks"] = [
+                        dict(block) for block in projected_scene_blocks if isinstance(block, dict)
+                    ]
                     event_bundle = (
                         event.get("visible_output_bundle")
                         if isinstance(event.get("visible_output_bundle"), dict)
@@ -7514,7 +7654,11 @@ class StoryRuntimeManager:
                     event["visible_output_bundle"] = _ensure_gm_narration_from_narrator_scene_blocks(
                         {
                             **event_bundle,
-                            "scene_blocks": [dict(block) for block in blocks if isinstance(block, dict)],
+                            "scene_blocks": [
+                                dict(block)
+                                for block in projected_scene_blocks
+                                if isinstance(block, dict)
+                            ],
                         }
                     )
                     event["turn_aspect_ledger"] = _record_visible_projection_aspect(
@@ -7529,7 +7673,11 @@ class StoryRuntimeManager:
                         turn_kind=turn_kind or "player",
                         raw_player_input=player_input,
                         trace_id=trace_id,
-                        scene_blocks=[dict(block) for block in blocks if isinstance(block, dict)],
+                        scene_blocks=[
+                            dict(block)
+                            for block in projected_scene_blocks
+                            if isinstance(block, dict)
+                        ],
                     )
                     projection_aspect_recorded = True
                     graph_state["turn_aspect_ledger"] = event["turn_aspect_ledger"]

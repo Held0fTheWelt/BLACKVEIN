@@ -26,6 +26,12 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "actor_lane_invalid_initiative_type",
         "actor_lane_scene_function_mismatch",
         "actor_lane_text_exceeds_transcript_beat",
+        "narrator_required_missing",
+        "npc_executed_player_action",
+        "npc_narrated_player_perception",
+        "npc_force_player_speech",
+        "capability_missing_required",
+        "forbidden_capability_realized",
     }
 )
 
@@ -63,6 +69,12 @@ DEGRADED_COMMIT_BLOCK_REASONS = frozenset(
         "malformed_proposed_effect",
         "incomplete_proposed_effect",
         "model_generation_failed",
+        "narrator_required_missing",
+        "npc_executed_player_action",
+        "npc_narrated_player_perception",
+        "npc_force_player_speech",
+        "capability_missing_required",
+        "forbidden_capability_realized",
     }
 )
 
@@ -120,6 +132,31 @@ def collect_playability_feedback_codes(
         feedback.append("model_call_failed")
     if meta.get("langchain_parser_error"):
         feedback.append("parser_error")
+    aspect_failure = outcome.get("runtime_aspect_failure") if isinstance(outcome, dict) else None
+    if isinstance(aspect_failure, dict):
+        reason = str(aspect_failure.get("failure_reason") or "").strip()
+        if reason:
+            feedback.append(reason)
+        expected_owner = str(aspect_failure.get("expected_owner") or "").strip()
+        if expected_owner:
+            feedback.append(f"expected_owner:{expected_owner}")
+    capability_failure = outcome.get("capability_failure") if isinstance(outcome, dict) else None
+    if isinstance(capability_failure, dict):
+        reason = str(capability_failure.get("failure_reason") or "").strip()
+        if reason:
+            feedback.append(reason)
+        missing = capability_failure.get("missing_required_capabilities")
+        if isinstance(missing, list):
+            for cap in missing[:3]:
+                cap_text = str(cap or "").strip()
+                if cap_text:
+                    feedback.append(f"missing_required_capability:{cap_text}")
+        violated = capability_failure.get("violated_capabilities")
+        if isinstance(violated, list):
+            for cap in violated[:3]:
+                cap_text = str(cap or "").strip()
+                if cap_text:
+                    feedback.append(f"violated_capability:{cap_text}")
     raw = str(gen.get("model_raw_text") or gen.get("content") or "")
     if raw.strip().startswith("[mock]"):
         feedback.append("mock_fallback_output")
@@ -194,7 +231,7 @@ def decide_playability_recovery(
             or "narration_too_short" in feedback
             or "no_structured_effects" in feedback
         )
-    should_retry = rewriteable and attempt_index < max_attempts
+    should_retry = rewriteable and attempt_index <= max_attempts
     allow_degraded = (
         allow_degraded_commit_after_retries
         and rewriteable
@@ -264,6 +301,33 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "secondary_responder_ids, responder_actor_ids, spoken_lines, action_lines, initiative_events, or narration-as-action."
         )
         return preserve_prefix + base_instruction + actor_feedback
+
+    runtime_aspect_issues = [
+        code
+        for code in feedback_codes
+        if code
+        in {
+            "narrator_required_missing",
+            "npc_executed_player_action",
+            "npc_narrated_player_perception",
+            "npc_force_player_speech",
+            "capability_missing_required",
+            "forbidden_capability_realized",
+        }
+        or code.startswith("missing_required_capability:")
+        or code.startswith("violated_capability:")
+        or code.startswith("expected_owner:")
+    ]
+    if runtime_aspect_issues:
+        authority_feedback = (
+            " Runtime authority repair: keep the player action owned by the player, "
+            "use narrator prose for movement, perception, physical consequences, and scene framing, "
+            "and keep NPCs to allowed dialogue or social reaction only. "
+            "Do not let an NPC execute the player's action, narrate the player's perception, "
+            "or speak for the player. If a required narrator capability is missing, add concise narrator prose "
+            "that makes the consequence visible without inventing new facts."
+        )
+        return preserve_prefix + base_instruction + authority_feedback
 
     return preserve_prefix + base_instruction
 

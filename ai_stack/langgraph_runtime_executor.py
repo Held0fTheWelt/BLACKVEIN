@@ -738,6 +738,249 @@ def _build_authority_aspect_records(
     return narrator_record, npc_record
 
 
+def _build_runtime_aspect_validation(
+    *,
+    state: "RuntimeTurnState",
+    generation: dict[str, Any],
+    proposed_state_effects: list[dict[str, Any]],
+    outcome: dict[str, Any],
+) -> dict[str, Any]:
+    """Evaluate runtime authority/capability aspects as validation inputs."""
+    next_outcome = dict(outcome or {})
+    actor_lane_validation = _actor_lane_validation(state, generation)
+    if (
+        actor_lane_validation.get("status") == "rejected"
+        and next_outcome.get("status") == "approved"
+    ):
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": actor_lane_validation.get("reason") or "actor_lane_validation_rejected",
+            "actor_lane_validation": actor_lane_validation,
+        }
+    else:
+        next_outcome = {
+            **next_outcome,
+            "actor_lane_validation": actor_lane_validation,
+        }
+
+    narrator_authority, npc_authority = _build_authority_aspect_records(
+        state=state,
+        generation=generation,
+        proposed_state_effects=proposed_state_effects,
+    )
+    authority_ledger = set_aspect_record(
+        state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+        ASPECT_NARRATOR_AUTHORITY,
+        narrator_authority,
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_NPC_AUTHORITY,
+        npc_authority,
+    )
+    capability_selection = build_capability_selection_record(
+        interpreted_input=state.get("interpreted_input")
+        if isinstance(state.get("interpreted_input"), dict)
+        else {},
+        player_action_frame=state.get("player_action_frame")
+        if isinstance(state.get("player_action_frame"), dict)
+        else {},
+        affordance_resolution=state.get("affordance_resolution")
+        if isinstance(state.get("affordance_resolution"), dict)
+        else {},
+        narrator_authority=narrator_authority,
+        npc_authority=npc_authority,
+        module_runtime_policy=state.get("module_runtime_policy")
+        if isinstance(state.get("module_runtime_policy"), dict)
+        else None,
+    )
+    cap_violations = capability_selection.get("violations")
+    cap_violation = cap_violations[0] if isinstance(cap_violations, list) and cap_violations else {}
+    cap_missing = capability_selection.get("missing_required_capabilities")
+    cap_missing_first = cap_missing[0] if isinstance(cap_missing, list) and cap_missing else None
+    capability_status = str(capability_selection.get("status") or "missing").strip()
+    cap_reason = (
+        str(cap_violation.get("reason") or cap_violation.get("capability"))
+        if isinstance(cap_violation, dict) and cap_violation
+        else f"missing_required_capability:{cap_missing_first}"
+        if cap_missing_first
+        else ""
+    )
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_CAPABILITY_SELECTION,
+        make_aspect_record(
+            applicable=True,
+            status=capability_status if capability_status in {"passed", "failed", "partial"} else "missing",
+            expected={
+                "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                "required_capabilities": capability_selection.get("required_capabilities"),
+                "selected_capabilities_must_be_realized_or_marked_missing": True,
+            },
+            selected={
+                "requested_capabilities": capability_selection.get("requested_capabilities"),
+                "selected_capabilities": capability_selection.get("selected_capabilities"),
+                "blocked_capabilities": capability_selection.get("blocked_capabilities"),
+                "required_capabilities": capability_selection.get("required_capabilities"),
+            },
+            actual={
+                "realized_capabilities": capability_selection.get("realized_capabilities"),
+                "violated_capabilities": capability_selection.get("violated_capabilities"),
+                "violations": capability_selection.get("violations"),
+                "missing_required_capabilities": capability_selection.get("missing_required_capabilities"),
+                "forbidden_capability_realized": bool(cap_violation),
+            },
+            reasons=[cap_reason] if cap_reason else [],
+            source="runtime",
+            failure_class="hard_contract_failure"
+            if cap_violation
+            else "recoverable_contract_gap"
+            if cap_missing_first
+            else None,
+            failure_reason=(
+                str(cap_violation.get("reason") or "forbidden_capability_realized")
+                if isinstance(cap_violation, dict) and cap_violation
+                else "capability_missing_required"
+                if cap_missing_first
+                else None
+            ),
+            offending_actor_id=cap_violation.get("offending_actor_id")
+            if isinstance(cap_violation, dict)
+            else None,
+            selected_capability=cap_missing_first,
+            realized_capability=cap_violation.get("capability")
+            if isinstance(cap_violation, dict)
+            else None,
+        ),
+    )
+
+    authority_failure = None
+    if npc_authority.get("status") == "failed":
+        authority_failure = npc_authority
+    elif narrator_authority.get("status") == "failed":
+        authority_failure = narrator_authority
+
+    capability_failure = None
+    if isinstance(cap_violation, dict) and cap_violation:
+        capability_failure = {
+            "failure_reason": str(cap_violation.get("reason") or "forbidden_capability_realized"),
+            "violated_capabilities": capability_selection.get("violated_capabilities") or [],
+            "missing_required_capabilities": capability_selection.get("missing_required_capabilities") or [],
+            "offending_actor_id": cap_violation.get("offending_actor_id"),
+        }
+    elif cap_missing_first:
+        capability_failure = {
+            "failure_reason": "capability_missing_required",
+            "violated_capabilities": capability_selection.get("violated_capabilities") or [],
+            "missing_required_capabilities": capability_selection.get("missing_required_capabilities") or [],
+            "selected_capability": cap_missing_first,
+        }
+
+    if authority_failure is not None:
+        failure_reason = str(
+            authority_failure.get("failure_reason")
+            or (authority_failure.get("reasons") or ["authority_contract_violation"])[0]
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "runtime_aspect_ledger_authority_v1",
+            "authority_contract_violation": True,
+            "failure_class": "hard_contract_failure",
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "runtime_aspect_failure": {
+                "aspect_status": authority_failure.get("status"),
+                "failure_reason": failure_reason,
+                "offending_actor_id": authority_failure.get("offending_actor_id"),
+                "offending_block_id": authority_failure.get("offending_block_id"),
+                "expected_owner": authority_failure.get("expected_owner"),
+                "actual_owner": authority_failure.get("actual_owner"),
+                "missing_field": authority_failure.get("missing_field"),
+            },
+        }
+        if capability_failure is not None:
+            next_outcome["capability_failure"] = capability_failure
+    elif capability_failure is not None:
+        failure_reason = str(capability_failure.get("failure_reason") or "capability_missing_required")
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "runtime_aspect_ledger_capability_v1",
+            "capability_contract_violation": bool(cap_violation),
+            "failure_class": "hard_contract_failure" if cap_violation else "recoverable_contract_gap",
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "capability_failure": capability_failure,
+        }
+
+    validation_failed = str(next_outcome.get("status") or "").strip().lower() != "approved"
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_VALIDATION,
+        make_aspect_record(
+            applicable=True,
+            status="failed" if validation_failed else "passed",
+            expected={"validation_consumes_runtime_aspect_ledger": True},
+            actual={
+                "validation_status": next_outcome.get("status"),
+                "reason": next_outcome.get("reason"),
+                "validator_lane": next_outcome.get("validator_lane"),
+                "authority_contract_violation": bool(next_outcome.get("authority_contract_violation")),
+                "capability_contract_violation": bool(next_outcome.get("capability_contract_violation")),
+                "recoverable_rejection": bool(next_outcome.get("recoverable_rejection")),
+                "hard_boundary_failure": bool(next_outcome.get("hard_boundary_failure")),
+            },
+            reasons=[str(next_outcome.get("reason"))] if validation_failed and next_outcome.get("reason") else [],
+            source="validator",
+            failure_class=next_outcome.get("failure_class") if validation_failed else None,
+            failure_reason=str(next_outcome.get("reason")) if validation_failed and next_outcome.get("reason") else None,
+            offending_actor_id=(
+                authority_failure.get("offending_actor_id")
+                if isinstance(authority_failure, dict)
+                else capability_failure.get("offending_actor_id")
+                if isinstance(capability_failure, dict)
+                else None
+            ),
+            offending_block_id=(
+                authority_failure.get("offending_block_id")
+                if isinstance(authority_failure, dict)
+                else None
+            ),
+            expected_owner=(
+                authority_failure.get("expected_owner")
+                if isinstance(authority_failure, dict)
+                else None
+            ),
+            actual_owner=(
+                authority_failure.get("actual_owner")
+                if isinstance(authority_failure, dict)
+                else None
+            ),
+            missing_field=(
+                authority_failure.get("missing_field")
+                if isinstance(authority_failure, dict)
+                else None
+            ),
+        ),
+    )
+    return {
+        "outcome": next_outcome,
+        "actor_lane_validation": actor_lane_validation,
+        "turn_aspect_ledger": authority_ledger,
+        "narrator_authority": narrator_authority,
+        "npc_authority": npc_authority,
+        "capability_selection": capability_selection,
+        "authority_failure": authority_failure,
+        "capability_failure": capability_failure,
+    }
+
+
 def _has_usable_narrative_effect(proposed_effects: list[dict[str, Any]]) -> bool:
     """Return True when proposed effects already include non-empty narrative prose."""
     for effect in proposed_effects:
@@ -3959,14 +4202,21 @@ class RuntimeTurnGraphExecutor:
                 else None,
             )
 
-        outcome = _run_validation(generation, proposed)
+        validation_eval = _build_runtime_aspect_validation(
+            state=state,
+            generation=generation,
+            proposed_state_effects=proposed,
+            outcome=_run_validation(generation, proposed),
+        )
+        outcome = validation_eval["outcome"]
         turn_number = int(state.get("turn_number") or 0)
         max_attempts = max(0, int(self.max_self_correction_attempts))
         self_correction_attempts: list[dict[str, Any]] = []
         # Disable degraded commits for opening turns to prevent silent failures on game start
         allow_degraded = self.allow_degraded_commit_after_retries and turn_number > 1
+        retry_loop_exhausted = False
         for attempt_index in range(1, max_attempts + 1):
-            actor_lane_validation = _actor_lane_validation(state, generation)
+            actor_lane_validation = validation_eval["actor_lane_validation"]
             decision = decide_playability_recovery(
                 turn_number=turn_number,
                 attempt_index=attempt_index,
@@ -3980,7 +4230,30 @@ class RuntimeTurnGraphExecutor:
             if not decision.should_retry:
                 if decision.allow_degraded_commit:
                     outcome = degrade_validation_outcome(outcome)
+                    validation_eval = _build_runtime_aspect_validation(
+                        state=state,
+                        generation=generation,
+                        proposed_state_effects=proposed,
+                        outcome=outcome,
+                    )
+                    outcome = validation_eval["outcome"]
                 break
+            failure_reason_before_retry = str(outcome.get("reason") or "").strip()
+            trigger_source = "validation"
+            if isinstance(outcome.get("runtime_aspect_failure"), dict):
+                trigger_source = "runtime_aspect"
+            elif isinstance(outcome.get("capability_failure"), dict):
+                trigger_source = "capability"
+            runtime_aspect_failure_before_retry = (
+                dict(outcome.get("runtime_aspect_failure"))
+                if isinstance(outcome.get("runtime_aspect_failure"), dict)
+                else None
+            )
+            capability_failure_before_retry = (
+                dict(outcome.get("capability_failure"))
+                if isinstance(outcome.get("capability_failure"), dict)
+                else None
+            )
             generation, proposed, attempt_record = self._self_correct_generation(
                 state,
                 generation,
@@ -3989,8 +4262,55 @@ class RuntimeTurnGraphExecutor:
                 attempt_index,
                 preserve_actor_lanes=decision.preserve_actor_lanes,
             )
+            validation_eval = _build_runtime_aspect_validation(
+                state=state,
+                generation=generation,
+                proposed_state_effects=proposed,
+                outcome=_run_validation(generation, proposed),
+            )
+            outcome = validation_eval["outcome"]
+            attempt_record = dict(attempt_record)
+            attempt_record.update(
+                {
+                    "trigger_source": trigger_source,
+                    "failure_reason_before_retry": failure_reason_before_retry,
+                    "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
+                    "capability_failure_before_retry": capability_failure_before_retry,
+                    "validation_status_after_retry": outcome.get("status"),
+                    "failure_reason_after_retry": outcome.get("reason"),
+                    "resolved_failure": (
+                        str(outcome.get("status") or "").strip().lower() == "approved"
+                        or (
+                            bool(failure_reason_before_retry)
+                            and str(outcome.get("reason") or "").strip() != failure_reason_before_retry
+                        )
+                    ),
+                }
+            )
             self_correction_attempts.append(attempt_record)
-            outcome = _run_validation(generation, proposed)
+        else:
+            retry_loop_exhausted = max_attempts > 0
+        if retry_loop_exhausted:
+            actor_lane_validation = validation_eval["actor_lane_validation"]
+            decision = decide_playability_recovery(
+                turn_number=turn_number,
+                attempt_index=max_attempts + 1,
+                max_attempts=max_attempts,
+                outcome=outcome,
+                generation=generation,
+                proposed_state_effects=proposed,
+                allow_degraded_commit_after_retries=bool(allow_degraded),
+                actor_lane_validation=actor_lane_validation,
+            )
+            if decision.allow_degraded_commit:
+                outcome = degrade_validation_outcome(outcome)
+                validation_eval = _build_runtime_aspect_validation(
+                    state=state,
+                    generation=generation,
+                    proposed_state_effects=proposed,
+                    outcome=outcome,
+                )
+                outcome = validation_eval["outcome"]
 
         reason = str(outcome.get("reason") or "")
         generation_meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
@@ -3998,184 +4318,16 @@ class RuntimeTurnGraphExecutor:
             raw = str(generation.get("content") or generation.get("model_raw_text") or "")
             if len(raw.strip()) >= 48 or generation.get("success") is True:
                 outcome = degrade_validation_outcome(outcome, reason="opening_leniency_approved")
+                validation_eval = _build_runtime_aspect_validation(
+                    state=state,
+                    generation=generation,
+                    proposed_state_effects=proposed,
+                    outcome=outcome,
+                )
+                outcome = validation_eval["outcome"]
 
-        actor_lane_validation = _actor_lane_validation(state, generation)
-        if (
-            actor_lane_validation.get("status") == "rejected"
-            and outcome.get("status") == "approved"
-        ):
-            outcome = {
-                **outcome,
-                "status": "rejected",
-                "reason": actor_lane_validation.get("reason") or "actor_lane_validation_rejected",
-                "actor_lane_validation": actor_lane_validation,
-            }
-        else:
-            outcome = {
-                **outcome,
-                "actor_lane_validation": actor_lane_validation,
-            }
-
-        narrator_authority, npc_authority = _build_authority_aspect_records(
-            state=state,
-            generation=generation,
-            proposed_state_effects=proposed,
-        )
-        authority_ledger = set_aspect_record(
-            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
-            ASPECT_NARRATOR_AUTHORITY,
-            narrator_authority,
-        )
-        authority_ledger = set_aspect_record(
-            authority_ledger,
-            ASPECT_NPC_AUTHORITY,
-            npc_authority,
-        )
-        capability_selection = build_capability_selection_record(
-            interpreted_input=state.get("interpreted_input")
-            if isinstance(state.get("interpreted_input"), dict)
-            else {},
-            player_action_frame=state.get("player_action_frame")
-            if isinstance(state.get("player_action_frame"), dict)
-            else {},
-            affordance_resolution=state.get("affordance_resolution")
-            if isinstance(state.get("affordance_resolution"), dict)
-            else {},
-            narrator_authority=narrator_authority,
-            npc_authority=npc_authority,
-            module_runtime_policy=state.get("module_runtime_policy")
-            if isinstance(state.get("module_runtime_policy"), dict)
-            else None,
-        )
-        cap_violations = capability_selection.get("violations")
-        cap_violation = cap_violations[0] if isinstance(cap_violations, list) and cap_violations else {}
-        cap_missing = capability_selection.get("missing_required_capabilities")
-        cap_missing_first = cap_missing[0] if isinstance(cap_missing, list) and cap_missing else None
-        capability_status = str(capability_selection.get("status") or "missing").strip()
-        authority_ledger = set_aspect_record(
-            authority_ledger,
-            ASPECT_CAPABILITY_SELECTION,
-            make_aspect_record(
-                applicable=True,
-                status=capability_status if capability_status in {"passed", "failed", "partial"} else "missing",
-                expected={
-                    "blocked_capabilities": capability_selection.get("blocked_capabilities"),
-                    "required_capabilities": capability_selection.get("required_capabilities"),
-                    "selected_capabilities_must_be_realized_or_marked_missing": True,
-                },
-                selected={
-                    "requested_capabilities": capability_selection.get("requested_capabilities"),
-                    "selected_capabilities": capability_selection.get("selected_capabilities"),
-                    "blocked_capabilities": capability_selection.get("blocked_capabilities"),
-                    "required_capabilities": capability_selection.get("required_capabilities"),
-                },
-                actual={
-                    "realized_capabilities": capability_selection.get("realized_capabilities"),
-                    "violated_capabilities": capability_selection.get("violated_capabilities"),
-                    "violations": capability_selection.get("violations"),
-                    "missing_required_capabilities": capability_selection.get("missing_required_capabilities"),
-                    "forbidden_capability_realized": bool(cap_violation),
-                },
-                reasons=[
-                    str(cap_violation.get("reason") or cap_violation.get("capability"))
-                    if isinstance(cap_violation, dict) and cap_violation
-                    else f"missing_required_capability:{cap_missing_first}"
-                    if cap_missing_first
-                    else ""
-                ],
-                source="runtime",
-                failure_class="hard_contract_failure" if cap_violation else None,
-                failure_reason=(
-                    str(cap_violation.get("reason") or "forbidden_capability_realized")
-                    if isinstance(cap_violation, dict) and cap_violation
-                    else None
-                ),
-                offending_actor_id=cap_violation.get("offending_actor_id")
-                if isinstance(cap_violation, dict)
-                else None,
-                selected_capability=cap_missing_first,
-                realized_capability=cap_violation.get("capability")
-                if isinstance(cap_violation, dict)
-                else None,
-            ),
-        )
-        authority_failure = None
-        if npc_authority.get("status") == "failed":
-            authority_failure = npc_authority
-        elif narrator_authority.get("status") == "failed":
-            authority_failure = narrator_authority
-        if authority_failure is not None:
-            failure_reason = str(
-                authority_failure.get("failure_reason")
-                or (authority_failure.get("reasons") or ["authority_contract_violation"])[0]
-            )
-            outcome = {
-                **outcome,
-                "status": "rejected",
-                "reason": failure_reason,
-                "error_code": failure_reason,
-                "validator_lane": "runtime_aspect_ledger_authority_v1",
-                "authority_contract_violation": True,
-                "failure_class": "hard_contract_failure",
-                "hard_boundary_failure": False,
-                "recoverable_rejection": True,
-                "runtime_aspect_failure": {
-                    "aspect_status": authority_failure.get("status"),
-                    "failure_reason": failure_reason,
-                    "offending_actor_id": authority_failure.get("offending_actor_id"),
-                    "offending_block_id": authority_failure.get("offending_block_id"),
-                    "expected_owner": authority_failure.get("expected_owner"),
-                    "actual_owner": authority_failure.get("actual_owner"),
-                    "missing_field": authority_failure.get("missing_field"),
-                },
-            }
-        validation_failed = str(outcome.get("status") or "").strip().lower() != "approved"
-        authority_ledger = set_aspect_record(
-            authority_ledger,
-            ASPECT_VALIDATION,
-            make_aspect_record(
-                applicable=True,
-                status="failed" if validation_failed else "passed",
-                expected={"validation_consumes_runtime_aspect_ledger": True},
-                actual={
-                    "validation_status": outcome.get("status"),
-                    "reason": outcome.get("reason"),
-                    "validator_lane": outcome.get("validator_lane"),
-                    "authority_contract_violation": bool(outcome.get("authority_contract_violation")),
-                    "recoverable_rejection": bool(outcome.get("recoverable_rejection")),
-                    "hard_boundary_failure": bool(outcome.get("hard_boundary_failure")),
-                },
-                reasons=[str(outcome.get("reason"))] if validation_failed and outcome.get("reason") else [],
-                source="validator",
-                failure_class=outcome.get("failure_class") if validation_failed else None,
-                failure_reason=str(outcome.get("reason")) if validation_failed and outcome.get("reason") else None,
-                offending_actor_id=(
-                    authority_failure.get("offending_actor_id")
-                    if isinstance(authority_failure, dict)
-                    else None
-                ),
-                offending_block_id=(
-                    authority_failure.get("offending_block_id")
-                    if isinstance(authority_failure, dict)
-                    else None
-                ),
-                expected_owner=(
-                    authority_failure.get("expected_owner")
-                    if isinstance(authority_failure, dict)
-                    else None
-                ),
-                actual_owner=(
-                    authority_failure.get("actual_owner")
-                    if isinstance(authority_failure, dict)
-                    else None
-                ),
-                missing_field=(
-                    authority_failure.get("missing_field")
-                    if isinstance(authority_failure, dict)
-                    else None
-                ),
-            ),
-        )
+        actor_lane_validation = validation_eval["actor_lane_validation"]
+        authority_ledger = validation_eval["turn_aspect_ledger"]
         update["generation"] = generation
         update["proposed_state_effects"] = proposed
         update["validation_outcome"] = outcome
