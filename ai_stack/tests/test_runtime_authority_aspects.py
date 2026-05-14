@@ -476,6 +476,7 @@ def test_runtime_aspect_failure_triggers_self_correction_before_final_validation
         feedback_codes,
         attempt_index,
         preserve_actor_lanes=False,
+        **_retry_context_kwargs,
     ):
         return (
             _generation(
@@ -530,6 +531,7 @@ def test_missing_narrator_authority_triggers_self_correction() -> None:
         feedback_codes,
         attempt_index,
         preserve_actor_lanes=False,
+        **_retry_context_kwargs,
     ):
         return (
             _generation(

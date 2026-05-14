@@ -224,3 +224,18 @@ voice_consistency:
         - "cringe"
         - "vibe check"
         - "okay boomer"
+
+  semantic_classification:
+    enabled: true
+    classifier_version: "profile_semantic_overlap_v1"
+    gate_mode: "observe_then_reject"
+    thresholds:
+      min_profile_alignment: 0.45
+      max_cross_actor_confusion: 0.20
+      min_confidence_to_block: 0.65
+    dimensions:
+      worldview: 0.30
+      register: 0.20
+      syntax_rhythm: 0.20
+      rhetorical_strategy: 0.20
+      phase_alignment: 0.10

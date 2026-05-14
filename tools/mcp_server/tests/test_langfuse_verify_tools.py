@@ -4,6 +4,7 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
+from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from tools.mcp_server.tools_registry import create_default_registry
 
 
@@ -832,6 +833,8 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["npc_required_initiatives_realized"] is True
     assert row["npc_carry_forward_closed"] is True
     assert row["npc_agency_candidate_actor_ids"] == ["npc_primary", "npc_secondary"]
+    assert row["npc_agency_claim_readiness_status"] == NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
+    assert row["npc_agency_full_claim_allowed"] is False
     assert row["narrative_aspect_policy_present"] is True
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]

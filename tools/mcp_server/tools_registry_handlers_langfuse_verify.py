@@ -33,6 +33,7 @@ from ai_stack.langfuse_evaluator_catalog import (
     judge_names_for_scope as _judge_names_for_scope,
     normalize_judge_category_label as _normalize_judge_category_label,
 )
+from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
 
@@ -561,6 +562,8 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
         "npc_forbidden_actor_absent",
         "npc_agency_candidate_actor_ids",
         "npc_agency_missing_required_actor_ids",
+        "npc_agency_claim_readiness_status",
+        "npc_agency_full_claim_allowed",
         "capability_selection_present",
     "selected_capabilities",
     "realized_capabilities",
@@ -682,6 +685,30 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     narrative_actual = _aspect_block(narrative_rec, "actual")
     memory_selected = _aspect_block(memory_rec, "selected")
     memory_actual = _aspect_block(memory_rec, "actual")
+    claim_readiness = assess_npc_agency_claim_readiness(
+        runtime_aspect={
+            **npc_agency_actual,
+            "npc_independent_planning_used": npc_agency_actual.get("independent_planning_used")
+            if "independent_planning_used" in npc_agency_actual
+            else det_scores.get("npc_independent_planning_used"),
+            "npc_forbidden_actor_absent": (
+                not bool(npc_agency_actual.get("forbidden_planned_actor_ids"))
+                and not bool(npc_agency_actual.get("forbidden_realized_actor_ids"))
+            )
+            if (
+                "forbidden_planned_actor_ids" in npc_agency_actual
+                or "forbidden_realized_actor_ids" in npc_agency_actual
+            )
+            else det_scores.get("npc_forbidden_actor_absent"),
+        },
+        live_trace_evidence={
+            "live_trace_present": str(_extract_metadata(raw_trace).get("trace_origin") or "").strip().lower()
+            == "live_ui",
+            "non_mock_generation_pass": det_scores.get("non_mock_generation_pass"),
+            "fallback_used": not bool(det_scores.get("fallback_absent")),
+        },
+        mcp_evidence={"runtime_aspect_matrix_present": True},
+    )
     failed_records = [r for r in (narr_rec, npc_rec, npc_agency_rec, cap_rec, beat_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "failed"]
     partial_records = [r for r in (beat_rec, npc_agency_rec, cap_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "partial"]
     main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
@@ -736,6 +763,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         ),
         "npc_agency_candidate_actor_ids": npc_agency_actual.get("candidate_actor_ids") or [],
         "npc_agency_missing_required_actor_ids": npc_agency_actual.get("missing_required_actor_ids") or [],
+        "npc_agency_claim_readiness_status": claim_readiness.get("claim_status"),
+        "npc_agency_full_claim_allowed": claim_readiness.get("full_claim_allowed"),
         "capability_selection_present": bool(cap_rec) if cap_rec else det_scores.get("capability_selection_present"),
         "selected_capabilities": cap_selected.get("selected_capabilities") or [],
         "realized_capabilities": cap_actual.get("realized_capabilities") or [],

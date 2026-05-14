@@ -833,7 +833,13 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
     findings = result.get("findings") if isinstance(result.get("findings"), list) else []
     blocking = result.get("blocking_findings") if isinstance(result.get("blocking_findings"), list) else []
     policy_sources = result.get("policy_sources") if isinstance(result.get("policy_sources"), list) else []
+    semantic_classifications = (
+        result.get("semantic_classifications")
+        if isinstance(result.get("semantic_classifications"), list)
+        else []
+    )
     marker_policy_present = "character_voice.voice_consistency.forbidden_language_markers" in policy_sources
+    semantic_policy_present = "character_voice.voice_consistency.semantic_classification" in policy_sources
     applicable = status != "not_applicable"
     aspect_status = "not_applicable"
     if status == "rejected":
@@ -853,6 +859,7 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
             "validation_mode": result.get("validation_mode"),
             "profiles_required_for_spoken_lines": True,
             "forbidden_language_markers_enforced": marker_policy_present,
+            "semantic_classification_enabled": semantic_policy_present,
         },
         actual={
             "validation_status": status,
@@ -862,6 +869,8 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
             "finding_count": len(findings),
             "blocking_finding_count": len(blocking),
             "findings": findings[:6],
+            "semantic_classification_count": len(semantic_classifications),
+            "semantic_classifications": semantic_classifications[:4],
         },
         reasons=[failure_reason] if failure_reason else [],
         source="validator",
@@ -871,6 +880,18 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
         actual_owner=str(first_blocking.get("actual_source_actor_id") or "").strip() or None,
         expected_owner=str(first_blocking.get("expected_profile_actor_id") or "").strip() or None,
     )
+
+
+def _voice_semantic_failure_present(result: dict[str, Any]) -> bool:
+    blocking = result.get("blocking_findings") if isinstance(result.get("blocking_findings"), list) else []
+    for finding in blocking:
+        if not isinstance(finding, dict):
+            continue
+        if str(finding.get("policy_source") or "") == (
+            "character_voice.voice_consistency.semantic_classification"
+        ):
+            return True
+    return False
 
 
 def _npc_agency_plan_from_state(state: "RuntimeTurnState") -> dict[str, Any] | None:
@@ -1238,7 +1259,9 @@ def _build_runtime_aspect_validation(
             "status": "rejected",
             "reason": "voice_consistency_drift",
             "error_code": "voice_consistency_drift",
-            "validator_lane": "runtime_voice_consistency_v1",
+            "validator_lane": "runtime_voice_consistency_v2"
+            if _voice_semantic_failure_present(voice_validation)
+            else "runtime_voice_consistency_v1",
             "voice_consistency_validation": voice_validation,
             "voice_consistency_contract_violation": True,
             "failure_class": "recoverable_dramatic_failure",

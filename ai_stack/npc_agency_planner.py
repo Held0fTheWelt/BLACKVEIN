@@ -20,6 +20,11 @@ from ai_stack.npc_agency_contracts import (
     normalize_npc_agency_plan,
     npc_actor_ids_from_context,
 )
+from ai_stack.npc_agency_long_horizon import (
+    build_npc_long_horizon_state,
+    build_npc_private_plans,
+    resolve_npc_private_plans,
+)
 
 
 NPC_AGENCY_PLANNER_CONTRACT = "npc_agency_planner.v1"
@@ -488,6 +493,23 @@ def build_npc_agency_simulation(
         },
         "npc_agency_plan": plan,
     }
+    long_horizon_state = build_npc_long_horizon_state(
+        simulation,
+        prior_planner_truth=prior_planner_truth,
+        actor_lane_context=actor_lane_context,
+        turn_number=turn_number,
+    )
+    private_plans = build_npc_private_plans(
+        simulation,
+        long_horizon_state=long_horizon_state,
+    )
+    simulation["npc_long_horizon_state"] = long_horizon_state
+    simulation["npc_private_plans"] = private_plans
+    simulation["npc_plan_conflict_resolution"] = resolve_npc_private_plans(
+        private_plans,
+        required_actor_ids=required_actor_ids,
+        primary_actor_id=primary_id,
+    )
     return normalize_npc_agency_simulation(
         simulation,
         actor_lane_context=actor_lane_context,

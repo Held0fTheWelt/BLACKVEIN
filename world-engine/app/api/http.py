@@ -423,6 +423,11 @@ class ExecuteStoryTurnRequest(BaseModel):
     player_input: str = Field(min_length=1)
 
 
+class BranchingSimulationTreeRequest(BaseModel):
+    max_depth: int = Field(default=2, ge=0, le=3)
+    max_branching: int = Field(default=2, ge=0, le=3)
+
+
 class NarrativeReloadRequest(BaseModel):
     module_id: str
     expected_active_version: str
@@ -942,6 +947,27 @@ def get_story_diagnostics(session_id: str, manager: StoryRuntimeManager = Depend
         return manager.get_diagnostics(session_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Story session not found") from exc
+
+
+@router.post("/story/sessions/{session_id}/branching/simulation-tree", dependencies=[Depends(_require_internal_api_key)])
+def build_story_branching_simulation_tree(
+    session_id: str,
+    payload: BranchingSimulationTreeRequest,
+    request: Request,
+    manager: StoryRuntimeManager = Depends(get_story_manager),
+) -> dict[str, Any]:
+    """Return an isolated, non-authoritative multi-turn branch simulation tree."""
+    trace_id = getattr(request.state, "trace_id", None)
+    try:
+        tree = manager.build_branching_simulation_tree(
+            session_id=session_id,
+            max_depth=payload.max_depth,
+            max_branching=payload.max_branching,
+            trace_id=trace_id if isinstance(trace_id, str) else None,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Story session not found") from exc
+    return {"session_id": session_id, "branching_simulation_tree": tree}
 
 
 @router.get("/story/sessions/{session_id}/diagnostics-envelope", dependencies=[Depends(_require_internal_api_key)])

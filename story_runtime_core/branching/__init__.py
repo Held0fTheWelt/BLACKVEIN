@@ -15,6 +15,17 @@ from .forecast import (
     BRANCHING_FORECAST_SOURCE,
     build_branching_forecast,
 )
+from .simulation_tree import (
+    BRANCHING_SIMULATION_TREE_SCHEMA_VERSION,
+    BRANCHING_SIMULATION_TREE_SOURCE,
+    append_simulation_node,
+    clamp_simulation_limits,
+    finalize_simulation_tree,
+    forecast_has_options,
+    make_simulated_turn_node,
+    make_simulation_tree,
+    simulated_input_for_branch_option,
+)
 
 __all__ = [
     'DecisionPoint',
@@ -32,4 +43,13 @@ __all__ = [
     'BRANCHING_FORECAST_SCHEMA_VERSION',
     'BRANCHING_FORECAST_SOURCE',
     'build_branching_forecast',
+    'BRANCHING_SIMULATION_TREE_SCHEMA_VERSION',
+    'BRANCHING_SIMULATION_TREE_SOURCE',
+    'append_simulation_node',
+    'clamp_simulation_limits',
+    'finalize_simulation_tree',
+    'forecast_has_options',
+    'make_simulated_turn_node',
+    'make_simulation_tree',
+    'simulated_input_for_branch_option',
 ]

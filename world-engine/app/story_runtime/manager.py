@@ -5,6 +5,7 @@ import os
 import re
 import threading
 import copy
+import hashlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,7 +21,16 @@ from story_runtime_core.content_locale import (
     greeting_imperative_visible_pair,
     resolve_string,
 )
-from story_runtime_core.branching import build_branching_forecast
+from story_runtime_core.branching import (
+    append_simulation_node,
+    clamp_simulation_limits,
+    finalize_simulation_tree,
+    forecast_has_options,
+    make_simulated_turn_node,
+    make_simulation_tree,
+    simulated_input_for_branch_option,
+    build_branching_forecast,
+)
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -6261,6 +6271,7 @@ class StoryRuntimeManager:
     ) -> None:
         self.sessions: dict[str, StorySession] = {}
         self._session_store = session_store
+        self._branching_simulation_session_ids: set[str] = set()
         self._session_turn_locks: dict[str, threading.Lock] = {}
         self._session_locks_guard = threading.Lock()
         self.repo_root = resolve_wos_repo_root(start=Path(__file__).resolve().parent)
@@ -6388,6 +6399,8 @@ class StoryRuntimeManager:
             return self._session_turn_locks.setdefault(session_id, threading.Lock())
 
     def _persist_session(self, session: StorySession) -> None:
+        if session.session_id in self._branching_simulation_session_ids:
+            return
         if self._session_store is None:
             return
         self._session_store.save(session.session_id, story_session_to_payload(session))
@@ -8314,6 +8327,245 @@ class StoryRuntimeManager:
             return self._execute_turn_locked(
                 session_id=session_id, player_input=player_input, trace_id=trace_id
             )
+
+    def build_branching_simulation_tree(
+        self,
+        *,
+        session_id: str,
+        max_depth: int | None = None,
+        max_branching: int | None = None,
+        trace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Run a bounded multi-turn branching simulation on isolated clones.
+
+        The active story session is copied once under its turn lock. Every
+        simulated future turn runs through the normal manager turn pipeline on
+        a temporary clone session id, with durable persistence disabled and the
+        clone removed afterwards. The returned tree is diagnostic evidence only.
+        """
+
+        depth_limit, branching_limit, node_limit = clamp_simulation_limits(
+            max_depth=max_depth,
+            max_branching=max_branching,
+        )
+        with self._session_turn_lock(session_id):
+            active_session = self.get_session(session_id)
+            root_snapshot = story_session_from_payload(story_session_to_payload(active_session))
+
+        root_forecast = self._latest_branching_forecast_from_session(root_snapshot)
+        root_turn = root_snapshot.history[-1] if root_snapshot.history else {}
+        root_canonical_turn_id = (
+            root_turn.get("canonical_turn_id") if isinstance(root_turn, dict) else None
+        )
+        root_turn_number = (
+            int(root_turn.get("turn_number"))
+            if isinstance(root_turn, dict) and root_turn.get("turn_number") is not None
+            else root_snapshot.turn_counter
+        )
+        runtime_profile_id = _runtime_profile_id_from_projection(
+            root_snapshot.runtime_projection if isinstance(root_snapshot.runtime_projection, dict) else None
+        )
+        sim_trace_id = trace_id or f"branching-simulation-{uuid4().hex}"
+        tree = make_simulation_tree(
+            story_session_id=root_snapshot.session_id,
+            module_id=root_snapshot.module_id,
+            runtime_profile_id=runtime_profile_id,
+            root_canonical_turn_id=root_canonical_turn_id,
+            root_turn_number=root_turn_number,
+            root_branching_forecast=root_forecast,
+            max_depth=depth_limit,
+            max_branching=branching_limit,
+            max_nodes=node_limit,
+            trace_id=sim_trace_id,
+        )
+        if depth_limit <= 0 or branching_limit <= 0 or not forecast_has_options(root_forecast):
+            return finalize_simulation_tree(tree)
+
+        root_node_id = str(tree.get("root_node_id") or "")
+        queue: list[tuple[StorySession, dict[str, Any], str, int, list[str]]] = [
+            (root_snapshot, root_forecast, root_node_id, 1, [])
+        ]
+        while queue:
+            base_snapshot, forecast, parent_node_id, depth, path_option_ids = queue.pop(0)
+            options = (
+                forecast.get("options")
+                if isinstance(forecast.get("options"), list)
+                else []
+            )
+            for option_index, option_raw in enumerate(options[:branching_limit]):
+                if len(tree.get("nodes") or []) >= node_limit:
+                    tree["truncated"] = True
+                    tree["truncation_reason"] = "max_nodes"
+                    return finalize_simulation_tree(tree)
+                option = option_raw if isinstance(option_raw, dict) else {}
+                option_id = str(option.get("option_id") or f"option_{option_index}").strip()
+                next_path = [*path_option_ids, option_id]
+                simulated_input = simulated_input_for_branch_option(option, depth=depth)
+                clone_session_id = self._branching_simulation_clone_session_id(
+                    root_session_id=root_snapshot.session_id,
+                    path_option_ids=next_path,
+                )
+                simulated_event, simulated_snapshot, error = self._execute_branching_simulation_turn_on_clone(
+                    base_session_snapshot=base_snapshot,
+                    clone_session_id=clone_session_id,
+                    simulated_input=simulated_input,
+                    trace_id=sim_trace_id,
+                    path_option_ids=next_path,
+                )
+                child_forecast = (
+                    simulated_event.get("branching_forecast")
+                    if isinstance(simulated_event, dict)
+                    and isinstance(simulated_event.get("branching_forecast"), dict)
+                    else {}
+                )
+                stop_reason = self._branching_simulation_stop_reason(
+                    depth=depth,
+                    max_depth=depth_limit,
+                    simulated_event=simulated_event,
+                    child_forecast=child_forecast,
+                    error=error,
+                )
+                node = make_simulated_turn_node(
+                    tree=tree,
+                    parent_node_id=parent_node_id,
+                    depth=depth,
+                    option=option,
+                    option_index=option_index,
+                    path_option_ids=next_path,
+                    simulated_input=simulated_input,
+                    simulated_event=simulated_event,
+                    stop_reason=stop_reason,
+                    error=error,
+                )
+                append_simulation_node(tree, node)
+                if stop_reason is None and simulated_snapshot is not None:
+                    queue.append((simulated_snapshot, child_forecast, str(node.get("node_id")), depth + 1, next_path))
+        return finalize_simulation_tree(tree)
+
+    def _latest_branching_forecast_from_session(self, session: StorySession) -> dict[str, Any]:
+        for row in reversed(session.history or []):
+            if not isinstance(row, dict):
+                continue
+            forecast = row.get("branching_forecast")
+            if not isinstance(forecast, dict):
+                ledger = row.get("turn_aspect_ledger")
+                if isinstance(ledger, dict):
+                    forecast = ledger.get("branching_forecast")
+            if isinstance(forecast, dict):
+                return copy.deepcopy(forecast)
+        return {}
+
+    def _branching_simulation_clone_session_id(
+        self,
+        *,
+        root_session_id: str,
+        path_option_ids: list[str],
+    ) -> str:
+        seed = "|".join([root_session_id, *path_option_ids])
+        digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+        return f"{root_session_id}:branch-sim:{digest}"
+
+    def _branching_simulation_session_clone(
+        self,
+        *,
+        base_session_snapshot: StorySession,
+        clone_session_id: str,
+        path_option_ids: list[str],
+    ) -> StorySession:
+        clone = story_session_from_payload(story_session_to_payload(base_session_snapshot))
+        clone.session_id = clone_session_id
+        clone.content_provenance = copy.deepcopy(clone.content_provenance)
+        trace_classification = (
+            clone.content_provenance.get("trace_classification")
+            if isinstance(clone.content_provenance.get("trace_classification"), dict)
+            else {}
+        )
+        trace_classification = {
+            **trace_classification,
+            "trace_origin": "branching_simulation",
+            "execution_tier": "diagnostic",
+            "canonical_player_flow": False,
+        }
+        clone.content_provenance["trace_classification"] = trace_classification
+        clone.content_provenance["branching_simulation"] = {
+            "source_session_id": base_session_snapshot.session_id,
+            "path_option_ids": list(path_option_ids),
+            "simulation_only": True,
+            "mutates_active_session": False,
+        }
+        return clone
+
+    def _execute_branching_simulation_turn_on_clone(
+        self,
+        *,
+        base_session_snapshot: StorySession,
+        clone_session_id: str,
+        simulated_input: str,
+        trace_id: str,
+        path_option_ids: list[str],
+    ) -> tuple[dict[str, Any] | None, StorySession | None, str | None]:
+        clone = self._branching_simulation_session_clone(
+            base_session_snapshot=base_session_snapshot,
+            clone_session_id=clone_session_id,
+            path_option_ids=path_option_ids,
+        )
+        had_session = clone_session_id in self.sessions
+        prior_session = self.sessions.get(clone_session_id)
+        with self._session_locks_guard:
+            had_lock = clone_session_id in self._session_turn_locks
+            prior_lock = self._session_turn_locks.get(clone_session_id)
+            self._session_turn_locks[clone_session_id] = threading.Lock()
+        try:
+            self._branching_simulation_session_ids.add(clone_session_id)
+            self.sessions[clone_session_id] = clone
+            event = self._execute_turn_locked(
+                session_id=clone_session_id,
+                player_input=simulated_input,
+                trace_id=trace_id,
+            )
+            simulated_snapshot = story_session_from_payload(
+                story_session_to_payload(self.sessions[clone_session_id])
+            )
+            return event, simulated_snapshot, None
+        except Exception as exc:
+            logger.debug("Branching simulation clone turn failed", exc_info=True)
+            return None, clone, str(exc)
+        finally:
+            self._branching_simulation_session_ids.discard(clone_session_id)
+            if had_session and prior_session is not None:
+                self.sessions[clone_session_id] = prior_session
+            else:
+                self.sessions.pop(clone_session_id, None)
+            with self._session_locks_guard:
+                if had_lock and prior_lock is not None:
+                    self._session_turn_locks[clone_session_id] = prior_lock
+                else:
+                    self._session_turn_locks.pop(clone_session_id, None)
+
+    def _branching_simulation_stop_reason(
+        self,
+        *,
+        depth: int,
+        max_depth: int,
+        simulated_event: dict[str, Any] | None,
+        child_forecast: dict[str, Any],
+        error: str | None,
+    ) -> str | None:
+        if error:
+            return "simulation_error"
+        event = simulated_event if isinstance(simulated_event, dict) else {}
+        narrative_commit = (
+            event.get("narrative_commit")
+            if isinstance(event.get("narrative_commit"), dict)
+            else {}
+        )
+        if bool(narrative_commit.get("is_terminal")) or str(narrative_commit.get("situation_status") or "") == "terminal":
+            return "terminal_turn"
+        if depth >= max_depth:
+            return "max_depth"
+        if not forecast_has_options(child_forecast):
+            return "no_branching_options"
+        return None
 
     def _execute_turn_locked(self, *, session_id: str, player_input: str, trace_id: str | None = None) -> dict[str, Any]:
         session = self.get_session(session_id)

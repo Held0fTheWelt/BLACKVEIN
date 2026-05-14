@@ -179,6 +179,16 @@ def collect_playability_feedback_codes(
                     feedback.append(f"voice_drift:{drift_class}")
                 if speaker:
                     feedback.append(f"voice_speaker:{speaker}")
+                actual_source = str(finding.get("actual_source_actor_id") or "").strip()
+                if actual_source:
+                    feedback.append(f"voice_best_match:{actual_source}")
+                evidence = finding.get("evidence") if isinstance(finding.get("evidence"), dict) else {}
+                low_dimensions = evidence.get("low_dimensions") if isinstance(evidence, dict) else []
+                if isinstance(low_dimensions, list):
+                    for dimension in low_dimensions[:3]:
+                        dimension_text = str(dimension or "").strip()
+                        if dimension_text:
+                            feedback.append(f"voice_dimension:{dimension_text}")
     npc_validation = outcome.get("npc_initiative_validation") if isinstance(outcome, dict) else None
     if isinstance(npc_validation, dict):
         for code in npc_validation.get("error_codes") or []:
@@ -367,12 +377,15 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
         if code == "voice_consistency_drift"
         or code.startswith("voice_drift:")
         or code.startswith("voice_speaker:")
+        or code.startswith("voice_best_match:")
+        or code.startswith("voice_dimension:")
     ]
     if voice_issues:
         voice_feedback = (
             " Voice consistency repair: keep every spoken_lines row assigned to the same approved speaker, "
             "but rewrite that speaker's wording so it follows the provided Character Voice Profiles. "
-            "Remove policy-forbidden language markers without adding new actors, new facts, "
+            "Repair flagged semantic voice dimensions such as worldview, register, syntax/rhythm, "
+            "rhetorical strategy, and phase alignment. Remove policy-forbidden language markers without adding new actors, new facts, "
             "or narrator explanations to hide the issue."
         )
         return preserve_prefix + base_instruction + voice_feedback

@@ -13,6 +13,26 @@ VoiceValidationStatus = Literal["approved", "rejected", "not_applicable"]
 VoiceFindingSeverity = Literal["info", "warning", "failure"]
 
 
+class VoiceSemanticLineClassification(BaseModel):
+    """One structured semantic voice classification for a spoken line."""
+
+    model_config = {"extra": "forbid"}
+
+    classifier_version: str = "profile_semantic_overlap_v1"
+    speaker_id: str
+    expected_profile_actor_id: str | None = None
+    best_matching_actor_id: str | None = None
+    expected_profile_alignment: float = 0.0
+    best_profile_alignment: float = 0.0
+    cross_actor_confusion_margin: float = 0.0
+    confidence: float = 0.0
+    dimension_scores: dict[str, float] = Field(default_factory=dict)
+    best_dimension_scores: dict[str, float] = Field(default_factory=dict)
+    finding_codes: list[str] = Field(default_factory=list)
+    policy_sources: list[str] = Field(default_factory=list)
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
 class CharacterVoiceProfileRecord(BaseModel):
     """Content-derived voice profile for one runtime actor."""
 
@@ -22,9 +42,14 @@ class CharacterVoiceProfileRecord(BaseModel):
     runtime_actor_id: str = Field(..., description="Canonical runtime actor id.")
     formal_role_label: str = Field(default="")
     baseline_tone: str = Field(default="")
+    core_worldview: str = Field(default="")
     speech_patterns: dict[str, str] = Field(default_factory=dict)
     escalation_arc: dict[str, str] = Field(default_factory=dict)
     current_phase_voice_hint: str = Field(default="")
+    signature_moments: list[str] = Field(default_factory=list)
+    vulnerability: str = Field(default="")
+    semantic_profile: dict[str, str] = Field(default_factory=dict)
+    semantic_policy: dict[str, Any] = Field(default_factory=dict)
     forbidden_language_markers: dict[str, list[str]] = Field(default_factory=dict)
     dialogue_examples: list[str] = Field(default_factory=list)
     consistency_rules: list[str] = Field(default_factory=list)
@@ -63,6 +88,7 @@ class VoiceConsistencyValidationResult(BaseModel):
     spoken_line_count: int = 0
     findings: list[VoiceDriftFinding] = Field(default_factory=list)
     blocking_findings: list[VoiceDriftFinding] = Field(default_factory=list)
+    semantic_classifications: list[VoiceSemanticLineClassification] = Field(default_factory=list)
     policy_sources: list[str] = Field(default_factory=list)
 
     def to_runtime_dict(self) -> dict[str, Any]:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from app.services.operator_turn_history_service import (
     build_turn_history_summary_for_session,
     operator_diagnostics_surface,
@@ -87,6 +88,7 @@ def test_turn_history_row_contains_passivity_explainability_fields():
     assert isinstance(row["why_turn_felt_passive"], list)
     assert isinstance(row["primary_passivity_factors"], list)
     assert isinstance(row["vitality_breakdown"], dict)
+    assert row["npc_agency_breakdown"]["claim_readiness"]["claim_status"] == NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 
 
 def test_turn_history_reports_rising_degraded_posture():

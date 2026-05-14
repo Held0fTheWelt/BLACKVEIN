@@ -487,10 +487,18 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
             },
             "voice_consistency": {
                 "policy_present": bool(voice_expected.get("policy_present")),
+                "semantic_classification_enabled": bool(
+                    voice_expected.get("semantic_classification_enabled")
+                ),
                 "profiles_checked": int(voice_actual.get("profiles_checked") or 0),
                 "spoken_line_count": int(voice_actual.get("spoken_line_count") or 0),
                 "finding_count": int(voice_actual.get("finding_count") or 0),
                 "blocking_finding_count": int(voice_actual.get("blocking_finding_count") or 0),
+                "semantic_classification_count": int(
+                    voice_actual.get("semantic_classification_count") or 0
+                ),
+                "semantic_classifications": voice_actual.get("semantic_classifications")
+                or [],
                 "failure_reason": voice_rec.get("failure_reason")
                 or (_record_reasons(voice_rec)[0] if _record_reasons(voice_rec) else None),
                 "status": voice_rec.get("status"),

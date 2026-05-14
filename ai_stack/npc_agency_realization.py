@@ -5,9 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_CLOSURE_BLOCKED_BY_PLAYER_ACTION_STATUS,
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_CLOSED_STATUS,
+    NPC_AGENCY_CLOSURE_EXPIRED_BY_SCENE_TRANSITION_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
+    NPC_AGENCY_CLOSURE_SUPERSEDED_STATUS,
     NPC_AGENCY_PLAN_PARTIAL_STATUS,
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     clean_text,
@@ -276,6 +279,7 @@ def build_npc_agency_closure(
     prior_planner_truth: dict[str, Any] | None = None,
     actor_lane_context: dict[str, Any] | None = None,
     turn_number: Any = None,
+    closure_context: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     source_validation = validation if isinstance(validation, dict) else {}
     source_agency = (
@@ -322,6 +326,11 @@ def build_npc_agency_closure(
     closed_actor_ids = [
         actor_id for actor_id in prior_actor_ids if actor_id in realized_actor_ids
     ]
+    close_ctx = closure_context if isinstance(closure_context, dict) else {}
+    superseded_actor_ids = dedupe_strings(close_ctx.get("superseded_actor_ids") or [])
+    blocked_actor_ids = dedupe_strings(close_ctx.get("blocked_by_player_action_actor_ids") or [])
+    expired_actor_ids = dedupe_strings(close_ctx.get("expired_by_scene_transition_actor_ids") or [])
+    non_carry_actor_ids = set(superseded_actor_ids + blocked_actor_ids + expired_actor_ids)
 
     initiatives = coerce_dict_rows(plan.get("npc_initiatives"))
     initiative_by_actor = {
@@ -336,10 +345,12 @@ def build_npc_agency_closure(
                 actor_id
                 for actor_id in prior_actor_ids
                 if actor_id not in realized_actor_ids
+                and actor_id not in non_carry_actor_ids
                 and not is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context)
             ],
         ]
     )
+    unresolved_actor_ids = [actor_id for actor_id in unresolved_actor_ids if actor_id not in non_carry_actor_ids]
     carried_rows: list[dict[str, Any]] = []
     for actor_id in unresolved_actor_ids:
         row = initiative_by_actor.get(actor_id, {})
@@ -369,11 +380,16 @@ def build_npc_agency_closure(
         )
 
     full_simulation = isinstance(simulation, dict)
-    closure_status = (
-        NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
-        if carried_rows
-        else NPC_AGENCY_CLOSURE_CLOSED_STATUS
-    )
+    if carried_rows:
+        closure_status = NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+    elif superseded_actor_ids:
+        closure_status = NPC_AGENCY_CLOSURE_SUPERSEDED_STATUS
+    elif blocked_actor_ids:
+        closure_status = NPC_AGENCY_CLOSURE_BLOCKED_BY_PLAYER_ACTION_STATUS
+    elif expired_actor_ids:
+        closure_status = NPC_AGENCY_CLOSURE_EXPIRED_BY_SCENE_TRANSITION_STATUS
+    else:
+        closure_status = NPC_AGENCY_CLOSURE_CLOSED_STATUS
     return {
         "schema_version": NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
         "contract_status": (
@@ -394,6 +410,9 @@ def build_npc_agency_closure(
         "missing_required_actor_ids": missing_required_actor_ids,
         "unresolved_actor_ids": [row["actor_id"] for row in carried_rows],
         "closed_actor_ids": closed_actor_ids,
+        "superseded_actor_ids": superseded_actor_ids,
+        "blocked_by_player_action_actor_ids": blocked_actor_ids,
+        "expired_by_scene_transition_actor_ids": expired_actor_ids,
         "carried_forward_npc_initiatives": carried_rows,
         "durable_carry_forward_required": bool(carried_rows),
     }

@@ -9,6 +9,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+
 
 def _extract_vitality(event: dict[str, Any]) -> dict[str, Any]:
     telemetry = event.get("actor_survival_telemetry") if isinstance(event.get("actor_survival_telemetry"), dict) else {}
@@ -57,6 +59,17 @@ def _extract_npc_agency_breakdown(
         if isinstance(planner_truth.get("npc_agency_closure"), dict)
         else {}
     )
+    simulation = (
+        planner_truth.get("npc_agency_simulation")
+        if isinstance(planner_truth.get("npc_agency_simulation"), dict)
+        else {}
+    )
+    claim_readiness = assess_npc_agency_claim_readiness(
+        simulation=simulation,
+        closure=closure,
+        runtime_aspect=npc_agency,
+        operator_evidence={"operator_npc_agency_breakdown_present": True},
+    )
     return {
         "schema_version": realization.get("schema_version"),
         "contract_status": npc_agency.get("contract_status") or realization.get("contract_status"),
@@ -86,6 +99,7 @@ def _extract_npc_agency_breakdown(
             or npc_agency.get("carry_forward_actor_ids")
             or []
         ),
+        "claim_readiness": claim_readiness,
     }
 
 

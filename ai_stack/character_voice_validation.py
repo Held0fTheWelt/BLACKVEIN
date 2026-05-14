@@ -11,7 +11,13 @@ from ai_stack.character_voice_contract import (
     VoiceDriftFinding,
     VoiceValidationMode,
 )
+from ai_stack.character_voice_semantic_classifier import (
+    SEMANTIC_CLASSIFICATION_POLICY_SOURCE,
+    classify_voice_semantic_lines,
+    semantic_policy_enabled,
+)
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
+
 
 def _norm(text: str) -> str:
     lowered = str(text or "").casefold()
@@ -174,12 +180,54 @@ def validate_voice_consistency(
             )
         )
 
+    semantic_classifications = classify_voice_semantic_lines(
+        spoken_rows=rows,
+        profiles=profiles,
+        validation_mode=typed_mode,
+    )
+    for classification in semantic_classifications:
+        for finding_code in classification.finding_codes:
+            severity = (
+                "failure"
+                if strict and finding_code == "cross_actor_voice_confusion"
+                else "warning"
+            )
+            evidence = dict(classification.evidence)
+            evidence.update(
+                {
+                    "classifier_version": classification.classifier_version,
+                    "expected_profile_alignment": classification.expected_profile_alignment,
+                    "best_profile_alignment": classification.best_profile_alignment,
+                    "cross_actor_confusion_margin": (
+                        classification.cross_actor_confusion_margin
+                    ),
+                    "confidence": classification.confidence,
+                    "dimension_scores": classification.dimension_scores,
+                    "best_dimension_scores": classification.best_dimension_scores,
+                }
+            )
+            findings.append(
+                VoiceDriftFinding(
+                    drift_class=finding_code,
+                    severity=severity,
+                    speaker_id=classification.speaker_id,
+                    policy_source=SEMANTIC_CLASSIFICATION_POLICY_SOURCE,
+                    expected_profile_actor_id=classification.expected_profile_actor_id,
+                    actual_source_actor_id=classification.best_matching_actor_id
+                    if finding_code == "cross_actor_voice_confusion"
+                    else None,
+                    evidence=evidence,
+                )
+            )
+
     policy_sources = [
         "character_voice.characters",
         "character_voice.voice_consistency",
     ]
     if any(profile.forbidden_language_markers for profile in profiles):
         policy_sources.append("character_voice.voice_consistency.forbidden_language_markers")
+    if semantic_policy_enabled(profiles):
+        policy_sources.append(SEMANTIC_CLASSIFICATION_POLICY_SOURCE)
 
     blocking = [finding for finding in findings if finding.severity == "failure"]
     return VoiceConsistencyValidationResult(
@@ -190,5 +238,6 @@ def validate_voice_consistency(
         spoken_line_count=len(rows),
         findings=findings,
         blocking_findings=blocking,
+        semantic_classifications=semantic_classifications,
         policy_sources=policy_sources,
     )
