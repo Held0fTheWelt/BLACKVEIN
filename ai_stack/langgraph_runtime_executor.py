@@ -3653,32 +3653,44 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _build_context_synthesis_bundle_for_state(
+        self,
+        state: RuntimeTurnState,
+        *,
+        validation_feedback: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return build_context_synthesis_bundle(
+            retrieval=state.get("retrieval") if isinstance(state.get("retrieval"), dict) else None,
+            context_text=state.get("context_text") if isinstance(state.get("context_text"), str) else None,
+            scene_assessment=state.get("scene_assessment")
+            if isinstance(state.get("scene_assessment"), dict)
+            else None,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            social_state_record=state.get("social_state_record")
+            if isinstance(state.get("social_state_record"), dict)
+            else None,
+            turn_aspect_ledger=state.get("turn_aspect_ledger")
+            if isinstance(state.get("turn_aspect_ledger"), dict)
+            else None,
+            hierarchical_memory_context=state.get("hierarchical_memory_context")
+            if isinstance(state.get("hierarchical_memory_context"), dict)
+            else None,
+            validation_feedback=validation_feedback
+            if isinstance(validation_feedback, dict)
+            else (
+                state.get("validation_feedback")
+                if isinstance(state.get("validation_feedback"), dict)
+                else None
+            ),
+        )
+
     def _synthesize_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
         """Build a deterministic, non-authoritative context synthesis bundle."""
         update = _track(state, node_name="synthesize_context")
         try:
-            bundle = build_context_synthesis_bundle(
-                retrieval=state.get("retrieval") if isinstance(state.get("retrieval"), dict) else None,
-                context_text=state.get("context_text") if isinstance(state.get("context_text"), str) else None,
-                scene_assessment=state.get("scene_assessment")
-                if isinstance(state.get("scene_assessment"), dict)
-                else None,
-                semantic_move_record=state.get("semantic_move_record")
-                if isinstance(state.get("semantic_move_record"), dict)
-                else None,
-                social_state_record=state.get("social_state_record")
-                if isinstance(state.get("social_state_record"), dict)
-                else None,
-                turn_aspect_ledger=state.get("turn_aspect_ledger")
-                if isinstance(state.get("turn_aspect_ledger"), dict)
-                else None,
-                hierarchical_memory_context=state.get("hierarchical_memory_context")
-                if isinstance(state.get("hierarchical_memory_context"), dict)
-                else None,
-                validation_feedback=state.get("validation_feedback")
-                if isinstance(state.get("validation_feedback"), dict)
-                else None,
-            )
+            bundle = self._build_context_synthesis_bundle_for_state(state)
         except Exception as exc:
             bundle = build_context_synthesis_error_bundle(exc)
             errors = list(state.get("graph_errors") or [])
@@ -3687,6 +3699,43 @@ class RuntimeTurnGraphExecutor:
         update["context_synthesis_bundle"] = bundle
         update["context_synthesis_diagnostics"] = summarize_context_synthesis_for_diagnostics(bundle)
         return update
+
+    def _synthesize_context_for_retry(
+        self,
+        state: RuntimeTurnState,
+        *,
+        validation_feedback: dict[str, Any],
+        attempt_index: int,
+    ) -> tuple[dict[str, Any], dict[str, Any], str]:
+        """Rebuild context synthesis with validation feedback for self-correction."""
+        try:
+            bundle = self._build_context_synthesis_bundle_for_state(
+                state,
+                validation_feedback=validation_feedback,
+            )
+        except Exception as exc:
+            bundle = build_context_synthesis_error_bundle(exc)
+        diagnostics = summarize_context_synthesis_for_diagnostics(bundle, used_in_model_prompt=True)
+        diagnostics.update(
+            {
+                "retry_attempt_index": attempt_index,
+                "validation_feedback": {
+                    "codes": list(validation_feedback.get("codes") or []),
+                    "trigger_source": validation_feedback.get("trigger_source"),
+                    "failure_reason_before_retry": validation_feedback.get("failure_reason_before_retry"),
+                    "validation_status_before_retry": validation_feedback.get("validation_status_before_retry"),
+                },
+                "used_for_self_correction": True,
+            }
+        )
+        prompt_lines = context_synthesis_prompt_lines(bundle)
+        prompt_block = ""
+        if prompt_lines:
+            prompt_block = (
+                "Validation Feedback Resynthesis (proposal support, non-authoritative):\n"
+                + "\n".join(prompt_lines)
+            )
+        return bundle, diagnostics, prompt_block
 
     def _assemble_model_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
         """Attach post-director runtime state to the model-visible prompt."""
@@ -4328,6 +4377,8 @@ class RuntimeTurnGraphExecutor:
         feedback_codes: list[str],
         attempt_index: int,
         preserve_actor_lanes: bool = False,
+        retry_context_synthesis_bundle: dict[str, Any] | None = None,
+        retry_context_synthesis_prompt: str = "",
     ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
         routing = state.get("routing") if isinstance(state.get("routing"), dict) else {}
         selected_mid = str(routing.get("selected_model") or "").strip()
@@ -4356,12 +4407,22 @@ class RuntimeTurnGraphExecutor:
                 actor_id = str(row.get("actor_id") or row.get("responder_id") or "").strip()
                 if actor_id and actor_id not in allowed_actor_ids:
                     allowed_actor_ids.append(actor_id)
+        retry_prompt = state.get("model_prompt") if isinstance(state.get("model_prompt"), str) else None
+        if retry_context_synthesis_prompt.strip():
+            retry_prompt = (
+                f"{retry_prompt or state.get('player_input') or ''}\n\n"
+                f"{retry_context_synthesis_prompt.strip()}"
+            ).strip()
+        retry_synthesis_status = ""
+        if isinstance(retry_context_synthesis_bundle, dict):
+            retry_synthesis_status = str(retry_context_synthesis_bundle.get("status") or "")
         runtime_result = _invoke_runtime_adapter_with_langchain(
             adapter=adapter,
             player_input=state["player_input"],
             interpreted_input=state.get("interpreted_input", {}) if isinstance(state.get("interpreted_input"), dict) else {},
             retrieval_context=state.get("context_text"),
             timeout_seconds=float(getattr(spec, "timeout_seconds", state.get("selected_timeout", 10.0)) or 10.0),
+            model_prompt=retry_prompt,
             prior_output=str(generation.get("content") or generation.get("model_raw_text") or ""),
             feedback_codes=list(feedback_codes),
             rewrite_instruction=build_rewrite_instruction(
@@ -4391,6 +4452,8 @@ class RuntimeTurnGraphExecutor:
                 "self_correction_model_changed": bool(selected_mid)
                 and bool(candidate_mid)
                 and candidate_mid != selected_mid,
+                "context_synthesis_retry_attached": bool(retry_context_synthesis_prompt.strip()),
+                "context_synthesis_retry_status": retry_synthesis_status,
                 "dramatic_generation_packet_included": isinstance(
                     state.get("dramatic_generation_packet"), dict
                 ),
@@ -4406,6 +4469,8 @@ class RuntimeTurnGraphExecutor:
                     "success": False,
                     "parser_error": runtime_result.parser_error,
                     "preserve_actor_lanes": bool(preserve_actor_lanes),
+                    "context_synthesis_retry_attached": bool(retry_context_synthesis_prompt.strip()),
+                    "context_synthesis_retry_status": retry_synthesis_status,
                     "status": "rewrite_failed_kept_prior_generation",
                 },
             )
@@ -4443,6 +4508,8 @@ class RuntimeTurnGraphExecutor:
             "self_correction_feedback_codes": list(feedback_codes),
             "self_correction_candidate_model": candidate_mid,
             "self_correction_model_changed": self_correction_model_changed,
+            "context_synthesis_retry_attached": bool(retry_context_synthesis_prompt.strip()),
+            "context_synthesis_retry_status": retry_synthesis_status,
             "dramatic_generation_packet_included": isinstance(
                 state.get("dramatic_generation_packet"), dict
             ),
@@ -4457,6 +4524,8 @@ class RuntimeTurnGraphExecutor:
             "parser_error": runtime_result.parser_error,
             "preserve_actor_lanes": bool(preserve_actor_lanes),
             "self_correction_model_changed": self_correction_model_changed,
+            "context_synthesis_retry_attached": bool(retry_context_synthesis_prompt.strip()),
+            "context_synthesis_retry_status": retry_synthesis_status,
         }
         return rewritten, proposed, attempt
 
@@ -4709,6 +4778,9 @@ class RuntimeTurnGraphExecutor:
         turn_number = int(state.get("turn_number") or 0)
         max_attempts = max(0, int(self.max_self_correction_attempts))
         self_correction_attempts: list[dict[str, Any]] = []
+        context_synthesis_retry_history: list[dict[str, Any]] = []
+        last_retry_context_synthesis_bundle: dict[str, Any] | None = None
+        last_validation_feedback: dict[str, Any] | None = None
         # Disable degraded commits for opening turns to prevent silent failures on game start
         allow_degraded = self.allow_degraded_commit_after_retries and turn_number > 1
         retry_loop_exhausted = False
@@ -4751,6 +4823,28 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("capability_failure"), dict)
                 else None
             )
+            validation_feedback = {
+                "codes": list(decision.feedback_codes),
+                "attempt_index": attempt_index,
+                "trigger_source": trigger_source,
+                "validation_status_before_retry": outcome.get("status"),
+                "failure_reason_before_retry": failure_reason_before_retry,
+                "runtime_aspect_failure_before_retry": runtime_aspect_failure_before_retry,
+                "capability_failure_before_retry": capability_failure_before_retry,
+                "actor_lane_status_before_retry": actor_lane_validation.get("status")
+                if isinstance(actor_lane_validation, dict)
+                else None,
+            }
+            retry_context_synthesis_bundle, retry_context_synthesis_diagnostics, retry_context_synthesis_prompt = (
+                self._synthesize_context_for_retry(
+                    state,
+                    validation_feedback=validation_feedback,
+                    attempt_index=attempt_index,
+                )
+            )
+            last_retry_context_synthesis_bundle = retry_context_synthesis_bundle
+            last_validation_feedback = validation_feedback
+            context_synthesis_retry_history.append(retry_context_synthesis_diagnostics)
             generation, proposed, attempt_record = self._self_correct_generation(
                 state,
                 generation,
@@ -4758,6 +4852,8 @@ class RuntimeTurnGraphExecutor:
                 decision.feedback_codes,
                 attempt_index,
                 preserve_actor_lanes=decision.preserve_actor_lanes,
+                retry_context_synthesis_bundle=retry_context_synthesis_bundle,
+                retry_context_synthesis_prompt=retry_context_synthesis_prompt,
             )
             validation_eval = _build_runtime_aspect_validation(
                 state=state,
@@ -4775,6 +4871,7 @@ class RuntimeTurnGraphExecutor:
                     "capability_failure_before_retry": capability_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
                     "failure_reason_after_retry": outcome.get("reason"),
+                    "context_synthesis_retry": retry_context_synthesis_diagnostics,
                     "resolved_failure": (
                         str(outcome.get("status") or "").strip().lower() == "approved"
                         or (
@@ -4830,6 +4927,24 @@ class RuntimeTurnGraphExecutor:
         update["validation_outcome"] = outcome
         update["actor_lane_validation"] = actor_lane_validation
         update["turn_aspect_ledger"] = authority_ledger
+        if context_synthesis_retry_history:
+            update["context_synthesis_retry_history"] = context_synthesis_retry_history
+            if last_validation_feedback is not None:
+                update["validation_feedback"] = last_validation_feedback
+            if isinstance(last_retry_context_synthesis_bundle, dict):
+                retry_diag = summarize_context_synthesis_for_diagnostics(
+                    last_retry_context_synthesis_bundle,
+                    used_in_model_prompt=True,
+                )
+                retry_diag.update(
+                    {
+                        "resynthesis_count": len(context_synthesis_retry_history),
+                        "used_for_self_correction": True,
+                        "retry_attempts": context_synthesis_retry_history,
+                    }
+                )
+                update["context_synthesis_bundle"] = last_retry_context_synthesis_bundle
+                update["context_synthesis_diagnostics"] = retry_diag
         if isinstance(validation_eval.get("voice_consistency_validation"), dict):
             update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
         if isinstance(validation_eval.get("npc_initiative_validation"), dict):

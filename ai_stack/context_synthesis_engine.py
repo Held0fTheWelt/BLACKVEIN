@@ -560,10 +560,18 @@ def summarize_context_synthesis_for_diagnostics(
         for item in gaps
         if isinstance(item, Mapping) and str(item.get("code") or "").strip()
     ]
+    obligation_codes = [
+        str(item.get("code"))
+        for item in obligations
+        if isinstance(item, Mapping) and str(item.get("code") or "").strip()
+    ]
     conflict_codes = [
         str(item.get("code"))
         for item in conflicts
         if isinstance(item, Mapping) and str(item.get("code") or "").strip()
+    ]
+    input_sources = [
+        str(item) for item in _list(bundle_map.get("input_sources")) if str(item).strip()
     ]
     return {
         "schema_version": str(bundle_map.get("schema_version") or CONTEXT_SYNTHESIS_SCHEMA_VERSION),
@@ -574,13 +582,15 @@ def summarize_context_synthesis_for_diagnostics(
         "evidence_item_count": len(evidence),
         "obligation_count": len(obligations),
         "conflict_count": len(conflicts),
+        "obligation_codes": obligation_codes,
         "gap_codes": gap_codes,
         "conflict_codes": conflict_codes,
         "source_lane_mix": _mapping(bundle_map.get("source_lane_mix")),
-        "input_sources": [
-            str(item) for item in _list(bundle_map.get("input_sources")) if str(item).strip()
-        ],
+        "input_sources": input_sources,
         "used_in_model_prompt": bool(used_in_model_prompt),
+        "validation_feedback_included": "validation_feedback" in input_sources,
+        "resynthesis_count": 0,
+        "used_for_self_correction": False,
     }
 
 

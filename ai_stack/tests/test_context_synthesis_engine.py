@@ -104,3 +104,28 @@ def test_context_synthesis_prompt_lines_are_bounded_prompt_support() -> None:
     assert "preserve_runtime_authority_boundary" in prompt_text
     assert diagnostics["used_in_model_prompt"] is True
     assert diagnostics["evidence_item_count"] >= 1
+
+
+def test_context_synthesis_consumes_validation_feedback_as_retry_obligation() -> None:
+    bundle = build_context_synthesis_bundle(
+        retrieval=_retrieval_with_sources("canonical"),
+        context_text="bounded evidence pack",
+        scene_assessment={"scene_core": "focused scene"},
+        semantic_move_record={"move_type": "answer"},
+        social_state_record={"scene_pressure_state": "steady"},
+        turn_aspect_ledger={"validation": {"applicable": True, "status": "partial"}},
+        hierarchical_memory_context={},
+        validation_feedback={
+            "codes": ["narrator_required_missing"],
+            "failure_reason_before_retry": "narrator_required_missing",
+        },
+    )
+    diagnostics = summarize_context_synthesis_for_diagnostics(bundle, used_in_model_prompt=True)
+
+    assert diagnostics["validation_feedback_included"] is True
+    assert "validation_feedback" in diagnostics["input_sources"]
+    assert "address_validation_feedback" in diagnostics["obligation_codes"]
+    feedback_items = [
+        item for item in bundle["evidence_items"] if "validation_feedback" in item.get("derived_from", [])
+    ]
+    assert feedback_items

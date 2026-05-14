@@ -40,6 +40,8 @@ class RuntimeTurnState(TypedDict, total=False):
     context_text: str
     context_synthesis_bundle: dict[str, Any]
     context_synthesis_diagnostics: dict[str, Any]
+    context_synthesis_retry_history: list[dict[str, Any]]
+    validation_feedback: dict[str, Any]
     model_prompt: str
     dramatic_generation_packet: dict[str, Any]
     generation: dict[str, Any]
