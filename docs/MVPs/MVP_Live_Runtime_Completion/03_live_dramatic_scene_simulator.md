@@ -324,27 +324,43 @@ Valid block types: `narrator`, `actor_line`, `actor_action`, `environment_intera
 ```json
 {
   "contract": "npc_agency_plan.v1",
+  "schema_version": "npc_agency_plan.v1",
+  "contract_status": "partial_runtime_projection",
+  "implementation_status": "partial_runtime_projection",
+  "not_full_multi_agent_simulation": true,
   "turn_number": 4,
-  "primary_responder_id": "veronique_houllie",
-  "secondary_responder_ids": ["alain_reille"],
+  "primary_responder_id": "veronique_vallon",
+  "secondary_responder_ids": ["michel_longstreet"],
+  "required_actor_ids": ["veronique_vallon", "michel_longstreet"],
+  "minimum_secondary_initiatives_required": 1,
   "npc_initiatives": [
     {
-      "actor_id": "veronique_houllie",
-      "intent": "challenge_alain_deflection",
-      "allowed_block_types": ["actor_line"],
-      "target_actor_id": "alain_reille",
-      "passivity_risk": "low"
+      "actor_id": "veronique_vallon",
+      "role": "primary_responder",
+      "intent": "claim_primary_response",
+      "allowed_block_types": ["actor_line", "actor_action"],
+      "allowed_output_lanes": ["spoken_lines", "action_lines", "initiative_events"],
+      "target_actor_id": null,
+      "required": true,
+      "requirement_scope": "primary_required",
+      "resolved": false
     },
     {
-      "actor_id": "alain_reille",
-      "intent": "evade_by_phone_attention",
-      "allowed_block_types": ["actor_action"],
-      "target_actor_id": null,
-      "passivity_risk": "low"
+      "actor_id": "michel_longstreet",
+      "role": "secondary_reactor",
+      "intent": "react_to_primary_or_scene_pressure",
+      "allowed_block_types": ["actor_line", "actor_action"],
+      "allowed_output_lanes": ["spoken_lines", "action_lines", "initiative_events"],
+      "target_actor_id": "veronique_vallon",
+      "required": true,
+      "requirement_scope": "one_secondary_minimum",
+      "resolved": false
     }
   ]
 }
 ```
+
+Current Pi7 runtime support treats this as a **partial projection**: `ai_stack/npc_agency_contracts.py` normalizes the contract and legacy `initiatives`, `ai_stack/npc_agency_realization.py` records planned/realized/missing required NPC initiative, and telemetry exposes `npc_initiative_realization_v1`. This is not yet an independent multi-agent NPC planner; missing-required feedback, durable initiative carry-forward, and operator/Langfuse closure remain future work.
 
 ### EnvironmentInteraction
 

@@ -38,6 +38,8 @@ class RuntimeTurnState(TypedDict, total=False):
     selected_timeout: float
     retrieval: dict[str, Any]
     context_text: str
+    context_synthesis_bundle: dict[str, Any]
+    context_synthesis_diagnostics: dict[str, Any]
     model_prompt: str
     dramatic_generation_packet: dict[str, Any]
     generation: dict[str, Any]
@@ -104,6 +106,8 @@ class RuntimeTurnState(TypedDict, total=False):
     semantic_move_record: dict[str, Any]
     social_state_record: dict[str, Any]
     character_mind_records: list[dict[str, Any]]
+    character_voice_profiles: list[dict[str, Any]]
+    voice_consistency_validation: dict[str, Any]
     scene_plan_record: dict[str, Any]
     dramatic_effect_outcome: dict[str, Any]
     # Model-generated structured behavior outputs; populated by the
@@ -139,6 +143,7 @@ class RuntimeTurnState(TypedDict, total=False):
     session_output_language: str
     # Effective ``story_runtime_experience`` slice from governed runtime config (operator/admin).
     story_runtime_experience: dict[str, Any]
+    validation_execution_mode: str
     # HUMAN-INPUT-ATTRIBUTION-01: committed-turn diagnostics (host/world-engine may attach).
     human_input_attribution: dict[str, Any]
     # RuntimeAspectLedger is backend/world-engine-owned authority evidence.

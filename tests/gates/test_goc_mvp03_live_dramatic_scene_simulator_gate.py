@@ -37,13 +37,18 @@ from gate_fixtures import load_yaml as _load_gate_fixture_yaml
 from gate_contract_constants import (
     FORBIDDEN_RUNTIME_ACTOR_ID,
     GOD_OF_CARNAGE_CONTENT_MODULE_ID,
+    GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS,
     GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
+    goc_npc_actor_ids_for_selected,
+    goc_role_display_name,
 )
 
 from we_contract_helpers import (
     assert_finalize_committed_turn_calls_ldss_builder,
     assert_goc_module_gate_in_finalize,
+    assert_ldss_input_builder_preserves_human_actor_id,
     assert_ldss_import_and_module_wiring,
+    assert_ldss_scene_envelope_requires_human_actor,
     assert_scene_turn_envelope_committed_to_event,
 )
 
@@ -74,49 +79,55 @@ from ai_stack.live_dramatic_scene_simulator import (
 _MVP3_TEXT = copy.deepcopy(_load_gate_fixture_yaml("mvp3_narrator_and_affordance_examples.yaml"))
 # LDSS player_input stimuli: tests/gates/fixtures/mvp3_ldss_player_inputs.yaml (wave 03; same strings as before).
 _MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
+_PRIMARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[0]
+_SECONDARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[1]
+
+
+def _npc_actor_ids_for(human_actor_id: str) -> list[str]:
+    return goc_npc_actor_ids_for_selected(human_actor_id)
 
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
-def _annette_ldss_input(turn: int = 1) -> LDSSInput:
+def _primary_human_ldss_input(turn: int = 1) -> LDSSInput:
     return build_ldss_input_from_session(
-        session_id="test-session-annette",
+        session_id=f"test-session-{_PRIMARY_HUMAN_ID}",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=turn,
-        selected_player_role="annette",
-        human_actor_id="annette",
-        npc_actor_ids=["alain", "veronique", "michel"],
-        player_input=_MVP3_LDSS_INPUTS["annette_ldss_input"],
+        selected_player_role=_PRIMARY_HUMAN_ID,
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=_npc_actor_ids_for(_PRIMARY_HUMAN_ID),
+        player_input=_MVP3_LDSS_INPUTS["primary_human_ldss_input"],
     )
 
 
-def _alain_ldss_input(turn: int = 1) -> LDSSInput:
+def _secondary_human_ldss_input(turn: int = 1) -> LDSSInput:
     return build_ldss_input_from_session(
-        session_id="test-session-alain",
+        session_id=f"test-session-{_SECONDARY_HUMAN_ID}",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=turn,
-        selected_player_role="alain",
-        human_actor_id="alain",
-        npc_actor_ids=["annette", "veronique", "michel"],
-        player_input=_MVP3_LDSS_INPUTS["alain_ldss_input"],
+        selected_player_role=_SECONDARY_HUMAN_ID,
+        human_actor_id=_SECONDARY_HUMAN_ID,
+        npc_actor_ids=_npc_actor_ids_for(_SECONDARY_HUMAN_ID),
+        player_input=_MVP3_LDSS_INPUTS["secondary_human_ldss_input"],
     )
 
 
 # ---------------------------------------------------------------------------
-# Wave 1: Live turn contract — Annette and Alain
+# Wave 1: Live turn contract — playable human runtime roles
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp3
-def test_mvp3_gate_start_annette_live_scene_turn():
-    """Annette as selected player: LDSS produces valid scene turn envelope."""
-    ldss_input = _annette_ldss_input()
+def test_mvp3_gate_start_primary_human_live_scene_turn():
+    """Primary playable human role: LDSS produces valid scene turn envelope."""
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     envelope = build_scene_turn_envelope_v2(
         ldss_input=ldss_input,
         ldss_output=ldss_output,
-        story_session_id="test-session-annette",
+        story_session_id=f"test-session-{_PRIMARY_HUMAN_ID}",
         turn_number=1,
     )
 
@@ -124,35 +135,33 @@ def test_mvp3_gate_start_annette_live_scene_turn():
     assert envelope.contract == "scene_turn_envelope.v2"
     assert envelope.content_module_id == GOD_OF_CARNAGE_CONTENT_MODULE_ID
     assert envelope.runtime_profile_id == GOD_OF_CARNAGE_RUNTIME_PROFILE_ID
-    assert envelope.selected_player_role == "annette"
-    assert envelope.human_actor_id == "annette"
-    assert "alain" in envelope.npc_actor_ids
-    assert "veronique" in envelope.npc_actor_ids
-    assert "michel" in envelope.npc_actor_ids
-    assert "annette" not in envelope.npc_actor_ids
+    assert envelope.selected_player_role == _PRIMARY_HUMAN_ID
+    assert envelope.human_actor_id == _PRIMARY_HUMAN_ID
+    assert set(_npc_actor_ids_for(_PRIMARY_HUMAN_ID)).issubset(envelope.npc_actor_ids)
+    assert _PRIMARY_HUMAN_ID not in envelope.npc_actor_ids
 
     d = envelope.to_dict()
     assert d["contract"] == "scene_turn_envelope.v2"
-    assert d["human_actor_id"] == "annette"
+    assert d["human_actor_id"] == _PRIMARY_HUMAN_ID
     assert len(d["visible_scene_output"]["blocks"]) >= 2
 
 
 @pytest.mark.mvp3
-def test_mvp3_gate_start_alain_live_scene_turn():
-    """Alain as selected player: LDSS produces valid scene turn envelope."""
-    ldss_input = _alain_ldss_input()
+def test_mvp3_gate_start_secondary_human_live_scene_turn():
+    """Secondary playable human role: LDSS produces valid scene turn envelope."""
+    ldss_input = _secondary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     envelope = build_scene_turn_envelope_v2(
         ldss_input=ldss_input,
         ldss_output=ldss_output,
-        story_session_id="test-session-alain",
+        story_session_id=f"test-session-{_SECONDARY_HUMAN_ID}",
         turn_number=1,
     )
 
     assert isinstance(envelope, SceneTurnEnvelopeV2)
-    assert envelope.human_actor_id == "alain"
-    assert "annette" in envelope.npc_actor_ids
-    assert "alain" not in envelope.npc_actor_ids
+    assert envelope.human_actor_id == _SECONDARY_HUMAN_ID
+    assert _PRIMARY_HUMAN_ID in envelope.npc_actor_ids
+    assert _SECONDARY_HUMAN_ID not in envelope.npc_actor_ids
 
     d = envelope.to_dict()
     assert len(d["visible_scene_output"]["blocks"]) >= 2
@@ -169,9 +178,9 @@ def test_mvp3_gate_npcs_act_without_direct_address():
         session_id="test-session",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=2,
-        selected_player_role="annette",
-        human_actor_id="annette",
-        npc_actor_ids=["alain", "veronique", "michel"],
+        selected_player_role=_PRIMARY_HUMAN_ID,
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=_npc_actor_ids_for(_PRIMARY_HUMAN_ID),
         player_input=_MVP3_LDSS_INPUTS["npc_autonomous_scene_turn"],
     )
     ldss_output = run_ldss(ldss_input)
@@ -186,14 +195,14 @@ def test_mvp3_gate_npcs_act_without_direct_address():
 
     # NPC actors must be in allowed set
     for b in actor_blocks:
-        assert b.actor_id != "annette", "Human actor must not appear as AI-controlled speaker/actor"
+        assert b.actor_id != _PRIMARY_HUMAN_ID, "Human actor must not appear as AI-controlled speaker/actor"
         assert b.actor_id != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear in live turn blocks"
 
 
 @pytest.mark.mvp3
 def test_mvp3_gate_multiple_npcs_can_participate():
     """Multiple NPCs can participate in a single turn (NPC-to-NPC interaction)."""
-    ldss_input = _annette_ldss_input(turn=3)
+    ldss_input = _primary_human_ldss_input(turn=3)
     ldss_output = run_ldss(ldss_input)
 
     # Collect unique NPC actor ids from all blocks
@@ -224,27 +233,28 @@ def test_mvp3_gate_multiple_npcs_can_participate():
 
 @pytest.mark.mvp3
 def test_mvp3_gate_human_actor_not_generated_as_speaker():
-    """Human actor (annette) must not appear as actor_id in actor_line blocks."""
-    ldss_input = _annette_ldss_input()
+    """Human actor must not appear as actor_id in actor_line blocks."""
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
 
     for block in ldss_output.visible_scene_output.blocks:
         if block.block_type == "actor_line":
-            assert block.actor_id != "annette", (
-                f"Human actor 'annette' must not be AI-generated speaker in actor_line block: {block}"
+            assert block.actor_id != ldss_input.human_actor_id, (
+                f"Human actor {ldss_input.human_actor_id!r} must not be AI-generated speaker "
+                f"in actor_line block: {block}"
             )
 
 
 @pytest.mark.mvp3
 def test_mvp3_gate_human_actor_not_generated_as_actor():
     """Human actor must not appear as actor_id in actor_action blocks either."""
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
 
     for block in ldss_output.visible_scene_output.blocks:
         if block.block_type == "actor_action":
-            assert block.actor_id != "annette", (
-                "Human actor 'annette' must not be AI-generated actor in actor_action block"
+            assert block.actor_id != ldss_input.human_actor_id, (
+                "Human actor must not be AI-generated actor in actor_action block"
             )
 
 
@@ -255,7 +265,7 @@ def test_mvp3_gate_human_actor_not_generated_as_actor():
 @pytest.mark.mvp3
 def test_mvp3_gate_visitor_absent_from_live_turn():
     """visitor must be absent from all live scene blocks (actor_id and target_actor_id)."""
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
 
     for block in ldss_output.visible_scene_output.blocks:
@@ -272,29 +282,29 @@ def test_mvp3_gate_responder_candidates_exclude_human():
     """Human actor must not be a responder candidate."""
     # Human actor as primary responder is rejected
     result = validate_responder_candidates(
-        primary_responder_id="annette",
-        secondary_responder_ids=["veronique"],
-        human_actor_id="annette",
+        primary_responder_id=_PRIMARY_HUMAN_ID,
+        secondary_responder_ids=[_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0]],
+        human_actor_id=_PRIMARY_HUMAN_ID,
     )
     assert result.status == "rejected"
     assert result.error_code == "human_actor_selected_as_responder"
 
     # Valid plan: only NPCs
     result2 = validate_responder_candidates(
-        primary_responder_id="veronique",
-        secondary_responder_ids=["alain"],
-        human_actor_id="annette",
+        primary_responder_id=_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0],
+        secondary_responder_ids=[_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[1]],
+        human_actor_id=_PRIMARY_HUMAN_ID,
     )
     assert result2.status == "approved"
 
     # NPC agency plan from deterministic mock excludes human
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     plan = ldss_output.npc_agency_plan
     assert plan is not None
-    assert plan.primary_responder_id != "annette"
+    assert plan.primary_responder_id != ldss_input.human_actor_id
     for sec in plan.secondary_responder_ids:
-        assert sec != "annette"
+        assert sec != ldss_input.human_actor_id
 
 
 # ---------------------------------------------------------------------------
@@ -304,19 +314,20 @@ def test_mvp3_gate_responder_candidates_exclude_human():
 @pytest.mark.mvp3
 def test_mvp3_gate_actor_lane_validation_before_commit():
     """Actor-lane validation rejects human actor control without committing illegal state."""
-    human_id = "annette"
+    human_id = _PRIMARY_HUMAN_ID
+    valid_npc_id = _npc_actor_ids_for(human_id)[0]
     illegal_block = SceneBlock(
         id="test-illegal",
         block_type="actor_line",
-        speaker_label="Annette",
-        actor_id="annette",  # human actor — forbidden
+        speaker_label=goc_role_display_name(human_id),
+        actor_id=human_id,  # human actor — forbidden
         text="I agree with everything you said.",
     )
     valid_block = SceneBlock(
         id="test-valid",
         block_type="actor_line",
-        speaker_label="Véronique",
-        actor_id="veronique",
+        speaker_label=goc_role_display_name(valid_npc_id),
+        actor_id=valid_npc_id,
         text="You keep turning this into a legal question.",
     )
 
@@ -326,7 +337,7 @@ def test_mvp3_gate_actor_lane_validation_before_commit():
     )
     assert illegal_result.status == "rejected"
     assert illegal_result.error_code == "ai_controlled_human_actor"
-    assert illegal_result.actor_id == "annette"
+    assert illegal_result.actor_id == human_id
 
     # Approval of valid NPC block
     valid_result = validate_actor_lane_blocks(
@@ -367,8 +378,8 @@ def test_mvp3_gate_dramatic_validation_before_commit():
         SceneBlock(
             id="test-actor",
             block_type="actor_line",
-            speaker_label="Véronique",
-            actor_id="veronique",
+            speaker_label=goc_role_display_name(_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0]),
+            actor_id=_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0],
             text="That is not acceptable.",
         )
     ]
@@ -383,7 +394,7 @@ def test_mvp3_gate_dramatic_validation_before_commit():
 @pytest.mark.mvp3
 def test_mvp3_gate_response_packaged_from_committed_state():
     """Scene turn envelope is built from validated LDSS output, not raw AI output."""
-    ldss_input = _annette_ldss_input(turn=5)
+    ldss_input = _primary_human_ldss_input(turn=5)
     ldss_output = run_ldss(ldss_input)
     envelope = build_scene_turn_envelope_v2(
         ldss_input=ldss_input,
@@ -405,13 +416,13 @@ def test_mvp3_gate_response_packaged_from_committed_state():
     # Actor lane enforcement is traceable
     lane_diag = d["diagnostics"]["actor_lane_enforcement"]
     assert lane_diag["validation_ran_before_commit"] is True
-    assert lane_diag["human_actor_id"] == "annette"
-    assert "annette" in lane_diag["ai_forbidden_actor_ids"]
+    assert lane_diag["human_actor_id"] == ldss_input.human_actor_id
+    assert ldss_input.human_actor_id in lane_diag["ai_forbidden_actor_ids"]
 
     # Response blocks come from validated output
     blocks = d["visible_scene_output"]["blocks"]
     for block in blocks:
-        assert block["actor_id"] != "annette", "Human actor must not appear in packaged response"
+        assert block["actor_id"] != ldss_input.human_actor_id, "Human actor must not appear in packaged response"
         assert block["actor_id"] != FORBIDDEN_RUNTIME_ACTOR_ID, "visitor must not appear in packaged response"
 
 
@@ -422,14 +433,14 @@ def test_mvp3_gate_response_packaged_from_committed_state():
 @pytest.mark.mvp3
 def test_mvp3_gate_invalid_ai_human_control_rejected_without_commit():
     """When AI would control human actor, rejection returns structured error without commit."""
-    human_id = "annette"
+    human_id = _PRIMARY_HUMAN_ID
     # Simulate AI-generated block with human actor
     illegal_blocks = [
         SceneBlock(
             id="illegal-1",
             block_type="actor_line",
-            speaker_label="Annette",
-            actor_id="annette",
+            speaker_label=goc_role_display_name(human_id),
+            actor_id=human_id,
             text="You're absolutely right, I apologize.",
         )
     ]
@@ -438,7 +449,7 @@ def test_mvp3_gate_invalid_ai_human_control_rejected_without_commit():
     assert result.error_code == "ai_controlled_human_actor"
 
     # run_ldss must not produce human actor in blocks
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     for block in ldss_output.visible_scene_output.blocks:
         assert block.actor_id != human_id, (
@@ -473,7 +484,7 @@ def test_mvp3_gate_too_thin_mock_output_recovered_or_rejected_without_commit():
     assert passivity_result.error_code == "no_visible_actor_response"
 
     # run_ldss never produces thin output (deterministic mock always has NPC response)
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     passivity_final = validate_passivity(ldss_output.visible_scene_output.blocks)
     assert passivity_final.status == "approved", (
@@ -488,15 +499,15 @@ def test_mvp3_gate_too_thin_mock_output_recovered_or_rejected_without_commit():
 @pytest.mark.mvp3
 def test_mvp3_gate_fallback_output_satisfies_validation():
     """Deterministic mock/fallback output passes all MVP3 validators."""
-    ldss_input = _annette_ldss_input()
+    ldss_input = _primary_human_ldss_input()
     ldss_output = run_ldss(ldss_input)
     blocks = ldss_output.visible_scene_output.blocks
 
     # Actor lane validation passes
     lane_result = validate_actor_lane_blocks(
         blocks,
-        human_actor_id="annette",
-        ai_forbidden_actor_ids=["annette"],
+        human_actor_id=ldss_input.human_actor_id,
+        ai_forbidden_actor_ids=[ldss_input.human_actor_id],
     )
     assert lane_result.status == "approved", f"Lane validation failed: {lane_result.message}"
 
@@ -524,7 +535,7 @@ def test_mvp3_gate_fallback_output_satisfies_validation():
 @pytest.mark.mvp3
 def test_mvp3_gate_trace_header_preserved_on_story_turn():
     """SceneTurnEnvelope diagnostics include story_session_id and turn_number (trace context)."""
-    ldss_input = _annette_ldss_input(turn=7)
+    ldss_input = _primary_human_ldss_input(turn=7)
     ldss_output = run_ldss(ldss_input)
     envelope = build_scene_turn_envelope_v2(
         ldss_input=ldss_input,
@@ -591,7 +602,7 @@ def test_similar_allowed_requires_similarity_reason():
     env_block = SceneBlock(
         id="test-env",
         block_type="environment_interaction",
-        actor_id="alain",
+        actor_id=_SECONDARY_HUMAN_ID,
         object_id="mobile_phone",
         affordance_tier="similar_allowed",
         text=_env["block_text"],
@@ -616,7 +627,7 @@ def test_rejects_unadmitted_plausible_object():
     knife_block = SceneBlock(
         id="test-knife",
         block_type="environment_interaction",
-        actor_id="veronique",
+        actor_id=_npc_actor_ids_for(_PRIMARY_HUMAN_ID)[0],
         object_id="knife",
         affordance_tier="canonical",
         text=_knife["block_text"],
@@ -634,7 +645,7 @@ def test_canonical_object_affordance_approved():
     phone_block = SceneBlock(
         id="test-phone",
         block_type="environment_interaction",
-        actor_id="alain",
+        actor_id=_SECONDARY_HUMAN_ID,
         object_id="mobile_phone",
         affordance_tier="canonical",
         text=_phone["block_text"],
@@ -678,21 +689,8 @@ def test_mvp3_gate_non_goc_session_has_no_scene_envelope():
     Non-GoC sessions have no human_actor_id in projection → returns None → no envelope.
     Full execution is proven in world-engine/tests/test_mvp3_ldss_integration.py.
     """
-    from pathlib import Path
-
     repo_root = Path(__file__).resolve().parent.parent.parent
-
-    # Structural proof: _build_ldss_scene_envelope guards on human_actor_id
     manager_path = repo_root / "world-engine" / "app" / "story_runtime" / "manager.py"
-    source = manager_path.read_text()
-
-    # Prove early return when human_actor_id is empty
-    assert "human_actor_id" in source
-    # The function returns None when human_actor_id is not set
-    # (non-GoC or non-solo sessions have no human_actor_id in projection)
     ldss_path = repo_root / "ai_stack" / "live_dramatic_scene_simulator.py"
-    source = ldss_path.read_text()
-    # Prove LDSSInput extracts human_actor_id correctly
-    assert "human_actor_id" in source
-
-
+    assert_ldss_scene_envelope_requires_human_actor(manager_path)
+    assert_ldss_input_builder_preserves_human_actor_id(ldss_path)

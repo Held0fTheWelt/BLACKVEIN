@@ -82,9 +82,9 @@ Each row satisfies the plan’s evidence fields. **N = 22** findings in this wav
 | # | Gate file | Test or block | Lines (approx.) | Assertion / oracle excerpt | A–D | strict-contractual vs oracle-tight | Why not “merely strict” (if flagged) | safe_to_refactor | suggested_replacement_oracle |
 |---|-------------|---------------|-------------------|-----------------------------|-------|-----------------------------------|--------------------------------------|------------------|------------------------------|
 | 1 | `test_goc_mvp01_mvp02_foundation_gate.py` | (method testing builtin template title) | 45 | `assert template.title == "God of Carnage"` | D | oracle-tight | Duplicates display title that likely already lives in canonical module YAML; drift if marketing copy changes. | yes | Load `module.yaml` (or template loader) and assert equality to `doc["content"]["title"]` (or documented field path). |
-| 2 | `test_goc_mvp01_mvp02_foundation_gate.py` | playable roles / characters | 72–74, 138–139 | `"annette"`, `"alain"` in `role_ids` / `characters` | B | strict-contractual | IDs match GoC authority; keep rule, reduce duplication by deriving expected set from loaded YAML `characters` keys intersect `playable`. | partial | Single helper `expected_playable_human_ids(module_doc)` used by all assertions. |
+| 2 | `test_goc_mvp01_mvp02_foundation_gate.py` | playable roles / characters | 72–74, 138–139 | playable ids derived from runtime-profile contract and canonical `characters.yaml` | B | **addressed wave 04** | IDs match GoC authority; assertions now compare runtime-profile-derived playable humans to canonical content instead of restating actor ids in the gate. | done | **Wave 04:** `GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS` / `GOD_OF_CARNAGE_RUNTIME_ACTOR_IDS` derived from `goc_solo_role_templates()`, then checked against canonical module YAML. |
 | 3 | `test_goc_mvp01_mvp02_foundation_gate.py` | visitor prohibition | 59, 74, 147, 179, 185 | `assert "visitor" not in ...` | B | strict-contractual | Hard ID check tied to ADR/MVP safety. | no | Keep; optionally centralize constant `FORBIDDEN_ACTOR_ID = "visitor"`. |
-| 4 | `test_goc_mvp03_live_dramatic_scene_simulator_gate.py` | `_annette_ldss_input` / NPC autonomous turn | — | `player_input` from `tests/gates/fixtures/mvp3_ldss_player_inputs.yaml` (keys `annette_ldss_input`, `alain_ldss_input`, `npc_autonomous_scene_turn`) | C | **addressed wave 03** | Same prose, versioned fixture + `copy.deepcopy` load; no semantic change. | done | **Wave 03:** `mvp3_ldss_player_inputs.yaml` via `gate_fixtures.load_yaml`. |
+| 4 | `test_goc_mvp03_live_dramatic_scene_simulator_gate.py` | `_primary_human_ldss_input` / NPC autonomous turn | — | `player_input` from `tests/gates/fixtures/mvp3_ldss_player_inputs.yaml` (keys `primary_human_ldss_input`, `secondary_human_ldss_input`, `npc_autonomous_scene_turn`) | C | **addressed wave 03 + 04** | Same prose, versioned fixture + `copy.deepcopy` load; wave 04 also removed actor-name key coupling from the Python gate. | done | **Wave 03:** `mvp3_ldss_player_inputs.yaml` via `gate_fixtures.load_yaml`; **Wave 04:** actor lanes derive from runtime role helpers. |
 | 5 | `test_goc_mvp03_live_dramatic_scene_simulator_gate.py` | `test_narrator_rejects_dialogue_recap` | 528–531 | `bad_text = "Véronique and Alain argue..."` then `status`/`error_code` | C | oracle-tight | Validator contract is **error_code**; prose is arbitrary example — brittle if heuristics tighten/loosen on different wording. | yes | Move strings to `tests/fixtures/narrator_voice_negative_cases.json` or generate minimal counterexamples from rules table documented next to validator. |
 | 6 | `test_goc_mvp03_live_dramatic_scene_simulator_gate.py` | `test_narrator_modal_language_does_not_force_player_state` | 537–540 | `bad_text = "You decide that Alain is right..."` | C | oracle-tight | Same as row 5. | yes | Shared fixture file + parameterized test. |
 | 7 | `test_goc_mvp03_live_dramatic_scene_simulator_gate.py` | `test_narrator_cannot_reveal_hidden_npc_intent` | 546–549 | `bad_text = "You can see through Alain's composure;..."` | C | oracle-tight | Same as row 5. | yes | Same. |
@@ -198,6 +198,20 @@ Heuristic greps as suggested in the plan were applied under `tests/gates/` for: 
 - `python tests/run_tests.py --suite gates` — **93 passed, 0 failed** in ~33s (`============================= 93 passed in 32.65s =============================`).
 - `python tests/run_tests.py --suite engine --quick` — **1286 passed, 0 failed** in ~210s (`1286 passed in 209.52s`).
 - `cd administration-tool; python -m pytest tests/test_manage_routes.py -q --no-cov` — **not run** (no `administration-tool` changes this wave).
+
+### Wave 4 (completed)
+
+**Rows addressed:** 2; MVP3 non-GoC LDSS guard; MVP4 runner / marker registration probes.
+
+**Rows deferred:** none.
+
+**Summary:**
+
+- **Row 2:** GoC playable-human and runtime-actor expectations now derive from `goc_solo_role_templates()` and are checked against canonical `module.yaml` / `characters.yaml`; the foundation gate no longer repeats concrete actor ids as local oracles.
+- **MVP3:** Actor-lane assertions now derive the selected human, non-selected AI actors, and display names from the runtime profile contract. The non-GoC LDSS guard test uses AST helpers for `_build_ldss_scene_envelope` and `build_ldss_input_from_session`, replacing raw `read_text()` substring probes.
+- **MVP4:** Diagnostics gates derive actor ownership from the same runtime-profile helpers. `tests/run_tests.py --mvp4` is checked via AST argparse/preset structure, and marker registration is checked by parsing pytest INI files instead of substring matching.
+
+**Test results:** see current implementation run notes for the latest green gate subset.
 
 ---
 

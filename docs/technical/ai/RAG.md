@@ -31,6 +31,7 @@ Without explicit **domains** and **governance lanes**, draft notes and evaluatio
 ## Neighbors
 
 - **LangGraph:** `retrieve_context` node uses `RetrievalDomain.RUNTIME` and profile `runtime_turn_support`.
+- **Context synthesis:** the `synthesize_context` graph node consumes retrieval output plus director/runtime state and emits a `ContextSynthesisBundle` for non-authoritative prompt support and diagnostics.
 - **LangChain:** Writers’ Room retriever bridge uses `RetrievalDomain.WRITERS_ROOM` / `writers_review` (`ai_stack/langchain_integration/bridges.py`).
 - **Capabilities:** `wos.context_pack.build` accepts a payload `domain` (defaults to `runtime`) when assembling packs (`ai_stack/capabilities.py`).
 - **Research store:** persisted research artifacts (`.wos/research/`) are a **different** subsystem from the RAG corpus; research **retrieval domain** in RAG is defined for consistent policy when callers use `RetrievalDomain.RESEARCH`.
@@ -46,6 +47,32 @@ Without explicit **domains** and **governance lanes**, draft notes and evaluatio
 | **Retrieved chunks** | `.wos/rag/` corpus rows | **Hints and citations** for prompts; may include drafts, transcripts, and docs under policy. |
 
 **Inference:** Product policy could elevate other paths; the **default** engineering assumption in code is: retrieval **never** auto-writes canon or session truth.
+
+---
+
+## Downstream context synthesis
+
+RAG stops at ranked evidence and compact context. The live graph adds a separate deterministic synthesis step after retrieval and director selection:
+
+```text
+retrieve_context
+→ director_assess_scene
+→ director_select_dramatic_parameters
+→ synthesize_context
+→ assemble_model_context
+→ route_model
+```
+
+`synthesize_context` consumes retrieval rows, `context_text`, director scene assessment, semantic/social records, hierarchical memory, validation feedback, and the runtime aspect ledger. It emits evidence items, obligations, conflicts, gaps, lane mix, and a bounded diagnostics summary under `graph_diagnostics.context_synthesis`.
+
+Authority boundary:
+
+- The synthesis bundle may influence the model prompt.
+- It must remain `proposal_support_only`.
+- It must not write canon, decide committed state, produce final story text, or mark a live turn healthy.
+- Validator, commit seam, and world-engine session authority remain the source of runtime truth.
+
+Tests for this layer assert contract shape, provenance, diagnostic fields, and forbidden truth fields rather than hardcoded narrative prose, matching ADR-0039.
 
 ---
 

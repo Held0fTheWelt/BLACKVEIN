@@ -23,6 +23,7 @@ from enum import Enum
 from typing import Any, Generator, Optional
 from uuid import uuid4
 
+from ai_stack.npc_agency_contracts import npc_initiatives_from_plan
 from ai_stack.runtime_cost_attribution import build_deterministic_phase_cost
 
 logger = logging.getLogger(__name__)
@@ -323,9 +324,7 @@ class NarrativeRuntimeAgent:
         if not isinstance(npc_plan, dict):
             npc_plan = {}
 
-        initiatives = npc_plan.get("initiatives", [])
-        if not isinstance(initiatives, list):
-            initiatives = []
+        initiatives = npc_initiatives_from_plan(npc_plan)
 
         # Count unresolved initiatives (filter for valid dicts)
         remaining = 0
@@ -335,10 +334,11 @@ class NarrativeRuntimeAgent:
         for initiative in initiatives:
             if not isinstance(initiative, dict):
                 continue
-            all_actors.add(initiative.get("actor_id", "unknown"))
+            actor_id = str(initiative.get("actor_id") or "unknown").strip() or "unknown"
+            all_actors.add(actor_id)
             if not initiative.get("resolved"):
                 remaining += 1
-                initiative_actors.add(initiative.get("actor_id", "unknown"))
+                initiative_actors.add(actor_id)
 
         # Calculate pressure score based on motivation intensity and count
         pressure = 0.0

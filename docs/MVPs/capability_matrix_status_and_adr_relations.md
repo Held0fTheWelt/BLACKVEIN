@@ -14,6 +14,8 @@ Implementation report for the Π6 / modular runtime-intelligence completion:
 
 Π5 completion note: The active runtime does not ship a standalone ToT/Reflexion product surface. Its implemented Π5 scope is the bounded live-turn self-correction loop in LangGraph: parser/validation failures plus runtime-aspect authority and dramatic capability failures are converted into feedback-coded rewrites, then exposed through path summaries, Langfuse spans, and score metadata.
 
+Π9 completion note: The active runtime now ships a standalone, deterministic **context synthesis** layer between retrieval/director state and model routing. It consumes `retrieval`, `context_text`, director scene assessment, semantic/social records, hierarchical memory, validation feedback, and the runtime aspect ledger, then emits a `ContextSynthesisBundle` with evidence items, obligations, conflicts, gaps, lane mix, and bounded diagnostics. This is **proposal-support only**: it may shape the model prompt, but it does not decide committed truth, produce final story text, mutate canon, or bypass validation/commit. The implementation is anchored in `[ai_stack/context_synthesis_contracts.py](../../ai_stack/context_synthesis_contracts.py)`, `[ai_stack/context_synthesis_engine.py](../../ai_stack/context_synthesis_engine.py)`, and the `synthesize_context` node in `[ai_stack/langgraph_runtime_executor.py](../../ai_stack/langgraph_runtime_executor.py)`.
+
 ### Gate test oracle policy (cross-cutting)
 
 Promotion and validation are meaningless if gate tests **encode accidental output** instead of declared contracts. **[ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md)** forbids hardcoded literals as the **primary** oracle for gate and promotion-style regression tests; expectations must trace to schema, OpenAPI, canonical authored content ([ADR-0025](../ADR/adr-0025-canonical-authored-content-model.md)), or reviewable baselines. This tightens how we read **[ADR-0008](../ADR/adr-0008-validation-strategy-explicit-configurable.md)** (strategy-specific tests must still be honest) and **[ADR-0009](../ADR/adr-0009-evaluation-is-a-promotion-gate.md)** (evaluation evidence must not be “string-matched theatre”).
@@ -293,9 +295,9 @@ The frontend may display this **if** the API exposes it; **Langfuse and the back
 | Π4        | MCP                                                                                                    | `tools/mcp_server/`, `ai_stack/mcp_*`                                   | implemented (MCP M1/operator surface) | Canonical descriptor-derived tool surface, resources/prompts, profile-gated write tools, stable rate limiting, and Langfuse verify/tracing are implemented; MCP remains an operator/diagnostics/control surface, not the full runtime boundary for all game systems. |
 | Π5        | “Modern AI” meta-reasoning                                                                             | `langgraph_runtime_executor.py`, `story_runtime_playability.py`, Langfuse self-correction evidence, judges | implemented (bounded runtime loop) | Bounded self-correction now covers parser/validation failures plus narrator/NPC authority and dramatic capability failures before final validation; no separate ToT/Reflexion product surface. |
 | Π6        | Governance                                                                                             | `live_runtime_commit_semantics.py`, `governed_runtime.py`, `manager.py`, `RuntimeAspectLedger`, `ModuleRuntimePolicy.runtime_governance_policy` | implemented                    | Commit-bound modular runtime governance for live truth, route family, aspect ledger, beat/capability/authority/visible projection, Langfuse, and MCP evidence. |
-| Π7        | Multi-agent NPC                                                                                        | `scene_director_goc.py`, `character_mind_goc.py`, telemetry             | partial                        | First partial runtime projection: `npc_agency_plan.v1` / `npc_initiative_realization_v1` trace selected NPC initiative; still not a full multi-agent simulation. |
+| Π7        | Multi-agent NPC                                                                                        | `scene_director_goc.py`, `character_mind_goc.py`, `npc_agency_contracts.py`, `npc_agency_realization.py`, `narrative_runtime_agent.py`, telemetry | partial                        | Partial runtime contract now normalizes `npc_agency_plan.v1`, accepts legacy `initiatives`, validates required NPC realization, and emits `npc_initiative_realization_v1`; still missing independent planning, carry-forward, self-correction integration, and operator closure for a full multi-agent simulation. |
 | Π8        | Contingency / future trees                                                                             | `story_runtime_core/branching/`*, `branching_forecast.v1`, threads      | partial                        | Bounded live-turn forecast is emitted from committed truth with Langfuse/runtime projection evidence; not a full multi-turn simulation tree. |
-| Π9        | Context synthesis                                                                                      | `rag_context_pack_*`, `_assemble_model_context`                         | partial                        | Assembly ≠ full “synthesis” engine.                                               |
+| Π9        | Context synthesis                                                                                      | `context_synthesis_contracts.py`, `context_synthesis_engine.py`, `synthesize_context`, `graph_diagnostics.context_synthesis`, `rag_context_pack_*`, `_assemble_model_context` | implemented (proposal-support engine) | Deterministic evidence/obligation/conflict/gap synthesis is wired into the live graph before model routing. It is non-authoritative prompt support, not commit truth, canon mutation, or final story generation. |
 | Π10       | Voice consistency                                                                                      | content + `character_mind_goc.py`, eval                                 | partial                        | Records/judges; weak enforcement loop.                                            |
 | Π11       | Scene energy                                                                                           | `build_pacing_and_silence`, `scene_plan_contract`                       | partial                        | No `SceneEnergy` system type.                                                     |
 | Π12       | Thematic tracking                                                                                      | content / YAML hints                                                    | not_found_in_source            | No theme tracker in code.                                                         |
@@ -336,10 +338,12 @@ These names now have first-class runtime contracts or projection fields. Rows th
 - `BeatState`, `BeatCandidate`, `BeatSelection`, `BeatTransition`, `BeatRealization`, `BeatValidation`
 - `NarratorAuthorityContract`, `NpcAuthorityContract`, `npc_takeover_absent`, `narrator_required_when_expected`
 - `PlayerRuntimeCapability`, `NarratorRuntimeCapability`, `NpcRuntimeCapability`, `CapabilitySelection`, `CapabilityRealization`, `CapabilityViolation`
+- `NPCAgencyPlan`, `NPCInitiative`, `npc_agency_plan.v1`, `npc_initiative_realization_v1`, `npc_initiative_validation_v1` (partial Pi7 proof surface only; not a full multi-agent planner)
 - `RuntimeAspectLedger` / `turn_aspect_ledger` (single place tying **selected** beat/capability/authority → **visible** blocks)
 - `HierarchicalMemoryTierPolicy`, `HierarchicalMemoryItem`, `HierarchicalMemoryWriteResult`, `hierarchical_memory` aspect (policy-driven, committed-turn-only, bounded context projection)
+- `ContextSynthesisBundle`, `ContextEvidenceItem`, `SynthesisObligation`, `SynthesisConflict`, `SynthesisGap`, `graph_diagnostics.context_synthesis` (deterministic proposal-support context layer; never a commit authority)
 
-**Related fragments that still feed the aspect layer:** `semantic_move`, `scene_function`, `pacing_mode`, `silence_brevity_decision`, `selected_responder_set`, `character_mind_records`, `social_state_record`, `dramatic_effect_gate`, `visible_output_bundle`, `p0_action_resolution_evidence`.
+**Related fragments that still feed the aspect layer and synthesis layer:** `retrieval`, `context_text`, `semantic_move`, `scene_function`, `pacing_mode`, `silence_brevity_decision`, `selected_responder_set`, `character_mind_records`, `social_state_record`, `dramatic_effect_gate`, `visible_output_bundle`, `p0_action_resolution_evidence`.
 
 ---
 
@@ -355,6 +359,33 @@ Latest local verification recorded for the modular runtime-intelligence work:
 - `python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q` → 29 passed.
 
 The full backend suite was also run during parallel Quality Lab work and finished with 4390 passed, 2 skipped, 3 unrelated 401 failures in forum/M11 observability tests. Treat that result as a moving-worktree snapshot, not as a Π6 blocker.
+
+---
+
+## Local verification snapshot for Π7 / NPC agency partial slice
+
+Latest local verification recorded for the partial NPC agency contract and realization work:
+
+- `python -m py_compile ai_stack/npc_agency_contracts.py ai_stack/npc_agency_realization.py ai_stack/actor_survival_telemetry.py ai_stack/narrative_runtime_agent.py ai_stack/langgraph_runtime_executor.py` → passed.
+- `pytest ai_stack/tests/test_npc_agency_contracts.py ai_stack/tests/test_narrative_runtime_agent.py ai_stack/tests/test_vitality_telemetry_v1.py ai_stack/tests/test_wave3_multi_actor_vitality.py -q` → 97 passed.
+- `pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q` → 3 passed.
+
+This evidence closes only the contract/normalization/realization slice. It must **not** promote Π7 to `implemented` until the runtime has an independent NPC agency planner, missing-required feedback wired into generation retry, unresolved initiative carry-forward, and operator/Langfuse closure around planned vs. realized NPC initiative.
+
+---
+
+## Local verification snapshot for Π9 / context synthesis
+
+Latest local verification recorded for the deterministic context-synthesis work:
+
+- `python -m py_compile ai_stack/context_synthesis_contracts.py ai_stack/context_synthesis_engine.py ai_stack/langgraph_runtime_executor.py ai_stack/langgraph_runtime_package_output.py ai_stack/langgraph_runtime_state.py` → passed.
+- `python -m pytest ai_stack/tests/test_context_synthesis_engine.py -q --tb=short` → 3 passed.
+- `python -m pytest ai_stack/tests/test_langgraph_runtime.py -q --tb=short` → 14 passed.
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py -q --tb=short` → 3 passed.
+- `python -m pytest ai_stack/tests/test_langgraph_state_schema.py -q --tb=short` → 20 passed.
+- `python -m pytest ai_stack/tests/test_retrieval_governance_wiring.py -q --tb=short` → 26 passed.
+
+The tests assert structure, provenance, authority boundaries, diagnostics, and graph wiring rather than expected narrative prose, in line with ADR-0039.
 
 ---
 

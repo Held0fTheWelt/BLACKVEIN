@@ -149,6 +149,14 @@ def load_goc_character_voice_yaml() -> dict[str, Any]:
     return ch if isinstance(ch, dict) else {}
 
 
+def load_goc_voice_consistency_yaml() -> dict[str, Any]:
+    """Load the global voice consistency policy from character_voice.yaml."""
+    path = goc_module_yaml_dir() / "direction" / "character_voice.yaml"
+    data = _safe_load_yaml_mapping(path)
+    policy = data.get("voice_consistency")
+    return policy if isinstance(policy, dict) else {}
+
+
 def load_goc_scene_guidance_yaml() -> dict[str, Any]:
     """Load direction/scene_guidance.yaml (multi-document YAML merged).
     
@@ -326,6 +334,7 @@ def load_goc_yaml_slice_bundle() -> dict[str, Any]:
     return {
         "characters": load_goc_characters_yaml(),
         "character_voice": load_goc_character_voice_yaml(),
+        "voice_consistency": load_goc_voice_consistency_yaml(),
         "scene_guidance": load_goc_scene_guidance_yaml(),
         "opening_sequence": load_goc_opening_sequence_yaml(),
         "scene_phases": load_goc_scene_phases_yaml(),

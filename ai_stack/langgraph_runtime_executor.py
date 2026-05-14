@@ -32,6 +32,12 @@ from ai_stack.rag_retrieval_dtos import (
 )
 from ai_stack.rag_types import RetrievalDomain
 from ai_stack.retrieval_governance_summary import attach_retrieval_governance_summary
+from ai_stack.context_synthesis_engine import (
+    build_context_synthesis_bundle,
+    build_context_synthesis_error_bundle,
+    context_synthesis_prompt_lines,
+    summarize_context_synthesis_for_diagnostics,
+)
 from ai_stack.operational_profile import build_operational_cost_hints_for_runtime_graph
 from ai_stack.runtime_turn_contracts import (
     ADAPTER_INVOCATION_DEGRADED_NO_FALLBACK,
@@ -51,6 +57,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INPUT,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
     make_aspect_record,
@@ -85,8 +92,11 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
 )
+from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
+from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
+from ai_stack.character_voice_validation import validate_voice_consistency
 from ai_stack.scene_director_goc import (
     build_pacing_and_silence,
     build_responder_and_function,
@@ -738,6 +748,121 @@ def _build_authority_aspect_records(
     return narrator_record, npc_record
 
 
+def _voice_validation_mode_from_state(state: "RuntimeTurnState") -> str:
+    raw = str(
+        state.get("validation_execution_mode")
+        or state.get("validation_mode")
+        or "schema_plus_semantic"
+    ).strip().lower()
+    if raw not in {"schema_only", "schema_plus_semantic", "strict_rule_engine"}:
+        return "schema_plus_semantic"
+    return raw
+
+
+def _voice_profiles_from_state(state: "RuntimeTurnState") -> list[dict[str, Any]]:
+    profiles = state.get("character_voice_profiles")
+    if isinstance(profiles, list) and profiles:
+        return [row for row in profiles if isinstance(row, dict)]
+    if str(state.get("module_id") or "") != GOC_MODULE_ID:
+        return []
+    yslice = state.get("goc_yaml_slice") if isinstance(state.get("goc_yaml_slice"), dict) else None
+    if yslice is None:
+        try:
+            yslice = load_goc_yaml_slice_bundle()
+        except Exception:
+            yslice = None
+    active_keys: list[str] = []
+    minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
+    for row in minds:
+        if not isinstance(row, dict):
+            continue
+        key = str(row.get("character_key") or "").strip()
+        if key and key not in active_keys:
+            active_keys.append(key)
+    if not active_keys:
+        active_keys = _derive_active_character_keys(
+            yaml_slice=yslice,
+            primary_responder=(
+                state.get("selected_responder_set", [{}])[0]
+                if isinstance(state.get("selected_responder_set"), list)
+                and state.get("selected_responder_set")
+                and isinstance(state.get("selected_responder_set", [None])[0], dict)
+                else {}
+            ),
+            module_id=str(state.get("module_id") or ""),
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+    return [
+        profile.to_runtime_dict()
+        for profile in build_character_voice_profiles_for_goc(
+            yaml_slice=yslice,
+            active_character_keys=active_keys,
+            current_scene_id=str(state.get("current_scene_id") or ""),
+            module_id=str(state.get("module_id") or ""),
+        )
+    ]
+
+
+def _voice_consistency_validation(
+    *,
+    state: "RuntimeTurnState",
+    generation: dict[str, Any],
+) -> dict[str, Any]:
+    meta = generation.get("metadata") if isinstance(generation.get("metadata"), dict) else {}
+    structured = meta.get("structured_output") if isinstance(meta.get("structured_output"), dict) else {}
+    result = validate_voice_consistency(
+        structured_output=structured,
+        voice_profiles=_voice_profiles_from_state(state),
+        validation_mode=_voice_validation_mode_from_state(state),
+    )
+    return result.to_runtime_dict()
+
+
+def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
+    status = str(result.get("status") or "not_applicable").strip().lower()
+    findings = result.get("findings") if isinstance(result.get("findings"), list) else []
+    blocking = result.get("blocking_findings") if isinstance(result.get("blocking_findings"), list) else []
+    applicable = status != "not_applicable"
+    aspect_status = "not_applicable"
+    if status == "rejected":
+        aspect_status = "failed"
+    elif status == "approved" and findings:
+        aspect_status = "partial"
+    elif status == "approved":
+        aspect_status = "passed"
+    first_blocking = blocking[0] if blocking and isinstance(blocking[0], dict) else {}
+    first_finding = findings[0] if findings and isinstance(findings[0], dict) else {}
+    failure_reason = "voice_consistency_drift" if status == "rejected" else None
+    return make_aspect_record(
+        applicable=applicable,
+        status=aspect_status,
+        expected={
+            "policy_present": bool(result.get("policy_sources")),
+            "validation_mode": result.get("validation_mode"),
+            "profiles_required_for_spoken_lines": True,
+            "borrowed_canonical_dialogue_examples_forbidden": True,
+        },
+        actual={
+            "validation_status": status,
+            "reason": result.get("reason"),
+            "profiles_checked": int(result.get("profiles_checked") or 0),
+            "spoken_line_count": int(result.get("spoken_line_count") or 0),
+            "finding_count": len(findings),
+            "blocking_finding_count": len(blocking),
+            "findings": findings[:6],
+        },
+        reasons=[failure_reason] if failure_reason else [],
+        source="validator",
+        failure_class="recoverable_dramatic_failure" if failure_reason else None,
+        failure_reason=failure_reason,
+        offending_actor_id=str(first_blocking.get("speaker_id") or first_finding.get("speaker_id") or "").strip() or None,
+        actual_owner=str(first_blocking.get("actual_source_actor_id") or "").strip() or None,
+        expected_owner=str(first_blocking.get("expected_profile_actor_id") or "").strip() or None,
+    )
+
+
 def _build_runtime_aspect_validation(
     *,
     state: "RuntimeTurnState",
@@ -778,6 +903,13 @@ def _build_runtime_aspect_validation(
         authority_ledger,
         ASPECT_NPC_AUTHORITY,
         npc_authority,
+    )
+    voice_validation = _voice_consistency_validation(state=state, generation=generation)
+    voice_record = _voice_aspect_record(voice_validation)
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_VOICE_CONSISTENCY,
+        voice_record,
     )
     capability_selection = build_capability_selection_record(
         interpreted_input=state.get("interpreted_input")
@@ -918,6 +1050,27 @@ def _build_runtime_aspect_validation(
             "recoverable_rejection": True,
             "capability_failure": capability_failure,
         }
+    elif (
+        voice_validation.get("status") == "rejected"
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": "voice_consistency_drift",
+            "error_code": "voice_consistency_drift",
+            "validator_lane": "runtime_voice_consistency_v1",
+            "voice_consistency_validation": voice_validation,
+            "voice_consistency_contract_violation": True,
+            "failure_class": "recoverable_dramatic_failure",
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+        }
+    else:
+        next_outcome = {
+            **next_outcome,
+            "voice_consistency_validation": voice_validation,
+        }
 
     validation_failed = str(next_outcome.get("status") or "").strip().lower() != "approved"
     authority_ledger = set_aspect_record(
@@ -933,6 +1086,9 @@ def _build_runtime_aspect_validation(
                 "validator_lane": next_outcome.get("validator_lane"),
                 "authority_contract_violation": bool(next_outcome.get("authority_contract_violation")),
                 "capability_contract_violation": bool(next_outcome.get("capability_contract_violation")),
+                "voice_consistency_contract_violation": bool(next_outcome.get("voice_consistency_contract_violation")),
+                "voice_consistency_status": voice_validation.get("status"),
+                "voice_consistency_reason": voice_validation.get("reason"),
                 "recoverable_rejection": bool(next_outcome.get("recoverable_rejection")),
                 "hard_boundary_failure": bool(next_outcome.get("hard_boundary_failure")),
             },
@@ -976,6 +1132,7 @@ def _build_runtime_aspect_validation(
         "narrator_authority": narrator_authority,
         "npc_authority": npc_authority,
         "capability_selection": capability_selection,
+        "voice_consistency_validation": voice_validation,
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
     }
@@ -1598,6 +1755,20 @@ def _build_npc_agency_plan_projection(
         "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
         "npc_initiatives": initiatives,
     }
+    plan = normalize_npc_agency_plan(
+        plan,
+        selected_primary_responder_id=primary_id,
+        selected_secondary_responder_ids=secondary_ids,
+        preferred_reaction_order_ids=responder_ids,
+        actor_lane_context=state.get("actor_lane_context")
+        if isinstance(state.get("actor_lane_context"), dict)
+        else None,
+        turn_number=state.get("turn_number"),
+    )
+    if not plan:
+        return None, None
+    required_actor_ids = list(plan.get("required_actor_ids") or [])
+    secondary_ids = list(plan.get("secondary_responder_ids") or [])
     directives = {
         "contract": "npc_initiative_directives.v1",
         "contract_status": "partial_runtime_projection",
@@ -1643,6 +1814,20 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "formal_role_label": row.get("formal_role_label"),
                 "tactical_posture": row.get("tactical_posture"),
                 "pressure_response_bias": row.get("pressure_response_bias"),
+            }
+        )
+    voices = state.get("character_voice_profiles") if isinstance(state.get("character_voice_profiles"), list) else []
+    compact_voice_profiles: list[dict[str, Any]] = []
+    for row in voices[:4]:
+        if not isinstance(row, dict):
+            continue
+        compact_voice_profiles.append(
+            {
+                "actor_id": row.get("runtime_actor_id") or row.get("character_key"),
+                "baseline_tone": row.get("baseline_tone"),
+                "speech_patterns": row.get("speech_patterns") if isinstance(row.get("speech_patterns"), dict) else {},
+                "current_phase_voice_hint": row.get("current_phase_voice_hint"),
+                "pitfalls_to_avoid": row.get("pitfalls_to_avoid") if isinstance(row.get("pitfalls_to_avoid"), list) else [],
             }
         )
 
@@ -1739,6 +1924,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             "npc_response_expected": bool(interpreted_input.get("npc_response_expected")),
         },
         "character_mind_records": compact_minds,
+        "character_voice_profiles": compact_voice_profiles,
         "continuity_constraints": continuity_constraints,
         "escalation_pressure": {
             "pressure_state": scene_assessment.get("pressure_state"),
@@ -1881,6 +2067,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("goc_resolve_canonical_content", self._goc_resolve_canonical_content)
         graph.add_node("director_assess_scene", self._director_assess_scene)
         graph.add_node("director_select_dramatic_parameters", self._director_select_dramatic_parameters)
+        graph.add_node("synthesize_context", self._synthesize_context)
         graph.add_node("assemble_model_context", self._assemble_model_context)
         graph.add_node("route_model", self._route_model)
         graph.add_node("invoke_model", self._invoke_model)
@@ -1904,7 +2091,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("retrieve_context", "goc_resolve_canonical_content")
         graph.add_edge("goc_resolve_canonical_content", "director_assess_scene")
         graph.add_edge("director_assess_scene", "director_select_dramatic_parameters")
-        graph.add_edge("director_select_dramatic_parameters", "assemble_model_context")
+        graph.add_edge("director_select_dramatic_parameters", "synthesize_context")
+        graph.add_edge("synthesize_context", "assemble_model_context")
         graph.add_edge("assemble_model_context", "route_model")
         graph.add_edge("route_model", "invoke_model")
         graph.add_conditional_edges(
@@ -1949,6 +2137,7 @@ class RuntimeTurnGraphExecutor:
         actor_lane_context: dict[str, Any] | None = None,
         session_output_language: str | None = None,
         story_runtime_experience: dict[str, Any] | None = None,
+        validation_execution_mode: str | None = None,
     ) -> RuntimeTurnState:
         """Describe what ``run`` does in one line (verb-led summary for
         this method).
@@ -2078,6 +2267,8 @@ class RuntimeTurnGraphExecutor:
         initial_state["session_output_language"] = sol
         if story_runtime_experience and isinstance(story_runtime_experience, dict):
             initial_state["story_runtime_experience"] = dict(story_runtime_experience)
+        if validation_execution_mode:
+            initial_state["validation_execution_mode"] = str(validation_execution_mode)
         return self._graph.invoke(initial_state)
 
     def _interpret_input(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -3051,6 +3242,7 @@ class RuntimeTurnGraphExecutor:
             update["pacing_mode"] = pacing
             update["silence_brevity_decision"] = silence
             update["character_mind_records"] = []
+            update["character_voice_profiles"] = []
             update["scene_plan_record"] = ScenePlanRecord(
                 selected_scene_function="establish_pressure",
                 selected_responder_set=[],
@@ -3108,6 +3300,13 @@ class RuntimeTurnGraphExecutor:
             module_id=str(state.get("module_id") or ""),
         )
         mind_dicts = [m.to_runtime_dict() for m in mind_models]
+        voice_models = build_character_voice_profiles_for_goc(
+            yaml_slice=yslice,
+            active_character_keys=active_keys,
+            current_scene_id=state.get("current_scene_id") or "",
+            module_id=str(state.get("module_id") or ""),
+        )
+        voice_dicts = [v.to_runtime_dict() for v in voice_models]
         actor_lane_ctx = state.get("actor_lane_context") if isinstance(state.get("actor_lane_context"), dict) else {}
         forbidden_actor_ids: set[str] = set()
         for raw_actor_id in actor_lane_ctx.get("ai_forbidden_actor_ids") or []:
@@ -3142,6 +3341,7 @@ class RuntimeTurnGraphExecutor:
                 update["scene_assessment"] = {**base_sa, "multi_pressure_resolution": resolution}
                 update["selected_responder_set"] = responders
         update["character_mind_records"] = mind_dicts
+        update["character_voice_profiles"] = voice_dicts
         sem_fp = ""
         soc_fp = ""
         if sem_rec:
@@ -3331,11 +3531,55 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _synthesize_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        """Build a deterministic, non-authoritative context synthesis bundle."""
+        update = _track(state, node_name="synthesize_context")
+        try:
+            bundle = build_context_synthesis_bundle(
+                retrieval=state.get("retrieval") if isinstance(state.get("retrieval"), dict) else None,
+                context_text=state.get("context_text") if isinstance(state.get("context_text"), str) else None,
+                scene_assessment=state.get("scene_assessment")
+                if isinstance(state.get("scene_assessment"), dict)
+                else None,
+                semantic_move_record=state.get("semantic_move_record")
+                if isinstance(state.get("semantic_move_record"), dict)
+                else None,
+                social_state_record=state.get("social_state_record")
+                if isinstance(state.get("social_state_record"), dict)
+                else None,
+                turn_aspect_ledger=state.get("turn_aspect_ledger")
+                if isinstance(state.get("turn_aspect_ledger"), dict)
+                else None,
+                hierarchical_memory_context=state.get("hierarchical_memory_context")
+                if isinstance(state.get("hierarchical_memory_context"), dict)
+                else None,
+                validation_feedback=state.get("validation_feedback")
+                if isinstance(state.get("validation_feedback"), dict)
+                else None,
+            )
+        except Exception as exc:
+            bundle = build_context_synthesis_error_bundle(exc)
+            errors = list(state.get("graph_errors") or [])
+            errors.append(f"context_synthesis_error:{type(exc).__name__}")
+            update["graph_errors"] = errors
+        update["context_synthesis_bundle"] = bundle
+        update["context_synthesis_diagnostics"] = summarize_context_synthesis_for_diagnostics(bundle)
+        return update
+
     def _assemble_model_context(self, state: RuntimeTurnState) -> RuntimeTurnState:
         """Attach post-director runtime state to the model-visible prompt."""
         prompt = str(state.get("model_prompt") or state.get("player_input") or "")
         dramatic_packet = _build_dramatic_generation_packet(state)
-        lines: list[str] = ["Director runtime state (authoritative, model-visible):"]
+        lines: list[str] = []
+        synthesis_bundle = (
+            state.get("context_synthesis_bundle")
+            if isinstance(state.get("context_synthesis_bundle"), dict)
+            else {}
+        )
+        synthesis_lines = context_synthesis_prompt_lines(synthesis_bundle)
+        if synthesis_lines:
+            lines.extend(synthesis_lines)
+        lines.append("Director runtime state (authoritative, model-visible):")
 
         scene_assess = state.get("scene_assessment") if isinstance(state.get("scene_assessment"), dict) else {}
         if scene_assess:
@@ -3508,6 +3752,30 @@ class RuntimeTurnGraphExecutor:
                     f"bias={str(mind.get('pressure_response_bias') or '')[:80]}"
                 )
 
+        voices = state.get("character_voice_profiles") if isinstance(state.get("character_voice_profiles"), list) else []
+        if voices:
+            lines.append("Character Voice Profiles:")
+            for voice in voices[:4]:
+                if not isinstance(voice, dict):
+                    continue
+                speech = voice.get("speech_patterns") if isinstance(voice.get("speech_patterns"), dict) else {}
+                speech_bits = []
+                for key in ("vocabulary", "syntax", "rhythm", "idiom"):
+                    val = str(speech.get(key) or "").strip()
+                    if val:
+                        speech_bits.append(f"{key}={val[:80]}")
+                pitfalls = voice.get("pitfalls_to_avoid") if isinstance(voice.get("pitfalls_to_avoid"), list) else []
+                lines.append(
+                    "- "
+                    f"{voice.get('runtime_actor_id') or voice.get('character_key')}: "
+                    f"tone={str(voice.get('baseline_tone') or '')[:100]}, "
+                    f"{'; '.join(speech_bits[:3])}"
+                )
+                if voice.get("current_phase_voice_hint"):
+                    lines.append(f"  phase_voice={str(voice.get('current_phase_voice_hint'))[:160]}")
+                if pitfalls:
+                    lines.append(f"  avoid={'; '.join(str(item)[:120] for item in pitfalls[:2])}")
+
         prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
         if prior:
             lines.append("Continuity Constraints:")
@@ -3570,6 +3838,11 @@ class RuntimeTurnGraphExecutor:
         directive = _session_language_directive_for_model(state)
         update["model_prompt"] = f"{directive}{prompt}\n\n" + "\n".join(lines)
         update["dramatic_generation_packet"] = dramatic_packet
+        if isinstance(synthesis_bundle, dict):
+            update["context_synthesis_diagnostics"] = summarize_context_synthesis_for_diagnostics(
+                synthesis_bundle,
+                used_in_model_prompt=bool(synthesis_lines),
+            )
         return update
 
     def _route_model(self, state: RuntimeTurnState) -> RuntimeTurnState:
@@ -3993,6 +4266,9 @@ class RuntimeTurnGraphExecutor:
                 "self_correction_attempt_index": attempt_index,
                 "self_correction_feedback_codes": list(feedback_codes),
                 "self_correction_candidate_model": candidate_mid,
+                "self_correction_model_changed": bool(selected_mid)
+                and bool(candidate_mid)
+                and candidate_mid != selected_mid,
                 "dramatic_generation_packet_included": isinstance(
                     state.get("dramatic_generation_packet"), dict
                 ),
@@ -4033,9 +4309,8 @@ class RuntimeTurnGraphExecutor:
                     )
                 ):
                     parsed_structured = raw_parsed
-        rewritten["fallback_used"] = bool(generation.get("fallback_used")) or (
-            bool(selected_mid) and bool(candidate_mid) and candidate_mid != selected_mid
-        )
+        self_correction_model_changed = bool(selected_mid) and bool(candidate_mid) and candidate_mid != selected_mid
+        rewritten["fallback_used"] = bool(generation.get("fallback_used"))
         rewritten["metadata"] = {
             **call.metadata,
             "langchain_prompt_used": True,
@@ -4045,6 +4320,7 @@ class RuntimeTurnGraphExecutor:
             "self_correction_attempt_index": attempt_index,
             "self_correction_feedback_codes": list(feedback_codes),
             "self_correction_candidate_model": candidate_mid,
+            "self_correction_model_changed": self_correction_model_changed,
             "dramatic_generation_packet_included": isinstance(
                 state.get("dramatic_generation_packet"), dict
             ),
@@ -4058,6 +4334,7 @@ class RuntimeTurnGraphExecutor:
             "success": bool(call.success),
             "parser_error": runtime_result.parser_error,
             "preserve_actor_lanes": bool(preserve_actor_lanes),
+            "self_correction_model_changed": self_correction_model_changed,
         }
         return rewritten, proposed, attempt
 
@@ -4431,6 +4708,8 @@ class RuntimeTurnGraphExecutor:
         update["validation_outcome"] = outcome
         update["actor_lane_validation"] = actor_lane_validation
         update["turn_aspect_ledger"] = authority_ledger
+        if isinstance(validation_eval.get("voice_consistency_validation"), dict):
+            update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
         update["self_correction"] = {
             "attempt_count": len(self_correction_attempts),
             "attempts": self_correction_attempts,

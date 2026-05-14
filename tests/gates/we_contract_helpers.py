@@ -7,6 +7,7 @@ AST instead of scanning raw source text, and validate import boundaries for LDSS
 from __future__ import annotations
 
 import ast
+import configparser
 from pathlib import Path
 
 
@@ -121,6 +122,30 @@ def _collect_called_names(func: ast.FunctionDef) -> set[str]:
     return names
 
 
+def _module_function(tree: ast.Module, name: str) -> ast.FunctionDef | None:
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            return node
+    return None
+
+
+def _assignment_value(func: ast.FunctionDef, target_name: str) -> ast.AST | None:
+    for node in ast.walk(func):
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == target_name:
+                return node.value
+    return None
+
+
+def _dict_entry_value(dict_node: ast.Dict, key_name: str) -> ast.AST | None:
+    for key, value in zip(dict_node.keys, dict_node.values):
+        if isinstance(key, ast.Constant) and key.value == key_name:
+            return value
+    return None
+
+
 def assert_finalize_committed_turn_assigns_diagnostics_envelope(manager_py: Path) -> None:
     """``_finalize_committed_turn`` must call ``build_diagnostics_envelope`` and write ``event['diagnostics_envelope']``."""
     tree = ast.parse(manager_py.read_text(encoding="utf-8"))
@@ -209,6 +234,120 @@ def assert_scene_turn_envelope_committed_to_event(manager_py: Path) -> None:
     assert found, "_finalize_committed_turn must assign event['scene_turn_envelope']"
 
 
+def assert_ldss_scene_envelope_requires_human_actor(manager_py: Path) -> None:
+    """``_build_ldss_scene_envelope`` must return ``None`` when no human actor is projected."""
+    tree = ast.parse(manager_py.read_text(encoding="utf-8"))
+    fn = _module_function(tree, "_build_ldss_scene_envelope")
+    assert fn is not None, "_build_ldss_scene_envelope must exist at module scope in manager.py"
+
+    human_assignment = _assignment_value(fn, "human_actor_id")
+    assert human_assignment is not None, "_build_ldss_scene_envelope must derive human_actor_id"
+
+    guarded_return = False
+    for node in ast.walk(fn):
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if not (
+            isinstance(test, ast.UnaryOp)
+            and isinstance(test.op, ast.Not)
+            and isinstance(test.operand, ast.Name)
+            and test.operand.id == "human_actor_id"
+        ):
+            continue
+        for item in node.body:
+            if isinstance(item, ast.Return) and isinstance(item.value, ast.Constant) and item.value.value is None:
+                guarded_return = True
+                break
+    assert guarded_return, "_build_ldss_scene_envelope must return None when human_actor_id is empty"
+
+
+def assert_ldss_input_builder_preserves_human_actor_id(ldss_py: Path) -> None:
+    """``build_ldss_input_from_session`` must pass human actor identity into LDSS state and actor lanes."""
+    tree = ast.parse(ldss_py.read_text(encoding="utf-8"))
+    fn = _module_function(tree, "build_ldss_input_from_session")
+    assert fn is not None, "build_ldss_input_from_session must exist"
+    arg_names = {arg.arg for arg in [*fn.args.args, *fn.args.kwonlyargs]}
+    assert "human_actor_id" in arg_names, "build_ldss_input_from_session must accept human_actor_id"
+
+    story_state = _assignment_value(fn, "story_session_state")
+    actor_lanes = _assignment_value(fn, "actor_lane_context")
+    assert isinstance(story_state, ast.Dict), "story_session_state must be built as a structured dict"
+    assert isinstance(actor_lanes, ast.Dict), "actor_lane_context must be built as a structured dict"
+
+    state_human = _dict_entry_value(story_state, "human_actor_id")
+    lane_human = _dict_entry_value(actor_lanes, "human_actor_id")
+    assert isinstance(state_human, ast.Name) and state_human.id == "human_actor_id"
+    assert isinstance(lane_human, ast.Name) and lane_human.id == "human_actor_id"
+
+    forbidden = _dict_entry_value(actor_lanes, "ai_forbidden_actor_ids")
+    assert isinstance(forbidden, ast.List), "actor lanes must expose ai_forbidden_actor_ids"
+    assert any(isinstance(item, ast.Name) and item.id == "human_actor_id" for item in forbidden.elts)
+
+
+def assert_run_tests_registers_mvp4_preset(run_tests_py: Path) -> None:
+    """``tests/run_tests.py`` must register the MVP4 CLI preset structurally, not by source substring."""
+    tree = ast.parse(run_tests_py.read_text(encoding="utf-8"))
+    has_cli_arg = False
+    has_suite_assignment = False
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "add_argument":
+            if node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == "--mvp4":
+                has_cli_arg = True
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if not (
+            isinstance(test, ast.Attribute)
+            and test.attr == "mvp4"
+            and isinstance(test.value, ast.Name)
+            and test.value.id == "args"
+        ):
+            continue
+        for item in node.body:
+            if not isinstance(item, ast.Assign):
+                continue
+            for target in item.targets:
+                if not (
+                    isinstance(target, ast.Attribute)
+                    and target.attr == "suite"
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == "args"
+                ):
+                    continue
+                if isinstance(item.value, ast.List):
+                    values = {
+                        elt.value for elt in item.value.elts if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                    }
+                    if "gates" in values:
+                        has_suite_assignment = True
+
+    assert has_cli_arg, "tests/run_tests.py must register --mvp4 via argparse"
+    assert has_suite_assignment, "--mvp4 preset must include the gates suite"
+
+
+def _pytest_markers_from_ini(ini_path: Path) -> set[str]:
+    if not ini_path.exists():
+        return set()
+    parser = configparser.ConfigParser()
+    parser.read(ini_path, encoding="utf-8")
+    if not parser.has_option("pytest", "markers"):
+        return set()
+    markers: set[str] = set()
+    for line in parser.get("pytest", "markers").splitlines():
+        token = line.strip().split(":", 1)[0].strip()
+        if token:
+            markers.add(token)
+    return markers
+
+
+def assert_pytest_marker_registered(marker: str, ini_paths: tuple[Path, ...]) -> None:
+    """Check pytest marker registration through INI parsing instead of raw substring matching."""
+    markers = set().union(*(_pytest_markers_from_ini(path) for path in ini_paths))
+    assert marker in markers, f"{marker} marker must be registered in pytest.ini"
+
+
 NARRATIVE_GOV_JSON_KEYS: tuple[str, ...] = (
     "content_module_health",
     "runtime_profile_health",
@@ -273,7 +412,9 @@ def assert_mvp4_execute_turn_diagnostics_integration_passes(repo_root: Path) -> 
         sys.executable,
         "-m",
         "pytest",
-        "tests/test_mvp4_diagnostics_integration.py::test_execute_turn_produces_diagnostics_envelope_annette",
+        "tests/test_mvp4_diagnostics_integration.py",
+        "-k",
+        "test_execute_turn_produces_diagnostics_envelope",
         "-q",
         "--no-cov",
         "--tb=short",

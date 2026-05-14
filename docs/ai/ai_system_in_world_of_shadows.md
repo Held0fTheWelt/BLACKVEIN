@@ -169,6 +169,18 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 **Neighbors:** `retrieve_context` node; capability `wos.context_pack.build`; Writers’ Room domains.
 
+### Context synthesis — prompt support, not authority
+
+**Plain:** After retrieval and director state are available, the runtime builds a bounded synthesis bundle: what evidence is present, what obligations should guide generation, what conflicts exist, and what context is missing.
+
+**Technical:** `ContextSynthesisBundle` is defined in [`ai_stack/context_synthesis_contracts.py`](../../ai_stack/context_synthesis_contracts.py) and built by [`ai_stack/context_synthesis_engine.py`](../../ai_stack/context_synthesis_engine.py). The LangGraph runtime inserts `synthesize_context` between `director_select_dramatic_parameters` and `assemble_model_context`, then exposes the bounded summary at `graph_diagnostics.context_synthesis`.
+
+**Why WoS:** This separates “retrieved text was appended to a prompt” from a reviewable synthesis step that can be inspected in diagnostics and tested by contract.
+
+**Not:** Context synthesis is not committed story truth, not final narrative output, not a canon editor, and not a shortcut around validation or actor-lane enforcement.
+
+**Neighbors:** RAG context packs; Director scene assessment; semantic/social records; hierarchical memory; runtime aspect ledger; validation feedback.
+
 ### Governed capabilities (inside processes)
 
 **Plain:** Named, mode-gated operations (context packs, transcripts, review bundles, research explore) run **inside** backend or graph code with schemas and audit semantics—not as ad-hoc string APIs.

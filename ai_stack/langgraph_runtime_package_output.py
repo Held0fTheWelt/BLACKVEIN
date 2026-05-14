@@ -58,6 +58,11 @@ def package_runtime_graph_output(
     module_id = state.get("module_id") or ""
     validation = state.get("validation_outcome") if isinstance(state.get("validation_outcome"), dict) else {}
     committed = state.get("committed_result") if isinstance(state.get("committed_result"), dict) else {}
+    context_synthesis = (
+        state.get("context_synthesis_diagnostics")
+        if isinstance(state.get("context_synthesis_diagnostics"), dict)
+        else {}
+    )
     quality_surface = canonical_quality_summary(state=state, fallback_taken=fallback_taken)
 
     append_goc_validation_reject_failure_marker(
@@ -97,6 +102,7 @@ def package_runtime_graph_output(
         "dramatic_review": build_dramatic_review_section(state, vo),
         "planner_state_projection": build_planner_state_projection(state),
         "dramatic_context_summary": dramatic_context_summary,
+        "context_synthesis": context_synthesis,
         "runtime_quality_surface": quality_surface,
     }
     update["graph_diagnostics"] = gd

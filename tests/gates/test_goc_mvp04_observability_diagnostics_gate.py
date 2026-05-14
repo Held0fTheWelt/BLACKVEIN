@@ -40,9 +40,11 @@ from gate_fixtures import load_yaml as _load_gate_fixture_yaml
 from gate_contract_constants import (
     FORBIDDEN_RUNTIME_ACTOR_ID,
     GOD_OF_CARNAGE_CONTENT_MODULE_ID,
+    GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS,
     GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
     LDSS_DETERMINISTIC_MODEL_ID,
     NARRATIVE_RUNTIME_AGENT_DETERMINISTIC_MODEL_ID,
+    goc_npc_actor_ids_for_selected,
 )
 
 from we_contract_helpers import (
@@ -53,6 +55,8 @@ from we_contract_helpers import (
     assert_manager_get_narrative_gov_summary_calls_builder,
     assert_mvp4_execute_turn_diagnostics_integration_passes,
     assert_narrative_gov_template_renders_panel_contract,
+    assert_pytest_marker_registered,
+    assert_run_tests_registers_mvp4_preset,
     assert_story_runtime_manager_exposes_diagnostics_api,
 )
 
@@ -87,11 +91,12 @@ _MVP4_PHASE_C = _load_gate_fixture_yaml("mvp4_phase_c_mock_payloads.yaml")
 _MVP4_COST_B = _load_gate_fixture_yaml("mvp4_phase_b_cost_summary.yaml")
 # LDSS player_input strings shared with MVP03 gate: tests/gates/fixtures/mvp3_ldss_player_inputs.yaml
 _MVP3_LDSS_INPUTS = copy.deepcopy(_load_gate_fixture_yaml("mvp3_ldss_player_inputs.yaml"))
+_PRIMARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[0]
+_SECONDARY_HUMAN_ID = GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS[1]
 
 
-def _goc_projection(human: str = "annette") -> dict:
-    npc_map = {"annette": ["alain", "veronique", "michel"], "alain": ["annette", "veronique", "michel"]}
-    npcs = npc_map.get(human, ["alain", "veronique", "michel"])
+def _goc_projection(human: str = _PRIMARY_HUMAN_ID) -> dict:
+    npcs = goc_npc_actor_ids_for_selected(human)
     return {
         "module_id": GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         "start_scene_id": "phase_1",
@@ -137,7 +142,7 @@ def _mock_graph_state(
     }
 
 
-def _build_test_envelope(human: str = "annette", turn: int = 1) -> DiagnosticsEnvelope:
+def _build_test_envelope(human: str = _PRIMARY_HUMAN_ID, turn: int = 1) -> DiagnosticsEnvelope:
     """Build a DiagnosticsEnvelope for testing."""
     _diag_player = _MVP3_LDSS_INPUTS["diagnostics_gate_test_player_input"]
     ldss_input = build_ldss_input_from_session(
@@ -146,7 +151,7 @@ def _build_test_envelope(human: str = "annette", turn: int = 1) -> DiagnosticsEn
         turn_number=turn,
         selected_player_role=human,
         human_actor_id=human,
-        npc_actor_ids=["alain", "veronique", "michel"] if human == "annette" else ["annette", "veronique", "michel"],
+        npc_actor_ids=goc_npc_actor_ids_for_selected(human),
         player_input=_diag_player,
     )
     ldss_output = run_ldss(ldss_input)
@@ -173,13 +178,13 @@ def _build_test_envelope(human: str = "annette", turn: int = 1) -> DiagnosticsEn
 # ---------------------------------------------------------------------------
 
 @pytest.mark.mvp4
-def test_mvp04_annette_turn_produces_diagnostics_envelope():
-    """Annette live turn produces a valid DiagnosticsEnvelope."""
-    env = _build_test_envelope("annette", turn=1)
+def test_mvp04_primary_human_turn_produces_diagnostics_envelope():
+    """Primary playable human turn produces a valid DiagnosticsEnvelope."""
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID, turn=1)
     assert isinstance(env, DiagnosticsEnvelope)
     assert env.contract == "diagnostics_envelope.v1"
-    assert env.human_actor_id == "annette"
-    assert env.selected_player_role == "annette"
+    assert env.human_actor_id == _PRIMARY_HUMAN_ID
+    assert env.selected_player_role == _PRIMARY_HUMAN_ID
     assert env.content_module_id == GOD_OF_CARNAGE_CONTENT_MODULE_ID
     assert env.runtime_profile_id == GOD_OF_CARNAGE_RUNTIME_PROFILE_ID
     assert env.story_session_id == "test-session-diag"
@@ -190,14 +195,14 @@ def test_mvp04_annette_turn_produces_diagnostics_envelope():
 
 
 @pytest.mark.mvp4
-def test_mvp04_alain_turn_produces_diagnostics_envelope():
-    """Alain live turn produces a valid DiagnosticsEnvelope."""
-    env = _build_test_envelope("alain", turn=2)
-    assert env.human_actor_id == "alain"
-    assert "annette" in env.npc_actor_ids
+def test_mvp04_secondary_human_turn_produces_diagnostics_envelope():
+    """Secondary playable human turn produces a valid DiagnosticsEnvelope."""
+    env = _build_test_envelope(_SECONDARY_HUMAN_ID, turn=2)
+    assert env.human_actor_id == _SECONDARY_HUMAN_ID
+    assert _PRIMARY_HUMAN_ID in env.npc_actor_ids
     d = env.to_dict()
     ok, err = env.validate_evidence_consistency()
-    assert ok, f"Alain envelope failed evidence consistency: {err}"
+    assert ok, f"Secondary human envelope failed evidence consistency: {err}"
 
 
 # ---------------------------------------------------------------------------
@@ -207,14 +212,12 @@ def test_mvp04_alain_turn_produces_diagnostics_envelope():
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_include_actor_ownership():
     """Envelope includes human actor id, npc actor ids, allowed/forbidden ai actor ids."""
-    env = _build_test_envelope("annette")
-    assert env.human_actor_id == "annette"
-    assert "alain" in env.npc_actor_ids
-    assert "veronique" in env.npc_actor_ids
-    assert "michel" in env.npc_actor_ids
-    assert "annette" not in env.npc_actor_ids
-    assert "annette" in env.ai_forbidden_actor_ids
-    assert "alain" in env.ai_allowed_actor_ids
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
+    assert env.human_actor_id == _PRIMARY_HUMAN_ID
+    assert set(goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID)).issubset(env.npc_actor_ids)
+    assert _PRIMARY_HUMAN_ID not in env.npc_actor_ids
+    assert _PRIMARY_HUMAN_ID in env.ai_forbidden_actor_ids
+    assert _SECONDARY_HUMAN_ID in env.ai_allowed_actor_ids
     assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.npc_actor_ids
     assert FORBIDDEN_RUNTIME_ACTOR_ID not in env.ai_allowed_actor_ids
 
@@ -222,7 +225,7 @@ def test_mvp04_diagnostics_include_actor_ownership():
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_include_actor_lane_decision():
     """Envelope includes actor-lane validation status and reason."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     assert env.actor_lane_validation_status in ("approved", "rejected", "")
     d = env.to_dict()
     assert "actor_lane_validation_status" in d
@@ -235,7 +238,7 @@ def test_mvp04_diagnostics_include_actor_lane_decision():
         turn_number=1,
         trace_id="trace-rejected",
         player_input="test",
-        runtime_projection=_goc_projection("annette"),
+        runtime_projection=_goc_projection(_PRIMARY_HUMAN_ID),
         graph_state=_mock_graph_state(actor_lane_status="rejected"),
         scene_turn_envelope=None,
         langfuse_enabled=False,
@@ -247,7 +250,7 @@ def test_mvp04_diagnostics_include_actor_lane_decision():
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_include_dramatic_validation_decision():
     """Envelope includes dramatic validation status."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     assert "dramatic_validation_status" in d
     assert "dramatic_validation_reason" in d
@@ -256,7 +259,7 @@ def test_mvp04_diagnostics_include_dramatic_validation_decision():
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_include_commit_result():
     """Envelope includes commit_applied and response_packaged_from_committed_state."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     assert isinstance(env.commit_applied, bool)
     assert env.response_packaged_from_committed_state is True
     d = env.to_dict()
@@ -267,7 +270,7 @@ def test_mvp04_diagnostics_include_commit_result():
 @pytest.mark.mvp4
 def test_mvp04_response_packaging_uses_committed_state():
     """Envelope explicitly marks response as packaged from committed state."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     assert env.response_packaged_from_committed_state is True
     # LDSS diagnostics show evidenced_live_path (not raw AI)
     assert env.live_dramatic_scene_simulator.get("status") == "evidenced_live_path"
@@ -277,7 +280,7 @@ def test_mvp04_response_packaging_uses_committed_state():
 @pytest.mark.mvp4
 def test_mvp04_diagnostics_exclude_visitor():
     """visitor must not appear anywhere in the DiagnosticsEnvelope."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     d_str = json.dumps(d)
     forbidden_json = json.dumps(FORBIDDEN_RUNTIME_ACTOR_ID)  # contract ID as JSON string token
@@ -304,8 +307,8 @@ def test_mvp04_ai_human_actor_violation_is_traced_as_rejected():
         dramatic_status="approved",
         dramatic_reason="",
         commit_applied=False,
-        primary_responder_id="veronique",
-        human_actor_id="annette",
+        primary_responder_id=goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID)[0],
+        human_actor_id=_PRIMARY_HUMAN_ID,
     )
     lane_dec = next(d for d in decisions if d.decision_type == "actor_lane_validation")
     assert lane_dec.status == "rejected"
@@ -360,7 +363,7 @@ def test_mvp04_langfuse_disabled_does_not_claim_success():
         turn_number=1,
         trace_id="trace-disabled",
         player_input="test",
-        runtime_projection=_goc_projection("annette"),
+        runtime_projection=_goc_projection(_PRIMARY_HUMAN_ID),
         graph_state=_mock_graph_state(),
         scene_turn_envelope=None,
         langfuse_enabled=False,
@@ -387,7 +390,7 @@ def test_mvp04_trace_id_correlates_runtime_diagnostics_and_logs():
         turn_number=5,
         trace_id=trace_id,
         player_input="correlation test",
-        runtime_projection=_goc_projection("annette"),
+        runtime_projection=_goc_projection(_PRIMARY_HUMAN_ID),
         graph_state=_mock_graph_state(),
         scene_turn_envelope=None,
         langfuse_enabled=False,
@@ -408,7 +411,7 @@ def test_mvp04_fallback_path_is_traced():
         turn_number=1,
         trace_id="trace-fallback",
         player_input="fallback test",
-        runtime_projection=_goc_projection("annette"),
+        runtime_projection=_goc_projection(_PRIMARY_HUMAN_ID),
         graph_state=graph_state,
         scene_turn_envelope=None,
         langfuse_enabled=False,
@@ -440,7 +443,7 @@ def test_mvp04_secrets_are_redacted_from_diagnostics_and_traces():
     assert redacted["nested"]["safe_field"] == "visible"
 
     # DiagnosticsEnvelope does not expose credentials
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d_str = json.dumps(env.to_dict())
     for secret_pattern in ["sk-", "secret_key", "private_key", "bearer-", "password"]:
         assert secret_pattern not in d_str.lower(), (
@@ -481,8 +484,8 @@ def test_mvp04_narrative_gov_surface_returns_runtime_evidence():
         ldss_status="evidenced_live_path",
         scene_block_count=3,
         legacy_blob_used=False,
-        human_actor_id="annette",
-        npc_actor_ids=["alain", "veronique", "michel"],
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID),
         quality_class="canonical",
         degradation_signals=[],
     )
@@ -502,7 +505,7 @@ def test_mvp04_narrative_gov_surface_returns_runtime_evidence():
     # Panel values sourced from real data
     assert d["ldss_health"]["status"] == "evidenced_live_path"
     assert d["ldss_health"]["last_trace_id"] == "trace-nav-abc"
-    assert d["actor_lane_health"]["human_actor_id"] == "annette"
+    assert d["actor_lane_health"]["human_actor_id"] == _PRIMARY_HUMAN_ID
     assert FORBIDDEN_RUNTIME_ACTOR_ID not in (d["actor_lane_health"].get("npc_actor_ids") or [])
     assert d["actor_lane_health"]["visitor_present"] is False
 
@@ -556,7 +559,7 @@ def test_mvp04_degraded_output_diagnostics_include_reasons():
         turn_number=1,
         trace_id="trace-degraded",
         player_input="test",
-        runtime_projection=_goc_projection("annette"),
+        runtime_projection=_goc_projection(_PRIMARY_HUMAN_ID),
         graph_state=graph_state,
         scene_turn_envelope=None,
         langfuse_enabled=False,
@@ -575,8 +578,7 @@ def test_mvp04_degraded_output_diagnostics_include_reasons():
 def test_mvp04_runner_registration_exists():
     """tests/run_tests.py must have --mvp4 flag."""
     runner = REPO_ROOT / "tests" / "run_tests.py"
-    source = runner.read_text()
-    assert "--mvp4" in source, "tests/run_tests.py must have --mvp4 flag"
+    assert_run_tests_registers_mvp4_preset(runner)
 
 
 @pytest.mark.mvp4
@@ -602,11 +604,7 @@ def test_mvp04_toml_or_pytest_marker_registration_exists():
     """mvp4 marker must be registered in pytest.ini or world-engine/pytest.ini."""
     root_pytest = REPO_ROOT / "pytest.ini"
     engine_pytest = REPO_ROOT / "world-engine" / "pytest.ini"
-    root_content = root_pytest.read_text() if root_pytest.exists() else ""
-    engine_content = engine_pytest.read_text() if engine_pytest.exists() else ""
-    assert "mvp4" in root_content or "mvp4" in engine_content, (
-        "mvp4 marker must be registered in pytest.ini or world-engine/pytest.ini"
-    )
+    assert_pytest_marker_registered("mvp4", (root_pytest, engine_pytest))
 
 
 
@@ -619,7 +617,7 @@ def test_mvp04_toml_or_pytest_marker_registration_exists():
 def test_mvp04_execute_turn_includes_diagnostics_envelope():
     """execute_turn emits diagnostics_envelope for GoC: AST assigns + integration behavioral proof (wave 02).
 
-    Subprocess runs world-engine ``test_execute_turn_produces_diagnostics_envelope_annette`` so the gate
+    Subprocess runs the world-engine diagnostics-envelope integration tests so the gate
     validates the real response contract, not ``event['diagnostics_envelope']`` quote-style source matches.
     """
     manager_path = REPO_ROOT / "world-engine" / "app" / "story_runtime" / "manager.py"
@@ -650,8 +648,8 @@ def test_mvp04_narrative_gov_summary_from_manager():
         last_trace_id="gate-trace",
         ldss_status="evidenced_live_path",
         scene_block_count=3,
-        human_actor_id="annette",
-        npc_actor_ids=["alain", "veronique", "michel"],
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID),
     )
     d = summary.to_dict()
     assert set(d.keys()) == set(NARRATIVE_GOV_SUMMARY_TO_DICT_KEYS), (
@@ -670,7 +668,7 @@ def test_mvp04_narrative_gov_summary_from_manager():
 @pytest.mark.mvp4
 def test_mvp04_degradation_timeline_has_severity_and_timestamp():
     """degradation_timeline events include marker, severity, timestamp, recovery."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     # Even with no degradation, field must exist
     assert "degradation_timeline" in d
@@ -680,7 +678,7 @@ def test_mvp04_degradation_timeline_has_severity_and_timestamp():
 @pytest.mark.mvp4
 def test_mvp04_degradation_timeline_populated_with_signals():
     """degradation_timeline is populated when degradation signals are present."""
-    projection = _goc_projection("annette")
+    projection = _goc_projection(_PRIMARY_HUMAN_ID)
     graph_state = _mock_graph_state()
     graph_state["degradation_signals"] = ["FALLBACK_USED", "RETRY_ACTIVE"]
 
@@ -721,7 +719,7 @@ def test_mvp04_degradation_timeline_populated_with_signals():
 @pytest.mark.mvp4
 def test_mvp04_cost_summary_present_with_phase_b_shape():
     """cost_summary field exists with Phase B cost-truth shape."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     assert "cost_summary" in d
     assert d["cost_summary"]["input_tokens"] == 0
@@ -734,7 +732,7 @@ def test_mvp04_cost_summary_present_with_phase_b_shape():
 @pytest.mark.mvp4
 def test_mvp04_to_response_operator_redacts_hashes_and_costs():
     """to_response('operator') hides input_hash, output_hash, cost_summary."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     op = envelope_dict_to_response(d, context="operator")
 
@@ -757,7 +755,7 @@ def test_mvp04_to_response_operator_redacts_hashes_and_costs():
 @pytest.mark.mvp4
 def test_mvp04_to_response_langfuse_has_full_technical_data():
     """to_response('langfuse') shows hashes + costs, excludes debug_payload."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     lf = envelope_dict_to_response(d, context="langfuse")
 
@@ -776,7 +774,7 @@ def test_mvp04_to_response_langfuse_has_full_technical_data():
 @pytest.mark.mvp4
 def test_mvp04_to_response_super_admin_has_everything():
     """to_response('super_admin') returns complete unredacted envelope."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
     d = env.to_dict()
     env.debug_payload = {"raw_data": "sensitive", "internal_trace": "trace-123"}
     d = env.to_dict()
@@ -798,7 +796,7 @@ def test_mvp04_to_response_super_admin_has_everything():
 @pytest.mark.mvp4
 def test_mvp04_envelope_to_response_method_exists():
     """DiagnosticsEnvelope.to_response() method works directly on envelope objects."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
 
     op = env.to_response(context="operator")
     assert op.get("cost_summary") == "[REDACTED]"
@@ -873,7 +871,7 @@ def test_mvp04_phase_b_narrator_block_span_instrumentation():
     # Build test input
     agent_input = NarrativeRuntimeAgentInput(
         runtime_state={"current_scene_id": "phase_1"},
-        npc_agency_plan={"initiatives": [{"actor_id": "alain", "resolved": False}]},
+        npc_agency_plan={"initiatives": [{"actor_id": _SECONDARY_HUMAN_ID, "resolved": False}]},
         dramatic_signature={"primary_tension": "unresolved"},
         narrative_threads=[{"thread_id": "family_conflict"}],
         session_id="test_session",
@@ -907,9 +905,9 @@ def test_mvp04_phase_b_ldss_span_instrumentation():
         session_id="test_session",
         module_id=GOD_OF_CARNAGE_CONTENT_MODULE_ID,
         turn_number=0,
-        selected_player_role="annette",
-        human_actor_id="annette",
-        npc_actor_ids=["alain", "veronique", "michel"],
+        selected_player_role=_PRIMARY_HUMAN_ID,
+        human_actor_id=_PRIMARY_HUMAN_ID,
+        npc_actor_ids=goc_npc_actor_ids_for_selected(_PRIMARY_HUMAN_ID),
         player_input=_MVP3_LDSS_INPUTS["ldss_span_test_player_input"],
     )
 
@@ -927,7 +925,7 @@ def test_mvp04_phase_b_ldss_span_instrumentation():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_cost_summary_supports_cost_breakdown():
     """cost_summary includes per-phase cost breakdown and detailed phase costs."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
 
     # Cost shape from tests/gates/fixtures/mvp4_phase_b_cost_summary.yaml (not inline literals).
     env.cost_summary = copy.deepcopy(_MVP4_COST_B["with_breakdown"])
@@ -947,7 +945,7 @@ def test_mvp04_phase_b_cost_summary_supports_cost_breakdown():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_langfuse_response_shows_real_costs():
     """to_response('langfuse') includes real cost values (not redacted)."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
 
     # Fixture: tests/gates/fixtures/mvp4_phase_b_cost_summary.yaml
     env.cost_summary = copy.deepcopy(_MVP4_COST_B["langfuse_display"])
@@ -964,7 +962,7 @@ def test_mvp04_phase_b_langfuse_response_shows_real_costs():
 @pytest.mark.mvp4
 def test_mvp04_phase_b_operator_response_redacts_costs():
     """to_response('operator') redacts cost_summary."""
-    env = _build_test_envelope("annette")
+    env = _build_test_envelope(_PRIMARY_HUMAN_ID)
 
     env.cost_summary = copy.deepcopy(_MVP4_COST_B["operator_redacted"])
 

@@ -239,7 +239,17 @@ def test_runtime_turn_graph_delivers_director_context_to_model_prompt(tmp_path: 
         player_input="I press Annette to reveal the truth.",
     )
     prompt = result.get("model_prompt") or ""
-    assert "assemble_model_context" in result["graph_diagnostics"]["nodes_executed"]
+    nodes_executed = result["graph_diagnostics"]["nodes_executed"]
+    assert "synthesize_context" in nodes_executed
+    assert "assemble_model_context" in nodes_executed
+    synthesis_bundle = result.get("context_synthesis_bundle") or {}
+    assert synthesis_bundle.get("authority") == "proposal_support_only"
+    synthesis_diagnostics = result["graph_diagnostics"].get("context_synthesis") or {}
+    assert synthesis_diagnostics.get("authority") == "proposal_support_only"
+    assert synthesis_diagnostics.get("used_in_model_prompt") is True
+    assert synthesis_diagnostics.get("evidence_item_count", 0) >= 1
+    assert "Context Synthesis (proposal support, non-authoritative):" in prompt
+    assert "Synthesis Obligations:" in prompt
     assert "Director runtime state (authoritative, model-visible):" in prompt
     assert "Scene Assessment:" in prompt
     assert "Selected Scene Function:" in prompt

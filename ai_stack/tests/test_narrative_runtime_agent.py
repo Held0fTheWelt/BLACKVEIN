@@ -8,6 +8,7 @@ import pytest
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.narrative_runtime_agent import (
     NarrativeRuntimeAgent,
     NarrativeRuntimeAgentInput,
@@ -161,6 +162,34 @@ class TestMotivationAnalysis:
         ]
         analysis = narrator_agent._analyze_motivation_pressure(sample_agent_input)
         assert analysis["remaining_initiatives"] == 0
+
+    def test_analyze_motivation_pressure_reads_v1_npc_initiatives(self, narrator_agent, sample_agent_input):
+        """Motivation analysis reads the Pi7 v1 npc_initiatives contract."""
+        legacy_rows = sample_agent_input.npc_agency_plan["initiatives"]
+        actor_ids = [row["actor_id"] for row in legacy_rows]
+        sample_agent_input.npc_agency_plan = normalize_npc_agency_plan(
+            {
+                "primary_responder_id": actor_ids[0],
+                "secondary_responder_ids": actor_ids[1:],
+                "npc_initiatives": [
+                    {
+                        "actor_id": row["actor_id"],
+                        "intent": row["initiative_type"],
+                        "resolved": row["resolved"],
+                        "motivation_intensity": row["motivation_intensity"],
+                    }
+                    for row in legacy_rows
+                ],
+            }
+        )
+
+        analysis = narrator_agent._analyze_motivation_pressure(sample_agent_input)
+
+        expected_remaining = len([row for row in legacy_rows if not row["resolved"]])
+        assert analysis["remaining_initiatives"] == expected_remaining
+        assert set(analysis["initiative_actors"]) == {
+            row["actor_id"] for row in legacy_rows if not row["resolved"]
+        }
 
 
 class TestNarratorValidation:

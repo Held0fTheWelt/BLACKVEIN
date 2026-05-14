@@ -20,6 +20,8 @@ from app.governance.errors import GovernanceError
 from gate_contract_constants import (
     FORBIDDEN_RUNTIME_ACTOR_ID,
     GOD_OF_CARNAGE_CONTENT_MODULE_ID,
+    GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS,
+    GOD_OF_CARNAGE_RUNTIME_ACTOR_IDS,
     GOD_OF_CARNAGE_RUNTIME_PROFILE_ID,
     GOD_OF_CARNAGE_SOLO_TEMPLATE_ID,
 )
@@ -27,12 +29,29 @@ from gate_contract_constants import (
 _GOC_MODULE_ROOT = Path(__file__).resolve().parent.parent.parent / "content" / "modules" / "god_of_carnage"
 
 
-def _canonical_god_of_carnage_title() -> str:
-    """Display title from canonical module.yaml (single source of truth; gate wave 01)."""
+def _canonical_module_doc() -> dict:
     module_file = _GOC_MODULE_ROOT / "module.yaml"
     with open(module_file, encoding="utf-8") as f:
-        doc = yaml.safe_load(f)
-    return str(doc["title"])
+        return yaml.safe_load(f)
+
+
+def _canonical_characters_doc() -> dict:
+    char_file = _GOC_MODULE_ROOT / "characters.yaml"
+    with open(char_file, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def _canonical_god_of_carnage_title() -> str:
+    """Display title from canonical module.yaml (single source of truth; gate wave 01)."""
+    return str(_canonical_module_doc()["title"])
+
+
+def _canonical_character_ids() -> set[str]:
+    return set((_canonical_characters_doc().get("characters") or {}).keys())
+
+
+def _canonical_player_character_count() -> int:
+    return int((_canonical_module_doc().get("content") or {})["num_player_characters"])
 
 
 class TestMVP01RulesEnforced:
@@ -85,8 +104,10 @@ class TestMVP01RulesEnforced:
         assert len(template.props) == 0, "god_of_carnage_solo must not contain props (story truth)"
 
         role_ids = {r.id for r in template.roles}
-        assert "annette" in role_ids, "annette must be a selectable player role in runtime profile"
-        assert "alain" in role_ids, "alain must be a selectable player role in runtime profile"
+        assert set(GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS).issubset(role_ids), (
+            "Runtime profile must expose every playable human role declared by the profile contract"
+        )
+        assert len(GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS) == _canonical_player_character_count()
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in role_ids, "visitor must not exist as a role (global prohibition)"
         assert len(template.rooms) > 0, "Runtime profile must expose rooms for navigation bootstrap"
 
@@ -128,40 +149,36 @@ class TestMVP02RulesEnforced:
         """module.yaml must be valid YAML with required canonical fields."""
         module_file = _GOC_MODULE_ROOT / "module.yaml"
         assert module_file.exists(), "module.yaml not found in canonical module"
-        with open(module_file) as f:
-            doc = yaml.safe_load(f)
+        doc = _canonical_module_doc()
         assert doc.get("module_id") == GOD_OF_CARNAGE_CONTENT_MODULE_ID, (
             f"Canonical module_id must be {GOD_OF_CARNAGE_CONTENT_MODULE_ID!r}"
         )
         assert "version" in doc
         assert "content" in doc
 
-    def test_canonical_module_has_characters(self):
-        """Canonical module must define characters: annette, alain, veronique, michel."""
+    def test_canonical_module_has_runtime_profile_characters(self):
+        """Canonical module must define every runtime-profile actor as story truth."""
         char_file = _GOC_MODULE_ROOT / "characters.yaml"
         assert char_file.exists(), "characters.yaml not found in canonical module"
-        with open(char_file) as f:
-            doc = yaml.safe_load(f)
-        characters = doc.get("characters", {})
-        required = {"annette", "alain", "veronique", "michel"}
-        present = set(characters.keys())
+        present = _canonical_character_ids()
+        required = set(GOD_OF_CARNAGE_RUNTIME_ACTOR_IDS)
         assert required.issubset(present), f"Missing characters: {required - present}"
+        assert len(present) == int((_canonical_module_doc().get("content") or {})["total_characters"])
 
-    def test_canonical_module_annette_and_alain_are_playable(self):
-        """Annette and Alain must be defined as playable human characters."""
-        char_file = _GOC_MODULE_ROOT / "characters.yaml"
-        with open(char_file) as f:
-            doc = yaml.safe_load(f)
-        characters = doc.get("characters", {})
-        assert "annette" in characters, "annette must be a canonical character"
-        assert "alain" in characters, "alain must be a canonical character"
+    def test_canonical_module_playable_humans_are_content_characters(self):
+        """Playable human roles must be canonical characters, derived from the runtime profile."""
+        characters = _canonical_character_ids()
+        playable_humans = set(GOD_OF_CARNAGE_PLAYABLE_HUMAN_IDS)
+        assert len(playable_humans) == _canonical_player_character_count()
+        assert playable_humans.issubset(characters), (
+            f"Missing playable human characters: {playable_humans - characters}"
+        )
 
     def test_canonical_module_visitor_is_absent(self):
         """visitor must not be defined as a character in the canonical module."""
         char_file = _GOC_MODULE_ROOT / "characters.yaml"
-        with open(char_file) as f:
-            doc = yaml.safe_load(f)
-        characters = doc.get("characters", {})
+        assert char_file.exists(), "characters.yaml not found in canonical module"
+        characters = _canonical_characters_doc().get("characters", {})
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in characters, "visitor must not exist as a canonical character"
 
     def test_canonical_module_has_scenes(self):
@@ -180,9 +197,7 @@ class TestFoundationGateOverall:
 
     def test_solo_profile_is_distinct_from_canonical_module(self):
         """god_of_carnage_solo (runtime profile) must not be used as canonical content module_id."""
-        module_file = _GOC_MODULE_ROOT / "module.yaml"
-        with open(module_file) as f:
-            doc = yaml.safe_load(f)
+        doc = _canonical_module_doc()
         assert doc.get("module_id") != GOD_OF_CARNAGE_RUNTIME_PROFILE_ID, (
             f"{GOD_OF_CARNAGE_RUNTIME_PROFILE_ID!r} is a runtime profile only; canonical module_id must be "
             f"{GOD_OF_CARNAGE_CONTENT_MODULE_ID!r}"
@@ -197,8 +212,5 @@ class TestFoundationGateOverall:
         profile_role_ids = {role.id for role in template.roles}
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in profile_role_ids, "visitor must not be a role in runtime profile"
 
-        char_file = _GOC_MODULE_ROOT / "characters.yaml"
-        with open(char_file) as f:
-            doc = yaml.safe_load(f)
-        canonical_char_ids = set(doc.get("characters", {}).keys())
+        canonical_char_ids = _canonical_character_ids()
         assert FORBIDDEN_RUNTIME_ACTOR_ID not in canonical_char_ids, "visitor must not be a canonical character"

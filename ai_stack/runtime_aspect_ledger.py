@@ -23,6 +23,7 @@ ASPECT_BEAT = "beat"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
+ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
 ASPECT_VALIDATION = "validation"
@@ -36,6 +37,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_VOICE_CONSISTENCY,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_VALIDATION,
@@ -283,6 +285,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         else {}
     )
     npc_rec = aspects.get(ASPECT_NPC_AUTHORITY) if isinstance(aspects.get(ASPECT_NPC_AUTHORITY), dict) else {}
+    voice_rec = (
+        aspects.get(ASPECT_VOICE_CONSISTENCY)
+        if isinstance(aspects.get(ASPECT_VOICE_CONSISTENCY), dict)
+        else {}
+    )
     narrative_rec = (
         aspects.get(ASPECT_NARRATIVE_ASPECT)
         if isinstance(aspects.get(ASPECT_NARRATIVE_ASPECT), dict)
@@ -318,6 +325,8 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     narr_actual = _record_block(narr_rec, "actual")
     npc_expected = _record_block(npc_rec, "expected")
     npc_actual = _record_block(npc_rec, "actual")
+    voice_expected = _record_block(voice_rec, "expected")
+    voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
     narrative_selected = _record_block(narrative_rec, "selected")
     narrative_actual = _record_block(narrative_rec, "actual")
@@ -437,6 +446,16 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     visible_actual.get("lost_required_narrator_block")
                 ),
                 "visible_block_origins": visible_actual.get("visible_block_origins") or [],
+            },
+            "voice_consistency": {
+                "policy_present": bool(voice_expected.get("policy_present")),
+                "profiles_checked": int(voice_actual.get("profiles_checked") or 0),
+                "spoken_line_count": int(voice_actual.get("spoken_line_count") or 0),
+                "finding_count": int(voice_actual.get("finding_count") or 0),
+                "blocking_finding_count": int(voice_actual.get("blocking_finding_count") or 0),
+                "failure_reason": voice_rec.get("failure_reason")
+                or (_record_reasons(voice_rec)[0] if _record_reasons(voice_rec) else None),
+                "status": voice_rec.get("status"),
             },
             "narrative_aspect": {
                 "policy_present": bool(narrative_expected.get("policy_present")),

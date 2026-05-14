@@ -32,6 +32,7 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "npc_force_player_speech",
         "capability_missing_required",
         "forbidden_capability_realized",
+        "voice_consistency_drift",
     }
 )
 
@@ -157,6 +158,19 @@ def collect_playability_feedback_codes(
                 cap_text = str(cap or "").strip()
                 if cap_text:
                     feedback.append(f"violated_capability:{cap_text}")
+    voice_validation = outcome.get("voice_consistency_validation") if isinstance(outcome, dict) else None
+    if isinstance(voice_validation, dict):
+        findings = voice_validation.get("blocking_findings") or voice_validation.get("findings") or []
+        if isinstance(findings, list):
+            for finding in findings[:3]:
+                if not isinstance(finding, dict):
+                    continue
+                drift_class = str(finding.get("drift_class") or "").strip()
+                speaker = str(finding.get("speaker_id") or "").strip()
+                if drift_class:
+                    feedback.append(f"voice_drift:{drift_class}")
+                if speaker:
+                    feedback.append(f"voice_speaker:{speaker}")
     raw = str(gen.get("model_raw_text") or gen.get("content") or "")
     if raw.strip().startswith("[mock]"):
         feedback.append("mock_fallback_output")
@@ -328,6 +342,22 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "that makes the consequence visible without inventing new facts."
         )
         return preserve_prefix + base_instruction + authority_feedback
+
+    voice_issues = [
+        code
+        for code in feedback_codes
+        if code == "voice_consistency_drift"
+        or code.startswith("voice_drift:")
+        or code.startswith("voice_speaker:")
+    ]
+    if voice_issues:
+        voice_feedback = (
+            " Voice consistency repair: keep every spoken_lines row assigned to the same approved speaker, "
+            "but rewrite that speaker's wording so it follows the provided Character Voice Profiles. "
+            "Do not copy another character's canonical example line. Do not add new actors, new facts, "
+            "or narrator explanations to hide the issue."
+        )
+        return preserve_prefix + base_instruction + voice_feedback
 
     return preserve_prefix + base_instruction
 

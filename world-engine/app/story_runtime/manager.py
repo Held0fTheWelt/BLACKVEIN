@@ -6378,6 +6378,21 @@ class StoryRuntimeManager:
         )
         return bool(settings.get("allow_degraded_commit_after_retries", True))
 
+    def _validation_execution_mode(self) -> str:
+        settings = (
+            (self._governed_runtime_config or {}).get("world_engine_settings") or {}
+            if isinstance(self._governed_runtime_config, dict)
+            else {}
+        )
+        mode = str(
+            (self._governed_runtime_config or {}).get("validation_execution_mode")
+            or settings.get("validation_execution_mode")
+            or "schema_plus_semantic"
+        ).strip().lower()
+        if mode not in {"schema_only", "schema_plus_semantic", "strict_rule_engine"}:
+            return "schema_plus_semantic"
+        return mode
+
     def _opening_retry_count(self) -> int:
         settings = (
             (self._governed_runtime_config or {}).get("world_engine_settings") or {}
@@ -8117,6 +8132,7 @@ class StoryRuntimeManager:
                 actor_lane_context=actor_lane_ctx,
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
+                validation_execution_mode=self._validation_execution_mode(),
             )
         except Exception as exc:
             log_story_runtime_failure(
@@ -8301,6 +8317,7 @@ class StoryRuntimeManager:
                 actor_lane_context=self._extract_actor_lane_context(session),
                 session_output_language=session.session_output_language,
                 story_runtime_experience=self._story_runtime_experience_policy().effective,
+                validation_execution_mode=self._validation_execution_mode(),
             )
         except Exception as exc:
             log_story_runtime_failure(

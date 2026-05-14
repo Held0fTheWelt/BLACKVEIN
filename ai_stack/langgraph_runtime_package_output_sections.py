@@ -108,6 +108,8 @@ def build_planner_state_projection(state: RuntimeTurnState) -> dict[str, Any]:
         "semantic_move_record": state.get("semantic_move_record"),
         "social_state_record": state.get("social_state_record"),
         "character_mind_records": state.get("character_mind_records"),
+        "character_voice_profiles": state.get("character_voice_profiles"),
+        "voice_consistency_validation": state.get("voice_consistency_validation"),
         "scene_plan_record": state.get("scene_plan_record"),
         "note": "Derived projection of RuntimeTurnState planner fields — not a second truth surface.",
     }
