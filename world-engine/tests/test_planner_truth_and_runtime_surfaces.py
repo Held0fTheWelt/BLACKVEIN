@@ -20,6 +20,9 @@ from story_runtime_core import ModelRegistry
 from ai_stack.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
+    NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
+    NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
+    NPC_PRIVATE_PLAN_SCHEMA_VERSION,
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
 )
@@ -144,6 +147,7 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
         "schema_version": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
         "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
         "independent_planning_used": True,
+        "turn_number": 4,
         "candidate_actor_ids": actor_ids,
         "npc_agency_plan": {
             "primary_responder_id": actor_ids[0],
@@ -153,6 +157,40 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
                 {"actor_id": actor_id, "required": True}
                 for actor_id in actor_ids
             ],
+        },
+        "npc_long_horizon_state": {
+            "schema_version": NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
+            "actor_states": [
+                {
+                    "actor_id": actor_id,
+                    "active_intention_thread_ids": [f"{actor_id}:intention:4"],
+                }
+                for actor_id in actor_ids
+            ],
+            "intention_threads": [
+                {
+                    "schema_version": "npc_intention_thread.v1",
+                    "thread_id": f"{actor_id}:intention:4",
+                    "actor_id": actor_id,
+                    "status": "active",
+                }
+                for actor_id in actor_ids
+            ],
+        },
+        "npc_private_plans": [
+            {
+                "schema_version": NPC_PRIVATE_PLAN_SCHEMA_VERSION,
+                "private_plan_id": f"{actor_id}:private_plan:4",
+                "actor_id": actor_id,
+                "source_intention_thread_ids": [f"{actor_id}:intention:4"],
+            }
+            for actor_id in actor_ids
+        ],
+        "npc_plan_conflict_resolution": {
+            "schema_version": NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
+            "selected_private_plan_ids": [f"{actor_id}:private_plan:4" for actor_id in actor_ids],
+            "visible_actor_ids": actor_ids,
+            "withheld_private_plan_ids": [],
         },
     }
     validation = {
@@ -189,10 +227,15 @@ def test_planner_truth_persists_current_npc_agency_closure() -> None:
 
     pt = rec.planner_truth
     assert pt.npc_agency_simulation["schema_version"] == NPC_AGENCY_SIMULATION_SCHEMA_VERSION
+    assert pt.npc_long_horizon_state["schema_version"] == NPC_LONG_HORIZON_STATE_SCHEMA_VERSION
+    assert {row["schema_version"] for row in pt.npc_private_plans} == {NPC_PRIVATE_PLAN_SCHEMA_VERSION}
+    assert pt.npc_plan_conflict_resolution["schema_version"] == NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION
     assert pt.npc_agency_closure["schema_version"] == NPC_AGENCY_CLOSURE_SCHEMA_VERSION
     assert pt.npc_agency_closure["closure_status"] == NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
     assert pt.unresolved_npc_initiatives == pt.npc_agency_closure["carried_forward_npc_initiatives"]
     assert [row["actor_id"] for row in pt.carried_forward_npc_initiatives] == validation["missing_required_actor_ids"]
+    assert pt.npc_agency_closure["carried_forward_private_plan_ids"] == [f"{actor_ids[1]}:private_plan:4"]
+    assert pt.npc_agency_closure["carried_forward_intention_thread_ids"] == [f"{actor_ids[1]}:intention:4"]
 
 
 def test_planner_truth_absent_when_graph_state_not_provided() -> None:

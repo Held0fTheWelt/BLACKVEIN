@@ -48,6 +48,62 @@ def realized_actor_ids_from_structured_output(structured_output: dict[str, Any] 
     )
 
 
+def _private_plan_evidence(simulation: dict[str, Any] | None) -> dict[str, Any]:
+    source = simulation if isinstance(simulation, dict) else {}
+    private_plans = coerce_dict_rows(source.get("npc_private_plans"))
+    conflict = (
+        source.get("npc_plan_conflict_resolution")
+        if isinstance(source.get("npc_plan_conflict_resolution"), dict)
+        else {}
+    )
+    selected_ids = dedupe_strings(conflict.get("selected_private_plan_ids") or [])
+    if not selected_ids and len(private_plans) == 1:
+        selected_ids = dedupe_strings([private_plans[0].get("private_plan_id")])
+    selected_id_set = set(selected_ids)
+    selected_plans = [
+        row
+        for row in private_plans
+        if clean_text(row.get("private_plan_id")) in selected_id_set
+    ]
+    withheld_ids = dedupe_strings(
+        conflict.get("withheld_private_plan_ids")
+        or [
+            row.get("private_plan_id")
+            for row in private_plans
+            if clean_text(row.get("private_plan_id")) not in selected_id_set
+        ]
+    )
+    withheld_id_set = set(withheld_ids)
+    withheld_plans = [
+        row
+        for row in private_plans
+        if clean_text(row.get("private_plan_id")) in withheld_id_set
+    ]
+    return {
+        "private_plan_resolution_present": bool(private_plans and selected_ids),
+        "selected_private_plan_ids": selected_ids,
+        "selected_private_plan_actor_ids": dedupe_strings(
+            [row.get("actor_id") for row in selected_plans]
+        ),
+        "withheld_private_plan_ids": withheld_ids,
+        "withheld_private_plan_actor_ids": dedupe_strings(
+            [row.get("actor_id") for row in withheld_plans]
+        ),
+        "selected_private_plan_source_intention_thread_ids": dedupe_strings(
+            [
+                thread_id
+                for row in selected_plans
+                for thread_id in (row.get("source_intention_thread_ids") or [])
+            ]
+        ),
+        "private_plan_by_actor": {
+            clean_text(row.get("actor_id")): row
+            for row in selected_plans
+            if clean_text(row.get("actor_id"))
+        },
+    }
+
+
 def _simulation_and_plan_payload(
     agency: dict[str, Any] | None,
     *,
@@ -133,6 +189,17 @@ def build_npc_initiative_realization(
     )
 
     full_simulation = isinstance(simulation, dict)
+    private_plan_evidence = _private_plan_evidence(simulation)
+    unrealized_selected_private_plan_actor_ids = [
+        actor_id
+        for actor_id in private_plan_evidence["selected_private_plan_actor_ids"]
+        if actor_id not in realized_initiative_actor_ids
+    ]
+    withheld_required_actor_ids = [
+        actor_id
+        for actor_id in private_plan_evidence["withheld_private_plan_actor_ids"]
+        if actor_id in required_actor_ids
+    ]
     result = {
         "schema_version": NPC_INITIATIVE_REALIZATION_SCHEMA_VERSION,
         "contract_status": (
@@ -166,6 +233,17 @@ def build_npc_initiative_realization(
             if actor_id in planned_actor_ids and actor_id not in realized_initiative_actor_ids
         ],
         "multi_npc_initiative_realized": len(realized_initiative_actor_ids) >= 2,
+        "private_plan_resolution_present": private_plan_evidence["private_plan_resolution_present"],
+        "selected_private_plan_ids": private_plan_evidence["selected_private_plan_ids"],
+        "selected_private_plan_actor_ids": private_plan_evidence["selected_private_plan_actor_ids"],
+        "withheld_private_plan_ids": private_plan_evidence["withheld_private_plan_ids"],
+        "withheld_private_plan_actor_ids": private_plan_evidence["withheld_private_plan_actor_ids"],
+        "selected_private_plan_source_intention_thread_ids": private_plan_evidence[
+            "selected_private_plan_source_intention_thread_ids"
+        ],
+        "unrealized_selected_private_plan_actor_ids": unrealized_selected_private_plan_actor_ids,
+        "withheld_required_actor_ids": withheld_required_actor_ids,
+        "private_plan_visibility_respected": not bool(withheld_required_actor_ids),
     }
     if not full_simulation:
         result["partial_implementation_reason"] = (
@@ -191,7 +269,7 @@ def validate_npc_initiative_realization(
         actor_lane_context=actor_lane_context,
     )
     realization = build_npc_initiative_realization(
-        normalized,
+        simulation if isinstance(simulation, dict) else normalized,
         realized_actor_ids=realized_actor_ids,
         generated_initiative_rows=initiative_rows,
         validated_initiative_rows=initiative_rows,
@@ -222,6 +300,20 @@ def validate_npc_initiative_realization(
         error_codes.append("npc_initiative_forbidden_actor_realized")
     if missing_required_actor_ids:
         error_codes.append("npc_initiative_missing_required")
+    unrealized_selected_private_plan_actor_ids = (
+        list(realization.get("unrealized_selected_private_plan_actor_ids") or [])
+        if isinstance(realization, dict)
+        else []
+    )
+    withheld_required_actor_ids = (
+        list(realization.get("withheld_required_actor_ids") or [])
+        if isinstance(realization, dict)
+        else []
+    )
+    if unrealized_selected_private_plan_actor_ids:
+        error_codes.append("npc_private_plan_selected_actor_unrealized")
+    if withheld_required_actor_ids:
+        error_codes.append("npc_private_plan_visibility_violation")
 
     secondary_ids = list(normalized.get("secondary_responder_ids") or []) if isinstance(normalized, dict) else []
     minimum_secondary = (
@@ -233,8 +325,17 @@ def validate_npc_initiative_realization(
     if minimum_secondary > 0 and not realized_secondary_ids:
         error_codes.append("npc_initiative_missing_required_secondary")
 
-    strict_failure = bool(forbidden_plan_ids or forbidden_realized_actor_ids or not normalized)
-    required_failure = bool(missing_required_actor_ids or "npc_initiative_missing_required_secondary" in error_codes)
+    strict_failure = bool(
+        forbidden_plan_ids
+        or forbidden_realized_actor_ids
+        or withheld_required_actor_ids
+        or not normalized
+    )
+    required_failure = bool(
+        missing_required_actor_ids
+        or unrealized_selected_private_plan_actor_ids
+        or "npc_initiative_missing_required_secondary" in error_codes
+    )
     if strict_failure or (strict_required and required_failure):
         status = "rejected"
     elif required_failure:
@@ -261,6 +362,38 @@ def validate_npc_initiative_realization(
         "error_codes": dedupe_strings(error_codes),
         "feedback_code": error_codes[0] if error_codes else None,
         "missing_required_actor_ids": missing_required_actor_ids,
+        "unrealized_selected_private_plan_actor_ids": unrealized_selected_private_plan_actor_ids,
+        "withheld_required_actor_ids": withheld_required_actor_ids,
+        "private_plan_resolution_present": bool(
+            realization.get("private_plan_resolution_present")
+            if isinstance(realization, dict)
+            else False
+        ),
+        "private_plan_visibility_respected": bool(
+            realization.get("private_plan_visibility_respected")
+            if isinstance(realization, dict)
+            else False
+        ),
+        "selected_private_plan_ids": list(
+            realization.get("selected_private_plan_ids") or []
+        )
+        if isinstance(realization, dict)
+        else [],
+        "selected_private_plan_actor_ids": list(
+            realization.get("selected_private_plan_actor_ids") or []
+        )
+        if isinstance(realization, dict)
+        else [],
+        "withheld_private_plan_ids": list(
+            realization.get("withheld_private_plan_ids") or []
+        )
+        if isinstance(realization, dict)
+        else [],
+        "selected_private_plan_source_intention_thread_ids": list(
+            realization.get("selected_private_plan_source_intention_thread_ids") or []
+        )
+        if isinstance(realization, dict)
+        else [],
         "forbidden_planned_actor_ids": forbidden_plan_ids,
         "forbidden_realized_actor_ids": forbidden_realized_actor_ids,
         "realized_actor_ids": realized_actor_ids,
@@ -313,6 +446,8 @@ def build_npc_agency_closure(
         list(source_validation.get("missing_required_actor_ids") or [])
         + list(realization.get("unrealized_required_initiative_actor_ids") or [])
     )
+    private_plan_evidence = _private_plan_evidence(simulation)
+    selected_private_plan_by_actor = private_plan_evidence["private_plan_by_actor"]
 
     prior = prior_planner_truth if isinstance(prior_planner_truth, dict) else {}
     prior_closure = prior.get("npc_agency_closure") if isinstance(prior.get("npc_agency_closure"), dict) else {}
@@ -355,6 +490,7 @@ def build_npc_agency_closure(
     for actor_id in unresolved_actor_ids:
         row = initiative_by_actor.get(actor_id, {})
         prior_row = prior_by_actor.get(actor_id, {})
+        private_plan = selected_private_plan_by_actor.get(actor_id, {})
         try:
             count = int(prior_row.get("carry_forward_count") or 0) + 1
         except (TypeError, ValueError):
@@ -372,6 +508,12 @@ def build_npc_agency_closure(
                 or "carry_forward_required",
                 "target_actor_id": row.get("target_actor_id") or prior_row.get("target_actor_id"),
                 "intent": row.get("intent") or prior_row.get("intent"),
+                "private_plan_id": private_plan.get("private_plan_id") or prior_row.get("private_plan_id"),
+                "source_intention_thread_ids": list(
+                    private_plan.get("source_intention_thread_ids")
+                    or prior_row.get("source_intention_thread_ids")
+                    or []
+                ),
                 "resolution_policy": "next_turn_visible_spoken_or_action_lane_required",
                 "carry_forward_count": count,
                 "source_schema_version": source_validation.get("schema_version")
@@ -413,6 +555,19 @@ def build_npc_agency_closure(
         "superseded_actor_ids": superseded_actor_ids,
         "blocked_by_player_action_actor_ids": blocked_actor_ids,
         "expired_by_scene_transition_actor_ids": expired_actor_ids,
+        "selected_private_plan_ids": private_plan_evidence["selected_private_plan_ids"],
+        "withheld_private_plan_ids": private_plan_evidence["withheld_private_plan_ids"],
+        "carried_forward_private_plan_ids": dedupe_strings(
+            [row.get("private_plan_id") for row in carried_rows]
+        ),
+        "carried_forward_intention_thread_ids": dedupe_strings(
+            [
+                thread_id
+                for row in carried_rows
+                for thread_id in (row.get("source_intention_thread_ids") or [])
+            ]
+        ),
+        "private_plan_resolution_present": private_plan_evidence["private_plan_resolution_present"],
         "carried_forward_npc_initiatives": carried_rows,
         "durable_carry_forward_required": bool(carried_rows),
     }

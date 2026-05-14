@@ -6,9 +6,12 @@ from typing import Any
 
 from ai_stack.npc_agency_contracts import (
     NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+    NPC_INTENTION_THREAD_ACTIVE_STATUS,
     NPC_INTENTION_THREAD_SCHEMA_VERSION,
     NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
+    NPC_PLAN_CONFLICT_RESOLUTION_POLICY_REQUIRED_FIRST,
     NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
+    NPC_PRIVATE_PLAN_VISIBILITY_RESOLVER_MAY_SURFACE,
     NPC_PRIVATE_PLAN_SCHEMA_VERSION,
     canonical_actor_id,
     clean_text,
@@ -26,6 +29,17 @@ def _prior_long_horizon_actor_state(prior_planner_truth: dict[str, Any] | None) 
         canonical_actor_id(row.get("actor_id")): row
         for row in rows
         if canonical_actor_id(row.get("actor_id"))
+    }
+
+
+def _prior_long_horizon_threads(prior_planner_truth: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    prior = prior_planner_truth if isinstance(prior_planner_truth, dict) else {}
+    state = prior.get("npc_long_horizon_state") if isinstance(prior.get("npc_long_horizon_state"), dict) else {}
+    rows = coerce_dict_rows(state.get("intention_threads"))
+    return {
+        clean_text(row.get("thread_id")): row
+        for row in rows
+        if clean_text(row.get("thread_id"))
     }
 
 
@@ -62,16 +76,19 @@ def build_npc_long_horizon_state(
         return None
 
     prior_by_actor = _prior_long_horizon_actor_state(prior_planner_truth)
+    prior_threads = _prior_long_horizon_threads(prior_planner_truth)
     proposal_by_actor = _proposal_by_actor(source)
     graph = source.get("npc_interaction_graph") if isinstance(source.get("npc_interaction_graph"), dict) else {}
     edges = coerce_dict_rows(graph.get("edges"))
+    current_turn = source.get("turn_number", turn_number)
 
     actor_states: list[dict[str, Any]] = []
     intention_threads: list[dict[str, Any]] = []
+    emitted_thread_ids: set[str] = set()
     for actor_id in candidate_actor_ids:
         prior = prior_by_actor.get(actor_id, {})
         proposal = proposal_by_actor.get(actor_id, {})
-        thread_id = _thread_id(actor_id, turn_number if turn_number is not None else source.get("turn_number"))
+        thread_id = _thread_id(actor_id, turn_number if turn_number is not None else current_turn)
         prior_thread_ids = dedupe_strings(prior.get("active_intention_thread_ids") or [])
         active_thread_ids = dedupe_strings([*prior_thread_ids, thread_id])
         target_actor_id = canonical_actor_id(proposal.get("target_actor_id")) or None
@@ -104,11 +121,29 @@ def build_npc_long_horizon_state(
                 "durable_goal_codes": durable_goal_codes,
                 "relationship_actor_ids": relationship_actor_ids,
                 "open_pressure_count": len(active_thread_ids),
-                "last_planned_turn": source.get("turn_number", turn_number),
+                "last_planned_turn": current_turn,
                 "carry_forward_count": int(prior.get("carry_forward_count") or 0)
                 + (1 if actor_id in (source.get("carry_forward_actor_ids") or []) else 0),
             }
         )
+        for prior_thread_id in prior_thread_ids:
+            if prior_thread_id in emitted_thread_ids or prior_thread_id == thread_id:
+                continue
+            prior_thread = dict(prior_threads.get(prior_thread_id) or {})
+            prior_thread.update(
+                {
+                    "schema_version": prior_thread.get("schema_version")
+                    or NPC_INTENTION_THREAD_SCHEMA_VERSION,
+                    "thread_id": prior_thread_id,
+                    "actor_id": prior_thread.get("actor_id") or actor_id,
+                    "status": prior_thread.get("status") or NPC_INTENTION_THREAD_ACTIVE_STATUS,
+                    "last_seen_turn": current_turn,
+                    "source_schema_version": prior_thread.get("source_schema_version")
+                    or NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
+                }
+            )
+            intention_threads.append(prior_thread)
+            emitted_thread_ids.add(prior_thread_id)
         intention_threads.append(
             {
                 "schema_version": NPC_INTENTION_THREAD_SCHEMA_VERSION,
@@ -117,17 +152,18 @@ def build_npc_long_horizon_state(
                 "target_actor_id": target_actor_id,
                 "intent": clean_text(proposal.get("intent")) or "maintain_scene_pressure",
                 "requirement_scope": clean_text(proposal.get("requirement_scope")) or None,
-                "status": "active",
-                "created_turn": source.get("turn_number", turn_number),
-                "last_seen_turn": source.get("turn_number", turn_number),
+                "status": NPC_INTENTION_THREAD_ACTIVE_STATUS,
+                "created_turn": current_turn,
+                "last_seen_turn": current_turn,
                 "source_schema_version": source.get("schema_version"),
             }
         )
+        emitted_thread_ids.add(thread_id)
 
     return {
         "schema_version": NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
         "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
-        "turn_number": source.get("turn_number", turn_number),
+        "turn_number": current_turn,
         "candidate_actor_ids": candidate_actor_ids,
         "actor_states": actor_states,
         "intention_threads": intention_threads,
@@ -166,7 +202,7 @@ def build_npc_private_plans(
                 "requirement_scope": clean_text(row.get("requirement_scope")) or None,
                 "priority_score": int(row.get("priority_score") or 0),
                 "visible_resolution_policy": row.get("resolution_policy"),
-                "private_plan_visibility": "resolver_may_surface_visible_lane",
+                "private_plan_visibility": NPC_PRIVATE_PLAN_VISIBILITY_RESOLVER_MAY_SURFACE,
             }
         )
     return plans
@@ -183,8 +219,8 @@ def resolve_npc_private_plans(
     ordered = sorted(
         [row for row in private_plans if isinstance(row, dict)],
         key=lambda row: (
-            0 if canonical_actor_id(row.get("actor_id")) == primary else 1,
             0 if canonical_actor_id(row.get("actor_id")) in required else 1,
+            0 if canonical_actor_id(row.get("actor_id")) == primary else 1,
             -int(row.get("priority_score") or 0),
             clean_text(row.get("private_plan_id")),
         ),
@@ -199,7 +235,7 @@ def resolve_npc_private_plans(
     selected_ids = {clean_text(row.get("private_plan_id")) for row in selected}
     return {
         "schema_version": NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
-        "policy": "required_first_then_primary_then_priority",
+        "policy": NPC_PLAN_CONFLICT_RESOLUTION_POLICY_REQUIRED_FIRST,
         "selected_private_plan_ids": [row.get("private_plan_id") for row in selected],
         "visible_actor_ids": [canonical_actor_id(row.get("actor_id")) for row in selected],
         "withheld_private_plan_ids": [

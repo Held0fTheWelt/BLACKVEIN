@@ -10,10 +10,12 @@ from ai_stack.npc_agency_contracts import (
     NPC_AGENCY_CLOSURE_CLOSED_STATUS,
     NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
     NPC_AGENCY_CLOSURE_SUPERSEDED_STATUS,
+    NPC_INTENTION_THREAD_ACTIVE_STATUS,
     NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
     NPC_PLAN_CONFLICT_RESOLUTION_SCHEMA_VERSION,
     NPC_PRIVATE_PLAN_SCHEMA_VERSION,
 )
+from ai_stack.npc_agency_long_horizon import build_npc_long_horizon_state
 from ai_stack.npc_agency_planner import build_npc_agency_simulation
 from ai_stack.npc_agency_realization import (
     build_npc_agency_closure,
@@ -60,6 +62,45 @@ def test_simulation_emits_long_horizon_private_plan_and_conflict_contracts() -> 
     assert set(conflict["visible_actor_ids"]).issubset(set(simulation["required_actor_ids"]))
 
 
+def test_long_horizon_state_carries_prior_intention_threads() -> None:
+    actor_ids = ["npc_primary", "npc_secondary"]
+    prior_thread_id = "npc_primary:intention:6"
+    prior = {
+        "npc_long_horizon_state": {
+            "schema_version": NPC_LONG_HORIZON_STATE_SCHEMA_VERSION,
+            "actor_states": [
+                {
+                    "actor_id": actor_ids[0],
+                    "active_intention_thread_ids": [prior_thread_id],
+                    "durable_goal_codes": ["prior_goal"],
+                }
+            ],
+            "intention_threads": [
+                {
+                    "schema_version": "npc_intention_thread.v1",
+                    "thread_id": prior_thread_id,
+                    "actor_id": actor_ids[0],
+                    "status": NPC_INTENTION_THREAD_ACTIVE_STATUS,
+                }
+            ],
+        }
+    }
+
+    state = build_npc_long_horizon_state(
+        _simulation(actor_ids),
+        prior_planner_truth=prior,
+        actor_lane_context=_actor_lane_context(actor_ids),
+        turn_number=8,
+    )
+
+    assert state is not None
+    actor_state = state["actor_states"][0]
+    thread_ids = [row["thread_id"] for row in state["intention_threads"]]
+    assert prior_thread_id in actor_state["active_intention_thread_ids"]
+    assert prior_thread_id in thread_ids
+    assert len(actor_state["active_intention_thread_ids"]) >= 2
+
+
 def test_claim_readiness_requires_live_staging_before_full_claim() -> None:
     actor_ids = ["npc_primary", "npc_secondary"]
     simulation = _simulation(actor_ids)
@@ -89,6 +130,9 @@ def test_claim_readiness_requires_live_staging_before_full_claim() -> None:
         runtime_aspect={
             "independent_planning_used": True,
             "forbidden_actor_absent": True,
+            "long_horizon_state_present": True,
+            "private_plan_resolution_present": True,
+            "private_plan_visibility_respected": True,
         },
         operator_evidence={"operator_npc_agency_breakdown_present": True},
         mcp_evidence={"runtime_aspect_matrix_present": True},
@@ -106,6 +150,9 @@ def test_claim_readiness_requires_live_staging_before_full_claim() -> None:
         runtime_aspect={
             "independent_planning_used": True,
             "forbidden_actor_absent": True,
+            "long_horizon_state_present": True,
+            "private_plan_resolution_present": True,
+            "private_plan_visibility_respected": True,
         },
         live_trace_evidence={
             "live_trace_present": True,
@@ -120,6 +167,29 @@ def test_claim_readiness_requires_live_staging_before_full_claim() -> None:
     assert live_readiness["claim_status"] == NPC_AGENCY_CLAIM_FULL_LONG_HORIZON_READY_STATUS
     assert live_readiness["full_claim_allowed"] is True
     assert live_readiness["blockers"] == []
+
+
+def test_selected_private_plan_actor_is_required_for_validation() -> None:
+    actor_ids = ["npc_primary", "npc_secondary"]
+    simulation = _simulation(actor_ids)
+    selected_actor_ids = simulation["npc_plan_conflict_resolution"]["visible_actor_ids"]
+    structured_output = {
+        "spoken_lines": [{"speaker_id": selected_actor_ids[0], "text": "contract evidence"}],
+        "action_lines": [],
+        "initiative_events": [],
+    }
+
+    validation = validate_npc_initiative_realization(
+        simulation,
+        structured_output,
+        actor_lane_context=_actor_lane_context(actor_ids),
+    )
+
+    expected_missing = [actor_id for actor_id in selected_actor_ids if actor_id != selected_actor_ids[0]]
+    assert validation["status"] == "rejected"
+    assert validation["unrealized_selected_private_plan_actor_ids"] == expected_missing
+    assert "npc_private_plan_selected_actor_unrealized" in validation["error_codes"]
+    assert validation["private_plan_resolution_present"] is True
 
 
 def test_closure_can_supersede_missing_required_actor_without_carry_forward() -> None:

@@ -359,6 +359,34 @@ def test_prior_planner_truth_passed_to_graph_from_committed_truth(
             "closure_status": "carry_forward_required",
             "carried_forward_npc_initiatives": [{"actor_id": "alain_reille"}],
         },
+        "npc_long_horizon_state": {
+            "schema_version": "npc_long_horizon_state.v1",
+            "actor_states": [
+                {
+                    "actor_id": "alain_reille",
+                    "active_intention_thread_ids": ["alain_reille:intention:99"],
+                }
+            ],
+            "intention_threads": [
+                {
+                    "schema_version": "npc_intention_thread.v1",
+                    "thread_id": "alain_reille:intention:99",
+                    "actor_id": "alain_reille",
+                    "status": "active",
+                }
+            ],
+        },
+        "npc_private_plans": [
+            {
+                "schema_version": "npc_private_plan.v1",
+                "private_plan_id": "alain_reille:private_plan:99",
+                "actor_id": "alain_reille",
+            }
+        ],
+        "npc_plan_conflict_resolution": {
+            "schema_version": "npc_plan_conflict_resolution.v1",
+            "selected_private_plan_ids": ["alain_reille:private_plan:99"],
+        },
         "carried_forward_npc_initiatives": [{"actor_id": "alain_reille"}],
         "validator_layers_used": ["dramatic_effect_gate"],
     }
@@ -386,6 +414,9 @@ def test_prior_planner_truth_passed_to_graph_from_committed_truth(
     assert prior["function_type"] == "pressure_probe"
     assert prior["continuity_impacts"] == [{"class": "blame_pressure"}]
     assert prior["npc_agency_closure"] == planner_truth["npc_agency_closure"]
+    assert prior["npc_long_horizon_state"] == planner_truth["npc_long_horizon_state"]
+    assert prior["npc_private_plans"] == planner_truth["npc_private_plans"]
+    assert prior["npc_plan_conflict_resolution"] == planner_truth["npc_plan_conflict_resolution"]
     assert prior["carried_forward_npc_initiatives"] == planner_truth["carried_forward_npc_initiatives"]
     assert "validator_layers_used" not in prior
 

@@ -3818,6 +3818,33 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             _runtime_aspect_score_value(bool(npc_agency_actual.get("independent_planning_used"))),
         ),
         (
+            "npc_long_horizon_state_present",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(bool(npc_agency_actual.get("long_horizon_state_present"))),
+        ),
+        (
+            "npc_private_plan_resolution_present",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(bool(npc_agency_actual.get("private_plan_resolution_present"))),
+        ),
+        (
+            "npc_private_plan_visibility_respected",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(
+                npc_agency_actual.get("private_plan_visibility_respected") is not False
+                and not bool(npc_agency_actual.get("unrealized_selected_private_plan_actor_ids"))
+            ),
+        ),
+        (
+            "npc_intention_threads_carried_forward",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(
+                int(npc_agency_actual.get("intention_threads_carried_forward") or 0) > 0
+                or int(npc_agency_actual.get("intention_threads_active") or 0)
+                > len(npc_agency_actual.get("candidate_actor_ids") or [])
+            ),
+        ),
+        (
             "npc_required_initiatives_realized",
             ASPECT_NPC_AGENCY,
             _runtime_aspect_score_value(not bool(npc_agency_actual.get("missing_required_actor_ids"))),
@@ -5887,6 +5914,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "initiative_loser_id",
         "initiative_pressure_label",
         "npc_agency_simulation",
+        "npc_long_horizon_state",
+        "npc_private_plans",
+        "npc_plan_conflict_resolution",
         "npc_agency_closure",
         "unresolved_npc_initiatives",
         "carried_forward_npc_initiatives",

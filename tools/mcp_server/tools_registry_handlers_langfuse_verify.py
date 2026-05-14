@@ -492,6 +492,10 @@ def _extract_normalized_wos_evidence(
         "npc_takeover_absent",
         "npc_agency_plan_present",
         "npc_independent_planning_used",
+        "npc_long_horizon_state_present",
+        "npc_private_plan_resolution_present",
+        "npc_private_plan_visibility_respected",
+        "npc_intention_threads_carried_forward",
         "npc_required_initiatives_realized",
         "multi_npc_initiative_realized",
         "npc_carry_forward_closed",
@@ -561,6 +565,10 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
         "npc_takeover_detected",
         "npc_agency_plan_present",
         "npc_independent_planning_used",
+        "npc_long_horizon_state_present",
+        "npc_private_plan_resolution_present",
+        "npc_private_plan_visibility_respected",
+        "npc_intention_threads_carried_forward",
         "npc_required_initiatives_realized",
         "multi_npc_initiative_realized",
         "npc_carry_forward_closed",
@@ -719,6 +727,15 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
                 or "forbidden_realized_actor_ids" in npc_agency_actual
             )
             else det_scores.get("npc_forbidden_actor_absent"),
+            "long_horizon_state_present": npc_agency_actual.get("long_horizon_state_present")
+            if "long_horizon_state_present" in npc_agency_actual
+            else det_scores.get("npc_long_horizon_state_present"),
+            "private_plan_resolution_present": npc_agency_actual.get("private_plan_resolution_present")
+            if "private_plan_resolution_present" in npc_agency_actual
+            else det_scores.get("npc_private_plan_resolution_present"),
+            "private_plan_visibility_respected": npc_agency_actual.get("private_plan_visibility_respected")
+            if "private_plan_visibility_respected" in npc_agency_actual
+            else det_scores.get("npc_private_plan_visibility_respected"),
         },
         live_trace_evidence={
             "live_trace_present": str(_extract_metadata(raw_trace).get("trace_origin") or "").strip().lower()
@@ -767,6 +784,21 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "npc_takeover_detected": npc_actual.get("npc_takeover_detected"),
         "npc_agency_plan_present": bool(npc_agency_rec) if npc_agency_rec else det_scores.get("npc_agency_plan_present"),
         "npc_independent_planning_used": npc_agency_actual.get("independent_planning_used") if "independent_planning_used" in npc_agency_actual else det_scores.get("npc_independent_planning_used"),
+        "npc_long_horizon_state_present": npc_agency_actual.get("long_horizon_state_present") if "long_horizon_state_present" in npc_agency_actual else det_scores.get("npc_long_horizon_state_present"),
+        "npc_private_plan_resolution_present": npc_agency_actual.get("private_plan_resolution_present") if "private_plan_resolution_present" in npc_agency_actual else det_scores.get("npc_private_plan_resolution_present"),
+        "npc_private_plan_visibility_respected": npc_agency_actual.get("private_plan_visibility_respected") if "private_plan_visibility_respected" in npc_agency_actual else det_scores.get("npc_private_plan_visibility_respected"),
+        "npc_intention_threads_carried_forward": (
+            (
+                int(npc_agency_actual.get("intention_threads_carried_forward") or 0) > 0
+                or int(npc_agency_actual.get("intention_threads_active") or 0)
+                > len(npc_agency_actual.get("candidate_actor_ids") or [])
+            )
+            if (
+                "intention_threads_carried_forward" in npc_agency_actual
+                or "intention_threads_active" in npc_agency_actual
+            )
+            else det_scores.get("npc_intention_threads_carried_forward")
+        ),
         "npc_required_initiatives_realized": (
             not bool(npc_agency_actual.get("missing_required_actor_ids"))
             if "missing_required_actor_ids" in npc_agency_actual

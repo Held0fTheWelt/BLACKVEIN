@@ -64,41 +64,99 @@ def _extract_npc_agency_breakdown(
         if isinstance(planner_truth.get("npc_agency_simulation"), dict)
         else {}
     )
+    long_horizon_state = (
+        planner_truth.get("npc_long_horizon_state")
+        if isinstance(planner_truth.get("npc_long_horizon_state"), dict)
+        else simulation.get("npc_long_horizon_state")
+        if isinstance(simulation.get("npc_long_horizon_state"), dict)
+        else {}
+    )
+    private_plans = (
+        planner_truth.get("npc_private_plans")
+        if isinstance(planner_truth.get("npc_private_plans"), list)
+        else simulation.get("npc_private_plans")
+        if isinstance(simulation.get("npc_private_plans"), list)
+        else []
+    )
+    conflict = (
+        planner_truth.get("npc_plan_conflict_resolution")
+        if isinstance(planner_truth.get("npc_plan_conflict_resolution"), dict)
+        else simulation.get("npc_plan_conflict_resolution")
+        if isinstance(simulation.get("npc_plan_conflict_resolution"), dict)
+        else {}
+    )
+    runtime_npc_agency = {
+        **npc_agency,
+        "long_horizon_state_present": bool(
+            npc_agency.get("long_horizon_state_present") or long_horizon_state
+        ),
+        "intention_threads_active": int(
+            npc_agency.get("intention_threads_active")
+            or len(long_horizon_state.get("intention_threads") or [])
+        ),
+        "intention_threads_carried_forward": int(
+            npc_agency.get("intention_threads_carried_forward")
+            or len(closure.get("carried_forward_intention_thread_ids") or [])
+        ),
+        "private_plan_resolution_present": bool(
+            npc_agency.get("private_plan_resolution_present")
+            or conflict.get("selected_private_plan_ids")
+        ),
+        "selected_private_plan_ids": list(
+            npc_agency.get("selected_private_plan_ids")
+            or conflict.get("selected_private_plan_ids")
+            or []
+        ),
+        "withheld_private_plan_ids": list(
+            npc_agency.get("withheld_private_plan_ids")
+            or conflict.get("withheld_private_plan_ids")
+            or []
+        ),
+        "private_plan_visibility_respected": npc_agency.get("private_plan_visibility_respected") is not False,
+    }
     claim_readiness = assess_npc_agency_claim_readiness(
         simulation=simulation,
         closure=closure,
-        runtime_aspect=npc_agency,
+        runtime_aspect=runtime_npc_agency,
         operator_evidence={"operator_npc_agency_breakdown_present": True},
     )
     return {
         "schema_version": realization.get("schema_version"),
         "contract_status": npc_agency.get("contract_status") or realization.get("contract_status"),
         "independent_planning_used": bool(
-            npc_agency.get("independent_planning_used")
+            runtime_npc_agency.get("independent_planning_used")
             or realization.get("independent_planning_used")
         ),
-        "candidate_actor_ids": list(npc_agency.get("candidate_actor_ids") or realization.get("candidate_actor_ids") or []),
-        "planned_actor_ids": list(realization.get("planned_actor_ids") or npc_agency.get("planned_actor_ids") or []),
+        "candidate_actor_ids": list(runtime_npc_agency.get("candidate_actor_ids") or realization.get("candidate_actor_ids") or []),
+        "planned_actor_ids": list(realization.get("planned_actor_ids") or runtime_npc_agency.get("planned_actor_ids") or []),
         "realized_actor_ids": list(
             realization.get("realized_initiative_actor_ids")
-            or npc_agency.get("realized_actor_ids")
+            or runtime_npc_agency.get("realized_actor_ids")
             or []
         ),
         "missing_required_actor_ids": list(
             realization.get("unrealized_required_initiative_actor_ids")
-            or npc_agency.get("missing_required_actor_ids")
+            or runtime_npc_agency.get("missing_required_actor_ids")
             or []
         ),
         "multi_npc_initiative_realized": bool(
             realization.get("multi_npc_initiative_realized")
-            or npc_agency.get("multi_npc_initiative_realized")
+            or runtime_npc_agency.get("multi_npc_initiative_realized")
         ),
-        "closure_status": closure.get("closure_status") or npc_agency.get("closure_status"),
+        "closure_status": closure.get("closure_status") or runtime_npc_agency.get("closure_status"),
         "carry_forward_actor_ids": list(
             closure.get("unresolved_actor_ids")
-            or npc_agency.get("carry_forward_actor_ids")
+            or runtime_npc_agency.get("carry_forward_actor_ids")
             or []
         ),
+        "long_horizon_state_present": runtime_npc_agency["long_horizon_state_present"],
+        "intention_threads_active": runtime_npc_agency["intention_threads_active"],
+        "intention_threads_carried_forward": runtime_npc_agency["intention_threads_carried_forward"],
+        "private_plan_resolution_present": runtime_npc_agency["private_plan_resolution_present"],
+        "selected_private_plan_ids": runtime_npc_agency["selected_private_plan_ids"],
+        "withheld_private_plan_ids": runtime_npc_agency["withheld_private_plan_ids"],
+        "private_plan_count": len(private_plans),
+        "private_plan_visibility_respected": runtime_npc_agency["private_plan_visibility_respected"],
         "claim_readiness": claim_readiness,
     }
 

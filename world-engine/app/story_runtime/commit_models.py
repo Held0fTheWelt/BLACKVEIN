@@ -180,6 +180,9 @@ class PlannerTruth(BaseModel):
         description="floor_claimed | contested | deflected | stable | None",
     )
     npc_agency_simulation: dict[str, Any] = Field(default_factory=dict)
+    npc_long_horizon_state: dict[str, Any] = Field(default_factory=dict)
+    npc_private_plans: list[dict[str, Any]] = Field(default_factory=list)
+    npc_plan_conflict_resolution: dict[str, Any] = Field(default_factory=dict)
     npc_agency_closure: dict[str, Any] = Field(default_factory=dict)
     unresolved_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
     carried_forward_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
@@ -742,6 +745,26 @@ def _planner_truth_from_graph_state(
         dramatic_packet.get("npc_agency_simulation")
         or graph_state.get("npc_agency_simulation")
     )
+    npc_long_horizon_state = _as_dict(
+        npc_agency_simulation.get("npc_long_horizon_state")
+        or dramatic_packet.get("npc_long_horizon_state")
+        or graph_state.get("npc_long_horizon_state")
+    )
+    npc_private_plans = [
+        row
+        for row in (
+            npc_agency_simulation.get("npc_private_plans")
+            or dramatic_packet.get("npc_private_plans")
+            or graph_state.get("npc_private_plans")
+            or []
+        )
+        if isinstance(row, dict)
+    ]
+    npc_plan_conflict_resolution = _as_dict(
+        npc_agency_simulation.get("npc_plan_conflict_resolution")
+        or dramatic_packet.get("npc_plan_conflict_resolution")
+        or graph_state.get("npc_plan_conflict_resolution")
+    )
     npc_initiative_validation = _as_dict(graph_state.get("npc_initiative_validation"))
     npc_agency_source = npc_agency_simulation or _as_dict(
         dramatic_packet.get("npc_agency_plan")
@@ -825,6 +848,9 @@ def _planner_truth_from_graph_state(
         initiative_loser_id=initiative_loser_id,
         initiative_pressure_label=initiative_pressure_label,
         npc_agency_simulation=npc_agency_simulation,
+        npc_long_horizon_state=npc_long_horizon_state,
+        npc_private_plans=npc_private_plans,
+        npc_plan_conflict_resolution=npc_plan_conflict_resolution,
         npc_agency_closure=npc_agency_closure or {},
         unresolved_npc_initiatives=carried_forward_npc_initiatives,
         carried_forward_npc_initiatives=carried_forward_npc_initiatives,

@@ -68,6 +68,11 @@ def test_runtime_projection_exposes_npc_agency_aspect() -> None:
         "multi_npc_initiative_realized": False,
         "not_full_multi_agent_simulation": True,
         "contract_status": "partial_runtime_projection",
+        "long_horizon_state_present": True,
+        "intention_threads_active": 2,
+        "private_plan_resolution_present": True,
+        "private_plan_visibility_respected": True,
+        "selected_private_plan_ids": ["npc_primary:private_plan:2"],
     }
     ledger = set_aspect_record(
         ledger,
@@ -95,3 +100,8 @@ def test_runtime_projection_exposes_npc_agency_aspect() -> None:
     assert npc_agency["missing_required_actor_ids"] == expected_actual["missing_required_actor_ids"]
     assert npc_agency["error_codes"] == expected_actual["error_codes"]
     assert npc_agency["not_full_multi_agent_simulation"] is expected_actual["not_full_multi_agent_simulation"]
+    assert npc_agency["long_horizon_state_present"] is True
+    assert npc_agency["intention_threads_active"] == expected_actual["intention_threads_active"]
+    assert npc_agency["private_plan_resolution_present"] is True
+    assert npc_agency["private_plan_visibility_respected"] is True
+    assert npc_agency["selected_private_plan_ids"] == expected_actual["selected_private_plan_ids"]

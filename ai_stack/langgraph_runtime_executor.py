@@ -972,6 +972,21 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
         if isinstance(validation.get("npc_agency_simulation"), dict)
         else {}
     )
+    long_horizon_state = (
+        simulation.get("npc_long_horizon_state")
+        if isinstance(simulation.get("npc_long_horizon_state"), dict)
+        else {}
+    )
+    private_plan_conflict = (
+        simulation.get("npc_plan_conflict_resolution")
+        if isinstance(simulation.get("npc_plan_conflict_resolution"), dict)
+        else {}
+    )
+    intention_threads = (
+        long_horizon_state.get("intention_threads")
+        if isinstance(long_horizon_state.get("intention_threads"), list)
+        else []
+    )
     error_codes = [str(code) for code in (validation.get("error_codes") or []) if str(code).strip()]
     feedback_code = str(validation.get("feedback_code") or "").strip() or None
     forbidden = bool(validation.get("forbidden_planned_actor_ids") or validation.get("forbidden_realized_actor_ids"))
@@ -992,10 +1007,17 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
             "candidate_actor_ids": simulation.get("candidate_actor_ids") or [],
             "required_actor_ids": realization.get("required_actor_ids") or plan.get("required_actor_ids") or [],
             "minimum_secondary_initiatives_required": plan.get("minimum_secondary_initiatives_required"),
+            "long_horizon_state_present": bool(long_horizon_state),
+            "private_plan_resolution_present": bool(
+                private_plan_conflict.get("selected_private_plan_ids")
+            ),
+            "selected_private_plan_ids": private_plan_conflict.get("selected_private_plan_ids") or [],
         },
         selected={
             "primary_responder_id": plan.get("primary_responder_id"),
             "secondary_responder_ids": plan.get("secondary_responder_ids") or [],
+            "selected_private_plan_ids": validation.get("selected_private_plan_ids") or [],
+            "selected_private_plan_actor_ids": validation.get("selected_private_plan_actor_ids") or [],
         },
         actual={
             "validation_status": status,
@@ -1009,6 +1031,23 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
             "independent_planning_used": bool(validation.get("independent_planning_used")),
             "planner_scope": simulation.get("planner_scope") or plan.get("planner_scope"),
             "candidate_actor_ids": simulation.get("candidate_actor_ids") or [],
+            "long_horizon_state_present": bool(long_horizon_state),
+            "intention_threads_active": len(intention_threads),
+            "private_plan_resolution_present": bool(validation.get("private_plan_resolution_present")),
+            "private_plan_visibility_respected": bool(
+                validation.get("private_plan_visibility_respected")
+            ),
+            "selected_private_plan_ids": validation.get("selected_private_plan_ids") or [],
+            "selected_private_plan_actor_ids": validation.get("selected_private_plan_actor_ids") or [],
+            "withheld_private_plan_ids": validation.get("withheld_private_plan_ids") or [],
+            "selected_private_plan_source_intention_thread_ids": validation.get(
+                "selected_private_plan_source_intention_thread_ids"
+            )
+            or [],
+            "unrealized_selected_private_plan_actor_ids": validation.get(
+                "unrealized_selected_private_plan_actor_ids"
+            )
+            or [],
             "carry_forward_actor_ids": simulation.get("carry_forward_actor_ids") or [],
             "closure_status": NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
             if validation.get("missing_required_actor_ids")
@@ -2007,6 +2046,27 @@ def _build_npc_agency_plan_projection(
     required_actor_ids = list(plan.get("required_actor_ids") or [])
     secondary_ids = list(plan.get("secondary_responder_ids") or [])
     full_simulation = isinstance(simulation, dict)
+    long_horizon_state = (
+        simulation.get("npc_long_horizon_state")
+        if isinstance(simulation, dict) and isinstance(simulation.get("npc_long_horizon_state"), dict)
+        else {}
+    )
+    private_plans = (
+        simulation.get("npc_private_plans")
+        if isinstance(simulation, dict) and isinstance(simulation.get("npc_private_plans"), list)
+        else []
+    )
+    conflict = (
+        simulation.get("npc_plan_conflict_resolution")
+        if isinstance(simulation, dict) and isinstance(simulation.get("npc_plan_conflict_resolution"), dict)
+        else {}
+    )
+    selected_private_plan_ids = list(conflict.get("selected_private_plan_ids") or [])
+    selected_plan_rows = [
+        row
+        for row in private_plans
+        if isinstance(row, dict) and row.get("private_plan_id") in selected_private_plan_ids
+    ]
     directives = {
         "contract": "npc_initiative_directives.v1",
         "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
@@ -2016,6 +2076,18 @@ def _build_npc_agency_plan_projection(
         "independent_planning_used": full_simulation,
         "required_actor_ids": required_actor_ids,
         "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
+        "long_horizon_state_present": bool(long_horizon_state),
+        "private_plan_resolution_present": bool(selected_private_plan_ids),
+        "selected_private_plan_ids": selected_private_plan_ids,
+        "selected_private_plan_actor_ids": [
+            row.get("actor_id") for row in selected_plan_rows if row.get("actor_id")
+        ],
+        "selected_private_plan_source_intention_thread_ids": [
+            thread_id
+            for row in selected_plan_rows
+            for thread_id in (row.get("source_intention_thread_ids") or [])
+        ],
+        "withheld_private_plan_ids": list(conflict.get("withheld_private_plan_ids") or []),
         "instruction": (
             "Use npc_agency_simulation as the NPC initiative plan. "
             "Realize required_actor_ids in spoken_lines or action_lines unless validation constraints prevent it; "

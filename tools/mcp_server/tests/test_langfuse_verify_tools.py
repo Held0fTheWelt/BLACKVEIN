@@ -758,6 +758,11 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                             "multi_npc_initiative_realized": True,
                             "forbidden_planned_actor_ids": [],
                             "forbidden_realized_actor_ids": [],
+                            "long_horizon_state_present": True,
+                            "intention_threads_active": 3,
+                            "private_plan_resolution_present": True,
+                            "private_plan_visibility_respected": True,
+                            "unrealized_selected_private_plan_actor_ids": [],
                         },
                     },
                     "capability_selection": {
@@ -821,6 +826,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
         "scores": [
             {"name": "beat_realized", "value": 0.0},
             {"name": "npc_independent_planning_used", "value": 1.0},
+            {"name": "npc_long_horizon_state_present", "value": 1.0},
+            {"name": "npc_private_plan_resolution_present", "value": 1.0},
+            {"name": "npc_private_plan_visibility_respected", "value": 1.0},
+            {"name": "npc_intention_threads_carried_forward", "value": 1.0},
             {"name": "npc_required_initiatives_realized", "value": 1.0},
             {"name": "npc_carry_forward_closed", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
@@ -849,6 +858,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["selected_beat"] == "domestic_disruption"
     assert row["beat_realized"] is False
     assert row["npc_independent_planning_used"] is True
+    assert row["npc_long_horizon_state_present"] is True
+    assert row["npc_private_plan_resolution_present"] is True
+    assert row["npc_private_plan_visibility_respected"] is True
+    assert row["npc_intention_threads_carried_forward"] is True
     assert row["npc_required_initiatives_realized"] is True
     assert row["npc_carry_forward_closed"] is True
     assert row["npc_agency_candidate_actor_ids"] == ["npc_primary", "npc_secondary"]

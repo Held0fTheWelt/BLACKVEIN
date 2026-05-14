@@ -333,6 +333,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     npc_expected = _record_block(npc_rec, "expected")
     npc_actual = _record_block(npc_rec, "actual")
     npc_agency_expected = _record_block(npc_agency_rec, "expected")
+    npc_agency_selected = _record_block(npc_agency_rec, "selected")
     npc_agency_actual = _record_block(npc_agency_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
     voice_actual = _record_block(voice_rec, "actual")
@@ -469,6 +470,32 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 or [],
                 "carry_forward_actor_ids": npc_agency_actual.get("carry_forward_actor_ids") or [],
                 "closure_status": npc_agency_actual.get("closure_status"),
+                "long_horizon_state_present": bool(
+                    npc_agency_actual.get("long_horizon_state_present")
+                    or npc_agency_expected.get("long_horizon_state_present")
+                ),
+                "intention_threads_active": int(npc_agency_actual.get("intention_threads_active") or 0),
+                "intention_threads_carried_forward": int(
+                    npc_agency_actual.get("intention_threads_carried_forward") or 0
+                ),
+                "private_plan_resolution_present": bool(
+                    npc_agency_actual.get("private_plan_resolution_present")
+                    or npc_agency_expected.get("private_plan_resolution_present")
+                ),
+                "private_plan_visibility_respected": bool(
+                    npc_agency_actual.get("private_plan_visibility_respected")
+                ),
+                "selected_private_plan_ids": npc_agency_actual.get("selected_private_plan_ids")
+                or npc_agency_selected.get("selected_private_plan_ids")
+                or [],
+                "selected_private_plan_actor_ids": npc_agency_actual.get("selected_private_plan_actor_ids")
+                or npc_agency_selected.get("selected_private_plan_actor_ids")
+                or [],
+                "withheld_private_plan_ids": npc_agency_actual.get("withheld_private_plan_ids") or [],
+                "unrealized_selected_private_plan_actor_ids": npc_agency_actual.get(
+                    "unrealized_selected_private_plan_actor_ids"
+                )
+                or [],
                 "error_codes": npc_agency_actual.get("error_codes") or [],
                 "multi_npc_initiative_realized": bool(
                     npc_agency_actual.get("multi_npc_initiative_realized")

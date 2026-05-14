@@ -276,6 +276,11 @@ def _aspect_test_ledger() -> dict[str, Any]:
                 "forbidden_planned_actor_ids": [],
                 "forbidden_realized_actor_ids": [],
                 "multi_npc_initiative_realized": True,
+                "long_horizon_state_present": True,
+                "intention_threads_active": 3,
+                "private_plan_resolution_present": True,
+                "private_plan_visibility_respected": True,
+                "unrealized_selected_private_plan_actor_ids": [],
             },
             source="validator",
         ),
@@ -374,6 +379,10 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert score_calls["beat_realized"]["value"] == 1.0
     assert score_calls["npc_takeover_absent"]["value"] == 1.0
     assert score_calls["npc_independent_planning_used"]["value"] == 1.0
+    assert score_calls["npc_long_horizon_state_present"]["value"] == 1.0
+    assert score_calls["npc_private_plan_resolution_present"]["value"] == 1.0
+    assert score_calls["npc_private_plan_visibility_respected"]["value"] == 1.0
+    assert score_calls["npc_intention_threads_carried_forward"]["value"] == 1.0
     assert score_calls["npc_required_initiatives_realized"]["value"] == 1.0
     assert score_calls["multi_npc_initiative_realized"]["value"] == 1.0
     assert score_calls["npc_carry_forward_closed"]["value"] == 1.0

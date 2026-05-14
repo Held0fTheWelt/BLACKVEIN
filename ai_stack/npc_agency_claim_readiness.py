@@ -104,6 +104,9 @@ def assess_npc_agency_claim_readiness(
     aspect_pass = (
         _truthy(aspect.get("npc_independent_planning_used") or aspect.get("independent_planning_used"))
         and _truthy(forbidden_actor_absent)
+        and _truthy(aspect.get("long_horizon_state_present"))
+        and _truthy(aspect.get("private_plan_resolution_present"))
+        and _truthy(aspect.get("private_plan_visibility_respected"))
     )
 
     gates = {
@@ -139,7 +142,12 @@ def assess_npc_agency_claim_readiness(
         ),
         "operator_mcp_trace_surface": _gate_record(
             aspect_pass,
-            evidence={"runtime_aspect_present": bool(aspect)},
+            evidence={
+                "runtime_aspect_present": bool(aspect),
+                "long_horizon_state_present": aspect.get("long_horizon_state_present"),
+                "private_plan_resolution_present": aspect.get("private_plan_resolution_present"),
+                "private_plan_visibility_respected": aspect.get("private_plan_visibility_respected"),
+            },
             blocker="runtime_aspect_evidence_missing",
         ),
         "live_staging": _gate_record(
