@@ -303,6 +303,8 @@ def build_npc_agency_simulation(
         return None
     if not responder_ids and not unresolved_actor_ids:
         return None
+    if len(responder_ids) < 2 and not unresolved_actor_ids:
+        return None
     candidate_actor_ids = _candidate_actor_ids_for_simulation(
         npc_actor_ids=npc_actor_ids,
         responders=responders,
