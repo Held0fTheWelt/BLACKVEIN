@@ -66,3 +66,45 @@ quality_principles:
   - "No special-case God of Carnage runtime logic in the engine"
   - "All character behavior flows through formal state transitions and validated triggers"
   - "Relationships and escalation governed by explicit axes, not narrative prose"
+
+# Runtime intelligence policy
+# Module data opts into generic runtime governance features. The engine consumes
+# these generic switches; it must not branch on this module's concrete actors,
+# rooms, phases, beats, or prose.
+runtime_intelligence:
+  action_resolution_short_path:
+    enabled: true
+    blocked_player_input_kinds:
+      - speech
+      - question
+      - meta
+      - mixed
+    allowed_player_input_kinds:
+      - action
+      - movement_action
+      - perception
+      - perception_action
+      - object_interaction
+      - physical_action
+      - environment_interaction
+      - wait_or_observe
+    allowed_verbs:
+      - activate
+      - deactivate
+      - listen_to
+      - look_at
+      - move_to
+      - open
+      - place
+      - stand_up
+      - take
+  visible_projection:
+    enabled: true
+    require_origin_metadata: true
+    hard_failure_behavior: recover
+  capability_gate:
+    forbidden_capability_behavior: reject
+    missing_required_capability_behavior: recover
+  continuity:
+    hooks:
+      - module_continuity_impacts_on_commit_v1

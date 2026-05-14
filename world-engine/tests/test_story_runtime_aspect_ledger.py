@@ -483,6 +483,58 @@ def _ledger_with_required_beat(*, contractually_required: bool = False) -> dict[
     )
 
 
+def _generic_ledger_with_required_narrator() -> dict[str, Any]:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-generic-projection",
+        module_id="example_module",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Go to the side room.",
+    )
+    return set_aspect_record(
+        ledger,
+        ASPECT_NARRATOR_AUTHORITY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={"required": True},
+            actual={"narrator_block_present": True},
+            source="runtime",
+            expected_owner="narrator",
+            actual_owner="narrator",
+        ),
+    )
+
+
+def _generic_projection_payload(
+    *,
+    ledger: dict[str, Any],
+    scene_blocks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return _envelope(
+        interpreted_input={
+            "kind": "action",
+            "player_input_kind": "action",
+            "confidence": 0.91,
+        },
+        generation={
+            "success": True,
+            "metadata": {
+                "structured_output": {
+                    "proposed_scene_id": "scene_2",
+                    "intent_summary": "The player moves.",
+                }
+            },
+        },
+    ) | {
+        "turn_aspect_ledger": ledger,
+        "visible_output_bundle": {
+            "gm_narration": [],
+            "scene_blocks": scene_blocks,
+        },
+    }
+
+
 def test_visible_narrator_block_has_origin_aspect() -> None:
     graph_state = {
         "turn_aspect_ledger": _ledger_with_required_narrator(),
@@ -733,3 +785,109 @@ def test_required_narrator_block_not_lost_in_projection_classifies_validation_an
     assert validation["actual"]["projection_failure_detected"] is True
     assert commit["status"] == "partial"
     assert commit["actual"]["projection_failure_detected"] is True
+
+
+def test_projection_required_narrator_failure_returns_recoverable_turn_before_persist() -> None:
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="example_module",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
+            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(
+        _generic_projection_payload(
+            ledger=_generic_ledger_with_required_narrator(),
+            scene_blocks=[
+                {
+                    "id": "b1",
+                    "block_type": "actor_line",
+                    "actor_id": "actor_a",
+                    "text": "Wait.",
+                    "origin_aspect": "npc_authority",
+                    "origin_beat_id": "beat_a",
+                    "origin_capability": "npc.social_reaction.optional",
+                    "authority_owner": "npc",
+                }
+            ],
+        )
+    )  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Go to the side room.")
+
+    ledger = turn["turn_aspect_ledger"]
+    visible = ledger["turn_aspect_ledger"][ASPECT_VISIBLE_PROJECTION]
+    validation = ledger["turn_aspect_ledger"][ASPECT_VALIDATION]
+    commit = ledger["turn_aspect_ledger"][ASPECT_COMMIT]
+    assert turn["turn_status"] == "rejected_recoverable"
+    assert turn["turn_kind"] == "player_projection_rejected_recoverable"
+    assert turn["reason"] == "required_narrator_block_lost_in_projection"
+    assert turn["committed_result"]["commit_applied"] is False
+    assert turn["narrative_commit"]["committed_scene_id"] == "scene_1"
+    assert session.current_scene_id == "scene_1"
+    assert visible["status"] == "failed"
+    assert visible["failure_reason"] == "required_narrator_block_lost_in_projection"
+    assert validation["status"] == "failed"
+    assert validation["failure_reason"] == "required_narrator_block_lost_in_projection"
+    assert commit["actual"]["commit_applied"] is False
+    assert session.history[-1]["turn_outcome"] == "recoverable_projection_failure"
+
+
+def test_projection_required_beat_failure_returns_recoverable_turn_before_persist() -> None:
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="example_module",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "scenes": [{"id": "scene_1"}, {"id": "scene_2"}],
+            "transition_hints": [{"from": "scene_1", "to": "scene_2"}],
+        },
+    )
+    ledger = set_aspect_record(
+        _generic_ledger_with_required_narrator(),
+        ASPECT_BEAT,
+        make_aspect_record(
+            applicable=True,
+            status="partial",
+            expected={
+                "candidate_beats": ["beat_a"],
+                "expected_realization": ["narrator.location_transition.describe"],
+                "contractually_required": True,
+            },
+            selected={"selected_beat_id": "beat_a", "selection_source": "module_policy"},
+            actual={"realized": None},
+            reasons=["beat_selected_not_yet_realized"],
+            source="runtime",
+            selected_beat="beat_a",
+        ),
+    )
+    manager.turn_graph = _FakeTurnGraph(
+        _generic_projection_payload(
+            ledger=ledger,
+            scene_blocks=[
+                {
+                    "id": "b1",
+                    "block_type": "narrator",
+                    "text": "The room remains unchanged.",
+                    "origin_aspect": "narrator_authority",
+                    "origin_beat_id": "beat_a",
+                    "origin_capability": "narrator.object_state.describe",
+                    "authority_owner": "narrator",
+                }
+            ],
+        )
+    )  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Go to the side room.")
+
+    ledger = turn["turn_aspect_ledger"]
+    beat = ledger["turn_aspect_ledger"][ASPECT_BEAT]
+    assert turn["turn_status"] == "rejected_recoverable"
+    assert turn["reason"] == "selected_required_beat_lost"
+    assert turn["committed_result"]["commit_applied"] is False
+    assert beat["status"] == "failed"
+    assert beat["failure_reason"] == "selected_required_beat_lost"

@@ -300,6 +300,37 @@ def test_selected_capability_must_be_realized_or_marked_missing() -> None:
     assert record["status"] == "partial"
 
 
+def test_action_resolution_short_path_is_enabled_by_module_policy_not_module_id() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor.action_resolution_short_path_enabled = True
+    state = {
+        "module_id": "example_module",
+        "player_action_frame": {
+            "player_input_kind": "movement_action",
+            "action_kind": "movement",
+            "verb": "move_to",
+        },
+        "affordance_resolution": {
+            "affordance_status": "allowed",
+            "action_commit_policy": "commit_action",
+        },
+        "module_runtime_policy": {
+            "runtime_governance_policy": {
+                "action_resolution_short_path": {
+                    "enabled": True,
+                    "allowed_player_input_kinds": ["movement_action"],
+                    "allowed_verbs": ["move_to"],
+                    "blocked_player_input_kinds": ["speech"],
+                }
+            }
+        },
+    }
+
+    assert executor._route_after_resolve_player_action(state) == "authoritative_action_resolution"
+    state["module_runtime_policy"]["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] = False
+    assert executor._route_after_resolve_player_action(state) == "full_pipeline"
+
+
 def test_pure_speech_selects_speech_and_direct_answer_without_narrator_requirement() -> None:
     record = build_capability_selection_record(
         interpreted_input={"player_input_kind": "speech", "npc_response_expected": True},

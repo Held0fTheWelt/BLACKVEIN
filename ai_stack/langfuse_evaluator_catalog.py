@@ -24,6 +24,9 @@ LLM_AS_A_JUDGE_DOC_RELATIVE_PATH: Final[str] = (
 # ``world-engine.turn.execute`` on the same distributed trace (see backend session/game routes).
 BACKEND_TURN_ROOT_TRACE_NAME: Final[str] = "backend.turn.execute"
 WORLD_ENGINE_TURN_TRACE_NAME: Final[str] = "world-engine.turn.execute"
+# Opening trace name (session creation emits this root span — see
+# ``OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS`` below).
+WORLD_ENGINE_OPENING_TRACE_NAME: Final[str] = "world-engine.session.create"
 
 # Qualitative-only warning reused in previews and the primary turn-resolution judge prompt.
 _QUALITATIVE_ONLY_SENTINEL: Final[str] = "This is a qualitative review signal only."
@@ -347,7 +350,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         kind="llm_as_a_judge",
         scope="opening_generation",
         score_type="categorical",
-        categories=("no_concern", "possible_violation", "clear_violation"),
+        categories=("no_violation", "possible_violation", "clear_violation"),
         allow_multiple_matches=False,
         prompt=_stub_prompt_preamble(),
         score_reasoning_prompt=(
@@ -356,7 +359,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
             "or left under player agency."
         ),
         category_selection_prompt=(
-            "Choose exactly one category: no_concern, possible_violation, or clear_violation. "
+            "Choose exactly one category: no_violation, possible_violation, or clear_violation. "
             "Select clear_violation only when the generated output clearly controls the selected "
             "human player character."
         ),
@@ -370,7 +373,7 @@ _SPECS_BY_NAME: dict[str, LangfuseCategoricalEvaluatorSpec] = {
         matrix_column_key="actor_lane_judge_category",
         display_short="actor-lane judge",
         evaluator_group="authority_origin",
-        positive_categories=frozenset({"no_concern"}),
+        positive_categories=frozenset({"no_violation"}),
         warning_categories=frozenset({"possible_violation"}),
         failure_categories=frozenset({"clear_violation"}),
         neutral_categories=frozenset(),

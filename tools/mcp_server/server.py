@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import sys
 import time
 from typing import Any, Optional
@@ -62,6 +64,22 @@ class McpServer:
         )
         self._resource_reader = McpResourceReader(self._backend, self._fs)
         self.rate_limiter = RateLimiter(max_calls=30, window_seconds=60)
+        self._rate_limit_client_id = self._build_rate_limit_client_id()
+
+    def _build_rate_limit_client_id(self) -> str:
+        """Return a stable, non-secret client key for local MCP rate limiting."""
+        token = (
+            self._backend.bearer_token
+            or os.environ.get("MCP_SERVICE_TOKEN")
+            or os.environ.get("INTERNAL_RUNTIME_CONFIG_TOKEN")
+            or os.environ.get("BACKEND_INTERNAL_RUNTIME_CONFIG_TOKEN")
+            or os.environ.get("RUNTIME_CONFIG_TOKEN")
+            or ""
+        ).strip()
+        if token:
+            digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+            return f"token:{digest[:24]}"
+        return "stdio:local"
 
     def validate_input(self, tool: Any, arguments: dict) -> None:
         """Simple JSON schema validation."""
@@ -196,7 +214,7 @@ class McpServer:
         log_request(trace_id, method, params)
 
         try:
-            if not self.rate_limiter.is_allowed(trace_id):
+            if not self.rate_limiter.is_allowed(self._rate_limit_client_id):
                 raise RateLimitedError("Rate limit exceeded (30 calls/min)")
             result = route_mcp_method(self, method, params, trace_id)
             duration_ms = (time.time() - start) * 1000

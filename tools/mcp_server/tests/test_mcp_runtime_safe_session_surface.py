@@ -272,6 +272,7 @@ class TestM2_GateSummary:
         # G-MCP-10-03: Session tools are now implemented (logs, state, execute_turn)
         execute_turn = reg.get("wos.session.execute_turn")
         assert execute_turn.descriptor.implementation_status == McpImplementationStatus.implemented
+        assert execute_turn.tool_class == McpToolClass.write_capable
 
         # G-MCP-10-04: Operator depth
         truth = build_compact_mcp_operator_truth(

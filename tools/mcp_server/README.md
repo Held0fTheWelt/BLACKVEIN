@@ -1,14 +1,15 @@
-# World of Shadows MCP Server - Phase A1.2 Read-Only Tool Set
+# World of Shadows MCP Server - Phase A1.2 Operator Tool Set
 
 ## Overview
 
-Model Context Protocol (MCP) server implementing Phase A1.2: read-only operator/developer tooling via stdio transport.
+Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer tooling via stdio transport, with mutating tools gated by operating profile.
 
 **Features:**
 - Canonical descriptor-derived tool registry (`ai_stack/mcp_canonical_surface.py`) with per-tool **`mcp_suite`** (WOS_VSL five-suite map)
 - **`resources/list`** + **`resources/read`** for stable reads (`wos://…` URIs — see `docs/mcp/MVP_SUITE_MAP.md`)
 - **`prompts/list`** + **`prompts/get`** for recurring operator/author/AI workflows
 - Explicit tool classes: `read_only`, `review_bound`, `write_capable` + operating profile gating
+- Stable per-token/local rate limiting; trace IDs are not used as quota keys
 - HTTP client with 5-second timeout and automatic retry; optional bearer token for backend session routes
 - **`WOS_MCP_SUITE`** env to expose only one suite’s tools/resources/prompts (default: all)
 
@@ -211,6 +212,7 @@ pytest tools/mcp_server/tests/ -v
 
 - Legacy `permission` is compatibility metadata only; policy enforcement is class/profile-based
 - `write_capable` tools are denied unless `WOS_MCP_OPERATING_PROFILE=healthy`
+- Player/prompt request bodies sent to MCP Langfuse tracing are hashed, not stored verbatim
 - HTTP timeout: 5 seconds with automatic 1x retry
 - Search limits: 10MB per file, 100 hits per query
 - Configuration from environment variables with defaults

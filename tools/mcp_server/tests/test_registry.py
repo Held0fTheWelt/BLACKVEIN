@@ -54,11 +54,11 @@ def test_session_create_is_write_capable():
     assert tool.tool_class.value == "write_capable"
 
 
-def test_execute_turn_stub_is_review_bound():
+def test_execute_turn_is_write_capable():
     registry = create_default_registry()
     tool = registry.get("wos.session.execute_turn")
     assert tool is not None
-    assert tool.tool_class.value == "review_bound"
+    assert tool.tool_class.value == "write_capable"
 
 
 def test_get_tool_by_name():

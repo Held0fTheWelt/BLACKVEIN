@@ -20,14 +20,44 @@ MCP dispatch path is never affected.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from typing import Any
 
 import requests
 
 _REDACTED_KEYS = frozenset({"password", "token", "secret", "key", "api_key", "bearer", "credential"})
+_HASHED_BODY_KEYS = frozenset(
+    {
+        "body",
+        "input",
+        "message",
+        "messages",
+        "model_prompt",
+        "player_input",
+        "prompt",
+        "raw_prompt",
+        "request_body",
+    }
+)
 _MAX_VALUE_LEN = 500
 _MAX_RESULT_LEN = 2000
+
+
+def _hash_body_value(value: Any) -> dict[str, Any]:
+    if isinstance(value, str):
+        raw = value
+    else:
+        try:
+            raw = json.dumps(value, sort_keys=True, ensure_ascii=False)
+        except Exception:
+            raw = str(value)
+    return {
+        "redacted": "sha256",
+        "sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+        "char_length": len(raw),
+    }
 
 
 def _sanitize_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -36,6 +66,8 @@ def _sanitize_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
         lower_k = str(k).lower()
         if any(r in lower_k for r in _REDACTED_KEYS):
             out[k] = "[redacted]"
+        elif lower_k in _HASHED_BODY_KEYS:
+            out[k] = _hash_body_value(v)
         elif isinstance(v, str) and len(v) > _MAX_VALUE_LEN:
             out[k] = v[:_MAX_VALUE_LEN] + "…"
         else:
@@ -47,7 +79,6 @@ def _sanitize_result(result: dict[str, Any] | None) -> dict[str, Any] | str | No
     if result is None:
         return None
     try:
-        import json
         raw = json.dumps(result)
     except Exception:
         return str(result)[:_MAX_RESULT_LEN]

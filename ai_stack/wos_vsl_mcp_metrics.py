@@ -65,8 +65,8 @@ def write_capable_tool_count() -> int:
 
 
 def high_risk_mcp_mutation_tool_count() -> int:
-    """MVP pilot static count: write_capable tools plus
-    ``wos.session.execute_turn`` (runtime mutation).
+    """MVP pilot static count: write-capable tools plus any explicitly known
+    runtime mutation that has not yet been classified as write-capable.
     
     Behaviour, edge cases, and invariants should be inferred from the implementation and public contract of this symbol.
     
@@ -74,11 +74,12 @@ def high_risk_mcp_mutation_tool_count() -> int:
         int:
             Returns a value of type ``int``; see the function body for structure, error paths, and sentinels.
     """
-    names = {d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS}
-    n = write_capable_tool_count()
-    if "wos.session.execute_turn" in names:
-        n += 1
-    return n
+    write_names = {
+        d.name for d in CANONICAL_MCP_TOOL_DESCRIPTORS if d.tool_class is McpToolClass.write_capable
+    }
+    high_risk_names = set(write_names)
+    high_risk_names.add("wos.session.execute_turn")
+    return len(high_risk_names)
 
 
 def read_via_resource_share() -> float:

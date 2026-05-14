@@ -15,8 +15,8 @@
 | `wos.system.health` | Backend HTTP `GET /api/v1/health` |
 | `wos.goc.*`, `wos.content.search` | Repository filesystem read under `Config.repo_root` |
 | `wos.mcp.operator_truth` | Derived compact legibility from registry + profile + optional `probe_backend` |
-| `wos.session.execute_turn` (stub) | **Not** a capability invoke path — deferred; runtime guard/commit paths stay authoritative |
-| `wos.session.diag` (stub) | Deferred diagnostics surface; review-bound and non-authoritative in M1 |
+| `wos.session.execute_turn` | Backend HTTP `POST /api/v1/sessions/<id>/turns`; write-capable, denied outside `healthy`, and still goes through runtime guard/commit authority |
+| `wos.session.diag` | Read-only diagnostics surface; non-authoritative MCP mirror |
 
 There is **no** MCP exposure of `CapabilityRegistry.invoke` or direct narrative mutation.
 
@@ -33,7 +33,7 @@ The mapping is a pure substitution implemented by `cursor_safe_name()` in `tools
 
 - `read_only` — no mutating side effects on controlled stores via this tool.
 - `review_bound` — preview / observability / deferred stubs; must not silently act as writes.
-- `write_capable` — may initiate an authority-respecting mutating flow (`session.create` only today). Denied unless `WOS_MCP_OPERATING_PROFILE=healthy`.
+- `write_capable` — may initiate an authority-respecting mutating flow (`session.create`, `session.execute_turn`). Denied unless `WOS_MCP_OPERATING_PROFILE=healthy`.
 
 ## Operating profiles (`WOS_MCP_OPERATING_PROFILE`)
 

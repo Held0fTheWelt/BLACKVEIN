@@ -39,7 +39,10 @@ def _tracer_with_mock_client(monkeypatch) -> tuple[McpLangfuseTracer, MagicMock]
 # ---------------------------------------------------------------------------
 
 
-def test_tracer_disabled_by_default():
+def test_tracer_disabled_by_default(monkeypatch):
+    monkeypatch.delenv("LANGFUSE_MCP_ENABLED", raising=False)
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     tracer = McpLangfuseTracer()
     assert not tracer.is_enabled()
 
@@ -55,7 +58,10 @@ def test_tracer_enabled_when_flag_set(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_get_client_returns_none_when_disabled():
+def test_get_client_returns_none_when_disabled(monkeypatch):
+    monkeypatch.delenv("LANGFUSE_MCP_ENABLED", raising=False)
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     tracer = McpLangfuseTracer()
     assert tracer._get_client() is None
 
@@ -246,6 +252,15 @@ def test_sanitize_arguments_redacts_sensitive_keys():
     assert out["api_key"] == "[redacted]"
     assert out["token"] == "[redacted]"
     assert out["bearer"] == "[redacted]"
+
+
+def test_sanitize_arguments_hashes_player_text_fields():
+    args = {"player_input": "I reveal the private thing.", "prompt": "Tell the story."}
+    out = _sanitize_arguments(args)
+    assert out["player_input"]["redacted"] == "sha256"
+    assert out["player_input"]["char_length"] == len(args["player_input"])
+    assert out["player_input"]["sha256"] != args["player_input"]
+    assert out["prompt"]["redacted"] == "sha256"
 
 
 def test_sanitize_arguments_truncates_long_strings():

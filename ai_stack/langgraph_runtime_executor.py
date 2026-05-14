@@ -835,6 +835,28 @@ def _build_actor_lane_opening_narration(
     return f"{narrator_intro}\n\n{role_anchor}\n\n{scene_setup}"
 
 
+def _runtime_governance_policy_from_state(state: "RuntimeTurnState") -> dict[str, Any]:
+    policy = state.get("module_runtime_policy") if isinstance(state.get("module_runtime_policy"), dict) else {}
+    governance = (
+        policy.get("runtime_governance_policy")
+        if isinstance(policy.get("runtime_governance_policy"), dict)
+        else {}
+    )
+    return governance if isinstance(governance, dict) else {}
+
+
+def _runtime_governance_section(state: "RuntimeTurnState", section: str) -> dict[str, Any]:
+    governance = _runtime_governance_policy_from_state(state)
+    value = governance.get(section)
+    return value if isinstance(value, dict) else {}
+
+
+def _runtime_governance_hook_enabled(state: "RuntimeTurnState", hook_id: str) -> bool:
+    continuity = _runtime_governance_section(state, "continuity")
+    hooks = continuity.get("hooks") if isinstance(continuity.get("hooks"), list) else []
+    return hook_id in {str(item).strip() for item in hooks if str(item).strip()}
+
+
 def _derive_active_character_keys(
     *,
     yaml_slice: dict[str, Any] | None,
@@ -2253,7 +2275,22 @@ class RuntimeTurnGraphExecutor:
             return "full_pipeline"
         if pik == "mixed":
             return "full_pipeline"
-        if str(state.get("module_id") or "") != GOC_MODULE_ID:
+        short_path_policy = _runtime_governance_section(state, "action_resolution_short_path")
+        if not bool(short_path_policy.get("enabled")):
+            return "full_pipeline"
+        blocked_kinds = {
+            str(item).strip().lower()
+            for item in (short_path_policy.get("blocked_player_input_kinds") or [])
+            if str(item).strip()
+        }
+        if pik in blocked_kinds:
+            return "full_pipeline"
+        allowed_kinds = {
+            str(item).strip().lower()
+            for item in (short_path_policy.get("allowed_player_input_kinds") or [])
+            if str(item).strip()
+        }
+        if allowed_kinds and pik not in allowed_kinds:
             return "full_pipeline"
         pol = str(aff.get("action_commit_policy") or "").strip().lower()
         st = str(aff.get("affordance_status") or "").strip().lower()
@@ -2262,17 +2299,12 @@ class RuntimeTurnGraphExecutor:
             return "authoritative_action_resolution"
         if st in {"blocked", "unsafe"}:
             return "authoritative_action_resolution"
-        if st in {"allowed", "allowed_offscreen", "partial"} and verb in {
-            "move_to",
-            "look_at",
-            "listen_to",
-            "stand_up",
-            "activate",
-            "deactivate",
-            "open",
-            "place",
-            "take",
-        }:
+        allowed_verbs = {
+            str(item).strip().lower()
+            for item in (short_path_policy.get("allowed_verbs") or [])
+            if str(item).strip()
+        }
+        if st in {"allowed", "allowed_offscreen", "partial"} and verb in allowed_verbs:
             return "authoritative_action_resolution"
         return "full_pipeline"
 
@@ -4206,12 +4238,12 @@ class RuntimeTurnGraphExecutor:
         )
         continuity: list[dict[str, Any]] = []
         if (
-            state.get("module_id") == GOC_MODULE_ID
+            _runtime_governance_hook_enabled(state, "module_continuity_impacts_on_commit_v1")
             and validation.get("status") == "approved"
             and committed.get("commit_applied")
         ):
             continuity = build_goc_continuity_impacts_on_commit(
-                module_id=GOC_MODULE_ID,
+                module_id=str(state.get("module_id") or ""),
                 selected_scene_function=str(state.get("selected_scene_function") or ""),
                 proposed_state_effects=proposed,
                 social_outcome=state.get("social_outcome"),

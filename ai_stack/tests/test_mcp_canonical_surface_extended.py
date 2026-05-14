@@ -419,7 +419,7 @@ def test_derive_runtime_safe_vs_internal_session_diag():
 
 
 def test_derive_runtime_safe_vs_internal_session_execute_turn():
-    result = _derive_runtime_safe_vs_internal("wos.session.execute_turn", McpToolClass.review_bound)
+    result = _derive_runtime_safe_vs_internal("wos.session.execute_turn", McpToolClass.write_capable)
     assert result == "internal_only_via_runtime_executor"
 
 
@@ -464,7 +464,7 @@ def test_derive_canonical_vs_supporting_session_logs_read_only():
 
 
 def test_derive_canonical_vs_supporting_session_execute_turn():
-    result = _derive_canonical_vs_supporting("wos.session.execute_turn", McpToolClass.review_bound)
+    result = _derive_canonical_vs_supporting("wos.session.execute_turn", McpToolClass.write_capable)
     assert result == "runtime_turn_authority_required"
 
 

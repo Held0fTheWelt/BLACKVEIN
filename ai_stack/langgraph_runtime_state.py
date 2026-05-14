@@ -19,6 +19,9 @@ class RuntimeTurnState(TypedDict, total=False):
     trace_id: str
     host_versions: dict[str, Any]
     host_experience_template: dict[str, Any]
+    # Neutral module policy loaded from content/config. Runtime intelligence
+    # gates consume this shape rather than branching on module-specific names.
+    module_runtime_policy: dict[str, Any]
     force_experiment_preview: bool
     # Bounded prior-thread snapshot from story runtime (no evidence lists / no history blobs).
     active_narrative_threads: list[dict[str, Any]]

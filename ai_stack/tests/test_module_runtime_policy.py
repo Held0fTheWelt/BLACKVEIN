@@ -30,9 +30,12 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["phase_policy"]["phases"]
     assert policy["narrative_aspect_policy"]["aspects"]
     assert policy["memory_policy"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["action_resolution_short_path"]["enabled"] is True
+    assert policy["runtime_governance_policy"]["visible_projection"]["hard_failure_behavior"] == "recover"
     assert "actor_pressure_profiles" in policy["content_sources"]
     assert "narrative_aspect_policy" in policy["content_sources"]
     assert "memory_policy" in policy["content_sources"]
+    assert "runtime_intelligence" in policy["content_sources"]
 
 
 def test_runtime_aspect_ledger_schema_is_module_neutral() -> None:

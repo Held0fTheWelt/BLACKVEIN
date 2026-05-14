@@ -162,6 +162,63 @@ def _capability_policy(hard_forbidden_policy: dict[str, Any]) -> dict[str, Any]:
     return policy
 
 
+def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
+    raw = module_yaml.get("runtime_intelligence")
+    raw = raw if isinstance(raw, dict) else {}
+    action_short_path = raw.get("action_resolution_short_path")
+    action_short_path = action_short_path if isinstance(action_short_path, dict) else {}
+    visible_projection = raw.get("visible_projection")
+    visible_projection = visible_projection if isinstance(visible_projection, dict) else {}
+    continuity = raw.get("continuity")
+    continuity = continuity if isinstance(continuity, dict) else {}
+    capability_gate = raw.get("capability_gate")
+    capability_gate = capability_gate if isinstance(capability_gate, dict) else {}
+
+    return {
+        "action_resolution_short_path": {
+            "enabled": bool(action_short_path.get("enabled", False)),
+            "allowed_player_input_kinds": _json_safe(
+                action_short_path.get("allowed_player_input_kinds")
+                if isinstance(action_short_path.get("allowed_player_input_kinds"), list)
+                else []
+            ),
+            "allowed_verbs": _json_safe(
+                action_short_path.get("allowed_verbs")
+                if isinstance(action_short_path.get("allowed_verbs"), list)
+                else []
+            ),
+            "blocked_player_input_kinds": _json_safe(
+                action_short_path.get("blocked_player_input_kinds")
+                if isinstance(action_short_path.get("blocked_player_input_kinds"), list)
+                else []
+            ),
+        },
+        "visible_projection": {
+            "enabled": bool(visible_projection.get("enabled", False)),
+            "hard_failure_behavior": str(
+                visible_projection.get("hard_failure_behavior") or "recover"
+            ).strip()
+            or "recover",
+            "require_origin_metadata": bool(visible_projection.get("require_origin_metadata", True)),
+        },
+        "capability_gate": {
+            "forbidden_capability_behavior": str(
+                capability_gate.get("forbidden_capability_behavior") or "reject"
+            ).strip()
+            or "reject",
+            "missing_required_capability_behavior": str(
+                capability_gate.get("missing_required_capability_behavior") or "recover"
+            ).strip()
+            or "recover",
+        },
+        "continuity": {
+            "hooks": _json_safe(
+                continuity.get("hooks") if isinstance(continuity.get("hooks"), list) else []
+            ),
+        },
+    }
+
+
 @dataclass(frozen=True)
 class ModuleRuntimePolicy:
     module_id: str
@@ -180,6 +237,7 @@ class ModuleRuntimePolicy:
     locale_policy: dict[str, Any] = field(default_factory=dict)
     narrative_aspect_policy: dict[str, Any] = field(default_factory=dict)
     memory_policy: dict[str, Any] = field(default_factory=dict)
+    runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -245,6 +303,7 @@ def load_module_runtime_policy(
         ("module_strings", module_strings),
         ("narrative_aspect_policy", narrative_aspect_policy if narrative_aspect_policy.get("aspects") else {}),
         ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
+        ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
     ):
         if payload:
             sources.append(label)
@@ -281,5 +340,6 @@ def load_module_runtime_policy(
         locale_policy=locale_policy,
         narrative_aspect_policy=narrative_aspect_policy,
         memory_policy=memory_policy,
+        runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,
     )

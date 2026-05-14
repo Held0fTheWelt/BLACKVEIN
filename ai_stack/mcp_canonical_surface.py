@@ -20,6 +20,7 @@ AUTH_BACKEND_HTTP = "backend_http_authority"
 AUTH_FILESYSTEM_REPO = "filesystem_repo_authority"
 AUTH_AI_STACK_CAPABILITY_CATALOG = "ai_stack_capability_catalog"
 AUTH_LANGFUSE_EVALUATOR_CATALOG = "langfuse_evaluator_catalog"
+AUTH_QUALITY_LAB_ANALYSIS = "quality_lab_analysis"
 AUTH_MCP_SURFACE_META = "mcp_surface_meta"
 MCP_OPERATOR_TRUTH_GRAMMAR_VERSION = "mcp_operator_truth_v1"
 
@@ -161,7 +162,7 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("wos.session.logs", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_BACKEND_HTTP),
     ("wos.session.state", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_BACKEND_HTTP),
     ("wos.session.diag", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_BACKEND_HTTP),
-    ("wos.session.execute_turn", McpToolClass.review_bound, McpSuite.wos_runtime_control, AUTH_BACKEND_HTTP),
+    ("wos.session.execute_turn", McpToolClass.write_capable, McpSuite.wos_runtime_control, AUTH_BACKEND_HTTP),
     ("wos.goc.list_modules", McpToolClass.read_only, McpSuite.wos_author, AUTH_FILESYSTEM_REPO),
     ("wos.goc.get_module", McpToolClass.read_only, McpSuite.wos_author, AUTH_FILESYSTEM_REPO),
     ("wos.content.search", McpToolClass.read_only, McpSuite.wos_author, AUTH_FILESYSTEM_REPO),
@@ -192,6 +193,8 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("wos.evaluators.catalog", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
     ("wos.evaluators.get", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
     ("wos.evaluators.langfuse_sync_preview", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
+    ("wos.quality_lab.review_judgments", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.review_trace", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
 )
 
 

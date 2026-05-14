@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import threading
+import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -256,20 +257,54 @@ def _recoverable_runtime_aspect_ledger(
         raw_player_input=player_input,
         trace_id=trace_id,
     )
+    aspects = ledger.get("turn_aspect_ledger") if isinstance(ledger.get("turn_aspect_ledger"), dict) else {}
+    existing_validation = aspects.get(ASPECT_VALIDATION) if isinstance(aspects.get(ASPECT_VALIDATION), dict) else {}
+    existing_commit = aspects.get(ASPECT_COMMIT) if isinstance(aspects.get(ASPECT_COMMIT), dict) else {}
+    existing_visible = (
+        aspects.get(ASPECT_VISIBLE_PROJECTION)
+        if isinstance(aspects.get(ASPECT_VISIBLE_PROJECTION), dict)
+        else {}
+    )
+    existing_validation_expected = (
+        existing_validation.get("expected")
+        if isinstance(existing_validation.get("expected"), dict)
+        else {}
+    )
+    existing_validation_actual = (
+        existing_validation.get("actual")
+        if isinstance(existing_validation.get("actual"), dict)
+        else {}
+    )
+    existing_commit_expected = (
+        existing_commit.get("expected")
+        if isinstance(existing_commit.get("expected"), dict)
+        else {}
+    )
+    existing_commit_actual = (
+        existing_commit.get("actual")
+        if isinstance(existing_commit.get("actual"), dict)
+        else {}
+    )
+    existing_failure_class = (
+        str(existing_commit.get("failure_class") or existing_validation.get("failure_class") or "").strip()
+        or None
+    )
     ledger = set_aspect_record(
         ledger,
         ASPECT_VALIDATION,
         make_aspect_record(
             applicable=True,
             status="failed",
+            expected=existing_validation_expected,
             actual={
+                **existing_validation_actual,
                 "validation_status": validation_status,
                 "recoverable_rejection": True,
                 "hard_boundary_failure": False,
             },
             reasons=[reason],
             source="validator",
-            failure_class="recoverable_dramatic_failure",
+            failure_class=existing_failure_class or "recoverable_dramatic_failure",
             failure_reason=reason,
         ),
     )
@@ -279,32 +314,37 @@ def _recoverable_runtime_aspect_ledger(
         make_aspect_record(
             applicable=True,
             status="partial",
-            expected={"player_action_commit_allowed": False},
+            expected={
+                **existing_commit_expected,
+                "player_action_commit_allowed": False,
+            },
             actual={
+                **existing_commit_actual,
                 "commit_applied": False,
                 "recoverable_rejection": True,
                 "failure_committed_to_player_surface": visible_output_present,
             },
             reasons=[reason],
             source="runtime",
-            failure_class="recoverable_dramatic_failure",
+            failure_class=existing_failure_class or "recoverable_dramatic_failure",
             failure_reason=reason,
         ),
     )
-    ledger = set_aspect_record(
-        ledger,
-        ASPECT_VISIBLE_PROJECTION,
-        make_aspect_record(
-            applicable=True,
-            status="passed" if visible_output_present else "failed",
-            expected={"visible_output_present": True},
-            actual={"visible_output_present": bool(visible_output_present)},
-            reasons=[] if visible_output_present else [reason],
-            source="projection",
-            failure_class=None if visible_output_present else "projection_failure",
-            failure_reason=None if visible_output_present else reason,
-        ),
-    )
+    if existing_visible.get("status") != "failed":
+        ledger = set_aspect_record(
+            ledger,
+            ASPECT_VISIBLE_PROJECTION,
+            make_aspect_record(
+                applicable=True,
+                status="passed" if visible_output_present else "failed",
+                expected={"visible_output_present": True},
+                actual={"visible_output_present": bool(visible_output_present)},
+                reasons=[] if visible_output_present else [reason],
+                source="projection",
+                failure_class=None if visible_output_present else "projection_failure",
+                failure_reason=None if visible_output_present else reason,
+            ),
+        )
     return normalize_runtime_aspect_ledger(ledger)
 
 
@@ -367,6 +407,61 @@ def _stamp_turn_aspect_ledger_identity(
     if runtime_profile_id and not stamped.get("runtime_profile_id"):
         stamped["runtime_profile_id"] = runtime_profile_id
     return normalize_runtime_aspect_ledger(stamped)
+
+
+def _runtime_aspect_commit_blocking_failure(ledger: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(ledger, dict):
+        return None
+    normalized = normalize_runtime_aspect_ledger(ledger)
+    aspects = (
+        normalized.get("turn_aspect_ledger")
+        if isinstance(normalized.get("turn_aspect_ledger"), dict)
+        else {}
+    )
+    blocking_failure_classes = {
+        "hard_contract_failure",
+        "projection_failure",
+        "recoverable_dramatic_failure",
+    }
+    for aspect in (
+        ASPECT_VISIBLE_PROJECTION,
+        ASPECT_BEAT,
+        ASPECT_CAPABILITY_SELECTION,
+        ASPECT_NARRATIVE_ASPECT,
+        ASPECT_VALIDATION,
+    ):
+        record = aspects.get(aspect)
+        if not isinstance(record, dict):
+            continue
+        status = str(record.get("status") or "").strip().lower()
+        failure_class = str(record.get("failure_class") or "").strip()
+        failure_reason = str(record.get("failure_reason") or "").strip()
+        actual = record.get("actual") if isinstance(record.get("actual"), dict) else {}
+        reasons = record.get("reasons") if isinstance(record.get("reasons"), list) else []
+        reason = failure_reason or next((str(item).strip() for item in reasons if str(item).strip()), "")
+        if status == "failed" and (
+            failure_class in blocking_failure_classes
+            or aspect in {ASPECT_VISIBLE_PROJECTION, ASPECT_CAPABILITY_SELECTION}
+            or bool(actual.get("projection_failure_detected"))
+            or bool(actual.get("required_beat_lost"))
+            or bool(actual.get("narrative_aspect_failure"))
+        ):
+            return {
+                "aspect": aspect,
+                "status": status,
+                "failure_class": failure_class or "hard_contract_failure",
+                "failure_reason": reason or f"{aspect}_failed",
+            }
+    return None
+
+
+def _scene_blocks_from_visible_bundle(bundle: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(bundle, dict):
+        return []
+    blocks = bundle.get("scene_blocks")
+    if not isinstance(blocks, list):
+        return []
+    return [dict(block) for block in blocks if isinstance(block, dict)]
 
 
 def _recoverable_turn_message(*, session: "StorySession", reason: str) -> str:
@@ -438,6 +533,12 @@ def _recoverable_playable_turn_envelope(
         "interpreted_input": interpreted_input,
         "narrative_commit": narrative_commit,
         "validation_outcome": validation_outcome,
+        "committed_result": {
+            "commit_applied": False,
+            "committed_effects": [],
+            "reason": reason,
+            "recoverable_rejection": True,
+        },
         "visible_output_bundle": _recoverable_narrator_visible_output_bundle(message=message),
         "ok": False,
         "turn_status": "rejected_recoverable",
@@ -864,12 +965,11 @@ def _record_visible_projection_aspect(
         for expected_item in expected_realization:
             if expected_item in realized_capabilities:
                 continue
-            if (expected_item.startswith("narrator_") or expected_item.startswith("narrator.")) and not narrator_realized:
-                missing_expected.append(expected_item)
-            if (expected_item.startswith("npc_") or expected_item.startswith("npc.")) and not npc_realized:
-                missing_expected.append(expected_item)
-            if not expected_item.startswith(("narrator_", "narrator.", "npc_", "npc.")):
-                missing_expected.append(expected_item)
+            if expected_item in {"narrator", "narrator_authority"} and narrator_realized:
+                continue
+            if expected_item in {"npc", "npc_authority"} and npc_realized:
+                continue
+            missing_expected.append(expected_item)
         beat_realized = origin_present and not missing_expected
         beat_contractually_required = bool(
             expected.get("contractually_required")
@@ -6760,6 +6860,9 @@ class StoryRuntimeManager:
         host_experience_template: dict[str, Any] | None,
         prior_ci: list[dict[str, Any]] | None,
     ) -> dict[str, Any]:
+        prior_narrative_threads_for_rollback = copy.deepcopy(session.narrative_threads)
+        prior_thread_update_trace_for_rollback = copy.deepcopy(session.last_thread_update_trace)
+        prior_continuity_impacts_for_rollback = copy.deepcopy(session.prior_continuity_impacts)
         goc_append_continuity_impacts(session.module_id, session.prior_continuity_impacts, graph_state)
         graph_diag = graph_state.get("graph_diagnostics", {}) if isinstance(graph_state.get("graph_diagnostics"), dict) else {}
         errors = graph_diag.get("errors", []) if isinstance(graph_diag.get("errors"), list) else []
@@ -7142,6 +7245,120 @@ class StoryRuntimeManager:
             "actor_turn_summary": actor_turn_summary,
             "runtime_governance_surface": gov,
         }
+        projection_aspect_recorded = False
+
+        def _recover_if_projection_gate_blocks_commit() -> dict[str, Any] | None:
+            failure = _runtime_aspect_commit_blocking_failure(
+                event.get("turn_aspect_ledger")
+                if isinstance(event.get("turn_aspect_ledger"), dict)
+                else graph_state.get("turn_aspect_ledger")
+                if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+                else None
+            )
+            if not failure:
+                return None
+            reason = str(failure.get("failure_reason") or "runtime_aspect_projection_failure")
+            session.current_scene_id = prior_scene_id
+            session.narrative_threads = copy.deepcopy(prior_narrative_threads_for_rollback)
+            session.last_thread_update_trace = copy.deepcopy(prior_thread_update_trace_for_rollback)
+            session.prior_continuity_impacts = copy.deepcopy(prior_continuity_impacts_for_rollback)
+            if str(turn_kind or "").strip().lower() == "opening":
+                raise RuntimeError(f"Opening projection contract failure: {reason}")
+
+            message = _recoverable_turn_message(session=session, reason=reason)
+            turn_aspect_ledger = _recoverable_runtime_aspect_ledger(
+                session_id=session.session_id,
+                module_id=session.module_id,
+                turn_number=commit_turn_number,
+                turn_kind="player_projection_rejected_recoverable",
+                player_input=player_input,
+                trace_id=trace_id,
+                reason=reason,
+                validation_status="rejected",
+                existing_ledger=event.get("turn_aspect_ledger")
+                if isinstance(event.get("turn_aspect_ledger"), dict)
+                else graph_state.get("turn_aspect_ledger")
+                if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+                else None,
+                visible_output_present=True,
+            )
+            val_projection: dict[str, Any] = {
+                "status": "rejected",
+                "reason": reason,
+                "validator_lane": "runtime_aspect_projection_gate_v1",
+                "recoverable_rejection": True,
+                "hard_boundary_failure": False,
+                "runtime_aspect_failure": failure,
+            }
+            recoverable_event = _recoverable_playable_turn_envelope(
+                session=session,
+                commit_turn_number=commit_turn_number,
+                player_input=player_input,
+                trace_id=trace_id,
+                turn_kind="player_projection_rejected_recoverable",
+                interpreted_input=interpreted_input,
+                narrative_commit={
+                    "situation_status": "continue",
+                    "allowed": False,
+                    "commit_reason_code": "runtime_aspect_projection_gate",
+                    "committed_scene_id": prior_scene_id,
+                    "proposed_scene_id": prior_scene_id,
+                    "selected_candidate_source": "runtime_aspect_projection_gate",
+                    "is_terminal": False,
+                },
+                validation_outcome=val_projection,
+                message=message,
+                turn_aspect_ledger=turn_aspect_ledger,
+                reason=reason,
+                diagnostics_extras={
+                    "failure_class": failure.get("failure_class"),
+                    "runtime_aspect_failure": failure,
+                },
+            )
+            graph_state["turn_aspect_ledger"] = turn_aspect_ledger
+            graph_state["validation_outcome"] = val_projection
+            graph_state["visible_output_bundle"] = recoverable_event["visible_output_bundle"]
+            graph_state["committed_result"] = {
+                "commit_applied": False,
+                "committed_effects": [],
+                "reason": reason,
+                "runtime_aspect_failure": failure,
+            }
+            return self._persist_player_visible_turn_event(
+                session=session,
+                graph_state=graph_state,
+                event=recoverable_event,
+                trace_id=trace_id,
+                commit_turn_number=commit_turn_number,
+                player_input=player_input,
+                turn_outcome="recoverable_projection_failure",
+            )
+        if session.module_id != GOD_OF_CARNAGE_MODULE_ID:
+            generic_scene_blocks = _scene_blocks_from_visible_bundle(
+                event.get("visible_output_bundle")
+                if isinstance(event.get("visible_output_bundle"), dict)
+                else None
+            )
+            if generic_scene_blocks:
+                event["turn_aspect_ledger"] = _record_visible_projection_aspect(
+                    ledger=event.get("turn_aspect_ledger")
+                    if isinstance(event.get("turn_aspect_ledger"), dict)
+                    else graph_state.get("turn_aspect_ledger")
+                    if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+                    else None,
+                    session_id=session.session_id,
+                    module_id=session.module_id,
+                    turn_number=commit_turn_number,
+                    turn_kind=turn_kind or "player",
+                    raw_player_input=player_input,
+                    trace_id=trace_id,
+                    scene_blocks=generic_scene_blocks,
+                )
+                projection_aspect_recorded = True
+                graph_state["turn_aspect_ledger"] = event["turn_aspect_ledger"]
+                blocked_projection_event = _recover_if_projection_gate_blocks_commit()
+                if blocked_projection_event is not None:
+                    return blocked_projection_event
         # Build SceneTurnEnvelope.v2 for God of Carnage solo sessions.
         # Live graph/model output is primary. LDSS is reserved as the final
         # deterministic fallback when the live path cannot produce scene blocks.
@@ -7204,6 +7421,7 @@ class StoryRuntimeManager:
                     trace_id=trace_id,
                     scene_blocks=[dict(block) for block in live_scene_blocks if isinstance(block, dict)],
                 )
+                projection_aspect_recorded = True
                 graph_state["turn_aspect_ledger"] = event["turn_aspect_ledger"]
                 scene_turn_envelope = _build_live_scene_turn_envelope(
                     session=session,
@@ -7313,7 +7531,36 @@ class StoryRuntimeManager:
                         trace_id=trace_id,
                         scene_blocks=[dict(block) for block in blocks if isinstance(block, dict)],
                     )
+                    projection_aspect_recorded = True
                     graph_state["turn_aspect_ledger"] = event["turn_aspect_ledger"]
+
+            if not projection_aspect_recorded:
+                generic_scene_blocks = _scene_blocks_from_visible_bundle(
+                    event.get("visible_output_bundle")
+                    if isinstance(event.get("visible_output_bundle"), dict)
+                    else None
+                )
+                if generic_scene_blocks:
+                    event["turn_aspect_ledger"] = _record_visible_projection_aspect(
+                        ledger=event.get("turn_aspect_ledger")
+                        if isinstance(event.get("turn_aspect_ledger"), dict)
+                        else graph_state.get("turn_aspect_ledger")
+                        if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+                        else None,
+                        session_id=session.session_id,
+                        module_id=session.module_id,
+                        turn_number=commit_turn_number,
+                        turn_kind=turn_kind or "player",
+                        raw_player_input=player_input,
+                        trace_id=trace_id,
+                        scene_blocks=generic_scene_blocks,
+                    )
+                    projection_aspect_recorded = True
+                    graph_state["turn_aspect_ledger"] = event["turn_aspect_ledger"]
+
+            blocked_projection_event = _recover_if_projection_gate_blocks_commit()
+            if blocked_projection_event is not None:
+                return blocked_projection_event
 
             # MVP3: Orchestrate NarrativeRuntimeAgent streaming (after LDSS produces NPCAgencyPlan)
             runtime_state = {
@@ -7970,6 +8217,9 @@ class StoryRuntimeManager:
             "turn_outcome": turn_outcome,
             "narrative_commit": event.get("narrative_commit"),
             "validation_outcome": event.get("validation_outcome"),
+            "committed_result": event.get("committed_result")
+            if isinstance(event.get("committed_result"), dict)
+            else graph_state.get("committed_result"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "human_input_attribution": human_att,

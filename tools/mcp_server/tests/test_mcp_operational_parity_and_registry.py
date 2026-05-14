@@ -87,6 +87,25 @@ def test_g_mcp_03_write_capable_denied_under_review_safe(monkeypatch):
             assert resp["error"]["code"] == -32003
 
 
+def test_g_mcp_03_execute_turn_denied_under_review_safe(monkeypatch):
+    monkeypatch.setenv("WOS_MCP_OPERATING_PROFILE", McpOperatingProfile.review_safe.value)
+    with patch("tools.mcp_server.backend_client.BackendClient"):
+        with patch("tools.mcp_server.tools_registry.FileSystemTools"):
+            server = McpServer()
+            req = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "wos.session.execute_turn",
+                    "arguments": {"session_id": "s1", "prompt": "test"},
+                },
+            }
+            resp = server.dispatch(req, "trace-rs-turn")
+            assert "error" in resp
+            assert resp["error"]["code"] == -32003
+
+
 def test_g_mcp_03_audit_log_includes_canonical_fields(monkeypatch, capsys):
     monkeypatch.setenv("WOS_MCP_OPERATING_PROFILE", McpOperatingProfile.healthy.value)
     with patch("tools.mcp_server.backend_client.BackendClient.health") as mh:
@@ -167,8 +186,8 @@ def test_g_mcp_06_no_capability_invoke_import_in_server():
     assert "create_default_capability_registry" not in src
 
 
-def test_g_mcp_06_review_bound_tools_are_implemented(monkeypatch):
-    """Verify review-bound session tools are now fully implemented."""
+def test_g_mcp_06_execute_turn_is_implemented_when_write_profile_allows(monkeypatch):
+    """Verify mutating turn execution is implemented behind write-capable gating."""
     monkeypatch.setenv("WOS_MCP_OPERATING_PROFILE", McpOperatingProfile.healthy.value)
     with patch("tools.mcp_server.backend_client.BackendClient._post") as mock_post:
         mock_post.return_value = {"status": "executed"}
