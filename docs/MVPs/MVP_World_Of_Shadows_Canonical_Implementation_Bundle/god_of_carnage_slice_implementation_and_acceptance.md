@@ -125,11 +125,11 @@ These behaviors, if visible in game output, prove the system is working:
 **Code path:** `render_visible.py` projects established facts from turn_log into scene_context; model sees these and incorporates them into dialogue.
 
 ### Marker 3: Character Voice Distinctness
-**Proof:** Vanya says something literary and self-aware. Annette responds with sharp, pointed question. Not generic LLM.
+**Proof:** The runtime derives active GoC character voice profiles from `direction/character_voice.yaml`, passes compact profile guidance into the generation context, and validates structured `spoken_lines` before commit.
 
-**Where to see it:** Dialogue is immediately recognizable (you could guess speaker).
+**Where to see it:** `graph_diagnostics` / runtime package sections expose `character_voice_profiles`; validation records `voice_consistency_validation` and the `turn_aspect_ledger.voice_consistency` aspect. Policy-declared forbidden voice markers reject through `runtime_voice_consistency_v1`.
 
-**Code path:** `invoke_model.py` includes character-specific voice guidance in prompt; `proposal_normalize.py` enforces voice markers.
+**Code path:** `ai_stack/character_voice_goc.py` builds profiles, `ai_stack/langgraph_runtime_executor.py` adds them to the packet/context and runtime aspect validation, and `ai_stack/character_voice_validation.py` enforces machine-readable policy markers. `dialogue_examples` are authoring examples only, not ADR-0039-safe pass/fail oracles.
 
 ### Marker 4: Responder Set Determinism
 **Proof:** Player confronts Vanya. Annette responds (primary target). Mediator adds context (secondary). Other guest says nothing.
@@ -162,7 +162,7 @@ These behaviors, if visible in game output, prove the system is working:
 3. Write `scene_assessment.py` with GoC-specific rules
 4. Write `select_responders.py` with dramatic logic
 5. Write `select_scene_function.py` with continuity rules
-6. Write `invoke_model.py` with character voice prompts
+6. Wire `character_voice_goc.py` / `langgraph_runtime_executor.py` voice profiles into generation context and validation
 7. Write `validate_seam.py` with GoC rule engine
 8. Write `commit_seam.py` with state update logic
 9. Write `render_visible.py` with visibility rules
@@ -375,4 +375,3 @@ These are valid targets but not MVP scope.
 - [ ] (Deferred) Multi-party complexity (future work)
 
 All checked items mean GoC slice is ready for production use.
-

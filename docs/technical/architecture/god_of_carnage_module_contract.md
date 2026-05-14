@@ -32,7 +32,7 @@ content/modules/god_of_carnage/
 └── direction/
     ├── system_prompt.md       # System prompt for story LLM
     ├── scene_guidance.yaml    # Per-scene constraints and context
-    └── character_voice.yaml   # Character voice and tone guidance
+    └── character_voice.yaml   # Character voice, tone guidance, and voice_consistency marker policy
 ```
 
 ---

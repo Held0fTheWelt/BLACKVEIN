@@ -65,7 +65,7 @@ Turn History:
 **Actions available:**
 - View full dialogue history for this character
 - See how pressure vectors shaped their responses
-- Audit voice consistency (read all their dialogue)
+- Audit voice consistency through `voice_consistency_validation` / `turn_aspect_ledger.voice_consistency`; reading dialogue remains a qualitative follow-up, not the primary gate
 - Check alliance/relationship changes over time
 
 #### View 4: Pressure Vector Timeline
@@ -500,4 +500,3 @@ Admin surfaces are correct when:
 8. **Operators understand domains** (all views align with scene/character/facts/input/quality domains)
 
 All criteria must be met for Phase 4 acceptance.
-

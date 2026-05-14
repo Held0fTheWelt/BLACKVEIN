@@ -33,6 +33,10 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "capability_missing_required",
         "forbidden_capability_realized",
         "voice_consistency_drift",
+        "npc_initiative_missing_required",
+        "npc_initiative_missing_required_secondary",
+        "npc_initiative_forbidden_actor_planned",
+        "npc_initiative_forbidden_actor_realized",
     }
 )
 
@@ -76,6 +80,10 @@ DEGRADED_COMMIT_BLOCK_REASONS = frozenset(
         "npc_force_player_speech",
         "capability_missing_required",
         "forbidden_capability_realized",
+        "npc_initiative_missing_required",
+        "npc_initiative_missing_required_secondary",
+        "npc_initiative_forbidden_actor_planned",
+        "npc_initiative_forbidden_actor_realized",
     }
 )
 
@@ -171,6 +179,16 @@ def collect_playability_feedback_codes(
                     feedback.append(f"voice_drift:{drift_class}")
                 if speaker:
                     feedback.append(f"voice_speaker:{speaker}")
+    npc_validation = outcome.get("npc_initiative_validation") if isinstance(outcome, dict) else None
+    if isinstance(npc_validation, dict):
+        for code in npc_validation.get("error_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
+        for actor_id in npc_validation.get("missing_required_actor_ids") or []:
+            actor_text = str(actor_id or "").strip()
+            if actor_text:
+                feedback.append(f"missing_required_npc_initiative:{actor_text}")
     raw = str(gen.get("model_raw_text") or gen.get("content") or "")
     if raw.strip().startswith("[mock]"):
         feedback.append("mock_fallback_output")
@@ -354,10 +372,27 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
         voice_feedback = (
             " Voice consistency repair: keep every spoken_lines row assigned to the same approved speaker, "
             "but rewrite that speaker's wording so it follows the provided Character Voice Profiles. "
-            "Do not copy another character's canonical example line. Do not add new actors, new facts, "
+            "Remove policy-forbidden language markers without adding new actors, new facts, "
             "or narrator explanations to hide the issue."
         )
         return preserve_prefix + base_instruction + voice_feedback
+
+    npc_agency_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("npc_initiative_")
+        or code.startswith("missing_required_npc_initiative:")
+    ]
+    if npc_agency_issues:
+        allowed_str = ", ".join(sorted(allowed_actor_ids or [])) or "the approved NPC responder set"
+        npc_agency_feedback = (
+            " NPC agency repair: realize every missing required NPC initiative in spoken_lines or action_lines, "
+            f"using only these approved actor IDs: {allowed_str}. "
+            "At least one nominated secondary NPC must visibly react when the plan requires secondary initiative. "
+            "Do not treat initiative_events alone as realization, do not add unapproved actors, "
+            "and never move dialogue or action onto the human/player actor."
+        )
+        return preserve_prefix + base_instruction + npc_agency_feedback
 
     return preserve_prefix + base_instruction
 

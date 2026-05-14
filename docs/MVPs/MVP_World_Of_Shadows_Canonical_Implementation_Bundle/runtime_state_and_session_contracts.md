@@ -236,7 +236,9 @@ Characters must maintain consistent:
 - Emotional trajectories (pressure builds, recovers, etc.)
 - Relationship dynamics (how they speak to each other)
 
-**Validation:** Turn trace shows which character is responding; operator can audit voice consistency in dialogue seam output.
+**Runtime enforcement:** The live GoC path derives `CharacterVoiceProfileRecord` values from canonical `direction/character_voice.yaml` and exposes them to generation as profile guidance. During validation, `voice_consistency_validation.v1` checks structured `spoken_lines` against the active profiles and records a `voice_consistency` runtime aspect before commit. Policy-declared forbidden language markers can reject an otherwise approved turn through the `runtime_voice_consistency_v1` lane; recovery keeps speaker ownership stable and rewrites only the offending language.
+
+**ADR-0039 boundary:** `dialogue_examples` in `character_voice.yaml` are authoring examples, not validation or test oracles. Runtime profiles omit them, and tests assert structured validator/aspect outcomes derived from the policy block rather than copied narrative prose.
 
 ### Scene Identity Preservation
 
@@ -336,4 +338,3 @@ If state consistency fails:
 - **Scene identity lost** → Operator can see scene_core changed; can rollback or manually correct
 
 All degradation is audited and recoverable.
-

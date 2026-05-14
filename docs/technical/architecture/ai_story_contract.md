@@ -198,7 +198,10 @@ The Engine's guard layer validates every AI proposal:
 - ✅ No new facts introduced
 - ✅ No forbidden changes attempted
 - ✅ Scene_interpretation is coherent with proposed deltas
-- ✅ Dialogue impulses match character voice (guard_precheck compares to character_voice.yaml)
+- ✅ Dialogue output receives character voice profile guidance from `character_voice.yaml`
+- ✅ Policy-declared forbidden voice markers are rejected before commit via `voice_consistency_validation.v1`
+
+`dialogue_examples` in `character_voice.yaml` are authoring references only. They are not runtime validation oracles and should not be copied into gate tests as expected prose.
 
 ### Coherence Validation
 - ✅ `conflict_vector` matches emotional trajectory of proposed deltas

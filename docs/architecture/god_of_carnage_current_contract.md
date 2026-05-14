@@ -24,7 +24,7 @@ It is not a runtime module — it is a content module loaded by the engine at se
 | `endings.yaml` | End state conditions |
 | `direction/system_prompt.md` | LLM system prompt guidance |
 | `direction/scene_guidance.yaml` | Per-scene constraints |
-| `direction/character_voice.yaml` | Character voice guidance |
+| `direction/character_voice.yaml` | Character voice guidance plus machine-readable `voice_consistency` marker policy |
 
 ### module_id
 

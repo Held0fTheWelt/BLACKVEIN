@@ -56,6 +56,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_INPUT,
     ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_VALIDATION,
@@ -92,7 +93,8 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
 )
-from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency_planner import build_npc_agency_plan
+from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
 from ai_stack.character_voice_goc import build_character_voice_profiles_for_goc
@@ -824,6 +826,8 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
     status = str(result.get("status") or "not_applicable").strip().lower()
     findings = result.get("findings") if isinstance(result.get("findings"), list) else []
     blocking = result.get("blocking_findings") if isinstance(result.get("blocking_findings"), list) else []
+    policy_sources = result.get("policy_sources") if isinstance(result.get("policy_sources"), list) else []
+    marker_policy_present = "character_voice.voice_consistency.forbidden_language_markers" in policy_sources
     applicable = status != "not_applicable"
     aspect_status = "not_applicable"
     if status == "rejected":
@@ -842,7 +846,7 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
             "policy_present": bool(result.get("policy_sources")),
             "validation_mode": result.get("validation_mode"),
             "profiles_required_for_spoken_lines": True,
-            "borrowed_canonical_dialogue_examples_forbidden": True,
+            "forbidden_language_markers_enforced": marker_policy_present,
         },
         actual={
             "validation_status": status,
@@ -860,6 +864,98 @@ def _voice_aspect_record(result: dict[str, Any]) -> dict[str, Any]:
         offending_actor_id=str(first_blocking.get("speaker_id") or first_finding.get("speaker_id") or "").strip() or None,
         actual_owner=str(first_blocking.get("actual_source_actor_id") or "").strip() or None,
         expected_owner=str(first_blocking.get("expected_profile_actor_id") or "").strip() or None,
+    )
+
+
+def _npc_agency_plan_from_state(state: "RuntimeTurnState") -> dict[str, Any] | None:
+    packet = (
+        state.get("dramatic_generation_packet")
+        if isinstance(state.get("dramatic_generation_packet"), dict)
+        else {}
+    )
+    plan = packet.get("npc_agency_plan") if isinstance(packet.get("npc_agency_plan"), dict) else None
+    if plan:
+        return plan
+    direct = state.get("npc_agency_plan")
+    return direct if isinstance(direct, dict) and direct else None
+
+
+def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(validation, dict):
+        return make_aspect_record(
+            applicable=False,
+            status="not_applicable",
+            expected={"npc_agency_plan_present": False},
+            actual={},
+            source="validator",
+        )
+
+    status = str(validation.get("status") or "not_applicable").strip().lower()
+    if status == "approved":
+        aspect_status = "passed"
+    elif status == "degraded":
+        aspect_status = "partial"
+    elif status == "rejected":
+        aspect_status = "failed"
+    else:
+        aspect_status = "missing"
+
+    realization = (
+        validation.get("npc_initiative_realization_v1")
+        if isinstance(validation.get("npc_initiative_realization_v1"), dict)
+        else {}
+    )
+    plan = (
+        validation.get("npc_agency_plan")
+        if isinstance(validation.get("npc_agency_plan"), dict)
+        else {}
+    )
+    error_codes = [str(code) for code in (validation.get("error_codes") or []) if str(code).strip()]
+    feedback_code = str(validation.get("feedback_code") or "").strip() or None
+    forbidden = bool(validation.get("forbidden_planned_actor_ids") or validation.get("forbidden_realized_actor_ids"))
+    failed = aspect_status == "failed"
+    return make_aspect_record(
+        applicable=True,
+        status=aspect_status,
+        expected={
+            "npc_agency_plan_present": True,
+            "contract_status": validation.get("contract_status") or plan.get("contract_status"),
+            "not_full_multi_agent_simulation": bool(
+                validation.get("not_full_multi_agent_simulation")
+                or plan.get("not_full_multi_agent_simulation")
+            ),
+            "required_actor_ids": realization.get("required_actor_ids") or plan.get("required_actor_ids") or [],
+            "minimum_secondary_initiatives_required": plan.get("minimum_secondary_initiatives_required"),
+        },
+        selected={
+            "primary_responder_id": plan.get("primary_responder_id"),
+            "secondary_responder_ids": plan.get("secondary_responder_ids") or [],
+        },
+        actual={
+            "validation_status": status,
+            "planned_actor_ids": realization.get("planned_actor_ids") or [],
+            "realized_actor_ids": validation.get("realized_actor_ids") or [],
+            "missing_required_actor_ids": validation.get("missing_required_actor_ids") or [],
+            "forbidden_planned_actor_ids": validation.get("forbidden_planned_actor_ids") or [],
+            "forbidden_realized_actor_ids": validation.get("forbidden_realized_actor_ids") or [],
+            "error_codes": error_codes,
+            "multi_npc_initiative_realized": bool(realization.get("multi_npc_initiative_realized")),
+            "not_full_multi_agent_simulation": bool(
+                validation.get("not_full_multi_agent_simulation")
+                or realization.get("not_full_multi_agent_simulation")
+            ),
+            "contract_status": validation.get("contract_status") or realization.get("contract_status"),
+        },
+        reasons=error_codes,
+        source="validator",
+        failure_class=(
+            "hard_contract_failure"
+            if failed and forbidden
+            else "recoverable_dramatic_failure"
+            if failed
+            else None
+        ),
+        failure_reason=feedback_code if failed else None,
     )
 
 
@@ -911,6 +1007,33 @@ def _build_runtime_aspect_validation(
         ASPECT_VOICE_CONSISTENCY,
         voice_record,
     )
+    npc_agency_plan = _npc_agency_plan_from_state(state)
+    actor_lane_context = (
+        state.get("actor_lane_context")
+        if isinstance(state.get("actor_lane_context"), dict)
+        else None
+    )
+    npc_initiative_validation = (
+        validate_npc_initiative_realization(
+            npc_agency_plan,
+            _structured_output_from_generation(generation),
+            actor_lane_context=actor_lane_context,
+            strict_required=True,
+        )
+        if isinstance(npc_agency_plan, dict)
+        else None
+    )
+    npc_agency_record = _npc_agency_aspect_record(npc_initiative_validation)
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_NPC_AGENCY,
+        npc_agency_record,
+    )
+    if isinstance(npc_initiative_validation, dict):
+        next_outcome = {
+            **next_outcome,
+            "npc_initiative_validation": npc_initiative_validation,
+        }
     capability_selection = build_capability_selection_record(
         interpreted_input=state.get("interpreted_input")
         if isinstance(state.get("interpreted_input"), dict)
@@ -1008,6 +1131,33 @@ def _build_runtime_aspect_validation(
             "missing_required_capabilities": capability_selection.get("missing_required_capabilities") or [],
             "selected_capability": cap_missing_first,
         }
+    npc_agency_failure = None
+    if (
+        isinstance(npc_initiative_validation, dict)
+        and str(npc_initiative_validation.get("status") or "").strip().lower() != "approved"
+    ):
+        npc_error_codes = [
+            str(code)
+            for code in (npc_initiative_validation.get("error_codes") or [])
+            if str(code).strip()
+        ]
+        forbidden_npc_agency = bool(
+            npc_initiative_validation.get("forbidden_planned_actor_ids")
+            or npc_initiative_validation.get("forbidden_realized_actor_ids")
+        )
+        npc_agency_failure = {
+            "failure_reason": str(
+                npc_initiative_validation.get("feedback_code")
+                or (npc_error_codes[0] if npc_error_codes else "npc_initiative_validation_failed")
+            ),
+            "error_codes": npc_error_codes,
+            "missing_required_actor_ids": npc_initiative_validation.get("missing_required_actor_ids") or [],
+            "forbidden_planned_actor_ids": npc_initiative_validation.get("forbidden_planned_actor_ids") or [],
+            "forbidden_realized_actor_ids": npc_initiative_validation.get("forbidden_realized_actor_ids") or [],
+            "failure_class": "hard_contract_failure"
+            if forbidden_npc_agency
+            else "recoverable_dramatic_failure",
+        }
 
     if authority_failure is not None:
         failure_reason = str(
@@ -1066,6 +1216,20 @@ def _build_runtime_aspect_validation(
             "hard_boundary_failure": False,
             "recoverable_rejection": True,
         }
+    elif npc_agency_failure is not None:
+        failure_reason = str(npc_agency_failure.get("failure_reason") or "npc_initiative_validation_failed")
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "npc_initiative_validation_v1",
+            "npc_agency_contract_violation": True,
+            "failure_class": npc_agency_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "npc_agency_failure": npc_agency_failure,
+        }
     else:
         next_outcome = {
             **next_outcome,
@@ -1089,6 +1253,12 @@ def _build_runtime_aspect_validation(
                 "voice_consistency_contract_violation": bool(next_outcome.get("voice_consistency_contract_violation")),
                 "voice_consistency_status": voice_validation.get("status"),
                 "voice_consistency_reason": voice_validation.get("reason"),
+                "npc_initiative_validation_status": (
+                    npc_initiative_validation.get("status")
+                    if isinstance(npc_initiative_validation, dict)
+                    else None
+                ),
+                "npc_agency_contract_violation": bool(next_outcome.get("npc_agency_contract_violation")),
                 "recoverable_rejection": bool(next_outcome.get("recoverable_rejection")),
                 "hard_boundary_failure": bool(next_outcome.get("hard_boundary_failure")),
             },
@@ -1133,8 +1303,10 @@ def _build_runtime_aspect_validation(
         "npc_authority": npc_authority,
         "capability_selection": capability_selection,
         "voice_consistency_validation": voice_validation,
+        "npc_initiative_validation": npc_initiative_validation,
         "authority_failure": authority_failure,
         "capability_failure": capability_failure,
+        "npc_agency_failure": npc_agency_failure,
     }
 
 
@@ -1691,79 +1863,29 @@ def _build_npc_agency_plan_projection(
     if not responder_ids:
         return None, None
 
-    mind_by_actor = {
-        str(row.get("actor_id") or "").strip(): row
-        for row in compact_minds
-        if isinstance(row, dict) and str(row.get("actor_id") or "").strip()
-    }
-    primary_id = responder_ids[0]
-    secondary_ids = responder_ids[1:]
-    first_secondary_id = secondary_ids[0] if secondary_ids else None
-    required_actor_ids = [primary_id] + ([first_secondary_id] if first_secondary_id else [])
-
-    initiatives: list[dict[str, Any]] = []
-    for index, actor_id in enumerate(responder_ids):
-        responder_row = next(
-            (
-                row
-                for row in responders
-                if isinstance(row, dict)
-                and str(row.get("actor_id") or row.get("responder_id") or "").strip() == actor_id
-            ),
-            {},
-        )
-        role = str(responder_row.get("role") or "").strip()
-        mind = mind_by_actor.get(actor_id, {})
-        if index == 0:
-            intent = "claim_primary_response"
-            target_actor_id = None
-            requirement_scope = "primary_required"
-        elif role == "interruption_candidate":
-            intent = "interrupt_or_counter_scene_pressure"
-            target_actor_id = primary_id
-            requirement_scope = "one_secondary_minimum" if actor_id == first_secondary_id else "optional_secondary"
-        else:
-            intent = "react_to_primary_or_scene_pressure"
-            target_actor_id = primary_id
-            requirement_scope = "one_secondary_minimum" if actor_id == first_secondary_id else "optional_secondary"
-
-        initiatives.append(
-            {
-                "actor_id": actor_id,
-                "role": role or ("primary_responder" if index == 0 else "secondary_reactor"),
-                "intent": intent,
-                "allowed_block_types": ["actor_line", "actor_action"],
-                "allowed_output_lanes": ["spoken_lines", "action_lines", "initiative_events"],
-                "target_actor_id": target_actor_id,
-                "required": actor_id in required_actor_ids,
-                "requirement_scope": requirement_scope,
-                "tactical_posture": mind.get("tactical_posture"),
-                "pressure_response_bias": mind.get("pressure_response_bias"),
-            }
-        )
-
-    plan = {
-        "contract": "npc_agency_plan.v1",
-        "schema_version": "npc_agency_plan.v1",
-        "contract_status": "partial_runtime_projection",
-        "implementation_status": "partial_runtime_projection",
-        "not_full_multi_agent_simulation": True,
-        "turn_number": state.get("turn_number"),
-        "primary_responder_id": primary_id,
-        "secondary_responder_ids": secondary_ids,
-        "required_actor_ids": required_actor_ids,
-        "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
-        "npc_initiatives": initiatives,
-    }
-    plan = normalize_npc_agency_plan(
-        plan,
-        selected_primary_responder_id=primary_id,
-        selected_secondary_responder_ids=secondary_ids,
-        preferred_reaction_order_ids=responder_ids,
+    character_mind_records = (
+        state.get("character_mind_records")
+        if isinstance(state.get("character_mind_records"), list)
+        else compact_minds
+    )
+    plan = build_npc_agency_plan(
+        selected_responder_set=responders,
+        turn_number=state.get("turn_number"),
+        character_mind_records=character_mind_records,
+        social_state_record=state.get("social_state_record")
+        if isinstance(state.get("social_state_record"), dict)
+        else None,
+        semantic_move_record=state.get("semantic_move_record")
+        if isinstance(state.get("semantic_move_record"), dict)
+        else None,
+        selected_scene_function=str(state.get("selected_scene_function") or "").strip() or None,
+        prior_planner_truth=state.get("prior_planner_truth")
+        if isinstance(state.get("prior_planner_truth"), dict)
+        else None,
         actor_lane_context=state.get("actor_lane_context")
         if isinstance(state.get("actor_lane_context"), dict)
         else None,
-        turn_number=state.get("turn_number"),
+        preferred_reaction_order_ids=responder_ids,
     )
     if not plan:
         return None, None
@@ -4710,6 +4832,8 @@ class RuntimeTurnGraphExecutor:
         update["turn_aspect_ledger"] = authority_ledger
         if isinstance(validation_eval.get("voice_consistency_validation"), dict):
             update["voice_consistency_validation"] = validation_eval["voice_consistency_validation"]
+        if isinstance(validation_eval.get("npc_initiative_validation"), dict):
+            update["npc_initiative_validation"] = validation_eval["npc_initiative_validation"]
         update["self_correction"] = {
             "attempt_count": len(self_correction_attempts),
             "attempts": self_correction_attempts,

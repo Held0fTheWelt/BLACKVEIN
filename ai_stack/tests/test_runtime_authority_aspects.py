@@ -5,11 +5,14 @@ from typing import Any
 from ai_stack.langgraph_runtime_executor import (
     RuntimeTurnGraphExecutor,
     _build_authority_aspect_records,
+    _build_runtime_aspect_validation,
 )
+from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
 from ai_stack.runtime_dramatic_capabilities import build_capability_selection_record
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
     initialize_runtime_aspect_ledger,
@@ -214,6 +217,67 @@ def test_validation_reads_narrator_authority_aspect() -> None:
     validation = update["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_VALIDATION]
     assert validation["status"] == "failed"
     assert validation["failure_reason"] == "narrator_required_missing"
+
+
+def test_npc_agency_missing_required_initiative_rejects_validation_as_recoverable() -> None:
+    state = _state()
+    responders = [
+        {"actor_id": actor_id, "role": role}
+        for actor_id, role in zip(
+            state["actor_lane_context"]["npc_actor_ids"],
+            ("primary_responder", "secondary_reactor"),
+        )
+    ]
+    expected_actor_ids = [row["actor_id"] for row in responders]
+    state["selected_responder_set"] = responders
+    plan = normalize_npc_agency_plan(
+        {},
+        selected_primary_responder_id=expected_actor_ids[0],
+        selected_secondary_responder_ids=expected_actor_ids[1:],
+        preferred_reaction_order_ids=expected_actor_ids,
+        actor_lane_context=state["actor_lane_context"],
+    )
+    structured_output = {
+        "schema_version": "runtime_actor_turn_v1",
+        "narration_summary": "The room registers the move while the remaining NPC pressure stays visible.",
+        "primary_responder_id": expected_actor_ids[0],
+        "spoken_lines": [{"speaker_id": expected_actor_ids[0], "text": "Stay here."}],
+        "action_lines": [],
+        "initiative_events": [],
+    }
+    generation = _generation(structured_output)
+    proposed = [
+        {
+            "effect_type": "narrative_projection",
+            "description": structured_output["narration_summary"],
+        }
+    ]
+    state["dramatic_generation_packet"] = {"npc_agency_plan": plan}
+
+    result = _build_runtime_aspect_validation(
+        state=state,
+        generation=generation,
+        proposed_state_effects=proposed,
+        outcome={"status": "approved", "reason": "seam_ok"},
+    )
+
+    npc_validation = result["npc_initiative_validation"]
+    expected_missing = [
+        actor_id
+        for actor_id in plan["required_actor_ids"]
+        if actor_id not in npc_validation["realized_actor_ids"]
+    ]
+    assert result["outcome"]["status"] == "rejected"
+    assert result["outcome"]["reason"] == npc_validation["feedback_code"]
+    assert result["outcome"]["validator_lane"] == npc_validation["schema_version"]
+    assert result["outcome"]["npc_agency_contract_violation"] is True
+    assert result["outcome"]["recoverable_rejection"] is True
+    assert npc_validation["missing_required_actor_ids"] == expected_missing
+    aspect = result["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_NPC_AGENCY]
+    assert aspect["status"] == "failed"
+    assert aspect["failure_reason"] == npc_validation["feedback_code"]
+    assert aspect["actual"]["missing_required_actor_ids"] == expected_missing
+    assert aspect["actual"]["not_full_multi_agent_simulation"] is True
 
 
 def test_player_object_interaction_selects_player_and_narrator_capabilities() -> None:

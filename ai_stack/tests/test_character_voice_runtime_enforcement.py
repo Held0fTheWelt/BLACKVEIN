@@ -1,7 +1,7 @@
 """Runtime voice consistency enforcement from canonical content.
 
-These tests intentionally derive oracle material from ``character_voice.yaml``
-instead of hardcoding narrative prose, per ADR-0039.
+These tests derive enforcement markers from ``character_voice.yaml`` and assert
+runtime invariants rather than pinning narrative example prose, per ADR-0039.
 """
 
 from __future__ import annotations
@@ -28,17 +28,26 @@ def _profiles():
     return bundle, [profile.to_runtime_dict() for profile in profiles]
 
 
-def _borrowed_example_case():
+def _first_forbidden_marker(bundle):
+    marker_root = bundle["voice_consistency"]["forbidden_language_markers"]
+    assert marker_root, "canonical GoC voice YAML must publish forbidden language markers"
+    for category, marker_block in marker_root.items():
+        markers = marker_block.get("markers") if isinstance(marker_block, dict) else marker_block
+        if markers:
+            return str(category), str(markers[0])
+    raise AssertionError("canonical GoC voice YAML must publish at least one marker")
+
+
+def _forbidden_marker_case():
     bundle, profiles = _profiles()
-    source_examples = bundle["character_voice"]["veronique"]["dialogue_examples"]
-    assert source_examples, "canonical GoC voice YAML must publish dialogue examples"
+    _category, marker = _first_forbidden_marker(bundle)
     return {
         "schema_version": "runtime_actor_turn_v1",
-        "narration_summary": "The room tightens around the argument.",
+        "narration_summary": "fixture",
         "spoken_lines": [
             {
                 "speaker_id": "annette_reille",
-                "text": source_examples[0],
+                "text": f"This response uses {marker} as a policy marker.",
             }
         ],
         "action_lines": [],
@@ -52,11 +61,13 @@ def test_voice_policy_loads_global_consistency_rules_from_canonical_yaml() -> No
 
     assert bundle["voice_consistency"]["maintain_consistency"]
     assert bundle["voice_consistency"]["pitfalls_to_avoid"]
+    assert bundle["voice_consistency"]["forbidden_language_markers"]
     assert any(profile["pitfalls_to_avoid"] for profile in profiles)
+    assert all("dialogue_examples" not in profile for profile in profiles)
 
 
-def test_voice_validator_rejects_cross_character_dialogue_example_from_yaml() -> None:
-    structured, profiles, _bundle = _borrowed_example_case()
+def test_voice_validator_rejects_policy_declared_forbidden_language_marker() -> None:
+    structured, profiles, _bundle = _forbidden_marker_case()
 
     result = validate_voice_consistency(
         structured_output=structured,
@@ -66,13 +77,15 @@ def test_voice_validator_rejects_cross_character_dialogue_example_from_yaml() ->
 
     assert result["status"] == "rejected"
     assert result["reason"] == "voice_consistency_drift"
-    assert result["blocking_findings"][0]["drift_class"] == "borrowed_voice_example"
-    assert result["blocking_findings"][0]["actual_source_actor_id"] == "veronique_vallon"
+    assert result["blocking_findings"][0]["drift_class"] == "forbidden_language_marker"
+    assert result["blocking_findings"][0]["policy_source"] == (
+        "character_voice.voice_consistency.forbidden_language_markers"
+    )
     assert result["blocking_findings"][0]["expected_profile_actor_id"] == "annette_reille"
 
 
 def test_voice_validator_schema_only_records_no_runtime_block() -> None:
-    structured, profiles, _bundle = _borrowed_example_case()
+    structured, profiles, _bundle = _forbidden_marker_case()
 
     result = validate_voice_consistency(
         structured_output=structured,
@@ -85,7 +98,7 @@ def test_voice_validator_schema_only_records_no_runtime_block() -> None:
 
 
 def test_voice_drift_is_runtime_validation_failure_before_commit() -> None:
-    structured, profiles, bundle = _borrowed_example_case()
+    structured, profiles, bundle = _forbidden_marker_case()
     state = {
         "session_id": "voice-runtime",
         "module_id": "god_of_carnage",
@@ -117,7 +130,7 @@ def test_voice_drift_is_runtime_validation_failure_before_commit() -> None:
         proposed_state_effects=[
             {
                 "effect_type": "narrative_projection",
-                "description": "The room tightens around the argument.",
+                "description": "fixture",
             }
         ],
         outcome={"status": "approved", "reason": "goc_default_validator_pass"},

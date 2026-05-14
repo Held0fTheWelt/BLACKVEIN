@@ -23,6 +23,7 @@ ASPECT_BEAT = "beat"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
+ASPECT_NPC_AGENCY = "npc_agency"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
 ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
@@ -37,6 +38,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_NPC_AGENCY,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_HIERARCHICAL_MEMORY,
@@ -285,6 +287,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         else {}
     )
     npc_rec = aspects.get(ASPECT_NPC_AUTHORITY) if isinstance(aspects.get(ASPECT_NPC_AUTHORITY), dict) else {}
+    npc_agency_rec = (
+        aspects.get(ASPECT_NPC_AGENCY)
+        if isinstance(aspects.get(ASPECT_NPC_AGENCY), dict)
+        else {}
+    )
     voice_rec = (
         aspects.get(ASPECT_VOICE_CONSISTENCY)
         if isinstance(aspects.get(ASPECT_VOICE_CONSISTENCY), dict)
@@ -325,6 +332,8 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     narr_actual = _record_block(narr_rec, "actual")
     npc_expected = _record_block(npc_rec, "expected")
     npc_actual = _record_block(npc_rec, "actual")
+    npc_agency_expected = _record_block(npc_agency_rec, "expected")
+    npc_agency_actual = _record_block(npc_agency_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
     voice_actual = _record_block(voice_rec, "actual")
     narrative_expected = _record_block(narrative_rec, "expected")
@@ -438,6 +447,25 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     "forced_decision_detected": bool(npc_actual.get("forced_decision_detected")),
                     "agency_violation_detected": bool(npc_actual.get("agency_violation_detected")),
                 },
+            },
+            "npc_agency": {
+                "contract_status": npc_agency_expected.get("contract_status")
+                or npc_agency_actual.get("contract_status"),
+                "not_full_multi_agent_simulation": bool(
+                    npc_agency_expected.get("not_full_multi_agent_simulation")
+                    or npc_agency_actual.get("not_full_multi_agent_simulation")
+                ),
+                "planned_actor_ids": npc_agency_actual.get("planned_actor_ids") or [],
+                "realized_actor_ids": npc_agency_actual.get("realized_actor_ids") or [],
+                "missing_required_actor_ids": npc_agency_actual.get("missing_required_actor_ids")
+                or [],
+                "error_codes": npc_agency_actual.get("error_codes") or [],
+                "multi_npc_initiative_realized": bool(
+                    npc_agency_actual.get("multi_npc_initiative_realized")
+                ),
+                "failure_reason": npc_agency_rec.get("failure_reason")
+                or (_record_reasons(npc_agency_rec)[0] if _record_reasons(npc_agency_rec) else None),
+                "status": npc_agency_rec.get("status"),
             },
             "visible_projection": {
                 "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),

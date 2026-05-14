@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import difflib
-import hashlib
 import re
 from typing import Any
 
@@ -14,20 +12,6 @@ from ai_stack.character_voice_contract import (
     VoiceValidationMode,
 )
 from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
-
-_BORROWED_EXAMPLE_SIMILARITY_THRESHOLD = 0.88
-_MIN_EXAMPLE_CHARS = 24
-_CONTEMPORARY_SLANG_MARKERS = (
-    "lol",
-    "omg",
-    "bro",
-    "dude",
-    "yolo",
-    "cringe",
-    "vibe check",
-    "okay boomer",
-)
-
 
 def _norm(text: str) -> str:
     lowered = str(text or "").casefold()
@@ -74,83 +58,49 @@ def _profile_for_speaker(
     return None
 
 
-def _has_slang_policy(profiles: list[CharacterVoiceProfileRecord]) -> bool:
-    policy_text = " ".join(
-        rule
-        for profile in profiles
-        for rule in [*profile.consistency_rules, *profile.pitfalls_to_avoid]
-    ).casefold()
-    return "slang" in policy_text or "contemporary speech" in policy_text
+def _marker_hit(norm_text: str, marker: str) -> bool:
+    norm_marker = _norm(marker)
+    if not norm_marker:
+        return False
+    return bool(re.search(rf"(?<!\w){re.escape(norm_marker)}(?!\w)", norm_text))
 
 
-def _detect_borrowed_examples(
+def _detect_forbidden_language_markers(
     *,
     text: str,
     speaker_profile: CharacterVoiceProfileRecord,
     speaker_id: str,
-    profiles: list[CharacterVoiceProfileRecord],
 ) -> list[VoiceDriftFinding]:
     norm_text = _norm(text)
-    if len(norm_text) < _MIN_EXAMPLE_CHARS:
+    marker_root = speaker_profile.forbidden_language_markers
+    if not marker_root:
         return []
-    findings: list[VoiceDriftFinding] = []
-    for source_profile in profiles:
-        if source_profile.runtime_actor_id == speaker_profile.runtime_actor_id:
+    matched_categories: list[str] = []
+    matched_count = 0
+    for category, markers in marker_root.items():
+        if not isinstance(markers, list):
             continue
-        for index, example in enumerate(source_profile.dialogue_examples):
-            norm_example = _norm(example)
-            if len(norm_example) < _MIN_EXAMPLE_CHARS:
-                continue
-            ratio = difflib.SequenceMatcher(None, norm_text, norm_example).ratio()
-            contained = norm_example in norm_text or norm_text in norm_example
-            if ratio >= _BORROWED_EXAMPLE_SIMILARITY_THRESHOLD or contained:
-                findings.append(
-                    VoiceDriftFinding(
-                        drift_class="borrowed_voice_example",
-                        severity="failure",
-                        speaker_id=speaker_id,
-                        character_key=speaker_profile.character_key,
-                        policy_source=(
-                            f"character_voice.characters.{source_profile.character_key}."
-                            f"dialogue_examples[{index}]"
-                        ),
-                        expected_profile_actor_id=speaker_profile.runtime_actor_id,
-                        actual_source_actor_id=source_profile.runtime_actor_id,
-                        evidence={
-                            "similarity": round(ratio, 3),
-                            "contained": contained,
-                            "line_sha256": hashlib.sha256(norm_text.encode("utf-8")).hexdigest(),
-                        },
-                    )
-                )
-                return findings
-    return findings
-
-
-def _detect_slang(
-    *,
-    text: str,
-    speaker_profile: CharacterVoiceProfileRecord,
-    speaker_id: str,
-    strict: bool,
-) -> list[VoiceDriftFinding]:
-    norm_text = _norm(text)
-    hits = [
-        marker
-        for marker in _CONTEMPORARY_SLANG_MARKERS
-        if re.search(rf"\b{re.escape(marker)}\b", norm_text)
-    ]
-    if not hits:
+        category_hit = False
+        for marker in markers:
+            if _marker_hit(norm_text, str(marker)):
+                matched_count += 1
+                category_hit = True
+        if category_hit:
+            matched_categories.append(str(category))
+    if not matched_categories:
         return []
     return [
         VoiceDriftFinding(
-            drift_class="contemporary_slang_marker",
-            severity="failure" if strict else "warning",
+            drift_class="forbidden_language_marker",
+            severity="failure",
             speaker_id=speaker_id,
             character_key=speaker_profile.character_key,
-            policy_source="character_voice.voice_consistency.pitfalls_to_avoid",
+            policy_source="character_voice.voice_consistency.forbidden_language_markers",
             expected_profile_actor_id=speaker_profile.runtime_actor_id,
-            evidence={"marker_count": len(hits), "markers": hits[:3]},
+            evidence={
+                "marker_count": matched_count,
+                "marker_categories": matched_categories,
+            },
         )
     ]
 
@@ -199,7 +149,6 @@ def validate_voice_consistency(
             policy_sources=["character_voice_contract"],
         )
 
-    slang_policy = _has_slang_policy(profiles)
     strict = mode == "strict_rule_engine"
     for row in rows:
         speaker = _speaker_id(row)
@@ -218,22 +167,19 @@ def validate_voice_consistency(
             )
             continue
         findings.extend(
-            _detect_borrowed_examples(
+            _detect_forbidden_language_markers(
                 text=text,
                 speaker_profile=profile,
                 speaker_id=speaker,
-                profiles=profiles,
             )
         )
-        if slang_policy:
-            findings.extend(
-                _detect_slang(
-                    text=text,
-                    speaker_profile=profile,
-                    speaker_id=speaker,
-                    strict=strict,
-                )
-            )
+
+    policy_sources = [
+        "character_voice.characters",
+        "character_voice.voice_consistency",
+    ]
+    if any(profile.forbidden_language_markers for profile in profiles):
+        policy_sources.append("character_voice.voice_consistency.forbidden_language_markers")
 
     blocking = [finding for finding in findings if finding.severity == "failure"]
     return VoiceConsistencyValidationResult(
@@ -244,8 +190,5 @@ def validate_voice_consistency(
         spoken_line_count=len(rows),
         findings=findings,
         blocking_findings=blocking,
-        policy_sources=[
-            "character_voice.characters",
-            "character_voice.voice_consistency",
-        ],
+        policy_sources=policy_sources,
     )

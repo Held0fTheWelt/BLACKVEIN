@@ -25,13 +25,14 @@ class CharacterVoiceProfileRecord(BaseModel):
     speech_patterns: dict[str, str] = Field(default_factory=dict)
     escalation_arc: dict[str, str] = Field(default_factory=dict)
     current_phase_voice_hint: str = Field(default="")
+    forbidden_language_markers: dict[str, list[str]] = Field(default_factory=dict)
     dialogue_examples: list[str] = Field(default_factory=list)
     consistency_rules: list[str] = Field(default_factory=list)
     pitfalls_to_avoid: list[str] = Field(default_factory=list)
     provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
 
     def to_runtime_dict(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
+        return self.model_dump(mode="json", exclude={"dialogue_examples"})
 
 
 class VoiceDriftFinding(BaseModel):

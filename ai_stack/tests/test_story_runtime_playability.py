@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from ai_stack.npc_agency_contracts import normalize_npc_agency_plan
+from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.story_runtime_playability import (
+    build_rewrite_instruction,
     decide_playability_recovery,
     degrade_validation_outcome,
     is_hard_boundary_failure,
@@ -136,3 +139,61 @@ def test_runtime_aspect_failures_are_retryable_but_not_degradable() -> None:
     )
     assert exhausted.should_retry is False
     assert exhausted.allow_degraded_commit is False
+
+
+def test_npc_agency_missing_required_feedback_is_retryable_but_not_degradable() -> None:
+    actor_ids = ["npc_primary", "npc_secondary"]
+    plan = normalize_npc_agency_plan(
+        {},
+        selected_primary_responder_id=actor_ids[0],
+        selected_secondary_responder_ids=actor_ids[1:],
+        preferred_reaction_order_ids=actor_ids,
+    )
+    structured_output = {
+        "spoken_lines": [{"speaker_id": actor_ids[0], "text": "Visible beat."}],
+        "action_lines": [],
+        "initiative_events": [],
+    }
+    validation = validate_npc_initiative_realization(plan, structured_output)
+    outcome = {
+        "status": validation["status"],
+        "reason": validation["feedback_code"],
+        "recoverable_rejection": True,
+        "npc_initiative_validation": validation,
+    }
+
+    retry = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=1,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+
+    missing_actor_codes = [
+        f"missing_required_npc_initiative:{actor_id}"
+        for actor_id in validation["missing_required_actor_ids"]
+    ]
+    assert retry.should_retry is True
+    assert validation["feedback_code"] in retry.feedback_codes
+    assert all(code in retry.feedback_codes for code in missing_actor_codes)
+
+    exhausted = decide_playability_recovery(
+        turn_number=2,
+        attempt_index=3,
+        max_attempts=2,
+        outcome=outcome,
+        generation={"success": True, "content": "x" * 140, "metadata": {}},
+        proposed_state_effects=[{"description": "ok", "effect_type": "narrative_projection"}],
+        allow_degraded_commit_after_retries=True,
+    )
+    instruction = build_rewrite_instruction(
+        retry.feedback_codes,
+        allowed_actor_ids=plan["required_actor_ids"],
+    )
+
+    assert exhausted.should_retry is False
+    assert exhausted.allow_degraded_commit is False
+    assert all(actor_id in instruction for actor_id in plan["required_actor_ids"])

@@ -37,12 +37,13 @@ All items below have passing validation gates and evidence in validation_runs/:
 
 **Evidence:** `validation_runs/consequence_carry_forward_audit.md`, `turn_samples_with_analysis.md`
 
-### Proven: Character Voice Distinctness
-- ✓ Character-specific voice prompts exist (code audit: character voice guidance in prompt)
-- ✓ Voice is recognizable (blind test: 90% accuracy in identifying speaker from dialogue)
-- ✓ Voice persists across turns (consistency audit: character maintains speech patterns)
+### Proven / bounded: Character Voice Distinctness
+- ✓ Character-specific voice guidance exists in canonical `direction/character_voice.yaml`.
+- ✓ Runtime builds `CharacterVoiceProfileRecord` values and exposes them to generation.
+- ✓ Runtime records `voice_consistency_validation` and a `voice_consistency` aspect before commit.
+- ✓ Policy-declared forbidden language markers can reject an otherwise approved turn with recoverable rewrite feedback.
 
-**Evidence:** `validation_runs/character_voice_audit.md`, `blind_speaker_identification_test.md`
+**Evidence:** `ai_stack/tests/test_character_voice_runtime_enforcement.py` plus runtime aspect ledger tests. Historical blind-speaker audits remain useful qualitative evidence, but they are not ADR-0039-safe gate oracles by themselves.
 
 ### Proven: Player Agency
 - ✓ Free-form player input is accepted (test: 100+ unique player moves logged)
@@ -193,4 +194,3 @@ Phase 4 closure requires:
 - [ ] No reader should confuse proven with target
 
 This document is complete when all checkmarks pass.
-

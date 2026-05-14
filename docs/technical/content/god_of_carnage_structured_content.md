@@ -30,6 +30,7 @@ decide hard-forbidden pass/fail.
 | `apartment_layout.yaml` | affordance resolution, player-local context, RAG | `apartment_layout_loaded` |
 | `apartment_objects.yaml` | affordance resolution, narrator packet, RAG | `apartment_objects_loaded` |
 | `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
+| `direction/character_voice.yaml` | character voice profile builder, prompt packet, runtime voice validator | `character_voice_profiles`, `voice_consistency_validation`, `turn_aspect_ledger.voice_consistency` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
 | `module.yaml` / `runtime_intelligence` | `ModuleRuntimePolicy.runtime_governance_policy`, runtime route/capability/projection gates | `runtime_governance_policy`, `selection_source`, `capability_selection_valid`, `visible_projection_contract_pass`, `committed_result` |
 | `memory_policy.yaml` | `ModuleRuntimePolicy.memory_policy`, hierarchical memory write/project contracts | `hierarchical_memory`, `memory_policy_applied`, `memory_write_from_committed_turn`, `memory_context_bounded`, `hierarchical_memory_contract_pass` |
@@ -95,6 +96,27 @@ policy keys such as:
 Module-specific actor names, room aliases, phase names, beat ids, and sample
 prose stay in content files. Generic runtime validators read the policy and
 ledger fields; they must not hardcode God of Carnage literals.
+
+## Character voice policy
+
+`direction/character_voice.yaml` is the canonical source for GoC voice guidance:
+formal role, worldview, speech patterns, baseline tone, escalation arc, and the
+global `voice_consistency` policy. Runtime compiles this into bounded
+`CharacterVoiceProfileRecord` values and passes a compact profile set into the
+LangGraph generation context.
+
+Runtime enforcement is deliberately split:
+
+- `maintain_consistency` and `pitfalls_to_avoid` guide generation and operator
+  diagnostics.
+- `forbidden_language_markers` is machine-readable policy. When a generated
+  `spoken_lines` row contains one of those declared markers, validation records
+  `voice_consistency_validation.v1`, marks the `voice_consistency` aspect as
+  failed, and rejects through `runtime_voice_consistency_v1` before commit.
+
+ADR-0039 applies here with extra force: `dialogue_examples` are authoring
+examples, not correctness oracles. They must not be copied into tests as the
+primary pass/fail signal, and runtime profile serialization omits them.
 
 ## Hierarchical memory policy
 

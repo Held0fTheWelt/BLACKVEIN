@@ -211,3 +211,16 @@ voice_consistency:
     - "Don't have Annette become kind; don't have Véronique abandon principles; don't have Michel become assertive"
     - "Don't use slang or contemporary speech; these are educated Parisians, circa late 20th century"
     - "Don't drop character voice even in rapid dialogue; urgency accelerates speech but doesn't change it"
+
+  forbidden_language_markers:
+    contemporary_slang:
+      policy_basis_path: "voice_consistency.pitfalls_to_avoid[3]"
+      markers:
+        - "lol"
+        - "omg"
+        - "bro"
+        - "dude"
+        - "yolo"
+        - "cringe"
+        - "vibe check"
+        - "okay boomer"
