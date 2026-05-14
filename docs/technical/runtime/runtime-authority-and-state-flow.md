@@ -22,9 +22,10 @@ Ownership matrix
 
 `world-engine/app/story_runtime/manager.py` — `StoryRuntimeManager`:
 
-- Holds in-memory `StorySession` objects (`session_id`, `module_id`, `runtime_projection`, history, diagnostics, narrative threads).
+- Holds in-memory `StorySession` objects (`session_id`, `module_id`, `runtime_projection`, history, diagnostics, narrative threads, policy-driven hierarchical memory snapshot).
 - Builds default retriever and context assembler via `ai_stack` (`build_runtime_retriever`).
 - Constructs `RuntimeTurnGraphExecutor` with `interpret_player_input` from `story_runtime_core`, routing, registry, adapters, retriever, capability registry, and repo root.
+- Loads `ModuleRuntimePolicy.memory_policy`, writes bounded hierarchical memory only from canonical committed turns, and projects safe memory context into LangGraph. This is session-local runtime continuity, not a second source of truth.
 
 ## Session lifecycle (conceptual)
 

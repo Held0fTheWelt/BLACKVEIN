@@ -224,7 +224,7 @@ def _validate_delta(delta: Any, session: Any, module: Any) -> list[str]:
         errors.append(f"Delta target must be string, got {type(target).__name__}")
         return errors
 
-    # Parse target path (e.g., "characters.veronique.emotional_state")
+    # Parse target path (e.g., "characters.actor_a.emotional_state")
     parts = target.split(".")
     if not parts or len(parts) < 2:
         errors.append(f"Invalid target path format: {target}")
@@ -286,5 +286,4 @@ def _validate_delta(delta: Any, session: Any, module: Any) -> list[str]:
                 )
 
     return errors
-
 

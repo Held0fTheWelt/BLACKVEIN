@@ -26,7 +26,7 @@ class ProposedDelta(BaseModel):
     The runtime validates all proposals against module rules.
 
     Attributes:
-        target_path: Dot-path to state location (e.g., "characters.veronique.emotional_state")
+        target_path: Dot-path to state location (e.g., "characters.actor_a.emotional_state")
         next_value: Proposed new value for the target
         delta_type: Optional hint about change type (not authoritative, for clarity only)
         rationale: AI's reasoning for this specific change

@@ -33,7 +33,9 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_COMMIT,
+    ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_INPUT,
+    ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
@@ -45,6 +47,15 @@ from ai_stack.runtime_aspect_ledger import (
     normalize_runtime_aspect_ledger,
     set_aspect_record,
 )
+from ai_stack.module_runtime_policy import load_module_runtime_policy
+from ai_stack.hierarchical_memory_contracts import (
+    build_hierarchical_memory_write,
+    empty_hierarchical_memory_snapshot,
+    merge_hierarchical_memory_snapshot,
+    normalize_hierarchical_memory_snapshot,
+    project_hierarchical_memory_context,
+)
+from ai_stack.narrative_aspect_contracts import validate_narrative_aspects
 from ai_stack.dramatic_capability_contracts import (
     NPC_ACTION_GESTURE_OPTIONAL,
     NPC_DIRECT_ANSWER_ALLOWED,
@@ -142,7 +153,10 @@ from app.story_runtime.module_turn_hooks import (
     GOD_OF_CARNAGE_MODULE_ID,
     goc_append_continuity_impacts,
     goc_host_experience_template,
+    goc_npc_shell_legal_name,
     goc_prior_continuity_for_graph,
+    goc_player_role_display_name,
+    goc_shell_actor_firstname,
 )
 from app.story_runtime.narrative_threads import (
     NARRATIVE_COMMIT_HISTORY_TAIL,
@@ -299,6 +313,37 @@ def _canonical_turn_id(session_id: str, turn_number: int) -> str:
     return f"{sid}:turn:{int(turn_number or 0)}"
 
 
+def _runtime_profile_id_from_projection(projection: dict[str, Any] | None) -> str | None:
+    if not isinstance(projection, dict):
+        return None
+    for key in ("runtime_profile_id", "experience_template_id", "seed_template_id", "template_id"):
+        value = str(projection.get(key) or "").strip()
+        if value:
+            return value
+    return None
+
+
+def _observability_environment_for_session(session: "StorySession") -> str | None:
+    projection = session.runtime_projection if isinstance(session.runtime_projection, dict) else {}
+    provenance = session.content_provenance if isinstance(session.content_provenance, dict) else {}
+    trace_classification = (
+        provenance.get("trace_classification")
+        if isinstance(provenance.get("trace_classification"), dict)
+        else {}
+    )
+    for value in (
+        trace_classification.get("environment"),
+        projection.get("environment"),
+        os.environ.get("LANGFUSE_ENVIRONMENT"),
+        os.environ.get("WOS_LANGFUSE_ENVIRONMENT"),
+        os.environ.get("ENVIRONMENT"),
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return None
+
+
 def _stamp_turn_aspect_ledger_identity(
     ledger: dict[str, Any] | None,
     *,
@@ -316,6 +361,11 @@ def _stamp_turn_aspect_ledger_identity(
     if turn_kind:
         stamped["turn_kind"] = str(turn_kind)
     stamped.setdefault("module_id", session.module_id)
+    runtime_profile_id = _runtime_profile_id_from_projection(
+        session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+    )
+    if runtime_profile_id and not stamped.get("runtime_profile_id"):
+        stamped["runtime_profile_id"] = runtime_profile_id
     return normalize_runtime_aspect_ledger(stamped)
 
 
@@ -619,6 +669,165 @@ def _record_visible_projection_aspect(
                 lost_at_stage=lost_at_stage,
             ),
         )
+    try:
+        runtime_policy = load_module_runtime_policy(
+            module_id=module_id,
+            runtime_profile_id=out.get("runtime_profile_id"),
+        ).to_dict()
+    except Exception:
+        runtime_policy = {}
+    narrative_policy = (
+        runtime_policy.get("narrative_aspect_policy")
+        if isinstance(runtime_policy.get("narrative_aspect_policy"), dict)
+        else {}
+    )
+    narrative_validation = validate_narrative_aspects(
+        narrative_aspect_policy=narrative_policy,
+        runtime_context={
+            "ledger": out,
+            "scene_blocks": scene_blocks,
+            "visible_blocks": scene_blocks,
+            "input": {
+                "kind": turn_kind,
+                "raw_player_input": raw_player_input,
+            },
+            "turn": {
+                "number": turn_number,
+                "kind": turn_kind,
+            },
+        },
+    ).to_dict()
+    candidate_aspects = [
+        str(row.get("id") or "").strip()
+        for row in (narrative_policy.get("aspects") or [])
+        if isinstance(row, dict) and str(row.get("id") or "").strip()
+    ]
+    missing_narrative_evidence = narrative_validation.get("missing_required_evidence") or []
+    if not isinstance(missing_narrative_evidence, list):
+        missing_narrative_evidence = []
+    missing_visible_narrative_evidence = [
+        item
+        for item in missing_narrative_evidence
+        if isinstance(item, dict) and str(item.get("kind") or "").startswith("visible_")
+    ]
+    narrative_commit_impact = str(narrative_validation.get("commit_impact") or "diagnostic")
+    narrative_failure_reason = narrative_validation.get("failure_reason")
+    out = set_aspect_record(
+        out,
+        ASPECT_NARRATIVE_ASPECT,
+        make_aspect_record(
+            applicable=bool(narrative_policy.get("aspects")),
+            status=str(narrative_validation.get("status") or "not_applicable"),
+            expected={
+                "policy_present": bool(narrative_policy.get("aspects")),
+                "candidate_aspects": candidate_aspects,
+                "evidence_required": bool(candidate_aspects),
+                "commit_impact": narrative_commit_impact,
+            },
+            selected={
+                "selected_aspects": narrative_validation.get("selected_aspects") or [],
+                "selection_source": "module_policy" if candidate_aspects else "not_applicable",
+            },
+            actual={
+                "realized_aspects": narrative_validation.get("realized_aspects") or [],
+                "missing_required_evidence": missing_narrative_evidence,
+                "evidence": narrative_validation.get("evidence") or [],
+                "visible_when_required": not bool(missing_visible_narrative_evidence),
+            },
+            reasons=[str(narrative_failure_reason)] if narrative_failure_reason else [],
+            source="projection",
+            failure_class=(
+                "hard_contract_failure"
+                if narrative_failure_reason and narrative_commit_impact == "reject"
+                else "recoverable_dramatic_failure"
+                if narrative_failure_reason and narrative_commit_impact == "recover"
+                else "degradation_only"
+                if narrative_failure_reason
+                else None
+            ),
+            failure_reason=str(narrative_failure_reason) if narrative_failure_reason else None,
+            missing_field="narrative_aspect_evidence" if narrative_failure_reason else None,
+            lost_at_stage="visible_projection" if missing_visible_narrative_evidence else None,
+        ),
+    )
+    if narrative_failure_reason and narrative_commit_impact in {"recover", "reject"}:
+        validation_record = (
+            out.get("turn_aspect_ledger", {}).get(ASPECT_VALIDATION)
+            if isinstance(out.get("turn_aspect_ledger"), dict)
+            else {}
+        )
+        commit_record = (
+            out.get("turn_aspect_ledger", {}).get(ASPECT_COMMIT)
+            if isinstance(out.get("turn_aspect_ledger"), dict)
+            else {}
+        )
+        failure_class = (
+            "hard_contract_failure"
+            if narrative_commit_impact == "reject"
+            else "recoverable_dramatic_failure"
+        )
+        out = set_aspect_record(
+            out,
+            ASPECT_VALIDATION,
+            make_aspect_record(
+                applicable=True,
+                status="failed",
+                expected={
+                    **(
+                        validation_record.get("expected")
+                        if isinstance(validation_record, dict) and isinstance(validation_record.get("expected"), dict)
+                        else {}
+                    ),
+                    "narrative_aspect_contract_pass": True,
+                },
+                actual={
+                    **(
+                        validation_record.get("actual")
+                        if isinstance(validation_record, dict) and isinstance(validation_record.get("actual"), dict)
+                        else {}
+                    ),
+                    "narrative_aspect_failure": True,
+                    "narrative_aspect_failure_reason": narrative_failure_reason,
+                },
+                reasons=[str(narrative_failure_reason)],
+                source="validator",
+                failure_class=failure_class,
+                failure_reason=str(narrative_failure_reason),
+                missing_field="narrative_aspect_evidence",
+                lost_at_stage="visible_projection" if missing_visible_narrative_evidence else None,
+            ),
+        )
+        out = set_aspect_record(
+            out,
+            ASPECT_COMMIT,
+            make_aspect_record(
+                applicable=True,
+                status="partial",
+                expected={
+                    **(
+                        commit_record.get("expected")
+                        if isinstance(commit_record, dict) and isinstance(commit_record.get("expected"), dict)
+                        else {}
+                    ),
+                    "narrative_aspect_failure_recorded": True,
+                },
+                actual={
+                    **(
+                        commit_record.get("actual")
+                        if isinstance(commit_record, dict) and isinstance(commit_record.get("actual"), dict)
+                        else {}
+                    ),
+                    "narrative_aspect_failure": True,
+                    "narrative_aspect_failure_reason": narrative_failure_reason,
+                },
+                reasons=[str(narrative_failure_reason)],
+                source="commit",
+                failure_class=failure_class,
+                failure_reason=str(narrative_failure_reason),
+                missing_field="narrative_aspect_evidence",
+                lost_at_stage="visible_projection" if missing_visible_narrative_evidence else None,
+            ),
+        )
     beat = aspects.get(ASPECT_BEAT) if isinstance(aspects, dict) else {}
     if isinstance(beat, dict) and beat.get("applicable"):
         expected = beat.get("expected") if isinstance(beat.get("expected"), dict) else {}
@@ -813,6 +1022,8 @@ class StorySession:
     last_thread_update_trace: ThreadUpdateTrace | None = None
     # Bounded carry-forward of committed GoC continuity classes (not a second memory surface).
     prior_continuity_impacts: list[dict[str, Any]] = field(default_factory=list)
+    # Bounded hierarchical memory derived only from canonical committed turns.
+    hierarchical_memory: dict[str, Any] = field(default_factory=dict)
     # Immutable-ish snapshot of published content identity at session birth (audit F-M3).
     content_provenance: dict[str, Any] = field(default_factory=dict)
 
@@ -843,6 +1054,7 @@ def story_session_to_payload(session: StorySession) -> dict[str, Any]:
         "narrative_threads": session.narrative_threads.model_dump(mode="json"),
         "last_thread_update_trace": trace.model_dump(mode="json") if trace is not None else None,
         "prior_continuity_impacts": session.prior_continuity_impacts,
+        "hierarchical_memory": session.hierarchical_memory,
         "content_provenance": session.content_provenance,
     }
 
@@ -881,8 +1093,164 @@ def story_session_from_payload(data: dict[str, Any]) -> StorySession:
         narrative_threads=threads,
         last_thread_update_trace=trace,
         prior_continuity_impacts=list(data.get("prior_continuity_impacts") or []),
+        hierarchical_memory=dict(data.get("hierarchical_memory") or {}),
         content_provenance=provenance,
     )
+
+
+def _load_module_memory_policy(
+    *,
+    module_id: str,
+    runtime_profile_id: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    try:
+        runtime_policy = load_module_runtime_policy(
+            module_id=module_id,
+            runtime_profile_id=runtime_profile_id,
+        ).to_dict()
+    except Exception:
+        return {}, {}
+    memory_policy = (
+        runtime_policy.get("memory_policy")
+        if isinstance(runtime_policy.get("memory_policy"), dict)
+        else {}
+    )
+    return runtime_policy, memory_policy
+
+
+def _record_hierarchical_memory_aspect(
+    *,
+    session: StorySession,
+    graph_state: dict[str, Any],
+    event: dict[str, Any],
+    committed_turn: dict[str, Any],
+    allow_write: bool,
+) -> dict[str, Any]:
+    """Record policy-driven memory evidence and optionally update session memory."""
+    runtime_profile_id = _runtime_profile_id_from_projection(
+        session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+    )
+    runtime_policy, memory_policy = _load_module_memory_policy(
+        module_id=session.module_id,
+        runtime_profile_id=runtime_profile_id,
+    )
+    prior_snapshot = (
+        session.hierarchical_memory
+        if isinstance(session.hierarchical_memory, dict)
+        else empty_hierarchical_memory_snapshot(
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+    )
+    memory_turn = dict(committed_turn)
+    memory_turn.setdefault("module_id", session.module_id)
+    memory_turn.setdefault("runtime_profile_id", runtime_profile_id)
+    if not allow_write:
+        memory_turn["recoverable_outcome"] = True
+    write_result = build_hierarchical_memory_write(
+        memory_policy=memory_policy,
+        committed_turn=memory_turn,
+        runtime_policy=runtime_policy,
+    )
+    if allow_write and write_result.get("write_allowed") and not write_result.get("uncommitted_write_detected"):
+        snapshot_after = merge_hierarchical_memory_snapshot(
+            prior_snapshot=prior_snapshot,
+            write_result=write_result,
+            memory_policy=memory_policy,
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+        session.hierarchical_memory = snapshot_after
+    else:
+        snapshot_after = normalize_hierarchical_memory_snapshot(
+            prior_snapshot,
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+        )
+        session.hierarchical_memory = snapshot_after
+    context = project_hierarchical_memory_context(
+        snapshot=snapshot_after,
+        memory_policy=memory_policy,
+    )
+    memory_surface = {
+        "contract": "hierarchical_memory_runtime_surface.v1",
+        "write_result": write_result,
+        "context": context,
+    }
+    event["hierarchical_memory"] = memory_surface
+    graph_state["hierarchical_memory_context"] = context
+    selected_tiers = [
+        str(item).strip()
+        for item in (write_result.get("selected_tiers") or [])
+        if str(item).strip()
+    ]
+    written_items = [
+        item
+        for item in (write_result.get("written_items") or [])
+        if isinstance(item, dict)
+    ]
+    tiers_written: list[str] = []
+    for item in written_items:
+        tier_id = str(item.get("tier") or "").strip()
+        if tier_id and tier_id not in tiers_written:
+            tiers_written.append(tier_id)
+    ledger = (
+        event.get("turn_aspect_ledger")
+        if isinstance(event.get("turn_aspect_ledger"), dict)
+        else graph_state.get("turn_aspect_ledger")
+        if isinstance(graph_state.get("turn_aspect_ledger"), dict)
+        else None
+    )
+    ledger = ensure_runtime_aspect_ledger(
+        ledger,
+        session_id=session.session_id,
+        module_id=session.module_id,
+        turn_number=event.get("turn_number"),
+        turn_kind=str(event.get("turn_kind") or "player"),
+        raw_player_input=event.get("raw_input"),
+        trace_id=event.get("trace_id"),
+        runtime_profile_id=runtime_profile_id,
+    )
+    policy_present = bool(write_result.get("policy_present"))
+    status = str(write_result.get("status") or "not_applicable")
+    failure_reason = write_result.get("failure_reason")
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_HIERARCHICAL_MEMORY,
+        make_aspect_record(
+            applicable=policy_present,
+            status=status,
+            expected={
+                "policy_present": policy_present,
+                "policy_enabled": bool(write_result.get("policy_enabled")),
+                "committed_turn_required": True,
+                "allow_uncommitted_writes": bool(memory_policy.get("allow_uncommitted_writes")),
+                "context_projection_bounded": True,
+            },
+            selected={
+                "selected_tiers": selected_tiers,
+                "source_canonical_turn_id": write_result.get("source_canonical_turn_id"),
+            },
+            actual={
+                "write_allowed": bool(write_result.get("write_allowed")),
+                "written_item_count": len(written_items),
+                "tiers_written": tiers_written,
+                "memory_present": bool(context.get("memory_present")),
+                "context_item_count": int(context.get("item_count") or 0),
+                "context_bounded": bool(context.get("bounded")),
+                "uncommitted_write_detected": bool(write_result.get("uncommitted_write_detected")),
+                "snapshot_item_count": int(snapshot_after.get("item_count") or 0),
+            },
+            reasons=[str(failure_reason)] if failure_reason else [],
+            source="commit" if allow_write else "commit_guard",
+            failure_class="hard_contract_failure" if write_result.get("uncommitted_write_detected") else None,
+            failure_reason=str(failure_reason) if failure_reason else None,
+            missing_field="canonical_turn_id" if failure_reason == "canonical_turn_id_missing" else None,
+        ),
+    )
+    event["turn_aspect_ledger"] = ledger
+    graph_state["turn_aspect_ledger"] = ledger
+    return memory_surface
 
 
 def _module_scope_truth(module_id: str | None = None) -> dict[str, Any]:
@@ -1062,7 +1430,7 @@ def _apply_goc_actor_block_colon_stutter_cleanup(blocks: list[dict[str, Any]]) -
 
 
 def _goc_visible_text_fold(s: str) -> str:
-    """Lowercase + light accent fold so prune substring checks survive Véronique vs Veronique drift."""
+    """Lowercase + light accent fold so prune substring checks survive accent drift."""
     return _goc_visible_lane_text_fold(s)
 
 
@@ -1587,35 +1955,14 @@ def _infer_execution_tier_for_pytest() -> str:
     return "contract_test"
 
 
-def _goc_player_role_display_name(selected_player_role: str | None) -> str | None:
-    r = str(selected_player_role or "").strip().lower()
-    if r == "annette":
-        return "Annette Reille"
-    if r == "alain":
-        return "Alain Reille"
-    return None
-
-
 def _goc_shell_actor_firstname(actor_id: str) -> str:
     aid = str(canonicalize_goc_actor_id(str(actor_id).strip()) or str(actor_id).strip()).strip()
-    short = {
-        "veronique_vallon": "Véronique",
-        "annette_reille": "Annette",
-        "michel_longstreet": "Michel",
-        "alain_reille": "Alain",
-    }
-    return short.get(aid, aid.replace("_", " ").title() if aid else "Actor")
+    return goc_shell_actor_firstname(aid)
 
 
 def _goc_npc_shell_legal_name(responder_id: str) -> str:
     rid = str(canonicalize_goc_actor_id(str(responder_id).strip()) or str(responder_id).strip()).strip()
-    names = {
-        "veronique_vallon": "Véronique Vallon",
-        "annette_reille": "Annette Reille",
-        "alain_reille": "Alain Reille",
-        "michel_longstreet": "Michel Longstreet",
-    }
-    return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
+    return goc_npc_shell_legal_name(rid)
 
 
 def _goc_greeting_imperative_addressee_fragment(raw: str, *, lang: str) -> str | None:
@@ -1647,8 +1994,8 @@ def _goc_greeting_imperative_visible_pair(
 ) -> tuple[str, str] | None:
     """Return (verbatim_player_typing, diegetic_attributed_line) for greet-X imperatives.
 
-    Used when the player typed an imperative greeting ("Begrüße Veronique") rather than
-    direct in-scene speech ("Hallo Veronique"). The story window emits two scene blocks.
+    Used when the player typed an imperative greeting to a named actor rather than
+    direct in-scene speech. The story window emits two scene blocks.
     """
     tail = _goc_greeting_imperative_addressee_fragment(raw, lang=lang)
     if not tail:
@@ -1942,6 +2289,7 @@ def _build_langfuse_path_summary(
         execution_tier = _infer_execution_tier_for_pytest() if trace_origin == "pytest" else "diagnostic"
     canonical_player_flow = bool(trace_classification.get("canonical_player_flow", False))
     test_case_id = trace_classification.get("test_case_id")
+    environment = _observability_environment_for_session(session)
 
     _spr = (
         str((session.runtime_projection or {}).get("selected_player_role") or "").strip()
@@ -1989,18 +2337,23 @@ def _build_langfuse_path_summary(
         ).get("npc_narrated_player_action_violation")
     )
     _runtime_profile_id = (
-        projection.get("runtime_profile_id")
+        _runtime_profile_id_from_projection(projection)
         or (
             turn_aspect_ledger.get("runtime_profile_id")
             if isinstance(turn_aspect_ledger, dict)
             else None
         )
     )
+    if isinstance(turn_aspect_ledger, dict) and _runtime_profile_id and not turn_aspect_ledger.get("runtime_profile_id"):
+        turn_aspect_ledger = dict(turn_aspect_ledger)
+        turn_aspect_ledger["runtime_profile_id"] = _runtime_profile_id
+        turn_aspect_ledger = normalize_runtime_aspect_ledger(turn_aspect_ledger)
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
         "module_id": session.module_id,
         "runtime_profile_id": _runtime_profile_id,
+        "environment": environment,
         "turn_number": event.get("turn_number"),
         "turn_kind": event.get("turn_kind"),
         "raw_player_input": str(event.get("raw_input") or graph_state.get("player_input") or "").strip() or None,
@@ -2011,7 +2364,7 @@ def _build_langfuse_path_summary(
         "turn_aspect_ledger": turn_aspect_ledger,
         "selected_player_role": _spr or None,
         "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
-        "player_role_display_name": _goc_player_role_display_name(_spr or None),
+        "player_role_display_name": goc_player_role_display_name(_spr or None),
         "session_output_language": getattr(session, "session_output_language", None) or "de",
         "npc_actor_ids": list((session.runtime_projection or {}).get("npc_actor_ids") or []) if isinstance(session.runtime_projection, dict) else [],
         "nodes_executed": nodes,
@@ -2215,6 +2568,7 @@ def _build_langfuse_path_summary(
         ),
         "trace_origin": trace_origin,
         "execution_tier": execution_tier,
+        "langfuse_environment": environment,
         "canonical_player_flow": canonical_player_flow,
         "test_case_id": test_case_id,
         "runtime_mode": runtime_mode,
@@ -2528,6 +2882,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
         "turn_kind": path_summary.get("turn_kind"),
         "trace_origin": path_summary.get("trace_origin"),
         "execution_tier": path_summary.get("execution_tier"),
+        "environment": path_summary.get("environment"),
         "canonical_player_flow": path_summary.get("canonical_player_flow"),
         "runtime_mode": path_summary.get("runtime_mode"),
         "generation_mode": path_summary.get("generation_mode"),
@@ -2556,6 +2911,7 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "degradation_signals": path_summary.get("degradation_signals"),
                 "trace_origin": path_summary.get("trace_origin"),
                 "execution_tier": path_summary.get("execution_tier"),
+                "environment": path_summary.get("environment"),
                 "canonical_player_flow": path_summary.get("canonical_player_flow"),
                 "runtime_mode": path_summary.get("runtime_mode"),
                 "generation_mode": path_summary.get("generation_mode"),
@@ -2844,6 +3200,7 @@ def _runtime_aspect_score_metadata(
             "turn_kind": path_summary.get("turn_kind"),
             "module_id": path_summary.get("module_id") or ledger.get("module_id"),
             "runtime_profile_id": path_summary.get("runtime_profile_id") or ledger.get("runtime_profile_id"),
+            "environment": path_summary.get("environment"),
         }
     )
     if value < 1.0 and not meta.get("failure_reason"):
@@ -2916,11 +3273,16 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         "turn_kind": path_summary.get("turn_kind"),
         "raw_player_input": path_summary.get("raw_player_input"),
         "canonical_turn_id": path_summary.get("canonical_turn_id"),
+        "environment": path_summary.get("environment"),
     }
     beat = _rec(ASPECT_BEAT)
     beat_selected = _selected(ASPECT_BEAT)
     beat_actual = _actual(ASPECT_BEAT)
     cap_selected = _selected(ASPECT_CAPABILITY_SELECTION)
+    narrative_selected = _selected(ASPECT_NARRATIVE_ASPECT)
+    narrative_actual = _actual(ASPECT_NARRATIVE_ASPECT)
+    memory_selected = _selected(ASPECT_HIERARCHICAL_MEMORY)
+    memory_actual = _actual(ASPECT_HIERARCHICAL_MEMORY)
     span_specs: list[tuple[str, str, dict[str, Any]]] = [
         ("story.aspect.input", ASPECT_INPUT, _rec(ASPECT_INPUT)),
         ("story.action.resolve", ASPECT_ACTION_RESOLUTION, _rec(ASPECT_ACTION_RESOLUTION)),
@@ -2957,6 +3319,26 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         ("story.beat.realize", ASPECT_BEAT, {"actual": beat_actual, "aspect_record": beat}),
         ("story.authority.narrator", ASPECT_NARRATOR_AUTHORITY, _rec(ASPECT_NARRATOR_AUTHORITY)),
         ("story.authority.npc", ASPECT_NPC_AUTHORITY, _rec(ASPECT_NPC_AUTHORITY)),
+        (
+            "story.narrative_aspect.select",
+            ASPECT_NARRATIVE_ASPECT,
+            {"selected": narrative_selected, "aspect_record": _rec(ASPECT_NARRATIVE_ASPECT)},
+        ),
+        (
+            "story.narrative_aspect.validate",
+            ASPECT_NARRATIVE_ASPECT,
+            {"actual": narrative_actual, "aspect_record": _rec(ASPECT_NARRATIVE_ASPECT)},
+        ),
+        (
+            "story.memory.write",
+            ASPECT_HIERARCHICAL_MEMORY,
+            {"selected": memory_selected, "actual": memory_actual, "aspect_record": _rec(ASPECT_HIERARCHICAL_MEMORY)},
+        ),
+        (
+            "story.memory.project",
+            ASPECT_HIERARCHICAL_MEMORY,
+            {"actual": memory_actual, "aspect_record": _rec(ASPECT_HIERARCHICAL_MEMORY)},
+        ),
         ("story.validation.contract", ASPECT_VALIDATION, _rec(ASPECT_VALIDATION)),
         ("story.commit.apply", ASPECT_COMMIT, _rec(ASPECT_COMMIT)),
         ("story.visible.project", ASPECT_VISIBLE_PROJECTION, _rec(ASPECT_VISIBLE_PROJECTION)),
@@ -2975,6 +3357,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
+                        ASPECT_NARRATIVE_ASPECT,
+                        ASPECT_HIERARCHICAL_MEMORY,
                         ASPECT_VALIDATION,
                         ASPECT_COMMIT,
                         ASPECT_VISIBLE_PROJECTION,
@@ -3024,6 +3408,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     npc_actual = _actual(ASPECT_NPC_AUTHORITY)
     cap_actual = _actual(ASPECT_CAPABILITY_SELECTION)
     visible_actual = _actual(ASPECT_VISIBLE_PROJECTION)
+    narrative_expected = _expected(ASPECT_NARRATIVE_ASPECT)
+    memory_expected = _expected(ASPECT_HIERARCHICAL_MEMORY)
     validation_actual = _actual(ASPECT_VALIDATION)
     beat_transition_allowed = _selected(ASPECT_BEAT).get("transition_allowed")
     npc_failure_reason = str(_rec(ASPECT_NPC_AUTHORITY).get("failure_reason") or "")
@@ -3184,6 +3570,54 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "visible_projection_contract_pass",
             ASPECT_VISIBLE_PROJECTION,
             _runtime_aspect_score_value(_rec(ASPECT_VISIBLE_PROJECTION).get("status") == "passed"),
+        ),
+        (
+            "narrative_aspect_policy_present",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(bool(narrative_expected.get("policy_present"))),
+        ),
+        (
+            "narrative_aspect_selected",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(bool(narrative_selected.get("selected_aspects"))),
+        ),
+        (
+            "narrative_aspect_visible_when_required",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(narrative_actual.get("visible_when_required") is not False),
+        ),
+        (
+            "narrative_aspect_contract_pass",
+            ASPECT_NARRATIVE_ASPECT,
+            _runtime_aspect_score_value(_rec(ASPECT_NARRATIVE_ASPECT).get("status") in {"passed", "not_applicable"}),
+        ),
+        (
+            "hierarchical_memory_present",
+            ASPECT_HIERARCHICAL_MEMORY,
+            _runtime_aspect_score_value(bool(memory_actual.get("memory_present"))),
+        ),
+        (
+            "memory_policy_applied",
+            ASPECT_HIERARCHICAL_MEMORY,
+            _runtime_aspect_score_value(
+                (not bool(memory_expected.get("policy_present")))
+                or _rec(ASPECT_HIERARCHICAL_MEMORY).get("status") in {"passed", "not_applicable"}
+            ),
+        ),
+        (
+            "memory_write_from_committed_turn",
+            ASPECT_HIERARCHICAL_MEMORY,
+            _runtime_aspect_score_value(not bool(memory_actual.get("uncommitted_write_detected"))),
+        ),
+        (
+            "memory_context_bounded",
+            ASPECT_HIERARCHICAL_MEMORY,
+            _runtime_aspect_score_value(bool(memory_actual.get("context_bounded")) or not bool(memory_expected.get("policy_present"))),
+        ),
+        (
+            "hierarchical_memory_contract_pass",
+            ASPECT_HIERARCHICAL_MEMORY,
+            _runtime_aspect_score_value(_rec(ASPECT_HIERARCHICAL_MEMORY).get("status") in {"passed", "not_applicable"}),
         ),
         (
             "recoverable_turn_http_200",
@@ -4287,14 +4721,14 @@ def _live_scene_blocks_from_visible_bundle(
 
     def actor_label(actor_id: str) -> str:
         aid = str(actor_id or "").strip()
-        labels = {
-            "veronique_vallon": "Veronique",
-            "michel_longstreet": "Michel",
-            "annette_reille": "Annette",
-            "alain_reille": "Alain",
-        }
-        if aid in labels:
-            return labels[aid]
+        display_names = proj.get("actor_display_names") if isinstance(proj.get("actor_display_names"), dict) else {}
+        if aid and display_names.get(aid):
+            return str(display_names.get(aid))
+        roster = proj.get("actor_roster") if isinstance(proj.get("actor_roster"), dict) else {}
+        roster_row = roster.get(aid) if aid and isinstance(roster.get(aid), dict) else {}
+        label = str(roster_row.get("display_name") or roster_row.get("name") or "").strip()
+        if label:
+            return label
         return aid.replace("_", " ").strip().title() or "Actor"
 
     def append_json_blocks(raw: str) -> bool:
@@ -4542,7 +4976,7 @@ def _build_live_scene_turn_envelope(
     return {
         "contract": "scene_turn_envelope.v2",
         "content_module_id": session.module_id,
-        "runtime_profile_id": str(proj.get("runtime_profile_id") or "god_of_carnage_solo"),
+        "runtime_profile_id": str(_runtime_profile_id_from_projection(proj) or session.module_id),
         "runtime_module_id": str(proj.get("runtime_module_id") or "solo_story_runtime"),
         "session_output_language": session.session_output_language,
         "player_role_display_name": _role_display_name(
@@ -4623,11 +5057,11 @@ def _player_input_scene_blocks_for_story_window(
 ) -> list[dict[str, Any]]:
     """MVP5 cumulative transcript: visible player line for the story shell.
 
-    When ``human_actor_id`` is bound (canonical GoC solo path), **always** emit **two**
+    When ``human_actor_id`` is bound (canonical solo path), **always** emit **two**
     cards: ``player_input`` (verbatim typing, italic shell lane) then
-    ``player_input_outcome`` (diegetic attributed line, e.g. *Annette sagt: „…“*).
+    ``player_input_outcome`` (diegetic attributed line for the selected human actor).
 
-    Imperative greetings (e.g. *Begrüße Veronique*) still use the scripted polite
+    Imperative greetings to a named actor still use the scripted polite
     outcome line for the second card; all other inputs use ``_goc_player_attributed_visible_text``.
 
     Without a human actor id (legacy / non-solo), a single ``player_input`` block
@@ -4825,7 +5259,7 @@ def _story_window_entries_for_session(session: StorySession) -> list[dict[str, A
                 hid_sw = str(proj_sw.get("human_actor_id") or "").strip()
                 interp_sw = event.get("interpreted_input") if isinstance(event.get("interpreted_input"), dict) else {}
                 role_sw = str(proj_sw.get("selected_player_role") or "").strip()
-                pdn = _goc_player_role_display_name(role_sw) if role_sw else None
+                pdn = goc_player_role_display_name(role_sw) if role_sw else None
                 player_blocks = _player_input_scene_blocks_for_story_window(
                     session_id=session.session_id,
                     turn_number=turn_number,
@@ -5290,7 +5724,7 @@ def _player_shell_context_from_dramatic_context(
         out["session_output_language"] = getattr(session, "session_output_language", None) or "de"
         if role:
             out["selected_player_role"] = role
-        pdn = _goc_player_role_display_name(role)
+        pdn = goc_player_role_display_name(role)
         if pdn:
             out["player_role_display_name"] = pdn
         lang = str(out.get("session_output_language") or "de").strip().lower()[:2]
@@ -5381,7 +5815,7 @@ def _build_ldss_scene_envelope(
         npc_actor_ids=npc_actor_ids,
         player_input=player_input,
         current_scene_id=session.current_scene_id,
-        runtime_profile_id=str(proj.get("runtime_profile_id") or "god_of_carnage_solo"),
+        runtime_profile_id=str(_runtime_profile_id_from_projection(proj) or session.module_id),
         content_module_id=session.module_id,
         # STAGING-OPENING-LOCALE-LDSS-AND-ACTION-CONTEXT-REPAIR-01 P1: pass session output
         # language so the deterministic fallback renders locale-correct opening text.
@@ -5908,7 +6342,7 @@ class StoryRuntimeManager:
             "commit_contract_version": "story_narrative_commit_record.v3",
             "runtime_output_schema_version": "runtime_turn_structured_output_v2",
             "live_player_governance_enforced": self._live_governance_enforced_for_player_paths(),
-            "module_scope_advertised": "module_specific_god_of_carnage_only",
+            "module_scope_advertised": f"module_specific_{GOD_OF_CARNAGE_MODULE_ID}_only",
             "module_scope_truth": _module_scope_truth(),
             # The canonical live validator lane. The operator endpoint
             # POST /internal/narrative/runtime/validate-and-recover is a
@@ -6013,46 +6447,72 @@ class StoryRuntimeManager:
             "Write vivid but grounded opening narration within canonical module boundaries. "
             "Set initial dramatic pressure, social posture, and opening narrative threads."
         )
-        if session.module_id != GOD_OF_CARNAGE_MODULE_ID:
-            return base
-        anchor = "configured opening location and social premise"
-        handover = "phase_1"
+        runtime_profile_id = _runtime_profile_id_from_projection(projection)
         opening_scene_sequence_id = ""
         opening_event_ids: list[str] = []
         opening_must_establish: list[str] = []
         hard_forbidden_reject_on: list[str] = []
         hard_forbidden_recover_on: list[str] = []
+        handover = ""
+        anchor = "configured opening location and social premise"
         try:
-            from ai_stack.goc_yaml_authority import (
-                load_goc_hard_forbidden_rules_yaml,
-                load_goc_opening_scene_sequence_yaml,
-                load_goc_opening_sequence_yaml,
+            policy = load_module_runtime_policy(
+                module_id=session.module_id,
+                runtime_profile_id=runtime_profile_id,
             )
-
-            osq = load_goc_opening_sequence_yaml()
-            if isinstance(osq, dict):
-                anchor = str(osq.get("setting_anchor") or anchor).strip() or anchor
-                handover = str(osq.get("handover_to_scene_phase") or handover).strip() or handover
-            oss = load_goc_opening_scene_sequence_yaml()
-            if isinstance(oss, dict):
-                opening_scene_sequence_id = str(oss.get("id") or "").strip()
-                contract = oss.get("opening_contract") if isinstance(oss.get("opening_contract"), dict) else {}
+            policy_dict = policy.to_dict()
+            opening_policy = (
+                policy_dict.get("opening_policy")
+                if isinstance(policy_dict.get("opening_policy"), dict)
+                else {}
+            )
+            location_model = (
+                policy_dict.get("location_model")
+                if isinstance(policy_dict.get("location_model"), dict)
+                else {}
+            )
+            anchor = str(
+                location_model.get("narrative_anchor_area_id")
+                or location_model.get("setting_id")
+                or anchor
+            ).strip() or anchor
+            opening_scene_sequence_id = str(opening_policy.get("id") or "").strip()
+            contract = (
+                opening_policy.get("opening_contract")
+                if isinstance(opening_policy.get("opening_contract"), dict)
+                else {}
+            )
+            if isinstance(contract, dict):
                 opening_must_establish = [
                     str(item).strip()
                     for item in (contract.get("must_establish") or [])
                     if str(item).strip()
                 ]
+            narrative_events = (
+                opening_policy.get("narrative_events")
+                if isinstance(opening_policy.get("narrative_events"), list)
+                else []
+            )
+            if isinstance(narrative_events, list):
                 opening_event_ids = [
                     str(row.get("id") or "").strip()
-                    for row in (oss.get("narrative_events") or [])
+                    for row in narrative_events
                     if isinstance(row, dict) and str(row.get("id") or "").strip()
                 ]
-                for row in (oss.get("narrative_events") or []):
+                for row in narrative_events:
                     if isinstance(row, dict) and row.get("handover_to_scene_phase"):
                         handover = str(row.get("handover_to_scene_phase") or handover).strip() or handover
                         break
-            hfr = load_goc_hard_forbidden_rules_yaml()
-            detection = hfr.get("hard_forbidden_detection") if isinstance(hfr.get("hard_forbidden_detection"), dict) else {}
+            hard_forbidden_policy = (
+                policy_dict.get("hard_forbidden_policy")
+                if isinstance(policy_dict.get("hard_forbidden_policy"), dict)
+                else {}
+            )
+            detection = (
+                hard_forbidden_policy.get("hard_forbidden_detection")
+                if isinstance(hard_forbidden_policy.get("hard_forbidden_detection"), dict)
+                else {}
+            )
             hard_forbidden_reject_on = [
                 str(item).strip() for item in (detection.get("reject_on") or []) if str(item).strip()
             ]
@@ -6063,21 +6523,22 @@ class StoryRuntimeManager:
             pass
         human_actor_id = str(projection.get("human_actor_id") or "").strip()
         role_label = human_actor_id if human_actor_id else "the player character"
+        handover_clause = (
+            f"After the required opening evidence, hand over to scene phase {handover}. "
+            if handover
+            else "After the required opening evidence, hand over to the configured starting scene. "
+        )
         return (
             f"{base}\n\n"
-            f"Session opening (canonical direction/opening_sequence.yaml; ADR-0035). Anchor: {anchor}. "
-            "Deliver THREE narrator beats in order before any NPC speech: "
-            "(1) narrator_intro — background/premise: the configured triggering incident and why these adults meet; "
-            f"(2) role_anchor — inner-perception narrator that places {role_label} in the scene "
-            "(who they are, their place in this room, their disposition at the start); "
-            "(3) scene_setup — the Paris salon: physical space, ritual objects, social temperature. "
-            "Use three narrator paragraphs (blank line between each) or three gm_narration strings. "
-            'Prefer JSON field narration_summary as a list of exactly three strings, e.g. '
-            '"narration_summary": ["narrator_intro: …", "role_anchor: …", "scene_setup: …"]. '
-            f"After all three beats, scene targets {handover}; keep NPC lines aligned with that phase. "
+            f"Session opening uses the module runtime policy. Anchor: {anchor}. "
+            "Narrator owns opening scenic establishment, role placement, and local context before NPC speech. "
+            f"Place {role_label} in the scene without forcing speech, decisions, or private conclusions. "
+            "Use separate narrator-visible blocks for distinct opening functions when the policy expects visible evidence. "
+            f"{handover_clause}"
             f"Opening knowledge contract {opening_scene_sequence_id or 'opening_scene_sequence'} requires events "
             f"{opening_event_ids} "
             f"and must_establish {opening_must_establish}. "
+            'Return "narration_summary" as a list of exactly three strings so opening evidence can be projected into visible blocks. '
             'Emit structured coverage evidence as "opening_event_ids" with the covered event ids; '
             'semantic rule hits, when present, must use "runtime_gate_detections" ids. '
             f"Hard forbidden detection: reject_on={hard_forbidden_reject_on}, recover_on={hard_forbidden_recover_on}. "
@@ -6642,6 +7103,9 @@ class StoryRuntimeManager:
             raw_player_input=player_input,
             input_kind=interpreted_input.get("player_input_kind") or interpreted_input.get("kind"),
             trace_id=trace_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
         )
         turn_aspect_ledger = _stamp_turn_aspect_ledger_identity(
             turn_aspect_ledger,
@@ -7026,6 +7490,33 @@ class StoryRuntimeManager:
             graph_state["human_input_attribution"] = human_att
             event["human_input_attribution"] = human_att
         _reconcile_governance_passivity_with_final_projection(event)
+        memory_source_turn = {
+            "canonical_turn_id": event.get("canonical_turn_id"),
+            "module_id": session.module_id,
+            "runtime_profile_id": _runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+            "turn_number": commit_turn_number,
+            "turn_kind": turn_kind or "player",
+            "turn_outcome": outcome,
+            "narrative_commit": narrative_commit_payload,
+            "committed_turn_authority": committed_turn_authority,
+            "dramatic_context_summary": dramatic_context_summary,
+            "actor_turn_summary": actor_turn_summary,
+            "turn_aspect_ledger": event.get("turn_aspect_ledger"),
+            "visible_output_bundle": event.get("visible_output_bundle"),
+            "committed_state_after": {
+                "current_scene_id": session.current_scene_id,
+                "turn_counter": session.turn_counter,
+            },
+        }
+        _record_hierarchical_memory_aspect(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+            committed_turn=memory_source_turn,
+            allow_write=True,
+        )
         self._emit_observability_path_for_event(session=session, graph_state=graph_state, event=event)
 
         turn_lc.advance("projected")
@@ -7043,6 +7534,7 @@ class StoryRuntimeManager:
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "human_input_attribution": event.get("human_input_attribution"),
+            "hierarchical_memory_update": event.get("hierarchical_memory"),
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
                 "turn_counter": session.turn_counter,
@@ -7067,7 +7559,7 @@ class StoryRuntimeManager:
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
         host_experience_template = (
             goc_host_experience_template(session.runtime_projection)
-            if session.module_id == "god_of_carnage"
+            if session.module_id == GOD_OF_CARNAGE_MODULE_ID
             else None
         )
         prior_ci = goc_prior_continuity_for_graph(session.module_id, session.prior_continuity_impacts)
@@ -7225,7 +7717,7 @@ class StoryRuntimeManager:
         graph_threads, graph_summary = build_graph_thread_export(session.narrative_threads)
         host_experience_template = (
             goc_host_experience_template(session.runtime_projection)
-            if session.module_id == "god_of_carnage"
+            if session.module_id == GOD_OF_CARNAGE_MODULE_ID
             else None
         )
         try:
@@ -7242,6 +7734,18 @@ class StoryRuntimeManager:
                 graph_threads=graph_threads,
                 graph_summary=graph_summary,
             )
+            _, prior_memory_policy = _load_module_memory_policy(
+                module_id=session.module_id,
+                runtime_profile_id=_runtime_profile_id_from_projection(
+                    session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+                ),
+            )
+            hierarchical_memory_context = project_hierarchical_memory_context(
+                snapshot=session.hierarchical_memory
+                if isinstance(session.hierarchical_memory, dict)
+                else None,
+                memory_policy=prior_memory_policy,
+            )
             graph_state = self.turn_graph.run(
                 session_id=session.session_id,
                 module_id=session.module_id,
@@ -7257,6 +7761,7 @@ class StoryRuntimeManager:
                 prior_social_state_record=prior_social_state_record,
                 prior_narrative_thread_state=prior_narrative_thread_state,
                 prior_planner_truth=prior_planner_truth,
+                hierarchical_memory_context=hierarchical_memory_context,
                 turn_number=commit_turn_number,
                 turn_initiator_type="player",
                 live_player_truth_surface=True,
@@ -7425,6 +7930,29 @@ class StoryRuntimeManager:
         graph_state.setdefault("validation_outcome", event.get("validation_outcome"))
         graph_state.setdefault("visible_output_bundle", event.get("visible_output_bundle"))
         graph_state.setdefault("interpreted_input", interpreted_input)
+        _record_hierarchical_memory_aspect(
+            session=session,
+            graph_state=graph_state,
+            event=event,
+            committed_turn={
+                "canonical_turn_id": event.get("canonical_turn_id"),
+                "module_id": session.module_id,
+                "runtime_profile_id": _runtime_profile_id_from_projection(
+                    session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+                ),
+                "turn_number": commit_turn_number,
+                "turn_kind": event.get("turn_kind") or "player_rejected_recoverable",
+                "turn_outcome": turn_outcome,
+                "recoverable_outcome": True,
+                "narrative_commit": event.get("narrative_commit"),
+                "turn_aspect_ledger": event.get("turn_aspect_ledger"),
+                "visible_output_bundle": event.get("visible_output_bundle"),
+            },
+            allow_write=False,
+        )
+        if isinstance(event.get("diagnostics"), dict):
+            event["diagnostics"]["turn_aspect_ledger"] = event.get("turn_aspect_ledger")
+            event["diagnostics"]["hierarchical_memory"] = event.get("hierarchical_memory")
         turn_lc = TurnLifecycleChain()
         turn_lc.advance("received")
         turn_lc.advance("interpreted")
@@ -7445,6 +7973,7 @@ class StoryRuntimeManager:
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "human_input_attribution": human_att,
+            "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,
             "committed_state_after": {
                 "current_scene_id": session.current_scene_id,
@@ -7642,6 +8171,18 @@ class StoryRuntimeManager:
 
         thread_metrics = thread_continuity_metrics(session.narrative_threads)
         module_scope_truth = _module_scope_truth(session.module_id)
+        _, memory_policy = _load_module_memory_policy(
+            module_id=session.module_id,
+            runtime_profile_id=_runtime_profile_id_from_projection(
+                session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+            ),
+        )
+        hierarchical_memory_context = project_hierarchical_memory_context(
+            snapshot=session.hierarchical_memory
+            if isinstance(session.hierarchical_memory, dict)
+            else None,
+            memory_policy=memory_policy,
+        )
         last_thread_summary: str | None = None
         if session.last_thread_update_trace is not None:
             last_thread_summary = session.last_thread_update_trace.summary or None
@@ -7711,6 +8252,10 @@ class StoryRuntimeManager:
                     "thread_pressure_level": thread_metrics["thread_pressure_level"],
                     "last_narrative_thread_update_summary": last_thread_summary,
                 },
+                "hierarchical_memory": {
+                    "snapshot": session.hierarchical_memory,
+                    "context": hierarchical_memory_context,
+                },
             },
             "module_scope_truth": module_scope_truth,
             "player_shell_context": player_shell_context,
@@ -7741,6 +8286,7 @@ class StoryRuntimeManager:
             "runtime_config_status": self.runtime_config_status(),
             "committed_state": committed_state,
             "diagnostics": session.diagnostics[-20:],
+            "hierarchical_memory": session.hierarchical_memory,
             "envelope_kind": "full_turn_orchestration_includes_graph_retrieval_and_interpreted_input",
             "committed_truth_vs_diagnostics": (
                 "Each diagnostics[] entry is a full orchestration envelope (graph, retrieval, model_route, "

@@ -1,0 +1,1018 @@
+Evaluators,,,,,,,
+,,,,,,,
+Kategorie,,Was tut es ?,Name,Prompt,Categories,Score reasoning prompt,Category selection prompt
+,,"Bewertet, ob die Eröffnung als spielbarer Einstieg funktioniert. Achtet auf Narrator-geführte Einführung, klare Rollenverankerung, Ort, Prämisse, sozialen Druck und fehlende Debug-/Fallback-Artefakte.",opening_experience_judge,"You are evaluating the player-facing opening experience of an interactive dramatic scene in World of Shadows.
+
+Evaluate only the generated opening text and its player-facing quality. Do not evaluate backend implementation quality. Do not reward technical metadata by itself. A technically healthy trace can still have a weak or invalid opening.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generated output works as a proper opening introduction for the selected player role.
+
+Pay attention to:
+- whether the opening begins with narrator-led introduction before actor dialogue/action
+- whether the selected player role is clearly anchored
+- whether the scene premise, place, social pressure, and stakes are understandable
+- whether the prose feels theatrical, concrete, and playable rather than generic filler
+- whether the narrator stages the scene through details, pressure, gesture, and subtext
+- whether diagnostics/debug/fallback-like text appears in the player-facing opening
+- whether actor dialogue/action starts too early
+- whether the output feels like the beginning of a scene rather than a response in the middle of the scene
+
+Rubric:
+
+excellent:
+The opening begins with a literary narrator-led introduction, clearly anchors the selected player role, establishes place, social pressure, dramatic premise, and stakes before actor dialogue/action begins. It feels playable, theatrical, concrete, and intentionally staged.
+
+acceptable:
+The opening is understandable and role-aware. It provides orientation, scene setup, and a usable player entry point, but may be stylistically plain, compressed, or slightly mechanical.
+
+weak:
+The opening has some atmosphere or partial setup, but the player role, premise, place, pressure, or stakes are unclear. It may feel abrupt, generic, too short, or insufficiently staged.
+
+invalid:
+The opening starts directly with actor dialogue/action, lacks a clear role anchor, lacks scene setup, uses fallback-like generic text, shows diagnostics/debug text, or does not function as an introduction.","[excellent, acceptable, weak, invalid]","Explain briefly why this category best matches the player-facing opening. Mention the main strength or failure: role anchor, premise, staging, theatrical quality, fallback-like text, diagnostics, or actor dialogue before introduction.","Choose exactly one category: excellent, acceptable, weak, or invalid. Select invalid if the opening does not function as a player-facing introduction."
+,,"Bewertet, ob blockierte, unklare oder nur teilweise mögliche Aktionen spielbar beantwortet werden. Prüft, ob der Spieler eine verständliche, in-world Erklärung oder Rückfrage erhält statt eines technischen Fehlers.",blocked_action_playability_judge,"You are evaluating whether a blocked, ambiguous, or unresolved player action is handled in a playable way.
+
+This is a qualitative review signal only. Do not replace deterministic affordance or safety gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the system gives the player a clear, in-world, playable response when an action cannot be completed, needs clarification, or is only partially possible.
+
+Pay attention to:
+- whether the response avoids raw technical errors
+- whether the player understands why the action cannot proceed
+- whether the message remains diegetic and playable
+- whether the response asks a useful clarification when the target is ambiguous
+- whether blocked movement/action is explained through scene context
+- whether the output preserves the selected player role
+- whether the player can reasonably decide what to do next
+
+Rubric:
+
+playable_block:
+The blocked or limited action is explained clearly and diegetically. The player understands the constraint and can continue playing.
+
+acceptable_clarification:
+The response asks a useful clarification or gives a mostly playable limitation, though it may be a bit plain or mechanical.
+
+unclear_block:
+The action is blocked or unclear, but the explanation is vague, awkward, not very playable, or does not help the player continue.
+
+technical_failure:
+The output exposes technical failure, generic error text, stack-trace-like content, or gives no playable response.","[playable_block, acceptable_clarification, unclear_block, technical_failure]",Explain briefly why this category best matches the blocked/clarification handling. Mention whether the player receives a playable explanation or useful next-step clarification.,"Choose exactly one category: playable_block, acceptable_clarification, unclear_block, or technical_failure. Select technical_failure when the output exposes backend/runtime failure or gives no playable blocked-action response."
+,,"Bewertet, ob NPCs passend auf Spielerhandlung, Sprache oder Situation reagieren. Achtet darauf, dass NPCs sozial/dramatisch reagieren, aber nicht Narrator-Aufgaben oder Spielerhandlungen übernehmen.",npc_reaction_appropriateness_judge,"You are evaluating whether NPC reactions to the player’s action are appropriate and playable.
+
+This is a qualitative review signal only. Do not replace deterministic actor-lane or action-resolution gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether NPCs react naturally to the player’s latest action, speech, perception, or movement without taking over the narrator’s role or the player’s agency.
+
+Pay attention to:
+- whether NPC reaction is socially or dramatically appropriate
+- whether NPCs unnecessarily comment on every small player movement
+- whether an NPC explains spatial/perceptual consequences that should belong to the narrator
+- whether NPCs paraphrase the player’s action instead of reacting
+- whether NPC dialogue advances social tension or playability
+- whether NPCs take over or block the player action without reason
+- whether silence or a narrator-only consequence would have been more appropriate
+
+Rubric:
+
+appropriate_reaction:
+The NPC reaction is natural, socially grounded, and helps the scene without taking over narration or player agency.
+
+minor_overreaction:
+The NPC response is mostly acceptable but slightly too explanatory, too immediate, or too reactive for the action.
+
+unnecessary_commentary:
+The NPC comments on, explains, or paraphrases the player action when a narrator consequence or silence would be better.
+
+npc_takes_over:
+The NPC takes over the player action, narrates the world instead of the narrator, blocks the action without basis, or makes the turn feel controlled by the NPC.","[appropriate_reaction, minor_overreaction, unnecessary_commentary, npc_takes_over]","Explain briefly why this category best matches the NPC reaction. Mention whether the NPC response is socially appropriate, unnecessary commentary, or a takeover of narrator/player responsibility.","Choose exactly one category: appropriate_reaction, minor_overreaction, unnecessary_commentary, or npc_takes_over. Select npc_takes_over when the NPC controls, explains, or overrides the player action in a way that breaks playability."
+,,"Bewertet, ob die angenommene Handlungsmöglichkeit zur Szene und zu den etablierten Objekten/Orten passt. Hilft zu erkennen, ob die Runtime plausible Affordances nutzt oder unpassende Dinge erfindet.",affordance_plausibility_judge,"You are evaluating whether the resolved action target and affordance are plausible for the current scene.
+
+This is a qualitative review signal only. Do not replace deterministic affordance resolution or safety rules.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the action resolution makes sense in the implied scene and module context.
+
+Pay attention to:
+- whether resolved locations, objects, or actors fit the current scene
+- whether inferred spaces such as bathroom, hallway, kitchen, window, table, or door are plausible in the setting
+- whether the action target is unsupported, too convenient, or invented in a disruptive way
+- whether movement to offscreen/inferred areas is handled plausibly
+- whether blocked or ambiguous targets are treated reasonably
+- whether the resolution contradicts known scene facts
+- whether the result preserves dramatic continuity
+
+Rubric:
+
+plausible:
+The resolved target and action affordance fit the scene naturally and do not strain continuity.
+
+acceptable_inference:
+The resolution is not explicitly established but is a reasonable inference from the scene context.
+
+questionable:
+The target or affordance may be possible, but it feels under-supported, too convenient, or weakly justified.
+
+implausible:
+The resolution contradicts the scene, invents an unsupported location/object, ignores obvious constraints, or breaks continuity.","[plausible, acceptable_inference, questionable, implausible]","Explain briefly why this category best matches affordance plausibility. Mention the action target, whether it fits the scene, and whether the inference is justified or disruptive.","Choose exactly one category: plausible, acceptable_inference, questionable, or implausible. Select implausible when the resolved target or affordance clearly contradicts or breaks the scene context."
+,,"Bewertet, ob der Turn den God-of-Carnage-artigen Ton trifft. Achtet auf höfliche Oberfläche, Subtext, soziale Peinlichkeit, Eskalation und vermeidet generische Mediation oder Genre-Drift.",goc_tone_fidelity_judge,"You are evaluating whether the output fits the intended God of Carnage-style social drama tone in World of Shadows.
+
+This is a qualitative tone signal only. Do not replace deterministic runtime gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the visible output fits a tense bourgeois social scene inspired by God of Carnage, without becoming generic conflict-resolution prose.
+
+Pay attention to:
+- civilized politeness covering aggression
+- social pressure beneath manners
+- subtle accusation, discomfort, status tension
+- concrete room details rather than generic moral summary
+- whether characters behave like socially constrained adults
+- whether the text avoids fantasy/game-master tone
+- whether the output avoids generic “solve the conflict” language
+
+Rubric:
+
+strong_fidelity:
+The output strongly fits the intended social-drama tone: polite surface, pressure underneath, specific staging, and restrained conflict.
+
+acceptable_fidelity:
+The output mostly fits the tone, though it may be somewhat plain or lightly generic.
+
+generic_tone:
+The output is understandable but sounds like generic conflict resolution, generic drama, or neutral improv.
+
+wrong_tone:
+The output does not fit the intended tone. It feels like fantasy, game-master narration, therapy-speak, action-adventure, debug text, or another genre.","[strong_fidelity, acceptable_fidelity, generic_tone, wrong_tone]","Explain briefly why this category best matches GoC tone fidelity. Mention whether the output has bourgeois politeness, social pressure, and specific staging or instead feels generic/wrong-genre.","Choose exactly one category: strong_fidelity, acceptable_fidelity, generic_tone, or wrong_tone. Select wrong_tone when the output clearly belongs to the wrong genre or style."
+,,"Bewertet den dramatischen Rhythmus eines Turns. Prüft, ob der Turn Druck, Reaktion oder Konsequenz erzeugt, ohne zu hetzen, zu stocken oder zu viel zu erklären.",dramatic_pacing_judge,"You are evaluating dramatic pacing in a World of Shadows turn.
+
+This is a qualitative pacing signal only. Do not replace deterministic runtime gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the turn has a playable dramatic rhythm.
+
+Pay attention to:
+- whether the turn produces too many cards or too much explanation
+- whether the response is too thin or mechanical
+- whether every player action unnecessarily triggers NPC dialogue
+- whether narrator and NPC beats are balanced
+- whether the scene advances without rushing or stalling
+- whether tension remains present but not over-explained
+- whether the turn feels like live drama rather than a summary
+
+Rubric:
+
+strong_pacing:
+The turn has clear rhythm, useful restraint, and dramatic pressure. It advances play without over-explaining.
+
+acceptable_pacing:
+The turn is playable and reasonably paced, though not especially elegant.
+
+weak_pacing:
+The turn is too thin, too explanatory, too repetitive, or slightly out of rhythm.
+
+broken_pacing:
+The turn feels mechanically broken, bloated, stalled, repetitive, or dramatically incoherent.","[strong_pacing, acceptable_pacing, weak_pacing, broken_pacing]","Explain briefly why this category best matches dramatic pacing. Mention whether the turn is too thin, too verbose, too repetitive, or well paced.","Choose exactly one category: strong_pacing, acceptable_pacing, weak_pacing, or broken_pacing. Select broken_pacing when the turn is visibly incoherent, stalled, or repetitive."
+,,"Bewertet, ob die Sprache des Outputs konsistent zur erwarteten Spielsitzung bleibt. Erkennt Sprachwechsel, Mischsprache oder falsche Ausgabesprache.",language_consistency_judge,"You are evaluating language consistency in player-facing visible output.
+
+This is a qualitative review signal only. Do not judge backend implementation quality.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the visible output follows the expected session language.
+
+For German sessions:
+- German visible prose is expected.
+- Names such as Véronique, Alain, Annette, Michel are allowed.
+- A brief foreign-language quote may be acceptable only if clearly intentional.
+- English stage direction such as “gently nods” is not acceptable.
+- French dialogue should not appear unless specifically justified by the scene.
+
+Pay attention to:
+- English narrator or stage-direction leaks
+- French dialogue drift in a German session
+- mixed German/English/French inside one card
+- internal prompt language leaking into visible text
+- whether the output language matches metadata if available
+
+Rubric:
+
+consistent:
+The visible output consistently follows the expected session language. Names are allowed.
+
+minor_drift:
+There is a small foreign-language fragment or stylistic drift, but the output remains mostly in the expected language.
+
+mixed_language:
+The output noticeably mixes languages in a way that harms readability or immersion.
+
+wrong_language:
+The output is mostly in the wrong language or contains clear prompt/scaffold-language leakage.","[consistent, minor_drift, mixed_language, wrong_language]",Explain briefly why this category best matches language consistency. Mention the expected language and any visible drift or language leakage.,"Choose exactly one category: consistent, minor_drift, mixed_language, or wrong_language. Select wrong_language when the output is mostly not in the expected session language."
+,,"Bewertet, ob der Output auf den aktuellen Spielerinput und die aktuelle Szene relevant reagiert. Erkennt ausweichende, generische oder thematisch falsche Antworten.",turn_relevance_judge,"You are evaluating whether the generated turn response is relevant to the player’s input.
+
+This is a qualitative review signal only. Do not replace deterministic runtime gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the visible response follows meaningfully from the player’s latest input.
+
+Pay attention to:
+- whether a player question receives an actual answer or useful dramatic response
+- whether a player action receives spatial/perceptual consequence or appropriate social reaction
+- whether the response ignores the input
+- whether the response merely paraphrases the input without advancing the scene
+- whether the response over-explains instead of reacting
+- whether the response stays in the current scene and role context
+
+Rubric:
+
+directly_relevant:
+The response clearly and naturally addresses the player’s input and advances the scene.
+
+broadly_relevant:
+The response is related and mostly sensible, but may be generic, indirect, or slightly underdeveloped.
+
+weakly_related:
+The response has only a loose connection to the player input or mostly paraphrases it.
+
+irrelevant_or_wrong:
+The response ignores, contradicts, misattributes, or wrongly explains the player input.","[directly_relevant, broadly_relevant, weakly_relevant, irrelevant_or_wrong]","Explain briefly why this category best matches turn relevance. Mention whether the response answers, reacts to, or misinterprets the player input.","Choose exactly one category: directly_relevant, broadly_relevant, weakly_related, or irrelevant_or_wrong. Select irrelevant_or_wrong when the output ignores or misattributes the player input."
+,,"Bewertet die Sauberkeit der sichtbaren Karten. Achtet auf doppelte Inhalte, Name-only Cards, Label-Stottern, technische Artefakte oder falsch zusammengeführte Action-/Speech-Texte.",visible_card_cleanliness_judge,"You are evaluating the cleanliness of player-facing visible story cards.
+
+This is a qualitative UI/content review signal only. Do not judge backend implementation quality.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the visible card text is clean, readable, non-duplicative, and free from internal artifacts.
+
+Pay attention to:
+- name-only cards such as “Veronique”
+- speaker stutter such as “Veronique: Veronique ...”
+- duplicated action in adjacent cards
+- actor_line and actor_action repeating the same content
+- internal labels such as narrator_intro:, role_anchor:, scene_setup:
+- placeholder phrases such as “reacts immediately”
+- broken quote formatting
+- repeated speaker labels inside one card
+- unnecessary blue/action card duplication when the action is already folded into a story card
+
+Rubric:
+
+clean:
+The visible cards are readable, well formatted, and free from obvious duplication or internal artifacts.
+
+minor_artifacts:
+There are small formatting issues, but they do not seriously harm playability.
+
+messy:
+The output has noticeable duplicated cards, label stutter, awkward formatting, or repeated action text.
+
+broken_cards:
+The card output is visibly broken, with name-only cards, repeated labels, debug/internal text, or severe duplication.","[clean, minor_artifacts, messy, broken_cards]","Explain briefly why this category best matches visible card cleanliness. Mention duplicated cards, name stutter, internal labels, or formatting artifacts if present.","Choose exactly one category: clean, minor_artifacts, messy, or broken_cards. Select broken_cards when visible card formatting seriously harms playability."
+,,"Bewertet die Grenze zwischen Narrator- und NPC-Aufgaben. Prüft, ob der Narrator Raum, Wahrnehmung und Konsequenzen führt und NPCs nicht unzulässig narrativ übernehmen.",narrator_npc_boundary_judge,"You are evaluating whether narrator and NPC responsibilities remain properly separated.
+
+This is a qualitative review signal only. Do not replace deterministic runtime gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the narrator and NPCs each perform their correct narrative function.
+
+The narrator should handle:
+- space, movement, perception, environmental consequence, transition, physical staging
+
+NPCs should handle:
+- dialogue, social reaction, gestures, interpersonal pressure, refusal, courtesy, irritation
+
+Pay attention to:
+- whether an NPC explains the player’s movement or perception instead of the narrator
+- whether the narrator summarizes NPC dialogue that should be spoken
+- whether NPCs merely paraphrase the player’s action
+- whether narrator and NPC blocks are cleanly separated
+- whether the output feels like a playable scene rather than NPCs narrating the world
+
+Rubric:
+
+clean_boundary:
+Narrator and NPC roles are clean. Movement/perception belongs to narrator; NPCs react socially or speak.
+
+minor_blur:
+There is slight overlap, but the scene remains understandable and playable.
+
+npc_narrates_action:
+An NPC wrongly explains, narrates, or paraphrases the player’s physical/perceptual action instead of reacting naturally.
+
+severe_boundary_violation:
+Narrator/NPC roles collapse badly. NPCs take over narration, player action, or environmental description in a way that breaks the scene.","[clean_boundary, minor_blur, npc_narrates_action, severe_boundary_violation]",Explain briefly why this category best matches narrator/NPC boundary quality. Mention whether spatial/perceptual consequences are handled by the narrator or incorrectly by NPCs.,"Choose exactly one category: clean_boundary, minor_blur, npc_narrates_action, or severe_boundary_violation. Select severe_boundary_violation when NPCs take over narrator or player-action responsibilities."
+,,"Bewertet, ob die Spielereingabe semantisch richtig verstanden wurde. Unterscheidet unter anderem Sprache, Frage, Bewegung, Wahrnehmung, soziale Handlung, Objektinteraktion und Mixed Input.",player_action_intent_judge,"You are evaluating whether the player input was interpreted and rendered with the correct intent in World of Shadows.
+
+This is a qualitative review signal only. Do not replace deterministic player-input attribution gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the visible output treats the player input as the correct kind of action, speech, perception, or mixed move.
+
+Pay attention to:
+- whether a question is rendered as a question/speech
+- whether a free action such as “Gehe in die Küche” is rendered as an action, not as quoted speech
+- whether perception such as “Schau aus dem Fenster” leads to player perception/narrator result, not NPC explanation
+- whether mixed input preserves both action and speech
+- whether the selected player role owns the player input
+- whether an NPC takes over, repeats, or explains the player’s action incorrectly
+
+Rubric:
+
+correct_intent:
+The player input is rendered as the correct intent type. Speech, action, perception, or mixed input is handled naturally.
+
+minor_mismatch:
+The output mostly follows the intended player input, but phrasing is slightly awkward or over-explicit.
+
+wrong_intent:
+The output uses the wrong intent type, such as rendering a physical action as quoted speech or treating a perception as an NPC answer.
+
+invalid_takeover:
+The player input is assigned to an NPC, or an NPC takes over/explains the player’s action in a way that breaks agency.","[excellent, acceptable, weak, invalid]",Explain briefly why this category best matches player intent handling. Mention the apparent player_input_kind and whether the output preserves the player’s intended action/speech/perception.,"Choose exactly one category: correct_intent, minor_mismatch, wrong_intent, or invalid_takeover. Select invalid_takeover when the player input is assigned to an NPC or the NPC takes over the player action."
+,,"Bewertet, ob bereitgestellter RAG-Kontext sinnvoll genutzt wurde. Erkennt, ob Kontext hilfreich eingebunden, ignoriert oder falsch/verzerrt verwendet wurde.",rag_context_usefulness_judge,"You are evaluating whether the generated output meaningfully uses the provided World of Shadows / God of Carnage context.
+
+Evaluate only context use and faithfulness. Do not judge backend implementation quality. Do not reward the mere presence of retrieved context; judge whether the output uses it well.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generated output uses the provided context in a useful, faithful, and relevant way.
+
+Pay attention to:
+- whether the output reflects the provided scene, role, phase, premise, constraints, or character context
+- whether the output uses relevant context rather than ignoring it
+- whether it invents unsupported facts that conflict with the context
+- whether it preserves the intended God of Carnage / World of Shadows setup
+- whether the selected player role and scene premise align with the context
+- whether the output is generic despite receiving specific context
+- whether the context is overused mechanically or copied without dramatic integration
+
+Rubric:
+
+strong_use:
+The output clearly and naturally uses relevant provided context. It reflects the scene premise, role setup, constraints, and dramatic situation while remaining faithful and playable.
+
+some_use:
+The output uses some relevant context, but only partially. It may be broadly aligned but misses important details, role specifics, or scene constraints.
+
+unused:
+The output appears generic or disconnected from the provided context. It could have been generated without the retrieved material.
+
+misused:
+The output contradicts, distorts, or invents facts against the provided context. It may use the wrong role, wrong scene premise, wrong relationship, or unsupported story facts.","[strong_use, some_use, unused, misused]","Explain briefly why this category best matches the context use. Mention whether the output uses, partially uses, ignores, or contradicts the provided context.","Choose exactly one category: strong_use, some_use, unused, or misused. Select misused if the output contradicts or distorts the provided context. Select unused if the output is generic or disconnected from the context."
+,,"Bewertet, ob die AI den ausgewählten Human Actor respektiert. Erkennt, wenn die AI für den Spieler spricht, handelt oder dessen innere Zustände unzulässig festlegt.",actor_lane_narrative_violation_judge,"You are evaluating whether the generated text violates player actor-lane safety in World of Shadows.
+
+This is a qualitative review signal only. Do not replace deterministic actor-lane gates. Do not judge backend implementation quality.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generated output makes the selected human player character speak, decide, or act autonomously as AI-controlled output.
+
+The selected player role may appear in narration as context, but the AI must not take over that character’s agency.
+
+Pay attention to:
+- whether the selected player role speaks lines not provided by the player
+- whether the selected player role performs autonomous actions chosen by the AI
+- whether the selected player role expresses decisions, intentions, emotions, or inner thoughts as if controlled by the AI
+- whether NPCs speak or act instead, which is allowed
+- whether the narrator describes neutral context around the player role without forcing action
+- whether the output confuses NPC and player identity
+
+Rubric:
+
+no_violation:
+The generated output does not appear to control the selected human actor. NPC dialogue/action and neutral narrator context are acceptable. The player retains agency.
+
+possible_violation:
+The output may be ambiguous. It hints at player-character action, intention, speech, or inner state, but the violation is not clear enough to classify as definite.
+
+clear_violation:
+The output clearly makes the selected human actor speak, act, decide, feel, or reveal internal intention autonomously as AI-controlled content. The player’s agency is overridden.","[no_violation, possible_violation, clear_violation]","Explain briefly why this category best matches the actor-lane safety review. Mention whether the selected human actor is controlled, ambiguously influenced, or left under player agency.","Choose exactly one category: no_violation, possible_violation, or clear_violation. Select clear_violation only when the generated output clearly controls the selected human player character."
+,,"Bewertet die theatrale Qualität des Outputs. Achtet auf konkrete Inszenierung, Spannung, Gesten, Subtext und vermeidet flache oder rein funktionale Prosa.",theatrical_style_judge,"You are evaluating the theatrical and literary quality of the narrator/opening prose in World of Shadows.
+
+Evaluate only the player-facing generated text. Do not judge backend implementation quality. Do not reward technical metadata by itself.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generated opening feels like a staged, playable, dramatic scene rather than generic filler or mechanical exposition.
+
+Pay attention to:
+- concrete staging details: gesture, posture, room, objects, rhythm, silence, proximity
+- subtext and social pressure instead of direct explanation of emotions
+- whether the narrator creates atmosphere through scene action rather than telling the player what to feel
+- whether the prose feels literary, theatrical, and playable
+- whether the opening has pacing and tension
+- whether the prose is generic, cliché, abstract, or filler-like
+- whether the text feels like a real opening rather than a summary or debug placeholder
+
+Rubric:
+
+theatrical:
+The prose stages the scene vividly through concrete details, subtext, gesture, rhythm, and social pressure. It feels literary, playable, and intentionally dramatic without overexplaining emotions.
+
+serviceable:
+The prose is clear and usable. It establishes some scene feeling or pressure, but the style may be plain, slightly mechanical, or not especially theatrical.
+
+flat:
+The prose is understandable but weak. It relies on abstract statements, generic atmosphere, direct emotional explanation, or underdeveloped staging. It does not strongly feel like theatre or interactive drama.
+
+bad:
+The prose is generic filler, debug-like, incoherent, overly mechanical, cliché-heavy, or fails to stage a dramatic scene. It may tell the player what to feel instead of dramatizing the situation.","[theatrical, serviceable, flat, bad]","Explain briefly why this category best matches the theatrical style. Mention concrete staging, subtext, rhythm, generic filler, emotional overexplanation, or lack of dramatic pressure.","Choose exactly one category: theatrical, serviceable, flat, or bad. Select bad if the prose is generic filler, debug-like, incoherent, or not a playable dramatic scene."
+,,"Bewertet, ob der ausgewählte Spielercharakter klar und korrekt im Output verankert ist. Erkennt fehlende, falsche oder nur schwache Rollenorientierung.",role_anchor_quality_judge,"You are evaluating whether the generated opening clearly anchors the selected player role in an interactive dramatic scene in World of Shadows.
+
+Evaluate only the player-facing text. Do not judge backend implementation quality. Do not reward technical metadata by itself.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generated output makes the selected player role clear to the player.
+
+Pay attention to:
+- whether the player can understand which character they are inhabiting
+- whether the selected role is introduced before or during the opening
+- whether the role anchor is explicit or strongly implied through context
+- whether the output confuses the player role with an NPC
+- whether the output makes another character seem like the player
+- whether the selected human actor is treated as AI-controlled
+- whether the role anchor is missing because the text starts directly in dialogue/action
+
+Rubric:
+
+clear:
+The selected player role is clearly anchored. The player can confidently understand who they are playing. The role may be named directly or made unmistakable through context, perspective, and scene setup.
+
+partial:
+The selected player role is hinted at, but not fully established. The player may infer their role, but the introduction is weak, indirect, or easy to miss.
+
+missing:
+The generated output does not provide a usable player-role anchor. The opening may contain scene atmosphere or dialogue, but the player cannot confidently tell who they are playing.
+
+wrong_role:
+The generated output anchors the wrong character, treats an NPC as the player role, makes the selected human actor speak/act autonomously as AI output, or otherwise confuses the player’s identity.","[clear, partial, missing, wrong_role]","Explain briefly why this category best matches the role anchoring. Mention whether the selected player role is clear, partial, missing, or confused with another character.","Choose exactly one category: clear, partial, missing, or wrong_role. Select wrong_role if the output anchors or controls the wrong character. Select missing if no usable player-role anchor is present."
+,,"Bewertet, ob eine freie Spielerhandlung korrekt aufgelöst wurde. Prüft, ob Ziel, Affordance, Konsequenz und sichtbare Antwort zur Handlung passen, ohne Actor-Lane- oder Narrator/NPC-Grenzen zu brechen.",player_action_resolution_judge,"You are evaluating whether a free player action was resolved correctly in an interactive World of Shadows turn.
+
+This is a qualitative review signal only. Do not replace deterministic action-resolution, actor-lane, or runtime gates.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the player’s input was resolved as the correct kind of in-world action, perception, movement, speech, or mixed move.
+
+Pay attention to:
+- whether movement such as “Gehe ins Bad” becomes an actual movement/action, not quoted speech
+- whether perception such as “Schau aus dem Fenster” leads to a perceptual/narrator consequence
+- whether speech/questions remain speech/questions
+- whether mixed input preserves both action and speech
+- whether the selected human actor owns the action
+- whether NPCs incorrectly explain or perform the player’s action
+- whether the visible result is playable and follows the player’s intent
+
+Rubric:
+
+resolved_well:
+The player action is clearly and correctly resolved. The selected player character performs or attempts the intended action, and the visible output follows naturally.
+
+partially_resolved:
+The action is mostly understood, but the result is incomplete, slightly awkward, too generic, or missing part of the intended consequence.
+
+misresolved:
+The system interprets the input as the wrong action type, wrong target, wrong actor, or wrong narrative function, but some relation to the input remains.
+
+not_resolved:
+The action is not resolved at all, is ignored, becomes technical failure text, or is replaced by unrelated NPC/narrator output.","[resolved_well, partially_resolved, misresolved, not_resolved]","Explain briefly why this category best matches the player action resolution. Mention the player’s apparent intent, how it was rendered, and whether the selected player character actually performed or attempted the intended action.","Choose exactly one category: resolved_well, partially_resolved, misresolved, or not_resolved. Select not_resolved when the player action is ignored, turned into technical failure text, or not represented in the visible output."
+,,"Bewertet, ob ein Turn genügend Backend-/World-Engine-Evidence enthält, um ihn zu debuggen. Prüft, ob Ledger- oder Aspect-Daten zu Action, Beat, Authority, Capability, Validation, Commit und Visible Projection vorhanden sind.",runtime_aspect_integrity_judge,"You are evaluating whether a live World of Shadows runtime turn preserves the required runtime-aspect evidence needed to understand and audit the generated result.
+
+This is a qualitative review signal only. Do not replace deterministic runtime gates, ADR-0033 checks, actor-lane gates, fallback gates, or commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the generation is supported by coherent runtime-aspect evidence in the metadata and whether the visible output appears consistent with that evidence.
+
+Pay attention to:
+- whether metadata contains meaningful runtime aspect evidence rather than empty, generic, or placeholder fields
+- whether actor, narrator, NPC, beat, capability, origin, and outcome information are present when required
+- whether the visible output reflects the runtime aspects that were supposedly selected
+- whether missing evidence makes the turn impossible to audit
+- whether deterministic gate outcomes and qualitative narrative output contradict each other
+- whether the turn appears to rely on hardcoded, fallback, or underspecified behavior
+- whether metadata is sufficient to diagnose why the output was produced
+
+Rubric:
+
+complete:
+The runtime aspect evidence is complete and coherent. The metadata contains the necessary actor, narrator/NPC, beat, capability, origin, and outcome information, and the visible output is consistent with it.
+
+mostly_complete:
+Most required runtime aspect evidence is present and coherent. Some minor fields may be missing, compressed, or not very detailed, but the turn remains auditable.
+
+incomplete:
+Important runtime aspect evidence is missing or too vague. The visible output may still be understandable, but the metadata is not sufficient to fully audit how the turn was produced.
+
+missing:
+Runtime aspect evidence is absent, placeholder-like, empty, or unrelated to the visible output. The turn cannot be meaningfully audited from the provided metadata.
+
+not_applicable:
+The evaluated generation does not require runtime aspect evidence for the aspect under review.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge reliably.","[complete, mostly_complete, incomplete, missing, not_applicable, insufficient_evidence]","Explain briefly why this category best matches runtime aspect integrity. Mention which runtime aspect evidence is present, which is missing or weak, and whether the visible output is consistent with the metadata.","Choose exactly one category: complete, mostly_complete, incomplete, missing, not_applicable, or insufficient_evidence. Select missing when runtime aspect evidence is absent or placeholder-like. Select insufficient_evidence only when the provided input, output, or metadata is too incomplete to judge."
+,,"Bewertet, ob der Narrator seine zuständige Rolle erfüllt. Besonders relevant für Bewegung, Wahrnehmung, Umgebung, physische Konsequenzen und Szenenrahmung.",narrator_authority_judge,"You are evaluating narrator authority in a live interactive World of Shadows turn.
+
+This is a qualitative review signal only. Do not replace deterministic actor-lane gates, narrator routing rules, runtime authority checks, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the narrator performs the narrative functions that belong to the narrator, without being displaced by NPCs, player actors, technical text, or unsupported runtime behavior.
+
+Pay attention to:
+- whether scene framing, spatial orientation, transitions, consequences, and perceptual narration are handled by the narrator when needed
+- whether the narrator clarifies what is visible, felt, implied, or changed in the scene
+- whether NPCs improperly take over narrator duties
+- whether the selected player character is allowed to act without the narrator overwriting their intent
+- whether the narrator becomes too weak, absent, generic, or purely mechanical
+- whether the narrator exposes implementation details, diagnostics, fallback language, or system commentary
+- whether the narrator’s visible authority matches metadata such as visible block origin, actor lane, beat, capability, or outcome state
+
+Rubric:
+
+fulfilled:
+Narrator authority is clearly fulfilled. The narrator handles framing, consequence, perception, transition, or scene pressure where appropriate, while respecting actor and NPC boundaries.
+
+mostly_fulfilled:
+Narrator authority is mostly fulfilled. The narrator supports the scene adequately, with only minor weakness, compression, or slight boundary blur.
+
+partial_or_ambiguous:
+Narrator authority is only partially fulfilled or ambiguous. The output may be playable, but narrator duties are underdeveloped, unclear, or partly displaced.
+
+violated:
+Narrator authority is violated. NPCs, player actors, technical text, or unsupported output take over narrator responsibilities, or the narrator overrides actor ownership in a serious way.
+
+not_applicable:
+The generation does not require meaningful narrator authority for the evaluated aspect.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge narrator authority reliably.","[fulfilled, mostly_fulfilled, partial_or_ambiguous, violated, not_applicable, insufficient_evidence]","Explain briefly why this category best matches narrator authority. Mention what narrator function was required, whether the narrator fulfilled it, and whether any NPC, player actor, technical text, or fallback-like output displaced narrator authority.","Choose exactly one category: fulfilled, mostly_fulfilled, partial_or_ambiguous, violated, not_applicable, or insufficient_evidence. Select violated when narrator duties are clearly taken over by the wrong origin or when the narrator improperly overrides actor ownership."
+,,"Bewertet, ob NPCs ihre Autoritätsgrenzen einhalten. Erkennt semantische Übernahmen wie NPC führt Spielerhandlung aus, erzählt Spielerwahrnehmung oder ersetzt den Narrator.",npc_authority_violation_judge,"You are evaluating whether NPCs respected their runtime authority boundaries in a World of Shadows turn.
+
+This is a qualitative review signal only. Do not replace deterministic actor-lane safety, NPC routing rules, runtime authority checks, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether NPCs stay within their allowed in-world authority: speaking, reacting, escalating, withholding, interrupting, or pressuring as characters, without narrating the world, resolving the player’s action for them, controlling the selected human actor, or explaining runtime mechanics.
+
+Pay attention to:
+- whether NPCs only perform plausible NPC actions, speech, gestures, or reactions
+- whether NPCs improperly narrate scene consequences, camera-like perception, room state, or system state
+- whether NPCs take over or explain the selected player character’s action
+- whether NPCs decide success/failure of a player action that should be resolved by runtime/narrator logic
+- whether NPCs expose metadata, diagnostics, fallback reasons, or implementation commentary
+- whether NPC behavior fits the social/dramatic situation and their relationship pressure
+- whether visible block origin metadata agrees with what the visible text does
+
+Rubric:
+
+no_violation:
+NPCs stay within their authority. They speak, react, gesture, pressure, or escalate as characters without narrating the world, controlling the player, or exposing runtime mechanics.
+
+minor_blur:
+There is a small boundary blur, but the output remains playable and the NPC does not seriously take over narrator, runtime, or player authority.
+
+ambiguous_violation:
+An NPC may be exceeding authority, but the violation is unclear, limited, or partly caused by ambiguous formatting/origin metadata.
+
+clear_violation:
+An NPC clearly takes over narrator duties, controls or explains the player’s action, determines runtime outcome improperly, or exposes technical/system information.
+
+not_applicable:
+No meaningful NPC authority behavior is present in this generation.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge NPC authority reliably.","[no_violation, minor_blur, ambiguous_violation, clear_violation, not_applicable, insufficient_evidence]","Explain briefly why this category best matches NPC authority. Mention whether NPCs stayed within character-level speech/action or whether they took over narrator, runtime, or selected-player authority.","Choose exactly one category: no_violation, minor_blur, ambiguous_violation, clear_violation, not_applicable, or insufficient_evidence. Select clear_violation when an NPC narrates the world, controls the selected player character, resolves runtime outcome improperly, or exposes technical/system details."
+,,"Bewertet, ob ausgewählte dramatische Runtime-Capabilities korrekt realisiert wurden. Prüft, ob Player-, Narrator- und NPC-Fähigkeiten passend gewählt, umgesetzt oder blockiert wurden.",dramatic_capability_realization_judge,"You are evaluating dramatic runtime capability realization in a World of Shadows turn.
+
+This is a qualitative review signal only. Do not replace deterministic capability selection, runtime validation, actor-lane checks, beat selection, fallback gates, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the dramatic capabilities selected or implied by the runtime are actually realized in the visible output in a coherent, playable, and theatrically useful way.
+
+Pay attention to:
+- whether selected capabilities appear in the visible result
+- whether blocked, unavailable, or constrained capabilities are respected
+- whether the visible output contradicts capability metadata
+- whether capabilities create meaningful dramatic behavior instead of generic filler
+- whether the capability realization fits the selected actor, NPCs, relationship pressure, beat, and scene state
+- whether the output invents unsupported capabilities or ignores required ones
+- whether partial or recoverable outcomes are represented as playable consequences
+
+Rubric:
+
+realized_correctly:
+The selected or implied dramatic capabilities are clearly and correctly realized. The visible output reflects them in a coherent, playable, and dramatically meaningful way.
+
+mostly_realized:
+The capabilities are mostly realized. Some details may be thin, generic, or underdeveloped, but the output remains coherent and playable.
+
+partially_realized:
+Capability realization is incomplete or inconsistent. Some selected capabilities are missing, weakly expressed, or only indirectly represented.
+
+violated_or_missing:
+The output ignores, contradicts, or misuses the selected capabilities, invents unsupported capabilities, or fails to realize required dramatic behavior.
+
+not_applicable:
+No meaningful dramatic capability evidence is required or present for this generation.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge capability realization reliably.","[realized_correctly, mostly_realized, partially_realized, violated_or_missing, not_applicable, insufficient_evidence]","Explain briefly why this category best matches dramatic capability realization. Mention which capabilities were selected, implied, blocked, missing, contradicted, or visibly realized.","Choose exactly one category: realized_correctly, mostly_realized, partially_realized, violated_or_missing, not_applicable, or insufficient_evidence. Select violated_or_missing when selected capabilities are ignored, contradicted, or replaced by unsupported behavior."
+,,"Bewertet, ob der ausgewählte dramatische Beat im sichtbaren Output tatsächlich realisiert wurde. Unterscheidet zwischen starker, serviceabler, schwacher oder fehlender Beat-Realisierung.",beat_realization_judge,"You are evaluating whether the selected dramatic beat was realized in a live interactive World of Shadows turn.
+
+This is a qualitative review signal only. Do not replace deterministic beat selection, runtime validation, pacing gates, actor-lane gates, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the selected or implied beat is visible in the generated output and whether it advances the scene in a concrete, playable, and dramatically coherent way.
+
+Pay attention to:
+- whether the selected beat or beat intent is visible in the output
+- whether the output advances the scene according to that beat instead of stalling
+- whether the beat is realized through action, pressure, consequence, gesture, dialogue, silence, reveal, escalation, redirection, or changed relationship state
+- whether the output contradicts the selected beat
+- whether the beat is too generic, too weak, or disconnected from player input
+- whether NPCs, narrator, and player actor boundaries remain intact while realizing the beat
+- whether the beat supports the current scene rhythm instead of repeating prior state
+
+Rubric:
+
+strong_realization:
+The selected beat is clearly and effectively realized. The output advances the scene with concrete dramatic pressure, consequence, or change.
+
+serviceable_realization:
+The beat is present and usable. The output advances or maintains the scene, but the realization may be somewhat plain, compressed, or predictable.
+
+weak_realization:
+The beat is only weakly visible. The output is generic, repetitive, underdeveloped, or only loosely connected to the selected beat.
+
+not_realized:
+The selected beat is missing, contradicted, replaced by unrelated content, or does not produce a playable dramatic result.
+
+not_applicable:
+No meaningful beat evidence is required or present for this generation.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge beat realization reliably.","[strong_realization, serviceable_realization, weak_realization, not_realized, not_applicable, insufficient_evidence]","Explain briefly why this category best matches beat realization. Mention the selected or implied beat, whether it is visible in the output, and whether it advances the scene.","Choose exactly one category: strong_realization, serviceable_realization, weak_realization, not_realized, not_applicable, or insufficient_evidence. Select not_realized when the selected beat is absent, contradicted, or replaced by unrelated/generic output."
+,,"Bewertet die Qualität von recoverable, blockierten, unklaren oder teilweise möglichen Turn-Ergebnissen. Achtet darauf, dass solche Fälle in-world, verständlich, HTTP-200-spielbar und ohne falschen Commit bleiben.",recoverable_outcome_quality_judge,"You are evaluating the quality of a recoverable, blocked, ambiguous, unknown-target, partial-success, or constrained outcome in a World of Shadows player turn.
+
+This is a qualitative review signal only. Do not replace deterministic action-resolution, legality checks, actor-lane gates, runtime outcome checks, fallback gates, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the system turns a blocked, ambiguous, failed, partial, or constrained player action into a playable dramatic outcome instead of a dead end.
+
+Pay attention to:
+- whether the output explains the obstacle through the fiction rather than through technical/system language
+- whether the player’s attempted action remains recognizable
+- whether the selected player character retains agency
+- whether the result creates a concrete next step, alternative, clue, pressure, or consequence
+- whether the outcome is dramatically useful rather than a flat denial
+- whether unknown targets, impossible actions, blocked movement, failed attempts, or ambiguity are handled gracefully
+- whether the output invents unsupported success or ignores the block/failure entirely
+- whether metadata indicates a recoverable outcome, blocked action, partial success, clarification, redirection, or constrained result
+
+Rubric:
+
+playable_recovery:
+The blocked, failed, ambiguous, or constrained action becomes a clear playable outcome with fictional explanation, consequence, and a usable next situation.
+
+acceptable_recovery:
+The recovery is understandable and usable, though it may be plain, compressed, or only lightly dramatized.
+
+weak_recovery:
+The recovery is weak. The output acknowledges the problem but gives little dramatic consequence, weak continuation, or unclear next steps.
+
+failed_recovery:
+The outcome is not recovered playably. It becomes a flat rejection, technical explanation, unrelated output, unsupported success, or dead end.
+
+not_applicable:
+No recoverable, blocked, ambiguous, failed, partial, or constrained outcome is present.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge recoverable outcome quality reliably.","[playable_recovery, acceptable_recovery, weak_recovery, failed_recovery, not_applicable, insufficient_evidence]","Explain briefly why this category best matches recoverable outcome quality. Mention the attempted action, the obstacle or constraint, how the output recovered or failed to recover it, and whether the player has a playable next step.","Choose exactly one category: playable_recovery, acceptable_recovery, weak_recovery, failed_recovery, not_applicable, or insufficient_evidence. Select failed_recovery when the result is a flat denial, technical/fallback text, unrelated output, unsupported success, or a dead end."
+,,"Bewertet, ob sichtbare Blocks zu ihren Backend-Origin-Metadaten passen. Prüft, ob origin_aspect, origin_beat_id, origin_capability und authority_owner mit dem sichtbaren Inhalt übereinstimmen.",visible_origin_consistency_judge,"You are evaluating whether visible story blocks are consistent with backend-provided origin metadata in a World of Shadows generation.
+
+This is a qualitative review signal only. Do not replace deterministic visible-block validation, actor-lane gates, runtime origin checks, fallback gates, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether each visible block appears to come from the correct narrative origin, such as narrator, selected player actor, NPC, system-facing diagnostics, or other declared origin metadata.
+
+Pay attention to:
+- whether narrator text is marked and written as narrator text
+- whether NPC dialogue/action belongs to the correct NPC origin
+- whether the selected player character is not improperly spoken for or controlled by another origin
+- whether visible block origin metadata matches the actual visible text
+- whether a block’s content contradicts its declared origin
+- whether diagnostics, fallback text, or technical commentary leaks into player-facing visible blocks
+- whether missing, ambiguous, duplicated, or contradictory origins make the output hard to audit
+- whether origin problems create actor-lane or authority-boundary issues
+
+Rubric:
+
+consistent:
+Visible blocks match their backend-provided origin metadata. Narrator, NPC, and player-facing content are clearly separated and coherent.
+
+mostly_consistent:
+Visible origins are mostly coherent. There may be minor ambiguity or weak formatting, but no serious origin contradiction.
+
+inconsistent_or_incomplete:
+Some visible block origins are missing, incomplete, ambiguous, or weakly mismatched with the text, making the output harder to audit.
+
+contradictory:
+Visible origin metadata clearly contradicts the text, assigns content to the wrong actor/origin, leaks technical text, or creates a serious authority/actor-lane problem.
+
+not_applicable:
+No visible block origin metadata is present or required for this generation.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge visible origin consistency reliably.","[consistent, mostly_consistent, inconsistent_or_incomplete, contradictory, not_applicable, insufficient_evidence]","Explain briefly why this category best matches visible origin consistency. Mention whether visible block origins match the actual text, whether any origin is missing or contradictory, and whether the issue affects narrator/NPC/player authority.","Choose exactly one category: consistent, mostly_consistent, inconsistent_or_incomplete, contradictory, not_applicable, or insufficient_evidence. Select contradictory when visible text is clearly assigned to the wrong origin or when technical/fallback content leaks into player-facing blocks."
+,,"Bewertet, ob Beziehungsspannung sichtbar und kohärent fortgeführt wird. Achtet auf Paar-Dynamiken, Elternkonflikt, soziale Reibung, Allianzen, Abwehr und charakterbezogene Reaktionen.",relationship_pressure_judge,"You are evaluating whether the generation preserves and advances relationship pressure in a World of Shadows dramatic scene.
+
+This is a qualitative review signal only. Do not replace deterministic beat selection, relationship-state tracking, runtime gates, actor-lane checks, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the output makes the relevant character relationships, tensions, obligations, resentments, alliances, evasions, or power shifts visible and dramatically useful.
+
+Pay attention to:
+- whether relationship pressure is visible through dialogue, silence, gesture, avoidance, accusation, interruption, concession, escalation, or subtext
+- whether the pressure follows from the current scene state and prior relationship context
+- whether the output advances, sharpens, redirects, or preserves the relationship tension
+- whether NPC reactions are socially and dramatically appropriate
+- whether the selected player character’s agency is respected within the relationship pressure
+- whether the output becomes generic action narration without social consequence
+- whether relationship metadata, thread pressure, beat intent, or scene function is reflected in the visible text
+- whether the pressure is overplayed, underplayed, contradicted, or assigned to the wrong actor
+
+Rubric:
+
+strong_pressure:
+Relationship pressure is clear, specific, and dramatically effective. The output visibly advances or sharpens the social tension while respecting actor boundaries.
+
+serviceable_pressure:
+Relationship pressure is present and coherent. It supports the scene, though it may be somewhat plain, subtle, or not strongly developed.
+
+weak_pressure:
+Relationship pressure is weak, generic, or only indirectly present. The output remains understandable but misses a clear social/dramatic opportunity.
+
+missing_or_wrong:
+Relationship pressure is absent, contradicted, assigned to the wrong actor, disconnected from the scene, or replaced by generic narration/action.
+
+not_applicable:
+The generation does not require relationship pressure for the evaluated aspect.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge relationship pressure reliably.","[strong_pressure, serviceable_pressure, weak_pressure, missing_or_wrong, not_applicable, insufficient_evidence]","Explain briefly why this category best matches relationship pressure. Mention the relevant relationship or social tension, how it appears or fails to appear in the visible output, and whether it advances the scene.","Choose exactly one category: strong_pressure, serviceable_pressure, weak_pressure, missing_or_wrong, not_applicable, or insufficient_evidence. Select missing_or_wrong when relationship pressure is absent, contradicted, assigned to the wrong actor, or replaced by generic narration/action."
+,,,player_turn_playability_judge,"You are evaluating whether a player action turn remains playable in World of Shadows.
+
+This is a qualitative review signal only. Do not replace deterministic action-resolution, actor-lane gates, runtime outcome checks, fallback gates, or ADR-0033 commit semantics.
+
+Generation input:
+{{input}}
+
+Generation output:
+{{output}}
+
+Observation metadata:
+{{metadata}}
+
+Your task:
+Judge whether the turn gives the player a playable result after their input, including cases where the action succeeds, partially succeeds, is blocked, is redirected, is ambiguous, or cannot be completed.
+
+Pay attention to:
+- whether the player’s input is acknowledged as an in-world attempt, perception, movement, speech act, or mixed move
+- whether the selected human actor remains the owner of the player action
+- whether blocked or impossible actions are handled as playable consequences rather than flat rejection
+- whether the output gives enough concrete scene state for the player to continue
+- whether the result preserves agency instead of replacing the player’s action with NPC/narrator explanation
+- whether the output is vague, generic, technical, or disconnected from the player input
+- whether recoverable failure, clarification, partial success, or redirection is presented dramatically and understandably
+
+Rubric:
+
+playable:
+The turn is clearly playable. The player’s input is represented as an in-world attempt or consequence, the selected actor retains ownership, and the output gives a concrete next situation.
+
+mostly_playable:
+The turn is mostly playable. The input is understood and the output gives a usable result, though some detail, consequence, or continuation affordance is weak.
+
+weakly_playable:
+The turn is only weakly playable. The response is vague, overly generic, incomplete, or only partially connected to the player’s input.
+
+unplayable:
+The turn is not playable. The player action is ignored, flattened into refusal, replaced by unrelated output, turned into technical/fallback text, or stripped of agency.
+
+not_applicable:
+The generation does not contain a player action turn that needs playability evaluation.
+
+insufficient_evidence:
+The provided input, output, or metadata is too incomplete to judge playability reliably.","[playable, mostly_playable, weakly_playable, unplayable, not_applicable, insufficient_evidence]","Explain briefly why this category best matches player-turn playability. Mention the player’s apparent input, how the output handled it, whether the selected actor retained agency, and whether the player has a concrete situation to continue from.","Choose exactly one category: playable, mostly_playable, weakly_playable, unplayable, not_applicable, or insufficient_evidence. Select unplayable when the player action is ignored, replaced by unrelated content, flattened into non-dramatic refusal, or turned into technical/fallback text."

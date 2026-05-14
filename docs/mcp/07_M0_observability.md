@@ -28,10 +28,28 @@
 - `X-WoS-Trace-Id: <uuid>`
 - `X-WoS-Client: mcp-operator`
 
-## Minimal Export (optional)
+## LLM-as-a-Judge semantics (MCP)
 
-- `wos.session.export_bundle(session_id)` produces:
-  - session snapshot
-  - last_turn_execution_result
-  - last_ai_decision_log (if available)
-  - tool call transcript (if available host-side)
+- Canonical evaluator names, categories, reasoning prompts, and rubric text live in `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`.
+- `ai_stack/langfuse_evaluator_catalog.py` mirrors that table for MCP: category severity (positive / warning / failure / neutral), evaluator groups (runtime aspect integrity, authority/origin, dramatic realization, recovery/playability, relationship pressure), repair-card hints, and Langfuse filter bundles (`GENERATION` + `story.model.generation`, `environment=live`, primary turn trace `world-engine.turn.execute`, alternate backend root `backend.turn.execute` where the repo still emits that root span).
+- Langfuse tools such as `fetch_langfuse_trace_scores`, `summarize_opening_judge_scores`, and `build_opening_quality_context` emit `llm_judge_interpretation`, `judge_score_coverage_gaps` (observability gaps only), and `evaluator_column_metadata` so operators see **qualitative** signals separately from deterministic gates (`live_runtime_contract_pass`, `actor_lane_safety_pass`, etc.).
+
+## Runtime aspect evidence (Langfuse verification)
+
+MCP Langfuse verification normalizes deterministic runtime evidence separately from judge interpretation. Operators can query turn-level rows for:
+
+- `turn_aspect_ledger_present`
+- `beat_selected`
+- `beat_realized`
+- `narrator_required_when_expected`
+- `npc_takeover_absent`
+- `capability_selection_present`
+- `selected_capabilities_realized`
+- `visible_block_origin_present`
+- `hierarchical_memory_present`
+- `memory_policy_applied`
+- `memory_write_from_committed_turn`
+- `memory_context_bounded`
+- `hierarchical_memory_contract_pass`
+
+For hierarchical memory, MCP reads the backend/world-engine ledger and Langfuse scores. It does not infer memory correctness from visible text, and it does not treat mock/fallback/degraded generation as healthy runtime evidence.

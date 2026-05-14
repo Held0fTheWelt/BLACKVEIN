@@ -14,15 +14,24 @@ from typing import Any, Callable
 import requests
 
 from ai_stack.langfuse_evaluator_catalog import (
+    BACKEND_TURN_ROOT_TRACE_NAME,
     JUDGE_DISPLAY_SHORT as _JUDGE_DISPLAY_SHORT,
     JUDGE_TO_REPAIR_CARD as _JUDGE_TO_REPAIR_CARD,
     LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE,
+    LANGFUSE_TURN_GENERATION_FILTER_BUNDLE,
     LEGACY_JUDGE_ISSUE_TOKENS as _LEGACY_JUDGE_ISSUE_TOKENS,
+    LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
     MATRIX_JUDGE_COLUMN_KEYS as _MATRIX_JUDGE_COLUMN_KEYS,
     OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
     TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS,
+    WORLD_ENGINE_TURN_TRACE_NAME,
     WOS_CATEGORICAL_JUDGES_ORDER,
     WOS_JUDGE_ISSUE_CATEGORIES as _WOS_JUDGE_ISSUE_CATEGORIES,
+    build_llm_judge_interpretation as _build_llm_judge_interpretation,
+    category_severity as _category_severity,
+    get_categorical_evaluator_spec as _get_categorical_evaluator_spec,
+    judge_names_for_scope as _judge_names_for_scope,
+    normalize_judge_category_label as _normalize_judge_category_label,
 )
 from tools.mcp_server.config import Config
 from tools.mcp_server.langfuse_tracing import McpLangfuseTracer
@@ -109,15 +118,10 @@ def _extract_judge_category_from_row(row: dict[str, Any]) -> str | None:
 
 def _normalize_judge_category_for_issue_check(judge_name: str, category: str | None) -> str | None:
     """Map legacy evaluator labels to current rubric tokens (case-insensitive)."""
-    if not category:
+    mapped = _normalize_judge_category_label(judge_name, category)
+    if not mapped:
         return None
-    c = str(category).strip()
-    if not c:
-        return None
-    low = c.lower()
-    if judge_name == "opening_experience_judge" and low == "strong":
-        return "excellent"
-    return c
+    return str(mapped).strip()
 
 
 def _judge_category_triggers_issue(judge_name: str, category: str | None) -> bool:
@@ -131,6 +135,45 @@ def _judge_category_triggers_issue(judge_name: str, category: str | None) -> boo
     if spec is not None:
         return low in spec
     return low in _LEGACY_JUDGE_ISSUE_TOKENS
+
+
+def _judge_score_coverage_gaps(*, is_opening: bool, judge_scores: dict[str, Any]) -> list[dict[str, Any]]:
+    expected = (
+        _judge_names_for_scope("opening_generation")
+        if is_opening
+        else _judge_names_for_scope("turn_generation")
+    )
+    present = {str(k) for k in judge_scores if str(k).endswith("_judge")}
+    gaps: list[dict[str, Any]] = []
+    for name in expected:
+        if name not in present:
+            gaps.append(
+                {
+                    "evaluator": name,
+                    "gap_kind": "missing_score_row",
+                    "note": (
+                        "Observability / evaluator coverage gap — not a deterministic runtime failure. "
+                        "Attach or backfill Langfuse scores if this rubric should be tracked."
+                    ),
+                }
+            )
+    return gaps
+
+
+def _evaluator_column_metadata() -> dict[str, Any]:
+    meta: dict[str, Any] = {}
+    for jname, col_key in _MATRIX_JUDGE_COLUMN_KEYS.items():
+        spec = _get_categorical_evaluator_spec(jname)
+        if spec is None:
+            continue
+        meta[col_key] = {
+            "evaluator": jname,
+            "evaluator_group": spec.evaluator_group,
+            "qualitative_only": spec.qualitative_only,
+            "runtime_gate": spec.runtime_gate,
+            "suggested_repair_area": spec.repair_card,
+        }
+    return meta
 
 
 def _extract_scores_split(
@@ -449,6 +492,15 @@ def _extract_normalized_wos_evidence(
         "capability_selection_present",
         "selected_capabilities_realized",
         "visible_block_origin_present",
+        "narrative_aspect_policy_present",
+        "narrative_aspect_selected",
+        "narrative_aspect_visible_when_required",
+        "narrative_aspect_contract_pass",
+        "hierarchical_memory_present",
+        "memory_policy_applied",
+        "memory_write_from_committed_turn",
+        "memory_context_bounded",
+        "hierarchical_memory_contract_pass",
     ):
         ev[gate] = det_scores.get(gate)
 
@@ -502,6 +554,20 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "forbidden_capability_realized",
     "visible_block_origin_present",
     "visible_origin_present",
+    "narrative_aspect_policy_present",
+    "narrative_aspect_selected",
+    "selected_narrative_aspects",
+    "realized_narrative_aspects",
+    "narrative_aspect_visible_when_required",
+    "narrative_aspect_contract_pass",
+    "hierarchical_memory_present",
+    "memory_policy_applied",
+    "selected_memory_tiers",
+    "memory_written_item_count",
+    "memory_context_item_count",
+    "memory_write_from_committed_turn",
+    "memory_context_bounded",
+    "hierarchical_memory_contract_pass",
     "turn_status",
     "http_status",
     "main_failure",
@@ -581,6 +647,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     npc_rec = _aspect_record(ledger, "npc_authority")
     cap_rec = _aspect_record(ledger, "capability_selection")
     vis_rec = _aspect_record(ledger, "visible_projection")
+    narrative_rec = _aspect_record(ledger, "narrative_aspect")
+    memory_rec = _aspect_record(ledger, "hierarchical_memory")
 
     input_actual = _aspect_block(input_rec, "actual")
     action_actual = _aspect_block(action_rec, "actual")
@@ -593,8 +661,13 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     cap_selected = _aspect_block(cap_rec, "selected")
     cap_actual = _aspect_block(cap_rec, "actual")
     vis_actual = _aspect_block(vis_rec, "actual")
-    failed_records = [r for r in (narr_rec, npc_rec, cap_rec, beat_rec, vis_rec) if r.get("status") == "failed"]
-    partial_records = [r for r in (beat_rec, cap_rec, vis_rec) if r.get("status") == "partial"]
+    narrative_expected = _aspect_block(narrative_rec, "expected")
+    narrative_selected = _aspect_block(narrative_rec, "selected")
+    narrative_actual = _aspect_block(narrative_rec, "actual")
+    memory_selected = _aspect_block(memory_rec, "selected")
+    memory_actual = _aspect_block(memory_rec, "actual")
+    failed_records = [r for r in (narr_rec, npc_rec, cap_rec, beat_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "failed"]
+    partial_records = [r for r in (beat_rec, cap_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "partial"]
     main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
     reasons = main_record.get("reasons") if isinstance(main_record.get("reasons"), list) else []
     main_failure = str(main_record.get("failure_reason") or (reasons[0] if reasons else "")).strip() or None
@@ -628,12 +701,66 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "forbidden_capability_realized": cap_actual.get("forbidden_capability_realized"),
         "visible_block_origin_present": vis_actual.get("visible_block_origin_present") if "visible_block_origin_present" in vis_actual else det_scores.get("visible_block_origin_present"),
         "visible_origin_present": vis_actual.get("visible_block_origin_present") if "visible_block_origin_present" in vis_actual else det_scores.get("visible_block_origin_present"),
+        "narrative_aspect_policy_present": narrative_expected.get("policy_present") if "policy_present" in narrative_expected else det_scores.get("narrative_aspect_policy_present"),
+        "narrative_aspect_selected": bool(narrative_selected.get("selected_aspects")) if narrative_selected else det_scores.get("narrative_aspect_selected"),
+        "selected_narrative_aspects": narrative_selected.get("selected_aspects") or [],
+        "realized_narrative_aspects": narrative_actual.get("realized_aspects") or [],
+        "narrative_aspect_visible_when_required": narrative_actual.get("visible_when_required") if "visible_when_required" in narrative_actual else det_scores.get("narrative_aspect_visible_when_required"),
+        "narrative_aspect_contract_pass": det_scores.get("narrative_aspect_contract_pass"),
+        "hierarchical_memory_present": memory_actual.get("memory_present") if "memory_present" in memory_actual else det_scores.get("hierarchical_memory_present"),
+        "memory_policy_applied": det_scores.get("memory_policy_applied"),
+        "selected_memory_tiers": memory_selected.get("selected_tiers") or [],
+        "memory_written_item_count": memory_actual.get("written_item_count"),
+        "memory_context_item_count": memory_actual.get("context_item_count"),
+        "memory_write_from_committed_turn": det_scores.get("memory_write_from_committed_turn"),
+        "memory_context_bounded": memory_actual.get("context_bounded") if "context_bounded" in memory_actual else det_scores.get("memory_context_bounded"),
+        "hierarchical_memory_contract_pass": det_scores.get("hierarchical_memory_contract_pass"),
         "turn_status": path_summary.get("turn_status"),
         "http_status": path_summary.get("http_status"),
         "main_failure": main_failure,
         "recommended_repair": _runtime_aspect_recommended_repair(main_failure),
     }
     return {col: row.get(col) for col in _RUNTIME_ASPECT_MATRIX_COLUMNS}
+
+
+def _runtime_aspect_trace_matches_filters(raw_trace: dict[str, Any], arguments: dict[str, Any]) -> bool:
+    path_summary = _extract_path_summary_from_trace(raw_trace)
+    meta = _extract_metadata(raw_trace)
+    trace_origin = arguments.get("trace_origin")
+    if trace_origin is not None:
+        actual_origin = str(
+            meta.get("trace_origin") or path_summary.get("trace_origin") or ""
+        ).strip().lower()
+        if actual_origin != str(trace_origin).strip().lower():
+            return False
+    execution_tier = arguments.get("execution_tier")
+    if execution_tier is not None:
+        actual_tier = str(
+            meta.get("execution_tier") or path_summary.get("execution_tier") or ""
+        ).strip().lower()
+        if actual_tier != str(execution_tier).strip().lower():
+            return False
+    environment = arguments.get("environment")
+    if environment is not None:
+        env_target = str(environment).strip().lower()
+        env_candidates = (
+            raw_trace.get("environment"),
+            meta.get("environment"),
+            meta.get("langfuse_environment"),
+            meta.get("wos_langfuse_environment"),
+            path_summary.get("environment"),
+            path_summary.get("langfuse_environment"),
+        )
+        if not any(str(value or "").strip().lower() == env_target for value in env_candidates):
+            return False
+    if arguments.get("canonical_player_flow") is not None:
+        expected = bool(arguments.get("canonical_player_flow"))
+        actual = meta.get("canonical_player_flow")
+        if actual is None:
+            actual = path_summary.get("canonical_player_flow")
+        if bool(actual) is not expected:
+            return False
+    return True
 
 
 def _runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -656,6 +783,32 @@ def _runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:
             else row
             for row in raw_rows
             if isinstance(row, dict)
+        ]
+        if not raw_rows and any(
+            arguments.get(key) is not None
+            for key in ("trace_origin", "execution_tier", "environment", "canonical_player_flow")
+        ):
+            broad_rows = _langfuse_query_traces(
+                limit=int(arguments.get("limit") or 20),
+                trace_origin=None,
+                canonical_player_flow=None,
+                execution_tier=None,
+                environment=None,
+                trace_name=arguments.get("trace_name"),
+                trace_names=("backend.turn.execute", "world-engine.turn.execute"),
+            )
+            raw_rows = [
+                _langfuse_get_trace(str(row.get("id") or row.get("trace_id") or "").strip())
+                if isinstance(row, dict) and not row.get("observations")
+                else row
+                for row in broad_rows
+                if isinstance(row, dict)
+            ]
+        raw_rows = [
+            row
+            for row in raw_rows
+            if isinstance(row, dict)
+            and (row.get("error") or _runtime_aspect_trace_matches_filters(row, arguments))
         ]
     rows = [_runtime_aspect_matrix_row(row) for row in raw_rows if isinstance(row, dict) and not row.get("error")]
     errors = [row for row in raw_rows if isinstance(row, dict) and row.get("error")]
@@ -809,9 +962,9 @@ def _assertions_for_mode(mode: str) -> list[tuple[str, bool, str]]:
             "metadata.canonical_player_flow must be true",
         ),
         (
-            "selected_player_role in [annette, alain]",
+            "selected_player_role present",
             True,
-            "metadata.selected_player_role must be annette or alain",
+            "metadata.selected_player_role must be present",
         ),
         (
             "human_actor_id == selected_player_role",
@@ -1057,9 +1210,9 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 fail("execution_tier == live", "execution tier mismatch", "normalized.execution_tier", ev.get("execution_tier"))
             if bool(ev.get("canonical_player_flow")) is not True:
                 fail("canonical_player_flow == true", "canonical flow mismatch", "normalized.canonical_player_flow", ev.get("canonical_player_flow"))
-            role = str(ev.get("selected_player_role") or "").lower()
-            if role not in {"annette", "alain"}:
-                fail("selected_player_role in [annette, alain]", "role mismatch", "normalized.selected_player_role", ev.get("selected_player_role"))
+            role = str(ev.get("selected_player_role") or "").strip().lower()
+            if not role:
+                fail("selected_player_role present", "role missing", "normalized.selected_player_role", ev.get("selected_player_role"))
             if str(ev.get("human_actor_id") or "").lower() != role:
                 fail("human_actor_id == selected_player_role", "human actor mismatch", "normalized.human_actor_id", ev.get("human_actor_id"))
             for score_name in (
@@ -1223,7 +1376,7 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     ),
                 },
                 "opening_generation_categorical_evaluators": {
-                    "judges": list(WOS_CATEGORICAL_JUDGES_ORDER[:5]),
+                    "judges": list(_judge_names_for_scope("opening_generation")),
                     "observation_filters": dict(OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
                     "legacy_trace_names_for_search_only": LANGFUSE_OPENING_GENERATION_FILTER_BUNDLE[
                         "legacy_trace_names_for_search_only"
@@ -1233,8 +1386,14 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                     ),
                 },
                 "turn_evaluators": {
-                    "trace.name": "backend.turn.execute",
-                    "world_engine_observation.name": "world-engine.turn.execute",
+                    "primary_trace_name": WORLD_ENGINE_TURN_TRACE_NAME,
+                    "alternate_backend_root_trace_name": BACKEND_TURN_ROOT_TRACE_NAME,
+                    "distributed_trace_note": (
+                        f"Backend opens {BACKEND_TURN_ROOT_TRACE_NAME}; world-engine participates with "
+                        f"{WORLD_ENGINE_TURN_TRACE_NAME} on the same Langfuse trace. Prefer GENERATION "
+                        "story.model.generation scoped to the world-engine turn span when attaching judges."
+                    ),
+                    "world_engine_turn_observation_name": WORLD_ENGINE_TURN_TRACE_NAME,
                     "trace_origin": "live_ui",
                     "execution_tier": "live",
                     "canonical_player_flow": True,
@@ -1242,14 +1401,11 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 # Langfuse evaluator UI: attach scores to GENERATION on story.model.generation
                 # under live turn traces (WoS canonical live metadata when available).
                 "turn_generation_categorical_evaluators": {
-                    "judges": [
-                        "player_action_resolution_judge",
-                        "blocked_action_playability_judge",
-                        "affordance_plausibility_judge",
-                        "npc_reaction_appropriateness_judge",
-                    ],
+                    "judges": list(_judge_names_for_scope("turn_generation")),
                     "observation_filters": dict(TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS),
-                    "legacy_trace_names": ["world-engine.turn.execute"],
+                    "alternate_backend_root_trace_names": list(
+                        LANGFUSE_TURN_GENERATION_FILTER_BUNDLE.get("legacy_trace_names") or []
+                    ),
                     "trace_metadata_when_available": {
                         "trace_origin": "live_ui",
                         "execution_tier": "live",
@@ -1259,6 +1415,16 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 },
             },
             "categorical_judge_names": list(WOS_CATEGORICAL_JUDGES_ORDER),
+            "canonical_evaluator_definition_doc": LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
+            "llm_judge_interpretation": _build_llm_judge_interpretation(
+                judge_scores,
+                trace_context=str(raw.get("name") or ""),
+            ),
+            "judge_score_coverage_gaps": _judge_score_coverage_gaps(
+                is_opening=is_opening,
+                judge_scores=judge_scores,
+            ),
+            "evaluator_column_metadata": _evaluator_column_metadata(),
         }
 
     def summarize_opening_judge_scores(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1340,8 +1506,20 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 "live_opening": live_opening_str,
                 "main_issue": main_issue,
             }
+            sev_by_col: dict[str, Any] = {}
             for jname, col_key in _MATRIX_JUDGE_COLUMN_KEYS.items():
-                row_out[col_key] = _jcat(jname)
+                cat = _jcat(jname)
+                row_out[col_key] = cat
+                sev_by_col[col_key] = _category_severity(jname, cat)
+            row_out["judge_category_severity"] = sev_by_col
+            row_out["llm_judge_interpretation"] = _build_llm_judge_interpretation(
+                judge_scores,
+                trace_context=str(row.get("name") or ""),
+            )
+            row_out["judge_score_coverage_gaps"] = _judge_score_coverage_gaps(
+                is_opening=is_opening,
+                judge_scores=judge_scores,
+            )
             matrix.append(row_out)
         return {
             "ok": True,
@@ -1356,6 +1534,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             },
             "count": len(matrix),
             "matrix": matrix,
+            "evaluator_column_metadata": _evaluator_column_metadata(),
+            "canonical_evaluator_definition_doc": LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
         }
 
     def build_opening_quality_context(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1422,7 +1602,8 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
                 cat = _jcat(full)
                 short = _JUDGE_DISPLAY_SHORT.get(full, full.replace("_", " "))
                 if cat:
-                    detail_parts.append(f"{short}: {cat}")
+                    sev = _category_severity(full, cat)
+                    detail_parts.append(f"{short}: {cat} ({sev})")
                 if _judge_category_triggers_issue(full, cat):
                     judge_issue_labels.append(short.replace("-", "_").replace(" ", "_"))
                     if not recommended_next_card:
@@ -1440,13 +1621,25 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             else:
                 summary_parts.append(". No judge issues detected.")
         evidence_judges: dict[str, Any] = {}
+        qualitative_concerns: list[str] = []
+        neutral_judge_labels: list[str] = []
         for jname, detail in judge_scores.items():
             entry: dict[str, Any] = {"category": detail.get("category"), "value": detail.get("value")}
             if include_raw_reasoning and detail.get("reasoning"):
                 entry["reasoning"] = detail["reasoning"]
+            cat = (detail or {}).get("category")
+            norm = _normalize_judge_category_label(jname, str(cat) if cat is not None else None)
+            sev = _category_severity(jname, norm)
+            entry["normalized_category"] = norm
+            entry["category_severity"] = sev
             evidence_judges[jname] = entry
+            if sev in {"failure", "warning"}:
+                qualitative_concerns.append(f"{jname}:{norm or cat}({sev})")
+            elif sev == "neutral":
+                neutral_judge_labels.append(f"{jname}:{norm or cat}")
         enriched_det = dict(det_scores)
         enriched_det["live_opening_contract_pass"] = lo_val
+        det_gate_fail = bool(lo_val != "not_applicable" and lo_val < 1.0) or live_runtime < 1.0
         return {
             "ok": True,
             "trace_id": trace_id,
@@ -1456,6 +1649,20 @@ def build_langfuse_verify_mcp_handlers() -> dict[str, Callable[..., dict[str, An
             "recommended_next_card": recommended_next_card,
             "must_not_change": must_not_change,
             "evidence": {"deterministic": enriched_det, "judges": evidence_judges},
+            "canonical_evaluator_definition_doc": LLM_AS_A_JUDGE_DOC_RELATIVE_PATH,
+            "llm_judge_interpretation": _build_llm_judge_interpretation(
+                judge_scores,
+                trace_context=str(raw.get("name") or ""),
+            ),
+            "judge_score_coverage_gaps": _judge_score_coverage_gaps(
+                is_opening=is_opening,
+                judge_scores=judge_scores,
+            ),
+            "deterministic_vs_qualitative": {
+                "deterministic_gate_failure": det_gate_fail,
+                "qualitative_concerns": qualitative_concerns,
+                "neutral_or_missing_evidence_labels": neutral_judge_labels,
+            },
         }
 
     def summarize_runtime_aspect_matrix(arguments: dict[str, Any]) -> dict[str, Any]:

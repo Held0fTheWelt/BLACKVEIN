@@ -108,7 +108,7 @@ class MutationPolicy:
         Blocked patterns checked first and always win.
 
         Args:
-            target_path: Dot-notation path (e.g., "characters.veronique.emotional_state")
+            target_path: Dot-notation path (e.g., "characters.actor_a.emotional_state")
 
         Returns:
             MutationPolicyDecision with allowed flag and reason codes
@@ -186,7 +186,7 @@ class MutationPolicy:
         - If pattern has fewer components than path, no match (except wildcards)
 
         Args:
-            path: Target path (e.g., "characters.veronique.emotional_state")
+            path: Target path (e.g., "characters.actor_a.emotional_state")
             pattern: Pattern (e.g., "characters.*.emotional_state")
 
         Returns:

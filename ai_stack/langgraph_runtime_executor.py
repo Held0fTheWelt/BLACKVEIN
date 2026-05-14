@@ -126,7 +126,15 @@ from story_runtime_core.content_locale import (
 )
 
 
-_GOC_FALLBACK_CAST_KEYS: tuple[str, ...] = ("veronique", "michel", "annette", "alain")
+def _runtime_profile_id_from_host_template(host_experience_template: dict[str, Any] | None) -> str | None:
+    """Resolve a runtime profile id from host-provided module metadata."""
+    if not isinstance(host_experience_template, dict):
+        return None
+    for key in ("runtime_profile_id", "template_id", "experience_template_id", "seed_template_id"):
+        text = str(host_experience_template.get(key) or "").strip()
+        if text:
+            return text
+    return None
 
 
 def _session_language_directive_for_model(state: RuntimeTurnState) -> str:
@@ -786,17 +794,41 @@ def _build_actor_lane_opening_narration(
                 first_action = f"{actor} {text}" if actor else text
                 break
 
+    policy = state.get("module_runtime_policy") if isinstance(state.get("module_runtime_policy"), dict) else {}
+    opening_policy = policy.get("opening_policy") if isinstance(policy.get("opening_policy"), dict) else {}
+    opening_contract = (
+        opening_policy.get("opening_contract")
+        if isinstance(opening_policy.get("opening_contract"), dict)
+        else {}
+    )
+    must_establish = [
+        str(item).replace("_", " ").strip()
+        for item in (opening_contract.get("must_establish") or [])
+        if str(item).strip()
+    ][:4]
+    events = opening_policy.get("narrative_events") if isinstance(opening_policy.get("narrative_events"), list) else []
+    event_labels = [
+        str(event.get("title") or event.get("narrative_function") or event.get("id") or "").strip()
+        for event in events
+        if isinstance(event, dict)
+    ][:3]
+    intro_parts = event_labels or must_establish
     narrator_intro = (
-        "Two couples gather after the schoolyard incident, each carrying a different version "
-        "of blame, civility, and what this meeting should settle."
+        "The opening establishes " + ", ".join(intro_parts) + "."
+        if intro_parts
+        else "The opening establishes the module's starting situation."
     )
-    role_anchor = (
-        f"You are {role_label}. Every glance in the room tests whether this conversation can stay civil."
+    role_anchor = f"You are {role_label}. The scene leaves your next action open."
+    location_model = policy.get("location_model") if isinstance(policy.get("location_model"), dict) else {}
+    anchor_area = str(location_model.get("narrative_anchor_area_id") or "").strip()
+    location_details = location_model.get("locations") if isinstance(location_model.get("locations"), dict) else {}
+    anchor_detail = (
+        location_details.get(anchor_area)
+        if anchor_area and isinstance(location_details.get(anchor_area), dict)
+        else {}
     )
-    scene_setup = (
-        "In the Paris salon, chairs face each other around a low table while untouched cups cool in the pause "
-        "before anyone yields the floor."
-    )
+    location_label = str(anchor_detail.get("name") or anchor_detail.get("id") or anchor_area or "the starting location").strip()
+    scene_setup = f"The visible scene settles into {location_label} with the playable situation in view."
     if first_spoken or first_action:
         lane_projection = " ".join([x for x in (first_spoken, first_action) if x]).strip()
         scene_setup = f"{scene_setup} {lane_projection}".strip()
@@ -808,15 +840,15 @@ def _derive_active_character_keys(
     yaml_slice: dict[str, Any] | None,
     primary_responder: dict[str, Any],
     module_id: str,
+    module_runtime_policy: dict[str, Any] | None = None,
 ) -> list[str]:
     """Compute the active cast for character-mind construction from module data.
 
     Resolution is data-driven: keys declared in ``yaml_slice.characters`` are
     preferred. They are reordered so the primary responder's key — matched
-    either by direct key equality or by actor_id substring — comes first, with
-    the remaining keys following YAML declaration order. When a module
-    publishes no YAML characters block this helper falls back to the known
-    God of Carnage cast so the currently-supported module keeps working.
+    either by direct key equality or by actor_id substring — comes first. When
+    no YAML characters block is present, the neutral ModuleRuntimePolicy actor
+    roster supplies the cast.
     """
     chars_block: dict[str, Any] = {}
     if isinstance(yaml_slice, dict) and isinstance(yaml_slice.get("characters"), dict):
@@ -828,10 +860,21 @@ def _derive_active_character_keys(
         if isinstance(k, str) and str(k).strip()
     ]
     if not yaml_keys:
-        if (module_id or "").strip().lower() in {"god_of_carnage", "goc"}:
-            yaml_keys = list(_GOC_FALLBACK_CAST_KEYS)
-        else:
-            return []
+        policy = module_runtime_policy if isinstance(module_runtime_policy, dict) else {}
+        roster = policy.get("actor_roster") if isinstance(policy.get("actor_roster"), dict) else {}
+        yaml_keys = [
+            str(value.get("id") or key).lower().strip()
+            for key, value in roster.items()
+            if str(key).strip() and isinstance(value, dict)
+        ]
+        if not yaml_keys:
+            yaml_keys = [
+                str(key).lower().strip()
+                for key in roster.keys()
+                if str(key).strip()
+            ]
+    if not yaml_keys:
+        return []
 
     primary_actor_id = ""
     primary_key = ""
@@ -1068,6 +1111,30 @@ def _retrieval_continuity_query_context(state: RuntimeTurnState) -> tuple[str, d
         prior_thread.get("dominant_thread_kind"),
         thread_pressure_label,
     )
+
+    memory_context = state.get("hierarchical_memory_context")
+    if isinstance(memory_context, dict):
+        tiers = memory_context.get("tiers") if isinstance(memory_context.get("tiers"), dict) else {}
+        memory_values: list[Any] = []
+        if isinstance(tiers, dict):
+            for tier_id, rows in tiers.items():
+                if not isinstance(rows, list):
+                    continue
+                for row in rows[:4]:
+                    if not isinstance(row, dict):
+                        continue
+                    memory_values.extend(
+                        [
+                            tier_id,
+                            row.get("summary"),
+                            row.get("tags"),
+                            row.get("actor_ids"),
+                            row.get("location_ids"),
+                            row.get("capability_ids"),
+                            row.get("beat_id"),
+                        ]
+                    )
+        add_line("hierarchical_memory_context", "hierarchical_memory", memory_values)
 
     if not lines:
         return "", signal
@@ -1508,6 +1575,7 @@ class RuntimeTurnGraphExecutor:
         prior_social_state_record: dict[str, Any] | None = None,
         prior_narrative_thread_state: dict[str, Any] | None = None,
         prior_planner_truth: dict[str, Any] | None = None,
+        hierarchical_memory_context: dict[str, Any] | None = None,
         turn_number: int | None = None,
         turn_id: str | None = None,
         turn_timestamp_iso: str | None = None,
@@ -1546,6 +1614,8 @@ class RuntimeTurnGraphExecutor:
                 snapshot rehydrated from the story session.
             prior_planner_truth: bounded committed planner-truth snapshot used
                 to bias retrieval toward continuity-relevant precedents.
+            hierarchical_memory_context: bounded committed memory context
+                derived from canonical turn records.
             turn_number: ``turn_number`` (int | None); meaning follows the type and call sites.
             turn_id: ``turn_id`` (str | None); meaning follows the type and call sites.
             turn_timestamp_iso: ``turn_timestamp_iso`` (str | None); meaning follows the type and call sites.
@@ -1568,6 +1638,7 @@ class RuntimeTurnGraphExecutor:
             or ("opening" if effective_turn_number <= 0 else turn_initiator_type)
             or "player"
         ).strip() or "player"
+        runtime_profile_id = _runtime_profile_id_from_host_template(host_experience_template)
         initial_state: RuntimeTurnState = {
             "session_id": session_id,
             "module_id": module_id,
@@ -1594,20 +1665,9 @@ class RuntimeTurnGraphExecutor:
                 input_kind=turn_input_class,
                 turn_id=tid,
                 trace_id=trace_id,
-                runtime_profile_id=(
-                    str(host_experience_template.get("template_id") or "").strip()
-                    if isinstance(host_experience_template, dict)
-                    else None
-                ),
+                runtime_profile_id=runtime_profile_id,
             ),
         }
-        runtime_profile_id = None
-        if isinstance(host_experience_template, dict):
-            runtime_profile_id = (
-                str(host_experience_template.get("template_id") or "").strip()
-                or str(host_experience_template.get("runtime_profile_id") or "").strip()
-                or None
-            )
         try:
             initial_state["module_runtime_policy"] = load_module_runtime_policy(
                 module_id=module_id,
@@ -1649,6 +1709,8 @@ class RuntimeTurnGraphExecutor:
             initial_state["prior_narrative_thread_state"] = dict(prior_narrative_thread_state)
         if prior_planner_truth:
             initial_state["prior_planner_truth"] = dict(prior_planner_truth)
+        if hierarchical_memory_context:
+            initial_state["hierarchical_memory_context"] = dict(hierarchical_memory_context)
         sol = str(session_output_language or "de").strip().lower()[:2] or "de"
         initial_state["session_output_language"] = sol
         if story_runtime_experience and isinstance(story_runtime_experience, dict):
@@ -2390,8 +2452,8 @@ class RuntimeTurnGraphExecutor:
                 if not isinstance(state.get("module_runtime_policy"), dict) or not state.get("module_runtime_policy"):
                     update["module_runtime_policy"] = load_module_runtime_policy(
                         module_id=str(module_id),
-                        runtime_profile_id=(
-                            str((state.get("host_experience_template") or {}).get("template_id") or "").strip()
+                        runtime_profile_id=_runtime_profile_id_from_host_template(
+                            state.get("host_experience_template")
                             if isinstance(state.get("host_experience_template"), dict)
                             else None
                         ),
@@ -2662,6 +2724,9 @@ class RuntimeTurnGraphExecutor:
             yaml_slice=yslice,
             primary_responder=primary,
             module_id=str(state.get("module_id") or ""),
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
         )
         mind_models = build_character_mind_records_for_goc(
             yaml_slice=yslice,
@@ -2961,6 +3026,15 @@ class RuntimeTurnGraphExecutor:
         silence = state.get("silence_brevity_decision") if isinstance(state.get("silence_brevity_decision"), dict) else {}
         if silence:
             lines.append(f"Silence/Brevity Decision: {json.dumps(silence, sort_keys=True)[:260]}")
+
+        memory_context = state.get("hierarchical_memory_context") if isinstance(state.get("hierarchical_memory_context"), dict) else {}
+        memory_lines = memory_context.get("context_lines") if isinstance(memory_context.get("context_lines"), list) else []
+        if memory_lines:
+            lines.append("Hierarchical Memory:")
+            for memory_line in memory_lines[:8]:
+                text = str(memory_line or "").strip()
+                if text:
+                    lines.append(f"- {text[:220]}")
 
         responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
         if responders:

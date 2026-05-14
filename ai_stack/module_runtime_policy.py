@@ -15,6 +15,8 @@ import yaml
 
 from ai_stack.authority_contracts import default_authority_policy
 from ai_stack.dramatic_capability_contracts import default_capability_policy
+from ai_stack.hierarchical_memory_contracts import normalize_hierarchical_memory_policy
+from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
 
 
 MODULE_RUNTIME_POLICY_SCHEMA_VERSION = "module_runtime_policy.v1"
@@ -176,6 +178,8 @@ class ModuleRuntimePolicy:
     hard_forbidden_policy: dict[str, Any] = field(default_factory=dict)
     opening_policy: dict[str, Any] = field(default_factory=dict)
     locale_policy: dict[str, Any] = field(default_factory=dict)
+    narrative_aspect_policy: dict[str, Any] = field(default_factory=dict)
+    memory_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -213,6 +217,18 @@ def load_module_runtime_policy(
     )
     player_input_rules = _read_yaml(module_dir / "locale" / "player_input_rules.yaml")
     module_strings = _read_yaml(module_dir / "locale" / "module_strings.yaml")
+    narrative_aspect_policy = normalize_narrative_aspect_policy(
+        _unwrap(
+            _read_yaml(module_dir / "narrative_aspect_policy.yaml"),
+            "narrative_aspect_policy",
+        )
+    )
+    memory_policy = normalize_hierarchical_memory_policy(
+        _unwrap(
+            _read_yaml(module_dir / "memory_policy.yaml"),
+            "memory_policy",
+        )
+    )
 
     sources = []
     for label, payload in (
@@ -227,6 +243,8 @@ def load_module_runtime_policy(
         ("scene_affordances", scene_affordances),
         ("player_input_rules", player_input_rules),
         ("module_strings", module_strings),
+        ("narrative_aspect_policy", narrative_aspect_policy if narrative_aspect_policy.get("aspects") else {}),
+        ("memory_policy", memory_policy if memory_policy.get("enabled") else {}),
     ):
         if payload:
             sources.append(label)
@@ -261,5 +279,7 @@ def load_module_runtime_policy(
         hard_forbidden_policy=hard_forbidden,
         opening_policy=opening_policy,
         locale_policy=locale_policy,
+        narrative_aspect_policy=narrative_aspect_policy,
+        memory_policy=memory_policy,
         content_sources=sources,
     )

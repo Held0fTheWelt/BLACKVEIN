@@ -30,6 +30,13 @@ This document is the canonical reference for **cross-stack observability**, **au
 - **Standalone MCP operator tools** may still mint their own trace ids when they do not receive a caller-supplied id; tightening that path is a follow-up (see gate review).
 - **In-process legacy backend turn execution** (non-proxy) uses contextvar trace id where Flask context exists; it is explicitly not the canonical authoritative runtime.
 
+## LLM-as-a-Judge vs deterministic gates
+
+- Rubric source of truth: `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`, mirrored structurally in `ai_stack/langfuse_evaluator_catalog.py` for MCP and CI.
+- Categorical judges are **qualitative-only**; they must not override ADR-0033 commit semantics, actor-lane gates, mock/fallback gates, or contract scores surfaced as numeric gates on traces.
+- MCP Langfuse helpers attach **interpretation** (`llm_judge_interpretation`, severity bands, suggested repair areas) and flag **missing judge rows** as evaluator-coverage gaps—not runtime failures.
+- Preferred Langfuse attachment context for live judges: `Observation Type = GENERATION`, `Observation Name = story.model.generation`, `Environment = live`, trace name `world-engine.session.create` (opening) or `world-engine.turn.execute` (interactive turns), with `backend.turn.execute` still valid as the backend root on the same distributed trace when scores were recorded there.
+
 ## Event and audit model
 
 ### Structured audit logger (`wos.audit`, backend)
@@ -75,6 +82,34 @@ Captured in **`generation`** summaries on the runtime turn state and mirrored un
 - `domain`, `profile`, `status`, `hit_count` (and source paths in diagnostics payloads for governance review).
 
 Capability invocations when using `CapabilityRegistry` continue to populate `capability_audit` on the graph diagnostics.
+
+## Runtime aspect and hierarchical memory observability
+
+The World-Engine turn path emits a backend-owned `turn_aspect_ledger` for runtime intelligence. The ledger is the authority for beat, capability, narrator/NPC authority, visible-origin, commit, and hierarchical-memory proof. The frontend may display backend-provided fields but must not infer correctness from prose or card shape.
+
+Hierarchical memory is a bounded projection of canonical committed truth:
+
+- Module content provides `memory_policy` through `ModuleRuntimePolicy`; runtime code stays module-neutral.
+- Writes are allowed only from canonical committed turns unless policy explicitly permits otherwise.
+- Recoverable or rejected turns may record guard evidence, but they do not create memory truth.
+- Stored memory items are JSON-safe summaries with evidence references; raw prompts, secrets, full RAG payloads, and raw player input are excluded.
+- Projected memory context is bounded before it enters LangGraph model context.
+- Current God of Carnage policy enables session-retained `turn`, `session`, `actor`, and `module` tiers; `long_term` is disabled until a durable cross-session store exists.
+
+Langfuse aspect spans include:
+
+- `story.memory.write`
+- `story.memory.project`
+
+Deterministic memory scores include:
+
+- `hierarchical_memory_present`
+- `memory_policy_applied`
+- `memory_write_from_committed_turn`
+- `memory_context_bounded`
+- `hierarchical_memory_contract_pass`
+
+These scores are contract gates, not LLM-as-a-Judge ratings. Missing provider credentials, fallback generation, or absent committed-turn evidence must remain degraded/partial rather than being counted as healthy memory behavior.
 
 ## MCP audit expectations
 

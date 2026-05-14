@@ -238,6 +238,29 @@ def test_player_object_interaction_selects_player_and_narrator_capabilities() ->
     assert record["status"] == "passed"
 
 
+def test_perception_request_is_realized_when_narrator_result_is_visible() -> None:
+    record = build_capability_selection_record(
+        interpreted_input={"player_input_kind": "perception", "npc_response_expected": False},
+        player_action_frame={
+            "player_input_kind": "perception",
+            "action_kind": "perception",
+            "verb": "look_at",
+        },
+        affordance_resolution={"action_commit_policy": "observe_only"},
+        narrator_authority={
+            "expected": {"required": True},
+            "actual": {"narrator_block_present": True, "consequence_realized": True},
+        },
+        npc_authority={"actual": {"spoken_line_count": 0, "action_line_count": 0}},
+    )
+
+    assert "player.perception.request" in record["selected_capabilities"]
+    assert "narrator.perception_result.describe" in record["selected_capabilities"]
+    assert "player.perception.request" in record["realized_capabilities"]
+    assert "narrator.perception_result.describe" in record["realized_capabilities"]
+    assert record["status"] == "passed"
+
+
 def test_npc_execute_player_action_is_blocked_capability() -> None:
     record = build_capability_selection_record(
         interpreted_input={"player_input_kind": "action"},

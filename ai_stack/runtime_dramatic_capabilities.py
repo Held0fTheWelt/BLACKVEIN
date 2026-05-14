@@ -80,6 +80,7 @@ def build_capability_selection_record(
         add_unique(required, narrator_cap)
         if bool(narr_actual.get("narrator_block_present") or narr_actual.get("consequence_realized")):
             add_unique(realized, narrator_cap)
+            add_unique(realized, player_cap)
 
     npc_actual = npc_authority.get("actual") if isinstance(npc_authority.get("actual"), dict) else {}
     npc_response_cap = (

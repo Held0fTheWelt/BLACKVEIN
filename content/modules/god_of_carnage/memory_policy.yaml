@@ -1,0 +1,47 @@
+memory_policy:
+  schema_version: hierarchical_memory_policy.v1
+  enabled: true
+  write_requires_committed_turn: true
+  allow_uncommitted_writes: false
+  context_projection:
+    bounded: true
+    expose_raw_player_input: false
+    expose_raw_prompts: false
+  tiers:
+    - id: turn
+      enabled: true
+      max_items: 12
+      max_context_items: 4
+      retention: session
+      write_sources:
+        - turn_aspect_ledger
+        - canonical_turn_record
+    - id: session
+      enabled: true
+      max_items: 8
+      max_context_items: 4
+      retention: session
+      write_sources:
+        - narrative_commit
+        - committed_state_after
+    - id: actor
+      enabled: true
+      max_items: 16
+      max_context_items: 6
+      retention: session
+      write_sources:
+        - actor_turn_summary
+        - committed_turn_authority
+    - id: module
+      enabled: true
+      max_items: 4
+      max_context_items: 2
+      retention: session
+      write_sources:
+        - module_runtime_policy
+    - id: long_term
+      enabled: false
+      max_items: 0
+      max_context_items: 0
+      retention: disabled
+      write_sources: []

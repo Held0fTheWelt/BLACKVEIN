@@ -225,6 +225,7 @@ def test_new_judge_tools_registered():
 def _live_trace_with_scores(trace_id: str = "lf-live-1") -> dict:
     return {
         "id": trace_id,
+        "name": "world-engine.session.create",
         "metadata": {
             "trace_origin": "live_ui",
             "execution_tier": "live",
@@ -292,6 +293,10 @@ def test_fetch_langfuse_trace_scores_returns_split_scores():
     assert diag.get("first_actor_block_index") == 3
     assert diag.get("narrator_block_count") == 3
     assert diag.get("opening_narration_normalized") is True
+    assert "llm_judge_interpretation" in out
+    assert out["canonical_evaluator_definition_doc"].endswith(".csv")
+    assert isinstance(out["judge_score_coverage_gaps"], list)
+    assert isinstance(out["evaluator_column_metadata"], dict)
 
 
 def test_fetch_langfuse_trace_scores_blocks_non_live_by_default():
@@ -372,8 +377,8 @@ def test_fetch_langfuse_trace_scores_reads_judge_category_from_label_metadata():
     assert "turn_generation_categorical_evaluators" in out["canonical_live_langfuse_filters"]
     tge = out["canonical_live_langfuse_filters"]["turn_generation_categorical_evaluators"]
     assert tge["observation_filters"]["Name"] == ["story.model.generation"]
-    assert tge["observation_filters"]["Trace Name"] == ["backend.turn.execute"]
-    assert tge["legacy_trace_names"] == ["world-engine.turn.execute"]
+    assert tge["observation_filters"]["Trace Name"] == ["world-engine.turn.execute"]
+    assert tge["alternate_backend_root_trace_names"] == ["backend.turn.execute"]
     assert tge["trace_metadata_when_available"]["opening_turn"] is False
     og = out["canonical_live_langfuse_filters"]["opening_generation_categorical_evaluators"]
     assert og["judges"][0] == "opening_experience_judge"
@@ -754,10 +759,43 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                         "status": "passed",
                         "actual": {"visible_block_origin_present": True},
                     },
+                    "narrative_aspect": {
+                        "status": "passed",
+                        "expected": {
+                            "policy_present": True,
+                            "candidate_aspects": ["aspect_alpha"],
+                        },
+                        "selected": {"selected_aspects": ["aspect_alpha"]},
+                        "actual": {
+                            "realized_aspects": ["aspect_alpha"],
+                            "visible_when_required": True,
+                        },
+                    },
+                    "hierarchical_memory": {
+                        "status": "passed",
+                        "expected": {"policy_present": True, "policy_enabled": True},
+                        "selected": {
+                            "selected_tiers": ["turn", "session"],
+                            "source_canonical_turn_id": "session-aspect:turn:1",
+                        },
+                        "actual": {
+                            "write_allowed": True,
+                            "written_item_count": 2,
+                            "memory_present": True,
+                            "context_item_count": 2,
+                            "context_bounded": True,
+                            "uncommitted_write_detected": False,
+                        },
+                    },
                 },
             },
         },
-        "scores": [{"name": "beat_realized", "value": 0.0}],
+        "scores": [
+            {"name": "beat_realized", "value": 0.0},
+            {"name": "narrative_aspect_contract_pass", "value": 1.0},
+            {"name": "hierarchical_memory_contract_pass", "value": 1.0},
+            {"name": "memory_write_from_committed_turn", "value": 1.0},
+        ],
     }
     with patch(
         "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
@@ -775,6 +813,15 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["action_kind"] == "object_interaction"
     assert row["selected_beat"] == "domestic_disruption"
     assert row["beat_realized"] is False
+    assert row["narrative_aspect_policy_present"] is True
+    assert row["selected_narrative_aspects"] == ["aspect_alpha"]
+    assert row["realized_narrative_aspects"] == ["aspect_alpha"]
+    assert row["narrative_aspect_contract_pass"] == 1.0
+    assert row["hierarchical_memory_present"] is True
+    assert row["selected_memory_tiers"] == ["turn", "session"]
+    assert row["memory_written_item_count"] == 2
+    assert row["memory_context_bounded"] is True
+    assert row["hierarchical_memory_contract_pass"] == 1.0
     assert row["main_failure"] == "beat_realization_not_visible"
 
 
@@ -792,3 +839,74 @@ def test_summarize_runtime_aspect_matrix_defaults_to_backend_and_world_engine_tu
     assert kwargs["trace_name"] is None
     assert kwargs["trace_names"] == ("backend.turn.execute", "world-engine.turn.execute")
     assert kwargs["environment"] == "staging"
+
+
+def test_summarize_runtime_aspect_matrix_recovers_combined_filters_from_full_trace():
+    registry = _registry()
+    tool = registry.get("summarize_runtime_aspect_matrix")
+    trace_payload = {
+        "id": "trace-combined-filter",
+        "name": "world-engine.turn.execute",
+        "environment": "staging",
+        "metadata": {"trace_origin": "live_ui", "execution_tier": "staging"},
+        "output": {
+            "contract": "story_runtime_path_observability.v1",
+            "session_id": "session-combined",
+            "trace_origin": "live_ui",
+            "execution_tier": "staging",
+            "environment": "staging",
+            "canonical_turn_id": "session-combined:turn:2",
+            "turn_aspect_ledger": {
+                "session_id": "session-combined",
+                "canonical_turn_id": "session-combined:turn:2",
+                "turn_number": 2,
+                "turn_aspect_ledger": {
+                    "beat": {
+                        "status": "passed",
+                        "selected": {"selected_beat_id": "beat-2"},
+                        "actual": {"realized": True},
+                    },
+                    "capability_selection": {
+                        "status": "passed",
+                        "selected": {"selected_capabilities": ["player.speech.request"]},
+                        "actual": {"realized_capabilities": ["player.speech.request"]},
+                    },
+                    "narrator_authority": {"status": "not_applicable"},
+                    "npc_authority": {
+                        "status": "passed",
+                        "expected": {"policy": "direct_response"},
+                        "actual": {"npc_takeover_detected": False},
+                    },
+                    "visible_projection": {
+                        "status": "passed",
+                        "actual": {"visible_block_origin_present": True},
+                    },
+                },
+            },
+        },
+    }
+    with patch(
+        "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_query_traces",
+        side_effect=[
+            [],
+            [{"id": "trace-combined-filter", "name": "world-engine.turn.execute"}],
+        ],
+    ) as query:
+        with patch(
+            "tools.mcp_server.tools_registry_handlers_langfuse_verify._langfuse_get_trace",
+            return_value=trace_payload,
+        ):
+            out = tool.handler(
+                {
+                    "limit": 10,
+                    "trace_origin": "live_ui",
+                    "execution_tier": "staging",
+                    "environment": "staging",
+                }
+            )
+
+    assert out["ok"] is True
+    assert out["count"] == 1
+    assert out["rows"][0]["trace_id"] == "trace-combined-filter"
+    assert out["rows"][0]["environment"] == "staging"
+    assert query.call_count == 2

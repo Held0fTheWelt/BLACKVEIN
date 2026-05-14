@@ -103,7 +103,7 @@ def _extract_characters_from_trigger(trigger_name: str) -> set[str]:
     """Extract likely character identifiers from a trigger name.
 
     Simple heuristic: split by known separators and identify character-like tokens.
-    For example: "accusation_veronique_giuseppe" → {"veronique", "giuseppe"}
+    For example: "accusation_actor_a_actor_b" -> {"actor_a", "actor_b"}
 
     Args:
         trigger_name: The trigger name to analyze.

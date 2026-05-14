@@ -43,7 +43,7 @@ def test_evaluators_catalog_omits_prompts_by_default():
     assert first.get("prompt") is None
     assert "langfuse_filter_templates" in out
     assert out["langfuse_filter_templates"]["opening_generation"]["trace_name"] == "world-engine.session.create"
-    assert out["langfuse_filter_templates"]["turn_generation"]["legacy_trace_names"] == ["world-engine.turn.execute"]
+    assert out["langfuse_filter_templates"]["turn_generation"]["legacy_trace_names"] == ["backend.turn.execute"]
 
 
 def test_evaluators_get_full_player_action_resolution():

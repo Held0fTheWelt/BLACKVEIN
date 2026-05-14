@@ -8,7 +8,7 @@ Status: implementation-facing reference (GOC-KNOWLEDGE-RUNTIME-INTEGRATION).
   any other language) via `session_output_language` / `locale/*` data.
 - The English knowledge layer lives in:
   - `content/modules/god_of_carnage/knowledge/` (machine-readable runtime contracts)
-  - `content/modules/god_of_carnage/{apartment_layout,apartment_objects,actor_pressure_profiles,phase_beat_policy}.yaml`
+  - `content/modules/god_of_carnage/{apartment_layout,apartment_objects,actor_pressure_profiles,phase_beat_policy,memory_policy}.yaml`
 - Runtime-localized strings live in `content/modules/god_of_carnage/locale/`
   (e.g. `locale/scene_affordances.yaml`).
 
@@ -30,6 +30,7 @@ decide hard-forbidden pass/fail.
 | `apartment_objects.yaml` | affordance resolution, narrator packet, RAG | `apartment_objects_loaded` |
 | `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
+| `memory_policy.yaml` | `ModuleRuntimePolicy.memory_policy`, hierarchical memory write/project contracts | `hierarchical_memory`, `memory_policy_applied`, `memory_write_from_committed_turn`, `memory_context_bounded`, `hierarchical_memory_contract_pass` |
 
 ## Hard-forbidden detection policy
 
@@ -72,6 +73,21 @@ Turn 0 (`turn_input_class == "opening"`) is validated against
 
 RAG retrieval **does not override** deterministic contracts; it supports
 generation only.
+
+## Hierarchical memory policy
+
+`memory_policy.yaml` is module content, not runtime-core logic. It enables the
+generic hierarchical memory layer for bounded session-local tiers:
+
+- `turn`
+- `session`
+- `actor`
+- `module`
+
+The `long_term` tier remains disabled for this module. Runtime writes require a
+canonical committed turn, recoverable/rejected turns do not create memory truth,
+and projected memory context must exclude raw prompts, secrets, full RAG
+payloads, and raw player input.
 
 ## Observability
 

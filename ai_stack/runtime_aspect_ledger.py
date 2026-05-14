@@ -23,6 +23,8 @@ ASPECT_BEAT = "beat"
 ASPECT_CAPABILITY_SELECTION = "capability_selection"
 ASPECT_NARRATOR_AUTHORITY = "narrator_authority"
 ASPECT_NPC_AUTHORITY = "npc_authority"
+ASPECT_NARRATIVE_ASPECT = "narrative_aspect"
+ASPECT_HIERARCHICAL_MEMORY = "hierarchical_memory"
 ASPECT_VALIDATION = "validation"
 ASPECT_COMMIT = "commit"
 ASPECT_VISIBLE_PROJECTION = "visible_projection"
@@ -34,6 +36,8 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_CAPABILITY_SELECTION,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AUTHORITY,
+    ASPECT_NARRATIVE_ASPECT,
+    ASPECT_HIERARCHICAL_MEMORY,
     ASPECT_VALIDATION,
     ASPECT_COMMIT,
     ASPECT_VISIBLE_PROJECTION,
@@ -229,7 +233,253 @@ def normalize_runtime_aspect_ledger(ledger: dict[str, Any] | None) -> dict[str, 
     if not src.get("canonical_turn_id") and src.get("turn_id"):
         src["canonical_turn_id"] = src.get("turn_id")
     src["turn_aspect_ledger"] = ordered_aspects
+    src["runtime_intelligence_projection"] = build_runtime_intelligence_projection(src)
     return _json_safe(src)
+
+
+def _first_text(values: list[Any]) -> str | None:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return None
+
+
+def _record_block(record: dict[str, Any], key: str) -> dict[str, Any]:
+    block = record.get(key) if isinstance(record, dict) else {}
+    return block if isinstance(block, dict) else {}
+
+
+def _record_reasons(record: dict[str, Any]) -> list[str]:
+    reasons = record.get("reasons") if isinstance(record, dict) else []
+    return [str(reason) for reason in reasons if str(reason).strip()] if isinstance(reasons, list) else []
+
+
+def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict[str, Any]:
+    """Project aspect-record storage into the requested turn-ledger design shape.
+
+    The canonical storage format remains the per-aspect record map above. This
+    projection is intentionally redundant and JSON-safe so backend, Langfuse,
+    and MCP consumers can ask the direct implementation questions without
+    learning the internal record layout.
+    """
+    src = ledger if isinstance(ledger, dict) else {}
+    aspects = src.get("turn_aspect_ledger") if isinstance(src.get("turn_aspect_ledger"), dict) else {}
+    input_rec = aspects.get(ASPECT_INPUT) if isinstance(aspects.get(ASPECT_INPUT), dict) else {}
+    action_rec = (
+        aspects.get(ASPECT_ACTION_RESOLUTION)
+        if isinstance(aspects.get(ASPECT_ACTION_RESOLUTION), dict)
+        else {}
+    )
+    beat_rec = aspects.get(ASPECT_BEAT) if isinstance(aspects.get(ASPECT_BEAT), dict) else {}
+    cap_rec = (
+        aspects.get(ASPECT_CAPABILITY_SELECTION)
+        if isinstance(aspects.get(ASPECT_CAPABILITY_SELECTION), dict)
+        else {}
+    )
+    narr_rec = (
+        aspects.get(ASPECT_NARRATOR_AUTHORITY)
+        if isinstance(aspects.get(ASPECT_NARRATOR_AUTHORITY), dict)
+        else {}
+    )
+    npc_rec = aspects.get(ASPECT_NPC_AUTHORITY) if isinstance(aspects.get(ASPECT_NPC_AUTHORITY), dict) else {}
+    narrative_rec = (
+        aspects.get(ASPECT_NARRATIVE_ASPECT)
+        if isinstance(aspects.get(ASPECT_NARRATIVE_ASPECT), dict)
+        else {}
+    )
+    memory_rec = (
+        aspects.get(ASPECT_HIERARCHICAL_MEMORY)
+        if isinstance(aspects.get(ASPECT_HIERARCHICAL_MEMORY), dict)
+        else {}
+    )
+    validation_rec = (
+        aspects.get(ASPECT_VALIDATION)
+        if isinstance(aspects.get(ASPECT_VALIDATION), dict)
+        else {}
+    )
+    commit_rec = aspects.get(ASPECT_COMMIT) if isinstance(aspects.get(ASPECT_COMMIT), dict) else {}
+    visible_rec = (
+        aspects.get(ASPECT_VISIBLE_PROJECTION)
+        if isinstance(aspects.get(ASPECT_VISIBLE_PROJECTION), dict)
+        else {}
+    )
+
+    input_actual = _record_block(input_rec, "actual")
+    action_actual = _record_block(action_rec, "actual")
+    beat_expected = _record_block(beat_rec, "expected")
+    beat_selected = _record_block(beat_rec, "selected")
+    beat_actual = _record_block(beat_rec, "actual")
+    cap_expected = _record_block(cap_rec, "expected")
+    cap_selected = _record_block(cap_rec, "selected")
+    cap_actual = _record_block(cap_rec, "actual")
+    narr_expected = _record_block(narr_rec, "expected")
+    narr_actual = _record_block(narr_rec, "actual")
+    npc_expected = _record_block(npc_rec, "expected")
+    npc_actual = _record_block(npc_rec, "actual")
+    narrative_expected = _record_block(narrative_rec, "expected")
+    narrative_selected = _record_block(narrative_rec, "selected")
+    narrative_actual = _record_block(narrative_rec, "actual")
+    memory_expected = _record_block(memory_rec, "expected")
+    memory_selected = _record_block(memory_rec, "selected")
+    memory_actual = _record_block(memory_rec, "actual")
+    visible_actual = _record_block(visible_rec, "actual")
+    commit_actual = _record_block(commit_rec, "actual")
+
+    selected_beat_id = _first_text(
+        [
+            beat_selected.get("selected_beat_id"),
+            beat_selected.get("selected_scene_function"),
+            beat_rec.get("selected_beat"),
+        ]
+    )
+    selected_capabilities = cap_selected.get("selected_capabilities")
+    required_capabilities = cap_expected.get("required_capabilities")
+    blocked_capabilities = cap_selected.get("blocked_capabilities") or cap_actual.get(
+        "blocked_capabilities"
+    )
+    realized_capabilities = cap_actual.get("realized_capabilities")
+    violated_capabilities = cap_actual.get("violated_capabilities") or cap_actual.get(
+        "missing_required_capabilities"
+    )
+
+    return _json_safe(
+        {
+            "schema_version": TURN_ASPECT_LEDGER_SCHEMA_VERSION,
+            "module_id": src.get("module_id"),
+            "runtime_profile_id": src.get("runtime_profile_id"),
+            "canonical_turn_id": src.get("canonical_turn_id"),
+            "story_session_id": src.get("story_session_id") or src.get("session_id"),
+            "turn_number": src.get("turn_number"),
+            "input": {
+                "player_input_kind": input_actual.get("player_input_kind")
+                or input_actual.get("input_kind")
+                or action_actual.get("input_kind"),
+                "semantic_move": action_actual.get("semantic_move")
+                or action_actual.get("semantic_move_kind")
+                or action_actual.get("action_kind"),
+                "player_action_frame": action_actual.get("player_action_frame") or {},
+                "affordance_resolution": action_actual.get("affordance_resolution") or {},
+                "local_context_transition": action_actual.get("local_context_transition") or {},
+            },
+            "beat": {
+                "beat_state_before": beat_expected.get("beat_state_before") or {},
+                "candidate_beats": beat_expected.get("candidate_beats") or [],
+                "selected_beat": {"id": selected_beat_id} if selected_beat_id else {},
+                "selection_source": beat_selected.get("selection_source")
+                or beat_rec.get("source")
+                or None,
+                "selection_reason": beat_selected.get("selection_reason"),
+                "expected_visible_functions": beat_expected.get("expected_realization")
+                or beat_expected.get("expected_visible_functions")
+                or [],
+                "realized": beat_actual.get("realized"),
+                "realization_evidence": beat_actual.get("realization_evidence") or [],
+                "failure_reason": beat_rec.get("failure_reason")
+                or (_record_reasons(beat_rec)[0] if _record_reasons(beat_rec) else None),
+                "beat_state_after": beat_actual.get("beat_state_after") or {},
+                "status": beat_rec.get("status"),
+            },
+            "capability": {
+                "selected_capabilities": selected_capabilities
+                if isinstance(selected_capabilities, list)
+                else [],
+                "blocked_capabilities": blocked_capabilities
+                if isinstance(blocked_capabilities, list)
+                else [],
+                "required_capabilities": required_capabilities
+                if isinstance(required_capabilities, list)
+                else [],
+                "realized_capabilities": realized_capabilities
+                if isinstance(realized_capabilities, list)
+                else [],
+                "violated_capabilities": violated_capabilities
+                if isinstance(violated_capabilities, list)
+                else [],
+                "status": cap_rec.get("status"),
+            },
+            "authority": {
+                "narrator": {
+                    "required": bool(narr_expected.get("required")),
+                    "expected_owner": narr_rec.get("expected_owner")
+                    or narr_expected.get("expected_owner")
+                    or "narrator",
+                    "actual_owners": narr_actual.get("actual_owners") or [],
+                    "fulfilled": narr_actual.get("fulfilled")
+                    if "fulfilled" in narr_actual
+                    else narr_actual.get("narrator_block_present")
+                    or narr_actual.get("consequence_realized"),
+                    "evidence_blocks": narr_actual.get("evidence_blocks") or [],
+                    "failure_reason": narr_rec.get("failure_reason")
+                    or (_record_reasons(narr_rec)[0] if _record_reasons(narr_rec) else None),
+                },
+                "npc": {
+                    "policy": npc_expected.get("policy"),
+                    "allowed_actors": npc_expected.get("allowed_actors") or [],
+                    "actual_actors": npc_actual.get("actual_actors") or [],
+                    "takeover_detected": bool(npc_actual.get("npc_takeover_detected")),
+                    "offending_blocks": npc_actual.get("offending_blocks") or [],
+                    "status": npc_rec.get("status"),
+                },
+                "player": {
+                    "selected_human_actor_id": narr_expected.get("selected_human_actor_id")
+                    or npc_expected.get("selected_human_actor_id"),
+                    "forced_speech_detected": bool(npc_actual.get("forced_speech_detected")),
+                    "forced_decision_detected": bool(npc_actual.get("forced_decision_detected")),
+                    "agency_violation_detected": bool(npc_actual.get("agency_violation_detected")),
+                },
+            },
+            "visible_projection": {
+                "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),
+                "required_blocks_present": bool(visible_actual.get("required_blocks_present")),
+                "lost_required_narrator_block": bool(
+                    visible_actual.get("lost_required_narrator_block")
+                ),
+                "visible_block_origins": visible_actual.get("visible_block_origins") or [],
+            },
+            "narrative_aspect": {
+                "policy_present": bool(narrative_expected.get("policy_present")),
+                "candidate_aspects": narrative_expected.get("candidate_aspects") or [],
+                "selected_aspects": narrative_selected.get("selected_aspects") or [],
+                "selection_source": narrative_selected.get("selection_source"),
+                "realized_aspects": narrative_actual.get("realized_aspects") or [],
+                "missing_required_evidence": narrative_actual.get("missing_required_evidence") or [],
+                "evidence": narrative_actual.get("evidence") or [],
+                "visible_when_required": narrative_actual.get("visible_when_required"),
+                "failure_reason": narrative_rec.get("failure_reason")
+                or (_record_reasons(narrative_rec)[0] if _record_reasons(narrative_rec) else None),
+                "status": narrative_rec.get("status"),
+            },
+            "hierarchical_memory": {
+                "policy_present": bool(memory_expected.get("policy_present")),
+                "policy_enabled": bool(memory_expected.get("policy_enabled")),
+                "selected_tiers": memory_selected.get("selected_tiers") or [],
+                "source_canonical_turn_id": memory_selected.get("source_canonical_turn_id"),
+                "write_allowed": bool(memory_actual.get("write_allowed")),
+                "written_item_count": int(memory_actual.get("written_item_count") or 0),
+                "tiers_written": memory_actual.get("tiers_written") or [],
+                "memory_present": bool(memory_actual.get("memory_present")),
+                "context_item_count": int(memory_actual.get("context_item_count") or 0),
+                "context_bounded": bool(memory_actual.get("context_bounded")),
+                "uncommitted_write_detected": bool(memory_actual.get("uncommitted_write_detected")),
+                "failure_reason": memory_rec.get("failure_reason")
+                or (_record_reasons(memory_rec)[0] if _record_reasons(memory_rec) else None),
+                "status": memory_rec.get("status"),
+            },
+            "commit": {
+                "committed": bool(
+                    commit_actual.get("committed")
+                    if "committed" in commit_actual
+                    else commit_actual.get("commit_applied")
+                ),
+                "degraded": bool(commit_actual.get("degraded")),
+                "quality_class": commit_actual.get("quality_class"),
+                "validation_status": validation_rec.get("status"),
+                "fallback_used": bool(commit_actual.get("fallback_used")),
+                "status": commit_rec.get("status"),
+            },
+        }
+    )
 
 
 def ensure_runtime_aspect_ledger(
@@ -246,7 +496,26 @@ def ensure_runtime_aspect_ledger(
     runtime_profile_id: str | None = None,
 ) -> dict[str, Any]:
     if isinstance(ledger, dict) and ledger.get("turn_aspect_ledger"):
-        return normalize_runtime_aspect_ledger(ledger)
+        normalized = normalize_runtime_aspect_ledger(ledger)
+        if session_id and not normalized.get("session_id"):
+            normalized["session_id"] = session_id
+        if session_id and not normalized.get("story_session_id"):
+            normalized["story_session_id"] = session_id
+        if module_id and not normalized.get("module_id"):
+            normalized["module_id"] = module_id
+        if runtime_profile_id and not normalized.get("runtime_profile_id"):
+            normalized["runtime_profile_id"] = runtime_profile_id
+        if turn_number is not None and not normalized.get("turn_number"):
+            normalized["turn_number"] = int(turn_number or 0)
+        if turn_kind and not normalized.get("turn_kind"):
+            normalized["turn_kind"] = turn_kind
+        if turn_id and not normalized.get("turn_id"):
+            normalized["turn_id"] = turn_id
+        if turn_id and not normalized.get("canonical_turn_id"):
+            normalized["canonical_turn_id"] = turn_id
+        if trace_id and not normalized.get("trace_id"):
+            normalized["trace_id"] = trace_id
+        return normalize_runtime_aspect_ledger(normalized)
     return initialize_runtime_aspect_ledger(
         session_id=session_id,
         module_id=module_id,

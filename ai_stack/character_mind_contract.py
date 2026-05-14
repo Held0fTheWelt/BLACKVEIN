@@ -29,10 +29,10 @@ class CharacterMindRecord(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-    character_key: str = Field(..., description="Slice key: veronique, michel, annette, alain.")
+    character_key: str = Field(..., description="Module-defined character slice key.")
     runtime_actor_id: str = Field(
         ...,
-        description="Engine actor id e.g. veronique_vallon.",
+        description="Engine actor id resolved from module policy.",
     )
     formal_role_label: str = Field(default="")
     tactical_posture: str = Field(

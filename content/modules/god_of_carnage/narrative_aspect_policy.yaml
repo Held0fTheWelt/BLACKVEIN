@@ -1,0 +1,50 @@
+narrative_aspect_policy:
+  schema_version: narrative_aspect_policy.v1
+  default_commit_impact: diagnostic
+  aspects:
+    - id: runtime_intent_trace
+      enabled: true
+      selection_source: module_policy
+      activation:
+        always: true
+      commit_impact: diagnostic
+      metadata:
+        table_b_refs:
+          - pi_13
+      evidence:
+        - id: action_resolution_recorded
+          kind: ledger_aspect_status
+          ledger_aspect: action_resolution
+          status: passed
+          required: false
+    - id: runtime_governance_trace
+      enabled: true
+      selection_source: module_policy
+      activation:
+        always: true
+      commit_impact: diagnostic
+      metadata:
+        table_b_refs:
+          - pi_06
+          - pi_30
+      evidence:
+        - id: validation_recorded
+          kind: ledger_aspect_status
+          ledger_aspect: validation
+          status: passed
+          required: false
+    - id: runtime_agency_trace
+      enabled: true
+      selection_source: module_policy
+      activation:
+        always: true
+      commit_impact: diagnostic
+      metadata:
+        table_b_refs:
+          - pi_23
+      evidence:
+        - id: actor_authority_recorded
+          kind: ledger_aspect_status
+          ledger_aspect: npc_authority
+          status: passed
+          required: false

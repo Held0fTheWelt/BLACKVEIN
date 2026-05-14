@@ -97,7 +97,7 @@ class MockModelAdapter(BaseModelAdapter):
     ) -> ModelCallResult:
         # Return structured JSON so the dramatic alignment validator has enough narrative mass.
         # The narrative_response is >48 chars to pass high-stakes scene function thresholds.
-        # responder_actor_ids contains NPC only (veronique) — human actor protection respected.
+        # responder_actor_ids contains NPC only; human actor protection is respected.
         return ModelCallResult(
             content=_MOCK_NARRATIVE_JSON,
             success=True,

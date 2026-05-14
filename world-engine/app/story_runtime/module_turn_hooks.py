@@ -7,16 +7,57 @@ from typing import Any
 GOD_OF_CARNAGE_MODULE_ID = "god_of_carnage"
 
 
+def goc_player_role_display_name(selected_player_role: str | None) -> str | None:
+    """Explicit GoC compatibility display mapping for legacy short role ids."""
+    role = str(selected_player_role or "").strip().lower()
+    if role == "annette":
+        return "Annette Reille"
+    if role == "alain":
+        return "Alain Reille"
+    return None
+
+
+def goc_shell_actor_firstname(actor_id: str) -> str:
+    """Explicit GoC compatibility display mapping for actor shell text."""
+    aid = str(actor_id or "").strip()
+    short = {
+        "veronique_vallon": "Véronique",
+        "annette_reille": "Annette",
+        "michel_longstreet": "Michel",
+        "alain_reille": "Alain",
+    }
+    return short.get(aid, aid.replace("_", " ").title() if aid else "Actor")
+
+
+def goc_npc_shell_legal_name(responder_id: str) -> str:
+    """Explicit GoC compatibility display mapping for NPC diagnostic labels."""
+    rid = str(responder_id or "").strip()
+    names = {
+        "veronique_vallon": "Véronique Vallon",
+        "annette_reille": "Annette Reille",
+        "alain_reille": "Alain Reille",
+        "michel_longstreet": "Michel Longstreet",
+    }
+    return names.get(rid, rid.replace("_", " ").title() if rid else str(responder_id))
+
+
 def goc_host_experience_template(runtime_projection: Any) -> dict[str, Any] | None:
-    """Build host_experience_template dict for GoC graph input, or None."""
+    """Build host_experience_template dict for GoC graph input, or None.
+
+    This is an explicit module compatibility shim. Generic runtime code should
+    consume the returned neutral keys and must not depend on GoC actor, phase,
+    or location literals.
+    """
     if not isinstance(runtime_projection, dict):
         return None
     tid = runtime_projection.get("experience_template_id") or runtime_projection.get("seed_template_id")
     tit = runtime_projection.get("experience_template_title")
-    if tid is None and tit is None:
+    runtime_profile_id = runtime_projection.get("runtime_profile_id")
+    if tid is None and tit is None and runtime_profile_id is None:
         return None
     return {
         "template_id": str(tid) if tid is not None else None,
+        "runtime_profile_id": str(runtime_profile_id) if runtime_profile_id is not None else None,
         "title": str(tit) if tit is not None else None,
     }
 

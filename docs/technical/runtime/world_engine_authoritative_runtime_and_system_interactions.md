@@ -273,12 +273,13 @@ stateDiagram-v2
 
 ### Plain language
 
-Each story session is a small, server-side record: which module, which scene you are in, how many turns ran, and a bounded history of **what the engine accepted** as the narrative commit for each turn.
+Each story session is a small, server-side record: which module, which scene you are in, how many turns ran, a bounded history of **what the engine accepted** as the narrative commit for each turn, and a policy-driven hierarchical memory snapshot derived only from committed turns.
 
 ### Technical precision
 
 - **Session map:** `StoryRuntimeManager.sessions: dict[str, StorySession]` (`world-engine/app/story_runtime/manager.py`).
 - **Turn execution:** increments `turn_counter`, runs `turn_graph.run(...)`, computes `narrative_commit`, updates `narrative_threads`, appends to `history` and `diagnostics`, returns a turn envelope including `visible_output_bundle` and graph diagnostics references.
+- **Hierarchical memory:** loads module `memory_policy` through `ModuleRuntimePolicy`, records the `hierarchical_memory` runtime aspect, writes bounded memory items only after canonical commit, and projects safe memory context into the next LangGraph turn. Recoverable/rejected turns record guard evidence but do not write memory truth.
 - **Failure handling:** graph exceptions log via `log_story_runtime_failure` (`world-engine/app/observability/audit_log.py`) and re-raise; HTTP layer maps missing session to 404 (`world-engine/app/api/http.py`).
 
 ### Why this matters in World of Shadows
@@ -291,7 +292,7 @@ Backend stores `world_engine_story_session_id` inside Flask session metadata whe
 
 ### What the World Engine explicitly does not own
 
-Persistent **cross-session player memory** beyond bounded carry-forward fields documented for GoC (e.g. `prior_continuity_impacts` tail in `manager.py`—not a general knowledge base).
+Persistent **cross-session player memory** or unbounded learned memory. The implemented hierarchical memory layer is a module-policy-driven, session-local projection of committed turn truth. The `long_term` tier is generic contract surface only until a durable store and explicit module policy enable it.
 
 **Repository anchors:** `world-engine/app/story_runtime/manager.py`, `world-engine/app/api/http.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`.
 

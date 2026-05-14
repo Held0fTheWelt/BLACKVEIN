@@ -6,6 +6,8 @@ from ai_stack import RuntimeTurnGraphExecutor
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_BEAT,
     ASPECT_COMMIT,
+    ASPECT_HIERARCHICAL_MEMORY,
+    ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_VALIDATION,
     ASPECT_VISIBLE_PROJECTION,
@@ -16,7 +18,9 @@ from ai_stack.runtime_aspect_ledger import (
 
 from app.story_runtime import StoryRuntimeManager
 from app.story_runtime.manager import (
+    StorySession,
     _live_scene_blocks_from_visible_bundle,
+    _record_hierarchical_memory_aspect,
     _record_visible_projection_aspect,
 )
 
@@ -31,6 +35,14 @@ class _FakeTurnGraph:
         self._payload = payload
 
     def run(self, **kwargs: Any) -> dict[str, Any]:
+        return dict(self._payload)
+
+
+class _FakeModulePolicy:
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self._payload = payload
+
+    def to_dict(self) -> dict[str, Any]:
         return dict(self._payload)
 
 
@@ -92,6 +104,25 @@ def test_turn_emits_runtime_aspect_ledger() -> None:
     assert ledger["turn_aspect_ledger"]["action_resolution"]["applicable"] is True
 
 
+def test_turn_executor_propagates_runtime_profile_from_host_template() -> None:
+    executor = object.__new__(RuntimeTurnGraphExecutor)
+    executor._graph = _FakeGraphInvoker()  # type: ignore[attr-defined]
+
+    state = executor.run(
+        session_id="session-profile",
+        module_id="m",
+        current_scene_id="scene-1",
+        player_input="Look around.",
+        turn_number=1,
+        turn_initiator_type="player",
+        trace_id="trace-profile",
+        host_experience_template={"runtime_profile_id": "profile-runtime", "template_id": "template-id"},
+    )
+
+    assert state["turn_aspect_ledger"]["runtime_profile_id"] == "profile-runtime"
+    assert state["module_runtime_policy"]["runtime_profile_id"] == "profile-runtime"
+
+
 def test_recoverable_turn_emits_runtime_aspect_ledger() -> None:
     manager = StoryRuntimeManager()
     manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
@@ -129,7 +160,11 @@ def test_committed_turn_ledger_uses_canonical_turn_id() -> None:
     manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
     session = manager.create_session(
         module_id="m",
-        runtime_projection={"start_scene_id": "scene_1", "scenes": [{"id": "scene_1"}]},
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "example_profile",
+            "scenes": [{"id": "scene_1"}],
+        },
     )
     manager.turn_graph = _FakeTurnGraph(
         _envelope(
@@ -143,7 +178,250 @@ def test_committed_turn_ledger_uses_canonical_turn_id() -> None:
     ledger = turn["turn_aspect_ledger"]
     assert ledger["canonical_turn_id"] == turn["canonical_turn_id"]
     assert ledger["story_session_id"] == session.session_id
+    assert ledger["runtime_profile_id"] == "example_profile"
+    assert ledger["runtime_intelligence_projection"]["canonical_turn_id"] == turn["canonical_turn_id"]
+    assert ledger["runtime_intelligence_projection"]["runtime_profile_id"] == "example_profile"
     assert session.history[-1]["turn_aspect_ledger"]["canonical_turn_id"] == turn["canonical_turn_id"]
+
+
+def test_path_summary_propagates_environment_and_runtime_profile(monkeypatch) -> None:
+    monkeypatch.setenv("LANGFUSE_ENVIRONMENT", "staging")
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "profile-for-summary",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(
+        _envelope(
+            interpreted_input={"kind": "action", "player_input_kind": "action", "confidence": 0.81},
+            generation={"success": True, "metadata": {}},
+        )
+    )  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Gehe ins Bad")
+
+    summary = turn["observability_path_summary"]
+    assert summary["runtime_profile_id"] == "profile-for-summary"
+    assert summary["environment"] == "staging"
+    assert summary["turn_aspect_ledger"]["runtime_profile_id"] == "profile-for-summary"
+
+
+def test_visible_projection_records_policy_driven_narrative_aspect(monkeypatch) -> None:
+    policy = {
+        "module_id": "module_alpha",
+        "runtime_profile_id": "profile_alpha",
+        "narrative_aspect_policy": {
+            "schema_version": "narrative_aspect_policy.v1",
+            "aspects": [
+                {
+                    "id": "aspect_alpha",
+                    "enabled": True,
+                    "activation": {"always": True},
+                    "commit_impact": "diagnostic",
+                    "evidence": [
+                        {
+                            "id": "visible_alpha",
+                            "kind": "visible_origin_present",
+                            "origin_aspect": "narrative_aspect",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+    monkeypatch.setattr(
+        "app.story_runtime.manager.load_module_runtime_policy",
+        lambda **_kwargs: _FakeModulePolicy(policy),
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="session-narrative-aspect",
+        module_id="module_alpha",
+        runtime_profile_id="profile_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Look carefully.",
+    )
+
+    out = _record_visible_projection_aspect(
+        ledger=ledger,
+        session_id="session-narrative-aspect",
+        module_id="module_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="Look carefully.",
+        trace_id="trace-narrative-aspect",
+        scene_blocks=[
+            {
+                "id": "block-alpha",
+                "block_type": "narrator",
+                "text": "The room gives the action a visible pressure point.",
+                "origin_aspect": ASPECT_NARRATIVE_ASPECT,
+                "origin_aspect_id": "aspect_alpha",
+                "origin_beat_id": "",
+                "origin_capability": "narrative.aspect.evidence",
+                "authority_owner": "system",
+            }
+        ],
+    )
+
+    record = out["turn_aspect_ledger"][ASPECT_NARRATIVE_ASPECT]
+    assert record["status"] == "passed"
+    assert record["selected"]["selected_aspects"] == ["aspect_alpha"]
+    assert record["actual"]["realized_aspects"] == ["aspect_alpha"]
+    assert out["runtime_intelligence_projection"]["narrative_aspect"]["selected_aspects"] == ["aspect_alpha"]
+
+
+def test_hierarchical_memory_records_policy_driven_committed_turn(monkeypatch) -> None:
+    policy = {
+        "module_id": "module_alpha",
+        "runtime_profile_id": "profile_alpha",
+        "content_sources": ["module", "memory_policy"],
+        "memory_policy": {
+            "schema_version": "hierarchical_memory_policy.v1",
+            "enabled": True,
+            "write_requires_committed_turn": True,
+            "allow_uncommitted_writes": False,
+            "tiers": [
+                {"id": "turn", "enabled": True, "max_items": 4, "max_context_items": 2},
+                {"id": "session", "enabled": True, "max_items": 4, "max_context_items": 2},
+                {"id": "actor", "enabled": True, "max_items": 4, "max_context_items": 2},
+                {"id": "module", "enabled": True, "max_items": 2, "max_context_items": 1},
+            ],
+        },
+    }
+    monkeypatch.setattr(
+        "app.story_runtime.manager.load_module_runtime_policy",
+        lambda **_kwargs: _FakeModulePolicy(policy),
+    )
+    session = StorySession(
+        session_id="session-memory",
+        module_id="module_alpha",
+        runtime_projection={
+            "start_scene_id": "scene_alpha",
+            "runtime_profile_id": "profile_alpha",
+            "scenes": [{"id": "scene_alpha"}],
+        },
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id=session.session_id,
+        module_id="module_alpha",
+        runtime_profile_id="profile_alpha",
+        turn_number=1,
+        turn_kind="player",
+        raw_player_input="This raw input must not become memory text.",
+        turn_id=f"{session.session_id}:turn:1",
+    )
+    event = {
+        "canonical_turn_id": f"{session.session_id}:turn:1",
+        "turn_number": 1,
+        "turn_kind": "player",
+        "trace_id": "trace-memory",
+        "raw_input": "This raw input must not become memory text.",
+        "turn_aspect_ledger": ledger,
+    }
+    graph_state: dict[str, Any] = {"turn_aspect_ledger": ledger}
+
+    surface = _record_hierarchical_memory_aspect(
+        session=session,
+        graph_state=graph_state,
+        event=event,
+        committed_turn={
+            "canonical_turn_id": event["canonical_turn_id"],
+            "module_id": "module_alpha",
+            "runtime_profile_id": "profile_alpha",
+            "turn_number": 1,
+            "turn_outcome": "ok",
+            "narrative_commit": {
+                "allowed": True,
+                "situation_status": "continue",
+                "committed_scene_id": "scene_alpha",
+                "committed_consequences": ["bounded consequence"],
+            },
+            "actor_turn_summary": {
+                "primary_responder_id": "actor_alpha",
+                "spoken_line_count": 1,
+                "action_line_count": 0,
+            },
+            "turn_aspect_ledger": ledger,
+        },
+        allow_write=True,
+    )
+
+    record = event["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_HIERARCHICAL_MEMORY]
+    assert record["status"] == "passed"
+    assert record["actual"]["write_allowed"] is True
+    assert record["actual"]["written_item_count"] >= 3
+    assert session.hierarchical_memory["item_count"] >= 3
+    assert surface["context"]["bounded"] is True
+    assert graph_state["hierarchical_memory_context"]["memory_present"] is True
+    assert "raw input must not become" not in str(session.hierarchical_memory)
+
+
+def test_hierarchical_memory_does_not_write_recoverable_turn(monkeypatch) -> None:
+    policy = {
+        "module_id": "module_alpha",
+        "runtime_profile_id": "profile_alpha",
+        "memory_policy": {
+            "schema_version": "hierarchical_memory_policy.v1",
+            "enabled": True,
+            "write_requires_committed_turn": True,
+            "allow_uncommitted_writes": False,
+            "tiers": [{"id": "turn", "enabled": True, "max_items": 4, "max_context_items": 2}],
+        },
+    }
+    monkeypatch.setattr(
+        "app.story_runtime.manager.load_module_runtime_policy",
+        lambda **_kwargs: _FakeModulePolicy(policy),
+    )
+    session = StorySession(
+        session_id="session-memory-rejected",
+        module_id="module_alpha",
+        runtime_projection={"start_scene_id": "scene_alpha", "runtime_profile_id": "profile_alpha"},
+    )
+    ledger = initialize_runtime_aspect_ledger(
+        session_id=session.session_id,
+        module_id="module_alpha",
+        runtime_profile_id="profile_alpha",
+        turn_number=1,
+        turn_kind="player_rejected_recoverable",
+        raw_player_input="Rejected input.",
+        turn_id=f"{session.session_id}:turn:1",
+    )
+    event = {
+        "canonical_turn_id": f"{session.session_id}:turn:1",
+        "turn_number": 1,
+        "turn_kind": "player_rejected_recoverable",
+        "trace_id": "trace-memory-rejected",
+        "raw_input": "Rejected input.",
+        "turn_aspect_ledger": ledger,
+    }
+    graph_state: dict[str, Any] = {"turn_aspect_ledger": ledger}
+
+    _record_hierarchical_memory_aspect(
+        session=session,
+        graph_state=graph_state,
+        event=event,
+        committed_turn={
+            "canonical_turn_id": event["canonical_turn_id"],
+            "turn_number": 1,
+            "turn_outcome": "recoverable_rejection",
+            "recoverable_outcome": True,
+            "narrative_commit": {"allowed": False},
+            "turn_aspect_ledger": ledger,
+        },
+        allow_write=False,
+    )
+
+    record = event["turn_aspect_ledger"]["turn_aspect_ledger"][ASPECT_HIERARCHICAL_MEMORY]
+    assert record["status"] == "not_applicable"
+    assert record["actual"]["write_allowed"] is False
+    assert session.hierarchical_memory["item_count"] == 0
 
 
 def _projection() -> dict[str, Any]:

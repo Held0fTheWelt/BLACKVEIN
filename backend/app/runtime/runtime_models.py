@@ -324,7 +324,7 @@ class StateDelta(BaseModel):
     Attributes:
         id: Unique identifier for this delta (uuid4).
         delta_type: Type of change (character_state, relationship, etc.).
-        target_path: Dot-path to affected entity (e.g., "characters.veronique.emotional_state").
+        target_path: Dot-path to affected entity (e.g., "characters.actor_a.emotional_state").
         target_entity: Entity identifier (e.g., "veronique").
         previous_value: Value before change (None if not applicable).
         next_value: Value after change (None if not applicable).
@@ -377,7 +377,7 @@ class ProposedStateDelta(BaseModel):
     """A proposed state change from a mock decision.
 
     Attributes:
-        target: Dot-path to affected entity (e.g., "characters.veronique.emotional_state").
+        target: Dot-path to affected entity (e.g., "characters.actor_a.emotional_state").
         next_value: Value to apply (None if not applicable).
         previous_value: Current value before change (populated during construction).
         delta_type: Type of change (character_state, relationship, etc.).
