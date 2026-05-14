@@ -25,6 +25,7 @@ from app.story_runtime.manager import (
     _opening_block_contract_satisfied,
 )
 from app.story_runtime.module_turn_hooks import GOD_OF_CARNAGE_MODULE_ID
+from ai_stack.npc_agency_contracts import NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
 from ai_stack.runtime_aspect_ledger import (
     ASPECT_ACTION_RESOLUTION,
     ASPECT_BEAT,
@@ -264,7 +265,7 @@ def _aspect_test_ledger() -> dict[str, Any]:
                 "candidate_actor_ids": ["npc_primary", "npc_secondary"],
             },
             actual={
-                "contract_status": "implemented_runtime_simulation",
+                "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
                 "independent_planning_used": True,
                 "candidate_actor_ids": ["npc_primary", "npc_secondary"],
                 "planned_actor_ids": ["npc_primary", "npc_secondary"],
