@@ -2,266 +2,440 @@
 {% block title %}Runtime Settings{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="runtime-settings">
-    <div class="manage-section-header">
+
+    {# ─────────────  Sticky header — preset + override state always visible  ───────────── #}
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">AI Engineer Suite</p>
+            <p class="mui-deck-eyebrow">AI Engineer Suite · Runtime</p>
             <h1>Runtime Settings</h1>
-            <p class="manage-lead">Preset-first controls with bounded advanced settings, effective config visibility, and audit-friendly change tracking.</p>
-        </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="manage-rs-refresh">Reload runtime settings</button>
-            <button type="button" class="btn" id="manage-rs-reset-overrides">Clear overrides to active preset</button>
-            <button type="button" class="btn" id="manage-rs-apply-safe-local">Apply safe_local preset</button>
-        </div>
-    </div>
-
-    <p id="manage-rs-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-    <p id="manage-rs-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
-
-    <section class="panel" style="margin-bottom:1rem;">
-        <header class="panel-header"><h2>Runtime presets</h2></header>
-        <p class="muted">Operators can apply canonical presets only. Free-form preset authoring is intentionally out of scope.</p>
-        <div id="manage-rs-presets"></div>
-    </section>
-
-    <div class="manage-grid two-col">
-        <section class="panel">
-            <header class="panel-header"><h2>Bounded advanced settings</h2></header>
-            <label class="form-label">Generation execution mode
-                <select id="manage-rs-generation-mode" class="form-input">
-                    <option value="mock_only">mock_only</option>
-                    <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
-                    <option value="routed_llm_slm">routed_llm_slm</option>
-                    <option value="ai_only">ai_only</option>
-                </select>
-            </label>
-            <label class="form-label">Validation execution mode
-                <select id="manage-rs-validation-mode" class="form-input">
-                    <option value="schema_only">schema_only</option>
-                    <option value="schema_plus_semantic">schema_plus_semantic</option>
-                </select>
-            </label>
-            <label class="form-label">Provider selection mode
-                <select id="manage-rs-provider-mode" class="form-input">
-                    <option value="local_only">local_only</option>
-                    <option value="restricted_by_route">restricted_by_route</option>
-                    <option value="remote_preferred">remote_preferred</option>
-                    <option value="remote_allowed">remote_allowed</option>
-                </select>
-            </label>
-            <label class="form-label">Runtime profile
-                <select id="manage-rs-runtime-profile" class="form-input">
-                    <option value="safe_local">safe_local</option>
-                    <option value="balanced">balanced</option>
-                    <option value="cost_aware">cost_aware</option>
-                    <option value="quality_first">quality_first</option>
-                    <option value="custom">custom</option>
-                </select>
-            </label>
-            <label class="form-label">Retrieval mode
-                <select id="manage-rs-retrieval-mode" class="form-input">
-                    <option value="disabled">disabled</option>
-                    <option value="sparse_only">sparse_only</option>
-                    <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
-                </select>
-            </label>
-            <label class="form-label">Retrieval profile
-                <input type="text" id="manage-rs-retrieval-profile" class="form-input" value="runtime_turn_support" />
-            </label>
-            <label class="form-label">Retrieval top-k
-                <input type="number" id="manage-rs-retrieval-topk" class="form-input" min="1" max="12" value="4" />
-            </label>
-            <label class="form-label">Retrieval minimum score
-                <input type="number" id="manage-rs-retrieval-min-score" class="form-input" min="0" max="1" step="0.01" />
-            </label>
-            <label class="form-label">Runtime diagnostics verbosity
-                <select id="manage-rs-verbosity" class="form-input">
-                    <option value="operator">operator</option>
-                    <option value="detailed">detailed</option>
-                    <option value="debug">debug</option>
-                </select>
-            </label>
-            <label class="form-label">Max retry attempts
-                <input type="number" id="manage-rs-max-retry" class="form-input" min="0" max="5" value="1" />
-            </label>
-            <label class="form-label"><input type="checkbox" id="manage-rs-embeddings" /> Embeddings enabled posture</label>
-            <label class="form-label"><input type="checkbox" id="manage-rs-corrective" /> Enable corrective feedback</label>
-            <div class="manage-actions-row">
-                <button type="button" class="btn btn-primary" id="manage-rs-save-settings">Save advanced settings</button>
-            </div>
-        </section>
-
-        <section class="panel">
-            <header class="panel-header"><h2>Effective runtime config</h2></header>
-            <ul id="manage-rs-effective-summary" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Guardrail warnings</h3>
-            <ul id="manage-rs-guardrail-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Overrides and value sources</h3>
-            <ul id="manage-rs-source-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Material differences (preset/override/effective)</h3>
-            <ul id="manage-rs-comparison-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Boundedness and support notes</h3>
-            <ul id="manage-rs-boundedness-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-        </section>
-    </div>
-
-    <section class="panel" style="margin-top:1rem;" data-section="story-runtime-experience">
-        <header class="panel-header"><h2>Story Runtime Experience</h2></header>
-        <p class="muted">Operator-facing scene delivery, NPC behavior, and scene motion controls. Configured values may be capped by the runtime — the "Observed" block below shows what is actually honored.</p>
-
-        <p id="manage-sre-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-        <p id="manage-sre-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
-
-        <div class="manage-grid two-col">
-            <div>
-                <h3 class="manage-eyebrow">Mode</h3>
-                <label class="form-label">Experience Mode
-                    <select id="manage-sre-experience-mode" class="form-input">
-                        <option value="turn_based_narrative_recap">turn_based_narrative_recap</option>
-                        <option value="dramatic_turn">dramatic_turn</option>
-                        <option value="live_dramatic_scene_simulator">live_dramatic_scene_simulator (partial foundation)</option>
-                    </select>
-                </label>
-                <label class="form-label">Delivery Profile
-                    <select id="manage-sre-delivery-profile" class="form-input">
-                        <option value="classic_recap">classic_recap</option>
-                        <option value="lean_dramatic">lean_dramatic</option>
-                        <option value="cinematic_live">cinematic_live</option>
-                        <option value="npc_forward">npc_forward</option>
-                        <option value="operator_custom">operator_custom</option>
-                    </select>
-                </label>
-
-                <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Delivery</h3>
-                <label class="form-label">Prose Density
-                    <select id="manage-sre-prose-density" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Explanation Level
-                    <select id="manage-sre-explanation-level" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Narrator Presence
-                    <select id="manage-sre-narrator-presence" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Dialogue Priority
-                    <select id="manage-sre-dialogue-priority" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Action Visibility
-                    <select id="manage-sre-action-visibility" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Repetition Guard
-                    <select id="manage-sre-repetition-guard" class="form-input">
-                        <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
-                    </select>
-                </label>
-                <label class="form-label">Motif Handling
-                    <select id="manage-sre-motif-handling" class="form-input">
-                        <option value="strict_suppression">strict_suppression</option>
-                        <option value="controlled_reuse">controlled_reuse</option>
-                        <option value="thematic_reinforcement">thematic_reinforcement</option>
-                    </select>
-                </label>
-            </div>
-            <div>
-                <h3 class="manage-eyebrow">Character Dynamics</h3>
-                <label class="form-label">NPC Verbosity
-                    <select id="manage-sre-npc-verbosity" class="form-input">
-                        <option value="terse">terse</option><option value="balanced">balanced</option><option value="expressive">expressive</option>
-                    </select>
-                </label>
-                <label class="form-label">NPC Initiative
-                    <select id="manage-sre-npc-initiative" class="form-input">
-                        <option value="passive">passive</option><option value="reactive">reactive</option><option value="assertive">assertive</option>
-                    </select>
-                </label>
-                <label class="form-label">Max NPC spoken / action text (chars per row)
-                    <input type="number" id="manage-sre-npc-lane-char-cap" class="form-input" min="400" max="8000" value="1200" />
-                    <span class="muted" style="display:block;margin-top:0.25rem;">Hard cap on each <code>spoken_lines</code> / <code>action_lines</code> dict row for NPC transcript cards. Narrator prose (<code>narration_summary</code>) is not limited here.</span>
-                </label>
-                <label class="form-label">Inter-NPC Exchange Intensity
-                    <select id="manage-sre-exchange-intensity" class="form-input">
-                        <option value="off">off</option><option value="light">light</option><option value="medium">medium</option><option value="strong">strong</option>
-                    </select>
-                </label>
-
-                <h3 class="manage-eyebrow" style="margin-top:0.75rem;">Scene Motion</h3>
-                <label class="form-label">Pulse Length
-                    <select id="manage-sre-pulse-length" class="form-input">
-                        <option value="short">short</option><option value="medium">medium</option><option value="long">long</option>
-                    </select>
-                </label>
-                <label class="form-label">Max Scene Pulses Per Response
-                    <input type="number" id="manage-sre-max-pulses" class="form-input" min="1" max="3" value="1" />
-                </label>
-                <label class="form-label">
-                    <input type="checkbox" id="manage-sre-allow-auto-progress" />
-                    Allow Scene Progress Without Player Action
-                </label>
-                <label class="form-label">Beat Progression Speed
-                    <select id="manage-sre-beat-speed" class="form-input">
-                        <option value="slow">slow</option><option value="normal">normal</option><option value="fast">fast</option>
-                    </select>
-                </label>
-
-                <div class="manage-actions-row" style="margin-top:0.75rem;">
-                    <button type="button" class="btn btn-primary" id="manage-sre-save">Save Story Runtime Experience</button>
-                    <button type="button" class="btn" id="manage-sre-refresh">Reload</button>
-                </div>
+            <p class="mui-deck-headline">Preset-first controls with bounded advanced settings, effective-config visibility, and audit-friendly change tracking.</p>
+            <div class="mui-pillrow">
+                <span class="mui-pill mui-pill--ok">
+                    <span class="mui-pill-label">Active preset</span>
+                    <span class="mui-pill-value" id="manage-rs-active-preset-pill">—</span>
+                </span>
+                <span class="mui-pill">
+                    <span class="mui-pill-label">Overrides</span>
+                    <span class="mui-pill-value" id="manage-rs-override-count-pill">—</span>
+                </span>
+                <span class="mui-pill" id="manage-rs-drift-pill" hidden>
+                    <span class="mui-pill-label">Drift</span>
+                    <span class="mui-pill-value" id="manage-rs-drift-count-pill">—</span>
+                </span>
             </div>
         </div>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn" id="manage-rs-refresh">Reload</button>
+            <button type="button" class="btn" id="manage-rs-reset-overrides">Clear overrides</button>
+            <button type="button" class="btn" id="manage-rs-apply-safe-local">Apply safe_local</button>
+        </div>
+    </header>
 
-        <div class="manage-grid two-col" style="margin-top:1rem;">
-            <section class="panel">
-                <header class="panel-header"><h3>Configured vs Observed</h3></header>
-                <p class="muted" id="manage-sre-mode-honored"></p>
-                <h4 class="manage-eyebrow">Degradation markers (runtime caps)</h4>
-                <ul id="manage-sre-degradation-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-                <h4 class="manage-eyebrow" style="margin-top:0.5rem;">Validation warnings</h4>
-                <ul id="manage-sre-warning-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
+    {# Legacy banners — auto-bound to toasts. #}
+    <p id="manage-rs-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-rs-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-sre-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-sre-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+
+    <div class="mui-deck" data-mui-deck>
+
+        {# ─────────────  Rail  ───────────── #}
+        <aside class="mui-deck-rail" aria-label="Runtime settings sections">
+            <a href="#presets" class="mui-rail-btn" data-deck-target="presets">
+                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Runtime presets</span>
+                    <span class="mui-rail-secondary">apply canonical defaults</span>
+                </span>
+            </a>
+            <a href="#advanced" class="mui-rail-btn" data-deck-target="advanced">
+                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Advanced settings</span>
+                    <span class="mui-rail-secondary">bounded overrides</span>
+                </span>
+            </a>
+            <a href="#story" class="mui-rail-btn" data-deck-target="story">
+                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Story Runtime Experience</span>
+                    <span class="mui-rail-secondary">scene delivery + NPCs</span>
+                </span>
+            </a>
+            <a href="#effective" class="mui-rail-btn" data-deck-target="effective">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Effective config</span>
+                    <span class="mui-rail-secondary">what is honored</span>
+                </span>
+            </a>
+            <a href="#changes" class="mui-rail-btn" data-deck-target="changes">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Recent changes</span>
+                    <span class="mui-rail-secondary">audit trail</span>
+                </span>
+            </a>
+            <a href="#related" class="mui-rail-btn" data-deck-target="related">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Canonical pages</span>
+                    <span class="mui-rail-secondary">related dashboards</span>
+                </span>
+            </a>
+            <a href="#audit" class="mui-rail-btn" data-deck-target="audit">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Technical audit</span>
+                    <span class="mui-rail-secondary">full JSON payload</span>
+                </span>
+            </a>
+        </aside>
+
+        {# ─────────────  Inspector sections  ───────────── #}
+        <main class="mui-deck-main">
+
+            {# ── Presets ── #}
+            <section class="mui-deck-section is-active" data-deck-section="presets">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Posture</span>
+                        <h2>Runtime presets</h2>
+                        <p class="mui-inspector-summary">Operators can apply canonical presets only. Free-form preset authoring is intentionally out of scope.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div id="manage-rs-presets"></div>
+                    </div>
+                </article>
             </section>
-            <section class="panel">
-                <header class="panel-header"><h3>Effective values</h3></header>
-                <ul id="manage-sre-effective-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-                <details style="margin-top:0.5rem;">
-                    <summary class="muted">Raw payload</summary>
-                    <pre id="manage-sre-json" class="manage-psc-json muted"></pre>
-                </details>
+
+            {# ── Advanced settings ── #}
+            <section class="mui-deck-section" data-deck-section="advanced">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Overrides</span>
+                        <h2>Bounded advanced settings</h2>
+                        <p class="mui-inspector-summary">Fine-grained dials. Changes here register as overrides on top of the active preset and may be capped by the runtime.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+
+                        <p class="mui-subgroup-title">Execution modes</p>
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Generation</span>
+                                <select id="manage-rs-generation-mode" class="form-input">
+                                    <option value="mock_only">mock_only</option>
+                                    <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
+                                    <option value="routed_llm_slm">routed_llm_slm</option>
+                                    <option value="ai_only">ai_only</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Validation</span>
+                                <select id="manage-rs-validation-mode" class="form-input">
+                                    <option value="schema_only">schema_only</option>
+                                    <option value="schema_plus_semantic">schema_plus_semantic</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Provider selection</span>
+                                <select id="manage-rs-provider-mode" class="form-input">
+                                    <option value="local_only">local_only</option>
+                                    <option value="restricted_by_route">restricted_by_route</option>
+                                    <option value="remote_preferred">remote_preferred</option>
+                                    <option value="remote_allowed">remote_allowed</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Runtime profile</span>
+                                <select id="manage-rs-runtime-profile" class="form-input">
+                                    <option value="safe_local">safe_local</option>
+                                    <option value="balanced">balanced</option>
+                                    <option value="cost_aware">cost_aware</option>
+                                    <option value="quality_first">quality_first</option>
+                                    <option value="custom">custom</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Retrieval</p>
+                            <div class="mui-field-grid">
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Mode</span>
+                                    <select id="manage-rs-retrieval-mode" class="form-input">
+                                        <option value="disabled">disabled</option>
+                                        <option value="sparse_only">sparse_only</option>
+                                        <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
+                                    </select>
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Profile</span>
+                                    <input type="text" id="manage-rs-retrieval-profile" class="form-input" value="runtime_turn_support" />
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Top-k</span>
+                                    <input type="number" id="manage-rs-retrieval-topk" class="form-input" min="1" max="12" value="4" />
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Min score</span>
+                                    <input type="number" id="manage-rs-retrieval-min-score" class="form-input" min="0" max="1" step="0.01" />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Diagnostics &amp; safety</p>
+                            <div class="mui-field-grid">
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Diagnostics verbosity</span>
+                                    <select id="manage-rs-verbosity" class="form-input">
+                                        <option value="operator">operator</option>
+                                        <option value="detailed">detailed</option>
+                                        <option value="debug">debug</option>
+                                    </select>
+                                </label>
+                                <label class="mui-field">
+                                    <span class="mui-field-label">Max retry attempts</span>
+                                    <input type="number" id="manage-rs-max-retry" class="form-input" min="0" max="5" value="1" />
+                                </label>
+                                <label class="mui-field-check mui-field-full">
+                                    <input type="checkbox" id="manage-rs-embeddings" />
+                                    <span>Embeddings-enabled posture</span>
+                                </label>
+                                <label class="mui-field-check mui-field-full">
+                                    <input type="checkbox" id="manage-rs-corrective" />
+                                    <span>Enable corrective feedback</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-rs-save-settings">Save advanced settings</button>
+                        <span class="mui-inline-result" id="manage-rs-advanced-result" hidden></span>
+                    </footer>
+                </article>
             </section>
-        </div>
-    </section>
 
-    <section class="panel" style="margin-top:1rem;">
-        <header class="panel-header"><h2>Recent settings changes</h2></header>
-        <ul id="manage-rs-change-lines" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-    </section>
+            {# ── Story Runtime Experience ── #}
+            <section class="mui-deck-section" data-deck-section="story" data-section="story-runtime-experience">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Experience</span>
+                        <h2>Story Runtime Experience</h2>
+                        <p class="mui-inspector-summary">Operator-facing scene delivery, NPC behavior, and scene motion controls. Configured values may be capped by the runtime — the "Observed" block at the bottom shows what is actually honored.</p>
+                    </header>
+                    <div class="mui-inspector-body">
 
-    <section class="panel" style="margin-top:1rem;">
-        <header class="panel-header"><h2>Canonical related pages</h2></header>
-        <ul class="muted" style="margin:0.35rem 0 0 1.25rem;">
-            <li><a href="{{ url_for('manage_runtime_dashboard') }}">Runtime Dashboard</a> — blocker and domain summary hub</li>
-            <li><a href="{{ url_for('manage_ai_runtime_governance') }}">AI Runtime Governance</a> — providers/models/routes and readiness</li>
-            <li><a href="{{ url_for('manage_rag_operations') }}">RAG Operations</a> — retrieval diagnostics and probe</li>
-            <li><a href="{{ url_for('manage_ai_orchestration') }}">AI Orchestration</a> — LangGraph/LangChain posture</li>
-            <li><a href="{{ url_for('manage_world_engine_control_center') }}">World-Engine Control Center</a> — control-plane posture</li>
-        </ul>
-    </section>
+                        <p class="mui-subgroup-title">Mode</p>
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Experience mode</span>
+                                <select id="manage-sre-experience-mode" class="form-input">
+                                    <option value="turn_based_narrative_recap">turn_based_narrative_recap</option>
+                                    <option value="dramatic_turn">dramatic_turn</option>
+                                    <option value="live_dramatic_scene_simulator">live_dramatic_scene_simulator (partial)</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Delivery profile</span>
+                                <select id="manage-sre-delivery-profile" class="form-input">
+                                    <option value="classic_recap">classic_recap</option>
+                                    <option value="lean_dramatic">lean_dramatic</option>
+                                    <option value="cinematic_live">cinematic_live</option>
+                                    <option value="npc_forward">npc_forward</option>
+                                    <option value="operator_custom">operator_custom</option>
+                                </select>
+                            </label>
+                        </div>
 
-    <details class="panel" style="margin-top:1rem;">
-        <summary class="muted">Technical audit: full runtime settings payload</summary>
-        <pre id="manage-rs-json" class="manage-psc-json muted"></pre>
-    </details>
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Delivery dials</p>
+                            <div class="mui-field-grid mui-field-grid--narrow">
+                                <label class="mui-field"><span class="mui-field-label">Prose density</span>
+                                    <select id="manage-sre-prose-density" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Explanation level</span>
+                                    <select id="manage-sre-explanation-level" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Narrator presence</span>
+                                    <select id="manage-sre-narrator-presence" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Dialogue priority</span>
+                                    <select id="manage-sre-dialogue-priority" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Action visibility</span>
+                                    <select id="manage-sre-action-visibility" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Repetition guard</span>
+                                    <select id="manage-sre-repetition-guard" class="form-input"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select>
+                                </label>
+                                <label class="mui-field mui-field-full"><span class="mui-field-label">Motif handling</span>
+                                    <select id="manage-sre-motif-handling" class="form-input">
+                                        <option value="strict_suppression">strict_suppression</option>
+                                        <option value="controlled_reuse">controlled_reuse</option>
+                                        <option value="thematic_reinforcement">thematic_reinforcement</option>
+                                    </select>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Character dynamics</p>
+                            <div class="mui-field-grid mui-field-grid--narrow">
+                                <label class="mui-field"><span class="mui-field-label">NPC verbosity</span>
+                                    <select id="manage-sre-npc-verbosity" class="form-input"><option value="terse">terse</option><option value="balanced">balanced</option><option value="expressive">expressive</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">NPC initiative</span>
+                                    <select id="manage-sre-npc-initiative" class="form-input"><option value="passive">passive</option><option value="reactive">reactive</option><option value="assertive">assertive</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Inter-NPC exchange</span>
+                                    <select id="manage-sre-exchange-intensity" class="form-input"><option value="off">off</option><option value="light">light</option><option value="medium">medium</option><option value="strong">strong</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Max NPC text/row (chars)</span>
+                                    <input type="number" id="manage-sre-npc-lane-char-cap" class="form-input" min="400" max="8000" value="1200" />
+                                    <span class="mui-field-hint">Hard cap on each <code>spoken_lines</code> / <code>action_lines</code> dict row. Narrator prose is not limited here.</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Scene motion</p>
+                            <div class="mui-field-grid mui-field-grid--narrow">
+                                <label class="mui-field"><span class="mui-field-label">Pulse length</span>
+                                    <select id="manage-sre-pulse-length" class="form-input"><option value="short">short</option><option value="medium">medium</option><option value="long">long</option></select>
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Max pulses / response</span>
+                                    <input type="number" id="manage-sre-max-pulses" class="form-input" min="1" max="3" value="1" />
+                                </label>
+                                <label class="mui-field"><span class="mui-field-label">Beat speed</span>
+                                    <select id="manage-sre-beat-speed" class="form-input"><option value="slow">slow</option><option value="normal">normal</option><option value="fast">fast</option></select>
+                                </label>
+                                <label class="mui-field-check">
+                                    <input type="checkbox" id="manage-sre-allow-auto-progress" />
+                                    <span>Allow scene progress without player action</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Configured vs Observed</p>
+                            <p class="muted" id="manage-sre-mode-honored" style="margin: 0 0 0.5rem 0;"></p>
+                            <div class="mui-card-grid">
+                                <div class="mui-card">
+                                    <p class="mui-card-meta">Degradation markers (runtime caps)</p>
+                                    <ul id="manage-sre-degradation-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                                </div>
+                                <div class="mui-card">
+                                    <p class="mui-card-meta">Validation warnings</p>
+                                    <ul id="manage-sre-warning-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                                </div>
+                                <div class="mui-card">
+                                    <p class="mui-card-meta">Effective values</p>
+                                    <ul id="manage-sre-effective-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                                </div>
+                            </div>
+                            <div style="margin-top: 0.85rem;">
+                                <pre id="manage-sre-json" class="manage-psc-json" data-json-label="Story runtime payload"></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-sre-save">Save Story Runtime Experience</button>
+                        <button type="button" class="btn" id="manage-sre-refresh">Reload</button>
+                        <span class="mui-inline-result" id="manage-sre-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            {# ── Effective config ── #}
+            <section class="mui-deck-section" data-deck-section="effective">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Resolved</span>
+                        <h2>Effective runtime config</h2>
+                        <p class="mui-inspector-summary">What the runtime actually honors after preset + overrides + guardrails. Use this to verify drift before promoting modes.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-card-grid">
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Summary</p>
+                                <ul id="manage-rs-effective-summary" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Guardrail warnings</p>
+                                <ul id="manage-rs-guardrail-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Value sources</p>
+                                <ul id="manage-rs-source-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Material differences (preset/override/effective)</p>
+                                <ul id="manage-rs-comparison-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">Boundedness &amp; support notes</p>
+                                <ul id="manage-rs-boundedness-lines" class="muted" style="margin: 0.35rem 0 0 1.1rem;"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            {# ── Recent changes ── #}
+            <section class="mui-deck-section" data-deck-section="changes">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Audit</span>
+                        <h2>Recent settings changes</h2>
+                        <p class="mui-inspector-summary">Most recent 25 entries from the settings-change log.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <ul id="manage-rs-change-lines" class="muted" style="margin: 0; padding-left: 1.1rem;"></ul>
+                    </div>
+                </article>
+            </section>
+
+            {# ── Related ── #}
+            <section class="mui-deck-section" data-deck-section="related">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Navigation</span>
+                        <h2>Canonical related pages</h2>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <ul class="muted" style="margin: 0; padding-left: 1.1rem; line-height: 1.9;">
+                            <li><a href="{{ url_for('manage_runtime_dashboard') }}">Runtime Dashboard</a> — blocker and domain summary hub</li>
+                            <li><a href="{{ url_for('manage_ai_runtime_governance') }}">AI Runtime Governance</a> — providers/models/routes and readiness</li>
+                            <li><a href="{{ url_for('manage_rag_operations') }}">RAG Operations</a> — retrieval diagnostics and probe</li>
+                            <li><a href="{{ url_for('manage_ai_orchestration') }}">AI Orchestration</a> — LangGraph/LangChain posture</li>
+                            <li><a href="{{ url_for('manage_world_engine_control_center') }}">World-Engine Control Center</a> — control-plane posture</li>
+                        </ul>
+                    </div>
+                </article>
+            </section>
+
+            {# ── Audit JSON ── #}
+            <section class="mui-deck-section" data-deck-section="audit">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Audit</span>
+                        <h2>Technical audit: full runtime settings payload</h2>
+                        <p class="mui-inspector-summary">Combined presets / advanced / effective / changes payloads. Use Copy to ship to a ticket or paste into a chat.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <pre id="manage-rs-json" class="manage-psc-json" data-json-label="Runtime settings audit"></pre>
+                    </div>
+                </article>
+            </section>
+
+        </main>
+    </div>
 </section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_runtime_settings.js') }}"></script>
 <script src="{{ url_for('static', filename='manage_story_runtime_experience.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_runtime_settings_deck.js') }}"></script>
 {% endblock %}

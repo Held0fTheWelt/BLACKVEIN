@@ -1849,3 +1849,627 @@ textarea:focus-visible {
         transition: none;
     }
 }
+
+/* ===========================================================================
+   ManageUI primitives (manage_ui.js)
+   Toasts, JSON viewer, status pills, deck layout, rail, inspector,
+   dense field grid, sticky save bar, inline result chips.
+   =========================================================================== */
+
+/* --- Toasts --------------------------------------------------------------- */
+.mui-toasts {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.65rem;
+    max-width: min(420px, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.mui-toast {
+    pointer-events: auto;
+    position: relative;
+    display: grid;
+    grid-template-columns: 4px 1fr auto;
+    background: linear-gradient(180deg, rgba(20, 24, 36, 0.98), rgba(13, 16, 25, 0.98));
+    border: 1px solid var(--border-strong, var(--border));
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 22px 48px rgba(2, 4, 10, 0.6), 0 2px 6px rgba(2, 4, 10, 0.4);
+    transform: translateY(140%) scale(0.96);
+    opacity: 0;
+    transition: transform 0.34s cubic-bezier(0.18, 0.85, 0.27, 1), opacity 0.28s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.mui-toast--in { transform: translateY(0) scale(1); opacity: 1; }
+.mui-toast--out { transform: translateY(20%) scale(0.98); opacity: 0; }
+
+.mui-toast-accent {
+    display: block;
+    background: var(--primary);
+}
+.mui-toast--success .mui-toast-accent { background: linear-gradient(180deg, #2ea043, #1b8a37); }
+.mui-toast--error .mui-toast-accent   { background: linear-gradient(180deg, #f85149, #b62a23); }
+.mui-toast--warn .mui-toast-accent    { background: linear-gradient(180deg, #d29922, #a47214); }
+.mui-toast--info .mui-toast-accent    { background: linear-gradient(180deg, #58a6ff, #3576c9); }
+
+.mui-toast-body {
+    padding: 0.7rem 0.85rem 0.75rem 0.95rem;
+    min-width: 0;
+}
+.mui-toast-kind {
+    margin: 0 0 0.15rem 0;
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.66rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-toast--success .mui-toast-kind { color: #6fd09a; }
+.mui-toast--error .mui-toast-kind { color: #ff9dae; }
+.mui-toast--warn .mui-toast-kind { color: #ffd373; }
+.mui-toast--info .mui-toast-kind { color: #8cc4ff; }
+.mui-toast-msg {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.92rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.mui-toast-close {
+    align-self: stretch;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    width: 2.4rem;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+.mui-toast-close:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.mui-toast-close:focus-visible { outline: 2px solid var(--violet-bright, var(--primary)); outline-offset: -2px; }
+
+/* --- JSON Viewer ---------------------------------------------------------- */
+.mui-json {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    background: #0a0e18;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.mui-json-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.45rem 0.7rem 0.4rem 0.85rem;
+    background: linear-gradient(180deg, rgba(22, 26, 38, 0.96), rgba(13, 16, 26, 0.96));
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.mui-json-label {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mui-json-actions { display: flex; gap: 0.3rem; flex-shrink: 0; }
+
+.mui-json-btn {
+    appearance: none;
+    border: 1px solid transparent;
+    background: rgba(148, 121, 239, 0.08);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.mui-json-btn:hover {
+    color: var(--text);
+    background: rgba(148, 121, 239, 0.18);
+    border-color: rgba(148, 121, 239, 0.34);
+}
+.mui-json-btn:focus-visible {
+    outline: 2px solid var(--violet-bright, var(--primary));
+    outline-offset: 2px;
+}
+.mui-json-btn[aria-pressed="false"] { color: var(--text); background: rgba(148, 121, 239, 0.16); }
+.mui-json-btn.is-success {
+    color: #6fd09a;
+    border-color: rgba(46, 160, 67, 0.5);
+    background: rgba(46, 160, 67, 0.18);
+}
+
+.mui-json-pre {
+    margin: 0;
+    padding: 0.85rem 1rem 1rem;
+    max-height: 28rem;
+    overflow: auto;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    tab-size: 2;
+}
+.mui-json-pre.mui-json-pre--nowrap { white-space: pre; word-break: normal; }
+.mui-json-pre::-webkit-scrollbar { width: 8px; height: 8px; }
+.mui-json-pre::-webkit-scrollbar-thumb { background: var(--border-strong, var(--border)); border-radius: 4px; }
+.mui-json-pre::-webkit-scrollbar-track { background: transparent; }
+
+.mui-json-key    { color: #b39bff; }
+.mui-json-string { color: #8fd6a3; }
+.mui-json-num    { color: #ffd373; }
+.mui-json-bool   { color: #8cc4ff; }
+.mui-json-null   { color: #ff9dae; font-style: italic; }
+.mui-json-empty  { color: var(--text-muted); font-style: italic; }
+
+/* --- Status pills (sticky header) ----------------------------------------- */
+.mui-pillrow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.55rem;
+    margin: 0.5rem 0 0;
+}
+
+.mui-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(148, 121, 239, 0.06);
+    font-size: 0.82rem;
+    color: var(--text);
+}
+.mui-pill-label {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-pill-value { color: var(--text); font-weight: 500; }
+.mui-pill--ok    { border-color: rgba(46, 160, 67, 0.45); background: rgba(46, 160, 67, 0.10); }
+.mui-pill--ok .mui-pill-value { color: #6fd09a; }
+.mui-pill--warn  { border-color: rgba(210, 153, 34, 0.45); background: rgba(210, 153, 34, 0.10); }
+.mui-pill--warn .mui-pill-value { color: #ffd373; }
+.mui-pill--fail  { border-color: rgba(248, 81, 73, 0.45); background: rgba(248, 81, 73, 0.10); }
+.mui-pill--fail .mui-pill-value { color: #ff9dae; }
+
+/* --- Deck layout (sticky header + rail + inspector) ----------------------- */
+.mui-deck {
+    --mui-header-h: 0;
+    --mui-rail-w: 280px;
+    display: grid;
+    grid-template-columns: var(--mui-rail-w) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    margin-top: 0.75rem;
+}
+
+.mui-deck-header {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    margin: -1rem clamp(-1.75rem, -1.8vw, -1rem) 0;
+    padding: 1rem clamp(1rem, 1.8vw, 1.75rem);
+    background:
+        linear-gradient(180deg, rgba(14, 18, 28, 0.96), rgba(11, 14, 22, 0.96)),
+        radial-gradient(circle at 8% 0%, rgba(148, 121, 239, 0.18), transparent 50%);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: grid;
+    gap: 0.6rem;
+}
+.mui-deck-header h1 {
+    margin: 0;
+    font-size: clamp(1.35rem, 1.7vw, 1.75rem);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+}
+.mui-deck-eyebrow {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-deck-headline {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.96rem;
+    line-height: 1.45;
+    max-width: 80ch;
+}
+.mui-deck-headline strong { color: var(--text); font-weight: 600; }
+.mui-deck-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+@media (min-width: 900px) {
+    .mui-deck-header {
+        grid-template-columns: 1fr auto;
+        align-items: end;
+    }
+    .mui-deck-actions { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+}
+
+/* Rail ------------------------------------------------------------------- */
+.mui-deck-rail {
+    position: sticky;
+    top: calc(var(--mui-header-h, 8rem) + 0.5rem);
+    align-self: start;
+    max-height: calc(100vh - var(--mui-header-h, 8rem) - 1.5rem);
+    overflow-y: auto;
+    padding: 0.65rem 0.65rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(20, 23, 33, 0.7), rgba(13, 15, 22, 0.7));
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.mui-rail-filter-row { margin-bottom: 0.5rem; }
+.mui-rail-filter {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    background: rgba(7, 9, 14, 0.7);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.85rem;
+}
+.mui-rail-filter:focus-visible {
+    outline: 2px solid rgba(148, 121, 239, 0.85);
+    outline-offset: 1px;
+    border-color: var(--primary);
+}
+
+.mui-rail-group {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed rgba(148, 121, 239, 0.16);
+}
+.mui-rail-group:first-of-type { border-top: 0; padding-top: 0.25rem; margin-top: 0; }
+
+.mui-rail-group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.4rem;
+    padding: 0.1rem 0.2rem 0.3rem;
+}
+.mui-rail-group-label {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.66rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-rail-group-count {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: rgba(148, 121, 239, 0.1);
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+}
+
+.mui-rail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.18rem;
+}
+.mui-rail-item { margin: 0; }
+.mui-rail-empty {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    padding: 0.4rem 0.5rem;
+    font-style: italic;
+}
+
+.mui-rail-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.45rem 0.55rem 0.45rem 0.5rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.mui-rail-btn:hover {
+    background: rgba(148, 121, 239, 0.09);
+    border-color: rgba(148, 121, 239, 0.2);
+}
+.mui-rail-btn:focus-visible {
+    outline: 2px solid rgba(148, 121, 239, 0.85);
+    outline-offset: 1px;
+}
+.mui-rail-btn.is-active {
+    background: rgba(148, 121, 239, 0.18);
+    border-color: rgba(148, 121, 239, 0.42);
+}
+
+.mui-rail-badge {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--text-muted);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.04);
+}
+.mui-rail-badge--ok   { background: #2ea043; box-shadow: 0 0 0 2px rgba(46, 160, 67, 0.2); }
+.mui-rail-badge--warn { background: #d29922; box-shadow: 0 0 0 2px rgba(210, 153, 34, 0.22); }
+.mui-rail-badge--fail { background: #f85149; box-shadow: 0 0 0 2px rgba(248, 81, 73, 0.2); }
+.mui-rail-badge--off  { background: transparent; border: 1px solid var(--text-muted); }
+
+.mui-rail-label {
+    display: grid;
+    gap: 0.05rem;
+    min-width: 0;
+    line-height: 1.25;
+}
+.mui-rail-primary {
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mui-rail-btn.is-active .mui-rail-primary { color: #fff; font-weight: 600; }
+.mui-rail-secondary {
+    color: var(--text-muted);
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hide the source <select> when bound to a rail, while keeping it tab-focusable
+   for power-users / a11y. */
+.mui-rail-source {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    border: 0;
+}
+
+/* Inspector / deck cards --------------------------------------------------- */
+.mui-deck-main { min-width: 0; display: grid; gap: 1rem; }
+
+.mui-deck-section { display: none; }
+.mui-deck-section.is-active { display: grid; gap: 1rem; }
+
+.mui-inspector {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0)) var(--surface);
+    overflow: hidden;
+    box-shadow: 0 16px 36px rgba(2, 4, 10, 0.28);
+}
+
+.mui-inspector-head {
+    padding: 0.95rem 1.1rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(148, 121, 239, 0.06), transparent 80%);
+    display: grid;
+    gap: 0.35rem;
+}
+.mui-inspector-head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+.mui-inspector-eyebrow {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.64rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-inspector-summary {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.mui-inspector-body { padding: 1rem 1.1rem 0.5rem; }
+
+.mui-inspector-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0.65rem;
+    padding: 0.7rem 1.1rem 0.85rem;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(14, 18, 28, 0.94), rgba(11, 14, 22, 0.98));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+/* Dense 2/3-column field grid --------------------------------------------- */
+.mui-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: 0.85rem 1rem;
+}
+
+.mui-field-grid.mui-field-grid--narrow {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+.mui-field { display: grid; gap: 0.3rem; min-width: 0; }
+.mui-field-label {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.mui-field-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+.mui-field-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    background: rgba(7, 9, 14, 0.55);
+    color: var(--text);
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.mui-field-check:hover { border-color: var(--border-strong, var(--border)); }
+.mui-field-check input { margin: 0; }
+
+.mui-field-full { grid-column: 1 / -1; }
+
+/* Inline action result (e.g. "✓ 124ms · healthy") -------------------------- */
+.mui-inline-result {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: rgba(7, 9, 14, 0.55);
+    min-height: 1.55rem;
+}
+.mui-inline-result[hidden] { display: none; }
+.mui-inline-result--success { color: #6fd09a; border-color: rgba(46, 160, 67, 0.45); background: rgba(46, 160, 67, 0.10); }
+.mui-inline-result--error { color: #ff9dae; border-color: rgba(248, 81, 73, 0.45); background: rgba(248, 81, 73, 0.10); }
+.mui-inline-result--warn { color: #ffd373; border-color: rgba(210, 153, 34, 0.45); background: rgba(210, 153, 34, 0.10); }
+
+/* Dirty form save button — shows count -------------------------------------- */
+.mui-save-counter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    padding: 0 0.4rem;
+    margin-left: 0.4rem;
+    border-radius: 999px;
+    background: rgba(148, 121, 239, 0.25);
+    color: #fff;
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.7rem;
+}
+.mui-save-counter:empty { display: none; }
+
+/* Sub-sections within an inspector */
+.mui-subgroup { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed rgba(148, 121, 239, 0.18); }
+.mui-subgroup-title {
+    margin: 0 0 0.55rem 0;
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Card grids for readiness blockers etc. */
+.mui-card-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+.mui-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.85rem 0.95rem;
+    background: rgba(7, 9, 14, 0.55);
+}
+.mui-card h4 {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.92rem;
+    line-height: 1.25;
+}
+.mui-card-meta {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 0.3rem 0;
+}
+
+/* Responsive collapse of the deck --------------------------------------- */
+@media (max-width: 900px) {
+    .mui-deck {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .mui-deck-rail {
+        position: static;
+        max-height: none;
+    }
+}
+
+/* Hide legacy banner placeholders that ManageUI has converted to toasts. */
+.mui-legacy-hidden { display: none !important; }
+

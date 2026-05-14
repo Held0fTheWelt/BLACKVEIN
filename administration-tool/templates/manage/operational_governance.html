@@ -2,222 +2,402 @@
 {% block title %}AI Runtime Governance{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="operational-governance" data-active-section="{{ active_section | default('overview') }}">
-    <div class="manage-section-header">
+
+    {# ─────────────────────────────────────────────────────────────────────
+       Sticky header — the operator's state never scrolls off the screen.
+       Headline + status pills + actions stay visible while you work below.
+       ───────────────────────────────────────────────────────────────────── #}
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">Operations</p>
+            <p class="mui-deck-eyebrow">Operations · Governance</p>
             <h1>AI Runtime Governance</h1>
-            <p class="manage-lead">Canonical <strong>admin-only</strong> surface for governed providers, models, task routes, runtime modes, and readiness. Bookmark paths under <code>/manage/operational-governance/…</code> remain aliases of this page. For play-service posture and connectivity, start on <a href="{{ url_for('manage_world_engine_control_center') }}">World-Engine Control Center</a>, then use <a href="{{ url_for('manage_play_service_control') }}">Play-Service control</a> or <a href="{{ url_for('manage_diagnosis') }}">System diagnosis</a> when directed below.</p>
+            <p id="manage-og-readiness-headline" class="mui-deck-headline">Loading runtime readiness…</p>
+            <div id="manage-og-readiness-severity-row" class="mui-pillrow" style="display:none;">
+                <span class="mui-pill mui-pill--ok" id="manage-og-readiness-pill" data-readiness-pill>
+                    <span class="mui-pill-label">State</span>
+                    <span id="manage-og-readiness-badge" class="mui-pill-value">—</span>
+                </span>
+                <span class="mui-pill" id="manage-og-readiness-inventory-pill">
+                    <span class="mui-pill-label">Inventory</span>
+                    <span class="mui-pill-value" id="manage-og-readiness-inventory">—</span>
+                </span>
+                <p id="manage-og-readiness-severity" class="visually-hidden" aria-live="polite">—</p>
+            </div>
         </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="manage-og-refresh">Reload governance data</button>
+        <div class="mui-deck-actions">
+            <a href="#readiness" class="btn btn-ghost" data-deck-target="readiness">Readiness</a>
+            <a href="#providers" class="btn btn-ghost" data-deck-target="providers">Providers</a>
+            <a href="#models" class="btn btn-ghost" data-deck-target="models">Models</a>
+            <a href="#routes" class="btn btn-ghost" data-deck-target="routes">Routes</a>
+            <a href="#modes" class="btn btn-ghost" data-deck-target="modes">Modes</a>
+            <button type="button" class="btn btn-primary" id="manage-og-refresh">Reload</button>
         </div>
+    </header>
+
+    {# Legacy banners — ManageUI auto-binds these to toast notifications and hides them. #}
+    <p id="manage-og-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-og-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+
+    {# Source-of-truth <select> elements for the rails (visually hidden, still tab-focusable for power users). #}
+    <div class="mui-rail-source-wrap" aria-hidden="false" style="position:absolute;left:-9999px;">
+        <label>Selected provider <select id="manage-og-provider-select"></select></label>
+        <label>Selected model <select id="manage-og-model-select"></select></label>
+        <label>Selected route <select id="manage-og-route-select"></select></label>
     </div>
 
-    <p id="manage-og-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-    <p id="manage-og-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+    <div class="mui-deck" data-mui-deck>
 
-    <section class="panel manage-og-readiness-panel" style="margin-bottom:1rem;">
-        <header class="panel-header"><h2>Runtime readiness</h2></header>
-        <p class="muted" style="margin-top:0;">Start here: headline and severity describe whether AI-only paths are safe. Blockers explain what is missing or misconfigured; the numbered list is the suggested order of work.</p>
-        <p id="manage-og-readiness-headline" class="manage-lead manage-og-readiness-headline" style="margin-top:0.5rem;"></p>
-        <div id="manage-og-readiness-severity-row" class="manage-og-severity-row" style="display:none;" role="status">
-            <span id="manage-og-readiness-badge" class="manage-severity-badge" aria-hidden="true"></span>
-            <p id="manage-og-readiness-severity" class="muted manage-og-severity-text" style="margin:0;"></p>
-        </div>
-        <p id="manage-og-readiness-inventory" class="muted manage-og-inventory-line" style="margin-top:0.5rem;"></p>
-        <details class="manage-og-readiness-legend-wrap" style="margin-top:0.75rem;">
-            <summary class="muted">How to read readiness fields</summary>
-            <ul id="manage-og-readiness-legend" class="muted" style="margin:0.35rem 0 0 1.25rem;"></ul>
-        </details>
-        <div class="manage-grid two-col" style="margin-top:1rem;">
-            <div>
-                <h3 class="manage-eyebrow">What is blocking</h3>
-                <ul id="manage-og-readiness-blockers" class="muted manage-og-blocker-list" style="margin:0.35rem 0 0 1.25rem;"></ul>
-            </div>
-            <div>
-                <h3 class="manage-eyebrow">What to do next</h3>
-                <ol id="manage-og-readiness-next" class="muted manage-og-next-actions" style="margin:0.35rem 0 0 1.25rem;"></ol>
-            </div>
-        </div>
-        <details class="manage-og-technical-details" style="margin-top:0.85rem;">
-            <summary class="muted">Technical audit: full readiness JSON</summary>
-            <pre id="manage-og-readiness-json" class="manage-psc-json muted"></pre>
-        </details>
-    </section>
+        {# ────────────────────────  Rail (left nav)  ──────────────────────── #}
+        <aside class="mui-deck-rail" aria-label="Governance sections">
 
-    <div class="manage-grid two-col">
-        <section class="panel">
-            <header class="panel-header"><h2>Providers</h2></header>
-            <p id="manage-og-hint-providers" class="muted manage-og-panel-hint" style="margin-top:0;"></p>
-            <label class="form-label">Select provider to edit
-                <select id="manage-og-provider-select" class="form-input"></select>
-            </label>
-            <label class="form-label">Provider type
-                <select id="manage-og-provider-type" class="form-input">
-                    <option value="mock">mock</option>
-                    <option value="ollama">ollama</option>
-                    <option value="openai">openai</option>
-                    <option value="openrouter">openrouter</option>
-                    <option value="anthropic">anthropic</option>
-                    <option value="custom_http">custom_http</option>
-                </select>
-            </label>
-            <label class="form-label">Display name
-                <input type="text" id="manage-og-provider-display" class="form-input" />
-            </label>
-            <label class="form-label">Base URL
-                <input type="url" id="manage-og-provider-base-url" class="form-input" />
-            </label>
-            <label class="form-label"><input type="checkbox" id="manage-og-provider-enabled" checked /> Enabled</label>
-            <label class="form-label">Credential API key (write-only)
-                <input type="password" id="manage-og-provider-api-key" class="form-input" autocomplete="new-password" />
-            </label>
-            <p id="manage-og-provider-meta" class="muted" style="min-height:1.25rem;"></p>
-            <div class="manage-actions-row">
-                <button type="button" class="btn" id="manage-og-provider-create">Create provider</button>
-                <button type="button" class="btn btn-primary" id="manage-og-provider-update">Update provider</button>
-                <button type="button" class="btn" id="manage-og-provider-test">Test connection health</button>
-            </div>
-            <details class="manage-og-technical-details">
-                <summary class="muted">Technical audit: provider inventory JSON</summary>
-                <pre id="manage-og-providers-json" class="manage-psc-json muted"></pre>
-            </details>
-        </section>
+            <a href="#readiness" class="mui-rail-btn" data-deck-target="readiness">
+                <span class="mui-rail-badge mui-rail-badge--ok" id="manage-og-rail-readiness-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Runtime readiness</span>
+                    <span class="mui-rail-secondary" id="manage-og-rail-readiness-sub">health overview</span>
+                </span>
+            </a>
 
-        <section class="panel">
-            <header class="panel-header"><h2>Models</h2></header>
-            <p id="manage-og-hint-models" class="muted manage-og-panel-hint" style="margin-top:0;"></p>
-            <label class="form-label">Select model to edit
-                <select id="manage-og-model-select" class="form-input"></select>
-            </label>
-            <label class="form-label">Provider
-                <select id="manage-og-model-provider" class="form-input"></select>
-            </label>
-            <label class="form-label">Model ID
-                <input type="text" id="manage-og-model-id" class="form-input" />
-            </label>
-            <label class="form-label">Model name
-                <input type="text" id="manage-og-model-name" class="form-input" />
-            </label>
-            <label class="form-label">Display name
-                <input type="text" id="manage-og-model-display" class="form-input" />
-            </label>
-            <label class="form-label">Model role
-                <select id="manage-og-model-role" class="form-input">
-                    <option value="llm">llm</option>
-                    <option value="slm">slm</option>
-                    <option value="embedding_role">text_embedding (embedding_role)</option>
-                    <option value="mock">mock</option>
-                </select>
-            </label>
-            <label class="form-label">Timeout (seconds)
-                <input type="number" id="manage-og-model-timeout" class="form-input" min="1" max="300" value="30" />
-            </label>
-            <label class="form-label"><input type="checkbox" id="manage-og-model-structured" /> Structured output capable</label>
-            <label class="form-label"><input type="checkbox" id="manage-og-model-enabled" checked /> Enabled</label>
-            <p id="manage-og-model-meta" class="muted" style="min-height:1.25rem;"></p>
-            <div class="manage-actions-row">
-                <button type="button" class="btn" id="manage-og-model-create">Create model</button>
-                <button type="button" class="btn btn-primary" id="manage-og-model-update">Update model</button>
-                <button type="button" class="btn" id="manage-og-model-test">Test model</button>
-                <button type="button" class="btn" id="manage-og-model-delete">Delete model</button>
+            <div class="mui-rail-group" data-mui-rail="manage-og-provider-select" data-deck-target="providers" data-mui-rail-empty="No providers yet — create one to begin.">
+                <div class="mui-rail-group-head">
+                    <span class="mui-rail-group-label">Providers</span>
+                    <span class="mui-rail-group-count" data-mui-rail-count></span>
+                </div>
+                <div class="mui-rail-filter-row">
+                    <input type="search" class="mui-rail-filter" data-mui-rail-filter placeholder="Filter providers…" aria-label="Filter providers" />
+                </div>
+                <a href="#providers-new" class="mui-rail-btn mui-rail-add" data-deck-target="providers">
+                    <span class="mui-rail-badge mui-rail-badge--off"></span>
+                    <span class="mui-rail-label"><span class="mui-rail-primary">+ New provider</span></span>
+                </a>
             </div>
-            <details class="manage-og-technical-details">
-                <summary class="muted">Technical audit: model inventory JSON</summary>
-                <pre id="manage-og-models-json" class="manage-psc-json muted"></pre>
-            </details>
-        </section>
-    </div>
 
-    <div class="manage-grid two-col" style="margin-top:1rem;">
-        <section class="panel">
-            <header class="panel-header"><h2>Task routes</h2></header>
-            <p id="manage-og-hint-routes" class="muted manage-og-panel-hint" style="margin-top:0;"></p>
-            <label class="form-label">Select route to edit
-                <select id="manage-og-route-select" class="form-input"></select>
-            </label>
-            <label class="form-label">Task kind
-                <input type="text" id="manage-og-route-task-kind" class="form-input" />
-            </label>
-            <label class="form-label">Workflow scope
-                <input type="text" id="manage-og-route-workflow-scope" class="form-input" value="global" />
-            </label>
-            <label class="form-label">Preferred model (primary AI path)
-                <select id="manage-og-route-preferred-model" class="form-input"></select>
-            </label>
-            <label class="form-label">Fallback model (when preferred unavailable)
-                <select id="manage-og-route-fallback-model" class="form-input"></select>
-            </label>
-            <label class="form-label">Mock model (deterministic / offline path)
-                <select id="manage-og-route-mock-model" class="form-input"></select>
-            </label>
-            <label class="form-label"><input type="checkbox" id="manage-og-route-enabled" checked /> Enabled</label>
-            <label class="form-label"><input type="checkbox" id="manage-og-route-use-mock" checked /> Use mock when provider unavailable</label>
-            <p id="manage-og-route-meta" class="muted" style="min-height:1.25rem;"></p>
-            <div class="manage-actions-row">
-                <button type="button" class="btn" id="manage-og-route-create">Create route</button>
-                <button type="button" class="btn btn-primary" id="manage-og-route-update">Update route</button>
+            <div class="mui-rail-group" data-mui-rail="manage-og-model-select" data-deck-target="models" data-mui-rail-empty="No models yet — add a provider first.">
+                <div class="mui-rail-group-head">
+                    <span class="mui-rail-group-label">Models</span>
+                    <span class="mui-rail-group-count" data-mui-rail-count></span>
+                </div>
+                <div class="mui-rail-filter-row">
+                    <input type="search" class="mui-rail-filter" data-mui-rail-filter placeholder="Filter models…" aria-label="Filter models" />
+                </div>
+                <a href="#models-new" class="mui-rail-btn mui-rail-add" data-deck-target="models">
+                    <span class="mui-rail-badge mui-rail-badge--off"></span>
+                    <span class="mui-rail-label"><span class="mui-rail-primary">+ New model</span></span>
+                </a>
             </div>
-            <details class="manage-og-technical-details">
-                <summary class="muted">Technical audit: route inventory JSON</summary>
-                <pre id="manage-og-routes-json" class="manage-psc-json muted"></pre>
-            </details>
-        </section>
 
-        <section class="panel">
-            <header class="panel-header"><h2>Runtime modes</h2></header>
-            <p class="muted" style="margin-top:0;">Execution posture for generation, retrieval, and validation. Save only after readiness above is acceptable for the mode you need.</p>
-            <label class="form-label">Generation mode
-                <select id="manage-og-generation-mode" class="form-input">
-                    <option value="mock_only">mock_only</option>
-                    <option value="ai_only">ai_only</option>
-                    <option value="routed_llm_slm">routed_llm_slm</option>
-                    <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
-                </select>
-            </label>
-            <label class="form-label">Retrieval mode
-                <select id="manage-og-retrieval-mode" class="form-input">
-                    <option value="disabled">disabled</option>
-                    <option value="sparse_only">sparse_only</option>
-                    <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
-                </select>
-            </label>
-            <label class="form-label">Validation mode
-                <select id="manage-og-validation-mode" class="form-input">
-                    <option value="schema_only">schema_only</option>
-                    <option value="schema_plus_semantic">schema_plus_semantic</option>
-                    <option value="strict_rule_engine">strict_rule_engine</option>
-                </select>
-            </label>
-            <label class="form-label">Provider selection mode
-                <select id="manage-og-provider-selection" class="form-input">
-                    <option value="local_only">local_only</option>
-                    <option value="remote_allowed">remote_allowed</option>
-                    <option value="remote_preferred">remote_preferred</option>
-                    <option value="restricted_by_route">restricted_by_route</option>
-                </select>
-            </label>
-            <label class="form-label">Runtime profile
-                <select id="manage-og-runtime-profile" class="form-input">
-                    <option value="safe_local">safe_local</option>
-                    <option value="balanced">balanced</option>
-                    <option value="cost_aware">cost_aware</option>
-                    <option value="quality_first">quality_first</option>
-                    <option value="custom">custom</option>
-                </select>
-            </label>
-            <div class="manage-actions-row">
-                <button type="button" class="btn btn-primary" id="manage-og-save-modes">Save runtime modes</button>
-                <button type="button" class="btn" id="manage-og-bootstrap-reload">Rebuild resolved config</button>
+            <div class="mui-rail-group" data-mui-rail="manage-og-route-select" data-deck-target="routes" data-mui-rail-empty="No routes yet — routes bind task kinds to models.">
+                <div class="mui-rail-group-head">
+                    <span class="mui-rail-group-label">Task routes</span>
+                    <span class="mui-rail-group-count" data-mui-rail-count></span>
+                </div>
+                <div class="mui-rail-filter-row">
+                    <input type="search" class="mui-rail-filter" data-mui-rail-filter placeholder="Filter routes…" aria-label="Filter routes" />
+                </div>
+                <a href="#routes-new" class="mui-rail-btn mui-rail-add" data-deck-target="routes">
+                    <span class="mui-rail-badge mui-rail-badge--off"></span>
+                    <span class="mui-rail-label"><span class="mui-rail-primary">+ New route</span></span>
+                </a>
             </div>
-            <details class="manage-og-technical-details">
-                <summary class="muted">Technical audit: resolved runtime config JSON</summary>
-                <pre id="manage-og-runtime-config" class="manage-psc-json muted"></pre>
-            </details>
-        </section>
+
+            <a href="#modes" class="mui-rail-btn" data-deck-target="modes">
+                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Runtime modes</span>
+                    <span class="mui-rail-secondary">execution posture</span>
+                </span>
+            </a>
+
+        </aside>
+
+        {# ─────────────────  Inspector (right work surface)  ──────────────── #}
+        <main class="mui-deck-main">
+
+            {# ─────────────  Readiness  ───────────── #}
+            <section class="mui-deck-section is-active manage-og-readiness-panel" data-deck-section="readiness">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Health</span>
+                        <h2>Runtime readiness</h2>
+                        <p class="mui-inspector-summary">Headline and severity describe whether AI-only paths are safe. Blockers explain what is missing or misconfigured; the numbered list is the suggested order of work.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-card-grid">
+                            <div class="mui-card">
+                                <p class="mui-card-meta">What is blocking</p>
+                                <ul id="manage-og-readiness-blockers" class="manage-og-blocker-list"></ul>
+                            </div>
+                            <div class="mui-card">
+                                <p class="mui-card-meta">What to do next</p>
+                                <ol id="manage-og-readiness-next" class="manage-og-next-actions" style="margin:0; padding-left:1.2rem;"></ol>
+                            </div>
+                        </div>
+
+                        <details class="mui-subgroup">
+                            <summary class="muted" style="cursor:pointer;">How to read readiness fields</summary>
+                            <ul id="manage-og-readiness-legend" class="muted" style="margin:0.5rem 0 0 1.25rem;"></ul>
+                        </details>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Technical audit: full readiness JSON</p>
+                            <pre id="manage-og-readiness-json" class="manage-psc-json" data-json-label="Readiness payload"></pre>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            {# ─────────────  Providers  ───────────── #}
+            <section class="mui-deck-section" data-deck-section="providers">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Entity</span>
+                        <h2>Provider</h2>
+                        <p class="mui-inspector-summary" id="manage-og-hint-providers">Pick a provider from the rail, or fill the fields below and use Create.</p>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-og-provider-form" onsubmit="return false;">
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Type</span>
+                                <select id="manage-og-provider-type" class="form-input">
+                                    <option value="mock">mock</option>
+                                    <option value="ollama">ollama</option>
+                                    <option value="openai">openai</option>
+                                    <option value="openrouter">openrouter</option>
+                                    <option value="anthropic">anthropic</option>
+                                    <option value="custom_http">custom_http</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Display name</span>
+                                <input type="text" id="manage-og-provider-display" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Base URL</span>
+                                <input type="url" id="manage-og-provider-base-url" class="form-input" autocomplete="off" />
+                                <span class="mui-field-hint">Required for non-mock types. Use the canonical upstream endpoint.</span>
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">API key (write-only)</span>
+                                <input type="password" id="manage-og-provider-api-key" class="form-input" autocomplete="new-password" />
+                                <span class="mui-field-hint">Updates the credential record. Leave blank to keep the existing key.</span>
+                            </label>
+                            <label class="mui-field-check mui-field-full">
+                                <input type="checkbox" id="manage-og-provider-enabled" checked />
+                                <span>Provider enabled for governed routing</span>
+                            </label>
+                        </div>
+
+                        <p id="manage-og-provider-meta" class="muted" style="margin: 0.85rem 0 0 0; min-height: 1.25rem;"></p>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Provider inventory JSON</p>
+                            <pre id="manage-og-providers-json" class="manage-psc-json" data-json-label="Providers"></pre>
+                        </div>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-og-provider-update">Save provider</button>
+                        <button type="button" class="btn" id="manage-og-provider-create">Create new</button>
+                        <button type="button" class="btn" id="manage-og-provider-test">Test connection</button>
+                        <span class="mui-inline-result" id="manage-og-provider-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            {# ─────────────  Models  ───────────── #}
+            <section class="mui-deck-section" data-deck-section="models">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Entity</span>
+                        <h2>Model</h2>
+                        <p class="mui-inspector-summary" id="manage-og-hint-models">Each model belongs to one provider. Align role and timeout before wiring routes.</p>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-og-model-form" onsubmit="return false;">
+                        <div class="mui-field-grid">
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Provider</span>
+                                <select id="manage-og-model-provider" class="form-input"></select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Model ID</span>
+                                <input type="text" id="manage-og-model-id" class="form-input" autocomplete="off" />
+                                <span class="mui-field-hint">Immutable identifier (used by routes).</span>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Model name</span>
+                                <input type="text" id="manage-og-model-name" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Display name</span>
+                                <input type="text" id="manage-og-model-display" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Role</span>
+                                <select id="manage-og-model-role" class="form-input">
+                                    <option value="llm">llm</option>
+                                    <option value="slm">slm</option>
+                                    <option value="embedding_role">text_embedding (embedding_role)</option>
+                                    <option value="mock">mock</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Timeout (s)</span>
+                                <input type="number" id="manage-og-model-timeout" class="form-input" min="1" max="300" value="30" />
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" id="manage-og-model-structured" />
+                                <span>Structured output capable</span>
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" id="manage-og-model-enabled" checked />
+                                <span>Enabled</span>
+                            </label>
+                        </div>
+
+                        <p id="manage-og-model-meta" class="muted" style="margin: 0.85rem 0 0 0; min-height: 1.25rem;"></p>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Model inventory JSON</p>
+                            <pre id="manage-og-models-json" class="manage-psc-json" data-json-label="Models"></pre>
+                        </div>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-og-model-update">Save model</button>
+                        <button type="button" class="btn" id="manage-og-model-create">Create new</button>
+                        <button type="button" class="btn" id="manage-og-model-test">Test model</button>
+                        <button type="button" class="btn btn-danger" id="manage-og-model-delete">Delete</button>
+                        <span class="mui-inline-result" id="manage-og-model-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            {# ─────────────  Routes  ───────────── #}
+            <section class="mui-deck-section" data-deck-section="routes">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Entity</span>
+                        <h2>Task route</h2>
+                        <p class="mui-inspector-summary" id="manage-og-hint-routes">Routes bind task kinds to a preferred / fallback / mock model trio.</p>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-og-route-form" onsubmit="return false;">
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Task kind</span>
+                                <input type="text" id="manage-og-route-task-kind" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Workflow scope</span>
+                                <input type="text" id="manage-og-route-workflow-scope" class="form-input" value="global" />
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Preferred model (primary AI path)</span>
+                                <select id="manage-og-route-preferred-model" class="form-input"></select>
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Fallback model (when preferred unavailable)</span>
+                                <select id="manage-og-route-fallback-model" class="form-input"></select>
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Mock model (deterministic / offline path)</span>
+                                <select id="manage-og-route-mock-model" class="form-input"></select>
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" id="manage-og-route-enabled" checked />
+                                <span>Route enabled</span>
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" id="manage-og-route-use-mock" checked />
+                                <span>Use mock when provider unavailable</span>
+                            </label>
+                        </div>
+
+                        <p id="manage-og-route-meta" class="muted" style="margin: 0.85rem 0 0 0; min-height: 1.25rem;"></p>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Route inventory JSON</p>
+                            <pre id="manage-og-routes-json" class="manage-psc-json" data-json-label="Routes"></pre>
+                        </div>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-og-route-update">Save route</button>
+                        <button type="button" class="btn" id="manage-og-route-create">Create new</button>
+                        <span class="mui-inline-result" id="manage-og-route-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            {# ─────────────  Runtime modes  ───────────── #}
+            <section class="mui-deck-section" data-deck-section="modes">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Posture</span>
+                        <h2>Runtime modes</h2>
+                        <p class="mui-inspector-summary">Execution posture for generation, retrieval, and validation. Save only after readiness above is acceptable for the mode you need.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Generation</span>
+                                <select id="manage-og-generation-mode" class="form-input">
+                                    <option value="mock_only">mock_only</option>
+                                    <option value="ai_only">ai_only</option>
+                                    <option value="routed_llm_slm">routed_llm_slm</option>
+                                    <option value="hybrid_routed_with_mock_fallback">hybrid_routed_with_mock_fallback</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Retrieval</span>
+                                <select id="manage-og-retrieval-mode" class="form-input">
+                                    <option value="disabled">disabled</option>
+                                    <option value="sparse_only">sparse_only</option>
+                                    <option value="hybrid_dense_sparse">hybrid_dense_sparse</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Validation</span>
+                                <select id="manage-og-validation-mode" class="form-input">
+                                    <option value="schema_only">schema_only</option>
+                                    <option value="schema_plus_semantic">schema_plus_semantic</option>
+                                    <option value="strict_rule_engine">strict_rule_engine</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Provider selection</span>
+                                <select id="manage-og-provider-selection" class="form-input">
+                                    <option value="local_only">local_only</option>
+                                    <option value="remote_allowed">remote_allowed</option>
+                                    <option value="remote_preferred">remote_preferred</option>
+                                    <option value="restricted_by_route">restricted_by_route</option>
+                                </select>
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Runtime profile</span>
+                                <select id="manage-og-runtime-profile" class="form-input">
+                                    <option value="safe_local">safe_local</option>
+                                    <option value="balanced">balanced</option>
+                                    <option value="cost_aware">cost_aware</option>
+                                    <option value="quality_first">quality_first</option>
+                                    <option value="custom">custom</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="mui-subgroup">
+                            <p class="mui-subgroup-title">Resolved runtime config JSON</p>
+                            <pre id="manage-og-runtime-config" class="manage-psc-json" data-json-label="Resolved config"></pre>
+                        </div>
+                    </div>
+                    <footer class="mui-inspector-foot">
+                        <button type="button" class="btn btn-primary" id="manage-og-save-modes">Save runtime modes</button>
+                        <button type="button" class="btn" id="manage-og-bootstrap-reload">Rebuild resolved config</button>
+                    </footer>
+                </article>
+            </section>
+
+        </main>
     </div>
 </section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_operational_governance.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_operational_governance_deck.js') }}"></script>
 {% endblock %}
