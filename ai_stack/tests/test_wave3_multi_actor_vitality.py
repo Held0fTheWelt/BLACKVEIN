@@ -214,6 +214,9 @@ class TestW31ResponderSetStrengthening:
         packet = _build_dramatic_generation_packet(state)
 
         assert packet.get("secondary_responder_directive") is None
+        assert packet.get("npc_agency_simulation") is None
+        assert packet.get("npc_agency_plan") is None
+        assert packet.get("npc_initiative_directives") is None
 
     def test_dramatic_packet_does_not_require_npc_agency_for_navigation_command(self):
         """Verify scene/navigation commands do not create required NPC initiative."""
