@@ -1,4 +1,4 @@
-"""Tests for the shared partial Pi7 NPC agency contracts."""
+"""Tests for shared Pi7 NPC agency contracts and compatibility adapters."""
 
 from __future__ import annotations
 

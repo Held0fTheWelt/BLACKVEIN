@@ -1,15 +1,21 @@
-"""Shared NPC agency contracts for the partial Pi7 runtime projection."""
+"""Shared NPC agency contracts for Pi7 runtime NPC planning."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
-from ai_stack.goc_frozen_vocab import expand_goc_actor_id_aliases
+from ai_stack.goc_frozen_vocab import canonicalize_goc_actor_id, expand_goc_actor_id_aliases
 
 
 NPC_AGENCY_PLAN_SCHEMA_VERSION = "npc_agency_plan.v1"
 NPC_AGENCY_PLAN_PARTIAL_STATUS = "partial_runtime_projection"
+NPC_AGENCY_SIMULATION_SCHEMA_VERSION = "npc_agency_simulation.v1"
+NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS = "implemented_runtime_simulation"
+NPC_AGENCY_PLANNER_SCOPE_INDEPENDENT = "independent_multi_npc_agency"
+NPC_AGENCY_CLOSURE_SCHEMA_VERSION = "npc_agency_closure.v1"
+NPC_AGENCY_CLOSURE_CLOSED_STATUS = "closed"
+NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS = "carry_forward_required"
 DEFAULT_ALLOWED_BLOCK_TYPES = ("actor_line", "actor_action")
 DEFAULT_ALLOWED_OUTPUT_LANES = ("spoken_lines", "action_lines", "initiative_events")
 FORBIDDEN_RUNTIME_ACTOR_IDS = frozenset({"visitor"})
@@ -82,6 +88,13 @@ def dedupe_strings(values: list[Any] | tuple[Any, ...]) -> list[str]:
     return out
 
 
+def canonical_actor_id(value: Any) -> str:
+    cleaned = clean_text(value)
+    if not cleaned:
+        return ""
+    return canonicalize_goc_actor_id(cleaned) or cleaned
+
+
 def coerce_string_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return dedupe_strings(value)
@@ -115,6 +128,30 @@ def forbidden_actor_ids_from_context(actor_lane_context: dict[str, Any] | None) 
         forbidden.update(expand_goc_actor_id_aliases(actor_id))
         forbidden.add(actor_id)
     return {actor_id.lower() for actor_id in forbidden if actor_id}
+
+
+def npc_actor_ids_from_context(actor_lane_context: dict[str, Any] | None) -> list[str]:
+    """Return canonical AI-controlled actor ids from the actor-lane boundary."""
+    ctx = actor_lane_context if isinstance(actor_lane_context, dict) else {}
+    raw_ids: list[Any] = []
+    for key in ("npc_actor_ids", "ai_allowed_actor_ids"):
+        values = ctx.get(key)
+        if isinstance(values, (list, tuple)):
+            raw_ids.extend(values)
+    actor_lanes = ctx.get("actor_lanes")
+    if isinstance(actor_lanes, dict):
+        for actor_id, lane in actor_lanes.items():
+            if str(lane or "").strip().lower() == "npc":
+                raw_ids.append(actor_id)
+    out: list[str] = []
+    for raw_actor_id in raw_ids:
+        actor_id = canonical_actor_id(raw_actor_id)
+        if not actor_id or actor_id in out:
+            continue
+        if is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context):
+            continue
+        out.append(actor_id)
+    return out
 
 
 def is_forbidden_actor_id(actor_id: Any, actor_lane_context: dict[str, Any] | None = None) -> bool:
@@ -181,6 +218,67 @@ def forbidden_planned_actor_ids(
         for actor_id in raw_actor_ids
         if is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context)
     ]
+
+
+def normalize_npc_agency_simulation(
+    simulation: dict[str, Any] | None,
+    *,
+    actor_lane_context: dict[str, Any] | None = None,
+    turn_number: Any = None,
+) -> dict[str, Any] | None:
+    raw = simulation if isinstance(simulation, dict) else {}
+    raw_plan = raw.get("npc_agency_plan") if isinstance(raw.get("npc_agency_plan"), dict) else None
+    normalized_plan = normalize_npc_agency_plan(
+        raw_plan,
+        actor_lane_context=actor_lane_context,
+        turn_number=raw.get("turn_number", turn_number),
+    )
+    if not normalized_plan:
+        return None
+
+    proposal_rows = coerce_dict_rows(raw.get("npc_intent_proposals"))
+    planned_actor_ids = planned_actor_ids_from_plan(normalized_plan)
+    candidate_actor_ids = dedupe_strings(
+        [
+            *coerce_string_list(raw.get("candidate_actor_ids")),
+            *[row.get("actor_id") for row in proposal_rows],
+            *planned_actor_ids,
+        ]
+    )
+    candidate_actor_ids = [
+        canonical_actor_id(actor_id)
+        for actor_id in candidate_actor_ids
+        if not is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context)
+    ]
+    candidate_actor_ids = dedupe_strings(candidate_actor_ids)
+
+    filtered_proposals: list[dict[str, Any]] = []
+    for row in proposal_rows:
+        actor_id = canonical_actor_id(row.get("actor_id"))
+        if not actor_id or is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context):
+            continue
+        filtered = dict(row)
+        filtered["actor_id"] = actor_id
+        filtered_proposals.append(filtered)
+
+    normalized = dict(raw)
+    normalized.update(
+        {
+            "contract": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+            "schema_version": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+            "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+            "implementation_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+            "not_full_multi_agent_simulation": False,
+            "independent_planning_used": bool(raw.get("independent_planning_used", True)),
+            "planner_scope": raw.get("planner_scope") or NPC_AGENCY_PLANNER_SCOPE_INDEPENDENT,
+            "turn_number": raw.get("turn_number", turn_number),
+            "candidate_actor_ids": candidate_actor_ids,
+            "planned_actor_ids": planned_actor_ids,
+            "npc_intent_proposals": filtered_proposals,
+            "npc_agency_plan": normalized_plan,
+        }
+    )
+    return normalized
 
 
 def normalize_npc_agency_plan(

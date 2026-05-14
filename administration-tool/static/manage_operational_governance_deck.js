@@ -87,24 +87,44 @@
   // -------------------------------------------------------------------------
   // Inline action result chips, tied to button clicks.
   // -------------------------------------------------------------------------
-  function bindInlineResult(btnId, resultId, runningText) {
+  function activeSectionChip() {
+    var deck = document.querySelector("[data-mui-deck]");
+    var active = deck && deck.querySelector(".mui-deck-section.is-active");
+    return active && active.querySelector(".mui-inline-result");
+  }
+
+  /**
+   * Show "running" feedback immediately; upgrade to "done" success after
+   * `timeoutMs` if nothing else has overwritten the chip in the meantime.
+   * Handles silently-succeeding actions whose existing JS doesn't toast.
+   */
+  function bindFeedback(btnId, chipIds, runningText, doneText, timeoutMs) {
     var btn = $(btnId);
-    var out = $(resultId);
-    if (!btn || !out) return;
+    if (!btn) return;
     btn.addEventListener("click", function () {
-      ManageUI.setInlineResult(out, "info", runningText || "Running…");
+      var entries = [];
+      chipIds.forEach(function (id) {
+        var c = $(id);
+        if (c) {
+          c.__muiToken = (c.__muiToken || 0) + 1;
+          ManageUI.setInlineResult(c, "info", runningText);
+          entries.push({ chip: c, token: c.__muiToken });
+        }
+      });
+      if (!doneText || !timeoutMs) return;
+      setTimeout(function () {
+        entries.forEach(function (e) {
+          if (e.chip.__muiToken !== e.token) return;
+          if (!e.chip.classList.contains("mui-inline-result--info")) return;
+          if ((e.chip.textContent || "") !== runningText) return;
+          ManageUI.setInlineResult(e.chip, "success", doneText);
+        });
+      }, timeoutMs);
     });
   }
 
-  // Watch banners for transitions to surface as inline result on the active section.
+  // Mirror banner text into both the header chip and the active section's chip.
   function bindResultMirror() {
-    function currentSectionResult() {
-      var deck = document.querySelector("[data-mui-deck]");
-      if (!deck) return null;
-      var active = deck.querySelector(".mui-deck-section.is-active");
-      if (!active) return null;
-      return active.querySelector(".mui-inline-result");
-    }
     function watch(elId, kind) {
       var el = $(elId);
       if (!el) return;
@@ -112,9 +132,17 @@
       var obs = new MutationObserver(function () {
         var text = (el.textContent || "").trim();
         if (text && text !== last) {
-          var out = currentSectionResult();
-          if (out) ManageUI.setInlineResult(out, kind, text);
           last = text;
+          var header = $("manage-og-header-result");
+          if (header) {
+            header.__muiToken = (header.__muiToken || 0) + 1;
+            ManageUI.setInlineResult(header, kind, text);
+          }
+          var chip = activeSectionChip();
+          if (chip) {
+            chip.__muiToken = (chip.__muiToken || 0) + 1;
+            ManageUI.setInlineResult(chip, kind, text);
+          }
         }
       });
       obs.observe(el, { childList: true, characterData: true, subtree: true });
@@ -133,14 +161,26 @@
     bindReadinessSync();
     bindResultMirror();
 
-    bindInlineResult("manage-og-provider-test", "manage-og-provider-result", "Testing connection…");
-    bindInlineResult("manage-og-provider-update", "manage-og-provider-result", "Saving provider…");
-    bindInlineResult("manage-og-provider-create", "manage-og-provider-result", "Creating provider…");
-    bindInlineResult("manage-og-model-test", "manage-og-model-result", "Testing model…");
-    bindInlineResult("manage-og-model-update", "manage-og-model-result", "Saving model…");
-    bindInlineResult("manage-og-model-create", "manage-og-model-result", "Creating model…");
-    bindInlineResult("manage-og-model-delete", "manage-og-model-result", "Deleting model…");
-    bindInlineResult("manage-og-route-update", "manage-og-route-result", "Saving route…");
-    bindInlineResult("manage-og-route-create", "manage-og-route-result", "Creating route…");
+    // Header reload — silently re-fetches data; give visible feedback.
+    bindFeedback("manage-og-refresh", ["manage-og-header-result"], "Reloading…", "Reloaded", 1500);
+
+    // Provider actions.
+    bindFeedback("manage-og-provider-test", ["manage-og-provider-result"], "Testing connection…", "Test finished", 4000);
+    bindFeedback("manage-og-provider-update", ["manage-og-provider-result"], "Saving provider…", "Saved", 2200);
+    bindFeedback("manage-og-provider-create", ["manage-og-provider-result"], "Creating provider…", "Created", 2200);
+
+    // Model actions.
+    bindFeedback("manage-og-model-test", ["manage-og-model-result"], "Testing model…", "Test finished", 4000);
+    bindFeedback("manage-og-model-update", ["manage-og-model-result"], "Saving model…", "Saved", 2200);
+    bindFeedback("manage-og-model-create", ["manage-og-model-result"], "Creating model…", "Created", 2200);
+    bindFeedback("manage-og-model-delete", ["manage-og-model-result"], "Deleting model…", "Deleted", 2200);
+
+    // Route actions.
+    bindFeedback("manage-og-route-update", ["manage-og-route-result"], "Saving route…", "Saved", 2200);
+    bindFeedback("manage-og-route-create", ["manage-og-route-result"], "Creating route…", "Created", 2200);
+
+    // Runtime modes (header save).
+    bindFeedback("manage-og-save-modes", ["manage-og-header-result"], "Saving runtime modes…", "Saved", 2200);
+    bindFeedback("manage-og-bootstrap-reload", ["manage-og-header-result"], "Rebuilding config…", "Rebuilt", 2200);
   });
 })();

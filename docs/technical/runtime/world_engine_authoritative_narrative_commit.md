@@ -19,6 +19,7 @@ Define how story turns transition from AI/runtime proposals to authoritative com
    - legal edges from `runtime_projection.transition_hints`
 5. Only legal transitions are committed to authoritative session state (`current_scene_id`).
 6. Every turn emits a bounded **`narrative_commit`** (`StoryNarrativeCommitRecord`) in diagnostics (for correlation) and in session history as authoritative truth. Fields include:
+   - `commit_contract_version` — currently `story_narrative_commit_record.v4`
    - `prior_scene_id`, `proposed_scene_id`, `committed_scene_id`
    - `situation_status` (`continue` | `transitioned` | `blocked` | `terminal`)
    - `allowed`, `authoritative_reason`, `commit_reason_code`
@@ -27,6 +28,7 @@ Define how story turns transition from AI/runtime proposals to authoritative com
    - `model_structured_proposed_scene_id` — raw model `proposed_scene_id` when present (even if not selected or unknown)
    - `committed_interpretation_summary` — bounded linkage from interpretation to progression (not a full world-state delta)
    - `committed_consequences`, `open_pressures`, `resolved_pressures`, `is_terminal`
+   - `planner_truth.npc_agency_simulation`, `planner_truth.npc_agency_closure`, `planner_truth.unresolved_npc_initiatives`, and `planner_truth.carried_forward_npc_initiatives` — bounded Pi7 NPC agency truth used to close or carry unresolved required NPC initiative into the next turn
 7. Committed history entries omit full `interpreted_input` and graph blobs; orchestration detail stays in `diagnostics[]` envelopes only.
 
 ## Safety semantics

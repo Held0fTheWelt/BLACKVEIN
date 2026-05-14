@@ -28,6 +28,67 @@ def _extract_operator_hints(event: dict[str, Any]) -> dict[str, Any]:
     return telemetry.get("operator_diagnostic_hints") if isinstance(telemetry.get("operator_diagnostic_hints"), dict) else {}
 
 
+def _extract_npc_agency_breakdown(
+    event: dict[str, Any],
+    vitality: dict[str, Any],
+) -> dict[str, Any]:
+    realization = (
+        vitality.get("npc_initiative_realization_v1")
+        if isinstance(vitality.get("npc_initiative_realization_v1"), dict)
+        else {}
+    )
+    ledger = event.get("turn_aspect_ledger") if isinstance(event.get("turn_aspect_ledger"), dict) else {}
+    projection = (
+        ledger.get("runtime_intelligence_projection")
+        if isinstance(ledger.get("runtime_intelligence_projection"), dict)
+        else {}
+    )
+    npc_agency = (
+        projection.get("npc_agency")
+        if isinstance(projection.get("npc_agency"), dict)
+        else {}
+    )
+    planner_truth = {}
+    commit = event.get("narrative_commit") if isinstance(event.get("narrative_commit"), dict) else {}
+    if isinstance(commit.get("planner_truth"), dict):
+        planner_truth = commit["planner_truth"]
+    closure = (
+        planner_truth.get("npc_agency_closure")
+        if isinstance(planner_truth.get("npc_agency_closure"), dict)
+        else {}
+    )
+    return {
+        "schema_version": realization.get("schema_version"),
+        "contract_status": npc_agency.get("contract_status") or realization.get("contract_status"),
+        "independent_planning_used": bool(
+            npc_agency.get("independent_planning_used")
+            or realization.get("independent_planning_used")
+        ),
+        "candidate_actor_ids": list(npc_agency.get("candidate_actor_ids") or realization.get("candidate_actor_ids") or []),
+        "planned_actor_ids": list(realization.get("planned_actor_ids") or npc_agency.get("planned_actor_ids") or []),
+        "realized_actor_ids": list(
+            realization.get("realized_initiative_actor_ids")
+            or npc_agency.get("realized_actor_ids")
+            or []
+        ),
+        "missing_required_actor_ids": list(
+            realization.get("unrealized_required_initiative_actor_ids")
+            or npc_agency.get("missing_required_actor_ids")
+            or []
+        ),
+        "multi_npc_initiative_realized": bool(
+            realization.get("multi_npc_initiative_realized")
+            or npc_agency.get("multi_npc_initiative_realized")
+        ),
+        "closure_status": closure.get("closure_status") or npc_agency.get("closure_status"),
+        "carry_forward_actor_ids": list(
+            closure.get("unresolved_actor_ids")
+            or npc_agency.get("carry_forward_actor_ids")
+            or []
+        ),
+    }
+
+
 def _derive_passivity_factors(vitality: dict[str, Any], quality_class: str, degradation_signals: list[str]) -> list[str]:
     factors: list[str] = []
     if vitality.get("fallback_used"):
@@ -122,6 +183,7 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
         "rendered_actor_count": len(vitality.get("rendered_actor_ids") or []),
         "sparse_input_recovery_applied": bool(vitality.get("sparse_input_recovery_applied")),
     }
+    npc_agency_breakdown = _extract_npc_agency_breakdown(event, vitality)
 
     return {
         "turn_number": event.get("turn_number"),
@@ -156,6 +218,7 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
         "why_turn_felt_passive": passivity,
         "primary_passivity_factors": passivity[:3],
         "vitality_breakdown": vitality_breakdown,
+        "npc_agency_breakdown": npc_agency_breakdown,
         "intent_surface_evidence": {
             "player_input_kind": path_summary.get("player_input_kind"),
             "player_action_committed": path_summary.get("player_action_committed"),

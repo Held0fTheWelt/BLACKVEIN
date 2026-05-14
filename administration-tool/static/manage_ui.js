@@ -316,7 +316,7 @@
 
   function autoBindJsonViewers(root) {
     var pres = (root || document).querySelectorAll(
-      "pre.manage-psc-json, pre[data-json-viewer]"
+      "pre.manage-psc-json, pre.code-block, pre[data-json-viewer]"
     );
     pres.forEach(function (pre) {
       var labelGuess = pre.dataset.jsonLabel;
@@ -517,28 +517,47 @@
     activateDeck(deckEl, target);
   };
 
+  function escapeCss(value) {
+    if (window.CSS && typeof CSS.escape === "function") return CSS.escape(value);
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+  }
+
   ManageUI.bindDeck = function (deckEl) {
     if (!deckEl || deckEl.__muiDeckBound) return;
     deckEl.__muiDeckBound = true;
 
-    deckEl.addEventListener("click", function (ev) {
+    // The deck-header (sticky nav with shortcut buttons) typically lives as a
+    // SIBLING of the .mui-deck container, not inside it. Bind the click
+    // listener on the nearest section ancestor so both header and rail clicks
+    // are caught.
+    var scope = deckEl.closest("section") || deckEl.closest("main") || document.body;
+
+    scope.addEventListener("click", function (ev) {
       var trigger = ev.target.closest("[data-deck-target]");
-      if (!trigger || !deckEl.contains(trigger)) return;
-      // Don't intercept rail-item buttons — they handle deck activation themselves
-      // after also setting the select value.
-      if (trigger.classList.contains("mui-rail-btn")) return;
-      ev.preventDefault();
+      if (!trigger || !scope.contains(trigger)) return;
+
+      // Rail-list items have their own click handler (sets the <select>
+      // value AND activates the deck). Skip them here to avoid double work.
+      if (trigger.closest(".mui-rail-list")) return;
+
+      // Confirm THIS deck owns the target (allows multiple decks per page).
       var target = trigger.dataset.deckTarget;
+      if (!target) return;
+      var ownedSection = deckEl.querySelector("[data-deck-section=\"" + escapeCss(target) + "\"]");
+      if (!ownedSection) return;
+
+      ev.preventDefault();
       activateDeck(deckEl, target);
       if (history && history.replaceState) {
         history.replaceState(null, "", "#" + target);
       }
     });
 
-    // Honor URL hash on load.
+    // Honor URL hash on load, else activate the first known section.
     var hash = (location.hash || "").replace(/^#/, "");
-    var firstNav = deckEl.querySelector("[data-deck-target]");
-    if (hash && deckEl.querySelector("[data-deck-section=\"" + CSS.escape(hash) + "\"]")) {
+    var firstNav = deckEl.querySelector("[data-deck-target]")
+      || scope.querySelector("[data-deck-target]");
+    if (hash && deckEl.querySelector("[data-deck-section=\"" + escapeCss(hash) + "\"]")) {
       activateDeck(deckEl, hash);
     } else if (firstNav) {
       activateDeck(deckEl, firstNav.dataset.deckTarget);

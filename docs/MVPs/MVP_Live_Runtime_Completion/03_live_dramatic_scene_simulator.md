@@ -319,21 +319,23 @@ Valid block types: `narrator`, `actor_line`, `actor_action`, `environment_intera
 }
 ```
 
-### NPCAgencyPlan
+### NPCAgencySimulation
 
 ```json
 {
-  "contract": "npc_agency_plan.v1",
-  "schema_version": "npc_agency_plan.v1",
-  "contract_status": "partial_runtime_projection",
-  "implementation_status": "partial_runtime_projection",
-  "not_full_multi_agent_simulation": true,
+  "contract": "npc_agency_simulation.v1",
+  "schema_version": "npc_agency_simulation.v1",
+  "contract_status": "implemented_runtime_simulation",
+  "implementation_status": "implemented_runtime_simulation",
+  "not_full_multi_agent_simulation": false,
+  "independent_planning_used": true,
+  "planner_scope": "independent_multi_npc_agency",
   "turn_number": 4,
-  "primary_responder_id": "veronique_vallon",
-  "secondary_responder_ids": ["michel_longstreet"],
+  "candidate_actor_ids": ["veronique_vallon", "michel_longstreet"],
+  "ordered_actor_ids": ["veronique_vallon", "michel_longstreet"],
   "required_actor_ids": ["veronique_vallon", "michel_longstreet"],
-  "minimum_secondary_initiatives_required": 1,
-  "npc_initiatives": [
+  "carry_forward_actor_ids": [],
+  "npc_intent_proposals": [
     {
       "actor_id": "veronique_vallon",
       "role": "primary_responder",
@@ -356,11 +358,19 @@ Valid block types: `narrator`, `actor_line`, `actor_action`, `environment_intera
       "requirement_scope": "one_secondary_minimum",
       "resolved": false
     }
-  ]
+  ],
+  "npc_interaction_graph": {
+    "nodes": [{"actor_id": "veronique_vallon"}, {"actor_id": "michel_longstreet"}],
+    "edges": [{"source_actor_id": "michel_longstreet", "target_actor_id": "veronique_vallon", "edge_type": "initiative_pressure"}]
+  },
+  "conflict_resolution": {
+    "policy": "carry_forward_then_director_priority_then_roster_order",
+    "minimum_secondary_initiatives_required": 1
+  }
 }
 ```
 
-Current Pi7 runtime support treats this as a **partial projection**: `ai_stack/npc_agency_contracts.py` normalizes the contract and legacy `initiatives`, `ai_stack/npc_agency_realization.py` records planned/realized/missing required NPC initiative, and telemetry exposes `npc_initiative_realization_v1`. This is not yet an independent multi-agent NPC planner; missing-required feedback, durable initiative carry-forward, and operator/Langfuse closure remain future work.
+Current Pi7 runtime support treats `npc_agency_simulation.v1` as the primary NPC agency surface. `ai_stack/npc_agency_planner.py` builds an independent bounded roster plan from actor-lane, responder, mind, and carry-forward evidence; `ai_stack/npc_agency_realization.py` records planned/realized/missing required NPC initiative and builds `npc_agency_closure.v1`; committed planner truth carries unresolved required initiatives into the next turn; Langfuse/operator/MCP surfaces score planned vs. realized NPC initiative. The older `npc_agency_plan.v1` shape may still appear as an internal adapter, but it is not the current proof target.
 
 ### EnvironmentInteraction
 
@@ -418,7 +428,7 @@ Current Pi7 runtime support treats this as a **partial projection**: `ai_stack/n
 {
   "contract": "narrative_runtime_agent_input.v1",
   "runtime_state": {"story_session_id": "story_123", "turn_number": 4, "current_scene_id": "phase_1", "dramatic_signature": {...}, "narrative_threads": [...], "thread_pressure_summary": "escalating"},
-  "npc_agency_plan": {"primary_responder_id": "veronique_houllie", "secondary_responder_ids": ["alain_reille"], "npc_initiatives": [...]},
+  "npc_agency_simulation": {"schema_version": "npc_agency_simulation.v1", "candidate_actor_ids": ["veronique_houllie", "alain_reille"], "npc_intent_proposals": [...]},
   "ldss_output": {"visible_scene_output": {...}, "decision_count": 3, "scene_block_count": 4},
   "enable_langfuse_tracing": false,
   "player_input_queued": false,

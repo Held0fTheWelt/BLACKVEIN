@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from ai_stack.actor_survival_telemetry import build_actor_survival_telemetry
+from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+    NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+)
 from ai_stack.runtime_turn_contracts import VITALITY_TELEMETRY_REQUIRED_FIELDS, VITALITY_TELEMETRY_SCHEMA_VERSION
 
 
@@ -91,15 +95,12 @@ def test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_r
     assert vitality["reaction_order_divergence"] == "secondary_responder_nominated_not_realized_in_output"
 
 
-def test_npc_initiative_realization_reports_partial_missing_required_secondary():
+def test_npc_initiative_realization_reports_current_simulation_missing_required_secondary():
     state = _base_state()
     selected_actor_ids = [row["actor_id"] for row in state["selected_responder_set"]]
     primary_actor_id = selected_actor_ids[0]
     secondary_actor_ids = selected_actor_ids[1:]
-    agency_plan = {
-        "contract": "npc_agency_plan.v1",
-        "contract_status": "partial_runtime_projection",
-        "not_full_multi_agent_simulation": True,
+    agency_plan_adapter = {
         "primary_responder_id": primary_actor_id,
         "secondary_responder_ids": secondary_actor_ids,
         "required_actor_ids": selected_actor_ids,
@@ -109,8 +110,19 @@ def test_npc_initiative_realization_reports_partial_missing_required_secondary()
             for actor_id in selected_actor_ids
         ],
     }
+    agency_simulation = {
+        "contract": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+        "schema_version": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+        "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+        "not_full_multi_agent_simulation": False,
+        "independent_planning_used": True,
+        "candidate_actor_ids": selected_actor_ids,
+        "required_actor_ids": selected_actor_ids,
+        "npc_intent_proposals": list(agency_plan_adapter["npc_initiatives"]),
+        "npc_agency_plan": agency_plan_adapter,
+    }
     state["dramatic_generation_packet"] = {
-        "npc_agency_plan": agency_plan
+        "npc_agency_simulation": agency_simulation
     }
     state["generation"]["metadata"]["structured_output"]["spoken_lines"] = [
         {"speaker_id": primary_actor_id, "text": "No."}
@@ -129,11 +141,11 @@ def test_npc_initiative_realization_reports_partial_missing_required_secondary()
         fallback_taken=False,
     )
     realization = telemetry["vitality_telemetry_v1"]["npc_initiative_realization_v1"]
-    planned_actor_ids = [row["actor_id"] for row in agency_plan["npc_initiatives"]]
+    planned_actor_ids = [row["actor_id"] for row in agency_plan_adapter["npc_initiatives"]]
     realized_actor_ids = telemetry["vitality_telemetry_v1"]["realized_actor_ids"]
     expected_missing_ids = [actor_id for actor_id in planned_actor_ids if actor_id not in realized_actor_ids]
     expected_required_missing_ids = [
-        actor_id for actor_id in agency_plan["required_actor_ids"] if actor_id not in realized_actor_ids
+        actor_id for actor_id in agency_simulation["required_actor_ids"] if actor_id not in realized_actor_ids
     ]
     expected_initiative_event_actor_ids = [
         row["actor_id"]
@@ -142,12 +154,14 @@ def test_npc_initiative_realization_reports_partial_missing_required_secondary()
     expected_multi_npc_realized = len(realization["realized_initiative_actor_ids"]) >= 2
 
     assert realization["schema_version"] == "npc_initiative_realization_v1"
-    assert realization["contract_status"] == "partial_runtime_projection"
-    assert realization["not_full_multi_agent_simulation"] is True
+    assert realization["contract_status"] == NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+    assert realization["not_full_multi_agent_simulation"] is False
+    assert realization["independent_planning_used"] is True
+    assert realization["candidate_actor_ids"] == agency_simulation["candidate_actor_ids"]
     assert realization["planned_actor_ids"] == planned_actor_ids
     assert realization["realized_initiative_actor_ids"] == realized_actor_ids
     assert realization["missing_initiative_actor_ids"] == expected_missing_ids
-    assert realization["required_actor_ids"] == agency_plan["required_actor_ids"]
+    assert realization["required_actor_ids"] == agency_simulation["required_actor_ids"]
     assert realization["unrealized_required_initiative_actor_ids"] == expected_required_missing_ids
     assert realization["preserved_initiative_event_actor_ids"] == expected_initiative_event_actor_ids
     assert realization["initiative_event_only_actor_ids"] == expected_missing_ids

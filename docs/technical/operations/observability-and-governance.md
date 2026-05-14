@@ -113,6 +113,8 @@ Langfuse runtime aspect spans include:
 - `story.authority.npc`
 - `story.capability.select`
 - `story.capability.realize`
+- `story.npc_agency.plan`
+- `story.npc_agency.realize`
 - `story.visible.project`
 - `story.commit.apply`
 - `story.turn.aspect_summary`
@@ -143,6 +145,12 @@ Deterministic runtime aspect scores include:
 - `forbidden_capability_absent`
 - `selected_capabilities_realized`
 - `dramatic_capability_contract_pass`
+- `npc_agency_plan_present`
+- `npc_independent_planning_used`
+- `npc_required_initiatives_realized`
+- `multi_npc_initiative_realized`
+- `npc_carry_forward_closed`
+- `npc_forbidden_actor_absent`
 - `visible_block_origin_present`
 - `required_visible_origin_preserved`
 - `visible_projection_contract_pass`

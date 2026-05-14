@@ -110,6 +110,8 @@ class RuntimeTurnState(TypedDict, total=False):
     character_mind_records: list[dict[str, Any]]
     character_voice_profiles: list[dict[str, Any]]
     voice_consistency_validation: dict[str, Any]
+    npc_agency_simulation: dict[str, Any]
+    npc_initiative_validation: dict[str, Any]
     scene_plan_record: dict[str, Any]
     dramatic_effect_outcome: dict[str, Any]
     # Model-generated structured behavior outputs; populated by the

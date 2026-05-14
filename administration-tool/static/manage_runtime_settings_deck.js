@@ -70,16 +70,48 @@
   // -------------------------------------------------------------------------
   // Inline action chips driven by button clicks + banner text watchers.
   // -------------------------------------------------------------------------
-  function bindInlineResult(btnId, resultId, runningText) {
+  function activeSectionChip() {
+    var deck = document.querySelector("[data-mui-deck]");
+    var active = deck && deck.querySelector(".mui-deck-section.is-active");
+    return active && active.querySelector(".mui-inline-result");
+  }
+
+  /**
+   * Wire a click handler that:
+   *   - shows "running" feedback immediately,
+   *   - upgrades to a "done" success state after `timeoutMs` if nothing else
+   *     has overwritten the chip in the meantime (handles silently-succeeding
+   *     actions whose existing JS never updates a status banner).
+   */
+  function bindFeedback(btnId, chipIds, runningText, doneText, timeoutMs) {
     var btn = $(btnId);
-    var out = $(resultId);
-    if (!btn || !out) return;
+    if (!btn) return;
     btn.addEventListener("click", function () {
-      ManageUI.setInlineResult(out, "info", runningText || "Running…");
+      var chips = [];
+      chipIds.forEach(function (id) {
+        var c = id === "__active__" ? activeSectionChip() : $(id);
+        if (c) {
+          ManageUI.setInlineResult(c, "info", runningText);
+          c.__muiRunningText = runningText;
+          c.__muiToken = (c.__muiToken || 0) + 1;
+          var token = c.__muiToken;
+          chips.push({ chip: c, token: token });
+        }
+      });
+      if (!doneText || !timeoutMs) return;
+      setTimeout(function () {
+        chips.forEach(function (entry) {
+          var c = entry.chip;
+          if (c.__muiToken !== entry.token) return;             // newer click intervened
+          if (!c.classList.contains("mui-inline-result--info")) return; // banner already updated
+          if ((c.textContent || "") !== runningText) return;    // text changed by something else
+          ManageUI.setInlineResult(c, "success", doneText);
+        });
+      }, timeoutMs);
     });
   }
 
-  function bindBannerMirror(bannerId, successId, resultIds) {
+  function bindBannerMirror(bannerId, successId) {
     function watch(elId, kind) {
       var el = $(elId);
       if (!el) return;
@@ -88,12 +120,16 @@
         var text = (el.textContent || "").trim();
         if (text && text !== last) {
           last = text;
-          // Mirror into whichever result chip belongs to the active section.
-          var deck = document.querySelector("[data-mui-deck]");
-          var active = deck && deck.querySelector(".mui-deck-section.is-active");
-          if (active) {
-            var chip = active.querySelector(".mui-inline-result");
-            if (chip) ManageUI.setInlineResult(chip, kind, text);
+          // Mirror into both the header chip and the active section's chip.
+          var header = $("manage-rs-header-result");
+          if (header) {
+            header.__muiToken = (header.__muiToken || 0) + 1;
+            ManageUI.setInlineResult(header, kind, text);
+          }
+          var chip = activeSectionChip();
+          if (chip) {
+            chip.__muiToken = (chip.__muiToken || 0) + 1;
+            ManageUI.setInlineResult(chip, kind, text);
           }
         }
       });
@@ -108,8 +144,18 @@
   // -------------------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", function () {
     bindHeaderSync();
-    bindInlineResult("manage-rs-save-settings", "manage-rs-advanced-result", "Saving advanced settings…");
-    bindInlineResult("manage-sre-save", "manage-sre-result", "Saving Story Runtime Experience…");
+
+    // Header actions (silent success on refresh/reset/apply — give visible feedback).
+    bindFeedback("manage-rs-refresh", ["manage-rs-header-result"], "Reloading…", "Reloaded", 1400);
+    bindFeedback("manage-rs-reset-overrides", ["manage-rs-header-result"], "Clearing overrides…", "Overrides cleared", 1400);
+    bindFeedback("manage-rs-apply-safe-local", ["manage-rs-header-result"], "Applying safe_local…", "Preset applied", 1400);
+
+    // Inspector save buttons (existing JS shows a banner on success, but we still want
+    // an immediate "running" chip near the action).
+    bindFeedback("manage-rs-save-settings", ["manage-rs-advanced-result"], "Saving advanced settings…", "Saved", 2200);
+    bindFeedback("manage-sre-save", ["manage-sre-result"], "Saving Story Runtime Experience…", "Saved", 2200);
+    bindFeedback("manage-sre-refresh", ["manage-sre-result"], "Reloading SRE…", "Reloaded", 1400);
+
     bindBannerMirror("manage-rs-banner", "manage-rs-success");
     bindBannerMirror("manage-sre-banner", "manage-sre-success");
   });

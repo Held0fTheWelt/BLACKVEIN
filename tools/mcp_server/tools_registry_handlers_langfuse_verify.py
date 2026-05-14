@@ -489,6 +489,12 @@ def _extract_normalized_wos_evidence(
         "beat_realized",
         "narrator_required_when_expected",
         "npc_takeover_absent",
+        "npc_agency_plan_present",
+        "npc_independent_planning_used",
+        "npc_required_initiatives_realized",
+        "multi_npc_initiative_realized",
+        "npc_carry_forward_closed",
+        "npc_forbidden_actor_absent",
         "capability_selection_present",
         "selected_capabilities_realized",
         "visible_block_origin_present",
@@ -544,10 +550,18 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "narrator_required_when_expected",
     "narrator_required",
     "narrator_present",
-    "npc_policy",
-    "npc_takeover_absent",
-    "npc_takeover_detected",
-    "capability_selection_present",
+        "npc_policy",
+        "npc_takeover_absent",
+        "npc_takeover_detected",
+        "npc_agency_plan_present",
+        "npc_independent_planning_used",
+        "npc_required_initiatives_realized",
+        "multi_npc_initiative_realized",
+        "npc_carry_forward_closed",
+        "npc_forbidden_actor_absent",
+        "npc_agency_candidate_actor_ids",
+        "npc_agency_missing_required_actor_ids",
+        "capability_selection_present",
     "selected_capabilities",
     "realized_capabilities",
     "selected_capabilities_realized",
@@ -645,6 +659,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     beat_rec = _aspect_record(ledger, "beat")
     narr_rec = _aspect_record(ledger, "narrator_authority")
     npc_rec = _aspect_record(ledger, "npc_authority")
+    npc_agency_rec = _aspect_record(ledger, "npc_agency")
     cap_rec = _aspect_record(ledger, "capability_selection")
     vis_rec = _aspect_record(ledger, "visible_projection")
     narrative_rec = _aspect_record(ledger, "narrative_aspect")
@@ -658,6 +673,7 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     narr_actual = _aspect_block(narr_rec, "actual")
     npc_expected = _aspect_block(npc_rec, "expected")
     npc_actual = _aspect_block(npc_rec, "actual")
+    npc_agency_actual = _aspect_block(npc_agency_rec, "actual")
     cap_selected = _aspect_block(cap_rec, "selected")
     cap_actual = _aspect_block(cap_rec, "actual")
     vis_actual = _aspect_block(vis_rec, "actual")
@@ -666,8 +682,8 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     narrative_actual = _aspect_block(narrative_rec, "actual")
     memory_selected = _aspect_block(memory_rec, "selected")
     memory_actual = _aspect_block(memory_rec, "actual")
-    failed_records = [r for r in (narr_rec, npc_rec, cap_rec, beat_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "failed"]
-    partial_records = [r for r in (beat_rec, cap_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "partial"]
+    failed_records = [r for r in (narr_rec, npc_rec, npc_agency_rec, cap_rec, beat_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "failed"]
+    partial_records = [r for r in (beat_rec, npc_agency_rec, cap_rec, vis_rec, narrative_rec, memory_rec) if r.get("status") == "partial"]
     main_record = failed_records[0] if failed_records else partial_records[0] if partial_records else {}
     reasons = main_record.get("reasons") if isinstance(main_record.get("reasons"), list) else []
     main_failure = str(main_record.get("failure_reason") or (reasons[0] if reasons else "")).strip() or None
@@ -690,6 +706,36 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
         "npc_policy": npc_expected.get("policy"),
         "npc_takeover_absent": (not bool(npc_actual.get("npc_takeover_detected"))) if "npc_takeover_detected" in npc_actual else det_scores.get("npc_takeover_absent"),
         "npc_takeover_detected": npc_actual.get("npc_takeover_detected"),
+        "npc_agency_plan_present": bool(npc_agency_rec) if npc_agency_rec else det_scores.get("npc_agency_plan_present"),
+        "npc_independent_planning_used": npc_agency_actual.get("independent_planning_used") if "independent_planning_used" in npc_agency_actual else det_scores.get("npc_independent_planning_used"),
+        "npc_required_initiatives_realized": (
+            not bool(npc_agency_actual.get("missing_required_actor_ids"))
+            if "missing_required_actor_ids" in npc_agency_actual
+            else det_scores.get("npc_required_initiatives_realized")
+        ),
+        "multi_npc_initiative_realized": npc_agency_actual.get("multi_npc_initiative_realized") if "multi_npc_initiative_realized" in npc_agency_actual else det_scores.get("multi_npc_initiative_realized"),
+        "npc_carry_forward_closed": (
+            (
+                not bool(npc_agency_actual.get("carry_forward_actor_ids"))
+                and not bool(npc_agency_actual.get("missing_required_actor_ids"))
+            )
+            if (
+                "carry_forward_actor_ids" in npc_agency_actual
+                or "missing_required_actor_ids" in npc_agency_actual
+            )
+            else det_scores.get("npc_carry_forward_closed")
+        ),
+        "npc_forbidden_actor_absent": (
+            not bool(npc_agency_actual.get("forbidden_planned_actor_ids"))
+            and not bool(npc_agency_actual.get("forbidden_realized_actor_ids"))
+            if (
+                "forbidden_planned_actor_ids" in npc_agency_actual
+                or "forbidden_realized_actor_ids" in npc_agency_actual
+            )
+            else det_scores.get("npc_forbidden_actor_absent")
+        ),
+        "npc_agency_candidate_actor_ids": npc_agency_actual.get("candidate_actor_ids") or [],
+        "npc_agency_missing_required_actor_ids": npc_agency_actual.get("missing_required_actor_ids") or [],
         "capability_selection_present": bool(cap_rec) if cap_rec else det_scores.get("capability_selection_present"),
         "selected_capabilities": cap_selected.get("selected_capabilities") or [],
         "realized_capabilities": cap_actual.get("realized_capabilities") or [],

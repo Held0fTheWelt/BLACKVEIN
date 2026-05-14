@@ -455,10 +455,20 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                     npc_agency_expected.get("not_full_multi_agent_simulation")
                     or npc_agency_actual.get("not_full_multi_agent_simulation")
                 ),
+                "independent_planning_used": bool(
+                    npc_agency_actual.get("independent_planning_used")
+                    or npc_agency_expected.get("independent_planning_expected")
+                ),
+                "planner_scope": npc_agency_actual.get("planner_scope"),
+                "candidate_actor_ids": npc_agency_actual.get("candidate_actor_ids")
+                or npc_agency_expected.get("candidate_actor_ids")
+                or [],
                 "planned_actor_ids": npc_agency_actual.get("planned_actor_ids") or [],
                 "realized_actor_ids": npc_agency_actual.get("realized_actor_ids") or [],
                 "missing_required_actor_ids": npc_agency_actual.get("missing_required_actor_ids")
                 or [],
+                "carry_forward_actor_ids": npc_agency_actual.get("carry_forward_actor_ids") or [],
+                "closure_status": npc_agency_actual.get("closure_status"),
                 "error_codes": npc_agency_actual.get("error_codes") or [],
                 "multi_npc_initiative_realized": bool(
                     npc_agency_actual.get("multi_npc_initiative_realized")
@@ -681,6 +691,7 @@ def aspect_score_metadata(
     normalized = normalize_runtime_aspect_ledger(ledger)
     aspect = get_aspect_record(normalized, aspect_name)
     reasons = aspect.get("reasons") if isinstance(aspect.get("reasons"), list) else []
+    actual = aspect.get("actual") if isinstance(aspect.get("actual"), dict) else {}
     return {
         "score_name": score_name,
         "aspect_name": aspect_name,
@@ -699,4 +710,10 @@ def aspect_score_metadata(
         "realized_capability": aspect.get("realized_capability"),
         "selected_beat": aspect.get("selected_beat"),
         "lost_at_stage": aspect.get("lost_at_stage"),
+        "planned_actor_ids": actual.get("planned_actor_ids"),
+        "realized_actor_ids": actual.get("realized_actor_ids"),
+        "missing_required_actor_ids": actual.get("missing_required_actor_ids"),
+        "candidate_actor_ids": actual.get("candidate_actor_ids"),
+        "independent_planning_used": actual.get("independent_planning_used"),
+        "npc_agency_closure_status": actual.get("closure_status"),
     }

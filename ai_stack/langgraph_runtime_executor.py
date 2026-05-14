@@ -93,7 +93,13 @@ from ai_stack.goc_knowledge_runtime_gates import (
     build_runtime_knowledge_contract,
     knowledge_contract_prompt_lines,
 )
-from ai_stack.npc_agency_planner import build_npc_agency_plan
+from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
+    NPC_AGENCY_CLOSURE_CLOSED_STATUS,
+    NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+    npc_actor_ids_from_context,
+)
+from ai_stack.npc_agency_planner import build_npc_agency_plan, build_npc_agency_simulation
 from ai_stack.npc_agency_realization import validate_npc_initiative_realization
 from ai_stack.goc_scene_identity import GUIDANCE_PHASE_TO_ESCALATION_ARC_KEY
 from ai_stack.character_mind_goc import build_character_mind_records_for_goc
@@ -873,6 +879,16 @@ def _npc_agency_plan_from_state(state: "RuntimeTurnState") -> dict[str, Any] | N
         if isinstance(state.get("dramatic_generation_packet"), dict)
         else {}
     )
+    simulation = (
+        packet.get("npc_agency_simulation")
+        if isinstance(packet.get("npc_agency_simulation"), dict)
+        else None
+    )
+    if simulation:
+        return simulation
+    direct_simulation = state.get("npc_agency_simulation")
+    if isinstance(direct_simulation, dict) and direct_simulation:
+        return direct_simulation
     plan = packet.get("npc_agency_plan") if isinstance(packet.get("npc_agency_plan"), dict) else None
     if plan:
         return plan
@@ -910,20 +926,29 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
         if isinstance(validation.get("npc_agency_plan"), dict)
         else {}
     )
+    simulation = (
+        validation.get("npc_agency_simulation")
+        if isinstance(validation.get("npc_agency_simulation"), dict)
+        else {}
+    )
     error_codes = [str(code) for code in (validation.get("error_codes") or []) if str(code).strip()]
     feedback_code = str(validation.get("feedback_code") or "").strip() or None
     forbidden = bool(validation.get("forbidden_planned_actor_ids") or validation.get("forbidden_realized_actor_ids"))
     failed = aspect_status == "failed"
+    not_full = (
+        bool(validation.get("not_full_multi_agent_simulation"))
+        if "not_full_multi_agent_simulation" in validation
+        else bool(plan.get("not_full_multi_agent_simulation"))
+    )
     return make_aspect_record(
         applicable=True,
         status=aspect_status,
         expected={
             "npc_agency_plan_present": True,
             "contract_status": validation.get("contract_status") or plan.get("contract_status"),
-            "not_full_multi_agent_simulation": bool(
-                validation.get("not_full_multi_agent_simulation")
-                or plan.get("not_full_multi_agent_simulation")
-            ),
+            "not_full_multi_agent_simulation": not_full,
+            "independent_planning_expected": bool(simulation),
+            "candidate_actor_ids": simulation.get("candidate_actor_ids") or [],
             "required_actor_ids": realization.get("required_actor_ids") or plan.get("required_actor_ids") or [],
             "minimum_secondary_initiatives_required": plan.get("minimum_secondary_initiatives_required"),
         },
@@ -940,10 +965,14 @@ def _npc_agency_aspect_record(validation: dict[str, Any] | None) -> dict[str, An
             "forbidden_realized_actor_ids": validation.get("forbidden_realized_actor_ids") or [],
             "error_codes": error_codes,
             "multi_npc_initiative_realized": bool(realization.get("multi_npc_initiative_realized")),
-            "not_full_multi_agent_simulation": bool(
-                validation.get("not_full_multi_agent_simulation")
-                or realization.get("not_full_multi_agent_simulation")
-            ),
+            "independent_planning_used": bool(validation.get("independent_planning_used")),
+            "planner_scope": simulation.get("planner_scope") or plan.get("planner_scope"),
+            "candidate_actor_ids": simulation.get("candidate_actor_ids") or [],
+            "carry_forward_actor_ids": simulation.get("carry_forward_actor_ids") or [],
+            "closure_status": NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+            if validation.get("missing_required_actor_ids")
+            else NPC_AGENCY_CLOSURE_CLOSED_STATUS,
+            "not_full_multi_agent_simulation": not_full,
             "contract_status": validation.get("contract_status") or realization.get("contract_status"),
         },
         reasons=error_codes,
@@ -1858,17 +1887,33 @@ def _build_npc_agency_plan_projection(
     state: RuntimeTurnState,
     responders: list[Any],
     responder_ids: list[str],
+    npc_actor_ids: list[str],
     compact_minds: list[dict[str, Any]],
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    if not responder_ids:
-        return None, None
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    if not responder_ids and not npc_actor_ids:
+        return None, None, None
 
     character_mind_records = (
         state.get("character_mind_records")
         if isinstance(state.get("character_mind_records"), list)
         else compact_minds
     )
-    plan = build_npc_agency_plan(
+    interpreted_input = (
+        state.get("interpreted_input")
+        if isinstance(state.get("interpreted_input"), dict)
+        else {}
+    )
+    command_name = str(interpreted_input.get("command_name") or "").strip().lower()
+    navigation_command = (
+        str(interpreted_input.get("kind") or "").strip().lower() == "explicit_command"
+        and command_name in {"move", "goto", "go", "scene", "travel", "look", "inspect"}
+    )
+    npc_response_expected = (
+        False
+        if interpreted_input.get("npc_response_expected") is False or navigation_command
+        else None
+    )
+    simulation = build_npc_agency_simulation(
         selected_responder_set=responders,
         turn_number=state.get("turn_number"),
         character_mind_records=character_mind_records,
@@ -1884,26 +1929,57 @@ def _build_npc_agency_plan_projection(
         else None,
         actor_lane_context=state.get("actor_lane_context")
         if isinstance(state.get("actor_lane_context"), dict)
-        else None,
+            else None,
         preferred_reaction_order_ids=responder_ids,
+        npc_actor_ids=npc_actor_ids,
+        npc_response_expected=npc_response_expected,
     )
+    plan = (
+        simulation.get("npc_agency_plan")
+        if isinstance(simulation, dict) and isinstance(simulation.get("npc_agency_plan"), dict)
+        else None
+    )
+    if not plan and responder_ids and npc_response_expected is not False:
+        plan = build_npc_agency_plan(
+            selected_responder_set=responders,
+            turn_number=state.get("turn_number"),
+            character_mind_records=character_mind_records,
+            social_state_record=state.get("social_state_record")
+            if isinstance(state.get("social_state_record"), dict)
+            else None,
+            semantic_move_record=state.get("semantic_move_record")
+            if isinstance(state.get("semantic_move_record"), dict)
+            else None,
+            selected_scene_function=str(state.get("selected_scene_function") or "").strip() or None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            actor_lane_context=state.get("actor_lane_context")
+            if isinstance(state.get("actor_lane_context"), dict)
+            else None,
+            preferred_reaction_order_ids=responder_ids,
+        )
     if not plan:
-        return None, None
+        return None, None, None
     required_actor_ids = list(plan.get("required_actor_ids") or [])
     secondary_ids = list(plan.get("secondary_responder_ids") or [])
+    full_simulation = isinstance(simulation, dict)
     directives = {
         "contract": "npc_initiative_directives.v1",
-        "contract_status": "partial_runtime_projection",
-        "not_full_multi_agent_simulation": True,
+        "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+        if full_simulation
+        else "partial_runtime_projection",
+        "not_full_multi_agent_simulation": not full_simulation,
+        "independent_planning_used": full_simulation,
         "required_actor_ids": required_actor_ids,
         "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
         "instruction": (
-            "Use npc_agency_plan as a bounded partial projection of NPC initiative. "
-            "Realize the primary responder and, when secondary responders are nominated, "
-            "at least one required secondary in spoken_lines or action_lines unless validation constraints prevent it."
+            "Use npc_agency_simulation as the NPC initiative plan. "
+            "Realize required_actor_ids in spoken_lines or action_lines unless validation constraints prevent it; "
+            "initiative_events alone do not close required NPC initiative."
         ),
     }
-    return plan, directives
+    return plan, directives, simulation
 
 
 def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]:
@@ -1923,7 +1999,13 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         forbidden_actor_ids.update(expand_goc_actor_id_aliases(str(raw_actor_id)))
     human_actor_id = str(actor_lane_ctx.get("human_actor_id") or "").strip()
     forbidden_actor_ids.update(expand_goc_actor_id_aliases(human_actor_id))
-    allowed_actor_ids = sorted({actor_id for actor_id in responder_ids if actor_id and actor_id not in forbidden_actor_ids})
+    allowed_actor_ids = npc_actor_ids_from_context(actor_lane_ctx)
+    if not allowed_actor_ids:
+        allowed_actor_ids = [
+            actor_id
+            for actor_id in responder_ids
+            if actor_id and actor_id not in forbidden_actor_ids
+        ]
 
     minds = state.get("character_mind_records") if isinstance(state.get("character_mind_records"), list) else []
     compact_minds: list[dict[str, Any]] = []
@@ -1953,10 +2035,11 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             }
         )
 
-    npc_agency_plan, npc_initiative_directives = _build_npc_agency_plan_projection(
+    npc_agency_plan, npc_initiative_directives, npc_agency_simulation = _build_npc_agency_plan_projection(
         state=state,
         responders=responders,
         responder_ids=responder_ids,
+        npc_actor_ids=allowed_actor_ids,
         compact_minds=compact_minds,
     )
 
@@ -2024,6 +2107,7 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             if len(responder_ids) > 1
             else None
         ),
+        "npc_agency_simulation": npc_agency_simulation,
         "npc_agency_plan": npc_agency_plan,
         "npc_initiative_directives": npc_initiative_directives,
         "pacing_mode": state.get("pacing_mode"),

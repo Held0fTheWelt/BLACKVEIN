@@ -747,6 +747,18 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
                         "expected": {"policy": "social_reaction_only"},
                         "actual": {"npc_takeover_detected": False},
                     },
+                    "npc_agency": {
+                        "status": "passed",
+                        "actual": {
+                            "independent_planning_used": True,
+                            "candidate_actor_ids": ["npc_primary", "npc_secondary"],
+                            "missing_required_actor_ids": [],
+                            "carry_forward_actor_ids": [],
+                            "multi_npc_initiative_realized": True,
+                            "forbidden_planned_actor_ids": [],
+                            "forbidden_realized_actor_ids": [],
+                        },
+                    },
                     "capability_selection": {
                         "status": "passed",
                         "selected": {"selected_capabilities": ["player.object_interaction.request"]},
@@ -792,6 +804,9 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
         },
         "scores": [
             {"name": "beat_realized", "value": 0.0},
+            {"name": "npc_independent_planning_used", "value": 1.0},
+            {"name": "npc_required_initiatives_realized", "value": 1.0},
+            {"name": "npc_carry_forward_closed", "value": 1.0},
             {"name": "narrative_aspect_contract_pass", "value": 1.0},
             {"name": "hierarchical_memory_contract_pass", "value": 1.0},
             {"name": "memory_write_from_committed_turn", "value": 1.0},
@@ -813,6 +828,10 @@ def test_summarize_runtime_aspect_matrix_reads_ledger_from_path_summary():
     assert row["action_kind"] == "object_interaction"
     assert row["selected_beat"] == "domestic_disruption"
     assert row["beat_realized"] is False
+    assert row["npc_independent_planning_used"] is True
+    assert row["npc_required_initiatives_realized"] is True
+    assert row["npc_carry_forward_closed"] is True
+    assert row["npc_agency_candidate_actor_ids"] == ["npc_primary", "npc_secondary"]
     assert row["narrative_aspect_policy_present"] is True
     assert row["selected_narrative_aspects"] == ["aspect_alpha"]
     assert row["realized_narrative_aspects"] == ["aspect_alpha"]

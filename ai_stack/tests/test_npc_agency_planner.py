@@ -1,9 +1,26 @@
-"""Tests for the deterministic partial Pi7 NPC agency planner."""
+"""Tests for deterministic Pi7 NPC agency planning."""
 
 from __future__ import annotations
 
-from ai_stack.npc_agency_contracts import NPC_AGENCY_PLAN_PARTIAL_STATUS
-from ai_stack.npc_agency_planner import NPC_AGENCY_PLANNER_CONTRACT, build_npc_agency_plan
+from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
+    NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
+    NPC_AGENCY_PLAN_PARTIAL_STATUS,
+    NPC_AGENCY_PLANNER_SCOPE_INDEPENDENT,
+    NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+    NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+    npc_actor_ids_from_context,
+)
+from ai_stack.npc_agency_planner import (
+    NPC_AGENCY_PLANNER_CONTRACT,
+    NPC_AGENCY_SIMULATION_PLANNER_CONTRACT,
+    build_npc_agency_plan,
+    build_npc_agency_simulation,
+)
+from ai_stack.npc_agency_realization import (
+    build_npc_agency_closure,
+    validate_npc_initiative_realization,
+)
 
 
 def _planner_fixture() -> dict:
@@ -30,6 +47,8 @@ def _planner_fixture() -> dict:
         "actor_lane_context": {
             "human_actor_id": actors["human"],
             "ai_forbidden_actor_ids": [actors["human"]],
+            "ai_allowed_actor_ids": [row["actor_id"] for row in responders],
+            "npc_actor_ids": [row["actor_id"] for row in responders],
         },
         "semantic_move_record": {"move_type": "scene_pressure"},
         "social_state_record": {"social_pressure_shift": "contested"},
@@ -141,3 +160,121 @@ def test_planner_records_structural_source_evidence_without_story_text_oracles()
     }
     assert expected_sources.issubset(source_names)
     assert source_names == initiative_source_names
+
+
+def test_simulation_uses_actor_lane_roster_as_current_contract() -> None:
+    fixture = _planner_fixture()
+    expected_candidate_ids = npc_actor_ids_from_context(fixture["actor_lane_context"])
+
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=fixture["responders"][:2],
+        turn_number=3,
+        character_mind_records=fixture["minds"],
+        semantic_move_record=fixture["semantic_move_record"],
+        social_state_record=fixture["social_state_record"],
+        selected_scene_function="escalate_conflict",
+        actor_lane_context=fixture["actor_lane_context"],
+    )
+
+    assert simulation is not None
+    assert simulation["schema_version"] == NPC_AGENCY_SIMULATION_SCHEMA_VERSION
+    assert simulation["contract_status"] == NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+    assert simulation["planner_contract"] == NPC_AGENCY_SIMULATION_PLANNER_CONTRACT
+    assert simulation["planner_scope"] == NPC_AGENCY_PLANNER_SCOPE_INDEPENDENT
+    assert simulation["not_full_multi_agent_simulation"] is False
+    assert simulation["independent_planning_used"] is True
+    assert simulation["candidate_actor_ids"] == expected_candidate_ids
+    assert {row["actor_id"] for row in simulation["npc_intent_proposals"]} == set(expected_candidate_ids)
+    assert set(simulation["required_actor_ids"]).issubset(set(expected_candidate_ids))
+
+
+def test_simulation_does_not_activate_from_roster_without_npc_pressure() -> None:
+    fixture = _planner_fixture()
+
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=[],
+        character_mind_records=fixture["minds"],
+        actor_lane_context=fixture["actor_lane_context"],
+        npc_actor_ids=npc_actor_ids_from_context(fixture["actor_lane_context"]),
+    )
+
+    assert simulation is None
+
+
+def test_simulation_respects_explicit_no_npc_response_signal() -> None:
+    fixture = _planner_fixture()
+
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=fixture["responders"][:2],
+        character_mind_records=fixture["minds"],
+        actor_lane_context=fixture["actor_lane_context"],
+        npc_actor_ids=npc_actor_ids_from_context(fixture["actor_lane_context"]),
+        npc_response_expected=False,
+    )
+
+    assert simulation is None
+
+
+def test_simulation_carries_forward_unresolved_actor_outside_selected_responders() -> None:
+    fixture = _planner_fixture()
+    carry_actor_id = fixture["actors"]["optional"]
+    prior = {
+        "npc_agency_closure": {
+            "carried_forward_npc_initiatives": [{"actor_id": carry_actor_id}]
+        }
+    }
+
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=fixture["responders"][:2],
+        character_mind_records=fixture["minds"],
+        prior_planner_truth=prior,
+        actor_lane_context=fixture["actor_lane_context"],
+    )
+
+    assert simulation is not None
+    carried = [
+        row
+        for row in simulation["npc_intent_proposals"]
+        if row["actor_id"] == carry_actor_id
+    ]
+    assert carried
+    assert carry_actor_id in simulation["required_actor_ids"]
+    assert carry_actor_id in simulation["carry_forward_actor_ids"]
+    assert carried[0]["required"] is True
+    assert carried[0]["requirement_scope"] == "carry_forward_required"
+
+
+def test_simulation_validation_builds_durable_carry_forward_closure() -> None:
+    fixture = _planner_fixture()
+    simulation = build_npc_agency_simulation(
+        selected_responder_set=fixture["responders"][:2],
+        character_mind_records=fixture["minds"],
+        actor_lane_context=fixture["actor_lane_context"],
+    )
+    assert simulation is not None
+    primary_id = simulation["required_actor_ids"][0]
+    structured_output = {
+        "spoken_lines": [{"speaker_id": primary_id, "text": "contract fixture"}],
+        "action_lines": [],
+        "initiative_events": [],
+    }
+
+    validation = validate_npc_initiative_realization(
+        simulation,
+        structured_output,
+        actor_lane_context=fixture["actor_lane_context"],
+        strict_required=True,
+    )
+    closure = build_npc_agency_closure(
+        simulation,
+        validation=validation,
+        actor_lane_context=fixture["actor_lane_context"],
+        turn_number=4,
+    )
+
+    assert validation["contract_status"] == NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+    assert validation["not_full_multi_agent_simulation"] is False
+    assert closure is not None
+    assert closure["schema_version"] == NPC_AGENCY_CLOSURE_SCHEMA_VERSION
+    assert closure["closure_status"] == NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+    assert closure["unresolved_actor_ids"] == validation["missing_required_actor_ids"]

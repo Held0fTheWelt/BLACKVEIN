@@ -194,6 +194,20 @@ def _npc_agency_plan_from_state(
     preferred_reaction_order_ids: list[str],
 ) -> dict[str, Any] | None:
     packet = state.get("dramatic_generation_packet") if isinstance(state.get("dramatic_generation_packet"), dict) else {}
+    simulation = (
+        packet.get("npc_agency_simulation")
+        if isinstance(packet.get("npc_agency_simulation"), dict)
+        else None
+    )
+    if simulation is not None:
+        return simulation
+    direct_simulation = (
+        state.get("npc_agency_simulation")
+        if isinstance(state.get("npc_agency_simulation"), dict)
+        else None
+    )
+    if direct_simulation is not None:
+        return direct_simulation
     plan = packet.get("npc_agency_plan") if isinstance(packet.get("npc_agency_plan"), dict) else None
     if plan is None:
         plan = state.get("npc_agency_plan") if isinstance(state.get("npc_agency_plan"), dict) else None
@@ -665,6 +679,11 @@ def build_operator_turn_history_row(
     canonical = diagnosis if diagnosis else hints
 
     response_present = bool(vitality.get("response_present"))
+    realization = (
+        vitality.get("npc_initiative_realization_v1")
+        if isinstance(vitality.get("npc_initiative_realization_v1"), dict)
+        else {}
+    )
     return {
         "turn_number": turn_number,
         "turn_kind": turn_kind,
@@ -687,6 +706,15 @@ def build_operator_turn_history_row(
             "selected_secondary_count": len(vitality.get("selected_secondary_responder_ids") or []),
             "realized_actor_count": len(vitality.get("realized_actor_ids") or []),
             "rendered_actor_count": len(vitality.get("rendered_actor_ids") or []),
+        },
+        "npc_agency_breakdown": {
+            "contract_status": realization.get("contract_status"),
+            "independent_planning_used": bool(realization.get("independent_planning_used")),
+            "candidate_actor_ids": list(realization.get("candidate_actor_ids") or []),
+            "planned_actor_ids": list(realization.get("planned_actor_ids") or []),
+            "realized_actor_ids": list(realization.get("realized_initiative_actor_ids") or []),
+            "missing_required_actor_ids": list(realization.get("unrealized_required_initiative_actor_ids") or []),
+            "multi_npc_initiative_realized": bool(realization.get("multi_npc_initiative_realized")),
         },
         "visible_output_type": "actor_agency" if response_present else "narration_only",
         "degradation_signals": list(vitality.get("degradation_signals") or []),

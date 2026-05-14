@@ -1,17 +1,23 @@
-"""Realization helpers for the partial Pi7 NPC agency projection."""
+"""Realization and closure helpers for Pi7 NPC agency."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
+    NPC_AGENCY_CLOSURE_CLOSED_STATUS,
+    NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
     NPC_AGENCY_PLAN_PARTIAL_STATUS,
+    NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
     clean_text,
     coerce_dict_rows,
     dedupe_strings,
     forbidden_planned_actor_ids,
     is_forbidden_actor_id,
+    normalize_npc_agency_simulation,
     normalize_npc_agency_plan,
+    planned_actor_ids_from_plan,
 )
 
 
@@ -39,6 +45,33 @@ def realized_actor_ids_from_structured_output(structured_output: dict[str, Any] 
     )
 
 
+def _simulation_and_plan_payload(
+    agency: dict[str, Any] | None,
+    *,
+    actor_lane_context: dict[str, Any] | None = None,
+    turn_number: Any = None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    raw = agency if isinstance(agency, dict) else {}
+    simulation = None
+    if raw.get("contract") == "npc_agency_simulation.v1" or isinstance(raw.get("npc_agency_plan"), dict):
+        simulation = normalize_npc_agency_simulation(
+            raw,
+            actor_lane_context=actor_lane_context,
+            turn_number=turn_number,
+        )
+    plan_payload = (
+        simulation.get("npc_agency_plan")
+        if isinstance(simulation, dict) and isinstance(simulation.get("npc_agency_plan"), dict)
+        else raw
+    )
+    normalized_plan = normalize_npc_agency_plan(
+        plan_payload,
+        actor_lane_context=actor_lane_context,
+        turn_number=turn_number,
+    )
+    return simulation, normalized_plan
+
+
 def build_npc_initiative_realization(
     plan: dict[str, Any] | None,
     *,
@@ -51,14 +84,24 @@ def build_npc_initiative_realization(
     actor_lane_context: dict[str, Any] | None = None,
     turn_number: Any = None,
 ) -> dict[str, Any] | None:
-    normalized = normalize_npc_agency_plan(
+    simulation, normalized = _simulation_and_plan_payload(
         plan,
-        selected_primary_responder_id=selected_primary_responder_id,
-        selected_secondary_responder_ids=selected_secondary_responder_ids or [],
-        preferred_reaction_order_ids=preferred_reaction_order_ids or [],
         actor_lane_context=actor_lane_context,
         turn_number=turn_number,
     )
+    if normalized and (
+        selected_primary_responder_id
+        or selected_secondary_responder_ids
+        or preferred_reaction_order_ids
+    ):
+        normalized = normalize_npc_agency_plan(
+            normalized,
+            selected_primary_responder_id=selected_primary_responder_id,
+            selected_secondary_responder_ids=selected_secondary_responder_ids or [],
+            preferred_reaction_order_ids=preferred_reaction_order_ids or [],
+            actor_lane_context=actor_lane_context,
+            turn_number=turn_number,
+        )
     if not normalized:
         return None
 
@@ -86,14 +129,23 @@ def build_npc_initiative_realization(
         actor_key="actor_id",
     )
 
-    return {
+    full_simulation = isinstance(simulation, dict)
+    result = {
         "schema_version": NPC_INITIATIVE_REALIZATION_SCHEMA_VERSION,
-        "contract_status": NPC_AGENCY_PLAN_PARTIAL_STATUS,
-        "not_full_multi_agent_simulation": True,
-        "partial_implementation_reason": (
-            "Tracks nominated NPC initiative realization in validated actor lanes; "
-            "does not simulate independent multi-agent planning."
+        "contract_status": (
+            NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+            if full_simulation
+            else NPC_AGENCY_PLAN_PARTIAL_STATUS
         ),
+        "not_full_multi_agent_simulation": not full_simulation,
+        "independent_planning_used": bool(
+            simulation.get("independent_planning_used")
+            if isinstance(simulation, dict)
+            else False
+        ),
+        "candidate_actor_ids": list(simulation.get("candidate_actor_ids") or [])
+        if isinstance(simulation, dict)
+        else planned_actor_ids,
         "planned_actor_ids": planned_actor_ids,
         "realized_initiative_actor_ids": realized_initiative_actor_ids,
         "missing_initiative_actor_ids": [
@@ -112,6 +164,12 @@ def build_npc_initiative_realization(
         ],
         "multi_npc_initiative_realized": len(realized_initiative_actor_ids) >= 2,
     }
+    if not full_simulation:
+        result["partial_implementation_reason"] = (
+            "Tracks nominated NPC initiative realization in validated actor lanes; "
+            "does not simulate independent multi-agent planning."
+        )
+    return result
 
 
 def validate_npc_initiative_realization(
@@ -125,7 +183,7 @@ def validate_npc_initiative_realization(
     initiative_rows = coerce_dict_rows(
         structured_output.get("initiative_events") if isinstance(structured_output, dict) else []
     )
-    normalized = normalize_npc_agency_plan(
+    simulation, normalized = _simulation_and_plan_payload(
         plan,
         actor_lane_context=actor_lane_context,
     )
@@ -143,7 +201,7 @@ def validate_npc_initiative_realization(
         else []
     )
     forbidden_plan_ids = forbidden_planned_actor_ids(
-        plan,
+        normalized,
         actor_lane_context=actor_lane_context,
     )
     forbidden_realized_actor_ids = [
@@ -181,10 +239,20 @@ def validate_npc_initiative_realization(
     else:
         status = "approved"
 
-    return {
+    full_simulation = isinstance(simulation, dict)
+    result = {
         "schema_version": NPC_INITIATIVE_VALIDATION_SCHEMA_VERSION,
-        "contract_status": NPC_AGENCY_PLAN_PARTIAL_STATUS,
-        "not_full_multi_agent_simulation": True,
+        "contract_status": (
+            NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+            if full_simulation
+            else NPC_AGENCY_PLAN_PARTIAL_STATUS
+        ),
+        "not_full_multi_agent_simulation": not full_simulation,
+        "independent_planning_used": bool(
+            simulation.get("independent_planning_used")
+            if isinstance(simulation, dict)
+            else False
+        ),
         "status": status,
         "contract_pass": status == "approved",
         "error_codes": dedupe_strings(error_codes),
@@ -195,4 +263,137 @@ def validate_npc_initiative_realization(
         "realized_actor_ids": realized_actor_ids,
         "npc_agency_plan": normalized,
         "npc_initiative_realization_v1": realization,
+    }
+    if full_simulation:
+        result["npc_agency_simulation"] = simulation
+    return result
+
+
+def build_npc_agency_closure(
+    agency: dict[str, Any] | None,
+    *,
+    validation: dict[str, Any] | None = None,
+    prior_planner_truth: dict[str, Any] | None = None,
+    actor_lane_context: dict[str, Any] | None = None,
+    turn_number: Any = None,
+) -> dict[str, Any] | None:
+    source_validation = validation if isinstance(validation, dict) else {}
+    source_agency = (
+        source_validation.get("npc_agency_simulation")
+        if isinstance(source_validation.get("npc_agency_simulation"), dict)
+        else agency
+    )
+    simulation, plan = _simulation_and_plan_payload(
+        source_agency if isinstance(source_agency, dict) else source_validation.get("npc_agency_plan"),
+        actor_lane_context=actor_lane_context,
+        turn_number=turn_number,
+    )
+    if not isinstance(plan, dict):
+        return None
+
+    realization = (
+        source_validation.get("npc_initiative_realization_v1")
+        if isinstance(source_validation.get("npc_initiative_realization_v1"), dict)
+        else {}
+    )
+    planned_actor_ids = (
+        list(realization.get("planned_actor_ids") or [])
+        if realization
+        else planned_actor_ids_from_plan(plan)
+    )
+    realized_actor_ids = dedupe_strings(
+        list(source_validation.get("realized_actor_ids") or [])
+        + list(realization.get("realized_initiative_actor_ids") or [])
+    )
+    missing_required_actor_ids = dedupe_strings(
+        list(source_validation.get("missing_required_actor_ids") or [])
+        + list(realization.get("unrealized_required_initiative_actor_ids") or [])
+    )
+
+    prior = prior_planner_truth if isinstance(prior_planner_truth, dict) else {}
+    prior_closure = prior.get("npc_agency_closure") if isinstance(prior.get("npc_agency_closure"), dict) else {}
+    prior_rows = coerce_dict_rows(prior_closure.get("carried_forward_npc_initiatives"))
+    prior_by_actor = {
+        clean_text(row.get("actor_id")): row
+        for row in prior_rows
+        if clean_text(row.get("actor_id"))
+    }
+    prior_actor_ids = dedupe_strings([row.get("actor_id") for row in prior_rows])
+    closed_actor_ids = [
+        actor_id for actor_id in prior_actor_ids if actor_id in realized_actor_ids
+    ]
+
+    initiatives = coerce_dict_rows(plan.get("npc_initiatives"))
+    initiative_by_actor = {
+        clean_text(row.get("actor_id")): row
+        for row in initiatives
+        if clean_text(row.get("actor_id"))
+    }
+    unresolved_actor_ids = dedupe_strings(
+        [
+            *missing_required_actor_ids,
+            *[
+                actor_id
+                for actor_id in prior_actor_ids
+                if actor_id not in realized_actor_ids
+                and not is_forbidden_actor_id(actor_id, actor_lane_context=actor_lane_context)
+            ],
+        ]
+    )
+    carried_rows: list[dict[str, Any]] = []
+    for actor_id in unresolved_actor_ids:
+        row = initiative_by_actor.get(actor_id, {})
+        prior_row = prior_by_actor.get(actor_id, {})
+        try:
+            count = int(prior_row.get("carry_forward_count") or 0) + 1
+        except (TypeError, ValueError):
+            count = 1
+        carried_rows.append(
+            {
+                "actor_id": actor_id,
+                "turn_number": turn_number,
+                "reason": "required_initiative_unrealized"
+                if actor_id in missing_required_actor_ids
+                else "prior_carry_forward_unclosed",
+                "required": True,
+                "requirement_scope": row.get("requirement_scope")
+                or prior_row.get("requirement_scope")
+                or "carry_forward_required",
+                "target_actor_id": row.get("target_actor_id") or prior_row.get("target_actor_id"),
+                "intent": row.get("intent") or prior_row.get("intent"),
+                "resolution_policy": "next_turn_visible_spoken_or_action_lane_required",
+                "carry_forward_count": count,
+                "source_schema_version": source_validation.get("schema_version")
+                or NPC_INITIATIVE_VALIDATION_SCHEMA_VERSION,
+            }
+        )
+
+    full_simulation = isinstance(simulation, dict)
+    closure_status = (
+        NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+        if carried_rows
+        else NPC_AGENCY_CLOSURE_CLOSED_STATUS
+    )
+    return {
+        "schema_version": NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
+        "contract_status": (
+            NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+            if full_simulation
+            else NPC_AGENCY_PLAN_PARTIAL_STATUS
+        ),
+        "closure_status": closure_status,
+        "not_full_multi_agent_simulation": not full_simulation,
+        "independent_planning_used": bool(
+            simulation.get("independent_planning_used")
+            if isinstance(simulation, dict)
+            else False
+        ),
+        "turn_number": turn_number,
+        "planned_actor_ids": planned_actor_ids,
+        "realized_actor_ids": realized_actor_ids,
+        "missing_required_actor_ids": missing_required_actor_ids,
+        "unresolved_actor_ids": [row["actor_id"] for row in carried_rows],
+        "closed_actor_ids": closed_actor_ids,
+        "carried_forward_npc_initiatives": carried_rows,
+        "durable_carry_forward_required": bool(carried_rows),
     }

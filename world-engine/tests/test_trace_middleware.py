@@ -32,6 +32,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_COMMIT,
     ASPECT_INPUT,
     ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
     ASPECT_VISIBLE_PROJECTION,
@@ -253,6 +254,32 @@ def _aspect_test_ledger() -> dict[str, Any]:
     )
     ledger = set_aspect_record(
         ledger,
+        ASPECT_NPC_AGENCY,
+        make_aspect_record(
+            applicable=True,
+            status="passed",
+            expected={
+                "npc_agency_plan_present": True,
+                "independent_planning_expected": True,
+                "candidate_actor_ids": ["npc_primary", "npc_secondary"],
+            },
+            actual={
+                "contract_status": "implemented_runtime_simulation",
+                "independent_planning_used": True,
+                "candidate_actor_ids": ["npc_primary", "npc_secondary"],
+                "planned_actor_ids": ["npc_primary", "npc_secondary"],
+                "realized_actor_ids": ["npc_primary", "npc_secondary"],
+                "missing_required_actor_ids": [],
+                "carry_forward_actor_ids": [],
+                "forbidden_planned_actor_ids": [],
+                "forbidden_realized_actor_ids": [],
+                "multi_npc_initiative_realized": True,
+            },
+            source="validator",
+        ),
+    )
+    ledger = set_aspect_record(
+        ledger,
         ASPECT_VALIDATION,
         make_aspect_record(applicable=True, status="passed", actual={"recoverable_rejection": False}, source="validator"),
     )
@@ -315,10 +342,17 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert "story.beat.realize" in child_names
     assert "story.authority.narrator" in child_names
     assert "story.authority.npc" in child_names
+    assert "story.npc_agency.plan" in child_names
+    assert "story.npc_agency.realize" in child_names
     assert "story.capability.select" in child_names
     score_calls = {call.kwargs["name"]: call.kwargs for call in adapter.add_score.call_args_list}
     assert score_calls["beat_realized"]["value"] == 1.0
     assert score_calls["npc_takeover_absent"]["value"] == 1.0
+    assert score_calls["npc_independent_planning_used"]["value"] == 1.0
+    assert score_calls["npc_required_initiatives_realized"]["value"] == 1.0
+    assert score_calls["multi_npc_initiative_realized"]["value"] == 1.0
+    assert score_calls["npc_carry_forward_closed"]["value"] == 1.0
+    assert score_calls["npc_forbidden_actor_absent"]["value"] == 1.0
     assert score_calls["turn_aspect_ledger_present"]["metadata"]["status"] == "passed"
     assert score_calls["beat_realized"]["metadata"]["selected_beat"] == "domestic_disruption"
     assert score_calls["branching_forecast_present"]["value"] == 1.0

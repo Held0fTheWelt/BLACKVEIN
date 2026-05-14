@@ -39,6 +39,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INPUT,
     ASPECT_NARRATIVE_ASPECT,
     ASPECT_NARRATOR_AUTHORITY,
+    ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
     ASPECT_VALIDATION,
     ASPECT_VISIBLE_PROJECTION,
@@ -3529,6 +3530,23 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
         ("story.authority.narrator", ASPECT_NARRATOR_AUTHORITY, _rec(ASPECT_NARRATOR_AUTHORITY)),
         ("story.authority.npc", ASPECT_NPC_AUTHORITY, _rec(ASPECT_NPC_AUTHORITY)),
         (
+            "story.npc_agency.plan",
+            ASPECT_NPC_AGENCY,
+            {
+                "expected": _expected(ASPECT_NPC_AGENCY),
+                "selected": _selected(ASPECT_NPC_AGENCY),
+                "aspect_record": _rec(ASPECT_NPC_AGENCY),
+            },
+        ),
+        (
+            "story.npc_agency.realize",
+            ASPECT_NPC_AGENCY,
+            {
+                "actual": _actual(ASPECT_NPC_AGENCY),
+                "aspect_record": _rec(ASPECT_NPC_AGENCY),
+            },
+        ),
+        (
             "story.narrative_aspect.select",
             ASPECT_NARRATIVE_ASPECT,
             {"selected": narrative_selected, "aspect_record": _rec(ASPECT_NARRATIVE_ASPECT)},
@@ -3566,6 +3584,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
+                        ASPECT_NPC_AGENCY,
                         ASPECT_NARRATIVE_ASPECT,
                         ASPECT_HIERARCHICAL_MEMORY,
                         ASPECT_VALIDATION,
@@ -3615,6 +3634,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     narrator_expected = _expected(ASPECT_NARRATOR_AUTHORITY)
     narrator_actual = _actual(ASPECT_NARRATOR_AUTHORITY)
     npc_actual = _actual(ASPECT_NPC_AUTHORITY)
+    npc_agency_actual = _actual(ASPECT_NPC_AGENCY)
     cap_actual = _actual(ASPECT_CAPABILITY_SELECTION)
     visible_actual = _actual(ASPECT_VISIBLE_PROJECTION)
     narrative_expected = _expected(ASPECT_NARRATIVE_ASPECT)
@@ -3721,6 +3741,42 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             "npc_policy_realized",
             ASPECT_NPC_AUTHORITY,
             _runtime_aspect_score_value(_rec(ASPECT_NPC_AUTHORITY).get("status") == "passed"),
+        ),
+        (
+            "npc_agency_plan_present",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(_known(ASPECT_NPC_AGENCY)),
+        ),
+        (
+            "npc_independent_planning_used",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(bool(npc_agency_actual.get("independent_planning_used"))),
+        ),
+        (
+            "npc_required_initiatives_realized",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(not bool(npc_agency_actual.get("missing_required_actor_ids"))),
+        ),
+        (
+            "multi_npc_initiative_realized",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(bool(npc_agency_actual.get("multi_npc_initiative_realized"))),
+        ),
+        (
+            "npc_carry_forward_closed",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(
+                not bool(npc_agency_actual.get("carry_forward_actor_ids"))
+                and not bool(npc_agency_actual.get("missing_required_actor_ids"))
+            ),
+        ),
+        (
+            "npc_forbidden_actor_absent",
+            ASPECT_NPC_AGENCY,
+            _runtime_aspect_score_value(
+                not bool(npc_agency_actual.get("forbidden_planned_actor_ids"))
+                and not bool(npc_agency_actual.get("forbidden_realized_actor_ids"))
+            ),
         ),
         (
             "npc_consequence_takeover_absent",
@@ -5731,6 +5787,10 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "initiative_seizer_id",
         "initiative_loser_id",
         "initiative_pressure_label",
+        "npc_agency_simulation",
+        "npc_agency_closure",
+        "unresolved_npc_initiatives",
+        "carried_forward_npc_initiatives",
     }
     for entry in reversed(session.history or []):
         if not isinstance(entry, dict):
@@ -6622,7 +6682,7 @@ class StoryRuntimeManager:
             "active_route_ids": active_route_ids,
             "prompt_template_source": prompt_template_source,
             "prompt_template_fallback_in_effect": prompt_template_fallback,
-            "commit_contract_version": "story_narrative_commit_record.v3",
+            "commit_contract_version": "story_narrative_commit_record.v4",
             "runtime_output_schema_version": "runtime_turn_structured_output_v2",
             "live_player_governance_enforced": self._live_governance_enforced_for_player_paths(),
             "module_scope_advertised": f"module_specific_{GOD_OF_CARNAGE_MODULE_ID}_only",
@@ -8476,6 +8536,43 @@ class StoryRuntimeManager:
         )
         graph_state["human_input_attribution"] = human_att
         event["human_input_attribution"] = human_att
+        retrieval = (
+            graph_state.get("retrieval")
+            if isinstance(graph_state.get("retrieval"), dict)
+            else {}
+        )
+        routing = (
+            graph_state.get("routing")
+            if isinstance(graph_state.get("routing"), dict)
+            else {}
+        )
+        generation = (
+            graph_state.get("generation")
+            if isinstance(graph_state.get("generation"), dict)
+            else {}
+        )
+        graph_diag = (
+            graph_state.get("graph_diagnostics")
+            if isinstance(graph_state.get("graph_diagnostics"), dict)
+            else {}
+        )
+        if retrieval:
+            event.setdefault("retrieval", retrieval)
+        if routing or generation:
+            event.setdefault("model_route", {**routing, "generation": generation})
+        if graph_diag:
+            event.setdefault("graph", graph_diag)
+        if graph_state.get("selected_scene_function") is not None:
+            event.setdefault("selected_scene_function", graph_state.get("selected_scene_function"))
+        if selected_responder_set:
+            event.setdefault("selected_responder_set", selected_responder_set)
+        actor_survival_telemetry = (
+            graph_state.get("actor_survival_telemetry")
+            if isinstance(graph_state.get("actor_survival_telemetry"), dict)
+            else {}
+        )
+        if actor_survival_telemetry:
+            event.setdefault("actor_survival_telemetry", actor_survival_telemetry)
         graph_state.setdefault("turn_aspect_ledger", event.get("turn_aspect_ledger"))
         graph_state.setdefault("validation_outcome", event.get("validation_outcome"))
         graph_state.setdefault("visible_output_bundle", event.get("visible_output_bundle"))

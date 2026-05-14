@@ -2,64 +2,179 @@
 {% block title %}Play-Service control{% endblock %}
 {% block content %}
 <section class="manage-section" data-page="play-service-control">
-    <div class="manage-section-header">
+
+    <header class="mui-deck-header">
         <div>
-            <p class="manage-eyebrow">Operations</p>
+            <p class="mui-deck-eyebrow">Operations · Play-Service</p>
             <h1>Play-Service control</h1>
-            <p class="manage-lead">Diagnosis shows <strong>observed</strong> health; this page edits <strong>desired</strong> posture and applies it in-process only (no shell, Docker CLI, or systemd). Secrets stay in the environment; only presence is shown.</p>
-            <p class="muted"><a href="{{ url_for('manage_diagnosis') }}">Open system diagnosis</a> for aggregated checks. <a href="{{ url_for('manage_world_engine_console') }}">World Engine console</a> for runs and story sessions.</p>
+            <p class="mui-deck-headline">Diagnosis shows <strong>observed</strong> health; this page edits the <strong>desired</strong> posture and applies it in-process only — no shell, Docker CLI, or systemd. Secrets stay in the environment; only presence is shown.</p>
+            <div class="mui-pillrow">
+                <span class="mui-pill" id="manage-psc-pill-mode">
+                    <span class="mui-pill-label">Mode</span>
+                    <span class="mui-pill-value" id="manage-psc-pill-mode-value">—</span>
+                </span>
+                <span class="mui-pill" id="manage-psc-pill-health">
+                    <span class="mui-pill-label">Health</span>
+                    <span class="mui-pill-value" id="manage-psc-pill-health-value">—</span>
+                </span>
+                <span class="mui-pill" id="manage-psc-pill-readiness">
+                    <span class="mui-pill-label">Readiness</span>
+                    <span class="mui-pill-value" id="manage-psc-pill-readiness-value">—</span>
+                </span>
+                <span class="mui-pill" id="manage-psc-pill-secret">
+                    <span class="mui-pill-label">Secret</span>
+                    <span class="mui-pill-value" id="manage-psc-secret-present">—</span>
+                </span>
+                <span class="mui-pill" id="manage-psc-pill-key">
+                    <span class="mui-pill-label">API key</span>
+                    <span class="mui-pill-value" id="manage-psc-key-present">—</span>
+                </span>
+            </div>
         </div>
-        <div class="manage-actions-row">
-            <button type="button" class="btn" id="manage-psc-refresh">Refresh observed</button>
+        <div class="mui-deck-actions">
+            <button type="button" class="btn" id="manage-psc-refresh">Reload</button>
+            <span class="mui-inline-result" id="manage-psc-header-result" hidden></span>
         </div>
-    </div>
+    </header>
 
-    <p id="manage-psc-banner" class="form-error" style="display:none;" role="status" aria-live="polite"></p>
-    <p id="manage-psc-success" class="manage-state manage-state--ok" style="display:none;" role="status" aria-live="polite"></p>
+    <p id="manage-psc-banner" class="form-error mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
+    <p id="manage-psc-success" class="manage-state manage-state--ok mui-legacy-hidden" hidden role="status" aria-live="polite"></p>
 
-    <div class="manage-psc-grid">
-        <section class="panel manage-psc-panel">
-            <header class="panel-header"><h2>Desired state</h2></header>
-            <form id="manage-psc-form" class="manage-psc-form">
-                <label class="form-label">Mode
-                    <select name="mode" id="manage-psc-mode" class="form-input">
-                        <option value="disabled">disabled</option>
-                        <option value="local">local</option>
-                        <option value="docker">docker</option>
-                        <option value="remote">remote</option>
-                    </select>
-                </label>
-                <label class="form-label"><input type="checkbox" name="enabled" id="manage-psc-enabled" /> Enabled</label>
-                <label class="form-label">Public URL
-                    <input type="url" name="public_url" id="manage-psc-public-url" class="form-input" autocomplete="off" />
-                </label>
-                <label class="form-label">Internal URL
-                    <input type="url" name="internal_url" id="manage-psc-internal-url" class="form-input" autocomplete="off" />
-                </label>
-                <label class="form-label">Request timeout (ms)
-                    <input type="number" name="request_timeout_ms" id="manage-psc-timeout-ms" class="form-input" min="1000" max="600000" step="1000" />
-                </label>
-                <label class="form-label"><input type="checkbox" name="allow_new_sessions" id="manage-psc-allow-new" /> Allow new sessions</label>
-                <p class="muted" id="manage-psc-secret-hint">Shared secret: <span id="manage-psc-secret-present">—</span>. Internal API key: <span id="manage-psc-key-present">—</span>.</p>
-                <div class="manage-actions-row">
-                    <button type="submit" class="btn btn-primary" id="manage-psc-save">Save desired</button>
-                    <button type="button" class="btn" id="manage-psc-test">Test configuration</button>
-                    <button type="button" class="btn" id="manage-psc-apply">Apply configuration</button>
-                </div>
-            </form>
-        </section>
+    <div class="mui-deck" data-mui-deck>
 
-        <section class="panel manage-psc-panel">
-            <header class="panel-header"><h2>Observed state</h2></header>
-            <div id="manage-psc-observed" class="manage-psc-observed" aria-live="polite"></div>
-            <header class="panel-header"><h3>Last test</h3></header>
-            <pre id="manage-psc-last-test" class="manage-psc-json muted"></pre>
-            <header class="panel-header"><h3>Last apply</h3></header>
-            <pre id="manage-psc-last-apply" class="manage-psc-json muted"></pre>
-        </section>
+        <aside class="mui-deck-rail" aria-label="Play-Service sections">
+            <a href="#desired" class="mui-rail-btn" data-deck-target="desired">
+                <span class="mui-rail-badge mui-rail-badge--warn"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Desired state</span>
+                    <span class="mui-rail-secondary">mode, URLs, timeouts</span>
+                </span>
+            </a>
+            <a href="#observed" class="mui-rail-btn" data-deck-target="observed">
+                <span class="mui-rail-badge mui-rail-badge--ok"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Observed state</span>
+                    <span class="mui-rail-secondary">effective + health</span>
+                </span>
+            </a>
+            <a href="#last-test" class="mui-rail-btn" data-deck-target="last-test">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Last test result</span>
+                    <span class="mui-rail-secondary">raw payload</span>
+                </span>
+            </a>
+            <a href="#last-apply" class="mui-rail-btn" data-deck-target="last-apply">
+                <span class="mui-rail-badge"></span>
+                <span class="mui-rail-label">
+                    <span class="mui-rail-primary">Last apply result</span>
+                    <span class="mui-rail-secondary">raw payload</span>
+                </span>
+            </a>
+        </aside>
+
+        <main class="mui-deck-main">
+
+            {# ── Desired state ── #}
+            <section class="mui-deck-section is-active" data-deck-section="desired">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Configuration</span>
+                        <h2>Desired state</h2>
+                        <p class="mui-inspector-summary">Configure the target posture. Save, test, then apply. Pills at the top show the live observed state — refer to them while editing.</p>
+                    </header>
+                    <form class="mui-inspector-body" id="manage-psc-form" onsubmit="return false;">
+                        <div class="mui-field-grid">
+                            <label class="mui-field">
+                                <span class="mui-field-label">Mode</span>
+                                <select name="mode" id="manage-psc-mode" class="form-input">
+                                    <option value="disabled">disabled</option>
+                                    <option value="local">local</option>
+                                    <option value="docker">docker</option>
+                                    <option value="remote">remote</option>
+                                </select>
+                            </label>
+                            <label class="mui-field">
+                                <span class="mui-field-label">Request timeout (ms)</span>
+                                <input type="number" name="request_timeout_ms" id="manage-psc-timeout-ms" class="form-input" min="1000" max="600000" step="1000" />
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Public URL</span>
+                                <input type="url" name="public_url" id="manage-psc-public-url" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field mui-field-full">
+                                <span class="mui-field-label">Internal URL</span>
+                                <input type="url" name="internal_url" id="manage-psc-internal-url" class="form-input" autocomplete="off" />
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" name="enabled" id="manage-psc-enabled" />
+                                <span>Enabled</span>
+                            </label>
+                            <label class="mui-field-check">
+                                <input type="checkbox" name="allow_new_sessions" id="manage-psc-allow-new" />
+                                <span>Allow new sessions</span>
+                            </label>
+                        </div>
+                        <p class="muted" id="manage-psc-secret-hint" style="margin-top: 0.85rem;">
+                            Secret presence is shown in the header pills. Use <code>.env</code> to set <code>WOS_PLAY_SERVICE_SECRET</code> and <code>WOS_PLAY_SERVICE_INTERNAL_KEY</code>.
+                        </p>
+                    </form>
+                    <footer class="mui-inspector-foot">
+                        <button type="submit" class="btn btn-primary" id="manage-psc-save" form="manage-psc-form">Save desired</button>
+                        <button type="button" class="btn" id="manage-psc-test">Test configuration</button>
+                        <button type="button" class="btn" id="manage-psc-apply">Apply configuration</button>
+                        <span class="mui-inline-result" id="manage-psc-desired-result" hidden></span>
+                    </footer>
+                </article>
+            </section>
+
+            {# ── Observed state ── #}
+            <section class="mui-deck-section" data-deck-section="observed">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Health</span>
+                        <h2>Observed state</h2>
+                        <p class="mui-inspector-summary">The effective configuration the play-service is actually running with. Read-only — to change, edit Desired and click Apply.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <div id="manage-psc-observed" class="manage-psc-observed" aria-live="polite"></div>
+                    </div>
+                </article>
+            </section>
+
+            {# ── Last test result ── #}
+            <section class="mui-deck-section" data-deck-section="last-test">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Diagnostic</span>
+                        <h2>Last test result</h2>
+                        <p class="mui-inspector-summary">Most recent connectivity / health validation run. Copy the payload into a ticket for support.</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <pre id="manage-psc-last-test" class="manage-psc-json" data-json-label="Last test"></pre>
+                    </div>
+                </article>
+            </section>
+
+            {# ── Last apply result ── #}
+            <section class="mui-deck-section" data-deck-section="last-apply">
+                <article class="mui-inspector">
+                    <header class="mui-inspector-head">
+                        <span class="mui-inspector-eyebrow">Diagnostic</span>
+                        <h2>Last apply result</h2>
+                        <p class="mui-inspector-summary">Most recent apply attempt — what changed (or why it failed).</p>
+                    </header>
+                    <div class="mui-inspector-body">
+                        <pre id="manage-psc-last-apply" class="manage-psc-json" data-json-label="Last apply"></pre>
+                    </div>
+                </article>
+            </section>
+
+        </main>
     </div>
 </section>
 {% endblock %}
 {% block extra_scripts %}
 <script src="{{ url_for('static', filename='manage_play_service_control.js') }}"></script>
+<script src="{{ url_for('static', filename='manage_play_service_control_deck.js') }}"></script>
 {% endblock %}

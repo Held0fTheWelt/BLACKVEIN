@@ -11,6 +11,7 @@ import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+from ai_stack.npc_agency_realization import build_npc_agency_closure
 from ai_stack.social_state_contract import SocialStateRecord
 from ai_stack.social_state_goc import social_state_fingerprint
 
@@ -178,6 +179,10 @@ class PlannerTruth(BaseModel):
         default=None,
         description="floor_claimed | contested | deflected | stable | None",
     )
+    npc_agency_simulation: dict[str, Any] = Field(default_factory=dict)
+    npc_agency_closure: dict[str, Any] = Field(default_factory=dict)
+    unresolved_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
+    carried_forward_npc_initiatives: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class StoryNarrativeCommitRecord(BaseModel):
@@ -220,7 +225,7 @@ class StoryNarrativeCommitRecord(BaseModel):
         "predate this contract version.",
     )
     commit_contract_version: str = Field(
-        default="story_narrative_commit_record.v3",
+        default="story_narrative_commit_record.v4",
         description="Stable identifier for the commit contract shape; bump when persisted shape changes.",
     )
 
@@ -732,6 +737,29 @@ def _planner_truth_from_graph_state(
         else:
             initiative_pressure_label = "stable"
 
+    dramatic_packet = _as_dict(graph_state.get("dramatic_generation_packet"))
+    npc_agency_simulation = _as_dict(
+        dramatic_packet.get("npc_agency_simulation")
+        or graph_state.get("npc_agency_simulation")
+    )
+    npc_initiative_validation = _as_dict(graph_state.get("npc_initiative_validation"))
+    npc_agency_source = npc_agency_simulation or _as_dict(
+        dramatic_packet.get("npc_agency_plan")
+        or npc_initiative_validation.get("npc_agency_plan")
+    )
+    npc_agency_closure = build_npc_agency_closure(
+        npc_agency_source,
+        validation=npc_initiative_validation,
+        prior_planner_truth=_as_dict(graph_state.get("prior_planner_truth")),
+        actor_lane_context=_as_dict(graph_state.get("actor_lane_context")),
+        turn_number=graph_state.get("turn_number"),
+    )
+    carried_forward_npc_initiatives = (
+        list(npc_agency_closure.get("carried_forward_npc_initiatives") or [])
+        if isinstance(npc_agency_closure, dict)
+        else []
+    )
+
     return PlannerTruth(
         selected_scene_function=_opt_str(
             graph_state.get("selected_scene_function"),
@@ -796,6 +824,10 @@ def _planner_truth_from_graph_state(
         initiative_seizer_id=initiative_seizer_id,
         initiative_loser_id=initiative_loser_id,
         initiative_pressure_label=initiative_pressure_label,
+        npc_agency_simulation=npc_agency_simulation,
+        npc_agency_closure=npc_agency_closure or {},
+        unresolved_npc_initiatives=carried_forward_npc_initiatives,
+        carried_forward_npc_initiatives=carried_forward_npc_initiatives,
     )
 
 

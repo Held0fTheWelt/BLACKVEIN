@@ -117,16 +117,20 @@ class TestW31ResponderSetStrengthening:
         packet = _build_dramatic_generation_packet(state)
         expected_order = [row["actor_id"] for row in state["selected_responder_set"]]
 
-        # When 2+ responders, directive should be present
+        # When 2+ responders, bounded secondary realization should be present.
         assert "secondary_responder_directive" in packet
         assert packet["secondary_responder_directive"] is not None
-        assert "at least one" in packet["secondary_responder_directive"].lower()
+        assert packet["npc_initiative_directives"]["minimum_secondary_initiatives_required"] == 1
         assert packet.get("preferred_reaction_order_ids") == expected_order
         assert packet.get("preferred_reaction_order_instruction")
         assert expected_order[0] in packet["preferred_reaction_order_instruction"]
 
-    def test_dramatic_packet_includes_partial_npc_agency_plan_projection(self):
-        """Verify the first Pi7 slice emits a partial NPC agency plan, not a full simulation claim."""
+    def test_dramatic_packet_includes_current_npc_agency_simulation(self):
+        """Verify Pi7 emits the current simulation contract as the primary surface."""
+        from ai_stack.npc_agency_contracts import (
+            NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+            NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+        )
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
@@ -156,6 +160,7 @@ class TestW31ResponderSetStrengthening:
         }
 
         packet = _build_dramatic_generation_packet(state)
+        simulation = packet.get("npc_agency_simulation")
         plan = packet.get("npc_agency_plan")
         directives = packet.get("npc_initiative_directives")
         selected_actor_ids = [row["actor_id"] for row in state["selected_responder_set"]]
@@ -165,18 +170,29 @@ class TestW31ResponderSetStrengthening:
             row["runtime_actor_id"]: row
             for row in state["character_mind_records"]
         }
+        proposals_by_actor = {
+            row["actor_id"]: row
+            for row in simulation["npc_intent_proposals"]
+        }
 
-        assert plan["contract"] == "npc_agency_plan.v1"
-        assert plan["contract_status"] == "partial_runtime_projection"
-        assert plan["not_full_multi_agent_simulation"] is True
-        assert plan["primary_responder_id"] == expected_primary_id
-        assert plan["secondary_responder_ids"] == expected_secondary_ids
-        assert plan["required_actor_ids"] == selected_actor_ids
-        assert plan["minimum_secondary_initiatives_required"] == (1 if expected_secondary_ids else 0)
-        assert directives["contract_status"] == "partial_runtime_projection"
-        assert directives["not_full_multi_agent_simulation"] is True
+        assert simulation["schema_version"] == NPC_AGENCY_SIMULATION_SCHEMA_VERSION
+        assert simulation["contract_status"] == NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+        assert simulation["not_full_multi_agent_simulation"] is False
+        assert simulation["independent_planning_used"] is True
+        assert simulation["candidate_actor_ids"] == selected_actor_ids
+        assert simulation["selected_primary_responder_id"] == expected_primary_id
+        assert simulation["selected_secondary_responder_ids"] == expected_secondary_ids
+        assert simulation["required_actor_ids"] == selected_actor_ids
+        assert simulation["conflict_resolution"]["minimum_secondary_initiatives_required"] == (
+            1 if expected_secondary_ids else 0
+        )
+        assert set(proposals_by_actor) == set(selected_actor_ids)
+        assert simulation["npc_agency_plan"] == plan
+        assert directives["contract_status"] == NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS
+        assert directives["not_full_multi_agent_simulation"] is False
+        assert directives["independent_planning_used"] is True
 
-        secondary = next(row for row in plan["npc_initiatives"] if row["actor_id"] == expected_secondary_ids[0])
+        secondary = proposals_by_actor[expected_secondary_ids[0]]
         assert secondary["target_actor_id"] == expected_primary_id
         assert secondary["required"] is True
         assert secondary["tactical_posture"] == mind_by_actor[expected_secondary_ids[0]]["tactical_posture"]
@@ -199,8 +215,34 @@ class TestW31ResponderSetStrengthening:
 
         assert packet.get("secondary_responder_directive") is None
 
-    def test_secondary_directive_does_not_mandate_all_must_appear(self):
-        """Verify secondary directive uses 'at least one SHOULD' not 'each MUST'."""
+    def test_dramatic_packet_does_not_require_npc_agency_for_navigation_command(self):
+        """Verify scene/navigation commands do not create required NPC initiative."""
+        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+
+        state = {
+            "module_id": "god_of_carnage",
+            "selected_scene_function": "establish_pressure",
+            "selected_responder_set": [
+                {"actor_id": "veronique_vallon", "role": "primary_responder"},
+            ],
+            "interpreted_input": {
+                "kind": "explicit_command",
+                "command_name": "move",
+                "command_args": ["scene_2"],
+                "npc_response_expected": True,
+            },
+            "pacing_mode": "standard",
+            "silence_brevity_decision": {},
+        }
+
+        packet = _build_dramatic_generation_packet(state)
+
+        assert packet.get("npc_agency_simulation") is None
+        assert packet.get("npc_agency_plan") is None
+        assert packet.get("npc_initiative_directives") is None
+
+    def test_secondary_directive_keeps_minimum_requirement_bounded(self):
+        """Verify secondary participation remains a bounded contract field."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
 
         state = {
@@ -215,12 +257,12 @@ class TestW31ResponderSetStrengthening:
         }
 
         packet = _build_dramatic_generation_packet(state)
-        directive = packet.get("secondary_responder_directive", "")
+        directives = packet.get("npc_initiative_directives") or {}
+        secondary_ids = packet.get("npc_agency_plan", {}).get("secondary_responder_ids") or []
 
-        assert "at least one" in directive.lower()
-        assert "should" in directive.lower()
-        # Should NOT say "each MUST"
-        assert "each" not in directive.lower() or "must" not in directive.lower()
+        assert secondary_ids
+        assert directives["minimum_secondary_initiatives_required"] == 1
+        assert directives["minimum_secondary_initiatives_required"] <= len(secondary_ids)
 
 
 # W3.2 Tests: Thin-Edge Tension Upgrade

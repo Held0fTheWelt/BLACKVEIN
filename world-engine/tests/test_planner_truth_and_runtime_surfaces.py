@@ -17,6 +17,12 @@ from __future__ import annotations
 
 from story_runtime_core import ModelRegistry
 
+from ai_stack.npc_agency_contracts import (
+    NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS,
+    NPC_AGENCY_CLOSURE_SCHEMA_VERSION,
+    NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+    NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+)
 from app.story_runtime.commit_models import (
     PlannerTruth,
     StoryNarrativeCommitRecord,
@@ -94,7 +100,7 @@ def test_planner_truth_populated_from_graph_state() -> None:
     )
 
     assert isinstance(rec, StoryNarrativeCommitRecord)
-    assert rec.commit_contract_version == "story_narrative_commit_record.v3"
+    assert rec.commit_contract_version == "story_narrative_commit_record.v4"
 
     pt = rec.planner_truth
     assert isinstance(pt, PlannerTruth)
@@ -130,6 +136,63 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.validation_reason == "scope_ok"
     assert pt.validator_layers_used == ["scene_packet", "responder_scope"]
     assert pt.continuity_impacts == [{"class": "tension_escalation"}]
+
+
+def test_planner_truth_persists_current_npc_agency_closure() -> None:
+    actor_ids = ["npc_primary", "npc_secondary"]
+    simulation = {
+        "schema_version": NPC_AGENCY_SIMULATION_SCHEMA_VERSION,
+        "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+        "independent_planning_used": True,
+        "candidate_actor_ids": actor_ids,
+        "npc_agency_plan": {
+            "primary_responder_id": actor_ids[0],
+            "secondary_responder_ids": [actor_ids[1]],
+            "required_actor_ids": actor_ids,
+            "npc_initiatives": [
+                {"actor_id": actor_id, "required": True}
+                for actor_id in actor_ids
+            ],
+        },
+    }
+    validation = {
+        "schema_version": "npc_initiative_validation_v1",
+        "status": "rejected",
+        "contract_status": NPC_AGENCY_SIMULATION_IMPLEMENTED_STATUS,
+        "not_full_multi_agent_simulation": False,
+        "independent_planning_used": True,
+        "missing_required_actor_ids": [actor_ids[1]],
+        "realized_actor_ids": [actor_ids[0]],
+        "npc_agency_simulation": simulation,
+        "npc_agency_plan": simulation["npc_agency_plan"],
+        "npc_initiative_realization_v1": {
+            "planned_actor_ids": actor_ids,
+            "realized_initiative_actor_ids": [actor_ids[0]],
+            "unrealized_required_initiative_actor_ids": [actor_ids[1]],
+        },
+    }
+
+    rec = resolve_narrative_commit(
+        turn_number=4,
+        prior_scene_id="s1",
+        player_input="continue",
+        interpreted_input={"kind": "free_narration"},
+        generation={"metadata": {"structured_output": {}}},
+        runtime_projection=_projection(),
+        graph_state={
+            "turn_number": 4,
+            "dramatic_generation_packet": {"npc_agency_simulation": simulation},
+            "npc_initiative_validation": validation,
+            "actor_lane_context": {"ai_allowed_actor_ids": actor_ids, "npc_actor_ids": actor_ids},
+        },
+    )
+
+    pt = rec.planner_truth
+    assert pt.npc_agency_simulation["schema_version"] == NPC_AGENCY_SIMULATION_SCHEMA_VERSION
+    assert pt.npc_agency_closure["schema_version"] == NPC_AGENCY_CLOSURE_SCHEMA_VERSION
+    assert pt.npc_agency_closure["closure_status"] == NPC_AGENCY_CLOSURE_CARRY_FORWARD_STATUS
+    assert pt.unresolved_npc_initiatives == pt.npc_agency_closure["carried_forward_npc_initiatives"]
+    assert [row["actor_id"] for row in pt.carried_forward_npc_initiatives] == validation["missing_required_actor_ids"]
 
 
 def test_planner_truth_absent_when_graph_state_not_provided() -> None:
@@ -227,7 +290,7 @@ def test_runtime_config_status_exposes_live_truth_surface_without_governed_confi
     assert ts["authority_source"] == "blocked_no_authoritative_config"
     assert ts["expected_live_route_available"] is False
     assert ts["active_route_ids"] == []
-    assert ts["commit_contract_version"] == "story_narrative_commit_record.v3"
+    assert ts["commit_contract_version"] == "story_narrative_commit_record.v4"
     scope_truth = ts["module_scope_truth"]
     assert scope_truth["contract"] == "story_runtime_module_scope.v1"
     assert scope_truth["runtime_scope"] == "module_specific"

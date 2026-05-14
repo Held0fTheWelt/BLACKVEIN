@@ -355,6 +355,11 @@ def test_prior_planner_truth_passed_to_graph_from_committed_truth(
         "social_outcome": "tension_escalates",
         "dramatic_direction": "humiliation_spikes",
         "continuity_impacts": [{"class": "blame_pressure"}],
+        "npc_agency_closure": {
+            "closure_status": "carry_forward_required",
+            "carried_forward_npc_initiatives": [{"actor_id": "alain_reille"}],
+        },
+        "carried_forward_npc_initiatives": [{"actor_id": "alain_reille"}],
         "validator_layers_used": ["dramatic_effect_gate"],
     }
     session.history.append(
@@ -380,6 +385,8 @@ def test_prior_planner_truth_passed_to_graph_from_committed_truth(
     assert prior["responder_scope"] == ["michel_longstreet", "annette_reille"]
     assert prior["function_type"] == "pressure_probe"
     assert prior["continuity_impacts"] == [{"class": "blame_pressure"}]
+    assert prior["npc_agency_closure"] == planner_truth["npc_agency_closure"]
+    assert prior["carried_forward_npc_initiatives"] == planner_truth["carried_forward_npc_initiatives"]
     assert "validator_layers_used" not in prior
 
 
