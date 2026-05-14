@@ -1506,3 +1506,346 @@ textarea:focus-visible {
 .readiness-closure-item.open { border-left-color: #f44336; }
 .readiness-closure-title { font-weight: bold; margin: 0; }
 .readiness-closure-status { font-size: 0.875rem; opacity: 0.7; }
+
+/* ---------------------------------------------
+   Sidebar shell (2026-05 IA restructure)
+   Replaces flat horizontal manage-nav with a
+   collapsible left rail grouped by domain.
+---------------------------------------------- */
+:root {
+    --side-w: 268px;
+    --side-pad-x: 1.05rem;
+    --side-rail: 3px;
+    --side-grad: linear-gradient(180deg, rgba(127, 99, 217, 0.16), rgba(127, 99, 217, 0.04) 38%, transparent 70%);
+}
+
+/* Neutralise the legacy sticky top header so its leftover rules cannot bleed
+   into the sidebar layout. The element is gone from base.html; this just
+   guards against any other template that may still extend the old shell. */
+.manage-shell ~ .manage-header,
+.manage-shell .manage-header { display: none; }
+
+.manage-shell {
+    display: grid;
+    grid-template-columns: var(--side-w) minmax(0, 1fr);
+    min-height: 100vh;
+    position: relative;
+}
+
+.manage-shell-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border: 0;
+    padding: 0;
+    background: rgba(4, 6, 12, 0.55);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+}
+
+.manage-shell-side {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+        var(--side-grad),
+        var(--surface);
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+    z-index: 30;
+}
+
+.manage-side-head {
+    padding: 1.35rem var(--side-pad-x) 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.manage-shell .manage-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-right: 0;
+    color: var(--text);
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0;
+    background: transparent;
+}
+.manage-shell .manage-logo:hover { background: transparent; color: var(--primary-hover); }
+.manage-logo-mark {
+    color: var(--primary);
+    font-size: 0.95rem;
+    transform: translateY(-1px);
+    text-shadow: 0 0 12px rgba(148, 121, 239, 0.55);
+}
+.manage-logo-word { color: var(--text); }
+
+.manage-side-subtitle {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.manage-side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem var(--side-pad-x) 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong, var(--border)) transparent;
+}
+.manage-side-nav::-webkit-scrollbar { width: 6px; }
+.manage-side-nav::-webkit-scrollbar-thumb {
+    background: var(--border-strong, var(--border));
+    border-radius: 3px;
+}
+
+.manage-side-group {
+    border-bottom: 1px dashed transparent;
+}
+.manage-side-group + .manage-side-group { margin-top: 0.15rem; }
+.manage-side-group[open] {
+    border-bottom-color: rgba(122, 92, 158, 0.10);
+    padding-bottom: 0.3rem;
+}
+
+.manage-side-group-head {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.1rem;
+    gap: 0.4rem;
+    user-select: none;
+}
+.manage-side-group-head::-webkit-details-marker { display: none; }
+.manage-side-group-head::marker { content: ""; }
+.manage-side-group-head:hover .manage-side-group-label { color: var(--text); }
+.manage-side-group-head:focus-visible {
+    outline: 2px solid var(--violet-bright, var(--primary));
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.manage-side-group-label {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.66rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: color 0.15s ease;
+}
+
+.manage-side-group-marker {
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid var(--text-muted);
+    border-bottom: 1.5px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.manage-side-group[open] > .manage-side-group-head .manage-side-group-marker {
+    transform: rotate(45deg);
+    border-color: var(--primary-hover);
+}
+
+.manage-side-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+.manage-side-list li { margin: 0; }
+
+/* Re-target nav links inside the sidebar. */
+.manage-side-list .manage-nav-link {
+    display: block;
+    position: relative;
+    padding: 0.42rem 0.6rem 0.42rem 0.95rem;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: normal;
+    background: transparent;
+    transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.manage-side-list .manage-nav-link::before {
+    content: "";
+    position: absolute;
+    left: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0.25);
+    width: var(--side-rail);
+    height: 60%;
+    background: var(--primary, #7a5c9e);
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.18s ease;
+}
+
+.manage-side-list .manage-nav-link:hover {
+    color: var(--text);
+    background: rgba(148, 121, 239, 0.08);
+    border-color: transparent;
+}
+.manage-side-list .manage-nav-link:hover::before {
+    opacity: 0.5;
+    transform: translateY(-50%) scaleY(0.7);
+}
+
+.manage-side-list .manage-nav-link:focus-visible {
+    outline: 2px solid var(--violet-bright, var(--primary));
+    outline-offset: 2px;
+    color: var(--text);
+}
+
+.manage-side-list .manage-nav-link.is-current,
+.manage-side-list .manage-nav-link[aria-current="page"] {
+    color: #fff;
+    background: rgba(148, 121, 239, 0.16);
+    border-color: rgba(148, 121, 239, 0.32);
+    font-weight: 600;
+}
+.manage-side-list .manage-nav-link.is-current::before,
+.manage-side-list .manage-nav-link[aria-current="page"]::before {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+}
+
+/* Foot — auth bar pinned to the bottom of the rail. */
+.manage-shell .manage-side-foot {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem var(--side-pad-x) 1.1rem;
+    border-top: 1px solid var(--border);
+    background: rgba(7, 7, 10, 0.45);
+}
+.manage-shell .manage-side-foot .manage-user-info {
+    font-family: var(--mono-font, "JetBrains Mono", monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+.manage-shell .manage-side-foot .btn { align-self: flex-start; }
+
+/* Top bar — only visible on small screens for the hamburger. */
+.manage-shell-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.manage-topbar {
+    display: none;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18, 23, 35, 0.92);
+    backdrop-filter: blur(6px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+.manage-topbar-logo {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+}
+
+.manage-side-toggle {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid var(--border-strong, var(--border));
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.45rem 0.55rem;
+    cursor: pointer;
+}
+.manage-side-toggle:focus-visible {
+    outline: 2px solid var(--violet-bright, var(--primary));
+    outline-offset: 2px;
+}
+.manage-side-toggle-bar {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+}
+
+.manage-shell .manage-main {
+    padding: clamp(1rem, 1.8vw, 1.75rem);
+    max-width: 1440px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ---------------------------------------------
+   Responsive — collapse rail into off-canvas drawer
+---------------------------------------------- */
+@media (max-width: 900px) {
+    .manage-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .manage-topbar { display: flex; }
+    .manage-shell-side {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(86vw, var(--side-w));
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-2, 0 16px 38px rgba(4, 8, 18, 0.34));
+        z-index: 50;
+    }
+    .manage-shell[data-side-open="true"] .manage-shell-side {
+        transform: translateX(0);
+    }
+    .manage-shell[data-side-open="true"] .manage-shell-scrim {
+        display: block;
+    }
+}
+
+/* ---------------------------------------------
+   Prefers-reduced-motion
+---------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .manage-shell-side,
+    .manage-side-list .manage-nav-link,
+    .manage-side-list .manage-nav-link::before,
+    .manage-side-group-marker {
+        transition: none;
+    }
+}

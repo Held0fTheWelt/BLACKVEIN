@@ -6,67 +6,182 @@
     <title>{% block title %}{{ t.nav_manage | default('Manage') }}{% endblock %} – {{ t.site_name | default('BLACKVEIN') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='manage.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
 <body class="manage-body">
     <a class="skip-link" href="#main">Skip to main content</a>
-    <header class="manage-header">
-        <div class="manage-header-inner">
-            <a href="{{ url_for('manage_index') }}" class="manage-logo">{{ t.nav_manage | default('Manage') }}</a>
-            <nav class="manage-nav" aria-label="Management" id="manage-nav">
-                <a href="{{ url_for('manage_news') }}" class="manage-nav-link" data-page="news" id="manage-nav-news" data-feature="manage.news">{{ t.manage_news | default('News') }}</a>
-                <a href="{{ url_for('manage_users') }}" class="manage-nav-link" data-page="users" id="manage-nav-users" data-feature="manage.users">{{ t.manage_users | default('Users') }}</a>
-                <a href="{{ url_for('manage_roles') }}" class="manage-nav-link" data-page="roles" id="manage-nav-roles" data-feature="manage.roles">Roles</a>
-                <a href="{{ url_for('manage_areas') }}" class="manage-nav-link" data-page="areas" id="manage-nav-areas" data-feature="manage.areas">Areas</a>
-                <a href="{{ url_for('manage_feature_areas') }}" class="manage-nav-link" data-page="feature-areas" id="manage-nav-feature-areas" data-feature="manage.feature_areas">Feature access</a>
-                <a href="{{ url_for('manage_forum') }}" class="manage-nav-link" data-page="forum" id="manage-nav-forum" data-feature="manage.forum">Forum</a>
-                <a href="{{ url_for('manage_game_content') }}" class="manage-nav-link" data-page="game-content" id="manage-nav-game-content" data-feature="manage.game_content">Game Content</a>
-                <a href="{{ url_for('manage_game_operations') }}" class="manage-nav-link" data-page="game-operations" id="manage-nav-game-operations" data-feature="manage.game_operations">Game Ops</a>
-                <a href="{{ url_for('manage_diagnosis') }}" class="manage-nav-link" data-page="diagnosis" id="manage-nav-diagnosis" data-feature="manage.system_diagnosis">Diagnosis</a>
-                <a href="{{ url_for('manage_ai_runtime_governance') }}" class="manage-nav-link" data-page="ai-runtime-governance" id="manage-nav-ai-runtime-governance" data-feature="manage.ai_runtime_governance">AI Runtime Governance</a>
-                <a href="{{ url_for('manage_runtime_dashboard') }}" class="manage-nav-link" data-page="runtime-dashboard" id="manage-nav-runtime-dashboard" data-feature="manage.ai_runtime_governance">Runtime Dashboard</a>
-                <a href="{{ url_for('manage_runtime_settings') }}" class="manage-nav-link" data-page="runtime-settings" id="manage-nav-runtime-settings" data-feature="manage.ai_runtime_governance">Runtime Settings</a>
-                <a href="{{ url_for('manage_rag_operations') }}" class="manage-nav-link" data-page="rag-operations" id="manage-nav-rag-operations" data-feature="manage.ai_runtime_governance">RAG Operations</a>
-                <a href="{{ url_for('manage_ai_orchestration') }}" class="manage-nav-link" data-page="ai-orchestration" id="manage-nav-ai-orchestration" data-feature="manage.ai_runtime_governance">AI Orchestration</a>
-                <a href="{{ url_for('manage_observability_settings') }}" class="manage-nav-link" data-page="observability-settings" id="manage-nav-observability-settings" data-feature="manage.ai_runtime_governance">Observability Settings</a>
-                <a href="{{ url_for('manage_world_engine_control_center') }}" class="manage-nav-link" data-page="world-engine-control-center" id="manage-nav-world-engine-control-center" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">World-Engine Control Center</a>
-                <a href="{{ url_for('manage_world_engine_console') }}" class="manage-nav-link" data-page="world-engine-console" id="manage-nav-world-engine-console" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">World Engine Console</a>
-                <a href="{{ url_for('manage_play_service_control') }}" class="manage-nav-link" data-page="play-service-control" id="manage-nav-play-service-control" data-feature="manage.play_service_control">Play-Service</a>
-                <a href="{{ url_for('manage_mcp_operations') }}" class="manage-nav-link" data-page="mcp-operations" id="manage-nav-mcp-operations" data-feature="manage.mcp_operations">MCP Operations</a>
-                <a href="{{ url_for('manage_research_overview') }}" class="manage-nav-link" data-page="research-overview" id="manage-nav-research-overview" data-feature="manage.research_governance">Research</a>
-                <a href="{{ url_for('manage_inspector_workbench') }}" class="manage-nav-link" data-page="inspector-workbench" id="manage-nav-inspector-workbench" data-feature="manage.game_operations">Inspector Suite</a>
-                <a href="{{ url_for('manage_narrative_overview') }}" class="manage-nav-link" data-page="narrative-governance" id="manage-nav-narrative-governance">Narrative Gov</a>
-                <a href="{{ url_for('manage_data') }}" class="manage-nav-link" data-page="data" id="manage-nav-data" data-feature="manage.data_export">{{ t.manage_data | default('Data') }}</a>
-                <a href="{{ url_for('manage_wiki') }}" class="manage-nav-link" data-page="wiki" id="manage-nav-wiki" data-feature="manage.wiki">{{ t.manage_wiki | default('Wiki') }}</a>
-                <a href="{{ url_for('manage_slogans') }}" class="manage-nav-link" data-page="slogans" id="manage-nav-slogans" data-feature="manage.slogans">Slogans</a>
+    <div class="manage-shell" data-side-open="false">
+        <button type="button" class="manage-shell-scrim" id="manage-shell-scrim" aria-hidden="true" tabindex="-1"></button>
+        <aside class="manage-shell-side" id="manage-side" aria-label="Management navigation">
+            <div class="manage-side-head">
+                <a href="{{ url_for('manage_index') }}" class="manage-logo">
+                    <span class="manage-logo-mark" aria-hidden="true">◆</span>
+                    <span class="manage-logo-word">{{ t.site_name | default('BLACKVEIN') }}</span>
+                </a>
+                <span class="manage-side-subtitle">{{ t.nav_manage | default('Manage') }}</span>
+            </div>
+
+            <nav class="manage-side-nav" id="manage-nav" aria-label="Management">
+                <details class="manage-side-group" data-group="ops" open>
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">Ops &amp; Health</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_diagnosis') }}" class="manage-nav-link" data-page="diagnosis" id="manage-nav-diagnosis" data-feature="manage.system_diagnosis">Diagnosis</a></li>
+                        <li><a href="{{ url_for('manage_runtime_dashboard') }}" class="manage-nav-link" data-page="runtime-dashboard" id="manage-nav-runtime-dashboard" data-feature="manage.ai_runtime_governance">Runtime Dashboard</a></li>
+                        <li><a href="{{ url_for('manage_runtime_settings') }}" class="manage-nav-link" data-page="runtime-settings" id="manage-nav-runtime-settings" data-feature="manage.ai_runtime_governance">Runtime Settings</a></li>
+                        <li><a href="{{ url_for('manage_observability_settings') }}" class="manage-nav-link" data-page="observability-settings" id="manage-nav-observability-settings" data-feature="manage.ai_runtime_governance">Observability Settings</a></li>
+                        <li><a href="{{ url_for('manage_play_service_control') }}" class="manage-nav-link" data-page="play-service-control" id="manage-nav-play-service-control" data-feature="manage.play_service_control">Play-Service</a></li>
+                        <li><a href="{{ url_for('manage_world_engine_control_center') }}" class="manage-nav-link" data-page="world-engine-control-center" id="manage-nav-world-engine-control-center" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">World-Engine Control Center</a></li>
+                        <li><a href="{{ url_for('manage_world_engine_console') }}" class="manage-nav-link" data-page="world-engine-console" id="manage-nav-world-engine-console" data-feature-any="manage.world_engine_observe,manage.world_engine_operate,manage.world_engine_author">World Engine Console</a></li>
+                    </ul>
+                </details>
+
+                <details class="manage-side-group" data-group="ai-gov" open>
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">AI Governance</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_ai_runtime_governance') }}" class="manage-nav-link" data-page="ai-runtime-governance" id="manage-nav-ai-runtime-governance" data-feature="manage.ai_runtime_governance">AI Runtime Governance</a></li>
+                        <li><a href="{{ url_for('manage_ai_orchestration') }}" class="manage-nav-link" data-page="ai-orchestration" id="manage-nav-ai-orchestration" data-feature="manage.ai_runtime_governance">AI Orchestration</a></li>
+                        <li><a href="{{ url_for('manage_rag_operations') }}" class="manage-nav-link" data-page="rag-operations" id="manage-nav-rag-operations" data-feature="manage.ai_runtime_governance">RAG Operations</a></li>
+                        <li><a href="{{ url_for('manage_mcp_operations') }}" class="manage-nav-link" data-page="mcp-operations" id="manage-nav-mcp-operations" data-feature="manage.mcp_operations">MCP Operations</a></li>
+                        <li><a href="{{ url_for('manage_narrative_overview') }}" class="manage-nav-link" data-page="narrative-governance" id="manage-nav-narrative-governance">Narrative Governance</a></li>
+                        <li><a href="{{ url_for('manage_research_overview') }}" class="manage-nav-link" data-page="research-overview" id="manage-nav-research-overview" data-feature="manage.research_governance">Research Governance</a></li>
+                    </ul>
+                </details>
+
+                <details class="manage-side-group" data-group="content">
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">Content &amp; Authoring</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_game_content') }}" class="manage-nav-link" data-page="game-content" id="manage-nav-game-content" data-feature="manage.game_content">Game Content</a></li>
+                        <li><a href="{{ url_for('manage_game_operations') }}" class="manage-nav-link" data-page="game-operations" id="manage-nav-game-operations" data-feature="manage.game_operations">Game Ops</a></li>
+                        <li><a href="{{ url_for('manage_inspector_workbench') }}" class="manage-nav-link" data-page="inspector-workbench" id="manage-nav-inspector-workbench" data-feature="manage.game_operations">Inspector Suite</a></li>
+                        <li><a href="{{ url_for('manage_areas') }}" class="manage-nav-link" data-page="areas" id="manage-nav-areas" data-feature="manage.areas">Areas</a></li>
+                        <li><a href="{{ url_for('manage_feature_areas') }}" class="manage-nav-link" data-page="feature-areas" id="manage-nav-feature-areas" data-feature="manage.feature_areas">Feature Access</a></li>
+                    </ul>
+                </details>
+
+                <details class="manage-side-group" data-group="community">
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">Community</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_news') }}" class="manage-nav-link" data-page="news" id="manage-nav-news" data-feature="manage.news">{{ t.manage_news | default('News') }}</a></li>
+                        <li><a href="{{ url_for('manage_forum') }}" class="manage-nav-link" data-page="forum" id="manage-nav-forum" data-feature="manage.forum">Forum</a></li>
+                        <li><a href="{{ url_for('manage_wiki') }}" class="manage-nav-link" data-page="wiki" id="manage-nav-wiki" data-feature="manage.wiki">{{ t.manage_wiki | default('Wiki') }}</a></li>
+                        <li><a href="{{ url_for('manage_slogans') }}" class="manage-nav-link" data-page="slogans" id="manage-nav-slogans" data-feature="manage.slogans">Slogans</a></li>
+                    </ul>
+                </details>
+
+                <details class="manage-side-group" data-group="identity">
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">Identity</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_users') }}" class="manage-nav-link" data-page="users" id="manage-nav-users" data-feature="manage.users">{{ t.manage_users | default('Users') }}</a></li>
+                        <li><a href="{{ url_for('manage_roles') }}" class="manage-nav-link" data-page="roles" id="manage-nav-roles" data-feature="manage.roles">Roles</a></li>
+                    </ul>
+                </details>
+
+                <details class="manage-side-group" data-group="data">
+                    <summary class="manage-side-group-head">
+                        <span class="manage-side-group-label">Data</span>
+                        <span class="manage-side-group-marker" aria-hidden="true"></span>
+                    </summary>
+                    <ul class="manage-side-list">
+                        <li><a href="{{ url_for('manage_data') }}" class="manage-nav-link" data-page="data" id="manage-nav-data" data-feature="manage.data_export">{{ t.manage_data | default('Data') }}</a></li>
+                    </ul>
+                </details>
             </nav>
-            <div class="manage-auth-bar" id="manage-auth-bar">
+
+            <div class="manage-side-foot manage-auth-bar" id="manage-auth-bar">
                 <span class="manage-user-info" id="manage-user-info"></span>
                 <button type="button" class="btn btn-ghost btn-sm" id="manage-logout">{{ t.manage_logout | default('Log out') }}</button>
             </div>
+        </aside>
+
+        <div class="manage-shell-main">
+            <header class="manage-topbar" aria-hidden="false">
+                <button type="button" class="manage-side-toggle" id="manage-side-toggle" aria-controls="manage-side" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="manage-side-toggle-bar"></span>
+                    <span class="manage-side-toggle-bar"></span>
+                    <span class="manage-side-toggle-bar"></span>
+                </button>
+                <a href="{{ url_for('manage_index') }}" class="manage-topbar-logo">{{ t.site_name | default('BLACKVEIN') }}</a>
+            </header>
+            <main id="main" class="manage-main" role="main">
+                {% block content %}{% endblock %}
+            </main>
         </div>
-    </header>
-    <main id="main" class="manage-main" role="main">
-        {% block content %}{% endblock %}
-    </main>
+    </div>
     <script>
         window.__FRONTEND_CONFIG__ = {{ frontend_config | tojson }};
     </script>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
     <script src="{{ url_for('static', filename='manage_auth.js') }}"></script>
     <script>
-        (function markCurrentManageNav() {
+        (function manageSidebarShell() {
             const pathname = window.location.pathname.replace(/\/+$/, "");
             const navLinks = document.querySelectorAll(".manage-nav-link");
+            let currentLink = null;
             navLinks.forEach((link) => {
                 const href = (link.getAttribute("href") || "").replace(/\/+$/, "");
                 if (!href) return;
                 if (href === pathname) {
                     link.classList.add("is-current");
                     link.setAttribute("aria-current", "page");
+                    currentLink = link;
+                }
+            });
+            if (currentLink) {
+                const group = currentLink.closest(".manage-side-group");
+                if (group && !group.open) group.open = true;
+            }
+
+            const shell = document.querySelector(".manage-shell");
+            const toggle = document.getElementById("manage-side-toggle");
+            const scrim = document.getElementById("manage-shell-scrim");
+            const side = document.getElementById("manage-side");
+            if (!shell || !toggle || !side) return;
+
+            function setOpen(open) {
+                shell.dataset.sideOpen = open ? "true" : "false";
+                toggle.setAttribute("aria-expanded", open ? "true" : "false");
+                if (open) {
+                    side.removeAttribute("inert");
+                } else if (window.matchMedia("(max-width: 900px)").matches) {
+                    // collapse focus out of off-canvas drawer on small screens
+                    if (side.contains(document.activeElement)) toggle.focus();
+                }
+            }
+            toggle.addEventListener("click", () => {
+                const open = shell.dataset.sideOpen !== "true";
+                setOpen(open);
+            });
+            if (scrim) scrim.addEventListener("click", () => setOpen(false));
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && shell.dataset.sideOpen === "true"
+                    && window.matchMedia("(max-width: 900px)").matches) {
+                    setOpen(false);
+                    toggle.focus();
+                }
+            });
+            // close drawer after a nav click on small screens
+            side.addEventListener("click", (event) => {
+                const link = event.target.closest("a.manage-nav-link");
+                if (link && window.matchMedia("(max-width: 900px)").matches) {
+                    setOpen(false);
                 }
             });
         })();
