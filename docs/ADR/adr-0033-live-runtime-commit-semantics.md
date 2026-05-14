@@ -828,6 +828,63 @@ Anything else — including missing, empty string, `None`, `"unknown"`, `"reject
 - World-Engine unit: `test_ldss_opening_fallback_state_captures_primary_attempt_and_final_adapter` and `test_ldss_opening_fallback_state_does_not_invent_primary_when_already_fallback` in `world-engine/tests/test_trace_middleware.py`.
 - World-Engine evidence: `test_langfuse_score_metadata_surfaces_primary_vs_final_for_ldss_opening_fallback` and `test_langfuse_primary_vs_final_metadata_for_healthy_path_marks_primary_eq_final` cover score metadata, invoke/fallback span outputs, and that `record_generation` is **not** called on the fallback path.
 
+### 13.11 Modular runtime intelligence ledger and projection gate
+
+**Problem:** A live turn can be visibly playable while still losing the proof
+needed to audit why it was committed. ADR-0033 therefore requires more than
+visible text: the runtime must preserve structured evidence for selected beat,
+capability, narrator/NPC/player authority, visible origin, and commit outcome.
+
+**Required behavior (World-Engine):**
+
+1. Every committed or recoverable player-visible turn must carry a
+   JSON-safe `turn_aspect_ledger` in the canonical turn record or recoverable
+   turn envelope.
+2. The ledger must be module-neutral. Generic runtime code may consume
+   `ModuleRuntimePolicy.runtime_governance_policy`, but it must not branch on
+   God of Carnage actor names, locations, phase names, beat ids, or sample
+   prose.
+3. Visible projection must preserve required origin evidence. If folding or
+   projection drops required beat/narrator/capability evidence, the projection
+   gate must block or recover before canonical commit according to module
+   policy.
+4. `committed_result.commit_applied`, `validation_status`, `quality_class`,
+   `fallback_used`, and degradation/recovery fields must remain explicit so
+   fallback, degraded, recoverable, rejected, and healthy committed turns cannot
+   collapse into the same operator state.
+5. Hierarchical memory may write only from canonical committed turns unless a
+   future ADR and module policy explicitly allow another source. Recoverable or
+   rejected turns may record memory guard evidence but must not create memory
+   truth.
+
+**Required deterministic evidence:** Langfuse/MCP verification must be able to
+read deterministic scores or normalized evidence for at least:
+
+```text
+turn_aspect_ledger_present
+beat_selected
+beat_realized
+narrator_required_when_expected
+npc_takeover_absent
+capability_selection_present
+selected_capabilities_realized
+visible_block_origin_present
+required_visible_origin_preserved
+visible_projection_contract_pass
+hierarchical_memory_contract_pass
+```
+
+**Frontend boundary:** The frontend may render backend-provided aspect
+diagnostics, but it must not infer beat realization, narrator authority, NPC
+takeover, capability correctness, visible-origin preservation, or memory
+correctness from prose/card shape.
+
+**Regression guards:** `world-engine/tests/test_story_runtime_aspect_ledger.py`
+must cover projection rejection/recovery, required narrator/beat preservation,
+and canonical committed-result persistence. `ai_stack/tests/test_module_runtime_policy.py`
+and `ai_stack/tests/test_runtime_authority_aspects.py` must prove policy-driven
+routing and authority behavior without module-name hardcoding.
+
 ---
 
 ## 14. Summary

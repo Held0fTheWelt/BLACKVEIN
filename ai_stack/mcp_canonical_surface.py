@@ -195,6 +195,12 @@ _TOOL_SPECS: tuple[tuple[str, McpToolClass, McpSuite, str], ...] = (
     ("wos.evaluators.langfuse_sync_preview", McpToolClass.read_only, McpSuite.wos_ai, AUTH_LANGFUSE_EVALUATOR_CATALOG),
     ("wos.quality_lab.review_judgments", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
     ("wos.quality_lab.review_trace", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.review_mcp_exchange", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.find_patterns", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.suggest_investigation", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.plan_repair_wave", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.refine_judge_set", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
+    ("wos.quality_lab.plan_content_revision", McpToolClass.read_only, McpSuite.wos_runtime_read, AUTH_QUALITY_LAB_ANALYSIS),
 )
 
 

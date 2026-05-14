@@ -1,4 +1,4 @@
-"""MCP handlers for Quality Lab (ADR-0040, Phases 1 & 2).
+"""MCP handlers for Quality Lab (ADR-0040, Phases 1-5).
 
 Phase 1 exposes ``wos.quality_lab.review_judgments`` — semantic
 interpretation of categorical LLM-as-a-Judge scores. Composes with the
@@ -14,6 +14,14 @@ for test fixtures) to get metadata coverage, runtime aspect summary,
 beat/capability realization, authority clusters, span anomalies, and
 prioritized trace-level improvement candidates.
 
+Phase 3 exposes ``wos.quality_lab.review_mcp_exchange`` — diagnostic
+analysis of an MCP request/response pair. It detects missing request
+context, stale assumptions, weak analysis responses, and follow-up queries.
+
+Phase 4 exposes pattern finding and investigation planning. Phase 5 exposes
+repair-wave, judge-set, and content-revision planning. These remain proposal
+surfaces only.
+
 Read-only. Never mutates runtime state, Langfuse evaluators, prompts, or
 content. Deterministic runtime gates from ADR-0033 remain authoritative.
 """
@@ -23,6 +31,16 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from ai_stack.quality_lab.judgment_interpreter import interpret_judgments
+from ai_stack.quality_lab.mcp_exchange_interpreter import interpret_mcp_exchange
+from ai_stack.quality_lab.pattern_interpreter import (
+    find_patterns,
+    suggest_investigation,
+)
+from ai_stack.quality_lab.planning_interpreter import (
+    plan_content_revision,
+    plan_repair_wave,
+    refine_judge_set,
+)
 from ai_stack.quality_lab.trace_interpreter import interpret_trace
 from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
     _extract_metadata,
@@ -191,7 +209,118 @@ def build_quality_lab_mcp_handlers() -> dict[str, Callable[..., dict[str, Any]]]
         )
         return {"ok": True, **result}
 
+    def wos_quality_lab_review_mcp_exchange(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        request = arguments.get("request")
+        response = arguments.get("response")
+        if not isinstance(request, dict) or not isinstance(response, dict):
+            return {
+                "ok": False,
+                "error": {
+                    "code": "no_exchange_provided",
+                    "message": "Provide both 'request' and 'response' objects.",
+                },
+            }
+        focus = arguments.get("focus")
+        focus_list = focus if isinstance(focus, list) else None
+        result = interpret_mcp_exchange(request, response, focus=focus_list)
+        return {"ok": True, **result}
+
+    def wos_quality_lab_find_patterns(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        include = _coerce_bool(arguments.get("include_claude_context"))
+        cluster_by = arguments.get("cluster_by")
+        result = find_patterns(
+            trace_summaries=arguments.get("trace_summaries") or [],
+            judge_results=arguments.get("judge_results") or [],
+            cluster_by=cluster_by if isinstance(cluster_by, list) else None,
+            include_claude_context=bool(include),
+        )
+        return {"ok": True, **result}
+
+    def wos_quality_lab_suggest_investigation(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        cluster = arguments.get("problem_cluster")
+        if not isinstance(cluster, dict):
+            return {
+                "ok": False,
+                "error": {
+                    "code": "no_problem_cluster_provided",
+                    "message": "Provide 'problem_cluster' as an object.",
+                },
+            }
+        include = _coerce_bool(arguments.get("include_claude_context"))
+        if include is None:
+            include = True
+        context = arguments.get("available_context")
+        result = suggest_investigation(
+            problem_cluster=cluster,
+            available_context=context if isinstance(context, dict) else {},
+            include_claude_context=bool(include),
+        )
+        return {"ok": True, **result}
+
+    def wos_quality_lab_plan_repair_wave(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        constraints = arguments.get("constraints")
+        result = plan_repair_wave(
+            improvement_candidates=arguments.get("improvement_candidates") or [],
+            constraints=constraints if isinstance(constraints, dict) else {},
+        )
+        return {"ok": True, **result}
+
+    def wos_quality_lab_refine_judge_set(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        result = refine_judge_set(
+            judge_names=arguments.get("judge_names") or [],
+            observed_failures=arguments.get("observed_failures") or [],
+            examples=arguments.get("examples") or [],
+            mode=str(arguments.get("mode") or "analysis_only"),
+        )
+        return {"ok": True, **result}
+
+    def wos_quality_lab_plan_content_revision(arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            return {
+                "ok": False,
+                "error": {"code": "invalid_input", "message": "arguments must be an object"},
+            }
+        include = _coerce_bool(arguments.get("include_claude_context"))
+        result = plan_content_revision(
+            content_module=arguments.get("content_module"),
+            quality_findings=arguments.get("quality_findings") or [],
+            scene_or_context=arguments.get("scene_or_context"),
+            include_claude_context=bool(include),
+        )
+        return {"ok": True, **result}
+
     return {
         "wos.quality_lab.review_judgments": wos_quality_lab_review_judgments,
         "wos.quality_lab.review_trace": wos_quality_lab_review_trace,
+        "wos.quality_lab.review_mcp_exchange": wos_quality_lab_review_mcp_exchange,
+        "wos.quality_lab.find_patterns": wos_quality_lab_find_patterns,
+        "wos.quality_lab.suggest_investigation": wos_quality_lab_suggest_investigation,
+        "wos.quality_lab.plan_repair_wave": wos_quality_lab_plan_repair_wave,
+        "wos.quality_lab.refine_judge_set": wos_quality_lab_refine_judge_set,
+        "wos.quality_lab.plan_content_revision": wos_quality_lab_plan_content_revision,
     }

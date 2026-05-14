@@ -279,6 +279,8 @@ Each story session is a small, server-side record: which module, which scene you
 
 - **Session map:** `StoryRuntimeManager.sessions: dict[str, StorySession]` (`world-engine/app/story_runtime/manager.py`).
 - **Turn execution:** increments `turn_counter`, runs `turn_graph.run(...)`, computes `narrative_commit`, updates `narrative_threads`, appends to `history` and `diagnostics`, returns a turn envelope including `visible_output_bundle` and graph diagnostics references.
+- **Runtime intelligence ledger:** records `turn_aspect_ledger` for input, selected beat, selected/required/blocked capabilities, narrator/NPC/player authority, visible origin evidence, validation status, commit result, and hierarchical memory. The ledger is persisted with the canonical turn record and projected to diagnostics/path summaries; the frontend may render it only as backend-provided data.
+- **Module runtime governance:** loads `ModuleRuntimePolicy.runtime_governance_policy` from module content. The runtime core consumes generic policy fields such as action-resolution short-path eligibility, visible-projection hard-failure behavior, capability gate behavior, and continuity hooks; module-specific names stay in content/configuration.
 - **Hierarchical memory:** loads module `memory_policy` through `ModuleRuntimePolicy`, records the `hierarchical_memory` runtime aspect, writes bounded memory items only after canonical commit, and projects safe memory context into the next LangGraph turn. Recoverable/rejected turns record guard evidence but do not write memory truth.
 - **Failure handling:** graph exceptions log via `log_story_runtime_failure` (`world-engine/app/observability/audit_log.py`) and re-raise; HTTP layer maps missing session to 404 (`world-engine/app/api/http.py`).
 
@@ -294,7 +296,7 @@ Backend stores `world_engine_story_session_id` inside Flask session metadata whe
 
 Persistent **cross-session player memory** or unbounded learned memory. The implemented hierarchical memory layer is a module-policy-driven, session-local projection of committed turn truth. The `long_term` tier is generic contract surface only until a durable store and explicit module policy enable it.
 
-**Repository anchors:** `world-engine/app/story_runtime/manager.py`, `world-engine/app/api/http.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`.
+**Repository anchors:** `world-engine/app/story_runtime/manager.py`, `world-engine/app/api/http.py`, `ai_stack/module_runtime_policy.py`, `world-engine/tests/test_story_runtime_aspect_ledger.py`, `world-engine/tests/test_story_runtime_narrative_commit.py`.
 
 ---
 

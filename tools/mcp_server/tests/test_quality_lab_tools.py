@@ -1,8 +1,8 @@
-"""Tests for ``wos.quality_lab.*`` MCP handlers (ADR-0040 Phases 1 & 2).
+"""Tests for ``wos.quality_lab.*`` MCP handlers (ADR-0040 Phases 1-5).
 
 Expected judge names, categories, aspect names, and trace names are
 derived from canonical catalogs (`ai_stack.langfuse_evaluator_catalog`,
-`ai_stack.quality_lab.trace_interpreter`) per ADR-0039 — no hardcoded
+`ai_stack.quality_lab.trace_interpreter`, Quality Lab constants) per ADR-0039 — no hardcoded
 literals in this file.
 """
 
@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 
 from ai_stack.langfuse_evaluator_catalog import (
+    BACKEND_TURN_ROOT_TRACE_NAME,
     WORLD_ENGINE_OPENING_TRACE_NAME,
     WORLD_ENGINE_TURN_TRACE_NAME,
 )
@@ -27,6 +28,15 @@ from ai_stack.quality_lab.evaluator_catalog import (
     evaluator_view,
     evaluator_views_for_scope,
     list_evaluator_views,
+)
+from ai_stack.quality_lab.mcp_exchange_interpreter import (
+    REQUIRED_REQUEST_CONTEXT_FIELDS,
+)
+from ai_stack.quality_lab.pattern_interpreter import (
+    QUALITY_LAB_PATTERN_TOOL_NAMES,
+)
+from ai_stack.quality_lab.planning_interpreter import (
+    QUALITY_LAB_PLANNING_TOOL_NAMES,
 )
 from ai_stack.quality_lab.trace_interpreter import (
     ASPECT_NAMES,
@@ -349,3 +359,212 @@ def test_review_trace_metadata_coverage_lists_canonical_fields():
     assert present.union(out["metadata_coverage"]["missing_fields"]) >= set(
         EXPECTED_LIVE_METADATA_FIELDS
     )
+
+
+# ===========================================================================
+# Phase 3 — wos.quality_lab.review_mcp_exchange
+# ===========================================================================
+
+
+def _complete_exchange_request(tool: str = "wos.quality_lab.review_mcp_exchange") -> dict[str, Any]:
+    return {
+        "tool": tool,
+        "focus": ["mcp_quality"],
+        "arguments": {
+            "trace_id": "lf-exchange-1",
+            "session_id": "ses-1",
+            "turn_id": "turn-1",
+            "actor": "annette",
+            "context": {"source": "test"},
+        },
+    }
+
+
+def _useful_exchange_response() -> dict[str, Any]:
+    return {
+        "ok": True,
+        "mcp_request_quality": {"status": "actionable"},
+        "mcp_response_quality": {"status": "useful"},
+        "missing_context": [],
+        "wrong_assumptions": [],
+        "recommended_followup_queries": [],
+        "improvement_candidates": [],
+        "canonical_evaluator_definition_doc": "docs/llm-as-a-judge/",
+        "deterministic_gates_remain_authoritative": True,
+    }
+
+
+def test_review_mcp_exchange_registered_in_canonical_surface():
+    by_name = canonical_mcp_tool_descriptors_by_name()
+    desc = by_name.get("wos.quality_lab.review_mcp_exchange")
+    assert desc is not None, "wos.quality_lab.review_mcp_exchange missing from canonical surface"
+    assert desc.tool_class is McpToolClass.read_only
+    assert desc.mcp_suite is McpSuite.wos_runtime_read
+    assert desc.authority_source == AUTH_QUALITY_LAB_ANALYSIS
+
+
+def test_review_mcp_exchange_rejects_non_dict_arguments():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    out = handler("not a dict")
+    assert out["ok"] is False
+    assert out["error"]["code"] == "invalid_input"
+
+
+def test_review_mcp_exchange_rejects_missing_exchange():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    out = handler({})
+    assert out["ok"] is False
+    assert out["error"]["code"] == "no_exchange_provided"
+
+
+def test_review_mcp_exchange_accepts_request_response_pair():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    out = handler({
+        "request": _complete_exchange_request(),
+        "response": _useful_exchange_response(),
+    })
+    assert out["ok"] is True
+    assert out["mcp_request_quality"]["status"] == "actionable"
+    assert out["mcp_response_quality"]["status"] == "useful"
+    assert out["improvement_candidates"] == []
+    assert out["deterministic_gates_remain_authoritative"] is True
+
+
+def test_review_mcp_exchange_surfaces_missing_context_from_request():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    out = handler({
+        "request": {"tool": "wos.quality_lab.review_trace", "focus": ["trace"], "arguments": {}},
+        "response": {"ok": True},
+    })
+    assert out["ok"] is True
+    missing = {entry["field"] for entry in out["missing_context"]}
+    assert missing == set(REQUIRED_REQUEST_CONTEXT_FIELDS)
+    assert out["next_user_decision"] is not None
+
+
+def test_review_mcp_exchange_detects_stale_backend_trace_rejection():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    request = _complete_exchange_request("wos.quality_lab.review_trace")
+    request["focus"] = ["trace"]
+    request["arguments"]["trace_name"] = BACKEND_TURN_ROOT_TRACE_NAME
+    out = handler({
+        "request": request,
+        "response": {
+            **_useful_exchange_response(),
+            "analysis": (
+                f"Reject {BACKEND_TURN_ROOT_TRACE_NAME}; only "
+                f"{WORLD_ENGINE_TURN_TRACE_NAME} is canonical."
+            ),
+        },
+    })
+    assert out["ok"] is True
+    kinds = {entry["kind"] for entry in out["wrong_assumptions"]}
+    assert "stale_trace_name_assumption" in kinds
+
+
+def test_review_mcp_exchange_detects_raw_score_dump_response():
+    handler = _registry()["wos.quality_lab.review_mcp_exchange"]
+    view = next(iter(list_evaluator_views()))
+    out = handler({
+        "request": _complete_exchange_request("fetch_langfuse_trace_scores"),
+        "response": {"ok": True, "judge_scores": {view.name: {"category": view.categories[0]}}},
+        "focus": ["judges"],
+    })
+    assert out["ok"] is True
+    assert out["mcp_response_quality"]["raw_score_dump"] is True
+    repairs = {c["repair_area"] for c in out["improvement_candidates"]}
+    assert "repair_mcp_response_interpret_scores" in repairs
+
+
+# ===========================================================================
+# Phases 4 & 5 — clustering, investigation, repair, judge, content planning
+# ===========================================================================
+
+
+def test_phase4_phase5_tools_registered_in_canonical_surface():
+    by_name = canonical_mcp_tool_descriptors_by_name()
+    for tool_name in (*QUALITY_LAB_PATTERN_TOOL_NAMES, *QUALITY_LAB_PLANNING_TOOL_NAMES):
+        desc = by_name.get(tool_name)
+        assert desc is not None, f"{tool_name} missing from canonical surface"
+        assert desc.tool_class is McpToolClass.read_only
+        assert desc.mcp_suite is McpSuite.wos_runtime_read
+        assert desc.authority_source == AUTH_QUALITY_LAB_ANALYSIS
+
+
+def test_find_patterns_handler_groups_repeated_repair_area():
+    handler = _registry()["wos.quality_lab.find_patterns"]
+    out = handler({
+        "trace_summaries": [
+            {"trace_id": "lf-1", "improvement_candidates": [{"repair_area": "runtime_authority"}]},
+            {"trace_id": "lf-2", "improvement_candidates": [{"repair_area": "runtime_authority"}]},
+        ],
+        "cluster_by": ["runtime_area"],
+        "include_claude_context": True,
+    })
+    assert out["ok"] is True
+    assert out["recurring_patterns"]
+    assert out["claude_context_queries"]
+
+
+def test_suggest_investigation_handler_requires_problem_cluster():
+    handler = _registry()["wos.quality_lab.suggest_investigation"]
+    out = handler({})
+    assert out["ok"] is False
+    assert out["error"]["code"] == "no_problem_cluster_provided"
+
+
+def test_suggest_investigation_handler_builds_followups():
+    handler = _registry()["wos.quality_lab.suggest_investigation"]
+    out = handler({
+        "problem_cluster": {
+            "title": "Recurring runtime authority",
+            "affected_areas": ["runtime_authority"],
+            "affected_traces": ["lf-1"],
+        },
+        "include_claude_context": True,
+    })
+    assert out["ok"] is True
+    assert out["hypotheses"]
+    assert out["mcp_followup_tools"]
+    assert out["user_decision"]["requires_user_decision"] is True
+
+
+def test_plan_repair_wave_handler_outputs_read_only_plan():
+    handler = _registry()["wos.quality_lab.plan_repair_wave"]
+    out = handler({
+        "improvement_candidates": [
+            {"candidate_id": "c1", "repair_area": "runtime_authority", "priority": "high"}
+        ],
+        "constraints": {"no_runtime_gate_weakening": True},
+    })
+    assert out["ok"] is True
+    assert out["repair_waves"]
+    assert out["deterministic_gates_remain_authoritative"] is True
+
+
+def test_refine_judge_set_handler_uses_catalog_judge():
+    handler = _registry()["wos.quality_lab.refine_judge_set"]
+    view = next(iter(list_evaluator_views()))
+    out = handler({
+        "judge_names": [view.name],
+        "observed_failures": [{"judge": view.name, "affected_area": view.group}],
+        "examples": [{"input": "fixture", "output": "fixture"}],
+    })
+    assert out["ok"] is True
+    assert out["prompt_delta_proposals"]
+    assert out["requires_user_review"] is True
+
+
+def test_plan_content_revision_handler_builds_tasks():
+    handler = _registry()["wos.quality_lab.plan_content_revision"]
+    out = handler({
+        "content_module": "god_of_carnage",
+        "quality_findings": [
+            {"source": "content", "affected_area": "relationship_pressure"}
+        ],
+        "include_claude_context": True,
+    })
+    assert out["ok"] is True
+    assert out["content_gap_hypotheses"]
+    assert out["content_revision_tasks"]
+    assert out["claude_context_queries"]

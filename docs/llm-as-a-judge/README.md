@@ -82,6 +82,21 @@ A test in `ai_stack/tests/test_quality_lab_evaluator_catalog.py` asserts:
 Drift in either direction fails CI. Update both sides together when adding,
 renaming, or removing an evaluator.
 
+## Quality Lab consumers
+
+ADR-0040 Quality Lab tools load this directory as their canonical evaluator
+definition source:
+
+- `wos.quality_lab.review_judgments` uses frontmatter severity buckets and
+  suggested repair areas to interpret categorical judge scores.
+- `wos.quality_lab.find_patterns`, `suggest_investigation`,
+  `plan_repair_wave`, `refine_judge_set`, and `plan_content_revision` use the
+  same evaluator names and group metadata when clustering findings or planning
+  maintenance.
+
+These tools are read-only. They may propose judge maintenance, but they do not
+edit evaluator prompts, categories, or Langfuse configuration.
+
 ## When to edit which side
 
 - **Add / remove an evaluator** → add or remove the `.md` file here, then

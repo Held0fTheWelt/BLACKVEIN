@@ -57,6 +57,7 @@ For the **record shape** (optional sections, testing expectations), see [`adr-te
 | [ADR-0037](adr-0037-backend-test-suite-split-runner.md) | Backend test suite split in canonical orchestrator | Accepted |
 | [ADR-0038](adr-0038-canonical-turn-lifecycle-single-commit-path.md) | Canonical turn lifecycle and single commit / persist / project path | Proposed |
 | [ADR-0039](adr-0039-gate-tests-no-hardcoded-oracle-bypass.md) | Gate tests must not use hardcoded oracles (no example-shaped bypasses) | Accepted |
+| [ADR-0040](adr-0040-quality-lab-mcp-runtime-diagnostics.md) | Quality Lab MCP runtime diagnostics and judge-guided improvement | Accepted |
 
 _Status values mirror each file's `## Status` line; update the table when an ADR's status changes._
 

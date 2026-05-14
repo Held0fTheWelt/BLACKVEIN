@@ -8,6 +8,7 @@ Status: implementation-facing reference (GOC-KNOWLEDGE-RUNTIME-INTEGRATION).
   any other language) via `session_output_language` / `locale/*` data.
 - The English knowledge layer lives in:
   - `content/modules/god_of_carnage/knowledge/` (machine-readable runtime contracts)
+  - `content/modules/god_of_carnage/module.yaml`
   - `content/modules/god_of_carnage/{apartment_layout,apartment_objects,actor_pressure_profiles,phase_beat_policy,memory_policy}.yaml`
 - Runtime-localized strings live in `content/modules/god_of_carnage/locale/`
   (e.g. `locale/scene_affordances.yaml`).
@@ -30,6 +31,7 @@ decide hard-forbidden pass/fail.
 | `apartment_objects.yaml` | affordance resolution, narrator packet, RAG | `apartment_objects_loaded` |
 | `actor_pressure_profiles.yaml` | scene director responder selection, narrator packet | `actor_pressure_profile_used`, `actor_pressure_profiles_loaded` |
 | `phase_beat_policy.yaml` | scene director dramatic parameters, pacing gate | `phase_policy_applied`, `phase_beat_policy_loaded` |
+| `module.yaml` / `runtime_intelligence` | `ModuleRuntimePolicy.runtime_governance_policy`, runtime route/capability/projection gates | `runtime_governance_policy`, `selection_source`, `capability_selection_valid`, `visible_projection_contract_pass`, `committed_result` |
 | `memory_policy.yaml` | `ModuleRuntimePolicy.memory_policy`, hierarchical memory write/project contracts | `hierarchical_memory`, `memory_policy_applied`, `memory_write_from_committed_turn`, `memory_context_bounded`, `hierarchical_memory_contract_pass` |
 
 ## Hard-forbidden detection policy
@@ -73,6 +75,26 @@ Turn 0 (`turn_input_class == "opening"`) is validated against
 
 RAG retrieval **does not override** deterministic contracts; it supports
 generation only.
+
+## Runtime intelligence policy
+
+`module.yaml` supplies the module-specific `runtime_intelligence` policy that is
+loaded into the generic `ModuleRuntimePolicy.runtime_governance_policy`. This is
+content/configuration, not runtime-core branching. Runtime code consumes generic
+policy keys such as:
+
+- `action_resolution_short_path`: whether deterministic action-resolution
+  routes may bypass later graph stages for allowed input kinds / semantic verbs.
+- `visible_projection`: whether required visible origin metadata is mandatory
+  and whether projection failures recover or hard-fail.
+- `capability_gate`: what happens when required capabilities are missing or
+  forbidden capabilities are realized.
+- `continuity.hooks`: named compatibility hooks that may run after canonical
+  commit without moving module-specific conditions into generic algorithms.
+
+Module-specific actor names, room aliases, phase names, beat ids, and sample
+prose stay in content files. Generic runtime validators read the policy and
+ledger fields; they must not hardcode God of Carnage literals.
 
 ## Hierarchical memory policy
 

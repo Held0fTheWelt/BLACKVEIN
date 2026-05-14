@@ -16,6 +16,25 @@ from ai_stack.quality_lab.evaluator_catalog import (
     list_evaluator_views,
 )
 from ai_stack.quality_lab.judgment_interpreter import interpret_judgments
+from ai_stack.quality_lab.mcp_exchange_interpreter import (
+    CANONICAL_TRACE_NAMES,
+    MCP_EXCHANGE_FOCUS_AREAS,
+    REQUIRED_REQUEST_CONTEXT_FIELDS,
+    interpret_mcp_exchange,
+)
+from ai_stack.quality_lab.pattern_interpreter import (
+    PATTERN_CLUSTER_FIELDS,
+    QUALITY_LAB_PATTERN_TOOL_NAMES,
+    find_patterns,
+    suggest_investigation,
+)
+from ai_stack.quality_lab.planning_interpreter import (
+    DEFAULT_REPAIR_CONSTRAINTS,
+    QUALITY_LAB_PLANNING_TOOL_NAMES,
+    plan_content_revision,
+    plan_repair_wave,
+    refine_judge_set,
+)
 from ai_stack.quality_lab.schemas import (
     SEVERITY_BUCKETS,
     SOURCE_KINDS,
@@ -30,16 +49,29 @@ from ai_stack.quality_lab.trace_interpreter import (
 
 __all__ = [
     "ASPECT_NAMES",
+    "CANONICAL_TRACE_NAMES",
+    "DEFAULT_REPAIR_CONSTRAINTS",
     "EXPECTED_LIVE_METADATA_FIELDS",
     "EvaluatorView",
+    "MCP_EXCHANGE_FOCUS_AREAS",
+    "PATTERN_CLUSTER_FIELDS",
+    "QUALITY_LAB_PATTERN_TOOL_NAMES",
+    "QUALITY_LAB_PLANNING_TOOL_NAMES",
+    "REQUIRED_REQUEST_CONTEXT_FIELDS",
     "SEVERITY_BUCKETS",
     "SOURCE_KINDS",
     "category_severity_bucket",
     "classify_trace_kind",
     "evaluator_view",
     "evaluator_views_for_scope",
+    "find_patterns",
     "interpret_judgments",
+    "interpret_mcp_exchange",
     "interpret_trace",
     "list_evaluator_views",
+    "plan_content_revision",
+    "plan_repair_wave",
+    "refine_judge_set",
+    "suggest_investigation",
     "user_decision_prompt",
 ]

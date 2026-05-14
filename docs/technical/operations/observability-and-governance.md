@@ -35,7 +35,7 @@ This document is the canonical reference for **cross-stack observability**, **au
 - Rubric source of truth: `docs/llm-as-a-judge/LLM-as-a-Judge Definition Table - Judges.csv`, mirrored structurally in `ai_stack/langfuse_evaluator_catalog.py` for MCP and CI.
 - Categorical judges are **qualitative-only**; they must not override ADR-0033 commit semantics, actor-lane gates, mock/fallback gates, or contract scores surfaced as numeric gates on traces.
 - MCP Langfuse helpers attach **interpretation** (`llm_judge_interpretation`, severity bands, suggested repair areas) and flag **missing judge rows** as evaluator-coverage gaps—not runtime failures.
-- Preferred Langfuse attachment context for live judges: `Observation Type = GENERATION`, `Observation Name = story.model.generation`, `Environment = live`, trace name `world-engine.session.create` (opening) or `world-engine.turn.execute` (interactive turns), with `backend.turn.execute` still valid as the backend root on the same distributed trace when scores were recorded there.
+- Preferred Langfuse attachment context for live judges: `Observation Type = GENERATION`, `Observation Name = story.model.generation`, environment supplied by the runtime (`staging`, `live`, or the configured deployment value), trace name `world-engine.session.create` (opening) or `world-engine.turn.execute` (interactive turns), with `backend.turn.execute` still valid as the backend root on the same distributed trace when scores were recorded there.
 
 ## Event and audit model
 
@@ -87,6 +87,13 @@ Capability invocations when using `CapabilityRegistry` continue to populate `cap
 
 The World-Engine turn path emits a backend-owned `turn_aspect_ledger` for runtime intelligence. The ledger is the authority for beat, capability, narrator/NPC authority, visible-origin, commit, and hierarchical-memory proof. The frontend may display backend-provided fields but must not infer correctness from prose or card shape.
 
+Runtime governance is module-policy-driven:
+
+- Module content provides `runtime_intelligence` / `runtime_governance_policy` through `ModuleRuntimePolicy`; generic runtime code does not branch on God of Carnage actor names, locations, phase names, or beat ids.
+- Action-resolution short-path eligibility, visible-projection hard-failure behavior, missing/forbidden capability behavior, and continuity hooks are policy values.
+- Projection failures that lose required beat/narrator/capability evidence block or recover before canonical commit according to policy; they must not be papered over by frontend card folding.
+- The ledger records `committed_result` / commit status so degraded, recoverable, rejected, and committed outcomes remain distinguishable in backend/world-engine/Langfuse data.
+
 Hierarchical memory is a bounded projection of canonical committed truth:
 
 - Module content provides `memory_policy` through `ModuleRuntimePolicy`; runtime code stays module-neutral.
@@ -96,10 +103,49 @@ Hierarchical memory is a bounded projection of canonical committed truth:
 - Projected memory context is bounded before it enters LangGraph model context.
 - Current God of Carnage policy enables session-retained `turn`, `session`, `actor`, and `module` tiers; `long_term` is disabled until a durable cross-session store exists.
 
-Langfuse aspect spans include:
+Langfuse runtime aspect spans include:
+
+- `story.aspect.input`
+- `story.beat.state`
+- `story.beat.select`
+- `story.beat.realize`
+- `story.authority.narrator`
+- `story.authority.npc`
+- `story.capability.select`
+- `story.capability.realize`
+- `story.visible.project`
+- `story.commit.apply`
+- `story.turn.aspect_summary`
+
+Langfuse memory spans include:
 
 - `story.memory.write`
 - `story.memory.project`
+
+Deterministic runtime aspect scores include:
+
+- `turn_aspect_ledger_present`
+- `beat_selected`
+- `beat_realized`
+- `beat_realization_visible`
+- `beat_transition_valid`
+- `beat_contract_pass`
+- `narrator_authority_contract_present`
+- `narrator_required_when_expected`
+- `narrator_owns_consequence`
+- `npc_authority_contract_present`
+- `npc_takeover_absent`
+- `npc_policy_realized`
+- `npc_consequence_takeover_absent`
+- `player_agency_violation_absent`
+- `capability_selection_present`
+- `capability_selection_valid`
+- `forbidden_capability_absent`
+- `selected_capabilities_realized`
+- `dramatic_capability_contract_pass`
+- `visible_block_origin_present`
+- `required_visible_origin_preserved`
+- `visible_projection_contract_pass`
 
 Deterministic memory scores include:
 

@@ -11,6 +11,8 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 - Explicit tool classes: `read_only`, `review_bound`, `write_capable` + operating profile gating
 - Stable per-token/local rate limiting; trace IDs are not used as quota keys
 - HTTP client with 5-second timeout and automatic retry; optional bearer token for backend session routes
+- Langfuse/runtime evidence normalization for `turn_aspect_ledger`, beat, capability, narrator/NPC authority, visible-origin, commit, and hierarchical-memory proof
+- Read-only Quality Lab diagnostics (`wos.quality_lab.*`) for judge, trace, MCP exchange, pattern, investigation, repair-wave, judge-set, and content-revision analysis
 - **`WOS_MCP_SUITE`** env to expose only one suite’s tools/resources/prompts (default: all)
 
 ## Environment Configuration
@@ -46,6 +48,45 @@ Model Context Protocol (MCP) server implementing Phase A1.2: operator/developer 
 | `wos.content.search` | `pattern`, `case_sensitive?` | Search content with regex |
 
 Session observability and research tools are implemented; see `tools_registry.py` and `docs/mcp/MVP_SUITE_MAP.md`.
+
+### Runtime aspect verification (`wos-runtime-read`)
+
+Langfuse verification tools normalize deterministic runtime evidence from
+backend/world-engine ledgers and trace scores. Operators can query:
+
+- `turn_aspect_ledger_present`
+- `beat_selected`
+- `beat_realized`
+- `narrator_required_when_expected`
+- `npc_takeover_absent`
+- `capability_selection_present`
+- `selected_capabilities_realized`
+- `visible_block_origin_present`
+- `required_visible_origin_preserved`
+- `hierarchical_memory_present`
+- `hierarchical_memory_contract_pass`
+
+These fields are evidence reads only. MCP must not infer correctness from
+visible prose, must not treat fallback/mock/degraded generation as healthy, and
+must not mutate runtime state while inspecting aspect data.
+
+### Quality Lab diagnostics (`wos-runtime-read`)
+
+All Quality Lab tools are read-only, registered in the canonical MCP surface,
+and governed by ADR-0040. They interpret evidence and propose next steps; they
+do not mutate runtime state, Langfuse evaluator definitions, prompts, content,
+or source code.
+
+| Tool | Input | Purpose |
+|------|-------|---------|
+| `wos.quality_lab.review_judgments` | `scores` or `trace_scores_payload` | Interpret categorical LLM-as-a-Judge scores using `docs/llm-as-a-judge/` severity buckets and repair areas |
+| `wos.quality_lab.review_trace` | `trace_payload` or `raw_trace` | Analyze trace metadata coverage, runtime aspect ledger, beat/capability realization, authority/origin signals, and span anomalies |
+| `wos.quality_lab.review_mcp_exchange` | `request`, `response`, `focus?` | Analyze an MCP request/response pair for missing context, stale assumptions, weak analysis, and follow-up queries |
+| `wos.quality_lab.find_patterns` | `trace_summaries`, `judge_results`, `cluster_by?` | Find recurring quality problems across trace and judge summaries |
+| `wos.quality_lab.suggest_investigation` | `problem_cluster`, `available_context?` | Convert a problem cluster into hypotheses, evidence needs, and follow-up MCP tools |
+| `wos.quality_lab.plan_repair_wave` | `improvement_candidates`, `constraints?` | Turn improvement candidates into a safe, ordered repair plan |
+| `wos.quality_lab.refine_judge_set` | `judge_names`, `observed_failures`, `examples?` | Propose judge maintenance work without editing evaluator definitions |
+| `wos.quality_lab.plan_content_revision` | `content_module?`, `quality_findings`, `scene_or_context?` | Connect quality findings to governed content-revision tasks |
 
 ### Wire format vs canonical name
 
@@ -198,12 +239,12 @@ pytest tools/mcp_server/tests/ -v
 **Results:** run the MCP suites from repo root (`PYTHONPATH` = repository root):
 - `python -m pytest ai_stack/tests/test_mcp_canonical_surface.py tools/mcp_server/tests/test_mcp_operational_parity_and_registry.py tools/mcp_server/tests/test_rpc.py -q --tb=short --no-cov`
 - `python -m pytest backend/tests/runtime/test_mcp_enrichment.py -q --tb=short --no-cov` (from `backend/` or with equivalent pytest config)
-- Full MCP tree: `python -m pytest tools/mcp_server/tests -q --tb=short --no-cov`
+- Full MCP tree: `python -m pytest tools/mcp_server/tests -q --tb=short --no-cov` (233 tests at ADR-0040 completion)
 - 8 backend client tests
 - 7 config tests
 - 7 filesystem tests
-- 8 tool handler tests
-- 4 registry tests
+- Quality Lab handler coverage for all ADR-0040 tools
+- Registry and wire-alias tests for canonical dotted names and Cursor-safe names
 - 5 RPC tests
 - 3 rate limit tests
 - 1 validation test

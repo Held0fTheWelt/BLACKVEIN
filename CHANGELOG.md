@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Modular runtime intelligence documentation:** updated the capability matrix, runtime-authority references, observability/MCP notes, GoC structured-content reference, and ADR-0033 to document `RuntimeAspectLedger`, `ModuleRuntimePolicy.runtime_governance_policy`, visible-origin projection gates, session-local hierarchical memory, and read-only MCP/Quality Lab evidence boundaries.
+
 ---
 
 ## [0.7.0] - 2026-04-22

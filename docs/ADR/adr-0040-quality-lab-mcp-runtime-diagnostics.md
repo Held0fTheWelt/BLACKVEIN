@@ -6,11 +6,25 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
 2026-05-14
+
+## Implementation status
+
+| Phase | Status | Evidence |
+|-------|--------|----------|
+| **1 — Evaluator catalog and judgment interpretation** | Implemented | `ai_stack/quality_lab/evaluator_catalog.py`, `judgment_interpreter.py`, `schemas.py`; MCP tool `wos.quality_lab.review_judgments`; tests in `ai_stack/tests/test_quality_lab_judgment_interpreter.py`, `ai_stack/tests/test_quality_lab_evaluator_catalog.py`, and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+| **2 — Trace and metadata analysis** | Implemented | `ai_stack/quality_lab/trace_interpreter.py`; MCP tool `wos.quality_lab.review_trace`; tests in `ai_stack/tests/test_quality_lab_trace_interpreter.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+| **3 — MCP exchange analysis** | Implemented | `ai_stack/quality_lab/mcp_exchange_interpreter.py`; MCP tool `wos.quality_lab.review_mcp_exchange`; tests in `ai_stack/tests/test_quality_lab_mcp_exchange_interpreter.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+| **4 — Problem clustering and investigation** | Implemented | `ai_stack/quality_lab/pattern_interpreter.py`; MCP tools `wos.quality_lab.find_patterns` and `wos.quality_lab.suggest_investigation`; tests in `ai_stack/tests/test_quality_lab_pattern_and_planning.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+| **5 — Repair, judge-set, and content planning** | Implemented | `ai_stack/quality_lab/planning_interpreter.py`; MCP tools `wos.quality_lab.plan_repair_wave`, `wos.quality_lab.refine_judge_set`, and `wos.quality_lab.plan_content_revision`; tests in `ai_stack/tests/test_quality_lab_pattern_and_planning.py` and `tools/mcp_server/tests/test_quality_lab_tools.py`. |
+
+All implemented surfaces are read-only and registered in
+`ai_stack/mcp_canonical_surface.py` with `McpToolClass.read_only`,
+`McpSuite.wos_runtime_read`, and `AUTH_QUALITY_LAB_ANALYSIS`.
 
 ## Related ADRs
 
@@ -480,18 +494,18 @@ LLM-as-a-Judge outputs may inform:
 
 They must not decide runtime truth.
 
-## Proposed Architecture
+## Implemented Architecture
 
 ### Inherit from existing surface (do not greenfield)
 
-Phase 1 must **inherit and extend** existing infrastructure rather than
-re-bootstrap it:
+Quality Lab **inherits and extends** existing infrastructure rather than
+re-bootstrapping it:
 
 | Existing surface | Reused by Quality Lab |
 |------------------|-----------------------|
 | `ai_stack/langfuse_evaluator_catalog.py` — `WOS_CATEGORICAL_JUDGES_ORDER`, `get_categorical_evaluator_spec()`, `OPENING_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, `TURN_JUDGE_LANGFUSE_OBSERVATION_FILTERS`, filter bundles | Source of canonical judge names, trace-name constants, and Langfuse filter templates |
 | `tools/mcp_server/tools_registry_handlers_evaluators.py` — `wos.evaluators.catalog`, `wos.evaluators.get` (pure catalog reads) | Quality Lab does not duplicate; instead `wos.quality_lab.review_judgments` calls into the same catalog |
-| `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — `fetch_langfuse_trace`, `fetch_langfuse_trace_scores`, `build_opening_quality_context`, `_build_llm_judge_interpretation`, `_judge_score_coverage_gaps`, `_evaluator_column_metadata`, `normalized_wos_evidence` | Quality Lab composes: `review_trace` consumes `fetch_langfuse_trace` output and adds clustering + investigation; `review_judgments` consumes `fetch_langfuse_trace_scores` output and adds semantic interpretation |
+| `tools/mcp_server/tools_registry_handlers_langfuse_verify.py` — `fetch_langfuse_trace`, `fetch_langfuse_trace_scores`, `build_opening_quality_context`, `_build_llm_judge_interpretation`, `_judge_score_coverage_gaps`, `_evaluator_column_metadata`, `normalized_wos_evidence` | Quality Lab composes: `review_trace` consumes `fetch_langfuse_trace` output and shared extraction helpers; `review_judgments` consumes `fetch_langfuse_trace_scores` output and adds semantic interpretation |
 | `docs/llm-as-a-judge/` (per-judge `.md` directory + index) | Canonical evaluator definitions; CSV is legacy |
 
 ### Compose-and-extend, do not replace
@@ -501,32 +515,29 @@ and add: MCP exchange analysis, problem clustering across multiple
 traces/judges, investigation planning, repair-wave proposals, judge-set
 maintenance, content-revision planning, and structured user-decision
 prompts. Where a new tool overlaps an existing one (`review_trace` ⊃
-`fetch_langfuse_trace`), the new tool calls the existing handler
-internally rather than duplicating its evidence extraction.
+`fetch_langfuse_trace`), the new tool accepts the existing tool's output
+or uses the same extraction helpers rather than duplicating Langfuse access.
 
 ### Package layout
 
-Introduce a new package:
+The implementation introduces this package:
 
 ```text
 ai_stack/quality_lab/
 ```
 
-Suggested modules:
+Implemented modules:
 
+- `ai_stack/quality_lab/__init__.py`
 - `ai_stack/quality_lab/schemas.py`
-- `ai_stack/quality_lab/evaluator_catalog.py` — wraps `langfuse_evaluator_catalog`, adds severity buckets and group taxonomy
+- `ai_stack/quality_lab/evaluator_catalog.py` — loads per-evaluator markdown frontmatter and severity buckets from `docs/llm-as-a-judge/`
 - `ai_stack/quality_lab/judgment_interpreter.py`
-- `ai_stack/quality_lab/mcp_exchange_analyzer.py`
-- `ai_stack/quality_lab/trace_analyzer.py` — composes `fetch_langfuse_trace` and `build_opening_quality_context`
-- `ai_stack/quality_lab/metadata_coverage.py`
-- `ai_stack/quality_lab/problem_clusterer.py`
-- `ai_stack/quality_lab/improvement_planner.py`
-- `ai_stack/quality_lab/claude_context_queries.py`
-- `ai_stack/quality_lab/content_revision_planner.py`
-- `ai_stack/quality_lab/report_builder.py`
+- `ai_stack/quality_lab/trace_interpreter.py`
+- `ai_stack/quality_lab/mcp_exchange_interpreter.py`
+- `ai_stack/quality_lab/pattern_interpreter.py`
+- `ai_stack/quality_lab/planning_interpreter.py`
 
-Introduce MCP handlers:
+MCP handlers live in:
 
 - `tools/mcp_server/tools_registry_handlers_quality_lab.py`
 
@@ -1099,25 +1110,25 @@ severity buckets from the canonical catalog / `docs/llm-as-a-judge/`
 directory. Hardcoded literal lists in test bodies are forbidden ("no
 example-shaped bypass").
 
-Suggested test files:
+Implemented test files:
 
 - `ai_stack/tests/test_quality_lab_evaluator_catalog.py`
 - `ai_stack/tests/test_quality_lab_judgment_interpreter.py`
-- `ai_stack/tests/test_quality_lab_trace_analyzer.py`
-- `ai_stack/tests/test_quality_lab_problem_clusterer.py`
-- `ai_stack/tests/test_quality_lab_improvement_planner.py`
+- `ai_stack/tests/test_quality_lab_trace_interpreter.py`
+- `ai_stack/tests/test_quality_lab_mcp_exchange_interpreter.py`
+- `ai_stack/tests/test_quality_lab_pattern_and_planning.py`
 - `tools/mcp_server/tests/test_quality_lab_tools.py`
 
 ## Rollout Plan
 
-### Phase 1: Evaluator Catalog and Judge Interpretation
+### Phase 1: Evaluator Catalog and Judge Interpretation — Implemented
 
 - Load or mirror `docs/llm-as-a-judge`
 - Interpret categories semantically
 - Separate qualitative judge concerns from deterministic gates
 - Add `wos.quality_lab.review_judgments`
 
-### Phase 2: Trace and Metadata Analysis
+### Phase 2: Trace and Metadata Analysis — Implemented
 
 - Add trace-like payload analysis
 - Detect missing input/output/metadata
@@ -1125,21 +1136,21 @@ Suggested test files:
 - Detect score coverage gaps
 - Add `wos.quality_lab.review_trace`
 
-### Phase 3: MCP Exchange Analysis
+### Phase 3: MCP Exchange Analysis — Implemented
 
 - Analyze MCP request/response quality
 - Detect stale assumptions
 - Detect weak analysis responses
 - Add `wos.quality_lab.review_mcp_exchange`
 
-### Phase 4: Problem Clustering and Investigation
+### Phase 4: Problem Clustering and Investigation — Implemented
 
 - Group recurring issues
 - Generate claude-context queries
 - Add `wos.quality_lab.find_patterns`
 - Add `wos.quality_lab.suggest_investigation`
 
-### Phase 5: Repair Planning and Maintenance
+### Phase 5: Repair Planning and Maintenance — Implemented
 
 - Add repair-wave planning
 - Add judge-set maintenance proposals
@@ -1171,8 +1182,9 @@ The ADR is satisfied when:
 - Existing older judges remain supported.
 - Newer judges are not ignored or collapsed into generic story-quality
   summaries.
-- Trace filter hints do not include `backend.turn.execute` unless code
-  evidence proves it exists.
+- Trace-name handling derives from `ai_stack/langfuse_evaluator_catalog.py`
+  and treats `backend.turn.execute` / `world-engine.turn.execute` as a
+  paired distributed turn trace, not as competing canonical names.
 
 ## Consequences
 
@@ -1203,6 +1215,6 @@ The ADR is satisfied when:
 - Require confidence and evidence fields.
 - Report missing evidence explicitly.
 - Add tests for deterministic/qualitative separation.
-- Add tests that reject `backend.turn.execute` assumptions.
+- Add tests that detect stale `backend.turn.execute` rejection assumptions.
 - Keep `docs/llm-as-a-judge` canonical.
 - Use phased implementation.
