@@ -171,11 +171,11 @@ Each subsection: **plain language** → **technical** → **why WoS** → **what
 
 ### Context synthesis — prompt support, not authority
 
-**Plain:** After retrieval and director state are available, the runtime builds a bounded synthesis bundle: what evidence is present, what obligations should guide generation, what conflicts exist, and what context is missing.
+**Plain:** After retrieval and director state are available, the runtime builds a bounded synthesis bundle: what evidence is present, what obligations should guide generation, what conflicts exist, and what context is missing. If validation rejects a proposal and self-correction is allowed, validation feedback is synthesized again as retry-only prompt support.
 
-**Technical:** `ContextSynthesisBundle` is defined in [`ai_stack/context_synthesis_contracts.py`](../../ai_stack/context_synthesis_contracts.py) and built by [`ai_stack/context_synthesis_engine.py`](../../ai_stack/context_synthesis_engine.py). The LangGraph runtime inserts `synthesize_context` between `director_select_dramatic_parameters` and `assemble_model_context`, then exposes the bounded summary at `graph_diagnostics.context_synthesis`.
+**Technical:** `ContextSynthesisBundle` is defined in [`ai_stack/context_synthesis_contracts.py`](../../ai_stack/context_synthesis_contracts.py) and built by [`ai_stack/context_synthesis_engine.py`](../../ai_stack/context_synthesis_engine.py). The LangGraph runtime inserts `synthesize_context` between `director_select_dramatic_parameters` and `assemble_model_context`, then exposes the bounded summary at `graph_diagnostics.context_synthesis`. Self-correction retries call the same deterministic engine with `validation_feedback`; diagnostics retain `context_synthesis_retry_history`, `resynthesis_count`, and `used_for_self_correction`.
 
-**Why WoS:** This separates “retrieved text was appended to a prompt” from a reviewable synthesis step that can be inspected in diagnostics and tested by contract.
+**Why WoS:** This separates “retrieved text was appended to a prompt” from a reviewable synthesis step that can be inspected in diagnostics and tested by contract. It also makes recovery prompts explainable: a retry can show which feedback codes became obligations.
 
 **Not:** Context synthesis is not committed story truth, not final narrative output, not a canon editor, and not a shortcut around validation or actor-lane enforcement.
 

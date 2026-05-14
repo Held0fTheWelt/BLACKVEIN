@@ -65,9 +65,12 @@ retrieve_context
 
 `synthesize_context` consumes retrieval rows, `context_text`, director scene assessment, semantic/social records, hierarchical memory, validation feedback, and the runtime aspect ledger. It emits evidence items, obligations, conflicts, gaps, lane mix, and a bounded diagnostics summary under `graph_diagnostics.context_synthesis`.
 
+Recoverable validation failures use the same boundary. Before a self-correction retry, the graph builds a retry-specific synthesis bundle from the current runtime state plus `validation_feedback`; the resulting prompt block is labeled `Validation Feedback Resynthesis (proposal support, non-authoritative)` and retry diagnostics are retained in `context_synthesis_retry_history`.
+
 Authority boundary:
 
 - The synthesis bundle may influence the model prompt.
+- Retry resynthesis may influence rewrite prompts and records feedback-derived obligations.
 - It must remain `proposal_support_only`.
 - It must not write canon, decide committed state, produce final story text, or mark a live turn healthy.
 - Validator, commit seam, and world-engine session authority remain the source of runtime truth.
