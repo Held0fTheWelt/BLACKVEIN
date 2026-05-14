@@ -20,6 +20,7 @@ from story_runtime_core.content_locale import (
     greeting_imperative_visible_pair,
     resolve_string,
 )
+from story_runtime_core.branching import build_branching_forecast
 from story_runtime_core.adapters import BaseModelAdapter, build_default_model_adapters
 from story_runtime_core.model_registry import build_default_registry
 from ai_stack import (
@@ -2491,6 +2492,28 @@ def _build_langfuse_path_summary(
     _sc_resolved_failure = gen_meta.get("self_correction_resolved_failure")
     if _sc_resolved_failure is None and self_correction:
         _sc_resolved_failure = any(bool(item.get("resolved_failure")) for item in _sc_attempts)
+    branching_forecast = (
+        event.get("branching_forecast")
+        if isinstance(event.get("branching_forecast"), dict)
+        else graph_state.get("branching_forecast")
+        if isinstance(graph_state.get("branching_forecast"), dict)
+        else turn_aspect_ledger.get("branching_forecast")
+        if isinstance(turn_aspect_ledger, dict) and isinstance(turn_aspect_ledger.get("branching_forecast"), dict)
+        else {}
+    )
+    branch_option_count = int(branching_forecast.get("option_count") or 0) if branching_forecast else 0
+    branching_forecast_present = (
+        bool(branching_forecast)
+        and str(branching_forecast.get("status") or "").strip() == "forecasted"
+        and branch_option_count > 0
+    )
+    inactive_branches_non_authoritative = bool(
+        branching_forecast
+        and branching_forecast.get("forecast_only") is True
+        and branching_forecast.get("authoritative") is False
+        and branching_forecast.get("inactive_branches_authoritative") is False
+        and branching_forecast.get("mutates_canonical_state") is False
+    )
     summary = {
         "contract": "story_runtime_path_observability.v1",
         "session_id": session.session_id,
@@ -2505,6 +2528,15 @@ def _build_langfuse_path_summary(
             and isinstance(turn_aspect_ledger.get("turn_aspect_ledger"), dict)
         ),
         "turn_aspect_ledger": turn_aspect_ledger,
+        "branching_forecast": branching_forecast,
+        "branching_forecast_status": branching_forecast.get("status") if branching_forecast else None,
+        "branching_forecast_present": branching_forecast_present,
+        "branch_option_count": branch_option_count,
+        "branching_forecast_only": bool(branching_forecast.get("forecast_only")) if branching_forecast else False,
+        "inactive_branches_non_authoritative": inactive_branches_non_authoritative,
+        "inactive_branches_mutate_state": bool(branching_forecast.get("mutates_canonical_state"))
+        if branching_forecast
+        else False,
         "selected_player_role": _spr or None,
         "human_actor_id": (session.runtime_projection or {}).get("human_actor_id") if isinstance(session.runtime_projection, dict) else None,
         "player_role_display_name": goc_player_role_display_name(_spr or None),
@@ -3064,6 +3096,11 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "runtime_mode": path_summary.get("runtime_mode"),
                 "generation_mode": path_summary.get("generation_mode"),
                 "turn_aspect_ledger_present": path_summary.get("turn_aspect_ledger_present"),
+                "branching_forecast_present": path_summary.get("branching_forecast_present"),
+                "branch_option_count": path_summary.get("branch_option_count"),
+                "inactive_branches_non_authoritative": path_summary.get(
+                    "inactive_branches_non_authoritative"
+                ),
                 "raw_player_input": path_summary.get("raw_player_input"),
                 "player_input_kind": path_summary.get("player_input_kind"),
                 "semantic_move_kind": path_summary.get("semantic_move_kind"),
@@ -3280,6 +3317,21 @@ def _emit_langfuse_path_spans(path_summary: dict[str, Any]) -> None:
                 "npc_narrated_player_action_violation": path_summary.get(
                     "npc_narrated_player_action_violation"
                 ),
+            },
+        ),
+        (
+            "story.branch.forecast",
+            {
+                "called": bool(path_summary.get("branching_forecast")),
+                "status": path_summary.get("branching_forecast_status"),
+                "forecast_present": path_summary.get("branching_forecast_present"),
+                "option_count": path_summary.get("branch_option_count"),
+                "forecast_only": path_summary.get("branching_forecast_only"),
+                "inactive_branches_non_authoritative": path_summary.get(
+                    "inactive_branches_non_authoritative"
+                ),
+                "inactive_branches_mutate_state": path_summary.get("inactive_branches_mutate_state"),
+                "forecast": path_summary.get("branching_forecast"),
             },
         ),
     ]
@@ -3803,6 +3855,57 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             )
         except Exception:
             logger.debug("Langfuse runtime aspect score write failed for %s", score_name, exc_info=True)
+    branching_forecast = (
+        path_summary.get("branching_forecast")
+        if isinstance(path_summary.get("branching_forecast"), dict)
+        else {}
+    )
+    if branching_forecast:
+        branch_status = str(branching_forecast.get("status") or "").strip()
+        branch_option_count = int(branching_forecast.get("option_count") or 0)
+        branch_meta = {
+            "branching_forecast_score": True,
+            "aspect_name": "branching_forecast",
+            "session_id": path_summary.get("session_id"),
+            "module_id": path_summary.get("module_id"),
+            "runtime_profile_id": path_summary.get("runtime_profile_id"),
+            "turn_number": path_summary.get("turn_number"),
+            "turn_kind": path_summary.get("turn_kind"),
+            "canonical_turn_id": path_summary.get("canonical_turn_id"),
+            "status": branch_status,
+            "forecast_only": bool(branching_forecast.get("forecast_only")),
+            "authoritative": bool(branching_forecast.get("authoritative")),
+            "inactive_branches_authoritative": bool(
+                branching_forecast.get("inactive_branches_authoritative")
+            ),
+            "mutates_canonical_state": bool(branching_forecast.get("mutates_canonical_state")),
+            "trigger_reasons": list(branching_forecast.get("trigger_reasons") or []),
+            "option_count": branch_option_count,
+            "environment": path_summary.get("environment"),
+        }
+        branch_scores = [
+            ("branching_forecast_present", _runtime_aspect_score_value(bool(branching_forecast))),
+            ("branch_options_count", float(branch_option_count)),
+            (
+                "inactive_branches_non_authoritative",
+                _runtime_aspect_score_value(
+                    branching_forecast.get("forecast_only") is True
+                    and branching_forecast.get("authoritative") is False
+                    and branching_forecast.get("inactive_branches_authoritative") is False
+                    and branching_forecast.get("mutates_canonical_state") is False
+                ),
+            ),
+        ]
+        for score_name, score_value in branch_scores:
+            try:
+                adapter.add_score(
+                    name=score_name,
+                    value=score_value,
+                    comment="deterministic branching forecast evidence",
+                    metadata={**branch_meta, "score_name": score_name, "score_value": score_value},
+                )
+            except Exception:
+                logger.debug("Langfuse branching forecast score write failed for %s", score_name, exc_info=True)
 
 
 def _build_canonical_degradation_signals(path_summary: dict[str, Any]) -> list[str]:
@@ -7338,9 +7441,42 @@ class StoryRuntimeManager:
             commit_turn_number=commit_turn_number,
             turn_kind=turn_kind or "player",
         )
+        canonical_turn_id = _canonical_turn_id(session.session_id, commit_turn_number)
+        runtime_profile_id = _runtime_profile_id_from_projection(
+            session.runtime_projection if isinstance(session.runtime_projection, dict) else None
+        )
+        branching_forecast = build_branching_forecast(
+            story_session_id=session.session_id,
+            module_id=session.module_id,
+            runtime_profile_id=runtime_profile_id,
+            canonical_turn_id=canonical_turn_id,
+            turn_number=commit_turn_number,
+            turn_kind=turn_kind or "player",
+            narrative_commit=narrative_commit_payload,
+            narrative_threads=session.narrative_threads.model_dump(mode="json")
+            if hasattr(session.narrative_threads, "model_dump")
+            else session.narrative_threads,
+            thread_metrics=turn_thread_metrics,
+            selected_responder_set=selected_responder_set,
+            actor_turn_summary=actor_turn_summary,
+            graph_state=graph_state,
+        )
+        if isinstance(turn_aspect_ledger, dict):
+            turn_aspect_ledger = dict(turn_aspect_ledger)
+            turn_aspect_ledger["branching_forecast"] = branching_forecast
+            turn_aspect_ledger = normalize_runtime_aspect_ledger(turn_aspect_ledger)
+            graph_state["turn_aspect_ledger"] = turn_aspect_ledger
+        graph_state["branching_forecast"] = branching_forecast
+        gov["branching_forecast"] = {
+            "status": branching_forecast.get("status"),
+            "option_count": branching_forecast.get("option_count"),
+            "forecast_only": branching_forecast.get("forecast_only"),
+            "inactive_branches_authoritative": branching_forecast.get("inactive_branches_authoritative"),
+            "mutates_canonical_state": branching_forecast.get("mutates_canonical_state"),
+        }
         event: dict[str, Any] = {
             "turn_number": commit_turn_number,
-            "canonical_turn_id": _canonical_turn_id(session.session_id, commit_turn_number),
+            "canonical_turn_id": canonical_turn_id,
             "turn_kind": turn_kind or "player",
             "trace_id": trace_id or "",
             "raw_input": player_input,
@@ -7363,6 +7499,7 @@ class StoryRuntimeManager:
             "visibility_class_markers": graph_state.get("visibility_class_markers"),
             "failure_markers": graph_state.get("failure_markers"),
             "self_correction": self_correction,
+            "branching_forecast": branching_forecast,
             "actor_survival_telemetry": actor_survival_telemetry,
             "actor_turn_summary": actor_turn_summary,
             "runtime_governance_surface": gov,
@@ -7926,6 +8063,7 @@ class StoryRuntimeManager:
             "committed_turn_authority": committed_turn_authority,
             "dramatic_context_summary": dramatic_context_summary,
             "actor_turn_summary": actor_turn_summary,
+            "branching_forecast": event.get("branching_forecast"),
             "turn_aspect_ledger": event.get("turn_aspect_ledger"),
             "visible_output_bundle": event.get("visible_output_bundle"),
             "human_input_attribution": event.get("human_input_attribution"),
@@ -8489,6 +8627,7 @@ class StoryRuntimeManager:
         last_committed_turn_authority: dict[str, Any] | None = None
         last_dramatic_context_summary: dict[str, Any] | None = None
         last_actor_turn_summary: dict[str, Any] | None = None
+        last_branching_forecast: dict[str, Any] | None = None
         last_committed_turn = session.history[-1] if session.history else None
         if isinstance(last_committed_turn, dict):
             nc = last_committed_turn.get("narrative_commit")
@@ -8503,6 +8642,13 @@ class StoryRuntimeManager:
             actor_summary = last_committed_turn.get("actor_turn_summary")
             if isinstance(actor_summary, dict):
                 last_actor_turn_summary = actor_summary
+            branching = last_committed_turn.get("branching_forecast")
+            if not isinstance(branching, dict):
+                ledger = last_committed_turn.get("turn_aspect_ledger")
+                if isinstance(ledger, dict):
+                    branching = ledger.get("branching_forecast")
+            if isinstance(branching, dict):
+                last_branching_forecast = branching
 
         summary: dict[str, Any] | None = None
         if isinstance(last_narrative_commit, dict):
@@ -8628,6 +8774,7 @@ class StoryRuntimeManager:
                 "last_committed_turn_authority": last_committed_turn_authority,
                 "last_dramatic_context_summary": last_dramatic_context_summary,
                 "last_actor_turn_summary": last_actor_turn_summary,
+                "last_branching_forecast": last_branching_forecast,
                 "last_actor_outcome_summary": (
                     last_actor_turn_summary.get("last_actor_outcome_summary")
                     if isinstance(last_actor_turn_summary, dict)
@@ -8657,6 +8804,7 @@ class StoryRuntimeManager:
             },
             "module_scope_truth": module_scope_truth,
             "player_shell_context": player_shell_context,
+            "branching_forecast": last_branching_forecast,
             "story_window": {
                 "contract": "authoritative_story_window_v1",
                 "source": "world_engine_story_runtime",

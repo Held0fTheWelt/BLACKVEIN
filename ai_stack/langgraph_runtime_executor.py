@@ -1524,6 +1524,95 @@ def _preferred_reaction_order_ids_from_responders(responders: list[Any]) -> list
     return ordered
 
 
+def _build_npc_agency_plan_projection(
+    *,
+    state: RuntimeTurnState,
+    responders: list[Any],
+    responder_ids: list[str],
+    compact_minds: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    if not responder_ids:
+        return None, None
+
+    mind_by_actor = {
+        str(row.get("actor_id") or "").strip(): row
+        for row in compact_minds
+        if isinstance(row, dict) and str(row.get("actor_id") or "").strip()
+    }
+    primary_id = responder_ids[0]
+    secondary_ids = responder_ids[1:]
+    first_secondary_id = secondary_ids[0] if secondary_ids else None
+    required_actor_ids = [primary_id] + ([first_secondary_id] if first_secondary_id else [])
+
+    initiatives: list[dict[str, Any]] = []
+    for index, actor_id in enumerate(responder_ids):
+        responder_row = next(
+            (
+                row
+                for row in responders
+                if isinstance(row, dict)
+                and str(row.get("actor_id") or row.get("responder_id") or "").strip() == actor_id
+            ),
+            {},
+        )
+        role = str(responder_row.get("role") or "").strip()
+        mind = mind_by_actor.get(actor_id, {})
+        if index == 0:
+            intent = "claim_primary_response"
+            target_actor_id = None
+            requirement_scope = "primary_required"
+        elif role == "interruption_candidate":
+            intent = "interrupt_or_counter_scene_pressure"
+            target_actor_id = primary_id
+            requirement_scope = "one_secondary_minimum" if actor_id == first_secondary_id else "optional_secondary"
+        else:
+            intent = "react_to_primary_or_scene_pressure"
+            target_actor_id = primary_id
+            requirement_scope = "one_secondary_minimum" if actor_id == first_secondary_id else "optional_secondary"
+
+        initiatives.append(
+            {
+                "actor_id": actor_id,
+                "role": role or ("primary_responder" if index == 0 else "secondary_reactor"),
+                "intent": intent,
+                "allowed_block_types": ["actor_line", "actor_action"],
+                "allowed_output_lanes": ["spoken_lines", "action_lines", "initiative_events"],
+                "target_actor_id": target_actor_id,
+                "required": actor_id in required_actor_ids,
+                "requirement_scope": requirement_scope,
+                "tactical_posture": mind.get("tactical_posture"),
+                "pressure_response_bias": mind.get("pressure_response_bias"),
+            }
+        )
+
+    plan = {
+        "contract": "npc_agency_plan.v1",
+        "schema_version": "npc_agency_plan.v1",
+        "contract_status": "partial_runtime_projection",
+        "implementation_status": "partial_runtime_projection",
+        "not_full_multi_agent_simulation": True,
+        "turn_number": state.get("turn_number"),
+        "primary_responder_id": primary_id,
+        "secondary_responder_ids": secondary_ids,
+        "required_actor_ids": required_actor_ids,
+        "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
+        "npc_initiatives": initiatives,
+    }
+    directives = {
+        "contract": "npc_initiative_directives.v1",
+        "contract_status": "partial_runtime_projection",
+        "not_full_multi_agent_simulation": True,
+        "required_actor_ids": required_actor_ids,
+        "minimum_secondary_initiatives_required": 1 if secondary_ids else 0,
+        "instruction": (
+            "Use npc_agency_plan as a bounded partial projection of NPC initiative. "
+            "Realize the primary responder and, when secondary responders are nominated, "
+            "at least one required secondary in spoken_lines or action_lines unless validation constraints prevent it."
+        ),
+    }
+    return plan, directives
+
+
 def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]:
     """Build the authoritative dramatic packet consumed by generation."""
     responders = state.get("selected_responder_set") if isinstance(state.get("selected_responder_set"), list) else []
@@ -1556,6 +1645,13 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "pressure_response_bias": row.get("pressure_response_bias"),
             }
         )
+
+    npc_agency_plan, npc_initiative_directives = _build_npc_agency_plan_projection(
+        state=state,
+        responders=responders,
+        responder_ids=responder_ids,
+        compact_minds=compact_minds,
+    )
 
     prior = state.get("prior_continuity_impacts") if isinstance(state.get("prior_continuity_impacts"), list) else []
     continuity_constraints: list[dict[str, str]] = []
@@ -1621,6 +1717,8 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
             if len(responder_ids) > 1
             else None
         ),
+        "npc_agency_plan": npc_agency_plan,
+        "npc_initiative_directives": npc_initiative_directives,
         "pacing_mode": state.get("pacing_mode"),
         "silence_brevity_decision": state.get("silence_brevity_decision")
         if isinstance(state.get("silence_brevity_decision"), dict)

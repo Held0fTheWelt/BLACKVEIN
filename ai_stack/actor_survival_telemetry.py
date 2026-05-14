@@ -38,6 +38,13 @@ def _coerce_dict_rows(value: Any) -> list[dict[str, Any]]:
     return [row for row in value if isinstance(row, dict)]
 
 
+def _coerce_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return _dedupe_strings([_clean_text(item) for item in value])
+    cleaned = _clean_text(value)
+    return [cleaned] if cleaned else []
+
+
 def _actor_id_from_rendered_item(item: Any) -> str:
     if isinstance(item, dict):
         return _clean_text(item.get("speaker_id") or item.get("actor_id"))
@@ -175,6 +182,133 @@ def _is_sparse_input(state: dict[str, Any]) -> bool:
         "awkward_brevity",
     }
     return any(marker in kinds for marker in sparse_markers)
+
+
+def _npc_agency_plan_from_state(
+    *,
+    state: dict[str, Any],
+    selected_primary_responder_id: str | None,
+    selected_secondary_responder_ids: list[str],
+    preferred_reaction_order_ids: list[str],
+) -> dict[str, Any] | None:
+    packet = state.get("dramatic_generation_packet") if isinstance(state.get("dramatic_generation_packet"), dict) else {}
+    plan = packet.get("npc_agency_plan") if isinstance(packet.get("npc_agency_plan"), dict) else None
+    if plan is None:
+        plan = state.get("npc_agency_plan") if isinstance(state.get("npc_agency_plan"), dict) else None
+    if plan:
+        return plan
+
+    planned_actor_ids = _dedupe_strings(
+        preferred_reaction_order_ids
+        or ([selected_primary_responder_id or ""] + list(selected_secondary_responder_ids))
+    )
+    if not planned_actor_ids:
+        return None
+
+    first_secondary_id = selected_secondary_responder_ids[0] if selected_secondary_responder_ids else None
+    required_actor_ids = _dedupe_strings(
+        [selected_primary_responder_id or ""] + ([first_secondary_id] if first_secondary_id else [])
+    )
+    return {
+        "contract": "npc_agency_plan.v1",
+        "schema_version": "npc_agency_plan.v1",
+        "contract_status": "partial_runtime_projection",
+        "not_full_multi_agent_simulation": True,
+        "primary_responder_id": selected_primary_responder_id,
+        "secondary_responder_ids": list(selected_secondary_responder_ids),
+        "required_actor_ids": required_actor_ids,
+        "minimum_secondary_initiatives_required": 1 if selected_secondary_responder_ids else 0,
+        "npc_initiatives": [
+            {
+                "actor_id": actor_id,
+                "required": actor_id in required_actor_ids,
+            }
+            for actor_id in planned_actor_ids
+        ],
+    }
+
+
+def _build_npc_initiative_realization_v1(
+    *,
+    state: dict[str, Any],
+    selected_primary_responder_id: str | None,
+    selected_secondary_responder_ids: list[str],
+    preferred_reaction_order_ids: list[str],
+    realized_actor_ids: list[str],
+    generated_initiative_rows: list[dict[str, Any]],
+    validated_initiative_rows: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    plan = _npc_agency_plan_from_state(
+        state=state,
+        selected_primary_responder_id=selected_primary_responder_id,
+        selected_secondary_responder_ids=selected_secondary_responder_ids,
+        preferred_reaction_order_ids=preferred_reaction_order_ids,
+    )
+    if not plan:
+        return None
+
+    initiatives = _coerce_dict_rows(plan.get("npc_initiatives"))
+    planned_actor_ids = _dedupe_strings([_clean_text(row.get("actor_id")) for row in initiatives])
+    if not planned_actor_ids:
+        planned_actor_ids = _dedupe_strings(
+            [_clean_text(plan.get("primary_responder_id")), *_coerce_string_list(plan.get("secondary_responder_ids"))]
+        )
+    if not planned_actor_ids:
+        return None
+
+    required_actor_ids = _dedupe_strings(
+        _coerce_string_list(plan.get("required_actor_ids"))
+        + [
+            _clean_text(row.get("actor_id"))
+            for row in initiatives
+            if bool(row.get("required"))
+        ]
+    )
+    if not required_actor_ids:
+        first_secondary_id = selected_secondary_responder_ids[0] if selected_secondary_responder_ids else None
+        required_actor_ids = _dedupe_strings(
+            [selected_primary_responder_id or ""] + ([first_secondary_id] if first_secondary_id else [])
+        )
+
+    realized_initiative_actor_ids = [
+        actor_id for actor_id in planned_actor_ids if actor_id in realized_actor_ids
+    ]
+    generated_initiative_event_actor_ids = _collect_actor_ids_from_rows(
+        generated_initiative_rows,
+        speaker_key="actor_id",
+        actor_key="actor_id",
+    )
+    preserved_initiative_event_actor_ids = _collect_actor_ids_from_rows(
+        validated_initiative_rows,
+        speaker_key="actor_id",
+        actor_key="actor_id",
+    )
+    return {
+        "schema_version": "npc_initiative_realization_v1",
+        "contract_status": "partial_runtime_projection",
+        "not_full_multi_agent_simulation": True,
+        "partial_implementation_reason": (
+            "Tracks nominated NPC initiative realization in validated actor lanes; "
+            "does not simulate independent multi-agent planning."
+        ),
+        "planned_actor_ids": planned_actor_ids,
+        "realized_initiative_actor_ids": realized_initiative_actor_ids,
+        "missing_initiative_actor_ids": [
+            actor_id for actor_id in planned_actor_ids if actor_id not in realized_initiative_actor_ids
+        ],
+        "required_actor_ids": required_actor_ids,
+        "unrealized_required_initiative_actor_ids": [
+            actor_id for actor_id in required_actor_ids if actor_id not in realized_initiative_actor_ids
+        ],
+        "generated_initiative_event_actor_ids": generated_initiative_event_actor_ids,
+        "preserved_initiative_event_actor_ids": preserved_initiative_event_actor_ids,
+        "initiative_event_only_actor_ids": [
+            actor_id
+            for actor_id in preserved_initiative_event_actor_ids
+            if actor_id in planned_actor_ids and actor_id not in realized_initiative_actor_ids
+        ],
+        "multi_npc_initiative_realized": len(realized_initiative_actor_ids) >= 2,
+    }
 
 
 def _build_vitality_telemetry_v1(
@@ -356,6 +490,15 @@ def _build_vitality_telemetry_v1(
         and response_present
         and (initiative_present or multi_actor_realized or rendered_spoken_line_count > 0)
     )
+    npc_initiative_realization = _build_npc_initiative_realization_v1(
+        state=state,
+        selected_primary_responder_id=selected_primary_responder_id or None,
+        selected_secondary_responder_ids=selected_secondary_responder_ids,
+        preferred_reaction_order_ids=preferred_reaction_order_ids,
+        realized_actor_ids=realized_actor_ids,
+        generated_initiative_rows=generated_initiative_rows,
+        validated_initiative_rows=validated_initiative_rows,
+    )
 
     telemetry = {
         "identity_stage": "runtime_turn_vitality_telemetry",
@@ -401,6 +544,7 @@ def _build_vitality_telemetry_v1(
         # Optional diagnostic helper fields (non-required)
         "sparse_input_detected": sparse_input_detected,
         "generated_actor_ids": generated_actor_ids,
+        "npc_initiative_realization_v1": npc_initiative_realization,
         "generated_ok": bool(generation_ok),
         "validation_ok": bool(validation_ok),
         "commit_applied": bool(commit_applied),

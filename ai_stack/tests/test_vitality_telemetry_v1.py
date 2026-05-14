@@ -87,6 +87,69 @@ def test_selected_realized_rendered_semantics_distinct_and_initiative_only_not_r
     assert vitality["reaction_order_divergence"] == "secondary_responder_nominated_not_realized_in_output"
 
 
+def test_npc_initiative_realization_reports_partial_missing_required_secondary():
+    state = _base_state()
+    selected_actor_ids = [row["actor_id"] for row in state["selected_responder_set"]]
+    primary_actor_id = selected_actor_ids[0]
+    secondary_actor_ids = selected_actor_ids[1:]
+    agency_plan = {
+        "contract": "npc_agency_plan.v1",
+        "contract_status": "partial_runtime_projection",
+        "not_full_multi_agent_simulation": True,
+        "primary_responder_id": primary_actor_id,
+        "secondary_responder_ids": secondary_actor_ids,
+        "required_actor_ids": selected_actor_ids,
+        "minimum_secondary_initiatives_required": 1 if secondary_actor_ids else 0,
+        "npc_initiatives": [
+            {"actor_id": actor_id, "required": True}
+            for actor_id in selected_actor_ids
+        ],
+    }
+    state["dramatic_generation_packet"] = {
+        "npc_agency_plan": agency_plan
+    }
+    state["generation"]["metadata"]["structured_output"]["spoken_lines"] = [
+        {"speaker_id": primary_actor_id, "text": "No."}
+    ]
+    state["generation"]["metadata"]["structured_output"]["action_lines"] = [
+        {"actor_id": primary_actor_id, "text": "leans forward"}
+    ]
+    state["visible_output_bundle"]["spoken_lines"] = [{"speaker_id": primary_actor_id, "text": "No."}]
+    state["visible_output_bundle"]["action_lines"] = [{"actor_id": primary_actor_id, "text": "leans forward"}]
+
+    telemetry = build_actor_survival_telemetry(
+        state,
+        generation_ok=True,
+        validation_ok=True,
+        commit_applied=True,
+        fallback_taken=False,
+    )
+    realization = telemetry["vitality_telemetry_v1"]["npc_initiative_realization_v1"]
+    planned_actor_ids = [row["actor_id"] for row in agency_plan["npc_initiatives"]]
+    realized_actor_ids = telemetry["vitality_telemetry_v1"]["realized_actor_ids"]
+    expected_missing_ids = [actor_id for actor_id in planned_actor_ids if actor_id not in realized_actor_ids]
+    expected_required_missing_ids = [
+        actor_id for actor_id in agency_plan["required_actor_ids"] if actor_id not in realized_actor_ids
+    ]
+    expected_initiative_event_actor_ids = [
+        row["actor_id"]
+        for row in state["generation"]["metadata"]["structured_output"]["initiative_events"]
+    ]
+    expected_multi_npc_realized = len(realization["realized_initiative_actor_ids"]) >= 2
+
+    assert realization["schema_version"] == "npc_initiative_realization_v1"
+    assert realization["contract_status"] == "partial_runtime_projection"
+    assert realization["not_full_multi_agent_simulation"] is True
+    assert realization["planned_actor_ids"] == planned_actor_ids
+    assert realization["realized_initiative_actor_ids"] == realized_actor_ids
+    assert realization["missing_initiative_actor_ids"] == expected_missing_ids
+    assert realization["required_actor_ids"] == agency_plan["required_actor_ids"]
+    assert realization["unrealized_required_initiative_actor_ids"] == expected_required_missing_ids
+    assert realization["preserved_initiative_event_actor_ids"] == expected_initiative_event_actor_ids
+    assert realization["initiative_event_only_actor_ids"] == expected_missing_ids
+    assert realization["multi_npc_initiative_realized"] is expected_multi_npc_realized
+
+
 def test_stage_counts_do_not_mix_and_quality_distinction_is_visible():
     state = _base_state()
     state["quality_class"] = "weak_but_legal"

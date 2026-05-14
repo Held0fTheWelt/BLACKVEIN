@@ -304,6 +304,7 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_VISIBLE_PROJECTION), dict)
         else {}
     )
+    branching_forecast = src.get("branching_forecast") if isinstance(src.get("branching_forecast"), dict) else {}
 
     input_actual = _record_block(input_rec, "actual")
     action_actual = _record_block(action_rec, "actual")
@@ -465,6 +466,26 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 "failure_reason": memory_rec.get("failure_reason")
                 or (_record_reasons(memory_rec)[0] if _record_reasons(memory_rec) else None),
                 "status": memory_rec.get("status"),
+            },
+            "branching_forecast": {
+                "schema_version": branching_forecast.get("schema_version"),
+                "status": branching_forecast.get("status"),
+                "source": branching_forecast.get("source"),
+                "forecast_only": bool(branching_forecast.get("forecast_only")),
+                "authoritative": bool(branching_forecast.get("authoritative")),
+                "inactive_branches_authoritative": bool(
+                    branching_forecast.get("inactive_branches_authoritative")
+                ),
+                "mutates_canonical_state": bool(branching_forecast.get("mutates_canonical_state")),
+                "selection_required_to_commit": bool(
+                    branching_forecast.get("selection_required_to_commit")
+                ),
+                "trigger_reasons": branching_forecast.get("trigger_reasons") or [],
+                "option_count": int(branching_forecast.get("option_count") or 0),
+                "options": branching_forecast.get("options") or [],
+                "path_signature": branching_forecast.get("path_signature"),
+                "dominant_thread_kind": branching_forecast.get("dominant_thread_kind"),
+                "thread_pressure_level": int(branching_forecast.get("thread_pressure_level") or 0),
             },
             "commit": {
                 "committed": bool(

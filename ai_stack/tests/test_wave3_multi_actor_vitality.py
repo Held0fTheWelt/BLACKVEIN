@@ -124,6 +124,62 @@ class TestW31ResponderSetStrengthening:
         assert packet.get("preferred_reaction_order_instruction")
         assert "veronique_vallon" in packet["preferred_reaction_order_instruction"]
 
+    def test_dramatic_packet_includes_partial_npc_agency_plan_projection(self):
+        """Verify the first Pi7 slice emits a partial NPC agency plan, not a full simulation claim."""
+        from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet
+
+        state = {
+            "turn_number": 12,
+            "module_id": "god_of_carnage",
+            "selected_scene_function": "escalate_conflict",
+            "selected_responder_set": [
+                {"actor_id": "veronique_vallon", "role": "primary_responder", "preferred_reaction_order": 0},
+                {"actor_id": "michel_longstreet", "role": "secondary_reactor", "preferred_reaction_order": 1},
+            ],
+            "character_mind_records": [
+                {
+                    "runtime_actor_id": "veronique_vallon",
+                    "formal_role_label": "host",
+                    "tactical_posture": "pressing",
+                    "pressure_response_bias": "accuse",
+                },
+                {
+                    "runtime_actor_id": "michel_longstreet",
+                    "formal_role_label": "guest",
+                    "tactical_posture": "deflecting",
+                    "pressure_response_bias": "counter",
+                },
+            ],
+            "pacing_mode": "standard",
+            "silence_brevity_decision": {},
+        }
+
+        packet = _build_dramatic_generation_packet(state)
+        plan = packet.get("npc_agency_plan")
+        directives = packet.get("npc_initiative_directives")
+        selected_actor_ids = [row["actor_id"] for row in state["selected_responder_set"]]
+        expected_primary_id = selected_actor_ids[0]
+        expected_secondary_ids = selected_actor_ids[1:]
+        mind_by_actor = {
+            row["runtime_actor_id"]: row
+            for row in state["character_mind_records"]
+        }
+
+        assert plan["contract"] == "npc_agency_plan.v1"
+        assert plan["contract_status"] == "partial_runtime_projection"
+        assert plan["not_full_multi_agent_simulation"] is True
+        assert plan["primary_responder_id"] == expected_primary_id
+        assert plan["secondary_responder_ids"] == expected_secondary_ids
+        assert plan["required_actor_ids"] == selected_actor_ids
+        assert plan["minimum_secondary_initiatives_required"] == (1 if expected_secondary_ids else 0)
+        assert directives["contract_status"] == "partial_runtime_projection"
+        assert directives["not_full_multi_agent_simulation"] is True
+
+        secondary = next(row for row in plan["npc_initiatives"] if row["actor_id"] == expected_secondary_ids[0])
+        assert secondary["target_actor_id"] == expected_primary_id
+        assert secondary["required"] is True
+        assert secondary["tactical_posture"] == mind_by_actor[expected_secondary_ids[0]]["tactical_posture"]
+
     def test_dramatic_packet_secondary_directive_absent_when_no_secondaries(self):
         """Verify secondary_responder_directive is None when only primary."""
         from ai_stack.langgraph_runtime_executor import _build_dramatic_generation_packet

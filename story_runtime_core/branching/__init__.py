@@ -10,6 +10,11 @@ from .decision_point import (
 from .path_state import PathState, PathNode, PathStateManager
 from .consequence_filter import ConsequenceFilter, ConsequenceFact
 from .outcome_divergence import OutcomeDivergence, DivergenceMetric, DivergenceScore
+from .forecast import (
+    BRANCHING_FORECAST_SCHEMA_VERSION,
+    BRANCHING_FORECAST_SOURCE,
+    build_branching_forecast,
+)
 
 __all__ = [
     'DecisionPoint',
@@ -24,4 +29,7 @@ __all__ = [
     'OutcomeDivergence',
     'DivergenceMetric',
     'DivergenceScore',
+    'BRANCHING_FORECAST_SCHEMA_VERSION',
+    'BRANCHING_FORECAST_SOURCE',
+    'build_branching_forecast',
 ]

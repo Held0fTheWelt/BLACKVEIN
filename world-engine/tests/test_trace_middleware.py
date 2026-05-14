@@ -296,6 +296,17 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
             "execution_tier": "test",
             "canonical_player_flow": False,
             "http_status": 200,
+            "branching_forecast": {
+                "schema_version": "branching_forecast.v1",
+                "status": "forecasted",
+                "forecast_only": True,
+                "authoritative": False,
+                "inactive_branches_authoritative": False,
+                "mutates_canonical_state": False,
+                "trigger_reasons": ["open_pressure_present"],
+                "option_count": 2,
+                "options": [{"option_id": "branch_a"}, {"option_id": "branch_b"}],
+            },
         }
     )
 
@@ -310,6 +321,10 @@ def test_langfuse_emits_runtime_aspect_spans_and_reasoned_scores(monkeypatch):
     assert score_calls["npc_takeover_absent"]["value"] == 1.0
     assert score_calls["turn_aspect_ledger_present"]["metadata"]["status"] == "passed"
     assert score_calls["beat_realized"]["metadata"]["selected_beat"] == "domestic_disruption"
+    assert score_calls["branching_forecast_present"]["value"] == 1.0
+    assert score_calls["branch_options_count"]["value"] == 2.0
+    assert score_calls["inactive_branches_non_authoritative"]["value"] == 1.0
+    assert score_calls["branching_forecast_present"]["metadata"]["status"] == "forecasted"
 
 
 def _goc_projection():
@@ -506,6 +521,7 @@ def test_story_session_create_sets_langfuse_parent_for_opening_turn(client, inte
     assert "story.phase.retrieval" in created_child_names
     assert "story.phase.validation" in created_child_names
     assert "story.phase.commit" in created_child_names
+    assert "story.branch.forecast" in created_child_names
     assert "story.phase.ldss_fallback" in created_child_names
     assert "story.phase.narrator" in created_child_names
     adapter.record_generation.assert_not_called()

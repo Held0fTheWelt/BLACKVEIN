@@ -211,6 +211,55 @@ def test_path_summary_propagates_environment_and_runtime_profile(monkeypatch) ->
     assert summary["turn_aspect_ledger"]["runtime_profile_id"] == "profile-for-summary"
 
 
+def test_committed_turn_emits_branching_forecast_projection() -> None:
+    manager = StoryRuntimeManager()
+    manager.turn_graph = _FakeTurnGraph(_opening_envelope("scene_1"))  # type: ignore[assignment]
+    session = manager.create_session(
+        module_id="m",
+        runtime_projection={
+            "start_scene_id": "scene_1",
+            "runtime_profile_id": "profile-branching",
+            "scenes": [{"id": "scene_1"}],
+        },
+    )
+    manager.turn_graph = _FakeTurnGraph(
+        _envelope(
+            interpreted_input={
+                "kind": "speech",
+                "player_input_kind": "speech",
+                "confidence": 0.81,
+                "ambiguity": "who is being blamed",
+            },
+            generation={"success": True, "metadata": {}},
+        )
+    )  # type: ignore[assignment]
+
+    turn = manager.execute_turn(session_id=session.session_id, player_input="Wer wird hier beschuldigt?")
+
+    forecast = turn["branching_forecast"]
+    assert forecast["schema_version"] == "branching_forecast.v1"
+    assert forecast["status"] == "forecasted"
+    assert forecast["forecast_only"] is True
+    assert forecast["authoritative"] is False
+    assert forecast["mutates_canonical_state"] is False
+    assert forecast["option_count"] >= 2
+
+    ledger = turn["turn_aspect_ledger"]
+    assert ledger["branching_forecast"] == forecast
+    projected = ledger["runtime_intelligence_projection"]["branching_forecast"]
+    assert projected["option_count"] == forecast["option_count"]
+    assert projected["forecast_only"] is True
+    assert projected["mutates_canonical_state"] is False
+
+    summary = turn["observability_path_summary"]
+    assert summary["branching_forecast_present"] is True
+    assert summary["branch_option_count"] == forecast["option_count"]
+    assert summary["inactive_branches_non_authoritative"] is True
+    assert session.history[-1]["branching_forecast"]["canonical_turn_id"] == turn["canonical_turn_id"]
+    state = manager.get_state(session.session_id)
+    assert state["committed_state"]["last_branching_forecast"]["canonical_turn_id"] == turn["canonical_turn_id"]
+
+
 def test_visible_projection_records_policy_driven_narrative_aspect(monkeypatch) -> None:
     policy = {
         "module_id": "module_alpha",
