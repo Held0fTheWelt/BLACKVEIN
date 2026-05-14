@@ -1939,7 +1939,7 @@ def _build_npc_agency_plan_projection(
         if isinstance(simulation, dict) and isinstance(simulation.get("npc_agency_plan"), dict)
         else None
     )
-    if not plan and responder_ids and npc_response_expected is not False:
+    if not plan and len(responder_ids) >= 2 and npc_response_expected is not False:
         plan = build_npc_agency_plan(
             selected_responder_set=responders,
             turn_number=state.get("turn_number"),
