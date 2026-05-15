@@ -137,7 +137,9 @@ def assemble_filled_inspector_sections(
                 else {},
             )
         ),
-        "authority_projection": make_supported_section(build_authority_projection_data(committed, canonical_record)),
+        "authority_projection": make_supported_section(
+            build_authority_projection_data(committed, canonical_record, last_turn=last_turn)
+        ),
         "fallback_projection": make_supported_section(
             build_fallback_projection_data(graph, routing, generation, gate_outcome)
         ),

@@ -17,6 +17,7 @@ from ai_stack.runtime_aspect_ledger import (
     resolve_adr0041_runtime_readiness_consumer_enabled,
 )
 from ai_stack.runtime_readiness_consumer import (
+    build_adr0041_readiness_projection_echo,
     degradation_signals_from_latest_turn,
     resolve_runtime_readiness_with_adr0041,
     runtime_intelligence_projection_from_turn_aspect_ledger,
@@ -184,3 +185,35 @@ def test_runtime_intelligence_projection_extraction() -> None:
 def test_degradation_signals_from_governance_surface() -> None:
     turn = {"runtime_governance_surface": {"degradation_signals": ["x"]}}
     assert degradation_signals_from_latest_turn(turn) == ["x"]
+
+
+def test_readiness_projection_echo_read_only_shape() -> None:
+    rip = {
+        "readiness_policy_input": {"readiness_input": "block"},
+        "readiness_aggregation_decision": {"aggregated_readiness": "block"},
+        "readiness_co_authority_enforcement": {"readiness_input": "allow"},
+        "readiness_co_authority_preview": {"policy_stage": "shadow_only"},
+    }
+    echo = build_adr0041_readiness_projection_echo(rip)
+    assert echo["read_only"] is True
+    assert echo["readiness_policy_input"]["readiness_input"] == "block"
+    assert echo["adr0041_runtime_readiness_consumer"]["value"] is None
+
+
+def test_resolve_includes_mutating_consumer_anchor(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv(ADR0041_VALIDATOR_DISPATCH_MODE_ENV, ValidatorDispatchMode.PLAN_ENFORCED.value)
+    monkeypatch.setenv(ADR0041_SCOPED_CO_AUTHORITY_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_READINESS_CO_AUTHORITY_PREVIEW_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_ENFORCEMENT_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED_ENV, "true")
+    monkeypatch.setenv(ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED_ENV, "true")
+    rip = {"readiness_aggregation_decision": _agg(aggregated="allow")}
+    r = resolve_runtime_readiness_with_adr0041(
+        legacy_runtime_session_ready=True,
+        legacy_can_execute=True,
+        opening_generation_status="ready_with_opening",
+        runtime_intelligence_projection=rip,
+        degradation_signals=[],
+    )
+    assert r["mutating_readiness_consumer_anchor"].endswith("_player_session_bundle")
+    assert r["mutates_bundle_fields"] == ["runtime_session_ready", "can_execute"]

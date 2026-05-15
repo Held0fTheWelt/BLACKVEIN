@@ -147,6 +147,9 @@ class PlannerTruth(BaseModel):
     expectation_variation_state: dict[str, Any] = Field(default_factory=dict)
     expectation_variation_target: dict[str, Any] = Field(default_factory=dict)
     expectation_variation_validation: dict[str, Any] = Field(default_factory=dict)
+    narrative_momentum_state: dict[str, Any] = Field(default_factory=dict)
+    narrative_momentum_target: dict[str, Any] = Field(default_factory=dict)
+    narrative_momentum_validation: dict[str, Any] = Field(default_factory=dict)
     relationship_state_record: dict[str, Any] = Field(default_factory=dict)
     relationship_dynamics_target: dict[str, Any] = Field(default_factory=dict)
     relationship_state_validation: dict[str, Any] = Field(default_factory=dict)
@@ -865,6 +868,20 @@ def _planner_truth_from_graph_state(
     expectation_variation_validation = _as_dict(
         graph_state.get("expectation_variation_validation")
     )
+    dramatic_packet_narrative_momentum = _as_dict(
+        dramatic_packet.get("narrative_momentum")
+    )
+    narrative_momentum_state = _as_dict(
+        graph_state.get("narrative_momentum_state")
+        or dramatic_packet_narrative_momentum.get("state")
+    )
+    narrative_momentum_target = _as_dict(
+        graph_state.get("narrative_momentum_target")
+        or dramatic_packet_narrative_momentum.get("target")
+    )
+    narrative_momentum_validation = _as_dict(
+        graph_state.get("narrative_momentum_validation")
+    )
     dramatic_packet_relationship_state = _as_dict(dramatic_packet.get("relationship_state"))
     relationship_state_record = _as_dict(
         graph_state.get("relationship_state_record")
@@ -968,6 +985,9 @@ def _planner_truth_from_graph_state(
         expectation_variation_state=expectation_variation_state,
         expectation_variation_target=expectation_variation_target,
         expectation_variation_validation=expectation_variation_validation,
+        narrative_momentum_state=narrative_momentum_state,
+        narrative_momentum_target=narrative_momentum_target,
+        narrative_momentum_validation=narrative_momentum_validation,
         relationship_state_record=relationship_state_record,
         relationship_dynamics_target=relationship_dynamics_target,
         relationship_state_validation=relationship_state_validation,

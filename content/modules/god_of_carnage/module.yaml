@@ -485,6 +485,79 @@ runtime_intelligence:
       per_active_thread: 0.04
       prior_high_band: 0.08
       thread_pressure_level: 0.04
+  narrative_momentum:
+    enabled: true
+    schema_version: narrative_momentum_policy.v1
+    default_score: 0.35
+    state_thresholds:
+      resting_max: 0.25
+      driving_min: 0.55
+      cresting_min: 0.82
+      release_drop_min: 0.12
+      trend_deadband: 0.05
+    allowed_transitions:
+      resting:
+        - resting
+        - building
+      building:
+        - building
+        - driving
+        - releasing
+        - stalled
+      driving:
+        - driving
+        - cresting
+        - releasing
+        - stalled
+      cresting:
+        - cresting
+        - releasing
+        - driving
+      releasing:
+        - releasing
+        - resting
+        - building
+      stalled:
+        - stalled
+        - building
+        - releasing
+    source_weights:
+      scene_energy_transition:
+        release: 0.28
+        deescalate: 0.32
+        hold: 0.45
+        pivot: 0.6
+        rise: 0.74
+        interrupt: 0.88
+      pacing_cadence:
+        breathe: 0.26
+        release: 0.34
+        hold: 0.44
+        pivot: 0.59
+        press: 0.74
+        interrupt: 0.86
+      social_pressure_band:
+        low: 0.28
+        moderate: 0.52
+        high: 0.78
+      expectation_variation_signal:
+        absent: 0.42
+        selected: 0.66
+        withheld: 0.5
+      semantic_move:
+        observe: 0.34
+        wait: 0.32
+        question: 0.44
+        challenge: 0.68
+        escalate: 0.76
+        deescalate: 0.36
+    decay_per_turn: 0.05
+    max_velocity_delta: 0.4
+    stall_budget_turns: 2
+    require_structured_events: true
+    min_progress_event_count: 1
+    default_commit_impact: recover
+    model_context_visibility: bounded_momentum_state
   relationship_state_machine:
     enabled: true
     schema_version: relationship_state_policy.v1

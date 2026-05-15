@@ -29,6 +29,7 @@ from ai_stack.meta_narrative_awareness_contracts import (
     normalize_meta_narrative_awareness_policy,
 )
 from ai_stack.narrative_aspect_contracts import normalize_narrative_aspect_policy
+from ai_stack.narrative_momentum_contracts import normalize_narrative_momentum_policy
 from ai_stack.pacing_rhythm_contracts import normalize_pacing_rhythm_policy
 from ai_stack.relationship_state_contracts import normalize_relationship_state_policy
 from ai_stack.scene_energy_contracts import normalize_scene_energy_policy
@@ -213,6 +214,8 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
     expectation_variation = (
         expectation_variation if isinstance(expectation_variation, dict) else {}
     )
+    narrative_momentum = raw.get("narrative_momentum")
+    narrative_momentum = narrative_momentum if isinstance(narrative_momentum, dict) else {}
     pacing_rhythm = raw.get("pacing_rhythm")
     pacing_rhythm = pacing_rhythm if isinstance(pacing_rhythm, dict) else {}
     sensory_context = raw.get("sensory_context")
@@ -306,6 +309,9 @@ def _runtime_governance_policy(module_yaml: dict[str, Any]) -> dict[str, Any]:
         "expectation_variation": normalize_expectation_variation_policy(
             expectation_variation
         ),
+        "narrative_momentum": normalize_narrative_momentum_policy(
+            narrative_momentum
+        ),
         "callback_web": normalize_callback_web_policy(callback_web),
         "consequence_cascade": normalize_consequence_cascade_policy(consequence_cascade),
         "temporal_control": normalize_temporal_control_policy(temporal_control),
@@ -339,6 +345,7 @@ class ModuleRuntimePolicy:
     genre_awareness_policy: dict[str, Any] = field(default_factory=dict)
     symbolic_object_resonance_policy: dict[str, Any] = field(default_factory=dict)
     expectation_variation_policy: dict[str, Any] = field(default_factory=dict)
+    narrative_momentum_policy: dict[str, Any] = field(default_factory=dict)
     meta_narrative_awareness_policy: dict[str, Any] = field(default_factory=dict)
     runtime_governance_policy: dict[str, Any] = field(default_factory=dict)
     content_sources: list[str] = field(default_factory=list)
@@ -425,6 +432,14 @@ def load_module_runtime_policy(
     expectation_variation_policy = normalize_expectation_variation_policy(
         expectation_variation_raw if expectation_variation_raw else None
     )
+    narrative_momentum_raw = (
+        runtime_intelligence.get("narrative_momentum")
+        if isinstance(runtime_intelligence.get("narrative_momentum"), dict)
+        else {}
+    )
+    narrative_momentum_policy = normalize_narrative_momentum_policy(
+        narrative_momentum_raw if narrative_momentum_raw else None
+    )
     meta_narrative_awareness_raw = (
         runtime_intelligence.get("meta_narrative_awareness")
         if isinstance(runtime_intelligence.get("meta_narrative_awareness"), dict)
@@ -486,6 +501,7 @@ def load_module_runtime_policy(
         ("genre_awareness_policy", genre_awareness_raw),
         ("symbolic_object_resonance_policy", symbolic_object_resonance_raw),
         ("expectation_variation_policy", expectation_variation_raw),
+        ("narrative_momentum_policy", narrative_momentum_raw),
         ("meta_narrative_awareness_policy", meta_narrative_awareness_raw),
         ("runtime_intelligence", module_yaml.get("runtime_intelligence") if isinstance(module_yaml.get("runtime_intelligence"), dict) else {}),
     ):
@@ -531,6 +547,7 @@ def load_module_runtime_policy(
         genre_awareness_policy=genre_awareness_policy,
         symbolic_object_resonance_policy=symbolic_object_resonance_policy,
         expectation_variation_policy=expectation_variation_policy,
+        narrative_momentum_policy=narrative_momentum_policy,
         meta_narrative_awareness_policy=meta_narrative_awareness_policy,
         runtime_governance_policy=_runtime_governance_policy(module_yaml),
         content_sources=sources,

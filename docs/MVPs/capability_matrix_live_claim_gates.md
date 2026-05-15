@@ -10,6 +10,12 @@ The Capability Matrix is not a wishlist and not a historical idea list. It is a 
 
 [ADR-0041](../ADR/adr-0041-semantic-capability-selection-and-runtime-capability-budgeting.md) adds the Runtime Capability Authority boundary. Selection evidence can explain why a capability was `off`, `observe`, `enforce`, or `judge` for a turn, and scoped co-authority decision preview can explain why bounded concerns are locally ready, but neither is live/staging proof or promotion evidence by itself.
 
+### ADR-0039 runtime surface inventory (authority boundaries)
+
+[adr0039_runtime_surface_governance_inventory.md](adr0039_runtime_surface_governance_inventory.md) maps the same governed **runtime surface** as ADR-0039: **`ai_stack`**, **`world-engine`**, **`story_runtime_core`**, **frontend Play Shell**, **`administration-tool`** (operator UI and proxy), **session**, **turn**, **beat / runtime progression** loops, and **critical decision trees** embedded in those loops.
+
+For any **live** or **staging** claim, only **canonical** evidence (and **co_authority** only where ADR-0041 explicitly bounds it) counts as authoritative engine/runtime truth. **Preview**, **sidecar**, **diagnostic**, and **display_only** rows—ledger/MCP/Langfuse **projections**, validator-dispatch **dry-run / local plan previews**, operator bundles, **Play Shell** rendering, or **`administration-tool`** dashboards/proxy payloads—**must not** be the sole basis for asserting commit, readiness, or “healthy” runtime. **Frontend / Play Shell** output is **display evidence** unless the claim also cites **canonical backend / world-engine** state with the reproducible provider/environment metadata this document already requires. The same applies to **`administration-tool`**: it surfaces upstream state and approved actions; it is not standalone engine truth. **`story_runtime_core`** remains **preview/diagnostic** in that inventory unless the claim traces through **canonical mechanisms** (e.g. `StoryRuntimeManager` turn execution, `run_validation_seam`, narrative commit) with matching evidence. Nothing here relaxes the promotion tables or promotes a capability by documentation alone.
+
 ## Promotion Rules
 
 Use the repository's current statuses (`target_state`, `partially_proven` / `partial`, `implemented`). The project does not currently use `live_verified` as a matrix status; instead, live proof is a separate claim gate. If a future ADR adds `live_verified`, the same evidence below becomes the promotion rule for `implemented` -> `live_verified`.
@@ -77,6 +83,7 @@ Allowed cross-reference examples:
 | Π25 | `meta_narrative_awareness` |
 | Π26 | `sensory_context` |
 | Π27 | `relationship_state` / `relationship_state_machine` |
+| Π32 | `genre_awareness` |
 | Π35 | `tonal_consistency` |
 
 Pi / Π references are allowed in historical documentation, migration notes, tests that explicitly verify no active Pi / Π control flow exists, ADR-0039-covered tests that preserve a historical capability label while asserting semantic contracts, and Capability Matrix cross-reference tables.

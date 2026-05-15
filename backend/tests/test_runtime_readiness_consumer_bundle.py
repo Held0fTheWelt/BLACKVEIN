@@ -94,8 +94,11 @@ def test_bundle_readiness_default_matches_legacy_without_consumer(monkeypatch: p
     assert bundle["runtime_session_ready"] is True
     assert bundle["can_execute"] is True
     diag = bundle["governance"]["adr0041_runtime_readiness_consumer"]
+    echo = bundle["governance"]["adr0041_readiness_projection_echo"]
     assert diag["consumer_enabled"] is False
     assert diag["validation_outcome_changed"] is False
+    assert echo["read_only"] is True
+    assert echo["schema_version"].startswith("adr0041_readiness_projection_echo")
 
 
 def test_bundle_veto_when_consumer_and_prereqs_on(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -118,5 +121,7 @@ def test_bundle_veto_when_consumer_and_prereqs_on(monkeypatch: pytest.MonkeyPatc
     assert bundle["runtime_session_ready"] is False
     assert bundle["can_execute"] is False
     diag = bundle["governance"]["adr0041_runtime_readiness_consumer"]
+    echo = bundle["governance"]["adr0041_readiness_projection_echo"]
     assert diag["consumer_path_active"] is True
     assert diag["source"] == "adr0041_scoped_consumer"
+    assert echo["readiness_aggregation_decision"]["aggregated_readiness"] == "block"

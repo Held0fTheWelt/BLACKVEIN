@@ -506,6 +506,17 @@ def _extract_normalized_wos_evidence(
         "sensory_context_contract_pass",
         "sensory_context_required_layers_realized",
         "sensory_context_source_refs_valid",
+        "genre_awareness_policy_present",
+        "genre_awareness_target_selected",
+        "genre_awareness_registers_valid",
+        "genre_awareness_required_conventions_realized",
+        "genre_awareness_forbidden_markers_absent",
+        "genre_awareness_contract_pass",
+        "symbolic_object_resonance_policy_present",
+        "symbolic_object_resonance_target_selected",
+        "symbolic_object_resonance_source_refs_valid",
+        "symbolic_object_resonance_budget_pass",
+        "symbolic_object_resonance_contract_pass",
         "improvisational_coherence_policy_present",
         "improvisational_coherence_target_selected",
         "improvisational_coherence_acknowledged",
@@ -526,6 +537,12 @@ def _extract_normalized_wos_evidence(
         "expectation_variation_budget_pass",
         "expectation_variation_setup_supported",
         "expectation_variation_contract_pass",
+        "narrative_momentum_policy_present",
+        "narrative_momentum_target_selected",
+        "narrative_momentum_transition_allowed",
+        "narrative_momentum_progress_event_present",
+        "narrative_momentum_stall_budget_respected",
+        "narrative_momentum_contract_pass",
         "dramatic_irony_opportunity_present",
         "dramatic_irony_contract_pass",
         "consequence_cascade_policy_present",
@@ -641,6 +658,30 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "sensory_context_required_layers_realized",
     "sensory_context_source_refs_valid",
     "sensory_context_failure_codes",
+    "genre_awareness_policy_present",
+    "genre_awareness_target_selected",
+    "genre_awareness_profile_id",
+    "genre_awareness_selected_registers",
+    "genre_awareness_required_conventions",
+    "genre_awareness_realized_conventions",
+    "genre_awareness_event_count",
+    "genre_awareness_registers_valid",
+    "genre_awareness_required_conventions_realized",
+    "genre_awareness_forbidden_markers_absent",
+    "genre_awareness_contract_pass",
+    "genre_awareness_failure_codes",
+    "symbolic_object_resonance_policy_present",
+    "symbolic_object_resonance_target_selected",
+    "symbolic_object_resonance_selected_object_ids",
+    "symbolic_object_resonance_selected_symbol_ids",
+    "symbolic_object_resonance_selected_roles",
+    "symbolic_object_resonance_realized_object_ids",
+    "symbolic_object_resonance_realized_symbol_ids",
+    "symbolic_object_resonance_event_count",
+    "symbolic_object_resonance_source_refs_valid",
+    "symbolic_object_resonance_budget_pass",
+    "symbolic_object_resonance_contract_pass",
+    "symbolic_object_resonance_failure_codes",
     "improvisational_coherence_policy_present",
     "improvisational_coherence_target_selected",
     "improvisational_coherence_contribution_id",
@@ -686,6 +727,19 @@ _RUNTIME_ASPECT_MATRIX_COLUMNS: tuple[str, ...] = (
     "expectation_variation_setup_supported",
     "expectation_variation_contract_pass",
     "expectation_variation_failure_codes",
+    "narrative_momentum_policy_present",
+    "narrative_momentum_target_selected",
+    "narrative_momentum_current_state",
+    "narrative_momentum_current_score",
+    "narrative_momentum_target_state",
+    "narrative_momentum_target_score",
+    "narrative_momentum_trend",
+    "narrative_momentum_velocity",
+    "narrative_momentum_transition_allowed",
+    "narrative_momentum_progress_event_present",
+    "narrative_momentum_stall_budget_respected",
+    "narrative_momentum_contract_pass",
+    "narrative_momentum_failure_codes",
     "dramatic_irony_policy_present",
     "dramatic_irony_opportunity_present",
     "dramatic_irony_selected_opportunities",
@@ -852,6 +906,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_consequence_cascade_bounded_committed_evidence"
     if failure.startswith("scene_energy_"):
         return "repair_scene_energy_structured_realization"
+    if failure.startswith("genre_awareness_"):
+        return "repair_genre_awareness_structured_events"
     if failure.startswith("symbolic_object_resonance_"):
         return "repair_symbolic_object_resonance_structured_selection"
     if failure.startswith("temporal_control_"):
@@ -860,6 +916,8 @@ def _runtime_aspect_recommended_repair(main_failure: str | None) -> str | None:
         return "repair_improvisational_coherence_structured_acceptance"
     if failure.startswith("expectation_variation_"):
         return "repair_expectation_variation_structured_selection"
+    if failure.startswith("narrative_momentum_"):
+        return "repair_narrative_momentum_state_machine"
     if "beat" in failure:
         return "repair_beat_realization_or_contract_classification"
     if "origin" in failure or "projection" in failure:
@@ -878,12 +936,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     pacing_rhythm_rec = _aspect_record(ledger, "pacing_rhythm")
     temporal_control_rec = _aspect_record(ledger, "temporal_control")
     sensory_context_rec = _aspect_record(ledger, "sensory_context")
+    genre_awareness_rec = _aspect_record(ledger, "genre_awareness")
     symbolic_object_rec = _aspect_record(ledger, "symbolic_object_resonance")
     improvisational_rec = _aspect_record(ledger, "improvisational_coherence")
     social_pressure_rec = _aspect_record(ledger, "social_pressure")
     relationship_state_rec = _aspect_record(ledger, "relationship_state")
     disclosure_rec = _aspect_record(ledger, "information_disclosure")
     expectation_variation_rec = _aspect_record(ledger, "expectation_variation")
+    narrative_momentum_rec = _aspect_record(ledger, "narrative_momentum")
     dramatic_irony_rec = _aspect_record(ledger, "dramatic_irony")
     callback_rec = _aspect_record(ledger, "callback_web")
     cascade_rec = _aspect_record(ledger, "consequence_cascade")
@@ -910,6 +970,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     temporal_control_actual = _aspect_block(temporal_control_rec, "actual")
     sensory_context_selected = _aspect_block(sensory_context_rec, "selected")
     sensory_context_actual = _aspect_block(sensory_context_rec, "actual")
+    genre_awareness_expected = _aspect_block(genre_awareness_rec, "expected")
+    genre_awareness_selected = _aspect_block(genre_awareness_rec, "selected")
+    genre_awareness_actual = _aspect_block(genre_awareness_rec, "actual")
     symbolic_object_expected = _aspect_block(symbolic_object_rec, "expected")
     symbolic_object_selected = _aspect_block(symbolic_object_rec, "selected")
     symbolic_object_actual = _aspect_block(symbolic_object_rec, "actual")
@@ -926,6 +989,9 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     expectation_variation_expected = _aspect_block(expectation_variation_rec, "expected")
     expectation_variation_selected = _aspect_block(expectation_variation_rec, "selected")
     expectation_variation_actual = _aspect_block(expectation_variation_rec, "actual")
+    narrative_momentum_expected = _aspect_block(narrative_momentum_rec, "expected")
+    narrative_momentum_selected = _aspect_block(narrative_momentum_rec, "selected")
+    narrative_momentum_actual = _aspect_block(narrative_momentum_rec, "actual")
     dramatic_irony_expected = _aspect_block(dramatic_irony_rec, "expected")
     dramatic_irony_selected = _aspect_block(dramatic_irony_rec, "selected")
     dramatic_irony_actual = _aspect_block(dramatic_irony_rec, "actual")
@@ -1044,6 +1110,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     sensory_context_failure_codes = sensory_context_actual.get("failure_codes") or []
     if not isinstance(sensory_context_failure_codes, list):
         sensory_context_failure_codes = []
+    genre_awareness_target = (
+        genre_awareness_selected.get("target")
+        if isinstance(genre_awareness_selected.get("target"), dict)
+        else genre_awareness_selected
+    )
+    genre_awareness_failure_codes = genre_awareness_actual.get("failure_codes") or []
+    if not isinstance(genre_awareness_failure_codes, list):
+        genre_awareness_failure_codes = []
     symbolic_object_target = (
         symbolic_object_selected.get("target")
         if isinstance(symbolic_object_selected.get("target"), dict)
@@ -1079,6 +1153,26 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
     )
     if not isinstance(expectation_variation_failure_codes, list):
         expectation_variation_failure_codes = []
+    narrative_momentum_target = (
+        narrative_momentum_selected.get("target")
+        if isinstance(narrative_momentum_selected.get("target"), dict)
+        else narrative_momentum_selected
+    )
+    narrative_momentum_failure_codes = narrative_momentum_actual.get("failure_codes") or []
+    if not isinstance(narrative_momentum_failure_codes, list):
+        narrative_momentum_failure_codes = []
+    try:
+        narrative_momentum_progress_event_count = int(
+            narrative_momentum_actual.get("progress_event_count") or 0
+        )
+    except (TypeError, ValueError):
+        narrative_momentum_progress_event_count = 0
+    try:
+        narrative_momentum_min_progress_event_count = int(
+            narrative_momentum_target.get("min_progress_event_count") or 0
+        )
+    except (TypeError, ValueError):
+        narrative_momentum_min_progress_event_count = 0
     dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
     if not isinstance(dramatic_irony_violation_codes, list):
         dramatic_irony_violation_codes = []
@@ -1100,12 +1194,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             pacing_rhythm_rec,
             temporal_control_rec,
             sensory_context_rec,
+            genre_awareness_rec,
             symbolic_object_rec,
             improvisational_rec,
             social_pressure_rec,
             relationship_state_rec,
             disclosure_rec,
             expectation_variation_rec,
+            narrative_momentum_rec,
             dramatic_irony_rec,
             callback_rec,
             cascade_rec,
@@ -1125,12 +1221,14 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             pacing_rhythm_rec,
             temporal_control_rec,
             sensory_context_rec,
+            genre_awareness_rec,
             symbolic_object_rec,
             improvisational_rec,
             social_pressure_rec,
             relationship_state_rec,
             disclosure_rec,
             expectation_variation_rec,
+            narrative_momentum_rec,
             dramatic_irony_rec,
             callback_rec,
             cascade_rec,
@@ -1275,6 +1373,62 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("sensory_context_source_refs_valid")
         ),
         "sensory_context_failure_codes": sensory_context_failure_codes,
+        "genre_awareness_policy_present": (
+            genre_awareness_expected.get("policy_present")
+            if "policy_present" in genre_awareness_expected
+            else det_scores.get("genre_awareness_policy_present")
+        ),
+        "genre_awareness_target_selected": (
+            bool(genre_awareness_target.get("genre_profile_id"))
+            if genre_awareness_selected
+            else det_scores.get("genre_awareness_target_selected")
+        ),
+        "genre_awareness_profile_id": genre_awareness_target.get("genre_profile_id")
+        if isinstance(genre_awareness_target, dict)
+        else None,
+        "genre_awareness_selected_registers": (
+            genre_awareness_target.get("selected_registers")
+            if isinstance(genre_awareness_target, dict)
+            else []
+        )
+        or [],
+        "genre_awareness_required_conventions": (
+            genre_awareness_target.get("required_conventions")
+            if isinstance(genre_awareness_target, dict)
+            else []
+        )
+        or [],
+        "genre_awareness_realized_conventions": (
+            genre_awareness_actual.get("realized_conventions") or []
+        ),
+        "genre_awareness_event_count": int(
+            genre_awareness_actual.get("event_count") or 0
+        ),
+        "genre_awareness_registers_valid": (
+            "genre_awareness_register_not_allowed"
+            not in genre_awareness_failure_codes
+            if genre_awareness_actual
+            else det_scores.get("genre_awareness_registers_valid")
+        ),
+        "genre_awareness_required_conventions_realized": (
+            "genre_awareness_missing_required_convention"
+            not in genre_awareness_failure_codes
+            and "genre_awareness_missing_required_event"
+            not in genre_awareness_failure_codes
+            if genre_awareness_actual
+            else det_scores.get("genre_awareness_required_conventions_realized")
+        ),
+        "genre_awareness_forbidden_markers_absent": (
+            "genre_awareness_forbidden_marker" not in genre_awareness_failure_codes
+            if genre_awareness_actual
+            else det_scores.get("genre_awareness_forbidden_markers_absent")
+        ),
+        "genre_awareness_contract_pass": (
+            genre_awareness_actual.get("contract_pass")
+            if "contract_pass" in genre_awareness_actual
+            else det_scores.get("genre_awareness_contract_pass")
+        ),
+        "genre_awareness_failure_codes": genre_awareness_failure_codes,
         "symbolic_object_resonance_policy_present": (
             symbolic_object_expected.get("policy_present")
             if "policy_present" in symbolic_object_expected
@@ -1514,6 +1668,54 @@ def _runtime_aspect_matrix_row(raw_trace: dict[str, Any]) -> dict[str, Any]:
             else det_scores.get("expectation_variation_contract_pass")
         ),
         "expectation_variation_failure_codes": expectation_variation_failure_codes,
+        "narrative_momentum_policy_present": (
+            narrative_momentum_expected.get("policy_present")
+            if "policy_present" in narrative_momentum_expected
+            else det_scores.get("narrative_momentum_policy_present")
+        ),
+        "narrative_momentum_target_selected": (
+            bool(narrative_momentum_target.get("target_state"))
+            if narrative_momentum_target
+            else det_scores.get("narrative_momentum_target_selected")
+        ),
+        "narrative_momentum_current_state": narrative_momentum_actual.get(
+            "current_state"
+        )
+        or narrative_momentum_selected.get("current_state"),
+        "narrative_momentum_current_score": narrative_momentum_actual.get(
+            "current_score"
+        )
+        if "current_score" in narrative_momentum_actual
+        else narrative_momentum_selected.get("current_score"),
+        "narrative_momentum_target_state": narrative_momentum_target.get("target_state"),
+        "narrative_momentum_target_score": narrative_momentum_target.get("target_score"),
+        "narrative_momentum_trend": narrative_momentum_actual.get("trend")
+        or narrative_momentum_selected.get("trend"),
+        "narrative_momentum_velocity": narrative_momentum_actual.get("velocity")
+        if "velocity" in narrative_momentum_actual
+        else narrative_momentum_selected.get("velocity"),
+        "narrative_momentum_transition_allowed": (
+            narrative_momentum_actual.get("transition_allowed")
+            if "transition_allowed" in narrative_momentum_actual
+            else det_scores.get("narrative_momentum_transition_allowed")
+        ),
+        "narrative_momentum_progress_event_present": (
+            narrative_momentum_progress_event_count
+            >= narrative_momentum_min_progress_event_count
+            if narrative_momentum_actual
+            else det_scores.get("narrative_momentum_progress_event_present")
+        ),
+        "narrative_momentum_stall_budget_respected": (
+            narrative_momentum_actual.get("stall_budget_respected")
+            if "stall_budget_respected" in narrative_momentum_actual
+            else det_scores.get("narrative_momentum_stall_budget_respected")
+        ),
+        "narrative_momentum_contract_pass": (
+            narrative_momentum_actual.get("contract_pass")
+            if "contract_pass" in narrative_momentum_actual
+            else det_scores.get("narrative_momentum_contract_pass")
+        ),
+        "narrative_momentum_failure_codes": narrative_momentum_failure_codes,
         "dramatic_irony_policy_present": (
             dramatic_irony_expected.get("policy_present")
             if "policy_present" in dramatic_irony_expected

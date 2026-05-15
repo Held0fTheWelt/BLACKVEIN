@@ -63,6 +63,7 @@ def test_symbolic_object_resonance_selects_canonical_object_and_validates_event(
     state = result["state"]
     compact = compact_symbolic_object_resonance_context(target)
     source_ref = target["required_source_refs"][0]
+    selected_role = target["selected_resonance_roles"][0]
     validation = validate_symbolic_object_resonance_realization(
         symbolic_object_resonance_target=target,
         symbolic_object_resonance_state=state,
@@ -71,7 +72,7 @@ def test_symbolic_object_resonance_selects_canonical_object_and_validates_event(
                 {
                     "object_id": object_id,
                     "symbol_id": target["selected_symbol_ids"][0],
-                    "resonance_role": role,
+                    "resonance_role": selected_role,
                     "source_refs": [source_ref],
                 }
             ]
@@ -87,7 +88,8 @@ def test_symbolic_object_resonance_selects_canonical_object_and_validates_event(
 
     assert target["schema_version"] == SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION
     assert target["selected_object_ids"] == [object_id]
-    assert target["selected_resonance_roles"] == [role]
+    assert target["selected_resonance_roles"] == [selected_role]
+    assert selected_role in _policy()["allowed_resonance_roles"]
     assert compact["selected_object_ids"] == [object_id]
     assert validation["status"] == "approved"
     assert validation["contract_pass"] is True

@@ -5,6 +5,11 @@ ADR-0041 may only **reduce** readiness (allow → block) when all feature flags 
 ``readiness_aggregation_decision`` are present. ADR-0041 must never upgrade a reject to allow.
 
 This module does not mutate ``validation_outcome`` or commit gates.
+
+**Governance:** The only production mutator of player-facing ``runtime_session_ready`` /
+``can_execute`` via ADR-0041 is ``backend.app.api.v1.game_routes._player_session_bundle``.
+Any additional consumer requires explicit ADR / governance; do not call
+``resolve_runtime_readiness_with_adr0041`` from other backend routes or services.
 """
 
 from __future__ import annotations
@@ -25,6 +30,12 @@ from ai_stack.runtime_aspect_ledger import (
 )
 
 RUNTIME_READINESS_CONSUMER_SCHEMA_VERSION = "runtime_readiness_consumer.v1"
+ADR0041_READINESS_PROJECTION_ECHO_SCHEMA_VERSION = "adr0041_readiness_projection_echo.v1"
+
+# Canonical symbol for audits / static guard tests (must match ``_player_session_bundle`` wiring).
+ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH = (
+    "backend.app.api.v1.game_routes._player_session_bundle"
+)
 
 
 def adr0041_readiness_consumer_upstream_prerequisites_met() -> tuple[bool, tuple[str, ...]]:
@@ -163,6 +174,40 @@ def resolve_runtime_readiness_with_adr0041(
         "commit_gate_changed": False,
         "proof_level": "local_only",
         "live_or_staging_evidence": False,
+        "mutating_readiness_consumer_anchor": ADR0041_MUTATING_FINAL_READINESS_CONSUMER_PATH,
+        "mutates_bundle_fields": ["runtime_session_ready", "can_execute"],
+    }
+
+
+def build_adr0041_readiness_projection_echo(
+    runtime_intelligence_projection: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Read-only echo of ADR-0041 readiness surfaces from a ledger ``runtime_intelligence_projection``.
+
+    Does not run aggregation or alter booleans. ``adr0041_runtime_readiness_consumer`` is
+    only produced when assembling the player session bundle; it is not stored on the ledger.
+    """
+    rip = runtime_intelligence_projection if isinstance(runtime_intelligence_projection, dict) else {}
+
+    def _pick(key: str) -> dict[str, Any] | None:
+        val = rip.get(key)
+        return val if isinstance(val, dict) else None
+
+    return {
+        "schema_version": ADR0041_READINESS_PROJECTION_ECHO_SCHEMA_VERSION,
+        "read_only": True,
+        "source": "runtime_intelligence_projection",
+        "readiness_policy_input": _pick("readiness_policy_input"),
+        "readiness_aggregation_decision": _pick("readiness_aggregation_decision"),
+        "readiness_co_authority_enforcement": _pick("readiness_co_authority_enforcement"),
+        "readiness_co_authority_preview": _pick("readiness_co_authority_preview"),
+        "adr0041_runtime_readiness_consumer": {
+            "note": (
+                "Final veto overlay is attached only on the HTTP player session bundle under "
+                "governance.adr0041_runtime_readiness_consumer; not persisted on this projection."
+            ),
+            "value": None,
+        },
     }
 
 

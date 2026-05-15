@@ -11,6 +11,10 @@ from ai_stack.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_SCHEMA_VERSION,
 )
+from ai_stack.genre_awareness_contracts import (
+    GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER,
+    GENRE_AWARENESS_SCHEMA_VERSION,
+)
 from ai_stack.improvisational_coherence_contracts import (
     IMPROV_FAILURE_SCENE_ANCHOR_MISSING,
     IMPROVISATIONAL_COHERENCE_SCHEMA_VERSION,
@@ -20,6 +24,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_CONSEQUENCE_CASCADE,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
+    ASPECT_GENRE_AWARENESS,
     ASPECT_IMPROVISATIONAL_COHERENCE,
     ASPECT_INPUT,
     ASPECT_KEYS,
@@ -30,6 +35,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_SCENE_ENERGY,
     ASPECT_SENSORY_CONTEXT,
     ASPECT_SOCIAL_PRESSURE,
+    ASPECT_SYMBOLIC_OBJECT_RESONANCE,
     ASPECT_TEMPORAL_CONTROL,
     ASPECT_TONAL_CONSISTENCY,
     build_runtime_intelligence_projection,
@@ -42,6 +48,9 @@ from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
 from ai_stack.sensory_context_contracts import (
     SENSORY_CONTEXT_FAILURE_CODES,
     SENSORY_CONTEXT_SCHEMA_VERSION,
+)
+from ai_stack.symbolic_object_resonance_contracts import (
+    SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
 )
 from ai_stack.temporal_control_contracts import TEMPORAL_CONTROL_SCHEMA_VERSION
 from ai_stack.tonal_consistency_contracts import TONAL_CONSISTENCY_SCHEMA_VERSION
@@ -489,6 +498,77 @@ def test_runtime_projection_exposes_tonal_consistency_aspect() -> None:
     assert tonal["failure_codes"] == [failure_code]
 
 
+def test_runtime_projection_exposes_genre_awareness_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-genre",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    target = {
+        "schema_version": GENRE_AWARENESS_SCHEMA_VERSION,
+        "policy_version": "genre_awareness_policy.v1",
+        "policy_enabled": True,
+        "commit_impact": "recover",
+        "genre_profile_id": "bourgeois_social_drama",
+        "selected_registers": ["social_drama"],
+        "required_conventions": ["civility_under_pressure"],
+        "forbidden_marker_ids": ["fantasy_quest_frame"],
+        "require_structured_events": True,
+        "max_genre_signals_per_turn": 1,
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_GENRE_AWARENESS,
+        {
+            "applicable": True,
+            "status": "failed",
+            "expected": {
+                "schema_version": GENRE_AWARENESS_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+                "max_genre_signals_per_turn": 1,
+            },
+            "selected": {
+                "target": target,
+                "genre_profile_id": target["genre_profile_id"],
+                "selected_registers": target["selected_registers"],
+                "required_conventions": target["required_conventions"],
+            },
+            "actual": {
+                "structured_events_present": True,
+                "event_count": 1,
+                "realized_profile_ids": ["bourgeois_social_drama"],
+                "realized_registers": ["social_drama"],
+                "realized_conventions": [],
+                "missing_required_conventions": ["civility_under_pressure"],
+                "contract_pass": False,
+                "failure_codes": [GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER],
+            },
+            "reasons": [GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER],
+            "failure_class": "recoverable_dramatic_failure",
+            "failure_reason": GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER,
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    genre = projection[ASPECT_GENRE_AWARENESS]
+    assert genre["schema_version"] == GENRE_AWARENESS_SCHEMA_VERSION
+    assert genre["policy_present"] is True
+    assert genre["policy_enabled"] is True
+    assert genre["genre_profile_id"] == "bourgeois_social_drama"
+    assert genre["selected_registers"] == ["social_drama"]
+    assert genre["required_conventions"] == ["civility_under_pressure"]
+    assert genre["event_count"] == 1
+    assert genre["missing_required_conventions"] == ["civility_under_pressure"]
+    assert genre["failure_codes"] == [GENRE_AWARENESS_FAILURE_FORBIDDEN_MARKER]
+    assert genre["contract_pass"] is False
+
+
 def test_runtime_projection_exposes_improvisational_coherence_aspect() -> None:
     ledger = initialize_runtime_aspect_ledger(
         session_id="s-improv",
@@ -614,6 +694,70 @@ def test_runtime_projection_exposes_expectation_variation_aspect() -> None:
     assert variation["budget_used"] == 1
     assert variation["contract_pass"] is True
     assert variation["failure_codes"] == []
+
+
+def test_runtime_projection_exposes_symbolic_object_resonance_aspect() -> None:
+    ledger = initialize_runtime_aspect_ledger(
+        session_id="s-symbolic-object",
+        module_id="example_module",
+        turn_number=2,
+        turn_kind="player",
+        raw_player_input="structured input",
+    )
+    source_ref = {
+        "source": "environment_state",
+        "field": "salient_object_ids",
+        "value": "object_alpha",
+    }
+    ledger = set_aspect_record(
+        ledger,
+        ASPECT_SYMBOLIC_OBJECT_RESONANCE,
+        {
+            "applicable": True,
+            "status": "passed",
+            "expected": {
+                "schema_version": SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
+                "policy_present": True,
+                "policy_enabled": True,
+                "commit_impact": "recover",
+                "require_structured_events": True,
+                "max_symbols_per_turn": 1,
+                "allowed_resonance_roles": ["territorial_anchor"],
+            },
+            "selected": {
+                "selected_symbol_ids": ["symbolic_object_resonance:alpha"],
+                "selected_object_ids": ["object_alpha"],
+                "selected_resonance_roles": ["territorial_anchor"],
+                "required_source_refs": [source_ref],
+            },
+            "actual": {
+                "structured_events_present": True,
+                "event_count": 1,
+                "realized_object_ids": ["object_alpha"],
+                "realized_symbol_ids": ["symbolic_object_resonance:alpha"],
+                "realized_resonance_roles": ["territorial_anchor"],
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "source": "validator",
+        },
+    )
+
+    projection = build_runtime_intelligence_projection(ledger)
+
+    symbolic = projection[ASPECT_SYMBOLIC_OBJECT_RESONANCE]
+    assert symbolic["schema_version"] == SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION
+    assert symbolic["policy_present"] is True
+    assert symbolic["policy_enabled"] is True
+    assert symbolic["selected_object_ids"] == ["object_alpha"]
+    assert symbolic["selected_symbol_ids"] == ["symbolic_object_resonance:alpha"]
+    assert symbolic["selected_resonance_roles"] == ["territorial_anchor"]
+    assert symbolic["required_source_refs"] == [source_ref]
+    assert symbolic["structured_events_present"] is True
+    assert symbolic["realized_object_ids"] == ["object_alpha"]
+    assert symbolic["realized_symbol_ids"] == ["symbolic_object_resonance:alpha"]
+    assert symbolic["contract_pass"] is True
+    assert symbolic["failure_codes"] == []
 
 
 def test_runtime_projection_exposes_temporal_control_aspect() -> None:

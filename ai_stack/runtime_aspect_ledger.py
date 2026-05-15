@@ -101,6 +101,7 @@ ASPECT_NPC_AUTHORITY = "npc_authority"
 ASPECT_NPC_AGENCY = "npc_agency"
 ASPECT_DRAMATIC_IRONY = "dramatic_irony"
 ASPECT_EXPECTATION_VARIATION = "expectation_variation"
+ASPECT_NARRATIVE_MOMENTUM = "narrative_momentum"
 ASPECT_VOICE_CONSISTENCY = "voice_consistency"
 ASPECT_TONAL_CONSISTENCY = "tonal_consistency"
 ASPECT_GENRE_AWARENESS = "genre_awareness"
@@ -133,6 +134,7 @@ ASPECT_KEYS: tuple[str, ...] = (
     ASPECT_NPC_AGENCY,
     ASPECT_DRAMATIC_IRONY,
     ASPECT_EXPECTATION_VARIATION,
+    ASPECT_NARRATIVE_MOMENTUM,
     ASPECT_VOICE_CONSISTENCY,
     ASPECT_TONAL_CONSISTENCY,
     ASPECT_GENRE_AWARENESS,
@@ -1302,6 +1304,11 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
         if isinstance(aspects.get(ASPECT_EXPECTATION_VARIATION), dict)
         else {}
     )
+    narrative_momentum_rec = (
+        aspects.get(ASPECT_NARRATIVE_MOMENTUM)
+        if isinstance(aspects.get(ASPECT_NARRATIVE_MOMENTUM), dict)
+        else {}
+    )
     voice_rec = (
         aspects.get(ASPECT_VOICE_CONSISTENCY)
         if isinstance(aspects.get(ASPECT_VOICE_CONSISTENCY), dict)
@@ -1405,6 +1412,9 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
     expectation_variation_expected = _record_block(expectation_variation_rec, "expected")
     expectation_variation_selected = _record_block(expectation_variation_rec, "selected")
     expectation_variation_actual = _record_block(expectation_variation_rec, "actual")
+    narrative_momentum_expected = _record_block(narrative_momentum_rec, "expected")
+    narrative_momentum_selected = _record_block(narrative_momentum_rec, "selected")
+    narrative_momentum_actual = _record_block(narrative_momentum_rec, "actual")
     voice_expected = _record_block(voice_rec, "expected")
     tonal_expected = _record_block(tonal_rec, "expected")
     tonal_selected = _record_block(tonal_rec, "selected")
@@ -2204,6 +2214,106 @@ def build_runtime_intelligence_projection(ledger: dict[str, Any] | None) -> dict
                 ),
                 "status": expectation_variation_rec.get("status"),
             },
+            "narrative_momentum": {
+                "schema_version": narrative_momentum_expected.get("schema_version")
+                or narrative_momentum_selected.get("schema_version")
+                or narrative_momentum_actual.get("schema_version"),
+                "policy_present": bool(narrative_momentum_expected.get("policy_present")),
+                "policy_enabled": bool(narrative_momentum_expected.get("policy_enabled")),
+                "commit_impact": narrative_momentum_expected.get("commit_impact"),
+                "require_structured_events": bool(
+                    narrative_momentum_expected.get("require_structured_events")
+                ),
+                "target_state": narrative_momentum_selected.get("target_state")
+                or (
+                    narrative_momentum_selected.get("target", {}).get("target_state")
+                    if isinstance(narrative_momentum_selected.get("target"), dict)
+                    else None
+                )
+                or narrative_momentum_actual.get("target_state"),
+                "target_score": float(
+                    narrative_momentum_selected.get("target_score")
+                    or (
+                        narrative_momentum_selected.get("target", {}).get("target_score")
+                        if isinstance(narrative_momentum_selected.get("target"), dict)
+                        else 0.0
+                    )
+                    or narrative_momentum_actual.get("target_score")
+                    or 0.0
+                ),
+                "current_state": narrative_momentum_actual.get("current_state")
+                or (
+                    narrative_momentum_selected.get("state", {}).get("current_state")
+                    if isinstance(narrative_momentum_selected.get("state"), dict)
+                    else None
+                ),
+                "current_score": float(
+                    narrative_momentum_actual.get("current_score")
+                    or (
+                        narrative_momentum_selected.get("state", {}).get("current_score")
+                        if isinstance(narrative_momentum_selected.get("state"), dict)
+                        else 0.0
+                    )
+                    or 0.0
+                ),
+                "trend": narrative_momentum_actual.get("trend")
+                or (
+                    narrative_momentum_selected.get("state", {}).get("trend")
+                    if isinstance(narrative_momentum_selected.get("state"), dict)
+                    else None
+                ),
+                "velocity": float(narrative_momentum_actual.get("velocity") or 0.0),
+                "allowed_next_states": narrative_momentum_selected.get("allowed_next_states")
+                or (
+                    narrative_momentum_selected.get("target", {}).get("allowed_next_states")
+                    if isinstance(narrative_momentum_selected.get("target"), dict)
+                    else []
+                )
+                or [],
+                "requires_forward_motion": bool(
+                    narrative_momentum_selected.get("requires_forward_motion")
+                    or (
+                        narrative_momentum_selected.get("target", {}).get(
+                            "requires_forward_motion"
+                        )
+                        if isinstance(narrative_momentum_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "release_allowed": bool(
+                    narrative_momentum_selected.get("release_allowed")
+                    or (
+                        narrative_momentum_selected.get("target", {}).get("release_allowed")
+                        if isinstance(narrative_momentum_selected.get("target"), dict)
+                        else False
+                    )
+                ),
+                "transition_allowed": narrative_momentum_actual.get("transition_allowed"),
+                "structured_events_present": bool(
+                    narrative_momentum_actual.get("structured_events_present")
+                ),
+                "event_count": int(narrative_momentum_actual.get("event_count") or 0),
+                "progress_event_count": int(
+                    narrative_momentum_actual.get("progress_event_count") or 0
+                ),
+                "stall_turn_count": int(
+                    narrative_momentum_actual.get("stall_turn_count") or 0
+                ),
+                "stall_budget_respected": narrative_momentum_actual.get(
+                    "stall_budget_respected"
+                ),
+                "source_refs_valid": narrative_momentum_actual.get("source_refs_valid"),
+                "contract_pass": narrative_momentum_actual.get("contract_pass"),
+                "failure_codes": narrative_momentum_actual.get("failure_codes")
+                or _record_reasons(narrative_momentum_rec),
+                "failure_reason": narrative_momentum_rec.get("failure_reason")
+                or (
+                    _record_reasons(narrative_momentum_rec)[0]
+                    if _record_reasons(narrative_momentum_rec)
+                    else None
+                ),
+                "status": narrative_momentum_rec.get("status"),
+            },
             "visible_projection": {
                 "blocks_have_origin_aspect": bool(visible_actual.get("blocks_have_origin_aspect")),
                 "required_blocks_present": bool(visible_actual.get("required_blocks_present")),
@@ -2848,6 +2958,19 @@ def aspect_score_metadata(
         "expectation_variation_budget_used": actual.get("budget_used"),
         "expectation_variation_contract_pass": actual.get("contract_pass"),
         "expectation_variation_failure_codes": actual.get("failure_codes"),
+        "narrative_momentum_target_state": selected.get("target_state")
+        or target.get("target_state"),
+        "narrative_momentum_target_score": selected.get("target_score")
+        or target.get("target_score"),
+        "narrative_momentum_current_state": actual.get("current_state"),
+        "narrative_momentum_current_score": actual.get("current_score"),
+        "narrative_momentum_trend": actual.get("trend"),
+        "narrative_momentum_velocity": actual.get("velocity"),
+        "narrative_momentum_transition_allowed": actual.get("transition_allowed"),
+        "narrative_momentum_progress_event_count": actual.get("progress_event_count"),
+        "narrative_momentum_stall_budget_respected": actual.get("stall_budget_respected"),
+        "narrative_momentum_contract_pass": actual.get("contract_pass"),
+        "narrative_momentum_failure_codes": actual.get("failure_codes"),
         "genre_awareness_profile_id": selected.get("genre_profile_id")
         or target.get("genre_profile_id"),
         "genre_awareness_selected_registers": selected.get("selected_registers")

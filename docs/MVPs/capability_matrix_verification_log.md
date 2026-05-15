@@ -10,6 +10,12 @@ If a future run records ADR-0041 capability-selection evidence, mark it as selec
 
 Historical entries may include machine-local absolute paths because they preserve the command transcript from that workstation. Treat those paths as local environment evidence only, not as portable instructions or live/staging proof. New entries should prefer repo-relative commands, `REPO_ROOT`, or `$PWD`-relative invocation notes whenever practical.
 
+## ADR-0039 runtime surface governance (companion)
+
+[adr0039_runtime_surface_governance_inventory.md](adr0039_runtime_surface_governance_inventory.md) lists **runtime decision surfaces** under [ADR-0039](../ADR/adr-0039-gate-tests-no-hardcoded-oracle-bypass.md): **`ai_stack`**, **`world-engine`**, **`story_runtime_core`**, the **frontend Play Shell**, the **`administration-tool`** operator UI/proxy, **session**, **turn**, **beat / runtime progression** loops, and **critical decision trees** inside those loops. Each row records an `authority_level` (`canonical`, `co_authority`, `preview`, `sidecar`, `diagnostic`, `display_only`).
+
+**Entries in this log must not** treat **preview**, **sidecar**, **diagnostic**, or **display_only** surfaces as canonical runtime authority, seam/commit truth, or live/staging proof. **Frontend / Play Shell** traces are **display / consumption** evidence only—not engine truth unless the same entry ties them to **canonical backend / world-engine** state and documents how. **`administration-tool`** dashboards and proxy responses are **operator display and control-plane** evidence only—the same correlation rules apply. **`story_runtime_core`** inventory rows are **preview** or **diagnostic** unless the run explicitly shows outcomes **committed through canonical runtime mechanisms** (world-engine turn path, validation seam, commit). This file does **not** promote any matrix row and must **not** imply live/staging success without meeting [capability_matrix_live_claim_gates.md](capability_matrix_live_claim_gates.md).
+
 ## Local verification snapshot for ADR-0041 / semantic capability selector core
 
 Latest local verification for the first deterministic selector core:
@@ -54,7 +60,47 @@ ADR-0041 scoped readiness enforcement pilot (2026-05-15): `ADR0041_SCOPED_READIN
 
 ADR-0041 scoped readiness aggregation pilot (2026-05-15): `ADR0041_SCOPED_READINESS_AGGREGATION_ENABLED=true` with scoped co-authority, readiness preview, and enforcement all enabled may emit `runtime_intelligence_projection.readiness_aggregation_decision` (`seam_readiness`, `aggregated_readiness`, `adr0041_veto_applied`, `adr0041_can_upgrade_seam_reject=false`). Seam is canonical for allow/reject; ADR-0041 may veto seam-allowed readiness only under bounded policy; no upgrade of seam reject to allow; no `validation_outcome` or commit mutation. Verification: `ai_stack/tests/test_validation_authority_bridge.py`, `ai_stack/tests/test_adr0041_runtime_graph_sidecar.py`, `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`.
 
-ADR-0041 runtime readiness consumer contract (2026-05-15): `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` plus the same upstream flags may apply `readiness_aggregation_decision` as a **veto-only** overlay on `runtime_session_ready` / `can_execute` in `backend/app/api/v1/game_routes.py::_player_session_bundle` via `ai_stack/runtime_readiness_consumer.py::resolve_runtime_readiness_with_adr0041`; default without the flag leaves final readiness byte-compatible with `evaluate_session_opening_readiness`; `validation_outcome` and commit unchanged; `proof_level=local_only`; no live/staging or Capability Matrix promotion. Verification: `ai_stack/tests/test_runtime_readiness_consumer.py`, `backend/tests/test_runtime_readiness_consumer_bundle.py`, `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`.
+ADR-0041 runtime readiness consumer contract (2026-05-15): `ADR0041_RUNTIME_READINESS_CONSUMER_ENABLED=true` plus the same upstream flags may apply `readiness_aggregation_decision` as a **veto-only** overlay on `runtime_session_ready` / `can_execute` in `backend/app/api/v1/game_routes.py::_player_session_bundle` via `ai_stack/runtime_readiness_consumer.py::resolve_runtime_readiness_with_adr0041`; default without the flag leaves final readiness byte-compatible with `evaluate_session_opening_readiness`; `validation_outcome` and commit unchanged; `proof_level=local_only`; no live/staging or Capability Matrix promotion. Read-only echoes: `governance.adr0041_readiness_projection_echo`, Inspector `authority_projection.adr0041_readiness_projection_echo`, operator turn-history `adr0041_readiness_projection_echo`. **Single mutating consumer** under `backend/app` enforced by `backend/tests/test_adr0041_readiness_consumer_single_mutation_site.py`. Verification: `ai_stack/tests/test_runtime_readiness_consumer.py`, `backend/tests/test_runtime_readiness_consumer_bundle.py`, `ai_stack/tests/test_capability_validator_dispatch_feature_flag.py`.
+
+ADR-0041 readiness consumer consolidation + operator/inspector echo (2026-05-15): same contract; `pytest` marker `timing_sensitive` for wall-clock API smokes (`backend/pytest.ini`); local default `WOS_API_PERF_BUDGET_MS` headroom raised for non-CI runs in `test_user_profile.py` perf smokes.
+
+---
+
+## Local verification snapshot for Pi33 / symbolic object resonance
+
+- Date: 2026-05-15
+- Git SHA at verification time: `22a4bccb` (dirty worktree; local Pi33 documentation/test follow-up changes not committed at run time)
+- Scope: **local pytest/static-gate evidence only** - no live-provider, staging, live Langfuse, MCP live proof, or ADR-0009 promotion proof claim.
+- `python -m py_compile ai_stack/symbolic_object_resonance_contracts.py ai_stack/symbolic_object_resonance_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tests/gates/test_table_b_anti_hardcoding_gate.py` -> passed
+- `python -m py_compile ai_stack/tests/test_symbolic_object_resonance_engine.py ai_stack/tests/test_runtime_aspect_ledger.py tools/mcp_server/tests/test_langfuse_verify_tools.py world-engine/tests/test_planner_truth_and_runtime_surfaces.py tests/gates/test_table_b_anti_hardcoding_gate.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows pytest ai_stack/tests/test_symbolic_object_resonance_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py tools/mcp_server/tests/test_langfuse_verify_tools.py tests/gates/test_table_b_anti_hardcoding_gate.py tests/gates/test_adr_0039_pi_scope.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 94 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows/world-engine:/mnt/d/WorldOfShadows pytest tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` from `world-engine/` -> 10 passed
+- `git diff --check` -> exit 0; repository-local CRLF normalization warnings only
+
+Evidence summary: Pi33 is now represented by the generic
+`symbolic_object_resonance` runtime aspect. The module policy normalizes
+`runtime_intelligence.symbolic_object_resonance`; LangGraph derives a bounded
+state/target from canonical object content and structured runtime state;
+structured `symbolic_object_resonance_events` validate selected object ids,
+symbol ids, resonance roles, source refs, and budget; planner truth persists
+state/target/validation; `RuntimeAspectLedger.symbolic_object_resonance`
+projects evidence; and MCP exposes semantic `symbolic_object_resonance_*`
+matrix fields.
+
+ADR-0039 discipline for this slice: production-facing keys use semantic
+`symbolic_object_resonance` names only. Tests derive expectations from
+normalized policy, exported schema/failure-code constants, canonical object
+roles, structured event payloads, planner-truth persistence, ledger projection,
+MCP row fields, and the anti-hardcoding surface allowlist. Generated symbolic
+prose, copied authored examples, and Pi-number score or branch names are not
+pass/fail oracles.
+
+Known limitations: this is local implementation evidence only. Fresh staging
+traces, provider evidence, player-visible replay, live Langfuse traces, and MCP
+live-query proof remain outside this snapshot. Combined repo-root pytest runs
+that include both backend-style `app` imports and `world-engine/app` imports
+still need split invocation to avoid package-name shadowing; the World-Engine
+planner-truth test was therefore verified from `world-engine/`.
 
 ---
 
@@ -572,6 +618,38 @@ commit/readiness gates.
 Known limitations: full prompt assembly integration, selected validator gating,
 judge execution, Langfuse/MCP live proof, and Capability Matrix promotion remain
 future work.
+
+---
+
+## Local verification snapshot for Π32 / genre awareness
+
+- Date: 2026-05-15
+- Git SHA at verification time: `22a4bccb` (dirty worktree; local genre-awareness coverage additions not committed at run time)
+- Scope: **local pytest/static-gate evidence only** - no live-provider, staging, live Langfuse, or broad genre-adaptation claim.
+- `python -m py_compile ai_stack/genre_awareness_contracts.py ai_stack/genre_awareness_engine.py ai_stack/module_runtime_policy.py ai_stack/runtime_aspect_ledger.py ai_stack/langgraph_runtime_state.py ai_stack/langgraph_runtime_executor.py ai_stack/langgraph_runtime_package_output_sections.py ai_stack/story_runtime_playability.py world-engine/app/story_runtime/commit_models.py world-engine/app/story_runtime/manager.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py` -> passed
+- `python -m pytest ai_stack/tests/test_genre_awareness_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py ai_stack/tests/test_capability_selector.py ai_stack/tests/test_capability_selector_runtime_projection.py -q --tb=short` -> 51 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows:/mnt/d/WorldOfShadows/world-engine python -m pytest world-engine/tests/test_planner_truth_and_runtime_surfaces.py -q --tb=short` -> 10 passed
+- `PYTHONPATH=/mnt/d/WorldOfShadows python -m pytest tools/mcp_server/tests/test_langfuse_verify_tools.py -q --tb=short` -> 38 passed
+- `python -m pytest tests/gates/test_table_b_anti_hardcoding_gate.py tests/gates/test_adr_0039_pi_scope.py tests/test_capability_matrix_documentation_readiness.py -q --tb=short` -> 27 passed
+- `git diff --check -- ai_stack/tests/test_genre_awareness_engine.py ai_stack/tests/test_module_runtime_policy.py ai_stack/tests/test_runtime_aspect_ledger.py world-engine/tests/test_planner_truth_and_runtime_surfaces.py tools/mcp_server/tools_registry_handlers_langfuse_verify.py tools/mcp_server/tests/test_langfuse_verify_tools.py tests/gates/test_table_b_anti_hardcoding_gate.py docs/MVPs/capability_matrix_status_and_adr_relations.md docs/MVPs/capability_matrix_live_claim_gates.md world-engine/app/story_runtime/manager.py` -> no whitespace errors; local Git emitted LF/CRLF normalization warnings only
+
+Evidence summary: Π32 is represented as the generic `genre_awareness` local
+contract surface. Module policy declares a bounded genre profile under
+`runtime_intelligence.genre_awareness`; the engine derives
+`genre_awareness.v1` state/target, validates structured
+`genre_awareness_events`, projects `RuntimeAspectLedger.genre_awareness`,
+persists planner-truth genre fields, and exposes Langfuse/MCP
+`genre_awareness_*` matrix fields.
+
+ADR-0039 discipline for this slice: production-facing keys use semantic
+`genre_awareness` names only. Tests assert normalized policy, schema/failure
+constants, structured event fields, ledger projection, MCP row fields, and the
+anti-hardcoding canonical-surface guard. Generated genre prose and legacy Π32
+labels are not pass/fail oracles.
+
+Known limitations: local evidence only; no live/staging trace proof, no
+provider replay, and no claim of general multi-genre adaptation beyond the
+bounded module-authored policy contract.
 
 ---
 

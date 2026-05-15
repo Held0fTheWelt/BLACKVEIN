@@ -6,6 +6,7 @@ from ai_stack.beat_lifecycle_contracts import phase_beat_candidates, select_beat
 from ai_stack.callback_web_contracts import CALLBACK_WEB_POLICY_SCHEMA_VERSION
 from ai_stack.consequence_cascade_contracts import CONSEQUENCE_CASCADE_POLICY_SCHEMA_VERSION
 from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_POLICY_VERSION
+from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_POLICY_VERSION
 from ai_stack.improvisational_coherence_contracts import (
     IMPROVISATIONAL_COHERENCE_POLICY_VERSION,
 )
@@ -95,6 +96,18 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert policy["runtime_governance_policy"]["tonal_consistency"]["tone_profiles"]
     assert policy["tonal_consistency_policy"]["enabled"] is True
     assert (
+        policy["runtime_governance_policy"]["genre_awareness"]["schema_version"]
+        == GENRE_AWARENESS_POLICY_VERSION
+    )
+    assert policy["runtime_governance_policy"]["genre_awareness"]["enabled"] is True
+    assert (
+        policy["runtime_governance_policy"]["genre_awareness"]["genre_profile_id"]
+        == "bourgeois_social_drama"
+    )
+    assert policy["runtime_governance_policy"]["genre_awareness"]["required_conventions"]
+    assert policy["runtime_governance_policy"]["genre_awareness"]["require_structured_events"] is True
+    assert policy["genre_awareness_policy"]["enabled"] is True
+    assert (
         policy["runtime_governance_policy"]["improvisational_coherence"]["schema_version"]
         == IMPROVISATIONAL_COHERENCE_POLICY_VERSION
     )
@@ -135,6 +148,7 @@ def test_module_runtime_policy_loads_goc_without_runtime_hardcoding() -> None:
     assert "dramatic_irony_policy" in policy["content_sources"]
     assert "expectation_variation_policy" in policy["content_sources"]
     assert "symbolic_object_resonance_policy" in policy["content_sources"]
+    assert "genre_awareness_policy" in policy["content_sources"]
     assert "meta_narrative_awareness_policy" in policy["content_sources"]
     assert "tonal_consistency_policy" in policy["content_sources"]
     assert "runtime_intelligence" in policy["content_sources"]

@@ -91,7 +91,26 @@ def test_turn_history_row_contains_passivity_explainability_fields():
     assert row["npc_agency_breakdown"]["claim_readiness"]["claim_status"] == NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 
 
-def test_turn_history_reports_rising_degraded_posture():
+def test_turn_history_row_includes_read_only_adr0041_readiness_echo():
+    event = _event(
+        1,
+        quality_class="healthy",
+        degraded_signals=[],
+        response_present=True,
+        fallback_used=False,
+    )
+    event["turn_aspect_ledger"] = {
+        "runtime_intelligence_projection": {
+            "readiness_policy_input": {"readiness_input": "allow"},
+            "readiness_aggregation_decision": {"aggregated_readiness": "allow"},
+            "readiness_co_authority_enforcement": {"readiness_input": "no_decision"},
+        }
+    }
+    summary = build_turn_history_summary_for_session([event])
+    row = summary["rows"][0]
+    echo = row["adr0041_readiness_projection_echo"]
+    assert echo["read_only"] is True
+    assert echo["readiness_aggregation_decision"]["aggregated_readiness"] == "allow"
     diagnostics = []
     for turn in range(1, 11):
         degraded = turn > 5

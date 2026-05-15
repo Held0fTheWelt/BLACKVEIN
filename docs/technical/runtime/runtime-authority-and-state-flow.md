@@ -40,6 +40,7 @@ Agency preservation is enforced at two levels:
 - Derives `pacing_rhythm_state` / `pacing_rhythm_target`, validates structured cadence realization, persists planner-truth rhythm feedback, and records `turn_aspect_ledger.pacing_rhythm` without using generated prose as an oracle.
 - Derives `temporal_control_state` / `temporal_control_target`, validates structured temporal-control events against selected operations and committed refs, persists planner-truth feedback, and records `turn_aspect_ledger.temporal_control` without using chronology prose as an oracle.
 - Derives `expectation_variation_state` / `expectation_variation_target`, validates structured expectation-variation events against selected ids, setup refs, budget, and cooldown, persists planner-truth feedback, and records `turn_aspect_ledger.expectation_variation` without using generated surprise prose as an oracle.
+- Derives `symbolic_object_resonance_state` / `symbolic_object_resonance_target`, validates structured symbolic-object events against selected canonical object ids, symbol ids, roles, source refs, and budget, persists planner-truth feedback, and records `turn_aspect_ledger.symbolic_object_resonance` without using generated symbolic prose as an oracle.
 
 ## Session lifecycle (conceptual)
 
@@ -78,6 +79,8 @@ For **in-process** operator/MCP/test flows, the backend keeps a **process-local*
 - [`temporal_control_contract.md`](temporal_control_contract.md) — bounded Pi28 temporal-control operation selection and structured validation
 - [`improvisational_coherence_contract.md`](improvisational_coherence_contract.md) — bounded Pi24 structured acceptance contract and runtime-aspect diagnostics
 - [`expectation_variation_contract.md`](expectation_variation_contract.md) — bounded Pi29 surprise-budget contract through selected expectation variation, setup refs, cooldown, and structured validation
+- [`genre_awareness_contract.md`](genre_awareness_contract.md) — bounded Pi32 genre-awareness contract through module-authored profile, registers, conventions, marker blocks, and structured validation
+- [`symbolic_object_resonance_contract.md`](symbolic_object_resonance_contract.md) — bounded Pi33 symbolic-object contract through canonical object ids, resonance roles, source refs, and structured validation
 - [`meta_narrative_awareness_contract.md`](meta_narrative_awareness_contract.md) — bounded Pi25 opt-in meta-narrative awareness v1/v2 contract, fourth-wall scope, selected-memory-ref validation, and structured validation
 - [`world_engine_authoritative_narrative_commit.md`](world_engine_authoritative_narrative_commit.md) — commit semantics
 - [`../integration/LangGraph.md`](../integration/LangGraph.md) — turn graph orchestration

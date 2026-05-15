@@ -77,6 +77,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_META_NARRATIVE_AWARENESS,
+    ASPECT_NARRATIVE_MOMENTUM,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NPC_AGENCY,
     ASPECT_NPC_AUTHORITY,
@@ -160,6 +161,12 @@ from ai_stack.expectation_variation_engine import (
     compact_expectation_variation_context,
     derive_expectation_variation,
     validate_expectation_variation_realization,
+)
+from ai_stack.narrative_momentum_engine import (
+    build_narrative_momentum_aspect_record,
+    compact_narrative_momentum_context,
+    derive_narrative_momentum,
+    validate_narrative_momentum_realization,
 )
 from ai_stack.improvisational_coherence_engine import (
     build_improvisational_coherence_aspect_record,
@@ -2055,6 +2062,38 @@ def _build_runtime_aspect_validation(
         **next_outcome,
         "expectation_variation_validation": expectation_variation_validation,
     }
+    narrative_momentum_validation = validate_narrative_momentum_realization(
+        narrative_momentum_target=state.get("narrative_momentum_target")
+        if isinstance(state.get("narrative_momentum_target"), dict)
+        else None,
+        narrative_momentum_state=state.get("narrative_momentum_state")
+        if isinstance(state.get("narrative_momentum_state"), dict)
+        else None,
+        structured_output=structured_output,
+        module_runtime_policy=state.get("module_runtime_policy")
+        if isinstance(state.get("module_runtime_policy"), dict)
+        else None,
+    )
+    narrative_momentum_policy = _runtime_governance_section(state, "narrative_momentum")
+    authority_ledger = set_aspect_record(
+        authority_ledger,
+        ASPECT_NARRATIVE_MOMENTUM,
+        build_narrative_momentum_aspect_record(
+            target=state.get("narrative_momentum_target")
+            if isinstance(state.get("narrative_momentum_target"), dict)
+            else None,
+            state=state.get("narrative_momentum_state")
+            if isinstance(state.get("narrative_momentum_state"), dict)
+            else None,
+            validation=narrative_momentum_validation,
+            policy=narrative_momentum_policy,
+            source="validator",
+        ),
+    )
+    next_outcome = {
+        **next_outcome,
+        "narrative_momentum_validation": narrative_momentum_validation,
+    }
     meta_narrative_validation = validate_meta_narrative_awareness_realization(
         meta_narrative_awareness_target=state.get("meta_narrative_awareness_target")
         if isinstance(state.get("meta_narrative_awareness_target"), dict)
@@ -2436,6 +2475,29 @@ def _build_runtime_aspect_validation(
             "failure_codes": variation_codes,
             "failure_class": "recoverable_dramatic_failure",
         }
+    narrative_momentum_failure = None
+    if (
+        isinstance(narrative_momentum_validation, dict)
+        and str(narrative_momentum_validation.get("status") or "").strip().lower()
+        == "rejected"
+    ):
+        momentum_codes = [
+            str(code)
+            for code in (narrative_momentum_validation.get("failure_codes") or [])
+            if str(code).strip()
+        ]
+        narrative_momentum_failure = {
+            "failure_reason": str(
+                narrative_momentum_validation.get("feedback_code")
+                or (
+                    momentum_codes[0]
+                    if momentum_codes
+                    else "narrative_momentum_validation_failed"
+                )
+            ),
+            "failure_codes": momentum_codes,
+            "failure_class": "recoverable_dramatic_failure",
+        }
     meta_narrative_failure = None
     if (
         isinstance(meta_narrative_validation, dict)
@@ -2602,6 +2664,26 @@ def _build_runtime_aspect_validation(
             "hard_boundary_failure": False,
             "recoverable_rejection": True,
             "expectation_variation_failure": expectation_variation_failure,
+        }
+    elif (
+        narrative_momentum_failure is not None
+        and str(next_outcome.get("status") or "").strip().lower() == "approved"
+    ):
+        failure_reason = str(
+            narrative_momentum_failure.get("failure_reason")
+            or "narrative_momentum_validation_failed"
+        )
+        next_outcome = {
+            **next_outcome,
+            "status": "rejected",
+            "reason": failure_reason,
+            "error_code": failure_reason,
+            "validator_lane": "narrative_momentum_validation_v1",
+            "narrative_momentum_contract_violation": True,
+            "failure_class": narrative_momentum_failure.get("failure_class"),
+            "hard_boundary_failure": False,
+            "recoverable_rejection": True,
+            "narrative_momentum_failure": narrative_momentum_failure,
         }
     elif (
         meta_narrative_failure is not None
@@ -2938,6 +3020,14 @@ def _build_runtime_aspect_validation(
                 "expectation_variation_contract_violation": bool(
                     next_outcome.get("expectation_variation_contract_violation")
                 ),
+                "narrative_momentum_validation_status": (
+                    narrative_momentum_validation.get("status")
+                    if isinstance(narrative_momentum_validation, dict)
+                    else None
+                ),
+                "narrative_momentum_contract_violation": bool(
+                    next_outcome.get("narrative_momentum_contract_violation")
+                ),
                 "meta_narrative_awareness_validation_status": (
                     meta_narrative_validation.get("status")
                     if isinstance(meta_narrative_validation, dict)
@@ -3008,6 +3098,7 @@ def _build_runtime_aspect_validation(
         "information_disclosure_validation": information_disclosure_validation,
         "dramatic_irony_validation": dramatic_irony_validation,
         "expectation_variation_validation": expectation_variation_validation,
+        "narrative_momentum_validation": narrative_momentum_validation,
         "meta_narrative_awareness_validation": meta_narrative_validation,
         "npc_initiative_validation": npc_initiative_validation,
         "authority_failure": authority_failure,
@@ -3023,6 +3114,7 @@ def _build_runtime_aspect_validation(
         "information_disclosure_failure": information_disclosure_failure,
         "dramatic_irony_failure": dramatic_irony_failure,
         "expectation_variation_failure": expectation_variation_failure,
+        "narrative_momentum_failure": narrative_momentum_failure,
         "meta_narrative_awareness_failure": meta_narrative_failure,
         "npc_agency_failure": npc_agency_failure,
     }
@@ -3928,6 +4020,11 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
         if isinstance(state.get("expectation_variation_target"), dict)
         else None
     )
+    narrative_momentum_context = compact_narrative_momentum_context(
+        state.get("narrative_momentum_target")
+        if isinstance(state.get("narrative_momentum_target"), dict)
+        else None
+    )
     genre_awareness_context = compact_genre_awareness_context(
         state.get("genre_awareness_target")
         if isinstance(state.get("genre_awareness_target"), dict)
@@ -4052,6 +4149,17 @@ def _build_dramatic_generation_packet(state: RuntimeTurnState) -> dict[str, Any]
                 "Use selected expectation_variation ids only when they help the turn. "
                 "When realizing one, emit expectation_variation_events with variation_id, variation_type, and source_refs. "
                 "Do not invent setup, exceed max_variation_units_per_turn, or realize withheld variation ids."
+            ),
+        },
+        "narrative_momentum": {
+            "state": state.get("narrative_momentum_state")
+            if isinstance(state.get("narrative_momentum_state"), dict)
+            else {},
+            "target": narrative_momentum_context,
+            "instruction": (
+                "Treat narrative_momentum as bounded state-machine guidance for forward motion. "
+                "When target requires motion, emit narrative_momentum_events with event_type, momentum_state, and source_refs. "
+                "Use only allowed_next_states and selected_driver_refs; do not satisfy momentum with prose-only intensity."
             ),
         },
         "genre_awareness": {
@@ -4368,6 +4476,7 @@ class RuntimeTurnGraphExecutor:
         graph.add_node("derive_information_disclosure", self._derive_information_disclosure)
         graph.add_node("derive_dramatic_irony", self._derive_dramatic_irony)
         graph.add_node("derive_expectation_variation", self._derive_expectation_variation)
+        graph.add_node("derive_narrative_momentum", self._derive_narrative_momentum)
         graph.add_node("derive_meta_narrative_awareness", self._derive_meta_narrative_awareness)
         graph.add_node("synthesize_context", self._synthesize_context)
         graph.add_node("assemble_model_context", self._assemble_model_context)
@@ -4411,7 +4520,8 @@ class RuntimeTurnGraphExecutor:
         graph.add_edge("derive_improvisational_coherence", "derive_information_disclosure")
         graph.add_edge("derive_information_disclosure", "derive_dramatic_irony")
         graph.add_edge("derive_dramatic_irony", "derive_expectation_variation")
-        graph.add_edge("derive_expectation_variation", "derive_relationship_state")
+        graph.add_edge("derive_expectation_variation", "derive_narrative_momentum")
+        graph.add_edge("derive_narrative_momentum", "derive_relationship_state")
         graph.add_edge("derive_relationship_state", "derive_symbolic_object_resonance")
         graph.add_edge("derive_symbolic_object_resonance", "derive_meta_narrative_awareness")
         graph.add_edge("derive_meta_narrative_awareness", "synthesize_context")
@@ -4458,6 +4568,7 @@ class RuntimeTurnGraphExecutor:
         prior_consequence_cascade_state: dict[str, Any] | None = None,
         prior_temporal_control_state: dict[str, Any] | None = None,
         prior_expectation_variation_state: dict[str, Any] | None = None,
+        prior_narrative_momentum_state: dict[str, Any] | None = None,
         prior_genre_awareness_state: dict[str, Any] | None = None,
         prior_symbolic_object_resonance_state: dict[str, Any] | None = None,
         prior_pacing_rhythm_state: dict[str, Any] | None = None,
@@ -4511,6 +4622,8 @@ class RuntimeTurnGraphExecutor:
                 feedback snapshot rehydrated from the story session.
             prior_expectation_variation_state: bounded committed variation
                 feedback snapshot rehydrated from the story session.
+            prior_narrative_momentum_state: bounded committed momentum
+                state-machine snapshot rehydrated from the story session.
             prior_genre_awareness_state: bounded committed genre-awareness
                 snapshot rehydrated from the story session.
             prior_symbolic_object_resonance_state: bounded committed
@@ -4644,6 +4757,10 @@ class RuntimeTurnGraphExecutor:
         if prior_expectation_variation_state:
             initial_state["prior_expectation_variation_state"] = dict(
                 prior_expectation_variation_state
+            )
+        if prior_narrative_momentum_state:
+            initial_state["prior_narrative_momentum_state"] = dict(
+                prior_narrative_momentum_state
             )
         if prior_genre_awareness_state:
             initial_state["prior_genre_awareness_state"] = dict(prior_genre_awareness_state)
@@ -6987,6 +7104,57 @@ class RuntimeTurnGraphExecutor:
         )
         return update
 
+    def _derive_narrative_momentum(self, state: RuntimeTurnState) -> RuntimeTurnState:
+        update = _track(state, node_name="derive_narrative_momentum")
+        scene_plan = (
+            dict(state.get("scene_plan_record"))
+            if isinstance(state.get("scene_plan_record"), dict)
+            else {}
+        )
+        result = derive_narrative_momentum(
+            scene_plan_record=scene_plan,
+            scene_energy_target=state.get("scene_energy_target")
+            if isinstance(state.get("scene_energy_target"), dict)
+            else None,
+            pacing_rhythm_target=state.get("pacing_rhythm_target")
+            if isinstance(state.get("pacing_rhythm_target"), dict)
+            else None,
+            social_pressure_target=state.get("social_pressure_target")
+            if isinstance(state.get("social_pressure_target"), dict)
+            else None,
+            expectation_variation_target=state.get("expectation_variation_target")
+            if isinstance(state.get("expectation_variation_target"), dict)
+            else None,
+            prior_narrative_momentum_state=state.get("prior_narrative_momentum_state")
+            if isinstance(state.get("prior_narrative_momentum_state"), dict)
+            else None,
+            prior_planner_truth=state.get("prior_planner_truth")
+            if isinstance(state.get("prior_planner_truth"), dict)
+            else None,
+            module_runtime_policy=state.get("module_runtime_policy")
+            if isinstance(state.get("module_runtime_policy"), dict)
+            else None,
+        )
+        momentum_state = result.get("state") if isinstance(result.get("state"), dict) else {}
+        target = result.get("target") if isinstance(result.get("target"), dict) else {}
+        if momentum_state:
+            scene_plan["narrative_momentum_state"] = momentum_state
+        if target:
+            scene_plan["narrative_momentum_target"] = target
+        update["scene_plan_record"] = scene_plan
+        update["narrative_momentum_state"] = momentum_state
+        update["narrative_momentum_target"] = target
+        update["turn_aspect_ledger"] = set_aspect_record(
+            state.get("turn_aspect_ledger") if isinstance(state.get("turn_aspect_ledger"), dict) else {},
+            ASPECT_NARRATIVE_MOMENTUM,
+            build_narrative_momentum_aspect_record(
+                target=target,
+                state=momentum_state,
+                policy=result.get("policy") if isinstance(result.get("policy"), dict) else None,
+            ),
+        )
+        return update
+
     def _build_context_synthesis_bundle_for_state(
         self,
         state: RuntimeTurnState,
@@ -8417,6 +8585,8 @@ class RuntimeTurnGraphExecutor:
                 trigger_source = "dramatic_irony"
             elif isinstance(outcome.get("expectation_variation_failure"), dict):
                 trigger_source = "expectation_variation"
+            elif isinstance(outcome.get("narrative_momentum_failure"), dict):
+                trigger_source = "narrative_momentum"
             elif isinstance(outcome.get("meta_narrative_awareness_failure"), dict):
                 trigger_source = "meta_narrative_awareness"
             runtime_aspect_failure_before_retry = (
@@ -8479,6 +8649,11 @@ class RuntimeTurnGraphExecutor:
                 if isinstance(outcome.get("expectation_variation_failure"), dict)
                 else None
             )
+            narrative_momentum_failure_before_retry = (
+                dict(outcome.get("narrative_momentum_failure"))
+                if isinstance(outcome.get("narrative_momentum_failure"), dict)
+                else None
+            )
             meta_narrative_failure_before_retry = (
                 dict(outcome.get("meta_narrative_awareness_failure"))
                 if isinstance(outcome.get("meta_narrative_awareness_failure"), dict)
@@ -8502,6 +8677,7 @@ class RuntimeTurnGraphExecutor:
                 "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                 "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                 "expectation_variation_failure_before_retry": expectation_variation_failure_before_retry,
+                "narrative_momentum_failure_before_retry": narrative_momentum_failure_before_retry,
                 "meta_narrative_awareness_failure_before_retry": meta_narrative_failure_before_retry,
                 "actor_lane_status_before_retry": actor_lane_validation.get("status")
                 if isinstance(actor_lane_validation, dict)
@@ -8552,6 +8728,7 @@ class RuntimeTurnGraphExecutor:
                     "information_disclosure_failure_before_retry": information_disclosure_failure_before_retry,
                     "dramatic_irony_failure_before_retry": dramatic_irony_failure_before_retry,
                     "expectation_variation_failure_before_retry": expectation_variation_failure_before_retry,
+                    "narrative_momentum_failure_before_retry": narrative_momentum_failure_before_retry,
                     "meta_narrative_awareness_failure_before_retry": meta_narrative_failure_before_retry,
                     "validation_status_after_retry": outcome.get("status"),
                     "failure_reason_after_retry": outcome.get("reason"),
@@ -8677,6 +8854,10 @@ class RuntimeTurnGraphExecutor:
         if isinstance(validation_eval.get("expectation_variation_validation"), dict):
             update["expectation_variation_validation"] = validation_eval[
                 "expectation_variation_validation"
+            ]
+        if isinstance(validation_eval.get("narrative_momentum_validation"), dict):
+            update["narrative_momentum_validation"] = validation_eval[
+                "narrative_momentum_validation"
             ]
         if isinstance(validation_eval.get("meta_narrative_awareness_validation"), dict):
             update["meta_narrative_awareness_validation"] = validation_eval[

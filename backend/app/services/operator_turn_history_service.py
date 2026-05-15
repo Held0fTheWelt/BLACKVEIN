@@ -10,6 +10,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ai_stack.npc_agency_claim_readiness import assess_npc_agency_claim_readiness
+from ai_stack.runtime_readiness_consumer import (
+    build_adr0041_readiness_projection_echo,
+    runtime_intelligence_projection_from_turn_aspect_ledger,
+)
 
 
 def _extract_vitality(event: dict[str, Any]) -> dict[str, Any]:
@@ -323,6 +327,9 @@ def _format_turn_history_row(event: dict[str, Any]) -> dict[str, Any] | None:
                 "npc_action_narration_boundary_pass"
             ),
         },
+        "adr0041_readiness_projection_echo": build_adr0041_readiness_projection_echo(
+            runtime_intelligence_projection_from_turn_aspect_ledger(event)
+        ),
     }
 
 

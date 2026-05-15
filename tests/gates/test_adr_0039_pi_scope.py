@@ -30,6 +30,7 @@ PI_TEST_ROOTS = (
 )
 
 PRODUCTION_SCAN_ROOTS = (
+    "administration-tool",
     "ai_stack",
     "backend/app",
     "frontend/app",

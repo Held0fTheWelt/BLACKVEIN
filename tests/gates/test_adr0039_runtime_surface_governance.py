@@ -2,7 +2,7 @@
 
 Includes mandatory **story_runtime_core** surfaces (input interpretation, recovery,
 branching) so shared library paths stay inside the same false-green boundary as
-ai_stack / world-engine / backend / frontend.
+ai_stack / world-engine / backend / frontend / administration-tool.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ REQUIRED_SURFACE_IDS = frozenset(
         "story_runtime_core_input_interpretation",
         "story_runtime_core_no_dead_end_recovery",
         "story_runtime_core_branching_and_consequences",
+        "administration_tool_operator_ui_and_proxy",
     }
 )
 
@@ -99,7 +100,21 @@ def test_frontend_play_shell_is_display_only_for_mutation_flags() -> None:
     assert fe.get("can_mutate_readiness") is False
 
 
+def test_administration_tool_surface_is_display_only_for_mutation_flags() -> None:
+    doc = _load_inventory_front_matter()
+    adm = next(
+        s
+        for s in doc["surfaces"]
+        if isinstance(s, dict) and s.get("surface_id") == "administration_tool_operator_ui_and_proxy"
+    )
+    assert adm.get("authority_level") == "display_only"
+    assert adm.get("can_mutate_validation_outcome") is False
+    assert adm.get("can_mutate_commit") is False
+    assert adm.get("can_mutate_readiness") is False
+
+
 def test_adr0039_document_links_runtime_surface_inventory_and_story_runtime_core() -> None:
     body = ADR0039.read_text(encoding="utf-8")
     assert "adr0039_runtime_surface_governance_inventory.md" in body
     assert "story_runtime_core" in body
+    assert "administration-tool" in body

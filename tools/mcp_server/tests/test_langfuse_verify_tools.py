@@ -9,8 +9,12 @@ from ai_stack.expectation_variation_contracts import (
     EXPECTATION_VARIATION_BOUNDED_REVEAL,
     EXPECTATION_VARIATION_SCHEMA_VERSION,
 )
+from ai_stack.genre_awareness_contracts import GENRE_AWARENESS_SCHEMA_VERSION
 from ai_stack.npc_agency_contracts import NPC_AGENCY_CLAIM_BOUNDED_RUNTIME_STATUS
 from ai_stack.sensory_context_contracts import SENSORY_CONTEXT_SCHEMA_VERSION
+from ai_stack.symbolic_object_resonance_contracts import (
+    SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
+)
 from tools.mcp_server.tools_registry import create_default_registry
 from tools.mcp_server.tools_registry_handlers_langfuse_verify import (
     _runtime_aspect_recommended_repair,
@@ -59,6 +63,20 @@ def test_runtime_aspect_matrix_recommends_tonal_consistency_repair():
     assert (
         _runtime_aspect_recommended_repair("tonal_consistency_required_dimension_missing")
         == "repair_tonal_consistency_follow_policy_target"
+    )
+
+
+def test_runtime_aspect_matrix_recommends_genre_awareness_repair():
+    assert (
+        _runtime_aspect_recommended_repair("genre_awareness_missing_required_convention")
+        == "repair_genre_awareness_structured_events"
+    )
+
+
+def test_runtime_aspect_matrix_recommends_symbolic_object_resonance_repair():
+    assert (
+        _runtime_aspect_recommended_repair("symbolic_object_resonance_unselected_object")
+        == "repair_symbolic_object_resonance_structured_selection"
     )
 
 
@@ -112,6 +130,141 @@ def test_runtime_aspect_matrix_reads_tonal_consistency_ledger_fields():
     assert row["tonal_consistency_marker_hits_absent"] is True
     assert row["tonal_consistency_contract_pass"] is True
     assert row["tonal_consistency_failure_codes"] == []
+
+
+def test_runtime_aspect_matrix_reads_genre_awareness_ledger_fields():
+    row = _runtime_aspect_matrix_row(
+        {
+            "id": "trace-genre",
+            "output": {
+                "path_summary": {
+                    "contract": "story_runtime_path_observability.v1",
+                    "session_id": "session-genre",
+                    "canonical_turn_id": "session-genre:turn:1",
+                    "turn_number": 1,
+                    "turn_aspect_ledger": {
+                        "session_id": "session-genre",
+                        "turn_number": 1,
+                        "turn_aspect_ledger": {
+                            "genre_awareness": {
+                                "status": "failed",
+                                "failure_reason": "genre_awareness_missing_required_convention",
+                                "reasons": [
+                                    "genre_awareness_missing_required_convention"
+                                ],
+                                "expected": {
+                                    "schema_version": GENRE_AWARENESS_SCHEMA_VERSION,
+                                    "policy_present": True,
+                                    "policy_enabled": True,
+                                },
+                                "selected": {
+                                    "target": {
+                                        "genre_profile_id": "bourgeois_social_drama",
+                                        "selected_registers": ["social_drama"],
+                                        "required_conventions": [
+                                            "civility_under_pressure"
+                                        ],
+                                    },
+                                },
+                                "actual": {
+                                    "event_count": 1,
+                                    "realized_conventions": [],
+                                    "contract_pass": False,
+                                    "failure_codes": [
+                                        "genre_awareness_missing_required_convention"
+                                    ],
+                                },
+                            }
+                        },
+                    },
+                }
+            },
+            "scores": [],
+        }
+    )
+
+    assert row["genre_awareness_policy_present"] is True
+    assert row["genre_awareness_target_selected"] is True
+    assert row["genre_awareness_profile_id"] == "bourgeois_social_drama"
+    assert row["genre_awareness_selected_registers"] == ["social_drama"]
+    assert row["genre_awareness_required_conventions"] == [
+        "civility_under_pressure"
+    ]
+    assert row["genre_awareness_realized_conventions"] == []
+    assert row["genre_awareness_event_count"] == 1
+    assert row["genre_awareness_registers_valid"] is True
+    assert row["genre_awareness_required_conventions_realized"] is False
+    assert row["genre_awareness_forbidden_markers_absent"] is True
+    assert row["genre_awareness_contract_pass"] is False
+    assert row["genre_awareness_failure_codes"] == [
+        "genre_awareness_missing_required_convention"
+    ]
+    assert row["recommended_repair"] == "repair_genre_awareness_structured_events"
+
+
+def test_runtime_aspect_matrix_reads_symbolic_object_resonance_ledger_fields():
+    row = _runtime_aspect_matrix_row(
+        {
+            "id": "trace-symbolic-object",
+            "output": {
+                "path_summary": {
+                    "contract": "story_runtime_path_observability.v1",
+                    "session_id": "session-symbolic-object",
+                    "canonical_turn_id": "session-symbolic-object:turn:1",
+                    "turn_number": 1,
+                    "turn_aspect_ledger": {
+                        "session_id": "session-symbolic-object",
+                        "turn_number": 1,
+                        "turn_aspect_ledger": {
+                            "symbolic_object_resonance": {
+                                "status": "passed",
+                                "expected": {
+                                    "schema_version": SYMBOLIC_OBJECT_RESONANCE_SCHEMA_VERSION,
+                                    "policy_present": True,
+                                    "policy_enabled": True,
+                                },
+                                "selected": {
+                                    "target": {
+                                        "selected_object_ids": ["object_alpha"],
+                                        "selected_symbol_ids": [
+                                            "symbolic_object_resonance:alpha"
+                                        ],
+                                        "selected_resonance_roles": [
+                                            "territorial_anchor"
+                                        ],
+                                    },
+                                },
+                                "actual": {
+                                    "event_count": 1,
+                                    "realized_object_ids": ["object_alpha"],
+                                    "realized_symbol_ids": [
+                                        "symbolic_object_resonance:alpha"
+                                    ],
+                                    "contract_pass": True,
+                                    "failure_codes": [],
+                                },
+                            }
+                        },
+                    },
+                }
+            },
+            "scores": [],
+        }
+    )
+
+    assert row["symbolic_object_resonance_policy_present"] is True
+    assert row["symbolic_object_resonance_target_selected"] is True
+    assert row["symbolic_object_resonance_selected_object_ids"] == ["object_alpha"]
+    assert row["symbolic_object_resonance_selected_symbol_ids"] == [
+        "symbolic_object_resonance:alpha"
+    ]
+    assert row["symbolic_object_resonance_selected_roles"] == ["territorial_anchor"]
+    assert row["symbolic_object_resonance_realized_object_ids"] == ["object_alpha"]
+    assert row["symbolic_object_resonance_event_count"] == 1
+    assert row["symbolic_object_resonance_source_refs_valid"] is True
+    assert row["symbolic_object_resonance_budget_pass"] is True
+    assert row["symbolic_object_resonance_contract_pass"] is True
+    assert row["symbolic_object_resonance_failure_codes"] == []
 
 
 def test_run_projection_tests_returns_structured_result():

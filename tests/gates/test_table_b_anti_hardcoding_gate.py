@@ -37,6 +37,7 @@ SOURCE_SUFFIXES = {
 # Production scan roots — keep aligned with ADR-0039 runtime surface inventory
 # (docs/MVPs/adr0039_runtime_surface_governance_inventory.md).
 SCAN_ROOTS = (
+    "administration-tool",
     "ai_stack",
     "backend/app",
     "frontend/app",
@@ -59,6 +60,7 @@ IGNORED_PATH_PARTS = {
 }
 
 IGNORED_PATH_PREFIXES = (
+    "administration-tool/tests/",
     "ai_stack/tests/",
     "backend/tests/",
     "frontend/tests/",
@@ -154,6 +156,14 @@ META_NARRATIVE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
     "runtime_aspect.meta_narrative_awareness",
     re.compile(r"\bmeta_narrative_awareness\b", re.IGNORECASE),
 )
+SYMBOLIC_OBJECT_RESONANCE_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.symbolic_object_resonance",
+    re.compile(r"\bsymbolic_object_resonance\b", re.IGNORECASE),
+)
+GENRE_AWARENESS_RUNTIME_ASPECT_PATTERN = ForbiddenPattern(
+    "runtime_aspect.genre_awareness",
+    re.compile(r"\bgenre_awareness\b", re.IGNORECASE),
+)
 
 SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/capability_selector.py",
@@ -164,6 +174,7 @@ SCENE_ENERGY_CANONICAL_SURFACES = {
     "ai_stack/langgraph_runtime_package_output_sections.py",
     "ai_stack/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
+    "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/scene_energy_contracts.py",
     "ai_stack/scene_energy_engine.py",
@@ -194,6 +205,7 @@ EXPECTATION_VARIATION_CANONICAL_SURFACES = {
     "ai_stack/langgraph_runtime_executor.py",
     "ai_stack/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
+    "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/runtime_aspect_ledger.py",
     "ai_stack/story_runtime_playability.py",
     "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
@@ -207,6 +219,7 @@ PACING_RHYTHM_CANONICAL_SURFACES = {
     "ai_stack/langgraph_runtime_package_output_sections.py",
     "ai_stack/langgraph_runtime_state.py",
     "ai_stack/module_runtime_policy.py",
+    "ai_stack/narrative_momentum_contracts.py",
     "ai_stack/pacing_rhythm_contracts.py",
     "ai_stack/pacing_rhythm_engine.py",
     "ai_stack/runtime_aspect_ledger.py",
@@ -286,6 +299,32 @@ META_NARRATIVE_AWARENESS_CANONICAL_SURFACES = {
     "ai_stack/story_runtime_experience.py",
 }
 
+SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES = {
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_state.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/symbolic_object_resonance_contracts.py",
+    "ai_stack/symbolic_object_resonance_engine.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
+GENRE_AWARENESS_CANONICAL_SURFACES = {
+    "ai_stack/capability_selector.py",
+    "ai_stack/genre_awareness_contracts.py",
+    "ai_stack/genre_awareness_engine.py",
+    "ai_stack/langgraph_runtime_executor.py",
+    "ai_stack/langgraph_runtime_package_output_sections.py",
+    "ai_stack/module_runtime_policy.py",
+    "ai_stack/runtime_aspect_ledger.py",
+    "ai_stack/story_runtime_playability.py",
+    "tools/mcp_server/tools_registry_handlers_langfuse_verify.py",
+    "world-engine/app/story_runtime/commit_models.py",
+    "world-engine/app/story_runtime/manager.py",
+}
+
 
 # These are not exemptions for new Table B work. They document current
 # module-specific legacy seams that must be modularized before Table B rows can
@@ -320,6 +359,22 @@ KNOWN_MODULE_LITERAL_DEBT: dict[str, str] = {
     "backend/app/services/game_content_service.py": "Game content service still maps the GoC solo seed.",
     "frontend/app/routes_play.py": "Play launcher still validates GoC role/profile locally.",
     "frontend/templates/session_start.html": "Play launcher still renders GoC role choices locally.",
+    "administration-tool/static/manage_game_content.js": (
+        "Administration-tool operator UI still defaults GoC module labels in manage game content views; "
+        "not generic runtime authority—replace with API-driven module metadata when multi-module admin is ready."
+    ),
+    "administration-tool/static/narrative_governance.js": (
+        "Administration-tool narrative governance UI still embeds GoC module id for operator defaults; "
+        "display-only debt until templates load module id from backend contracts."
+    ),
+    "administration-tool/static/narrative_governance_runtime.js": (
+        "Administration-tool runtime governance deck still embeds GoC module id for operator defaults; "
+        "display-only debt until config API supplies canonical module scope."
+    ),
+    "administration-tool/templates/manage/world_engine_console.html": (
+        "World-engine console template still shows GoC as the default module example for operators; "
+        "display-only compatibility until console reads active module from engine state."
+    ),
     "story_runtime_core/builtin_experience_templates.py": "Built-in template registry includes GoC compatibility.",
     "story_runtime_core/content_locale.py": "Locale fallback still defaults to GoC.",
     "story_runtime_core/goc_solo_builtin_catalog.py": "GoC-specific built-in compatibility catalog.",
@@ -565,6 +620,42 @@ def test_meta_narrative_awareness_runtime_aspect_is_limited_to_canonical_surface
     )
 
 
+def test_symbolic_object_resonance_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Symbolic object resonance is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in SYMBOLIC_OBJECT_RESONANCE_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (SYMBOLIC_OBJECT_RESONANCE_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "symbolic_object_resonance appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
+def test_genre_awareness_runtime_aspect_is_limited_to_canonical_surfaces() -> None:
+    """Genre awareness is a contract aspect, not a Table B shortcut."""
+    violations: list[str] = []
+    for path in _iter_source_files():
+        rel = _repo_rel(path)
+        if rel in GENRE_AWARENESS_CANONICAL_SURFACES:
+            continue
+        hits = _matches(path, (GENRE_AWARENESS_RUNTIME_ASPECT_PATTERN,))
+        if hits:
+            violations.append(f"{rel}: {', '.join(hits)}")
+
+    assert not violations, (
+        "genre_awareness appeared outside reviewed canonical aspect surfaces. "
+        "Add a contract/policy-backed surface or remove the shortcut literal:\n"
+        + "\n".join(violations)
+    )
+
+
 def test_module_specific_literals_stay_inside_documented_compatibility_debt() -> None:
     """New generic runtime code must not acquire GoC actor/location/phase literals."""
     violations: list[str] = []
@@ -606,6 +697,7 @@ def test_table_b_scan_roots_align_with_adr0039_runtime_surface_inventory() -> No
     inventory = REPO_ROOT / "docs/MVPs/adr0039_runtime_surface_governance_inventory.md"
     assert inventory.is_file(), "ADR-0039 runtime surface inventory must exist"
     required_roots = {
+        "administration-tool",
         "ai_stack",
         "backend/app",
         "frontend/app",

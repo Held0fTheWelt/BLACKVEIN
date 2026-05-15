@@ -11,6 +11,7 @@ from sqlalchemy import select
 from ai_stack.goc_frozen_vocab import GOC_MODULE_ID
 from ai_stack.live_runtime_commit_semantics import evaluate_session_opening_readiness
 from ai_stack.runtime_readiness_consumer import (
+    build_adr0041_readiness_projection_echo,
     degradation_signals_from_latest_turn,
     resolve_runtime_readiness_with_adr0041,
     runtime_intelligence_projection_from_turn_aspect_ledger,
@@ -549,6 +550,7 @@ def _player_session_bundle(
         "governance": {
             "runtime_governance_surface": latest_governance,
             "runtime_config_status": created.get("runtime_config_status") if isinstance(created, dict) else None,
+            "adr0041_readiness_projection_echo": build_adr0041_readiness_projection_echo(rip),
             "adr0041_runtime_readiness_consumer": readiness_overlay,
             "content_publication_gate": "published_game_content_required_for_template_module_binding",
             "player_path_governed_by": [

@@ -207,6 +207,44 @@ def test_planner_truth_populated_from_graph_state() -> None:
                 "contract_pass": True,
                 "failure_codes": [],
             },
+            "symbolic_object_resonance_state": {
+                "schema_version": "symbolic_object_resonance.v1",
+                "recent_symbol_ids": ["symbolic_object_resonance:alpha"],
+                "active_object_ids": ["object_alpha"],
+                "resonance_counts": {"symbolic_object_resonance:alpha": 1},
+            },
+            "symbolic_object_resonance_target": {
+                "schema_version": "symbolic_object_resonance.v1",
+                "policy_enabled": True,
+                "selected_symbol_ids": ["symbolic_object_resonance:alpha"],
+                "selected_object_ids": ["object_alpha"],
+                "selected_resonance_roles": ["territorial_anchor"],
+            },
+            "symbolic_object_resonance_validation": {
+                "schema_version": "symbolic_object_resonance.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
+            "genre_awareness_state": {
+                "schema_version": "genre_awareness.v1",
+                "current_genre_profile_id": "bourgeois_social_drama",
+                "prior_genre_profile_id": "bourgeois_social_drama",
+                "selected_registers": ["social_drama"],
+            },
+            "genre_awareness_target": {
+                "schema_version": "genre_awareness.v1",
+                "policy_enabled": True,
+                "genre_profile_id": "bourgeois_social_drama",
+                "selected_registers": ["social_drama"],
+                "required_conventions": ["civility_under_pressure"],
+            },
+            "genre_awareness_validation": {
+                "schema_version": "genre_awareness.v1",
+                "status": "approved",
+                "contract_pass": True,
+                "failure_codes": [],
+            },
             "character_mind_summary": {"annette": {"stance": "defensive"}},
             "continuity_impacts": [{"class": "tension_escalation"}],
         },
@@ -257,6 +295,14 @@ def test_planner_truth_populated_from_graph_state() -> None:
     assert pt.relationship_state_record["schema_version"] == "relationship_state_machine.v1"
     assert pt.relationship_dynamics_target["requires_visible_relationship_beat"] is True
     assert pt.relationship_state_validation["contract_pass"] is True
+    assert pt.symbolic_object_resonance_state["active_object_ids"] == ["object_alpha"]
+    assert pt.symbolic_object_resonance_target["selected_resonance_roles"] == [
+        "territorial_anchor"
+    ]
+    assert pt.symbolic_object_resonance_validation["contract_pass"] is True
+    assert pt.genre_awareness_state["current_genre_profile_id"] == "bourgeois_social_drama"
+    assert pt.genre_awareness_target["selected_registers"] == ["social_drama"]
+    assert pt.genre_awareness_validation["contract_pass"] is True
     assert pt.character_mind_summary == {"annette": {"stance": "defensive"}}
     assert pt.validation_status == "approved"
     assert pt.validation_reason == "scope_ok"

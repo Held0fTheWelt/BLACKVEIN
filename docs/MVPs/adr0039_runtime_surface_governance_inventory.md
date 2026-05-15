@@ -214,6 +214,26 @@ surfaces:
       - story_runtime_core/tests/test_callback_web.py
       - story_runtime_core/tests/test_consequence_cascade.py
 
+  - surface_id: administration_tool_operator_ui_and_proxy
+    primary_files:
+      - administration-tool/app.py
+      - administration-tool/route_registration.py
+      - administration-tool/route_registration_proxy.py
+    symbols:
+      - create_app
+    runtime_role: Operator Flask app, manage routes, and backend/world-engine proxy; displays and triggers actions only through approved APIs
+    authority_level: display_only
+    can_mutate_validation_outcome: false
+    can_mutate_commit: false
+    can_mutate_readiness: false
+    can_mutate_frontend_playability: false
+    allowed_feature_flags: deployment and auth configuration only
+    known_false_green_risks: Local dashboard or proxy response treated as canonical runtime or live health without backend/engine correlation
+    module_specific_assumptions: narrative and runtime health pages must mirror upstream contracts; no story truth invented in static JS
+    tests_gates:
+      - administration-tool/tests/test_proxy_contract.py
+      - administration-tool/tests/test_manage_world_engine_control_center.py
+
   - surface_id: observability_mcp_langfuse_projection
     primary_files:
       - tools/mcp_server/tools_registry_handlers_langfuse_verify.py
@@ -240,11 +260,15 @@ This inventory names **decision surfaces** where runtime truth, readiness, commi
 
 ## story_runtime_core (required scope)
 
-The shared package **`story_runtime_core/`** is part of the same runtime governance boundary as `ai_stack`, `world-engine`, backend play routes, and the Play Shell:
+The shared package **`story_runtime_core/`** is part of the same runtime governance boundary as `ai_stack`, `world-engine`, backend play routes, the Play Shell, and the **`administration-tool/`** operator surface:
 
 - **Input interpretation and locale** (`interpret_player_input`, `content_locale`) shape proposals and commands; they must not be treated as validation seam approval or commit.
 - **Recovery** (`recovery/no_dead_end.py`) emits structured evidence classes only; playable recovery must not be promoted to live or staging success without engine and observability proof.
 - **Branching / consequences / callbacks** are planner- or diagnostic-side unless explicitly integrated into the canonical commit path by World-Engine; they must not bypass `run_validation_seam` or narrative commit authority.
+
+## Administration-tool (operator surface)
+
+The **`administration-tool/`** app is **display and control-plane only** for runtime and governance: it proxies or calls **backend** and **world-engine** APIs. Dashboards, runtime health, and inspector views must **not** be treated as canonical story commit, validation seam outcomes, or live success unless the same claim is evidenced from **authoritative services** (and documented per [capability_matrix_live_claim_gates.md](capability_matrix_live_claim_gates.md)). Static templates and JS must **not** invent readiness, healthy, or live semantics that the engine did not return.
 
 ## Authority levels (enum)
 

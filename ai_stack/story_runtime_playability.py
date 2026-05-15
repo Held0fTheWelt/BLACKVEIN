@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ai_stack.expectation_variation_contracts import EXPECTATION_VARIATION_FAILURE_CODES
+from ai_stack.narrative_momentum_contracts import NARRATIVE_MOMENTUM_FAILURE_CODES
 from ai_stack.pacing_rhythm_contracts import PACING_RHYTHM_FAILURE_CODES
 from ai_stack.scene_energy_contracts import SCENE_ENERGY_FAILURE_CODES
 
@@ -43,6 +44,7 @@ REWRITEABLE_VALIDATION_REASONS = frozenset(
         "npc_initiative_forbidden_actor_planned",
         "npc_initiative_forbidden_actor_realized",
         *EXPECTATION_VARIATION_FAILURE_CODES,
+        *NARRATIVE_MOMENTUM_FAILURE_CODES,
         *SCENE_ENERGY_FAILURE_CODES,
         *PACING_RHYTHM_FAILURE_CODES,
     }
@@ -133,6 +135,8 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
         return False
     if reason.startswith("expectation_variation_"):
         return False
+    if reason.startswith("narrative_momentum_"):
+        return False
     if reason.startswith(HARD_BOUNDARY_REASON_PREFIXES):
         return True
     geo = outcome.get("dramatic_effect_gate_outcome") if isinstance(outcome, dict) else None
@@ -143,6 +147,7 @@ def is_hard_boundary_failure(outcome: dict[str, Any] | None) -> bool:
             and not code.startswith("pacing_rhythm_")
             and not code.startswith("sensory_context_")
             and not code.startswith("expectation_variation_")
+            and not code.startswith("narrative_momentum_")
             and code.startswith(HARD_BOUNDARY_REASON_PREFIXES)
             for code in codes
         )
@@ -260,6 +265,14 @@ def collect_playability_feedback_codes(
     )
     if isinstance(expectation_variation_validation, dict):
         for code in expectation_variation_validation.get("failure_codes") or []:
+            code_text = str(code or "").strip()
+            if code_text:
+                feedback.append(code_text)
+    narrative_momentum_validation = (
+        outcome.get("narrative_momentum_validation") if isinstance(outcome, dict) else None
+    )
+    if isinstance(narrative_momentum_validation, dict):
+        for code in narrative_momentum_validation.get("failure_codes") or []:
             code_text = str(code or "").strip()
             if code_text:
                 feedback.append(code_text)
@@ -555,6 +568,20 @@ def build_rewrite_instruction(feedback_codes: list[str], allowed_actor_ids: list
             "respect max_variation_units_per_turn and cooldown, and remove unselected or unearned variation events."
         )
         return preserve_prefix + base_instruction + expectation_feedback
+
+    narrative_momentum_issues = [
+        code
+        for code in feedback_codes
+        if code.startswith("narrative_momentum_")
+    ]
+    if narrative_momentum_issues:
+        momentum_feedback = (
+            " Narrative momentum repair: preserve actor lanes and committed facts, "
+            "but satisfy the selected narrative_momentum target from the dramatic packet. "
+            "Emit narrative_momentum_events with event_type, momentum_state, and source_refs; "
+            "use allowed_next_states only and add a forward-motion event when required."
+        )
+        return preserve_prefix + base_instruction + momentum_feedback
 
     return preserve_prefix + base_instruction
 

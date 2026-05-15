@@ -517,9 +517,12 @@ def _api_perf_budget_ms() -> int:
         return int(raw)
     if os.environ.get("CI", "").lower() in ("1", "true", "yes"):
         return 5000
-    return 1500
+    # Local dev / Windows laptops: slightly higher than legacy 1500ms to reduce flakes unrelated
+    # to correctness (e.g. cold SQLite, HF governance probes); override via WOS_API_PERF_BUDGET_MS.
+    return 2500
 
 
+@pytest.mark.timing_sensitive
 def test_profile_load_performance(client, user_with_threads_and_posts):
     """Profile endpoint completes within a bounded wall time (smoke, not benchmarking)."""
     import time
@@ -534,6 +537,7 @@ def test_profile_load_performance(client, user_with_threads_and_posts):
     assert elapsed < budget, f"Profile load took {elapsed:.0f}ms (budget {budget}ms)"
 
 
+@pytest.mark.timing_sensitive
 def test_bookmarks_endpoint_performance(client, user_with_threads_and_posts, auth_headers_for_profile_user):
     """Bookmarks endpoint completes within a bounded wall time (smoke, not benchmarking)."""
     import time
@@ -548,6 +552,7 @@ def test_bookmarks_endpoint_performance(client, user_with_threads_and_posts, aut
     assert elapsed < budget, f"Bookmarks load took {elapsed:.0f}ms (budget {budget}ms)"
 
 
+@pytest.mark.timing_sensitive
 def test_popular_tags_performance(client):
     """Popular tags endpoint completes within a bounded wall time (smoke, not benchmarking)."""
     import time

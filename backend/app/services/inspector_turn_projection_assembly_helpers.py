@@ -355,17 +355,25 @@ def build_validation_projection_data(
 def build_authority_projection_data(
     committed: dict[str, Any],
     canonical_record: dict[str, Any],
+    *,
+    last_turn: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build authority projection data.
 
     Args:
         committed: Committed result dictionary.
         canonical_record: The canonical event record.
+        last_turn: Optional diagnostics / turn row for read-only ADR-0041 readiness echo.
 
     Returns:
         Authority projection data.
     """
-    return {
+    from ai_stack.runtime_readiness_consumer import (
+        build_adr0041_readiness_projection_echo,
+        runtime_intelligence_projection_from_turn_aspect_ledger,
+    )
+
+    data: dict[str, Any] = {
         "authoritative_surface": "world_engine_session_commit_state",
         "commit_applied": committed.get("commit_applied"),
         "committed_effect_count": extract_committed_effect_count(committed),
@@ -380,6 +388,10 @@ def build_authority_projection_data(
             "visible_output_bundle",
         ],
     }
+    if isinstance(last_turn, dict):
+        rip = runtime_intelligence_projection_from_turn_aspect_ledger(last_turn)
+        data["adr0041_readiness_projection_echo"] = build_adr0041_readiness_projection_echo(rip)
+    return data
 
 
 def build_fallback_projection_data(

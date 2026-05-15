@@ -476,6 +476,77 @@ rehydration, ledger/MCP fields, and structured
 card shape, judge labels, and hand-written GoC relationship truth are never the
 pass/fail oracle.
 
+### Symbolic Object Resonance / Pi33
+
+Symbolic object resonance is implemented as the generic
+`symbolic_object_resonance` runtime aspect. It is the bounded symbolic-object
+contract for a turn: selected canonical object ids, stable symbol ids,
+resonance roles, required source refs, per-turn budget, prior resonance
+feedback, and structured realization evidence. It consumes canonical object
+content, environment state, player action focus, adjacent runtime targets such
+as sensory context, social pressure, relationship state and expectation
+variation, callback/consequence feedback, and prior committed
+symbolic-object state. It does not replace environment state, committed truth,
+or visible narration, and it must not become a prose symbolism judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.symbolic_object_resonance` into `runtime_governance_policy.symbolic_object_resonance`;
+- LangGraph derives `symbolic_object_resonance_state` and `symbolic_object_resonance_target` after relationship-state derivation;
+- the dramatic generation packet receives only selected object ids, symbol ids, resonance roles, budget, and source refs;
+- structured output may emit `symbolic_object_resonance_events` with `object_id`, `symbol_id`, `resonance_role`, and `source_refs`;
+- validation checks selected object ids, selected symbol ids, allowed roles, source-ref consistency, event presence, and budget;
+- recoverable failures feed self-correction with bounded `symbolic_object_resonance_*` failure codes;
+- `turn_aspect_ledger.symbolic_object_resonance` records policy presence, selected/realized object ids, symbol ids, roles, budget, contract pass, and failure codes;
+- World-Engine persists `symbolic_object_resonance_state`, `symbolic_object_resonance_target`, and `symbolic_object_resonance_validation` in planner truth and governance surfaces;
+- World-Engine rehydrates the latest committed state into the next turn as `prior_symbolic_object_resonance_state`;
+- Langfuse and MCP expose policy, target, selected object/symbol ids, roles, realized ids, pass/fail, and failure-code evidence.
+
+The committed symbolic-object state is bounded planner feedback, not a second
+canon store. It may shape the next turn and operator diagnostics, but it does
+not mutate story truth outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, canonical object roles,
+structured source refs, planner-truth rehydration, ledger/MCP fields, and
+structured `symbolic_object_resonance_events`. Generated symbolic prose,
+copied dialogue, frontend card shape, judge labels, and hand-written symbolic
+beats are never the pass/fail oracle.
+
+### Genre Awareness / Pi32
+
+Genre awareness is implemented as the generic `genre_awareness` runtime aspect.
+It is the bounded module-authored genre-framing contract for a turn: selected
+genre profile id, allowed registers, required conventions, forbidden marker
+ids, per-turn signal budget, prior genre feedback, and structured realization
+evidence. It consumes module `runtime_intelligence.genre_awareness`, scene-plan
+context, adjacent runtime targets such as scene energy and social pressure, and
+prior committed genre-awareness state. It does not replace tonal consistency,
+voice consistency, narrative aspects, committed truth, or visible narration,
+and it must not become a generated-prose genre judge.
+
+During a turn:
+
+- `ModuleRuntimePolicy` normalizes `runtime_intelligence.genre_awareness` into `runtime_governance_policy.genre_awareness`;
+- LangGraph derives `genre_awareness_state` and `genre_awareness_target` after social pressure and before sensory context;
+- the dramatic generation packet receives only selected profile, registers, required conventions, forbidden marker ids, and budget;
+- structured output may emit `genre_awareness_events` with profile, register, convention, and forbidden-marker evidence;
+- validation checks selected profile id, allowed register, required convention realization, forbidden marker absence, event presence, and budget;
+- recoverable failures feed self-correction with bounded `genre_awareness_*` failure codes;
+- `turn_aspect_ledger.genre_awareness` records policy presence, selected target, actual event evidence, contract pass, and failure codes;
+- World-Engine persists `genre_awareness_state`, `genre_awareness_target`, and `genre_awareness_validation` in planner truth and governance surfaces;
+- Langfuse and MCP expose policy, target, selected registers, conventions, event counts, pass/fail, and failure-code evidence.
+
+The aspect is bounded planner/generation governance, not canon. It may shape
+the current response and retry feedback, but it does not mutate story truth
+outside the normal validated commit path.
+
+**ADR-0039 boundary:** Tests derive expectations from normalized module policy,
+exported contract constants, schema versions, planner-truth persistence,
+ledger/MCP fields, and structured `genre_awareness_events`. Generated genre
+prose, copied dialogue, frontend card shape, judge labels, and hand-written
+genre examples are never the pass/fail oracle.
+
 ### Sensory Context / Pi26
 
 Sensory context is implemented as the generic `sensory_context` runtime aspect.

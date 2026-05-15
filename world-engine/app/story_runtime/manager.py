@@ -106,6 +106,7 @@ from ai_stack.runtime_aspect_ledger import (
     ASPECT_INFORMATION_DISCLOSURE,
     ASPECT_INPUT,
     ASPECT_NARRATIVE_ASPECT,
+    ASPECT_NARRATIVE_MOMENTUM,
     ASPECT_NARRATOR_AUTHORITY,
     ASPECT_NO_DEAD_END_RECOVERY,
     ASPECT_NPC_AGENCY,
@@ -3363,6 +3364,25 @@ def _build_langfuse_path_summary(
             if isinstance(graph_state.get("expectation_variation_validation"), dict)
             else {}
         ),
+        "narrative_momentum_state": (
+            graph_state.get("narrative_momentum_state")
+            if isinstance(graph_state.get("narrative_momentum_state"), dict)
+            else scene_plan_record.get("narrative_momentum_state")
+            if isinstance(scene_plan_record.get("narrative_momentum_state"), dict)
+            else {}
+        ),
+        "narrative_momentum_target": (
+            graph_state.get("narrative_momentum_target")
+            if isinstance(graph_state.get("narrative_momentum_target"), dict)
+            else scene_plan_record.get("narrative_momentum_target")
+            if isinstance(scene_plan_record.get("narrative_momentum_target"), dict)
+            else {}
+        ),
+        "narrative_momentum_validation": (
+            graph_state.get("narrative_momentum_validation")
+            if isinstance(graph_state.get("narrative_momentum_validation"), dict)
+            else {}
+        ),
         "legacy_keyword_scene_candidates_used": bool(
             multi_pressure_resolution.get("legacy_keyword_scene_candidates_used")
         ),
@@ -4187,6 +4207,8 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     disclosure_actual = _actual(ASPECT_INFORMATION_DISCLOSURE)
     expectation_variation_selected = _selected(ASPECT_EXPECTATION_VARIATION)
     expectation_variation_actual = _actual(ASPECT_EXPECTATION_VARIATION)
+    narrative_momentum_selected = _selected(ASPECT_NARRATIVE_MOMENTUM)
+    narrative_momentum_actual = _actual(ASPECT_NARRATIVE_MOMENTUM)
     dramatic_irony_selected = _selected(ASPECT_DRAMATIC_IRONY)
     dramatic_irony_actual = _actual(ASPECT_DRAMATIC_IRONY)
     narrative_selected = _selected(ASPECT_NARRATIVE_ASPECT)
@@ -4390,6 +4412,22 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
             },
         ),
         (
+            "story.narrative_momentum.target",
+            ASPECT_NARRATIVE_MOMENTUM,
+            {
+                "selected": narrative_momentum_selected,
+                "aspect_record": _rec(ASPECT_NARRATIVE_MOMENTUM),
+            },
+        ),
+        (
+            "story.narrative_momentum.validate",
+            ASPECT_NARRATIVE_MOMENTUM,
+            {
+                "actual": narrative_momentum_actual,
+                "aspect_record": _rec(ASPECT_NARRATIVE_MOMENTUM),
+            },
+        ),
+        (
             "story.dramatic_irony.select",
             ASPECT_DRAMATIC_IRONY,
             {
@@ -4485,6 +4523,7 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                         ASPECT_IMPROVISATIONAL_COHERENCE,
                         ASPECT_INFORMATION_DISCLOSURE,
                         ASPECT_EXPECTATION_VARIATION,
+                        ASPECT_NARRATIVE_MOMENTUM,
                         ASPECT_CAPABILITY_SELECTION,
                         ASPECT_NARRATOR_AUTHORITY,
                         ASPECT_NPC_AUTHORITY,
@@ -4617,6 +4656,26 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
     )
     if not isinstance(expectation_variation_failure_codes, list):
         expectation_variation_failure_codes = []
+    narrative_momentum_target = (
+        narrative_momentum_selected.get("target")
+        if isinstance(narrative_momentum_selected.get("target"), dict)
+        else narrative_momentum_selected
+    )
+    narrative_momentum_failure_codes = narrative_momentum_actual.get("failure_codes") or []
+    if not isinstance(narrative_momentum_failure_codes, list):
+        narrative_momentum_failure_codes = []
+    try:
+        narrative_momentum_progress_event_count = int(
+            narrative_momentum_actual.get("progress_event_count") or 0
+        )
+    except (TypeError, ValueError):
+        narrative_momentum_progress_event_count = 0
+    try:
+        narrative_momentum_min_progress_event_count = int(
+            narrative_momentum_target.get("min_progress_event_count") or 0
+        )
+    except (TypeError, ValueError):
+        narrative_momentum_min_progress_event_count = 0
     dramatic_irony_violation_codes = dramatic_irony_actual.get("violation_codes") or []
     if not isinstance(dramatic_irony_violation_codes, list):
         dramatic_irony_violation_codes = []
@@ -5054,6 +5113,54 @@ def _emit_langfuse_runtime_aspect_observability(path_summary: dict[str, Any]) ->
                 in {"passed", "not_applicable"}
                 and expectation_variation_actual.get("contract_pass") is not False
                 and not expectation_variation_failure_codes
+            ),
+        ),
+        (
+            "narrative_momentum_policy_present",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(
+                bool(_expected(ASPECT_NARRATIVE_MOMENTUM).get("policy_present"))
+            ),
+        ),
+        (
+            "narrative_momentum_target_selected",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(bool(narrative_momentum_target.get("target_state"))),
+        ),
+        (
+            "narrative_momentum_transition_allowed",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(
+                narrative_momentum_actual.get("transition_allowed") is not False
+                and "narrative_momentum_transition_forbidden"
+                not in narrative_momentum_failure_codes
+            ),
+        ),
+        (
+            "narrative_momentum_progress_event_present",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(
+                narrative_momentum_progress_event_count
+                >= narrative_momentum_min_progress_event_count
+            ),
+        ),
+        (
+            "narrative_momentum_stall_budget_respected",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(
+                narrative_momentum_actual.get("stall_budget_respected") is not False
+                and "narrative_momentum_stall_budget_exceeded"
+                not in narrative_momentum_failure_codes
+            ),
+        ),
+        (
+            "narrative_momentum_contract_pass",
+            ASPECT_NARRATIVE_MOMENTUM,
+            _runtime_aspect_score_value(
+                _rec(ASPECT_NARRATIVE_MOMENTUM).get("status")
+                in {"passed", "not_applicable"}
+                and narrative_momentum_actual.get("contract_pass") is not False
+                and not narrative_momentum_failure_codes
             ),
         ),
         (
@@ -7307,6 +7414,9 @@ def _prior_planner_truth_from_session(session: "StorySession") -> dict[str, Any]
         "expectation_variation_state",
         "expectation_variation_target",
         "expectation_variation_validation",
+        "narrative_momentum_state",
+        "narrative_momentum_target",
+        "narrative_momentum_validation",
         "spoken_line_count",
         "action_line_count",
         "initiative_summary",
@@ -7432,6 +7542,23 @@ def _prior_expectation_variation_state_from_session(session: "StorySession") -> 
         if not isinstance(planner, dict):
             continue
         state = planner.get("expectation_variation_state")
+        if isinstance(state, dict) and state:
+            return dict(state)
+    return None
+
+
+def _prior_narrative_momentum_state_from_session(session: "StorySession") -> dict[str, Any] | None:
+    """Read the latest committed narrative-momentum state from planner truth."""
+    for entry in reversed(session.history or []):
+        if not isinstance(entry, dict):
+            continue
+        commit = entry.get("narrative_commit")
+        if not isinstance(commit, dict):
+            continue
+        planner = commit.get("planner_truth")
+        if not isinstance(planner, dict):
+            continue
+        state = planner.get("narrative_momentum_state")
         if isinstance(state, dict) and state:
             return dict(state)
     return None
@@ -7679,6 +7806,19 @@ def _build_committed_dramatic_context_summary(
                 "validation_status": (
                     planner.get("expectation_variation_validation", {}).get("status")
                     if isinstance(planner.get("expectation_variation_validation"), dict)
+                    else None
+                ),
+            },
+            "narrative_momentum": {
+                "state": planner.get("narrative_momentum_state")
+                if isinstance(planner.get("narrative_momentum_state"), dict)
+                else {},
+                "target": planner.get("narrative_momentum_target")
+                if isinstance(planner.get("narrative_momentum_target"), dict)
+                else {},
+                "validation_status": (
+                    planner.get("narrative_momentum_validation", {}).get("status")
+                    if isinstance(planner.get("narrative_momentum_validation"), dict)
                     else None
                 ),
             },
@@ -9314,6 +9454,20 @@ class StoryRuntimeManager:
             gov["sensory_context_target"] = graph_state.get("sensory_context_target")
         if isinstance(graph_state.get("sensory_context_validation"), dict):
             gov["sensory_context_validation"] = graph_state.get("sensory_context_validation")
+        if isinstance(graph_state.get("genre_awareness_state"), dict):
+            gov["genre_awareness_state"] = graph_state.get("genre_awareness_state")
+        if isinstance(graph_state.get("genre_awareness_target"), dict):
+            gov["genre_awareness_target"] = graph_state.get("genre_awareness_target")
+        if isinstance(graph_state.get("genre_awareness_validation"), dict):
+            gov["genre_awareness_validation"] = graph_state.get("genre_awareness_validation")
+        if isinstance(graph_state.get("narrative_momentum_state"), dict):
+            gov["narrative_momentum_state"] = graph_state.get("narrative_momentum_state")
+        if isinstance(graph_state.get("narrative_momentum_target"), dict):
+            gov["narrative_momentum_target"] = graph_state.get("narrative_momentum_target")
+        if isinstance(graph_state.get("narrative_momentum_validation"), dict):
+            gov["narrative_momentum_validation"] = graph_state.get(
+                "narrative_momentum_validation"
+            )
         if isinstance(graph_state.get("symbolic_object_resonance_state"), dict):
             gov["symbolic_object_resonance_state"] = graph_state.get(
                 "symbolic_object_resonance_state"
@@ -9497,6 +9651,9 @@ class StoryRuntimeManager:
             "expectation_variation_state": graph_state.get("expectation_variation_state"),
             "expectation_variation_target": graph_state.get("expectation_variation_target"),
             "expectation_variation_validation": graph_state.get("expectation_variation_validation"),
+            "narrative_momentum_state": graph_state.get("narrative_momentum_state"),
+            "narrative_momentum_target": graph_state.get("narrative_momentum_target"),
+            "narrative_momentum_validation": graph_state.get("narrative_momentum_validation"),
             "dramatic_irony_record": graph_state.get("dramatic_irony_record"),
             "dramatic_irony_validation": graph_state.get("dramatic_irony_validation"),
             "selected_responder_set": selected_responder_set,
@@ -10095,6 +10252,9 @@ class StoryRuntimeManager:
             "expectation_variation_state": event.get("expectation_variation_state"),
             "expectation_variation_target": event.get("expectation_variation_target"),
             "expectation_variation_validation": event.get("expectation_variation_validation"),
+            "narrative_momentum_state": event.get("narrative_momentum_state"),
+            "narrative_momentum_target": event.get("narrative_momentum_target"),
+            "narrative_momentum_validation": event.get("narrative_momentum_validation"),
             "human_input_attribution": event.get("human_input_attribution"),
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "committed_state_after": {
@@ -10146,6 +10306,7 @@ class StoryRuntimeManager:
         prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
         prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
         prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
+        prior_narrative_momentum_state = _prior_narrative_momentum_state_from_session(session)
         prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
         prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
 
@@ -10165,6 +10326,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
+                prior_narrative_momentum_state=prior_narrative_momentum_state,
                 prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
@@ -11448,6 +11610,7 @@ class StoryRuntimeManager:
             prior_pacing_rhythm_state = _prior_pacing_rhythm_state_from_session(session)
             prior_social_pressure_state = _prior_social_pressure_state_from_session(session)
             prior_expectation_variation_state = _prior_expectation_variation_state_from_session(session)
+            prior_narrative_momentum_state = _prior_narrative_momentum_state_from_session(session)
             prior_symbolic_object_resonance_state = _prior_symbolic_object_resonance_state_from_session(session)
             prior_relationship_state_record = _prior_relationship_state_record_from_session(session)
             _, prior_memory_policy = _load_module_memory_policy(
@@ -11480,6 +11643,7 @@ class StoryRuntimeManager:
                 prior_consequence_cascade_state=prior_consequence_cascade_state,
                 prior_temporal_control_state=prior_temporal_control_state,
                 prior_expectation_variation_state=prior_expectation_variation_state,
+                prior_narrative_momentum_state=prior_narrative_momentum_state,
                 prior_symbolic_object_resonance_state=prior_symbolic_object_resonance_state,
                 prior_pacing_rhythm_state=prior_pacing_rhythm_state,
                 prior_social_pressure_state=prior_social_pressure_state,
@@ -11743,6 +11907,12 @@ class StoryRuntimeManager:
             event.setdefault("expectation_variation_target", graph_state.get("expectation_variation_target"))
         if isinstance(graph_state.get("expectation_variation_validation"), dict):
             event.setdefault("expectation_variation_validation", graph_state.get("expectation_variation_validation"))
+        if isinstance(graph_state.get("narrative_momentum_state"), dict):
+            event.setdefault("narrative_momentum_state", graph_state.get("narrative_momentum_state"))
+        if isinstance(graph_state.get("narrative_momentum_target"), dict):
+            event.setdefault("narrative_momentum_target", graph_state.get("narrative_momentum_target"))
+        if isinstance(graph_state.get("narrative_momentum_validation"), dict):
+            event.setdefault("narrative_momentum_validation", graph_state.get("narrative_momentum_validation"))
         if selected_responder_set:
             event.setdefault("selected_responder_set", selected_responder_set)
         actor_survival_telemetry = (
@@ -11822,6 +11992,9 @@ class StoryRuntimeManager:
             "expectation_variation_state": event.get("expectation_variation_state"),
             "expectation_variation_target": event.get("expectation_variation_target"),
             "expectation_variation_validation": event.get("expectation_variation_validation"),
+            "narrative_momentum_state": event.get("narrative_momentum_state"),
+            "narrative_momentum_target": event.get("narrative_momentum_target"),
+            "narrative_momentum_validation": event.get("narrative_momentum_validation"),
             "human_input_attribution": human_att,
             "hierarchical_memory_update": event.get("hierarchical_memory"),
             "recoverable_outcome": True,
